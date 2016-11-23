@@ -68,4 +68,7 @@ public interface IMultiSourceDataProducer
      * producer is generating data.
      */
     public Collection<String> getFeaturesOfInterestIDs();
+    
+    
+    //public Map<String, ? extends IMultiSourceStreamingDataInterface> getAllOutputs();
 }
