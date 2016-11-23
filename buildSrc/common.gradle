@@ -1,4 +1,7 @@
 
+ext.oshCoreVersion = '1.2.0-SNAPSHOT'
+
+
 allprojects  {
   group = 'org.sensorhub'
 
