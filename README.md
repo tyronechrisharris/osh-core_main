@@ -1,5 +1,7 @@
-SensorHub
+OpenSensorHub
 ===========================================================
+
+[ ![Download](https://api.bintray.com/packages/sensiasoft/osh/osh-core/images/download.svg) ](https://bintray.com/sensiasoft/osh/osh-core/_latestVersion)
 
 SensorHub software allows one to easily build interoperable and evolutive sensor networks with advanced processing capabilities and based on open-standards for all data exchanges. These open-standards are mostly [OGC](http://www.opengeospatial.org) standards from the [Sensor Web Enablement](http://www.opengeospatial.org/projects/groups/sensorwebdwg) (SWE) initiative and are key to design sensor networks that can largely evolve with time (addition of new types of sensors, reconfigurations, etc.).
 

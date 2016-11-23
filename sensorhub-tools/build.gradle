@@ -1,0 +1,7 @@
+description = 'OSH CLI Admin Tools'
+ext.details = 'Command-line administration tools for OSH'
+
+dependencies {
+  compile project(':sensorhub-core')
+  compile project(':sensorhub-storage-perst')
+}

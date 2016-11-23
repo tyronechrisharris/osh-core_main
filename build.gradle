@@ -1,0 +1,57 @@
+apply from: 'buildSrc/common.gradle'
+
+
+allprojects  {
+  version = '1.2.0-SNAPSHOT'
+}
+
+
+subprojects {
+
+  // add info to OSGI manifest
+  jar {
+    manifest {
+      instruction 'Bundle-Vendor', 'Sensia Software LLC'
+    }
+  }
+  
+  // add repo specific info to maven pom
+  ext.pom >>= {
+    developers {
+      developer {
+        id 'alexrobin'
+        name 'Alex Robin'
+        organization 'Sensia Software LLC'
+        organizationUrl 'http://www.sensiasoftware.com' 
+      }
+    } 
+  }
+}
+
+
+// task to generate aggregated javadocs
+task javadocs(type: Javadoc) {
+  Set<Project> javadocProjects = [':swe-common-core', ':sensorml-core', ':sensorhub-core']
+  source javadocProjects.collect {name -> project(name).sourceSets.main.allJava}
+  include 'org/sensorhub/api/**', 'net/opengis/**'
+  classpath = files(javadocProjects.collect {name -> project(name).sourceSets.main.compileClasspath})
+}
+
+
+// dependencies for inclusion in distribution
+dependencies {
+  project.subprojects.each {
+    p -> compile p
+  }
+}
+
+distributions {
+  main {
+    baseName = 'osh-core'
+    contents {
+      into('lib') {
+        from project.configurations.compileClasspath
+      } 
+    }
+  }
+}

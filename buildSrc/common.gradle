@@ -1,0 +1,146 @@
+
+allprojects  {
+  group = 'org.sensorhub'
+
+  repositories {
+    mavenLocal()
+    //jcenter() 
+    maven { url "http://repo.maven.apache.org/maven2" }
+    maven { url "http://sensiasoft.net/maven-repo" }
+  } 
+}
+
+
+subprojects {
+  apply plugin: 'java'
+  apply plugin: 'osgi'
+  apply plugin: 'maven-publish'
+  
+  sourceCompatibility = 1.7
+  targetCompatibility = 1.7
+  ext.details = null
+  ext.pom = {} // pom data that subprojects can append to
+  
+  tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << "-Xlint:-options"
+  }
+  
+  configurations {
+    embedded
+    compile {
+      extendsFrom embedded
+    }
+  }
+
+  // default test dependencies
+  dependencies {
+    testCompile 'junit:junit:4.11'
+    testCompile 'xmlunit:xmlunit:1.6'
+  }
+  
+  // make compileOnly classpath available to run tests
+  /*sourceSets {
+    test.runtimeClasspath += configurations.compileOnly
+  }*/
+
+  // print test names
+  test {
+    afterTest({println '-> ' + it.name})
+  }
+
+  // do packaging stuff at the end in case subprojects add extra info
+  afterEvaluate { project ->
+    
+    // jar content
+    project.jar { 
+      into('lib') {
+        from {
+          project.configurations.embedded
+        }
+      }
+      
+      // OSGi manifest info
+      manifest {        
+        // main info
+        symbolicName project.group + '.' + project.name
+        if (project.description != null)
+          attributes 'Bundle-Description': project.description          
+        
+        // add embedded jars to OSGi classpath
+        def classpath = '.'
+        project.configurations.embedded.each {
+          classpath += ',lib/' + it.name
+        }
+        attributes 'Bundle-ClassPath': classpath
+        
+        // native libs location
+        def resourcesFolder = new File(projectDir, '/src/main/resources')
+        def nativeFolder = new File(resourcesFolder, '/lib/native')
+        if (nativeFolder.exists()) {
+          def nativePaths = ''
+          fileTree(dir: nativeFolder).files.each {
+            def path = resourcesFolder.toPath().relativize(it.toPath())
+            def osname = path.getName(2)
+            def proc = path.getName(3)
+            nativePaths += 'osname=' + osname + '; '
+            nativePaths += 'processor=' + proc + '; '
+            nativePaths += path.toString() + ', '
+          }
+          attributes 'Bundle-NativeCode': nativePaths
+        }
+      }
+    }
+    
+    // maven artifact content
+    project.publishing {
+      publications {
+        mavenJava(MavenPublication) {
+          from components.java
+          pom.withXml {
+            asNode().get('version') + ({
+              resolveStrategy = Closure.DELEGATE_FIRST
+              name project.description
+              if (project.details != null)
+                description project.details
+              url 'http://www.opensensorhub.org'
+              licenses {
+                license {
+                  name 'Mozilla Public License Version 2.0'
+                  url 'http://www.mozilla.org/MPL/2.0'
+                  distribution 'repo'
+                }
+              }
+              def repoName = projectDir.parentFile.name
+              scm {
+                url 'https://github.com/opensensorhub/' + repoName + '/tree/master/' + project.name
+                connection 'scm:git:git://github.com/opensensorhub/' + repoName + '.git'
+              }
+              issueManagement {
+                url 'https://github.com/opensensorhub/' + repoName + '/issues'
+                system 'GitHub Issues'
+              }                         
+            } >> project.pom)
+          }
+        }
+      } 
+    }
+  }
+  
+  // custom task to install in local maven repo
+  task install
+  install.dependsOn('build')
+  install.dependsOn('publishToMavenLocal')  
+}
+
+
+// distribution zip files
+apply plugin: 'java'
+apply plugin: 'distribution'
+tasks.jar.enabled = false
+afterEvaluate { // disable all distTar tasks
+  tasks.each {
+    if (it.name.endsWith('istTar'))
+      it.enabled = false
+  }
+}

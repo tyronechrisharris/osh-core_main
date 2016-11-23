@@ -1,0 +1,111 @@
+
+buildscript {
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.2'
+        classpath 'org.ajoberstar.grgit:grgit:1.6.0'
+    }
+}
+
+
+allprojects  {
+  apply plugin: org.ajoberstar.gradle.git.base.GrgitPlugin
+  apply plugin: 'com.jfrog.bintray'
+}
+
+
+subprojects {
+
+  // bintray publishing options
+  bintray {
+    user = bintrayUser
+    key = bintrayPwd
+
+    publications = ['mavenJava']
+    dryRun = false //[Default: false] Whether to run this as dry-run, without deploying
+    publish = true //[Default: false] Whether version should be auto published after an upload    
+    override = true //[Default: false] Whether to override version artifacts already published 
+   
+    pkg {
+        repo = 'osh'
+        name = 'osh-core'
+        userOrg = 'sensiasoft'
+        desc = 'OpenSensorHub Core Packages'
+        websiteUrl = 'https://github.com/opensensorhub/osh-core'
+        issueTrackerUrl = 'https://github.com/opensensorhub/osh-core/issues'
+        vcsUrl = 'git://github.com/opensensorhub/osh-core.git'
+        licenses = ['MPL-2.0']
+        labels = ['sensor', 'sensor hub', 'ogc', 'swe', 'iot']
+        publicDownloadNumbers = true
+
+        //githubRepo = 'opensensorhub/osh-core'
+        //githubReleaseNotesFile = 'RELEASE_NOTES.md'
+    }
+  }  
+}
+
+
+task prerelease << {
+  
+  println 'Current version is ' + version 
+  println 'Current HEAD is ' + grgit.head().abbreviatedId 
+
+  // check that we're on master branch
+  if (grgit.branch.current.name != 'master')
+    throw new GradleException('A release can only be done from the master branch. First merge your changes to master')
+
+  // check that current version is not a snapshot
+  if (version.endsWith('SNAPSHOT'))
+    throw new GradleException('Cannot release a SNAPSHOT. Please update the project version number')
+
+  // check that we don't have any snapshot dependencies
+
+
+  // check that there is no existing tag with this version
+  // this ensures version has been incremented since last release
+  def tags = grgit.tag.list()
+  tags.each {
+    if (it.name == 'v' + version)
+      throw new GradleException('Version ' + version + ' has already been released (existing tag)')
+  }
+
+  // check for uncommited files
+  def status = grgit.status()
+  if (!status.isClean()) {
+    throw new GradleException('Local version has uncommited changes')
+  }
+
+  // update version properties
+}
+
+
+task release << {
+
+  // task dependency triggers new build here
+  println
+
+  // tag release version (after successful build)
+  println '> Adding release tag for version ' + version
+  grgit.tag.add {
+    name = 'v' + version
+    message = 'Release of version ' + version
+  }
+ 
+  // push new tag
+  println '> Pushing new tag to remote'
+  grgit.push(tags: true)
+
+  // publish to maven local and bintray
+  println '> Publishing Maven modules to Bintray'
+
+  // create GitHub release??  
+
+  // upload new javadocs
+
+  // create and switch to new dev branch
+
+}
+
+
+release.dependsOn build
+release.dependsOn prerelease
+build.shouldRunAfter prerelease

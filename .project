@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>sensorhub-storage-perst</name>
-	<comment>Project sensorhub-storage-perst created by Buildship.</comment>
+	<name>osh-core</name>
+	<comment>Project osh-core created by Buildship.</comment>
 	<projects>
 	</projects>
 	<buildSpec>
