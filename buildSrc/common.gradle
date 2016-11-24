@@ -49,7 +49,7 @@ subprojects {
 
   // print test names
   test {
-    afterTest({println '-> ' + it.name})
+    beforeTest({println '-> ' + it.name})
   }
 
   // do packaging stuff at the end in case subprojects add extra info
@@ -147,3 +147,6 @@ afterEvaluate { // disable all distTar tasks
       it.enabled = false
   }
 }
+
+// include release stuff
+//apply from: './release.gradle'
