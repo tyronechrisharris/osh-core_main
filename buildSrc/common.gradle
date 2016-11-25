@@ -51,7 +51,9 @@ subprojects {
 
   // print test names
   test {
-    beforeTest({println '-> ' + it.name})
+    testLogging {
+        events "PASSED", "FAILED"
+    }
   }
 
   // do packaging stuff at the end in case subprojects add extra info

@@ -2,7 +2,7 @@ OpenSensorHub
 ===========================================================
 
 [![Build Status](https://travis-ci.org/opensensorhub/osh-core.svg?branch=master)](https://travis-ci.org/opensensorhub/osh-core)
-[![Download](https://api.bintray.com/packages/sensiasoft/osh/osh-core/images/download.svg) ](https://bintray.com/sensiasoft/osh/osh-core/_latestVersion)
+[![Download](https://img.shields.io/bintray/v/sensiasoft/osh/osh-core.svg)](https://bintray.com/sensiasoft/osh/osh-core/_latestVersion)
 
 OpenSensorHub (OSH) software allows one to easily build interoperable and evolutive sensor networks with advanced processing capabilities and based on open-standards for all data exchanges. These open-standards are mostly [OGC](http://www.opengeospatial.org) standards from the [Sensor Web Enablement](http://www.opengeospatial.org/projects/groups/sensorwebdwg) (SWE) initiative and are key to design sensor networks that can largely evolve with time (addition of new types of sensors, reconfigurations, etc.).
 
