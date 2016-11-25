@@ -27,6 +27,10 @@ subprojects {
     options.compilerArgs << "-Xlint:-options"
   }
   
+  tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+  }
+  
   configurations {
     embedded
     compile {
