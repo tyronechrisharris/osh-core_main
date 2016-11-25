@@ -1,10 +1,12 @@
 description = 'OSH Vaadin Admin UI'
 ext.details = 'Web based admin user interface for OSH'
 
-repositories {
-  maven { url "http://maven.vaadin.com/vaadin-addons" }
+rootProject.allprojects {
+  repositories {
+    maven { url "http://maven.vaadin.com/vaadin-addons" }
+  }
 }
-  
+
 dependencies {
   compile project(':sensorhub-core')
   compile project(':sensorhub-service-swe')

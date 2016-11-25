@@ -6,10 +6,8 @@ allprojects  {
   group = 'org.sensorhub'
 
   repositories {
-    mavenLocal()
     //jcenter() 
     maven { url "http://repo.maven.apache.org/maven2" }
-    maven { url "http://sensiasoft.net/maven-repo" }
   } 
 }
 
