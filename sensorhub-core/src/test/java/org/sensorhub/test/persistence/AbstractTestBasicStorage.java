@@ -301,7 +301,7 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
             if (Thread.interrupted() || System.currentTimeMillis() - t0 > maxDuration)
                 break;
             
-            if (i%10 == 0)
+            if (i%250 == 0)
                 storage.commit();
             
             Thread.sleep(1);
