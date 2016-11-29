@@ -41,7 +41,7 @@ public class SensorHubConfig implements IGlobalConfig
     public SensorHubConfig(String moduleConfigPath, String baseStoragePath)
     {
         this.moduleConfigPath = moduleConfigPath;
-        this.moduleDataPath = "modules";
+        this.moduleDataPath = ".moduledata";
         
         this.baseStoragePath = baseStoragePath;
         if (baseStoragePath != null && !baseStoragePath.endsWith(File.separator))
