@@ -1,31 +1,8 @@
-apply from: 'buildSrc/common.gradle'
+apply from: 'common.gradle'
 
 
 allprojects  {
   version = oshCoreVersion
-}
-
-
-subprojects {
-
-  // add info to OSGI manifest
-  jar {
-    manifest {
-      instruction 'Bundle-Vendor', 'Sensia Software LLC'
-    }
-  }
-  
-  // add repo specific info to maven pom
-  ext.pom >>= {
-    developers {
-      developer {
-        id 'alexrobin'
-        name 'Alex Robin'
-        organization 'Sensia Software LLC'
-        organizationUrl 'http://www.sensiasoftware.com' 
-      }
-    } 
-  }
 }
 
 

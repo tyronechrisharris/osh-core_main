@@ -6,3 +6,23 @@ dependencies {
   embedded files('libs/org/garret/perst-fixed/4.36/perst-fixed-4.36.jar')
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }
+
+// add info to OSGI manifest
+jar {
+  manifest {
+    instruction 'Bundle-Vendor', 'Sensia Software LLC'
+    instruction 'Bundle-Activator', 'org.sensorhub.impl.persistence.perst.Activator'
+  }
+}
+
+// add info to maven pom
+ext.pom >>= {
+  developers {
+    developer {
+      id 'alexrobin'
+      name 'Alex Robin'
+      organization 'Sensia Software LLC'
+      organizationUrl 'http://www.sensiasoftware.com' 
+    }
+  } 
+}
