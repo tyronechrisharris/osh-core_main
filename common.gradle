@@ -55,7 +55,9 @@ subprojects {
   // print test names
   test {
     testLogging {
-        events "PASSED", "FAILED"
+      events "PASSED", "FAILED"
+      showStackTraces true
+      exceptionFormat 'full'
     }
   }
 
