@@ -107,6 +107,7 @@ public class TestModuleConfigJsonFile
         configDb.add(config4);
         
         // read back
+        configDb.commit();
         configDb.close();        
         configDb = new ModuleConfigJsonFile(configFile.getAbsolutePath());
         

@@ -84,6 +84,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
             
             return new TypeAdapter<R>()
             {
+                @SuppressWarnings("unchecked")
                 @Override
                 public R read(JsonReader in) throws IOException
                 {
@@ -114,6 +115,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
                 }
 
 
+                @SuppressWarnings("unchecked")
                 @Override
                 public void write(JsonWriter out, R value) throws IOException
                 {
@@ -233,7 +235,8 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     @Override
     public synchronized void close()
     {
-        commit();
+        // comment this because it overrides changes made to config file everytime!
+        //commit();
     }
     
     
