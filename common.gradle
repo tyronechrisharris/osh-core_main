@@ -7,13 +7,14 @@ allprojects  {
   repositories {
     //jcenter() 
     maven { url "http://repo.maven.apache.org/maven2" }
-  } 
+  }
 }
 
 
 subprojects {
   apply plugin: 'java'
   apply plugin: 'osgi'
+  apply plugin: 'eclipse'
   apply plugin: 'maven-publish'
   
   sourceCompatibility = 1.7
@@ -31,6 +32,13 @@ subprojects {
     options.addStringOption('Xdoclint:none', '-quiet')
   }
   
+  eclipse {
+    classpath {
+      downloadJavadoc = true
+    }
+  }
+    
+  // add embedded config for embedding jars in bundle
   configurations {
     embedded
     compile {
@@ -43,11 +51,6 @@ subprojects {
     testCompile 'junit:junit:4.11'
     testCompile 'xmlunit:xmlunit:1.6'
   }
-  
-  // make compileOnly classpath available to run tests
-  /*sourceSets {
-    test.runtimeClasspath += configurations.compileOnly
-  }*/
 
   // print test names
   test {
@@ -151,6 +154,17 @@ afterEvaluate { // disable all distTar tasks
       it.enabled = false
   }
 }
+
+
+// collect all configured repositories in parent build
+afterEvaluate { project ->
+  if (gradle.parent != null) {
+    gradle.parent.rootProject {
+      repositories.addAll(project.repositories)
+    }
+  }
+}
+
 
 // include release stuff
 //apply from: './release.gradle'

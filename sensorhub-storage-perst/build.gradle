@@ -1,9 +1,16 @@
 description = 'OSH PERST Storage'
 ext.details = 'Storage module backed by a PERST object-oriented database'
 
+def thisProjectDir = projectDir
+rootProject.allprojects {
+  repositories {
+    maven { url "file:///$thisProjectDir/libs" }
+  }
+}
+
 dependencies {
   compile project(':sensorhub-core')
-  embedded files('libs/org/garret/perst-fixed/4.36/perst-fixed-4.36.jar')
+  embedded 'org.garret:perst-fixed:4.36'
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }
 
