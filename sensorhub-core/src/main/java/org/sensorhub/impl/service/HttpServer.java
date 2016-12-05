@@ -53,6 +53,7 @@ import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
+import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServerConfig.AuthMethod;
@@ -193,7 +194,8 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                     securityHandler = new ConstraintSecurityHandler();
                     
                     // load user list
-                    OshLoginService loginService = new OshLoginService(SensorHub.getInstance().getSecurityManager());
+                    ISecurityManager securityManager = SensorHub.getInstance().getSecurityManager();
+                    OshLoginService loginService = new OshLoginService(securityManager);
                     
                     if (config.authMethod == AuthMethod.BASIC)
                         securityHandler.setAuthenticator(new BasicAuthenticator());
@@ -201,8 +203,13 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                         securityHandler.setAuthenticator(new DigestAuthenticator());
                     else if (config.authMethod == AuthMethod.CERT)
                         securityHandler.setAuthenticator(new ClientCertAuthenticator());
-                    else if (config.authMethod == AuthMethod.OAUTH)
-                        securityHandler.setAuthenticator((Authenticator)Class.forName("org.sensorhub.impl.security.oauth.OAuthAuthenticator").newInstance());
+                    else if (config.authMethod == AuthMethod.EXTERNAL)
+                    {
+                        Authenticator authenticator = securityManager.getAuthenticator();
+                        if (authenticator == null)
+                            throw new RuntimeException("External authentication method was selected but no authenticator implementation is available");
+                        securityHandler.setAuthenticator(authenticator);
+                    }
                     
                     securityHandler.setLoginService(loginService);
                     servletHandler.setSecurityHandler(securityHandler);

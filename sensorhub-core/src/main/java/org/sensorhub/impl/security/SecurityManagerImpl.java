@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.eclipse.jetty.security.Authenticator;
 import org.sensorhub.api.security.IAuthorizer;
 import org.sensorhub.api.security.IPermission;
 import org.sensorhub.api.security.IPermissionPath;
@@ -36,9 +37,11 @@ public class SecurityManagerImpl implements ISecurityManager
     private static final Logger log = LoggerFactory.getLogger(SecurityManagerImpl.class);
     
     ModuleRegistry moduleRegistry;
+    WeakReference<Authenticator> authenticator;
+    WeakReference<IUserRegistry> userDB;
+    WeakReference<IAuthorizer> authorizer;
     Map<String, IPermission> modulePermissions = new LinkedHashMap<String, IPermission>();
-    WeakReference<IUserRegistry> users;
-    WeakReference<IAuthorizer> authz;
+    
     
     
     public SecurityManagerImpl(ModuleRegistry moduleRegistry)
@@ -50,33 +53,41 @@ public class SecurityManagerImpl implements ISecurityManager
     @Override
     public boolean isAccessControlEnabled()
     {        
-        return (users != null && users.get() != null &&
-                authz != null && authz.get() != null);
+        return (userDB != null && userDB.get() != null &&
+                authorizer != null && authorizer.get() != null);
+    }
+    
+    
+    @Override
+    public void registerAuthenticator(Authenticator authenticator)
+    {
+        this.authenticator = new WeakReference<Authenticator>(authenticator);
+        log.info("Authenticator provided by module " + authenticator.toString());
     }
     
     
     @Override
     public void registerUserRegistry(IUserRegistry userRegistry)
     {
-        this.users = new WeakReference<IUserRegistry>(userRegistry);
-        log.info("User registry provided by module " + userRegistry.toString());        
+        this.userDB = new WeakReference<IUserRegistry>(userRegistry);
+        log.info("User registry provided by module " + userRegistry.toString());
     }
     
     
     @Override
-    public void registerAuthorizer(IAuthorizer authz)
+    public void registerAuthorizer(IAuthorizer authorizer)
     {
-        this.authz = new WeakReference<IAuthorizer>(authz);
-        log.info("Authorization realm provided by module " + authz.toString());        
+        this.authorizer = new WeakReference<IAuthorizer>(authorizer);
+        log.info("Authorization realm provided by module " + authorizer.toString());
     }
         
     
     @Override
     public IUserInfo getUserInfo(String userID)
     {
-        Asserts.checkNotNull(users, "No IUserRegistry implementation registered");
+        Asserts.checkNotNull(userDB, "No IUserRegistry implementation registered");
         
-        IUserRegistry users = this.users.get();
+        IUserRegistry users = this.userDB.get();
         if (users != null)
             return users.getUserInfo(userID);
         else
@@ -87,9 +98,9 @@ public class SecurityManagerImpl implements ISecurityManager
     @Override
     public boolean isAuthorized(IUserInfo user, IPermissionPath request)
     {
-        Asserts.checkNotNull(authz, "No IAuthorizer implementation registered");
+        Asserts.checkNotNull(authorizer, "No IAuthorizer implementation registered");
         
-        IAuthorizer authz = this.authz.get();
+        IAuthorizer authz = this.authorizer.get();
         if (authz != null)
             return authz.isAuthorized(user, request);
         else
@@ -101,6 +112,16 @@ public class SecurityManagerImpl implements ISecurityManager
     public void registerModulePermissions(IPermission perm)
     {
         modulePermissions.put(perm.getName(), perm);
+    }
+    
+    
+    @Override
+    public Authenticator getAuthenticator()
+    {
+        if (this.authenticator == null)
+            return null;
+        
+        return this.authenticator.get();
     }
 
 

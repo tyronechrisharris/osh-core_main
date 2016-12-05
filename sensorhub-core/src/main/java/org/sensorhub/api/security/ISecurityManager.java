@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.security;
 
 import java.util.Collection;
+import org.eclipse.jetty.security.Authenticator;
 
 
 /**
@@ -33,13 +34,19 @@ public interface ISecurityManager extends IUserRegistry, IAuthorizer
     public boolean isAccessControlEnabled();
     
     
+    public void registerAuthenticator(Authenticator authenticator);
+    
+    
     public void registerUserRegistry(IUserRegistry userRegistry);
     
     
-    public void registerAuthorizer(IAuthorizer authz);
+    public void registerAuthorizer(IAuthorizer authorizer);
     
     
     public void registerModulePermissions(IPermission perm);
+    
+    
+    public Authenticator getAuthenticator();
     
     
     public IPermission getModulePermissions(String moduleIdString);
