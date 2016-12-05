@@ -4,6 +4,38 @@ plugins {
 
 description = 'OSH Vaadin WidgetSet'
 
+/** To build w/o vaadin gradle plugin **/
+/*configurations {
+  vaadin {
+    extendsFrom compile
+  }
+}
+
+dependencies {
+  compile 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
+  compile 'com.vaadin:vaadin-themes:' + vaadinVersion  
+  compile 'org.tltv.gantt:gantt-addon:0.9.0'
+  vaadin 'com.vaadin:vaadin-client-compiler:' + vaadinVersion 
+}
+
+task compileWidgetset(type: JavaExec) {
+    main = 'com.google.gwt.dev.Compiler'
+    classpath sourceSets.main.resources.srcDirs
+    classpath configurations.vaadin
+    jvmArgs '-Xmx512M', '-Xss512M'
+    //args '-Dgwt.persistentunitcachedir', project.buildDir.canonicalPath
+    args '-war', "$projectDir/src/main/resources/VAADIN/widgetsets"
+    args '-deploy', "$projectDir/build/deploy"
+    args '-optimize', '0'
+    args '-localWorkers', '' + Runtime.getRuntime().availableProcessors()
+    args '-logLevel', 'WARN'
+    args 'org.sensorhub.ui.SensorHubWidgetSet'
+    doFirst {
+      println commandLine
+    }
+}*/
+
+
 dependencies {
   compile 'org.tltv.gantt:gantt-addon:0.9.0'
 }
@@ -12,6 +44,7 @@ vaadin {
   version '7.4.8'
 }
 
+webAppDirName = 'src/main/resources'
 war {
   extension 'jar'
   rootSpec.exclude('**/*.jar')
