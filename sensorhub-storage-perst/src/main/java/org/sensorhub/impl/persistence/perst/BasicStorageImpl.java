@@ -66,6 +66,9 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
             if (!FileUtils.isSafeFilePath(config.storagePath))
                 throw new StorageException("Storage path contains illegal characters: " + config.storagePath);
             
+            // make sure parent folders are there
+            new File(config.storagePath).getParentFile().mkdirs();
+            
             // acquire file lock on DB file
             // cannot use MappedFile because current implementation is limited to 2GB size
             //MappedFile dbFile = new MappedFile(config.storagePath, 100*1024, false);
