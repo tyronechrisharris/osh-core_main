@@ -1,2 +1,18 @@
 rootProject.name = 'osh-core'
-apply from: 'include-projects.gradle'
+
+include 'swe-common-core'
+include 'swe-common-om'
+include 'sensorml-core'
+include 'ows-framework-bindings'
+include 'sensorhub-core'
+include 'sensorhub-storage-perst'
+include 'sensorhub-service-swe'
+include 'sensorhub-tools'
+include 'sensorhub-webui-core'
+include 'sensorhub-webui-widgetset'
+
+project(':swe-common-core').projectDir = "$rootDir/lib-swe-common/swe-common-core" as File
+project(':swe-common-om').projectDir = "$rootDir/lib-swe-common/swe-common-om" as File
+project(':sensorml-core').projectDir = "$rootDir/lib-sensorml/sensorml-core" as File
+project(':ows-framework-bindings').projectDir = "$rootDir/lib-ows/ows-framework-bindings" as File
+project(':sensorhub-webui-widgetset').projectDir = "$rootDir/sensorhub-webui-core/widgetset" as File
