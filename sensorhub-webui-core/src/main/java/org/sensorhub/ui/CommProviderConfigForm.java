@@ -19,12 +19,14 @@ import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.ComplexProperty;
 import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.data.Property;
+import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.Field;
 
 
 public class CommProviderConfigForm extends GenericConfigForm
 {
     private static final long serialVersionUID = -5570947777524310604L;
+    private static final String PROP_PROTOCOL = ".protocol";
 
 
     @Override
@@ -42,8 +44,11 @@ public class CommProviderConfigForm extends GenericConfigForm
         {
             @SuppressWarnings("rawtypes")
             MyBeanItem beanItem = (MyBeanItem)prop.getValue().getItemProperty(propId+".protocol").getValue();
-            Class<?> beanType = beanItem.getBean().getClass();
-            title += " (" + beanType.getSimpleName().replace("Config", "") + ")";
+            if (beanItem != null)
+            {
+                Class<?> beanType = beanItem.getBean().getClass();
+                title += " (" + beanType.getSimpleName().replace("Config", "") + ")";
+            }
         }
         
         build(title, desc, prop.getValue(), includeSubForms);
@@ -65,6 +70,15 @@ public class CommProviderConfigForm extends GenericConfigForm
             field.setCaption("Provider Class");
         
         return field;
+    }
+    
+    
+    @Override
+    protected ComponentContainer buildSubForm(final String propId, final ComplexProperty prop)
+    {
+        if (propId.endsWith(PROP_PROTOCOL) && prop.getValue() == null)
+            return null;
+        return super.buildSubForm(propId, prop);
     }
     
     
