@@ -17,52 +17,39 @@ package org.sensorhub.impl.persistence.perst;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.module.JarModuleProvider;
 
 
 /**
  * <p>
- * Descriptor of PERST observation storage module.
+ * Descriptor of PERST based basic storage module.
  * This is needed for automatic discovery by the ModuleRegistry.
  * </p>
  *
  * @author Alex Robin <alex.robin@sensiasoftware.com>
- * @since May 25, 2015
+ * @since Sep 7, 2013
  */
-public class MultiEntityStorageModuleDescriptor implements IModuleProvider
+public class BasicStorageDescriptor extends JarModuleProvider implements IModuleProvider
 {
 
     @Override
     public String getModuleName()
     {
-        return "PERST Observation Storage";
+        return "PERST Record Storage";
     }
 
 
     @Override
     public String getModuleDescription()
     {
-        return "Generic implementation of observation storage using PERST object database";
-    }
-
-
-    @Override
-    public String getModuleVersion()
-    {
-        return "0.5";
-    }
-
-
-    @Override
-    public String getProviderName()
-    {
-        return "Sensia Software LLC";
+        return "Datastore for SWE data records (no feature information) based on PERST object database";
     }
 
 
     @Override
     public Class<? extends IModule<?>> getModuleClass()
     {
-        return ObsStorageImpl.class;
+        return BasicStorageImpl.class;
     }
 
 

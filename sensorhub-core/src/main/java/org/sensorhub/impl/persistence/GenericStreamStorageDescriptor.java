@@ -13,7 +13,7 @@ Developer are Copyright (C) 2014 the Initial Developer. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.processing;
+package org.sensorhub.impl.persistence;
 
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
@@ -21,32 +21,32 @@ import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.module.JarModuleProvider;
 
 
-public class SMLStreamProcessDescriptor extends JarModuleProvider implements IModuleProvider
+public class GenericStreamStorageDescriptor extends JarModuleProvider implements IModuleProvider
 {
     @Override
     public String getModuleName()
     {
-        return "SensorML Stream Process";
+        return "Real-Time Stream Storage";
     }
     
 
     @Override
     public String getModuleDescription()
     {
-        return "Stream process fully configured using a SensorML description";
+        return "Wrapper for storing data records pushed by a data source to the selected underlying storage";
     }
     
 
     @Override
     public Class<? extends IModule<?>> getModuleClass()
     {
-        return SMLStreamProcess.class;
+        return GenericStreamStorage.class;
     }
     
 
     @Override
     public Class<? extends ModuleConfig> getModuleConfigClass()
     {
-        return SMLStreamProcessConfig.class;
+        return StreamStorageConfig.class;
     }
 }

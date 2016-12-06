@@ -55,9 +55,9 @@ subprojects {
   // print test names
   test {
     testLogging {
-      events "PASSED", "FAILED"
+      events 'PASSED', 'FAILED'
       showStackTraces true
-      exceptionFormat 'full'
+      exceptionFormat 'SHORT'
     }
   }
 
@@ -77,7 +77,9 @@ subprojects {
         // main info
         symbolicName project.group + '.' + project.name
         if (project.description != null)
-          attributes 'Bundle-Description': project.description          
+          attributes 'Bundle-Name': project.description
+        if (project.details != null)
+          attributes 'Bundle-Description': project.details          
         
         // add embedded jars to OSGi classpath
         def classpath = '.'

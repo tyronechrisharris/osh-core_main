@@ -17,6 +17,7 @@ package org.sensorhub.impl.sensor.swe;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.module.JarModuleProvider;
 
 
 /**
@@ -28,7 +29,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Sep 5, 2015
  */
-public class SWEVirtualSensorDescriptor implements IModuleProvider
+public class SWEVirtualSensorDescriptor extends JarModuleProvider implements IModuleProvider
 {
 
     @Override
@@ -41,21 +42,7 @@ public class SWEVirtualSensorDescriptor implements IModuleProvider
     @Override
     public String getModuleDescription()
     {
-        return "Driver for SWE enabled sensors communicating via SOS & SPS standard services";
-    }
-
-
-    @Override
-    public String getModuleVersion()
-    {
-        return "0.1";
-    }
-
-
-    @Override
-    public String getProviderName()
-    {
-        return "Sensia Software LLC";
+        return "Generic driver for SWE enabled sensors communicating via SOS & SPS standard services";
     }
 
 

@@ -29,13 +29,13 @@ import org.sensorhub.api.persistence.IObsStorage;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since May 25, 2015
  */
-public class MultiEntityStorageImpl extends ObsStorageImpl implements IMultiSourceStorage<IObsStorage>
+public class MultiStorageImpl extends ObsStorageImpl implements IMultiSourceStorage<IObsStorage>
 {
         
     @Override
     protected Persistent createRoot(Storage db)
     {
-        MultiEntityStorageRoot dbRoot = new MultiEntityStorageRoot(db);
+        MultiStorageRoot dbRoot = new MultiStorageRoot(db);
         return dbRoot;
     }
     
@@ -43,21 +43,21 @@ public class MultiEntityStorageImpl extends ObsStorageImpl implements IMultiSour
     @Override
     public Collection<String> getProducerIDs()
     {
-        return ((MultiEntityStorageRoot)dbRoot).getProducerIDs();
+        return ((MultiStorageRoot)dbRoot).getProducerIDs();
     }
 
 
     @Override
     public IObsStorage getDataStore(String producerID)
     {
-        return ((MultiEntityStorageRoot)dbRoot).getDataStore(producerID);
+        return ((MultiStorageRoot)dbRoot).getDataStore(producerID);
     }
     
     
     @Override
     public synchronized IObsStorage addDataStore(String producerID)
     {
-        IObsStorage dataStore = ((MultiEntityStorageRoot)dbRoot).addDataStore(producerID);
+        IObsStorage dataStore = ((MultiStorageRoot)dbRoot).addDataStore(producerID);
         if (autoCommit)
             commit();
         

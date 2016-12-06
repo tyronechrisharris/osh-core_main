@@ -12,64 +12,51 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.persistence.perst;
+package org.sensorhub.impl.service.sos;
 
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.module.JarModuleProvider;
 
 
 /**
  * <p>
- * Descriptor of PERST based basic storage module.
- * This is needed for automatic discovery by the ModuleRegistry.
+ * Descriptor of SOS service module, needed for automatic discovery by
+ * the ModuleRegistry.
  * </p>
  *
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Sep 7, 2013
  */
-public class BasicStorageModuleDescriptor implements IModuleProvider
+public class SOSServiceDescriptor extends JarModuleProvider implements IModuleProvider
 {
 
     @Override
     public String getModuleName()
     {
-        return "PERST Basic Storage";
+        return "SOS Service";
     }
 
 
     @Override
     public String getModuleDescription()
     {
-        return "Generic implementation of data record storage using PERST object database";
-    }
-
-
-    @Override
-    public String getModuleVersion()
-    {
-        return "0.5";
-    }
-
-
-    @Override
-    public String getProviderName()
-    {
-        return "Sensia Software LLC";
+        return "Data access service compliant with the OGC Sensor Observation Service (SOS) 2.0 standard";
     }
 
 
     @Override
     public Class<? extends IModule<?>> getModuleClass()
     {
-        return BasicStorageImpl.class;
+        return SOSService.class;
     }
 
 
     @Override
     public Class<? extends ModuleConfig> getModuleConfigClass()
     {
-        return BasicStorageConfig.class;
+        return SOSServiceConfig.class;
     }
 
 }

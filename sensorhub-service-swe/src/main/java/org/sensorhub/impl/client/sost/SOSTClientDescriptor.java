@@ -17,6 +17,7 @@ package org.sensorhub.impl.client.sost;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.module.JarModuleProvider;
 
 
 /**
@@ -28,7 +29,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Feb 21, 2015
  */
-public class SOSTClientModuleDescriptor implements IModuleProvider
+public class SOSTClientDescriptor extends JarModuleProvider implements IModuleProvider
 {
 
     @Override
@@ -41,21 +42,7 @@ public class SOSTClientModuleDescriptor implements IModuleProvider
     @Override
     public String getModuleDescription()
     {
-        return "Generic implementation of OGC Sensor Observation Service 2.0 Transactional Client";
-    }
-
-
-    @Override
-    public String getModuleVersion()
-    {
-        return "0.5";
-    }
-
-
-    @Override
-    public String getProviderName()
-    {
-        return "Sensia Software LLC";
+        return "Sensor Observation Service 2.0 client for pushing observations to a remote SensorHub";
     }
 
 

@@ -18,39 +18,31 @@ package org.sensorhub.impl.security;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.module.JarModuleProvider;
 
 
-public class BasicSecurityRealmDescriptor implements IModuleProvider
+public class BasicSecurityRealmDescriptor extends JarModuleProvider implements IModuleProvider
 {
     @Override
     public String getModuleName()
     {
         return "Config Based Security Realm";
     }
+    
 
     @Override
     public String getModuleDescription()
     {
-        return "Basic security realm reading users and roles configuration from config file";
+        return "Basic security realm allowing configuration of users and roles from config file";
     }
-
-    @Override
-    public String getModuleVersion()
-    {
-        return "1.0";
-    }
-
-    @Override
-    public String getProviderName()
-    {
-        return "Sensia Software LLC";
-    }
+    
 
     @Override
     public Class<? extends IModule<?>> getModuleClass()
     {
         return BasicSecurityRealm.class;
     }
+    
 
     @Override
     public Class<? extends ModuleConfig> getModuleConfigClass()

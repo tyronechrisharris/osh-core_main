@@ -18,39 +18,31 @@ package org.sensorhub.impl.comm;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.module.JarModuleProvider;
 
 
-public class TCPCommModuleDescriptor implements IModuleProvider
+public class TCPCommModuleDescriptor extends JarModuleProvider implements IModuleProvider
 {
     @Override
     public String getModuleName()
     {
         return "TCP Comm Driver";
     }
+    
 
     @Override
     public String getModuleDescription()
     {
         return "Simple TCP/IP communication provider using JDK TCP stack";
     }
-
-    @Override
-    public String getModuleVersion()
-    {
-        return "0.1";
-    }
-
-    @Override
-    public String getProviderName()
-    {
-        return "Sensia Software LLC";
-    }
+    
 
     @Override
     public Class<? extends IModule<?>> getModuleClass()
     {
         return TCPCommProvider.class;
     }
+    
 
     @Override
     public Class<? extends ModuleConfig> getModuleConfigClass()

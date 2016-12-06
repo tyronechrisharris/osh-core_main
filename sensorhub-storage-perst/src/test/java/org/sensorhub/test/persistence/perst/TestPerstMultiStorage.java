@@ -18,11 +18,11 @@ import java.io.File;
 import org.junit.After;
 import org.junit.Before;
 import org.sensorhub.impl.persistence.perst.BasicStorageConfig;
-import org.sensorhub.impl.persistence.perst.MultiEntityStorageImpl;
+import org.sensorhub.impl.persistence.perst.MultiStorageImpl;
 import org.sensorhub.test.persistence.AbstractTestMultiObsStorage;
 
 
-public class TestPerstMultiObsStorage extends AbstractTestMultiObsStorage<MultiEntityStorageImpl>
+public class TestPerstMultiStorage extends AbstractTestMultiObsStorage<MultiStorageImpl>
 {
     File dbFile;
     
@@ -37,7 +37,7 @@ public class TestPerstMultiObsStorage extends AbstractTestMultiObsStorage<MultiE
         dbFile.deleteOnExit();
         config.storagePath = dbFile.getAbsolutePath();
         
-        storage = new MultiEntityStorageImpl();
+        storage = new MultiStorageImpl();
         storage.init(config);
         storage.start();
     }

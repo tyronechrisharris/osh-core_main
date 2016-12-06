@@ -18,39 +18,31 @@ package org.sensorhub.impl.comm;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.module.JarModuleProvider;
 
 
-public class UDPCommModuleDescriptor implements IModuleProvider
+public class UDPCommModuleDescriptor extends JarModuleProvider implements IModuleProvider
 {
     @Override
     public String getModuleName()
     {
         return "UDP Comm Driver";
     }
+    
 
     @Override
     public String getModuleDescription()
     {
         return "Simple UDP communication provider using JDK TCP stack";
     }
-
-    @Override
-    public String getModuleVersion()
-    {
-        return "0.1";
-    }
-
-    @Override
-    public String getProviderName()
-    {
-        return "Sensia Software LLC";
-    }
-
+    
+    
     @Override
     public Class<? extends IModule<?>> getModuleClass()
     {
         return UDPCommProvider.class;
     }
+    
 
     @Override
     public Class<? extends ModuleConfig> getModuleConfigClass()

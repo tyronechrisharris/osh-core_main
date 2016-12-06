@@ -1,5 +1,5 @@
-description = 'OSH Core APIs'
-ext.details = 'OSH Core Components'
+description = 'OSH Core APIs & Components'
+ext.details = 'Core components of OpenSensorHub framework'
 
 dependencies {
   compile project(':swe-common-core')

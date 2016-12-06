@@ -136,6 +136,8 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
             caps.setPhenomenonTime(getTimeExtentFromStorage());
         
             // add procedure ID
+            if (storage.getLatestDataSourceDescription() == null)
+                throw new ServiceException("Storage is empty");
             caps.getProcedures().add(storage.getLatestDataSourceDescription().getUniqueIdentifier());
             
             // supported formats
