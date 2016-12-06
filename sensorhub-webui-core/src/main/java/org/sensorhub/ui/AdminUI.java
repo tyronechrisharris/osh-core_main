@@ -91,7 +91,7 @@ import com.vaadin.ui.Window.CloseListener;
 public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConstants
 {
     private static final long serialVersionUID = 4069325051233125115L;    
-    private static final Action ADD_MODULE_ACTION = new Action("Add Module", new ThemeResource("icons/module_add.png"));
+    private static final Action ADD_MODULE_ACTION = new Action("Add New Module", new ThemeResource("icons/module_add.png"));
     private static final Action REMOVE_MODULE_ACTION = new Action("Remove Module", new ThemeResource("icons/module_delete.png"));
     private static final Action START_MODULE_ACTION = new Action("Start", new ThemeResource("icons/enable.png"));
     private static final Action STOP_MODULE_ACTION = new Action("Stop", new ThemeResource("icons/disable.gif"));
@@ -185,7 +185,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         stack.setSizeFull();
         VerticalLayout layout;
         Tab tab;
-                
+        
         layout = new VerticalLayout();
         tab = stack.addTab(layout, "Sensors");
         //tab.setIcon(ACC_TAB_ICON);
@@ -470,6 +470,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         table.addContainerProperty(PROP_MODULE_OBJECT, IModule.class, null);
         table.setColumnWidth(PROP_STATE, 100);
         table.setColumnHeaderMode(ColumnHeaderMode.HIDDEN);
+        layout.addComponent(table);
         moduleTables.put(configType, table);
         
         // add modules info as table items       
@@ -583,8 +584,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                 }
             }            
         });        
-        layout.addComponent(table);
-        
+                
         // context menu
         table.addActionHandler(new Handler() {
             @Override
@@ -603,12 +603,12 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     actions.add(STOP_MODULE_ACTION);
                     actions.add(REINIT_MODULE_ACTION);
                     actions.add(REMOVE_MODULE_ACTION);
+                    
+                    actions.add(new Action("-------------------------------"));
                 }
-                else
-                {
-                    if (configType != null)
-                        actions.add(ADD_MODULE_ACTION);
-                }
+                
+                if (configType != null)
+                    actions.add(ADD_MODULE_ACTION);
                 
                 return actions.toArray(new Action[0]);
             }
@@ -836,7 +836,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     }
                 }
             }
-        });
+        });        
         
         layout.setSizeFull();
     }
