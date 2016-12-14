@@ -27,7 +27,7 @@ import org.sensorhub.api.module.ModuleConfig;
 public class ModuleUtils
 {
     public final static String MODULE_NAME = "Bundle-Name";
-    public final static String MODULE_DESC = "Bundle-Desc";
+    public final static String MODULE_DESC = "Bundle-Description";
     public final static String MODULE_VERSION = "Bundle-Version";
     public final static String MODULE_VENDOR = "Bundle-Vendor";
     
