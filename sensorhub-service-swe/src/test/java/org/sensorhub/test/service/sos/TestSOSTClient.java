@@ -61,7 +61,7 @@ public class TestSOSTClient
     }
     
     
-    protected ISensorModule<?> buildSensor1() throws Exception
+    protected ISensorModule<?> buildSensor1(int numSamples) throws Exception
     {
         // create test sensor
         SensorConfig sensorCfg = new SensorConfig();
@@ -70,7 +70,7 @@ public class TestSOSTClient
         sensorCfg.name = "Sensor1";
         FakeSensor sensor = (FakeSensor)sosTest.registry.loadModule(sensorCfg);
         sensor.setSensorUID(SENSOR_UID);
-        sensor.setDataInterfaces(new FakeSensorData(sensor, TestSOSService.NAME_OUTPUT1, 10, SAMPLING_PERIOD, NUM_GEN_SAMPLES));
+        sensor.setDataInterfaces(new FakeSensorData(sensor, TestSOSService.NAME_OUTPUT1, 10, SAMPLING_PERIOD, numSamples));
         sensor.requestInit(false);
         sensor.setStartedState(); // fake started state but don't send data yet
         return sensor;
@@ -165,7 +165,7 @@ public class TestSOSTClient
         sosTest.deployService(true, new SOSProviderConfig[0]);
      
         // start client
-        ISensorModule<?> sensor = buildSensor1();
+        ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
         startClient(sensor.getLocalID(), false);
         
         // check capabilities content
@@ -181,7 +181,7 @@ public class TestSOSTClient
         sosTest.deployService(false, new SOSProviderConfig[0]);
         
         // start client
-        ISensorModule<?> sensor = buildSensor1();
+        ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
         startClient(sensor.getLocalID(), false);
     }
     
@@ -190,7 +190,7 @@ public class TestSOSTClient
     public void testRegisterAsyncReconnect() throws Exception
     {
         // start client
-        ISensorModule<?> sensor = buildSensor1();
+        ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
         startClient(sensor.getLocalID(), true);
         Thread.sleep(100);
         
@@ -207,7 +207,7 @@ public class TestSOSTClient
     public void testRegisterAsyncReconnectNoServer() throws Exception
     {
         // start client
-        ISensorModule<?> sensor = buildSensor1();
+        ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
         SOSTClient client = startClient(sensor.getLocalID(), true, false, 3);
         
         // wait for exception
@@ -228,7 +228,7 @@ public class TestSOSTClient
         SOSService sos = sosTest.deployService(true, new SOSProviderConfig[0]);
         
         // start client
-        ISensorModule<?> sensor = buildSensor1();
+        ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
         startClient(sensor.getLocalID(), false, false, 1);
         
         // reduce liveDataTimeout of new provider
@@ -253,7 +253,7 @@ public class TestSOSTClient
         SOSService sos = sosTest.deployService(true, new SOSProviderConfig[0]);
         
         // start client
-        ISensorModule<?> sensor = buildSensor1();
+        ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
         startClient(sensor.getLocalID(), false, true, 1);
         
         // reduce liveDataTimeout of new provider
@@ -280,7 +280,7 @@ public class TestSOSTClient
         sosTest.deployService(true, new SOSProviderConfig[0]);
         
         // start client
-        ISensorModule<?> sensor = buildSensor1();
+        ISensorModule<?> sensor = buildSensor1(25);
         SOSTClient client = startClient(sensor.getLocalID(), false, true, 2);
         
         // start sensor
