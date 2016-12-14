@@ -64,7 +64,11 @@ import net.opengis.swe.v20.SimpleComponent;
 import net.opengis.swe.v20.TextEncoding;
 import net.opengis.swe.v20.Vector;
 import net.opengis.swe.v20.XMLEncoding;
+import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
+import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.ModuleConfig;
@@ -149,10 +153,11 @@ import com.vividsolutions.jts.geom.Polygon;
 @SuppressWarnings("serial")
 public class SOSServlet extends org.vast.ows.sos.SOSServlet
 {
-    private static final String INVALID_WS_REQ_MSG = "Invalid WebSocket request: ";
+    private static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";
     private static final String INVALID_SML_MSG = "Invalid SensorML description: ";
         
     private static final QName EXT_REPLAY = new QName("replayspeed"); // kvp params are always lower case
+    private static final QName EXT_WS = new QName("websocket");
     
     SOSServiceConfig config;
     SOSSecurity securityHandler;
@@ -453,37 +458,31 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             if (factory.isUpgradeRequest(req, resp))
             {
                 // parse request
-                OWSRequest owsReq = null;
                 try
                 {
-                    owsReq = this.parseRequest(req, resp, false);
+                    OWSRequest owsReq = this.parseRequest(req, resp, false);
                     
                     if (owsReq != null)
                     {
-                        // send error if request is not supported via websockets
-                        if (!(owsReq instanceof GetResultRequest))
+                        owsReq.getExtensions().put(EXT_WS, factory);
+                        
+                        if (owsReq instanceof GetResultRequest)
                         {
-                            String errorMsg = INVALID_WS_REQ_MSG + owsReq.getOperation() + " is not supported via this protocol.";
-                            resp.sendError(400, errorMsg);
-                            log.trace(errorMsg);
-                            owsReq = null;
+                            acceptWebSocket(owsReq, new SOSWebSocketOut(this, owsReq, log));
                         }
+                        else if (owsReq instanceof InsertResultRequest)
+                        {
+                            this.handleRequest(owsReq);
+                        }
+                        else
+                            throw new RuntimeException(INVALID_WS_REQ_MSG + owsReq.getOperation() + " is not supported via this protocol");
                     }
                 }
                 catch (Exception e)
                 {
-                }
-                
-                // if SOS request was accepted, create websocket instance
-                // and start streaming / accepting incoming stream
-                if (owsReq != null)
-                {
-                    SOSWebSocket socketCreator = new SOSWebSocket(this, owsReq);                
-                    if (factory.acceptWebSocket(socketCreator, req, resp))
-                    {
-                        // We have a socket instance created
-                        return;
-                    }
+                    String errorMsg = "Error while processing Websocket request";
+                    resp.sendError(400, errorMsg);
+                    log.trace(errorMsg, e);
                 }
 
                 return;
@@ -496,6 +495,18 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         {
             securityHandler.clearCurrentUser();
         }
+    }
+    
+    
+    protected void acceptWebSocket(final OWSRequest owsReq, final WebSocketListener socket) throws IOException
+    {
+        factory.acceptWebSocket(new WebSocketCreator() {
+            @Override
+            public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
+            {
+                return socket;
+            }            
+        }, owsReq.getHttpRequest(), owsReq.getHttpResponse());
     }
 
 
@@ -1301,7 +1312,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     /*
      * Check if request comes from a compatible browser
      */
-    protected boolean isRequestFromBrowser(GetResultRequest request)
+    protected boolean isRequestFromBrowser(OWSRequest request)
     {
         // don't do multipart with websockets
         HttpServletRequest httpRequest = request.getHttpRequest();
@@ -1320,6 +1331,15 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             return true;
         
         return false;
+    }
+    
+    
+    /*
+     * Check if request is through websocket protocol
+     */
+    protected boolean isWebSocketRequest(OWSRequest request)
+    {
+        return request.getExtensions().containsKey(EXT_WS);
     }
     
     
@@ -1510,15 +1530,24 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             parser = SWEHelper.createDataParser(encoding);
             parser.setDataComponents(dataStructure);
             parser.setInput(resultStream);
-                        
-            // parse each record and send it to consumer
-            DataBlock nextBlock = null;
-            while ((nextBlock = parser.parseNextBlock()) != null)
-                consumer.newResultRecord(templateID, nextBlock);
-            
-            // build and send response
-            InsertResultResponse resp = new InsertResultResponse();
-            sendResponse(request, resp);
+
+            // if websocket, parse records in the callback
+            if (isWebSocketRequest(request))
+            {
+                WebSocketListener socket = new SOSWebSocketIn(parser, consumer, templateID, log);
+                this.acceptWebSocket(request, socket);
+            }
+            else
+            {
+                // parse each record and send it to consumer
+                DataBlock nextBlock = null;
+                while ((nextBlock = parser.parseNextBlock()) != null)
+                    consumer.newResultRecord(templateID, nextBlock);
+                
+                // build and send response
+                InsertResultResponse resp = new InsertResultResponse();
+                sendResponse(request, resp);
+            }
         }
         catch (ReaderException e)
         {

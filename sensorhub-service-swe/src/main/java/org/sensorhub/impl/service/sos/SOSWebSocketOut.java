@@ -20,11 +20,7 @@ import java.util.concurrent.Executors;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
-import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.vast.ows.OWSRequest;
 import org.vast.ows.sos.GetResultRequest;
 
@@ -37,10 +33,12 @@ import org.vast.ows.sos.GetResultRequest;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Feb 19, 2015
  */
-public class SOSWebSocket implements WebSocketCreator, WebSocketListener, Runnable
+public class SOSWebSocketOut implements WebSocketListener, Runnable
 {
-    private static final Logger log = LoggerFactory.getLogger(SOSWebSocket.class);
+    final static String WS_ERROR = "Error while sending websocket stream";
+    final static String INPUT_NOT_SUPPORTED = "Incoming data not supported";
     
+    Logger log;
     Session session;
     SOSServlet parentService;
     OWSRequest request;
@@ -48,26 +46,16 @@ public class SOSWebSocket implements WebSocketCreator, WebSocketListener, Runnab
     Executor threadPool;
     
     
-    public SOSWebSocket(SOSServlet parentService, OWSRequest request)//, Executor threadPool)
+    public SOSWebSocketOut(SOSServlet parentService, OWSRequest request, Logger log)
     {
         this.parentService = parentService;
         this.request = request;
         this.threadPool = Executors.newSingleThreadExecutor();
+        this.log = log;
         
         // enforce no XML wrapper to GetResult response
         if (request instanceof GetResultRequest)
             ((GetResultRequest) request).setXmlWrapper(false);
-    }
-    
-    
-    @Override
-    public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
-    {
-        // return null if request was not accepted
-        if (request == null)
-            return null;
-        
-        return this;
     }
     
     
@@ -82,32 +70,15 @@ public class SOSWebSocket implements WebSocketCreator, WebSocketListener, Runnab
         // launch processing in separate thread
         threadPool.execute(this);
     }
-    
-    
-    @Override
-    public void onWebSocketBinary(byte payload[], int offset, int len)
-    {
-    }
 
 
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
+        WebSocketUtils.logClose(statusCode, reason, log);    
+        if (respOutputStream != null)
+            respOutputStream.close();
         session = null;
-        respOutputStream.close();
-        log.debug("Session closed");
-    }
-    
-    
-    @Override
-    public void onWebSocketError(Throwable e)
-    {
-    }
-
-
-    @Override
-    public void onWebSocketText(String msg)
-    {        
     }
 
 
@@ -135,5 +106,26 @@ public class SOSWebSocket implements WebSocketCreator, WebSocketListener, Runnab
             if (session != null)
                 session.close(StatusCode.PROTOCOL, e.getMessage());
         }
+    }
+    
+    
+    @Override
+    public void onWebSocketError(Throwable e)
+    {
+        log.error(WS_ERROR, e);
+    }
+    
+    
+    @Override
+    public void onWebSocketBinary(byte payload[], int offset, int len)
+    {
+        session.close(StatusCode.BAD_DATA, INPUT_NOT_SUPPORTED);
+    }
+
+
+    @Override
+    public void onWebSocketText(String msg)
+    {
+        session.close(StatusCode.BAD_DATA, INPUT_NOT_SUPPORTED);
     }
 }

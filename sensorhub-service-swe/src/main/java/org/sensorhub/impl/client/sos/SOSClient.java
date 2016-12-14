@@ -216,7 +216,7 @@ public class SOSClient
                     if (payload == null || payload.length == 0)
                         return;
                     
-                    ByteArrayInputStream is = new ByteArrayInputStream(payload);
+                    ByteArrayInputStream is = new ByteArrayInputStream(payload, offset, len);
                     parser.setInput(is);
                     DataBlock data = parser.parseNextBlock();
                     listener.newRecord(data);

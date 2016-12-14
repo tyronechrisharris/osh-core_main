@@ -16,7 +16,10 @@ package org.sensorhub.test.service.sos;
 
 import static org.junit.Assert.*;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.util.concurrent.Future;
 import net.opengis.sensorml.v20.PhysicalSystem;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.DataStream;
@@ -24,6 +27,10 @@ import net.opengis.swe.v20.Quantity;
 import net.opengis.swe.v20.Time;
 import net.opengis.swe.v20.Vector;
 import org.apache.commons.io.IOUtils;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketAdapter;
+import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
+import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +52,9 @@ import org.vast.ows.OWSException;
 import org.vast.ows.OWSResponse;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.InsertObservationRequest;
+import org.vast.ows.sos.InsertResultRequest;
 import org.vast.ows.sos.InsertResultTemplateRequest;
+import org.vast.ows.sos.InsertResultTemplateResponse;
 import org.vast.ows.sos.InsertSensorRequest;
 import org.vast.ows.swe.InsertSensorResponse;
 import org.vast.ows.sos.SOSOfferingCapabilities;
@@ -53,14 +62,19 @@ import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.sos.SOSUtils;
 import org.vast.sensorML.PhysicalSystemImpl;
 import org.vast.swe.SWEConstants;
+import org.vast.util.DateTimeFormat;
 import org.vast.util.TimeExtent;
 
 
 public class TestSOSTService
 {
-    private static String SENSOR_UID = "urn:test:newsensor:0001";    
+    private static String SENSOR_UID = "urn:test:newsensor:0001";  
+    private static final String URI_OUTPUT1 = "urn:blabla:temp";
+    private static final String URI_OUTPUT2 = "urn:blabla:gps";
+    private static final int NUM_GEN_SAMPLES = 5;
     TestSOSService sosTest;
     ModuleRegistry registry;
+    Throwable error = null;
     
     
     @Before
@@ -98,33 +112,30 @@ public class TestSOSTService
         
         // output 1
         DataStream tempOutput = new DataList();
-        procedure .addOutput("tempOut", tempOutput);
+        procedure.addOutput("tempOut", tempOutput);
+        tempOutput.setEncoding(new TextEncodingImpl());
         
         DataRecord tempRec = new DataRecordImpl(2);
-        tempOutput.setElementType("elt", tempRec);
-        
+        tempRec.setDefinition(URI_OUTPUT1);
+        tempOutput.setElementType("tempOut", tempRec);        
         Time timeTag = new TimeImpl();
         timeTag.setDefinition(SWEConstants.DEF_SAMPLING_TIME);
         timeTag.getUom().setHref(Time.ISO_TIME_UNIT);
-        tempRec.addComponent("time", timeTag);
-        
+        tempRec.addComponent("time", timeTag);        
         Quantity tempVal = new QuantityImpl();
         tempVal.setDefinition("http://mmisw.org/ont/cf/parameter/air_temperature");
         tempVal.getUom().setCode("Cel");
-        tempRec.addComponent("temp", tempVal);
-        
-        tempOutput.setEncoding(new TextEncodingImpl());
-        
+        tempRec.addComponent("temp", tempVal);        
         
         // output 2
         DataStream posOutput = new DataList();
         procedure.addOutput("posOut", posOutput);
+        posOutput.setEncoding(new TextEncodingImpl());
         
         DataRecord posRec = new DataRecordImpl(2);
-        posOutput.setElementType("elt", posRec);
-        
-        posRec.addComponent("time", timeTag.copy());
-        
+        posRec.setDefinition(URI_OUTPUT2);
+        posOutput.setElementType("posOut", posRec);        
+        posRec.addComponent("time", timeTag.copy());        
         Vector posVector = new VectorImpl(3);
         posVector.setDefinition(SWEConstants.DEF_SAMPLING_LOC);
         posVector.setReferenceFrame("http://www.opengis.net/def/crs/EPSG/0/4979");
@@ -132,9 +143,6 @@ public class TestSOSTService
         posVector.addComponent("lon", new QuantityImpl());
         posVector.addComponent("alt", new QuantityImpl());
         posRec.addComponent("pos", posVector);
-        
-        posOutput.setEncoding(new TextEncodingImpl());
-        
         
         // build insert sensor request
         InsertSensorRequest req = new InsertSensorRequest();
@@ -155,7 +163,6 @@ public class TestSOSTService
     
     protected InsertResultTemplateRequest buildInsertResultTemplate(DataStream output, InsertSensorResponse resp) throws Exception
     {
-        // build insert sensor request
         InsertResultTemplateRequest req = new InsertResultTemplateRequest();
         req.setPostServer(getSosEndpointUrl());
         req.setVersion("2.0");
@@ -163,6 +170,16 @@ public class TestSOSTService
         req.setResultStructure(output.getElementType());
         req.setResultEncoding(output.getEncoding());
         req.setObservationTemplate(new ObservationImpl());
+        return req;
+    }
+    
+    
+    protected InsertResultRequest buildInsertResult(InsertResultTemplateResponse resp) throws Exception
+    {
+        InsertResultRequest req = new InsertResultRequest();
+        req.setGetServer(getSosEndpointUrl());
+        req.setVersion("2.0");
+        req.setTemplateId(resp.getAcceptedTemplateId());
         return req;
     }
     
@@ -290,25 +307,86 @@ public class TestSOSTService
     }
 
     
-    //@Test
-    public void testInsertResult() throws Exception
+    @Test
+    public void testInsertResultWebsocket() throws Exception
     {
-        // send insert result
+        SOSService sos = deployService(new SensorDataProviderConfig[0]);
+        OWSUtils utils = new OWSUtils();
         
-        // check we can retrieve data back
+        // first register sensor
+        InsertSensorRequest insertSensorReq = buildInsertSensor();
+        InsertSensorResponse insertSensorResp = (InsertSensorResponse)utils.sendRequest(insertSensorReq, false);
         
-    }
-    
-    
-    //@Test
-    public void testInsertResultWithLiveListener() throws Exception
-    {
-        // connect getResult client
+        // reduce liveDataTimeout of new provider
+        SensorDataProviderConfig provider = (SensorDataProviderConfig)sos.getConfiguration().dataProviders.get(0);
+        provider.liveDataTimeout = 1.0;
         
-        // send insert result
+        // send insert template
+        DataStream output = (DataStream)insertSensorReq.getProcedureDescription().getOutputList().get(1);
+        InsertResultTemplateResponse insertTemplateResp = (InsertResultTemplateResponse)utils.sendRequest(buildInsertResultTemplate(output, insertSensorResp), false);
         
-        // check client receives real time data
+        // build insert result request
+        InsertResultRequest insertResultReq = buildInsertResult(insertTemplateResp);
+        String url = utils.buildURLQuery(insertResultReq);
+        url = url.replace("http://", "ws://");
         
+        // init websocket client
+        final Object lock = new Object();
+        WebSocketClient wsClient = new WebSocketClient();
+        wsClient.start();
+        URI wsUri = new URI(url);
+        ClientUpgradeRequest request = new ClientUpgradeRequest();
+        WebSocketAdapter socket = new WebSocketAdapter() {
+            public void onWebSocketClose(int statusCode, String reason)
+            {
+                super.onWebSocketClose(statusCode, reason);
+                synchronized (lock) { lock.notifyAll(); }
+            }
+
+            public void onWebSocketError(Throwable e)
+            {
+                error = e;
+            }            
+        };
+        Future<Session> future = wsClient.connect(socket, wsUri, request);
+        Session session = future.get();        
+        assertTrue("Websocket client could not connect", socket.isConnected());
+        
+        // initiate GetResult request to check retrieved data
+        Future<String[]> f = sosTest.sendGetResultAsync(SENSOR_UID + "-sos", 
+                URI_OUTPUT2, TestSOSService.TIMERANGE_FUTURE, false);
+        
+        // send data using websocket
+        DateTimeFormat timeFormat = new DateTimeFormat();
+        double t0 = timeFormat.parseIso("2010-01-01T00:00:00Z");
+        for (int i=0; i<NUM_GEN_SAMPLES; i++)
+        {
+            String isoTime = timeFormat.formatIso(t0 + i, 0);
+            byte[] data = new String(isoTime + "," + (40.0+i/10.) + "," + (-90.0-i/10.) + ",0.0\n").getBytes();
+            ByteBuffer buf = ByteBuffer.wrap(data);
+            session.getRemote().sendBytes(buf);
+            Thread.sleep(300);
+        }
+        
+        // check no errors occured during transfer
+        if (error != null)
+        {
+            error.printStackTrace();
+            fail("Error while sending records using websocket");
+        }
+        
+        // check that we received all records
+        sosTest.checkGetResultResponse(f.get(), NUM_GEN_SAMPLES, 4);
+        
+        // request close and check proper disconnection
+        session.close();
+        synchronized (lock)
+        {
+            if (socket.isConnected())
+                lock.wait(5000);
+        }
+        
+        assertTrue("Websocket client was not properly disconnected", socket.isNotConnected());
     }
     
     

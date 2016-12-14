@@ -48,6 +48,11 @@ import org.vast.swe.SWEConstants;
  */
 public class FakeSensorData extends AbstractSensorOutput<FakeSensor> implements IFakeSensorOutput
 {
+    public static final String URI_OUTPUT1 = "urn:blabla:weatherData";
+    public static final String URI_OUTPUT1_FIELD1 = "urn:blabla:temperature";
+    public static final String URI_OUTPUT1_FIELD2 = "urn:blabla:windSpeed";
+    public static final String URI_OUTPUT1_FIELD3 = "urn:blabla:pressure";
+    
     String name;
     DataComponent outputStruct;
     DataEncoding outputEncoding;
@@ -84,7 +89,7 @@ public class FakeSensorData extends AbstractSensorOutput<FakeSensor> implements 
     {
         outputStruct = new DataRecordImpl(3);
         outputStruct.setName(this.name);
-        outputStruct.setDefinition("urn:blabla:weatherData");
+        outputStruct.setDefinition(URI_OUTPUT1);
         
         Time time = new TimeImpl();
         time.setDefinition(SWEConstants.DEF_SAMPLING_TIME);
@@ -92,17 +97,17 @@ public class FakeSensorData extends AbstractSensorOutput<FakeSensor> implements 
         outputStruct.addComponent("time", time);
         
         Quantity temp = new QuantityImpl();
-        temp.setDefinition("urn:blabla:temperature");
+        temp.setDefinition(URI_OUTPUT1_FIELD1);
         temp.getUom().setCode("Cel");
         outputStruct.addComponent("temp", temp);
         
         Quantity wind = new QuantityImpl();
-        wind.setDefinition("urn:blabla:windSpeed");
+        wind.setDefinition(URI_OUTPUT1_FIELD2);
         wind.getUom().setCode("m/s");
         outputStruct.addComponent("windSpeed", wind);
         
         Quantity press = new QuantityImpl();
-        press.setDefinition("urn:blabla:pressure");
+        press.setDefinition(URI_OUTPUT1_FIELD3);
         press.getUom().setCode("hPa");
         outputStruct.addComponent("press", press);
         

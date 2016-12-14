@@ -99,10 +99,10 @@ public class TestSOSService
     static final String UID_SENSOR2 = "urn:sensors:mysensor:002";
     static final String URI_OFFERING1 = "urn:mysos:sensor1";
     static final String URI_OFFERING2 = "urn:mysos:sensor2";
-    static final String URI_PROP1 = "urn:blabla:weatherData";
-    static final String URI_PROP1_FIELD1 = "urn:blabla:temperature";
-    static final String URI_PROP1_FIELD2 = "urn:blabla:pressure";
-    static final String URI_PROP2 = "urn:blabla:image";
+    static final String URI_PROP1 = FakeSensorData.URI_OUTPUT1;
+    static final String URI_PROP1_FIELD1 = FakeSensorData.URI_OUTPUT1_FIELD1;
+    static final String URI_PROP1_FIELD2 = FakeSensorData.URI_OUTPUT1_FIELD3;
+    static final String URI_PROP2 = FakeSensorData2.URI_OUTPUT1;
     static final String NAME_OFFERING1 = "SOS Sensor Provider #1";
     static final String NAME_OFFERING2 = "SOS Sensor Provider #2";
     static final double SAMPLING_PERIOD = 0.1;
@@ -705,7 +705,7 @@ public class TestSOSService
                 public void onWebSocketBinary(byte payload[], int offset, int len)
                 {
                     String rec = new String(payload, offset, len);
-                    System.out.print("Received: " + rec);
+                    System.out.print(rec);
                     records.add(rec);
                 }
 

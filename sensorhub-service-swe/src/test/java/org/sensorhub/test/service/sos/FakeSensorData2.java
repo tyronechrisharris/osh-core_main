@@ -46,6 +46,7 @@ import org.vast.swe.SWEHelper;
  */
 public class FakeSensorData2 extends AbstractSensorOutput<FakeSensorNetWithFoi> implements IFakeSensorOutput
 {
+    public static final String URI_OUTPUT1 = "urn:blabla:image";
     static int ARRAY_SIZE = 12000;
     
     String name;
@@ -84,7 +85,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<FakeSensorNetWithFoi> 
         SWEHelper fac = new SWEHelper();
         
         DataArray img = fac.newDataArray(ARRAY_SIZE);
-        img.setDefinition("urn:blabla:image");
+        img.setDefinition(URI_OUTPUT1);
         img.setName(this.name);        
         DataComponent record = fac.newDataRecord(3);        
         record.addComponent("red", fac.newCount("urn:blabla:RedChannel", "Red Channel", null, DataType.BYTE));
