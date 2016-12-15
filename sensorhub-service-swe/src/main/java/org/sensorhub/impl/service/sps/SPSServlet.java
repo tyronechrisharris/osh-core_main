@@ -280,13 +280,13 @@ public class SPSServlet extends OWSServlet
     @Override
     protected OWSRequest parseRequest(HttpServletRequest req, HttpServletResponse resp, boolean post) throws Exception
     {
+        OWSRequest owsRequest;
+        
         if (post)
         {
             InputStream xmlRequest = new PostRequestFilter(new BufferedInputStream(req.getInputStream()));
-            DOMHelper dom = new DOMHelper(xmlRequest, false);
-            
+            DOMHelper dom = new DOMHelper(xmlRequest, false);            
             Element requestElt = dom.getBaseElement();
-            OWSRequest owsRequest;
             
             // detect and skip SOAP envelope if present
             String soapVersion = getSoapVersion(dom);
@@ -316,8 +316,14 @@ public class SPSServlet extends OWSServlet
             else
                 owsRequest = owsUtils.readXMLQuery(dom, requestElt);
             
-            if (soapVersion != null)
-                owsRequest.setSoapVersion(soapVersion);
+            // keep http objects in request
+            if (owsRequest != null)
+            {
+                if (soapVersion != null)
+                    owsRequest.setSoapVersion(soapVersion);
+                owsRequest.setHttpRequest(req);
+                owsRequest.setHttpResponse(resp);
+            }
             
             return owsRequest;
         }
@@ -370,6 +376,11 @@ public class SPSServlet extends OWSServlet
             handleRequest((ConfirmRequest)request);
         else if (request instanceof DescribeResultAccessRequest)
             handleRequest((DescribeResultAccessRequest)request);
+        
+        // transactional operations
+        else if (request instanceof InsertSensorRequest)
+            handleRequest((InsertTaskingTemplateRequest)request);else if (request instanceof InsertTaskingTemplateRequest)
+            handleRequest((InsertTaskingTemplateRequest)request);
     }
     
     

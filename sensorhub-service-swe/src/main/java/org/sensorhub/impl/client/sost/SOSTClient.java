@@ -57,6 +57,7 @@ import org.vast.ows.sos.SOSInsertionCapabilities;
 import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.sos.SOSUtils;
 import org.vast.ows.swe.InsertSensorResponse;
+import org.vast.ows.swe.SWESUtils;
 import org.vast.ows.swe.UpdateSensorRequest;
 import org.vast.swe.SWEData;
 
@@ -189,7 +190,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                 SOSInsertionCapabilities insertCaps = caps.getInsertionCapabilities();
                 if (insertCaps != null)
                 {
-                    if (!insertCaps.getProcedureFormats().contains(InsertSensorRequest.DEFAULT_PROCEDURE_FORMAT))
+                    if (!insertCaps.getProcedureFormats().contains(SWESUtils.DEFAULT_PROCEDURE_FORMAT))
                         throw new ClientException("SensorML v2.0 format not supported by this SOS endpoint");
                     
                     if (!insertCaps.getObservationTypes().contains(IObservation.OBS_TYPE_RECORD))
@@ -324,7 +325,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         req.setPostServer(getSosEndpointUrl());
         req.setVersion("2.0");
         req.setProcedureDescription(sensor.getCurrentDescription());
-        req.setProcedureDescriptionFormat(InsertSensorRequest.DEFAULT_PROCEDURE_FORMAT);
+        req.setProcedureDescriptionFormat(SWESUtils.DEFAULT_PROCEDURE_FORMAT);
         req.getObservationTypes().add(IObservation.OBS_TYPE_RECORD);
         req.getFoiTypes().add("gml:Feature");
         
@@ -346,7 +347,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         req.setVersion("2.0");
         req.setProcedureId(sensor.getUniqueIdentifier());
         req.setProcedureDescription(sensor.getCurrentDescription());
-        req.setProcedureDescriptionFormat(InsertSensorRequest.DEFAULT_PROCEDURE_FORMAT);
+        req.setProcedureDescriptionFormat(SWESUtils.DEFAULT_PROCEDURE_FORMAT);
         
         // send request
         sosUtils.sendRequest(req, false);

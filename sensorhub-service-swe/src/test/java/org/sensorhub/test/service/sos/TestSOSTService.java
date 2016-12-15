@@ -57,6 +57,7 @@ import org.vast.ows.sos.InsertResultTemplateRequest;
 import org.vast.ows.sos.InsertResultTemplateResponse;
 import org.vast.ows.sos.InsertSensorRequest;
 import org.vast.ows.swe.InsertSensorResponse;
+import org.vast.ows.swe.SWESUtils;
 import org.vast.ows.sos.SOSOfferingCapabilities;
 import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.sos.SOSUtils;
@@ -149,7 +150,7 @@ public class TestSOSTService
         req.setPostServer(getSosEndpointUrl());
         req.setVersion("2.0");        
         req.setProcedureDescription(procedure);
-        req.setProcedureDescriptionFormat(InsertSensorRequest.DEFAULT_PROCEDURE_FORMAT);
+        req.setProcedureDescriptionFormat(SWESUtils.DEFAULT_PROCEDURE_FORMAT);
         req.getObservationTypes().add(IObservation.OBS_TYPE_GENERIC);
         req.getObservationTypes().add(IObservation.OBS_TYPE_RECORD);
         req.getObservableProperties().add(SWEConstants.DEF_SAMPLING_LOC);
