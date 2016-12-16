@@ -12,7 +12,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.sensor.sost;
+package org.sensorhub.impl.sensor.swe;
 
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.swe.v20.BinaryEncoding;
@@ -26,16 +26,16 @@ import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.vast.ogc.gml.FeatureRef;
 
 
-public class SOSVirtualSensorOutput extends AbstractSensorOutput<SOSVirtualSensor>
+public class SWETransactionalSensorOutput extends AbstractSensorOutput<SWETransactionalSensor>
 {
-    SOSVirtualSensor parentSensor;
+    SWETransactionalSensor parentSensor;
     DataComponent recordStructure;
     DataEncoding recordEncoding;
     double avgSamplingPeriod = 100;
     int avgSampleCount = 0;
     
     
-    public SOSVirtualSensorOutput(SOSVirtualSensor sensor, DataComponent recordStructure, DataEncoding recordEncoding)
+    public SWETransactionalSensorOutput(SWETransactionalSensor sensor, DataComponent recordStructure, DataEncoding recordEncoding)
     {
         super(recordStructure.getName(), sensor);
         this.recordStructure = recordStructure;
@@ -129,7 +129,7 @@ public class SOSVirtualSensorOutput extends AbstractSensorOutput<SOSVirtualSenso
             avgSampleCount++;
             avgSamplingPeriod += (timeStamp - latestRecordTime) / 1000.0 / avgSampleCount;
             
-            SOSVirtualSensor.log.trace("Sampling period = " + avgSamplingPeriod + "s");
+            SWETransactionalSensor.log.trace("Sampling period = " + avgSamplingPeriod + "s");
         }
     }
     

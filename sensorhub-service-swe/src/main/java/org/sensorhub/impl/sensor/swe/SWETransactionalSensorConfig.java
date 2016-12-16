@@ -12,19 +12,27 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.sensor.sost;
+package org.sensorhub.impl.sensor.swe;
 
-import org.sensorhub.impl.sensor.swe.SWETransactionalSensorConfig;
+import org.sensorhub.api.sensor.SensorConfig;
 
 
-/*
- * Class kept for backward compatibility
+/**
+ * <p>
+ * Configuration for SOS virtual sensors created with InsertSensor
+ * </p>
+ *
+ * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @since Mar 2, 2014
  */
-@Deprecated
-public class SOSVirtualSensorConfig extends SWETransactionalSensorConfig
+public class SWETransactionalSensorConfig extends SensorConfig
 {
-    public SOSVirtualSensorConfig()
+    //public String sensorUID;
+    
+    
+    public SWETransactionalSensorConfig()
     {
-        this.moduleClass = SOSVirtualSensor.class.getCanonicalName();
+        this.moduleClass = SWETransactionalSensor.class.getCanonicalName();
     }
+
 }

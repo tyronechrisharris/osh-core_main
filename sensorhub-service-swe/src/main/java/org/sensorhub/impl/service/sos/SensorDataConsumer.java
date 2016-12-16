@@ -18,12 +18,17 @@ import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import java.util.HashMap;
+import java.util.Map;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.sensor.ISensorDataInterface;
+import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.sensor.sost.SOSVirtualSensor;
+import org.sensorhub.impl.sensor.swe.DataStructureHash;
+import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 import org.vast.ogc.om.IObservation;
+import org.vast.ows.sos.SOSException;
 
 
 /**
@@ -36,13 +41,14 @@ import org.vast.ogc.om.IObservation;
  */
 public class SensorDataConsumer implements ISOSDataConsumer
 {
-    SOSVirtualSensor sensor;
+    SWETransactionalSensor sensor;
+    Map<DataStructureHash, String> structureToTemplateIdMap = new HashMap<DataStructureHash, String>();
     
     
     public SensorDataConsumer(SensorConsumerConfig config) throws SensorHubException
     {
         ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
-        this.sensor = (SOSVirtualSensor)moduleReg.getModuleById(config.sensorID);
+        this.sensor = (SWETransactionalSensor)moduleReg.getModuleById(config.sensorID);
     }
     
     
@@ -63,8 +69,31 @@ public class SensorDataConsumer implements ISOSDataConsumer
     @Override
     public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws Exception
     {
-        String templateID = sensor.newResultTemplate(component, encoding, obsTemplate);
-        sensor.newFeatureOfInterest(templateID, obsTemplate);
+        DataStructureHash templateHashObj = new DataStructureHash(component, encoding);
+        String templateID = structureToTemplateIdMap.get(templateHashObj);
+        
+        try
+        {
+            // register new sensor output if needed
+            if (templateID == null)
+            {
+                String outputName = sensor.newOutput(component, encoding);
+                templateID = generateTemplateID(outputName);
+                structureToTemplateIdMap.put(templateHashObj, templateID);
+            }
+            
+            // register current foi if needed
+            if (obsTemplate != null)
+            {
+                String outputName = getOutputNameFromTemplateID(templateID);
+                sensor.newFeatureOfInterest(outputName, obsTemplate.getFeatureOfInterest());
+            }
+        }
+        catch (SensorException e)
+        {
+            throw new SOSException(SOSException.invalid_param_code, "ResultTemplate", null, e.getMessage());
+        }
+        
         return templateID;
     }
 
@@ -72,7 +101,8 @@ public class SensorDataConsumer implements ISOSDataConsumer
     @Override
     public void newResultRecord(String templateID, DataBlock... dataBlocks) throws Exception
     {
-        sensor.newResultRecord(templateID, dataBlocks);
+        String outputName = getOutputNameFromTemplateID(templateID);
+        sensor.newResultRecord(outputName, dataBlocks);
     }
 
 
@@ -91,5 +121,17 @@ public class SensorDataConsumer implements ISOSDataConsumer
         }
         
         return null;
+    }
+    
+    
+    protected final String generateTemplateID(String outputName)
+    {
+        return sensor.getLocalID() + '#' + outputName;
+    }
+    
+    
+    protected final String getOutputNameFromTemplateID(String templateID)
+    {
+        return templateID.substring(templateID.lastIndexOf('#')+1);
     }
 }

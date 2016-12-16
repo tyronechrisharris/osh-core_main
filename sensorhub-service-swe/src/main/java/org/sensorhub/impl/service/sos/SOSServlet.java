@@ -80,8 +80,8 @@ import org.sensorhub.api.service.ServiceException;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.StreamStorageConfig;
-import org.sensorhub.impl.sensor.sost.SOSVirtualSensorConfig;
-import org.sensorhub.impl.sensor.sost.SOSVirtualSensor;
+import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
+import org.sensorhub.impl.sensor.swe.SWETransactionalSensorConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.sos.ISOSDataConsumer.Template;
 import org.sensorhub.utils.FileUtils;
@@ -1119,11 +1119,11 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // create and register new virtual sensor module if not already present
                 if (!moduleReg.isModuleLoaded(sensorUID))
                 {
-                    SOSVirtualSensorConfig sensorConfig = new SOSVirtualSensorConfig();
+                    SWETransactionalSensorConfig sensorConfig = new SWETransactionalSensorConfig();
                     sensorConfig.autoStart = false;
                     sensorConfig.id = sensorUID;
                     sensorConfig.name = sensorName;
-                    SOSVirtualSensor virtualSensor = (SOSVirtualSensor)moduleReg.loadModule(sensorConfig);
+                    SWETransactionalSensor virtualSensor = (SWETransactionalSensor)moduleReg.loadModule(sensorConfig);
                     sensorConfig.autoStart = true;
                     virtualSensor.requestInit(false);
                     virtualSensor.updateSensorDescription(request.getProcedureDescription(), false);                    
@@ -1362,7 +1362,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
             // destroy associated virtual sensor
             String offering = procedureToOfferingMap.get(sensorUID);
-            SOSVirtualSensor virtualSensor = (SOSVirtualSensor)dataConsumers.remove(offering);
+            SWETransactionalSensor virtualSensor = (SWETransactionalSensor)dataConsumers.remove(offering);
             procedureToOfferingMap.remove(sensorUID);
             SensorHub.getInstance().getModuleRegistry().destroyModule(virtualSensor.getLocalID());
             

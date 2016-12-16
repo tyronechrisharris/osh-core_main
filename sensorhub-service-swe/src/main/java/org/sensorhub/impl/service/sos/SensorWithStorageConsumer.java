@@ -47,15 +47,19 @@ public class SensorWithStorageConsumer extends SensorDataConsumer implements ISO
     @Override
     public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws Exception
     {
-        String templateID = sensor.newResultTemplate(component, encoding, obsTemplate);
+        // call superclass w/o obs template so no FOI is published yet
+        // we need to wait until we have a record store to do that
+        String templateID = super.newResultTemplate(component, encoding, null);
                 
         // add additional datastore if not already there
-        String outputName = sensor.getOutputNameFromTemplateID(templateID);
+        String outputName = getOutputNameFromTemplateID(templateID);
         if (!storage.getRecordStores().containsKey(outputName))
             storage.addRecordStore(outputName, component, encoding);
         
-        // publish new feature of interest
-        sensor.newFeatureOfInterest(templateID, obsTemplate);
+        // publish new feature of interest (now that we have a proper record store)
+        if (obsTemplate != null)
+            sensor.newFeatureOfInterest(outputName, obsTemplate.getFeatureOfInterest());
+        
         return templateID;
     }
 }

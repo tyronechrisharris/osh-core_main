@@ -19,7 +19,6 @@ import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.vast.cdm.common.DataStreamParser;
 import net.opengis.swe.v20.DataBlock;
 
