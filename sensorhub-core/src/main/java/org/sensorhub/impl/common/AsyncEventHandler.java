@@ -100,6 +100,11 @@ public class AsyncEventHandler implements IEventHandler
         {
             return eventQueue.offer(e);                
         }
+        
+        void cancel()
+        {
+            eventQueue.clear();
+        }
     }
     
     
@@ -154,7 +159,8 @@ public class AsyncEventHandler implements IEventHandler
     {
         synchronized (listeners)
         {
-            listeners.remove(listener);
+            ListenerQueue queue = listeners.remove(listener);
+            queue.cancel();
         }
     }
     
