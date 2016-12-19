@@ -19,14 +19,20 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.module.ModuleConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -51,6 +57,7 @@ import com.google.gson.stream.JsonWriter;
  */
 public class ModuleConfigJsonFile implements IModuleConfigRepository
 {
+    private static final Logger log = LoggerFactory.getLogger(ModuleConfigJsonFile.class);
     private static final String OBJ_CLASS_FIELD = "objClass";
     
     Map<String, ModuleConfig> configMap;
@@ -228,6 +235,21 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     @Override
     public synchronized void commit()
     {
+        // keep old config with .bak extension
+        if (configFile.exists())
+        {
+            try
+            {
+                String timetag = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+                File bakFile = new File(configFile.getAbsolutePath() + ".bak." + timetag );
+                Files.move(configFile.toPath(), bakFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            catch (IOException e)
+            {
+                log.error("Could not backup previous config file");
+            }
+        }
+        
         writeJSON();
     }
     
