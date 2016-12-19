@@ -199,7 +199,7 @@ public class TestSOSService
         SensorDataProviderConfig provCfg = new SensorDataProviderConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING1;
-        provCfg.uri = URI_OFFERING1;
+        provCfg.offeringID = URI_OFFERING1;
         provCfg.sensorID = sensor.getLocalID();
         //provCfg.hiddenOutputs
         
@@ -232,7 +232,7 @@ public class TestSOSService
         SensorDataProviderConfig provCfg = new SensorDataProviderConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING2;
-        provCfg.uri = URI_OFFERING2;
+        provCfg.offeringID = URI_OFFERING2;
         provCfg.sensorID = sensor.getLocalID();
         //provCfg.hiddenOutputs;
         

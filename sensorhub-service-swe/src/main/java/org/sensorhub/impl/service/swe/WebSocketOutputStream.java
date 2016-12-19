@@ -12,7 +12,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sos;
+package org.sensorhub.impl.service.swe;
 
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;

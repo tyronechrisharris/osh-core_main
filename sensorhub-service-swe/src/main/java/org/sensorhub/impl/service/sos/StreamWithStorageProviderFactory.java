@@ -42,6 +42,7 @@ import org.vast.util.TimeExtent;
 public class StreamWithStorageProviderFactory<ProducerType extends IDataProducerModule<?>> extends StorageDataProviderFactory
 {
     final ProducerType producer;
+    final StreamDataProviderConfig altConfig;
     final StreamDataProviderFactory<ProducerType> altProvider;
     long liveDataTimeOut;
     
@@ -50,13 +51,16 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
     {
         super(service, new StorageDataProviderConfig(config));
         this.producer = producer;
+        this.altConfig = config;
         this.liveDataTimeOut = (long)(config.liveDataTimeout * 1000);
         
         // build alt provider to generate capabilities in case storage is disabled
         this.altProvider = new StreamDataProviderFactory<ProducerType>(config, producer, "Stream");
         
         // listen to producer lifecycle events
+        disableEvents = true; // disable events on startup
         producer.registerListener(this);
+        disableEvents = false;
     }
 
 
@@ -139,19 +143,38 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
     {
         // we can receive events before producer is even set because we first
         // register only to storage, so just ignore those
-        if (producer == null)
+        if (disableEvents || producer == null)
             return;
         
-        // if producer or storage is enabled/disabled
-        if (e instanceof ModuleEvent && (e.getSource() == producer || e.getSource() == storage))
+        if (e instanceof ModuleEvent)
         {
-            ModuleState state = ((ModuleEvent)e).getNewState();
-            if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
+            switch (((ModuleEvent)e).getType())
             {
-                if (isEnabled())
-                    service.showProviderCaps(this);
-                else
-                    service.hideProviderCaps(this);
+                // show/hide offering when producer or storage is enabled/disabled
+                case STATE_CHANGED:
+                    if (e.getSource() == producer || e.getSource() == storage)
+                    {
+                        ModuleState state = ((ModuleEvent)e).getNewState();
+                        if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
+                        {
+                            if (isEnabled())
+                                service.showProviderCaps(this);
+                            else
+                                service.hideProviderCaps(this);
+                        }
+                    }
+                    break;
+                
+                // cleanly transmute provider when producer or storage is deleted
+                case DELETED:
+                    if (e.getSource() == producer)
+                        service.onSensorDeleted(config.offeringID);
+                    else if (e.getSource() == storage)
+                        service.onStorageDeleted(config.offeringID);
+                    break;
+                    
+                default:
+                    return;
             }
         }
     }
@@ -161,7 +184,7 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
     protected void checkEnabled() throws ServiceException
     {
         if (!config.enabled)
-            throw new ServiceException("Offering " + config.uri + " is disabled");
+            throw new ServiceException("Offering " + config.offeringID + " is disabled");
         
         if (!storage.isStarted() && !producer.isStarted())
             throw new ServiceException("Storage " + MsgUtils.moduleString(storage) + " is disabled");
@@ -190,5 +213,12 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
         super.cleanup();
         if (producer != null)
             producer.unregisterListener(this);
+    }
+    
+    
+    @Override
+    public StreamDataProviderConfig getConfig()
+    {
+        return this.altConfig;
     }
 }

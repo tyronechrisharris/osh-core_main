@@ -160,7 +160,8 @@ public class AsyncEventHandler implements IEventHandler
         synchronized (listeners)
         {
             ListenerQueue queue = listeners.remove(listener);
-            queue.cancel();
+            if (queue != null)
+                queue.cancel();
         }
     }
     

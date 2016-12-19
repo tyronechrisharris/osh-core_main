@@ -61,7 +61,7 @@ public class StorageDataProviderConfig extends SOSProviderConfig
     protected StorageDataProviderConfig(StreamDataProviderConfig streamProducerConfig)
     {
         this.enabled = streamProducerConfig.enabled;
-        this.uri = streamProducerConfig.uri;
+        this.offeringID = streamProducerConfig.offeringID;
         this.name = streamProducerConfig.name;
         this.description = streamProducerConfig.description;
         this.storageID = streamProducerConfig.storageID;

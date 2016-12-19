@@ -12,7 +12,7 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sos;
+package org.sensorhub.impl.service.swe;
 
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.slf4j.Logger;

@@ -20,6 +20,8 @@ import java.util.concurrent.Executors;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
+import org.sensorhub.impl.service.swe.WebSocketOutputStream;
+import org.sensorhub.impl.service.swe.WebSocketUtils;
 import org.slf4j.Logger;
 import org.vast.ows.OWSRequest;
 import org.vast.ows.sos.GetResultRequest;

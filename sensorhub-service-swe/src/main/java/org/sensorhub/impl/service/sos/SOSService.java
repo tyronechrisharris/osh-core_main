@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
+import java.util.Iterator;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
@@ -60,6 +61,29 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
     @Override
     public void setConfiguration(SOSServiceConfig config)
     {
+        // HACK: remove orphan consumers still there after deleting offering from UI
+        Iterator<SOSConsumerConfig> it = config.dataConsumers.iterator();
+        while (it.hasNext())
+        {
+            String uri = it.next().offeringID;
+            boolean found = false;
+            
+            if (uri != null)
+            {
+                for (SOSProviderConfig providerConf: config.dataProviders)
+                {
+                    if (uri.equals(providerConf.offeringID))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!found)
+                it.remove();
+        }
+        
         super.setConfiguration(config);
         this.securityHandler = new SOSSecurity(this, config.security.enableAccessControl);
     }

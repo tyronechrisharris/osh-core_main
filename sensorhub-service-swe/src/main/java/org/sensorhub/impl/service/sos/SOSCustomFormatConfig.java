@@ -19,13 +19,13 @@ public class SOSCustomFormatConfig
 {
     public String mimeType;
     public String className;
-    
-    
+
+
     public SOSCustomFormatConfig()
-    {        
+    {
     }
-    
-    
+
+
     public SOSCustomFormatConfig(String mimeType, String className)
     {
         this.mimeType = mimeType;

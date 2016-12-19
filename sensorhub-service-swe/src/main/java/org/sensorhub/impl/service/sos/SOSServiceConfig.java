@@ -20,6 +20,7 @@ import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.security.SecurityConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig;
+import org.sensorhub.impl.service.swe.OfferingList;
 
 
 /**
@@ -50,11 +51,11 @@ public class SOSServiceConfig extends OGCServiceConfig
     
     
     @DisplayInfo(label="Offerings", desc="Configuration of data providers for SOS offerings")
-    public List<SOSProviderConfig> dataProviders = new ArrayList<SOSProviderConfig>();
+    public OfferingList<SOSProviderConfig> dataProviders = new OfferingList<SOSProviderConfig>();
     
     
     @DisplayInfo(desc="Configuration of data consumers for SOS offerings created by SOS-T")
-    public List<SOSConsumerConfig> dataConsumers = new ArrayList<SOSConsumerConfig>();
+    public OfferingList<SOSConsumerConfig> dataConsumers = new OfferingList<SOSConsumerConfig>();
     
     
     @DisplayInfo(desc="Mapping of custom formats mime-types to custom serializer classes")

@@ -15,25 +15,14 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.impl.service.swe.OfferingConfig;
 
 
-public abstract class SOSConsumerConfig
+public abstract class SOSConsumerConfig extends OfferingConfig
 {
-
-    /**
-     * Flag set if consumer is enabled, unset if disabled
-     */
-    public boolean enabled;
-    
-    
-    /**
-     * Offering URI
-     */
-    public String offering;
-    
     
     /**
      * @return an instance of data consumer corresponding to this config
      */
-    protected abstract ISOSDataConsumer getConsumerInstance() throws SensorHubException;
+    protected abstract ISOSDataConsumer getConsumer() throws SensorHubException;
 }

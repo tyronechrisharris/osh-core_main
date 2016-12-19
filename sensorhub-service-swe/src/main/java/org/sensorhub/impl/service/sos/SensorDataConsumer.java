@@ -27,6 +27,7 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.swe.DataStructureHash;
 import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
+import org.sensorhub.impl.service.swe.TransactionUtils;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.SOSException;
 
@@ -41,12 +42,14 @@ import org.vast.ows.sos.SOSException;
  */
 public class SensorDataConsumer implements ISOSDataConsumer
 {
+    SensorConsumerConfig config;
     SWETransactionalSensor sensor;
     Map<DataStructureHash, String> structureToTemplateIdMap = new HashMap<DataStructureHash, String>();
     
     
     public SensorDataConsumer(SensorConsumerConfig config) throws SensorHubException
     {
+        this.config = config;
         ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
         this.sensor = (SWETransactionalSensor)moduleReg.getModuleById(config.sensorID);
     }
@@ -55,7 +58,7 @@ public class SensorDataConsumer implements ISOSDataConsumer
     @Override
     public void updateSensor(AbstractProcess newSensorDescription) throws Exception
     {
-        sensor.updateSensorDescription(newSensorDescription, false);
+        TransactionUtils.updateSensorDescription(sensor, newSensorDescription);
     }
 
 
@@ -133,5 +136,18 @@ public class SensorDataConsumer implements ISOSDataConsumer
     protected final String getOutputNameFromTemplateID(String templateID)
     {
         return templateID.substring(templateID.lastIndexOf('#')+1);
+    }
+    
+    
+    @Override
+    public SensorConsumerConfig getConfig()
+    {
+        return this.config;
+    }
+
+
+    @Override
+    public void cleanup()
+    {        
     }
 }

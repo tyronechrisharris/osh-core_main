@@ -60,6 +60,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
     long liveDataTimeOut;
     long refTimeOut;
     SOSOfferingCapabilities caps;
+    boolean disableEvents;
     
     
     protected StreamDataProviderFactory(SOSServlet service, StreamDataProviderConfig config, ProducerType producer, String producerType) throws SensorHubException
@@ -72,7 +73,9 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
         this.refTimeOut = System.currentTimeMillis(); // initial ref for timeout is SOS startup time
         
         // listen to producer lifecycle events
+        disableEvents = true; // disable events on startup
         producer.registerListener(this);
+        disableEvents = false;
     }
     
     
@@ -99,8 +102,8 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
             caps = new SOSOfferingCapabilities();
             
             // identifier
-            if (config.uri != null)
-                caps.setIdentifier(config.uri);
+            if (config.offeringID != null)
+                caps.setIdentifier(config.offeringID);
             else
                 caps.setIdentifier("urn:offering:" + producer.getLocalID());
             
@@ -302,7 +305,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
     protected void checkEnabled() throws ServiceException
     {
         if (!config.enabled)
-            throw new ServiceException("Offering " + config.uri + " is disabled");
+            throw new ServiceException("Offering " + config.offeringID + " is disabled");
                 
         if (!producer.isStarted())
             throw new ServiceException(producerType + " " + MsgUtils.moduleString(producer) + " is disabled");
@@ -312,16 +315,33 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
     @Override
     public void handleEvent(Event<?> e)
     {
-        // if producer is enabled/disabled
+        if (disableEvents)
+            return;
+        
+        // producer events
         if (e instanceof ModuleEvent && e.getSource() == producer)
         {
-            ModuleState state = ((ModuleEvent)e).getNewState();
-            if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
+            switch (((ModuleEvent)e).getType())
             {
-                if (isEnabled())
-                    service.showProviderCaps(this);
-                else
-                    service.hideProviderCaps(this);
+                // show/hide offering when enabled/disabled
+                case STATE_CHANGED:
+                    ModuleState state = ((ModuleEvent)e).getNewState();
+                    if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
+                    {
+                        if (isEnabled())
+                            service.showProviderCaps(this);
+                        else
+                            service.hideProviderCaps(this);
+                    }
+                    break;
+                
+                // cleanly remove provider when producer is deleted
+                case DELETED:
+                    service.removeProvider(config.offeringID);
+                    break;
+                    
+                default:
+                    return;
             }
         }      
     }

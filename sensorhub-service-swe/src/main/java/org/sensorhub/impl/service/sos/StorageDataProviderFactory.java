@@ -70,6 +70,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     final StorageDataProviderConfig config;
     final IRecordStorageModule<?> storage;
     SOSOfferingCapabilities caps;
+    boolean disableEvents;
     
     
     protected StorageDataProviderFactory(SOSServlet service, StorageDataProviderConfig config) throws SensorHubException
@@ -93,7 +94,9 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
             this.storage = (IRecordStorageModule<?>)storageModule;
             
             // listen to storage lifecycle events
+            disableEvents = true; // disable events on startup
             storage.registerListener(this);
+            disableEvents = false;
         }
         catch (ClassCastException e)
         {
@@ -112,8 +115,8 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
             caps = new SOSOfferingCapabilities();
             
             // identifier
-            if (config.uri != null)
-                caps.setIdentifier(config.uri);
+            if (config.offeringID != null)
+                caps.setIdentifier(config.offeringID);
             else
                 caps.setIdentifier("urn:offering:" + storage.getLocalID());
             
@@ -338,7 +341,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     protected void checkEnabled() throws ServiceException
     {
         if (!config.enabled)
-            throw new ServiceException("Offering " + config.uri + " is disabled");
+            throw new ServiceException("Offering " + config.offeringID + " is disabled");
         
         if (!storage.isStarted())
             throw new ServiceException("Storage " + MsgUtils.moduleString(storage) + " is disabled");
@@ -348,18 +351,34 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     @Override
     public void handleEvent(Event<?> e)
     {
-        // if storage is enabled/disabled
+        if (disableEvents)
+            return;
+                
         if (e instanceof ModuleEvent && e.getSource() == storage)
         {
-            ModuleState state = ((ModuleEvent)e).getNewState();
-            if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
+            switch (((ModuleEvent)e).getType())
             {
-                if (isEnabled())
-                    service.showProviderCaps(this);
-                else
-                    service.hideProviderCaps(this);
+                // show/hide offering if storage is enabled/disabled
+                case STATE_CHANGED:
+                    ModuleState state = ((ModuleEvent)e).getNewState();
+                    if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
+                    {
+                        if (isEnabled())
+                            service.showProviderCaps(this);
+                        else
+                            service.hideProviderCaps(this);
+                    }
+                    break;
+                
+                // cleanly remove provider when storage is deleted
+                case DELETED:
+                    service.removeProvider(config.offeringID);
+                    break;
+                    
+                default:
+                    return;
             }
-        }      
+        } 
     }
 
 
@@ -378,7 +397,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     
     
     @Override
-    public StorageDataProviderConfig getConfig()
+    public SOSProviderConfig getConfig()
     {
         return this.config;
     }

@@ -34,7 +34,9 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
+import org.sensorhub.impl.persistence.InMemoryBasicStorage;
 import org.sensorhub.impl.service.sos.SOSProviderConfig;
 import org.sensorhub.impl.service.sos.SOSService;
 import org.sensorhub.impl.service.sos.SensorDataProviderConfig;
@@ -214,6 +216,38 @@ public class TestSOSTService
     public void testInsertSensor() throws Exception
     {
         deployService(buildSensorProvider1());
+        OWSUtils utils = new OWSUtils();
+        InsertSensorRequest req = buildInsertSensor();
+        
+        try
+        {
+            utils.writeXMLQuery(System.out, req);
+            OWSResponse resp = utils.sendRequest(req, false);
+            utils.writeXMLResponse(System.out, resp);
+        }
+        catch (OWSException e)
+        {
+            utils.writeXMLException(System.out, "SOS", "2.0", e);
+            throw e;
+        }
+        
+        // check new offering has correct properties
+        SOSOfferingCapabilities newOffering = getCapabilities(1);
+        String procUID = req.getProcedureDescription().getUniqueIdentifier();
+        assertEquals(procUID, newOffering.getProcedures().iterator().next());
+    }
+    
+    
+    @Test
+    public void testInsertSensorWithAutoStorage() throws Exception
+    {
+        SOSService sos = deployService(buildSensorProvider1());
+        
+        // configure default in-memory storage
+        StorageConfig storageConfig = new StorageConfig();
+        storageConfig.moduleClass = InMemoryBasicStorage.class.getCanonicalName();
+        sos.getConfiguration().newStorageConfig = storageConfig;
+        
         OWSUtils utils = new OWSUtils();
         InsertSensorRequest req = buildInsertSensor();
         

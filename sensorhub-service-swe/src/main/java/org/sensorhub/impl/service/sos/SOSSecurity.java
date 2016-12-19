@@ -74,7 +74,7 @@ public class SOSSecurity extends ModuleSecurity
                 
         // create permissions for each offering
         for (SOSProviderConfig offering: sos.getConfiguration().dataProviders)
-            addOfferingPermissions(offering.uri);
+            addOfferingPermissions(offering.offeringID);
         
         // register this instance permission tree
         SensorHub.getInstance().getSecurityManager().registerModulePermissions(rootPerm);

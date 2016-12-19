@@ -16,29 +16,12 @@ package org.sensorhub.impl.service.sos;
 
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.config.DisplayInfo.Required;
+import org.sensorhub.impl.service.swe.OfferingConfig;
 
 
-public abstract class SOSProviderConfig
+public abstract class SOSProviderConfig extends OfferingConfig
 {
 
-    @DisplayInfo(desc="Set if provider is enabled, unset if disabled")
-    public boolean enabled;
-    
-    
-    @Required
-    @DisplayInfo(desc="Offering URI as exposed in capabilities")
-    public String uri;
-    
-    
-    @DisplayInfo(desc="Provider name (if null, it will be set to the name of the data source)")
-    public String name;
-    
-    
-    @DisplayInfo(desc="Provider description (if null, it will be auto-generated from the data source name)")
-    public String description;
-    
-    
     @DisplayInfo(desc="Maximum number of FoI IDs listed in capabilities")
     public int maxFois = 10;
     

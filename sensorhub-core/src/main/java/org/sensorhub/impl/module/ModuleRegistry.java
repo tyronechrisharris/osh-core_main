@@ -246,7 +246,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         }
         catch (ClassNotFoundException | IllegalAccessException | InstantiationException e)
         {
-            throw new SensorHubException("Cannot instantiate class", e);
+            throw new SensorHubException("Cannot instantiate class " + className, e);
         }
     }
     

@@ -34,6 +34,7 @@ import net.opengis.swe.v20.DataStream;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
+import org.sensorhub.api.sensor.ISensorControlInterface;
 import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.api.sensor.SensorEvent;
 import org.sensorhub.api.sensor.SensorException;
@@ -45,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import org.vast.data.SWEFactory;
 import org.vast.ogc.om.IObservation;
 import org.vast.sensorML.SMLUtils;
+import org.vast.util.Asserts;
 
 
 /**
@@ -101,6 +103,9 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
 
     public String newOutput(DataComponent component, DataEncoding encoding) throws SensorException
     {
+        Asserts.checkNotNull(component);
+        Asserts.checkNotNull(encoding);
+        
         // use SensorML output name if structure matches one of the outputs
         DataStructureHash outputHashObj = new DataStructureHash(component, null);
         String outputName = structureToOutputMap.get(outputHashObj);
@@ -135,13 +140,42 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
     }
     
     
-    public String newControlInput(DataComponent component, DataEncoding encoding)
+    public String newControlInput(DataComponent component, DataEncoding encoding) throws SensorException
     {
-        // TODO merge all templates with same structure but different encodings to the same output
+        Asserts.checkNotNull(component);
+        Asserts.checkNotNull(encoding);
         
+        // use SensorML param name if structure matches one of the taskable parameters
+        DataStructureHash paramHashObj = new DataStructureHash(component, null);
+        String paramName = structureToTaskableParamMap.get(paramHashObj);
         
+        // else generate output name
+        if (paramName == null)
+            paramName = "command" + getCommandInputs().size();
         
-        return null;
+        // create new sensor control interface if needed
+        if (!getCommandInputs().containsKey(paramName))
+        {
+            component.setName(paramName);
+            SWETransactionalSensorOutput newOutput = new SWETransactionalSensorOutput(this, component, encoding);
+            addOutput(newOutput, false);
+        }
+        else
+        {
+            ISensorControlInterface controlInput = getCommandInputs().get(paramName);
+            
+            // check that control input definition is same as previously registered
+            DataStructureHash oldInputHashObj = new DataStructureHash(controlInput.getCommandDescription(), null);
+            DataStructureHash newInputHashObj = new DataStructureHash(component, null);
+            if (!newInputHashObj.equals(oldInputHashObj))
+                throw new SensorException("Control input definition is different from previously registered input with the same name");
+        }
+        
+        // update sensor description with data stream to keep encoding definition
+        if (sensorDescription != null)
+            wrapParamWithDataStream(paramName, component, encoding);
+        
+        return paramName;
     }
     
     
@@ -191,6 +225,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         File f = new File(this.getLocalID() + ".xml");
         if (f.exists())
             f.delete();
+        super.cleanup();
     }
 
 
@@ -204,7 +239,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
     }
     
     
-    public void updateSensorDescription(AbstractProcess systemDesc, boolean recordHistory) throws SensorException
+    public void updateSensorDescription(AbstractProcess systemDesc)
     {
         sensorDescription = (AbstractPhysicalProcess)systemDesc;
         uniqueID = systemDesc.getUniqueIdentifier();
@@ -286,7 +321,13 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
             InputStream is = loader.getAsInputStream(STATE_SML_DESC);
             if (is != null)
             {
+                // read saved description
                 sensorDescription = (AbstractPhysicalProcess)new SMLUtils(SMLUtils.V2_0).readProcess(is);
+                
+                // set unique ID
+                uniqueID = sensorDescription.getUniqueIdentifier();
+                
+                // set last description update time
                 int timeListSize = sensorDescription.getValidTimeList().size();
                 if (timeListSize > 0)
                 {
@@ -327,25 +368,25 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
                 }
                 
                 // generate control interfaces from description
-                for (AbstractSWEIdentifiable output: sensorDescription.getParameterList())
+                for (AbstractSWEIdentifiable param: sensorDescription.getParameterList())
                 {
                     DataComponent dataStruct = null;
                     DataEncoding dataEnc = null;
                     
                     // handle cases for different types of outputs
-                    if (output instanceof DataStream)
+                    if (param instanceof DataStream)
                     {
-                        dataStruct = ((DataStream) output).getElementType();
-                        dataEnc = ((DataStream) output).getEncoding();   
+                        dataStruct = ((DataStream) param).getElementType();
+                        dataEnc = ((DataStream) param).getEncoding();   
                     }
-                    else if (output instanceof DataInterface)
+                    else if (param instanceof DataInterface)
                     {
-                        dataStruct = ((DataInterface) output).getData().getElementType();
-                        dataEnc = ((DataInterface) output).getData().getEncoding();                        
+                        dataStruct = ((DataInterface) param).getData().getElementType();
+                        dataEnc = ((DataInterface) param).getData().getEncoding();                        
                     }
                     else
                     {
-                        dataStruct = (DataComponent)output;
+                        dataStruct = (DataComponent)param;
                     }
                     
                     // register output hashcode
@@ -383,6 +424,27 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
                 sensorDescription.addOutput(outputName, ds);
             else
                 output.setValue(ds);
+        }
+    }
+    
+    
+    /*
+     * Used to wrap a control input with a DataStream object to make sure we can recreate
+     * the control interfaces after SensorHub is restarted
+     */
+    protected void wrapParamWithDataStream(String paramName, DataComponent dataStruct, DataEncoding encoding)
+    {
+        OgcProperty<AbstractSWEIdentifiable> param = sensorDescription.getParameterList().getProperty(paramName);            
+        if (param == null || !(param.getValue() instanceof DataStream))
+        {
+            DataStream ds = new SWEFactory().newDataStream();
+            ds.setElementType(paramName, dataStruct);
+            ds.setEncoding(encoding);
+            
+            if (param == null)
+                sensorDescription.addParameter(paramName, ds);
+            else
+                param.setValue(ds);
         }
     }
 

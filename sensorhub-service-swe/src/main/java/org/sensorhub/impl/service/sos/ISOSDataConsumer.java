@@ -52,6 +52,12 @@ public interface ISOSDataConsumer
     
     
     /**
+     * @return the configuration of this consumer 
+     */
+    public SOSConsumerConfig getConfig();
+    
+    
+    /**
      * Requests consumer to update sensor description
      * @param newSensorDescription
      * @throws Exception
@@ -95,4 +101,10 @@ public interface ISOSDataConsumer
      * @throws Exception 
      */
     public Template getTemplate(String templateID) throws Exception;
+    
+    
+    /**
+     * Called when the consumer is removed
+     */    
+    public void cleanup();
 }
