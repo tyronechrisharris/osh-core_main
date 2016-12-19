@@ -319,6 +319,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     {
         if (storage != null)
             storage.cleanup();
+        super.cleanup();
     }
     
     

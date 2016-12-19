@@ -203,6 +203,8 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
         
         for (IProcessModule<?> process: processes.values())
             process.cleanup();
+        
+        super.cleanup();
     }
 
 

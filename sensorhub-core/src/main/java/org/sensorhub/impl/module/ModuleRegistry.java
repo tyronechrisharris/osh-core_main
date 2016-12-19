@@ -106,7 +106,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         {
             try
             {
-                loadModuleAsync(config, null);
+                loadModuleAsync(config.clone(), null);
             }
             catch (Exception e)
             {
@@ -714,17 +714,19 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         
         try
         {
+            // remove from repository
+            configRepo.remove(moduleID);
+            
             // stop it and call cleanup if it was loaded
             IModule<?> module = loadedModules.remove(moduleID);
             if (module != null)
             {
                 module.stop();
-                module.cleanup();
                 getStateManager(moduleID).cleanup();
+                module.cleanup();
             }
             
-            eventHandler.publishEvent(new ModuleEvent(module, Type.DELETED));
-            log.debug("Module " + MsgUtils.moduleString(module) +  " removed");
+            log.debug("Module " + MsgUtils.moduleString(module) +  " deleted");
         }
         catch (Exception e)
         {
@@ -770,6 +772,18 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     {
         for (ModuleConfig config: configList)
             configRepo.update(config);
+        
+        configRepo.commit();
+    }
+    
+    
+    /**
+     * @param moduleID local ID of desired module
+     * @return module with given ID or null if not found
+     */
+    public IModule<?> getLoadedModuleById(String moduleID)
+    {
+        return loadedModules.get(moduleID);
     }
     
     

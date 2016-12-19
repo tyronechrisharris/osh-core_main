@@ -518,6 +518,13 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
 
 
     @Override
+    public void cleanup() throws SensorHubException
+    {
+        eventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DELETED));
+    }
+
+
+    @Override
     public void registerListener(IEventListener listener)
     {
         synchronized (stateLock)
