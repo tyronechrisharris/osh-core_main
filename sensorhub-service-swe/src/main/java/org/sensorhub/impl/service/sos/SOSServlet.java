@@ -84,7 +84,7 @@ import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
-import org.sensorhub.impl.service.sos.ISOSDataConsumer.Template;
+import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
 import org.sensorhub.utils.FileUtils;
 import org.slf4j.Logger;

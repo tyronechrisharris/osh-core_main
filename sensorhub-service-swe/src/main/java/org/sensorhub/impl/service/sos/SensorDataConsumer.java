@@ -27,6 +27,7 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.swe.DataStructureHash;
 import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
+import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.SOSException;

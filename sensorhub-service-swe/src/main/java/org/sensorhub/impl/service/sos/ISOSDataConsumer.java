@@ -27,6 +27,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
+import org.sensorhub.impl.service.swe.Template;
 import org.vast.ogc.om.IObservation;
 
 
@@ -43,13 +44,6 @@ import org.vast.ogc.om.IObservation;
  * */
 public interface ISOSDataConsumer
 {     
-    
-    public static class Template
-    {
-        public DataComponent component;
-        public DataEncoding encoding;
-    }
-    
     
     /**
      * @return the configuration of this consumer 
