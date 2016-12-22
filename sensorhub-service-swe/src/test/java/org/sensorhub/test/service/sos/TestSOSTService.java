@@ -29,13 +29,11 @@ import net.opengis.swe.v20.Vector;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
-import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.persistence.StorageConfig;
-import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.InMemoryBasicStorage;
 import org.sensorhub.impl.service.sos.SOSProviderConfig;
 import org.sensorhub.impl.service.sos.SOSService;
@@ -76,7 +74,6 @@ public class TestSOSTService
     private static final String URI_OUTPUT2 = "urn:blabla:gps";
     private static final int NUM_GEN_SAMPLES = 5;
     TestSOSService sosTest;
-    ModuleRegistry registry;
     Throwable error = null;
     
     
@@ -97,12 +94,6 @@ public class TestSOSTService
     protected SensorDataProviderConfig buildSensorProvider1() throws Exception
     {
         return sosTest.buildSensorProvider1();
-    }
-    
-    
-    protected String getSosEndpointUrl()
-    {
-        return TestSOSService.HTTP_ENDPOINT;
     }
     
     
@@ -149,7 +140,7 @@ public class TestSOSTService
         
         // build insert sensor request
         InsertSensorRequest req = new InsertSensorRequest();
-        req.setPostServer(getSosEndpointUrl());
+        req.setPostServer(TestSOSService.HTTP_ENDPOINT);
         req.setVersion("2.0");        
         req.setProcedureDescription(procedure);
         req.setProcedureDescriptionFormat(SWESUtils.DEFAULT_PROCEDURE_FORMAT);
@@ -167,7 +158,7 @@ public class TestSOSTService
     protected InsertResultTemplateRequest buildInsertResultTemplate(DataStream output, InsertSensorResponse resp) throws Exception
     {
         InsertResultTemplateRequest req = new InsertResultTemplateRequest();
-        req.setPostServer(getSosEndpointUrl());
+        req.setPostServer(TestSOSService.HTTP_ENDPOINT);
         req.setVersion("2.0");
         req.setOffering(resp.getAssignedOffering());
         req.setResultStructure(output.getElementType());
@@ -180,7 +171,7 @@ public class TestSOSTService
     protected InsertResultRequest buildInsertResult(InsertResultTemplateResponse resp) throws Exception
     {
         InsertResultRequest req = new InsertResultRequest();
-        req.setGetServer(getSosEndpointUrl());
+        req.setGetServer(TestSOSService.HTTP_ENDPOINT);
         req.setVersion("2.0");
         req.setTemplateId(resp.getAcceptedTemplateId());
         return req;
@@ -195,14 +186,13 @@ public class TestSOSTService
         GetCapabilitiesRequest getCap = new GetCapabilitiesRequest();
         getCap.setService(SOSUtils.SOS);
         getCap.setVersion("2.0");
-        getCap.setGetServer(getSosEndpointUrl());
+        getCap.setGetServer(TestSOSService.HTTP_ENDPOINT);
         SOSServiceCapabilities caps = (SOSServiceCapabilities)utils.sendRequest(getCap, false);
         //utils.writeXMLResponse(System.out, caps);
         assertEquals("No offering added", offeringIndex+1, caps.getLayers().size());
         
         return (SOSOfferingCapabilities)caps.getLayers().get(offeringIndex);
-    }
-    
+    }    
     
     
     @Test
@@ -286,7 +276,7 @@ public class TestSOSTService
             {
                 try
                 {
-                    InputStream is = new URL(getSosEndpointUrl() + "?service=SOS&version=2.0&request=GetResult&offering=" + SENSOR_UID + "-sos&observedProperty=urn:blabla:temperature").openStream();
+                    InputStream is = new URL(TestSOSService.HTTP_ENDPOINT + "?service=SOS&version=2.0&request=GetResult&offering=" + SENSOR_UID + "-sos&observedProperty=urn:blabla:temperature").openStream();
                     IOUtils.copy(is, System.out);
                 }
                 catch (Exception e)
@@ -305,7 +295,7 @@ public class TestSOSTService
         
         // build and send insert observation
         InsertObservationRequest insObs = new InsertObservationRequest();
-        insObs.setPostServer(getSosEndpointUrl());
+        insObs.setPostServer(TestSOSService.HTTP_ENDPOINT);
         insObs.setVersion("2.0");
         insObs.setOffering(SENSOR_UID + "-sos");
         insObs.getObservations().add(obs);
@@ -370,7 +360,6 @@ public class TestSOSTService
         WebSocketClient wsClient = new WebSocketClient();
         wsClient.start();
         URI wsUri = new URI(url);
-        ClientUpgradeRequest request = new ClientUpgradeRequest();
         WebSocketAdapter socket = new WebSocketAdapter() {
             public void onWebSocketClose(int statusCode, String reason)
             {
@@ -383,7 +372,7 @@ public class TestSOSTService
                 error = e;
             }            
         };
-        Future<Session> future = wsClient.connect(socket, wsUri, request);
+        Future<Session> future = wsClient.connect(socket, wsUri);
         Session session = future.get();        
         assertTrue("Websocket client could not connect", socket.isConnected());
         

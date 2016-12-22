@@ -155,6 +155,7 @@ public class TestSOSService
         serviceCfg.autoStart = true;
         serviceCfg.name = "SOS";
         serviceCfg.enableTransactional = enableSOST;
+        serviceCfg.customFormats.clear();
         CapabilitiesInfo srvcMetadata = serviceCfg.ogcCapabilitiesInfo;
         srvcMetadata.title = "My SOS Service";
         srvcMetadata.description = "An SOS service automatically deployed by SensorHub";

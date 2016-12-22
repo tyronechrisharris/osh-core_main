@@ -155,8 +155,7 @@ import com.vividsolutions.jts.geom.Polygon;
 @SuppressWarnings("serial")
 public class SOSServlet extends org.vast.ows.sos.SOSServlet
 {
-    private static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";
-        
+    private static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";        
     private static final QName EXT_REPLAY = new QName("replayspeed"); // kvp params are always lower case
     private static final QName EXT_WS = new QName("websocket");
     
@@ -164,6 +163,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     SOSSecurity securityHandler;
     Logger log;
     String endpointUrl;
+    WebSocketServletFactory factory = new WebSocketServerFactory();
     ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
     SOSServiceCapabilities capabilities;
     Map<String, SOSOfferingCapabilities> offeringCaps = new HashMap<String, SOSOfferingCapabilities>();
@@ -563,10 +563,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    /**
+    /*
      * Retrieves SensorML object for the given procedure unique ID
-     * @param uri
-     * @return
      */
     protected AbstractProcess generateSensorML(String uri, TimeExtent timeExtent) throws ServiceException
     {
@@ -585,7 +583,40 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    private WebSocketServletFactory factory = new WebSocketServerFactory();
+    /*
+     * Create and associate storage with the given sensor module and corresponding offering
+     */
+    protected IModule<?> addStorageForSensor(ISensorModule<?> sensorModule) throws SensorHubException
+    {
+        ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
+        String sensorUID = sensorModule.getUniqueIdentifier();
+        String storageID = sensorUID + "#storage";
+        
+        // create new storage module if needed
+        IModule<?> storageModule = moduleReg.getLoadedModuleById(storageID);
+        if (storageModule == null)
+        {
+            // create new storage module
+            StreamStorageConfig streamStorageConfig = new StreamStorageConfig();
+            streamStorageConfig.id = storageID;
+            streamStorageConfig.name = sensorModule.getName() + " Storage";
+            streamStorageConfig.autoStart = true;
+            streamStorageConfig.dataSourceID = sensorUID;
+            streamStorageConfig.storageConfig = (StorageConfig)config.newStorageConfig.clone();
+            streamStorageConfig.storageConfig.storagePath = FileUtils.safeFileName(sensorUID) + ".dat";
+            storageModule = moduleReg.loadModule(streamStorageConfig);
+                                
+            /*// also add related features to storage
+            if (storage instanceof IObsStorage)
+            {
+                for (FeatureRef featureRef: request.getRelatedFeatures())
+                    ((IObsStorage) storage).storeFoi(featureRef.getTarget());
+            }*/
+        }
+        
+        return storageModule;        
+    }
+    
     
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
@@ -608,7 +639,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                     
                     if (owsReq != null)
                     {
-                        owsReq.getExtensions().put(EXT_WS, factory);
+                        owsReq.getExtensions().put(EXT_WS, true);
                         
                         if (owsReq instanceof GetResultRequest)
                         {
@@ -1244,7 +1275,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             
             // get sensor UID
             String sensorUID = request.getProcedureDescription().getUniqueIdentifier();
-                            
+            log.info("Registering new sensor " + sensorUID);
+            
             // offering name is derived from sensor UID
             String offeringID = sensorUID + "-sos";
             
@@ -1341,36 +1373,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected IModule<?> addStorageForSensor(ISensorModule<?> sensorModule) throws SensorHubException
-    {
-        ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
-        String sensorUID = sensorModule.getUniqueIdentifier();
-        String storageID = sensorUID + "#storage";
-        
-        // create new storage module if needed
-        IModule<?> storageModule = moduleReg.getLoadedModuleById(storageID);
-        if (storageModule == null)
-        {
-            // create new storage module
-            StreamStorageConfig streamStorageConfig = new StreamStorageConfig();
-            streamStorageConfig.id = storageID;
-            streamStorageConfig.name = sensorModule.getName() + " Storage";
-            streamStorageConfig.autoStart = true;
-            streamStorageConfig.dataSourceID = sensorUID;
-            streamStorageConfig.storageConfig = (StorageConfig)config.newStorageConfig.clone();
-            streamStorageConfig.storageConfig.storagePath = FileUtils.safeFileName(sensorUID) + ".dat";
-            storageModule = moduleReg.loadModule(streamStorageConfig);
-                                
-            /*// also add related features to storage
-            if (storage instanceof IObsStorage)
-            {
-                for (FeatureRef featureRef: request.getRelatedFeatures())
-                    ((IObsStorage) storage).storeFoi(featureRef.getTarget());
-            }*/
-        }
-        
-        return storageModule;        
-    }@Override
+    @Override
     protected void handleRequest(DeleteSensorRequest request) throws Exception
     {
         try

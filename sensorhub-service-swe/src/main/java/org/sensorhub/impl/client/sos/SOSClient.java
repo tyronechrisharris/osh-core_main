@@ -26,7 +26,6 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
-import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.sensorhub.api.common.SensorHubException;
 import org.slf4j.Logger;
@@ -246,8 +245,7 @@ public class SOSClient
             started = true;
             wsClient.start();
             URI wsUri = new URI(destUri);
-            ClientUpgradeRequest request = new ClientUpgradeRequest();
-            wsClient.connect(socket, wsUri, request);
+            wsClient.connect(socket, wsUri);
             log.debug("Connecting to {}", destUri);
         }
         catch (Exception e)
