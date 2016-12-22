@@ -15,29 +15,11 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sps;
 
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.config.DisplayInfo.Required;
+import org.sensorhub.impl.service.swe.OfferingConfig;
 
 
-public abstract class SPSConnectorConfig
+public abstract class SPSConnectorConfig extends OfferingConfig
 {
-
-    @DisplayInfo(desc="Set if connector is enabled, unset if disabled")
-    public boolean enabled;
-    
-    
-    @Required
-    @DisplayInfo(desc="Offering URI as exposed in capabilities")
-    public String uri;
-    
-    
-    @DisplayInfo(desc="Offering name (if null, it will be set to the name of the data source)")
-    public String name;
-    
-    
-    @DisplayInfo(desc="Offering description (if null, it will be auto-generated from the data source name)")
-    public String description;
-    
     
     /**
      * Retrieves the connector instance describe by this configuration
@@ -45,5 +27,4 @@ public abstract class SPSConnectorConfig
      * @return
      */
     protected abstract ISPSConnector getConnector(SPSServlet service) throws SensorHubException;
-
 }

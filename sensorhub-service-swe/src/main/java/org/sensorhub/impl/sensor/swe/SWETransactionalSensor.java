@@ -110,6 +110,10 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         DataStructureHash outputHashObj = new DataStructureHash(component, null);
         String outputName = structureToOutputMap.get(outputHashObj);
         
+        // else use provided name
+        if (outputName == null)
+            outputName = component.getName();
+        
         // else generate output name
         if (outputName == null)
             outputName = "output" + getAllOutputs().size();
@@ -129,7 +133,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
             DataStructureHash oldOutputHashObj = new DataStructureHash(output.getRecordDescription(), output.getRecommendedEncoding());
             DataStructureHash newOutputHashObj = new DataStructureHash(component, encoding);
             if (!newOutputHashObj.equals(oldOutputHashObj))
-                throw new SensorException("Output definition is different from previously registered output with the same name");
+                throw new SensorException("Output definition differs from previously registered output with the same name");
         }
         
         // update sensor description with data stream to keep encoding definition
@@ -149,6 +153,10 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         DataStructureHash paramHashObj = new DataStructureHash(component, null);
         String paramName = structureToTaskableParamMap.get(paramHashObj);
         
+        // else use provided name
+        if (paramName == null)
+            paramName = component.getName();
+        
         // else generate output name
         if (paramName == null)
             paramName = "command" + getCommandInputs().size();
@@ -157,8 +165,8 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         if (!getCommandInputs().containsKey(paramName))
         {
             component.setName(paramName);
-            SWETransactionalSensorOutput newOutput = new SWETransactionalSensorOutput(this, component, encoding);
-            addOutput(newOutput, false);
+            SWETransactionalSensorControl newControl = new SWETransactionalSensorControl(this, component);
+            addControlInput(newControl);
         }
         else
         {
@@ -168,7 +176,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
             DataStructureHash oldInputHashObj = new DataStructureHash(controlInput.getCommandDescription(), null);
             DataStructureHash newInputHashObj = new DataStructureHash(component, null);
             if (!newInputHashObj.equals(oldInputHashObj))
-                throw new SensorException("Control input definition is different from previously registered input with the same name");
+                throw new SensorException("Control input definition differs from previously registered input with the same name");
         }
         
         // update sensor description with data stream to keep encoding definition

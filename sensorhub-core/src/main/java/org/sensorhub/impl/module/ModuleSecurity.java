@@ -25,7 +25,7 @@ import org.sensorhub.impl.security.PermissionRequest;
 
 public class ModuleSecurity
 {    
-    protected final ModulePermissions rootPerm;
+    public final ModulePermissions rootPerm;
     protected boolean enable = true;
     ThreadLocal<IUserInfo> currentUser = new ThreadLocal<IUserInfo>();
         

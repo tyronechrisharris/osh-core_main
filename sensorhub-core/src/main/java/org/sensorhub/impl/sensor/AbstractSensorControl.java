@@ -45,12 +45,20 @@ public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>>
     protected static String ERROR_NO_ASYNC = "Asynchronous command processing is not supported by driver ";
     protected static String ERROR_NO_SCHED = "Command scheduling is not supported by driver ";
     protected static String ERROR_NO_STATUS_HISTORY = "Status history is not supported by driver ";
+    protected String name;
     protected SensorType parentSensor;
     protected IEventHandler eventHandler;
     
     
     public AbstractSensorControl(SensorType parentSensor)
     {
+        this(null, parentSensor);
+    }
+    
+    
+    public AbstractSensorControl(String name, SensorType parentSensor)
+    {
+        this.name = name;
         this.parentSensor = parentSensor;
         
         // obtain an event handler for this control input
@@ -64,6 +72,13 @@ public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>>
     public ISensorModule<?> getParentSensor()
     {
         return parentSensor;
+    }
+    
+    
+    @Override
+    public String getName()
+    {
+        return name;
     }
 
 

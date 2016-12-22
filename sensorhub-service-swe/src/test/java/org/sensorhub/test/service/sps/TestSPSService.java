@@ -59,21 +59,22 @@ import org.w3c.dom.NodeList;
 public class TestSPSService
 {
     static final int SERVER_PORT = 8888;
-    static String SERVICE_ENDPOINT = "/sps";
-    static String SERVER_URL = "http://localhost:" + SERVER_PORT + "/sensorhub" + SERVICE_ENDPOINT;    
-    static String NAME_INPUT1 = "command";
-    static String URI_OFFERING1 = "urn:mysps:sensor1";
-    static String URI_OFFERING2 = "urn:mysps:sensor2";
-    static String NAME_OFFERING1 = "SPS Sensor Control #1";
-    static String NAME_OFFERING2 = "SPS Sensor Control #2";
-    static String SENSOR_UID_1 = "urn:mysensors:SENSOR001";
-    static String SENSOR_UID_2 = "urn:mysensors:SENSOR002";
+    static final String SERVICE_PATH = "/sps";
+    static final String HTTP_ENDPOINT = "http://localhost:" + SERVER_PORT + "/sensorhub" + SERVICE_PATH;
+    static final String WS_ENDPOINT = HTTP_ENDPOINT.replace("http://", "ws://");     
+    static final String NAME_INPUT1 = "command";
+    static final String URI_OFFERING1 = "urn:mysps:sensor1";
+    static final String URI_OFFERING2 = "urn:mysps:sensor2";
+    static final String NAME_OFFERING1 = "SPS Sensor Control #1";
+    static final String NAME_OFFERING2 = "SPS Sensor Control #2";
+    static final String SENSOR_UID_1 = "urn:mysensors:SENSOR001";
+    static final String SENSOR_UID_2 = "urn:mysensors:SENSOR002";
     
     ModuleRegistry registry;
     
     
     @Before
-    public void setupFramework() throws Exception
+    public void setup() throws Exception
     {
         // get instance with in-memory DB
         registry = SensorHub.getInstance().getModuleRegistry();
@@ -86,13 +87,20 @@ public class TestSPSService
     
     
     protected SPSService deployService(SPSConnectorConfig... connectorConfigs) throws Exception
+    {
+        return deployService(false, connectorConfigs);
+    }
+    
+    
+    protected SPSService deployService(boolean enabledTransactional, SPSConnectorConfig... connectorConfigs) throws Exception
     {   
         // create service config
         SPSServiceConfig serviceCfg = new SPSServiceConfig();
         serviceCfg.moduleClass = SPSService.class.getCanonicalName();
-        serviceCfg.endPoint = SERVICE_ENDPOINT;
+        serviceCfg.endPoint = SERVICE_PATH;
         serviceCfg.autoStart = true;
         serviceCfg.name = "SPS";
+        serviceCfg.enableTransactional = enabledTransactional;
         
         CapabilitiesInfo srvcMetadata = serviceCfg.ogcCapabilitiesInfo;
         srvcMetadata.title = "My SPS Service";
@@ -104,7 +112,7 @@ public class TestSPSService
         srvcMetadata.fees = "NONE";
         srvcMetadata.accessConstraints = "NONE";
         
-        serviceCfg.connectors = Arrays.asList(connectorConfigs);
+        serviceCfg.connectors.addAll(Arrays.asList(connectorConfigs));
         
         // load module into registry
         SPSService sps = (SPSService)registry.loadModule(serviceCfg);
@@ -131,7 +139,7 @@ public class TestSPSService
         SensorConnectorConfig provCfg = new SensorConnectorConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING1;
-        provCfg.uri = URI_OFFERING1;
+        provCfg.offeringID = URI_OFFERING1;
         provCfg.sensorID = sensor.getLocalID();
         //provCfg.hiddenOutputs
         
@@ -157,7 +165,7 @@ public class TestSPSService
         SensorConnectorConfig provCfg = new SensorConnectorConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING2;
-        provCfg.uri = URI_OFFERING2;
+        provCfg.offeringID = URI_OFFERING2;
         provCfg.sensorID = sensor.getLocalID();
         //provCfg.hiddenOutputs
         
@@ -188,33 +196,33 @@ public class TestSPSService
     }
     
     
-    protected DescribeTaskingRequest generateDescribeTasking(String procedureId)
+    protected DescribeTaskingRequest buildDescribeTasking(String procedureId)
     {
         DescribeTaskingRequest dtReq = new DescribeTaskingRequest();
-        dtReq.setGetServer(SERVER_URL);
-        dtReq.setPostServer(SERVER_URL);
+        dtReq.setGetServer(HTTP_ENDPOINT);
+        dtReq.setPostServer(HTTP_ENDPOINT);
         dtReq.setVersion("2.0");
         dtReq.setProcedureID(procedureId);
         return dtReq;
     }
     
     
-    protected DescribeSensorRequest generateDescribeSensor(String procedureId)
+    protected DescribeSensorRequest buildDescribeSensor(String procedureId)
     {
         DescribeSensorRequest dsReq = new DescribeSensorRequest();
         dsReq.setService(SPSUtils.SPS);
-        dsReq.setGetServer(SERVER_URL);
-        dsReq.setPostServer(SERVER_URL);
+        dsReq.setGetServer(HTTP_ENDPOINT);
+        dsReq.setPostServer(HTTP_ENDPOINT);
         dsReq.setVersion("2.0");
         dsReq.setProcedureID(procedureId);
         return dsReq;
     } 
     
     
-    protected SubmitRequest generateSubmit(String procedureId, DataComponent components, DataBlock... dataBlks)
+    protected SubmitRequest buildSubmit(String procedureId, DataComponent components, DataBlock... dataBlks)
     {
         SubmitRequest subReq = new SubmitRequest();
-        subReq.setPostServer(SERVER_URL);
+        subReq.setPostServer(HTTP_ENDPOINT);
         subReq.setVersion("2.0");
         subReq.setProcedureID(procedureId);
         SWEData paramData = new SWEData();
@@ -239,7 +247,7 @@ public class TestSPSService
     {
         deployService(buildSensorConnector1());
         
-        InputStream is = new URL(SERVER_URL + "?service=SPS&version=2.0&request=GetCapabilities").openStream();
+        InputStream is = new URL(HTTP_ENDPOINT + "?service=SPS&version=2.0&request=GetCapabilities").openStream();
         DOMHelper dom = new DOMHelper(is, false);
         dom.serialize(dom.getBaseElement(), System.out, true);
         
@@ -255,7 +263,7 @@ public class TestSPSService
     {
         deployService(buildSensorConnector1(), buildSensorConnector2());
         
-        InputStream is = new URL(SERVER_URL + "?service=SOS&version=2.0&request=GetCapabilities").openStream();
+        InputStream is = new URL(HTTP_ENDPOINT + "?service=SOS&version=2.0&request=GetCapabilities").openStream();
         DOMHelper dom = new DOMHelper(is, false);
         dom.serialize(dom.getBaseElement(), System.out, true);
         
@@ -274,7 +282,7 @@ public class TestSPSService
     public void testDescribeSensorOneOffering() throws Exception
     {
         deployService(buildSensorConnector1());
-        DOMHelper dom = sendRequest(generateDescribeSensor(SENSOR_UID_1), false);
+        DOMHelper dom = sendRequest(buildDescribeSensor(SENSOR_UID_1), false);
         assertEquals("Wrong Sensor UID", SENSOR_UID_1, dom.getElementValue("identifier"));
     }
     
@@ -285,11 +293,11 @@ public class TestSPSService
         deployService(buildSensorConnector1(), buildSensorConnector2());
         DOMHelper dom;
         
-        dom = sendRequest(generateDescribeSensor(SENSOR_UID_1), false);
+        dom = sendRequest(buildDescribeSensor(SENSOR_UID_1), false);
         assertEquals("Wrong Sensor UID", SENSOR_UID_1, dom.getElementValue("identifier"));
         assertEquals("Wrong number of control parameters", 1, dom.getElements("parameters/*/parameter").getLength());
         
-        dom = sendRequest(generateDescribeSensor(SENSOR_UID_2), true);
+        dom = sendRequest(buildDescribeSensor(SENSOR_UID_2), true);
         assertEquals("Wrong Sensor UID", SENSOR_UID_2, dom.getElementValue("identifier"));
         assertEquals("Wrong number of control parameters", 2, dom.getElements("parameters/*/parameter").getLength());
     }
@@ -299,7 +307,7 @@ public class TestSPSService
     public void testDescribeSensorWrongFormat() throws Exception
     {
         deployService(buildSensorConnector1());
-        DescribeSensorRequest req = generateDescribeSensor(SENSOR_UID_1);
+        DescribeSensorRequest req = buildDescribeSensor(SENSOR_UID_1);
         req.setFormat("InvalidFormat");
         sendRequest(req, false);
     }
@@ -309,7 +317,7 @@ public class TestSPSService
     public void testDescribeTaskingOneOffering() throws Exception
     {
         deployService(buildSensorConnector1());
-        DOMHelper dom = sendRequest(generateDescribeTasking(SENSOR_UID_1), false);
+        DOMHelper dom = sendRequest(buildDescribeTasking(SENSOR_UID_1), false);
         
         NodeList offeringElts = dom.getElements("taskingParameters/*/field");
         assertEquals("Wrong number of tasking parameters", 2, offeringElts.getLength());
@@ -324,11 +332,11 @@ public class TestSPSService
         DOMHelper dom;
         NodeList offeringElts;
         
-        dom = sendRequest(generateDescribeTasking(SENSOR_UID_1), false);
+        dom = sendRequest(buildDescribeTasking(SENSOR_UID_1), false);
         offeringElts = dom.getElements("taskingParameters/*/field");
         assertEquals("Wrong number of tasking parameters", 2, offeringElts.getLength());
         
-        dom = sendRequest(generateDescribeTasking(SENSOR_UID_2), true);
+        dom = sendRequest(buildDescribeTasking(SENSOR_UID_2), true);
         offeringElts = dom.getElements("taskingParameters/*/item");
         assertEquals("Wrong number of parameter choices", 2, offeringElts.getLength());
     }
@@ -341,14 +349,14 @@ public class TestSPSService
         SPSUtils spsUtils = new SPSUtils();
         
         // first send describeTasking
-        DOMHelper dom = sendRequest(generateDescribeTasking(SENSOR_UID_1), true);
+        DOMHelper dom = sendRequest(buildDescribeTasking(SENSOR_UID_1), true);
         DescribeTaskingResponse resp = spsUtils.readDescribeTaskingResponse(dom, dom.getBaseElement());
         
         // then send submit
         DataBlock dataBlock = new DataBlockMixed(new DataBlockDouble(1), new DataBlockString(1));
         dataBlock.setDoubleValue(0, 10.0);
         dataBlock.setStringValue(1, "HIGH");
-        SubmitRequest subReq = generateSubmit(SENSOR_UID_1, resp.getTaskingParameters(), dataBlock);
+        SubmitRequest subReq = buildSubmit(SENSOR_UID_1, resp.getTaskingParameters(), dataBlock);
         dom = sendRequest(subReq, true);
         
         OWSExceptionReader.checkException(dom, dom.getBaseElement());
@@ -360,7 +368,8 @@ public class TestSPSService
     {
         try
         {
-            SensorHub.getInstance().getModuleRegistry().shutdown(false, false);            
+            if (registry != null)
+                registry.shutdown(false, false);            
             HttpServer.getInstance().cleanup();
             SensorHub.clearInstance();
         }

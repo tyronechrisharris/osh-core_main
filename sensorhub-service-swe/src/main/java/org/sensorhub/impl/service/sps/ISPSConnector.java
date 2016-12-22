@@ -21,8 +21,8 @@ import net.opengis.swe.v20.DataBlock;
 
 /**
  * <p>
- * Interface for all SPS connectors.
- * Implementations can connect to sensors, process, etc.
+ * Interface for all SPS connectors capable of transmitting commands.
+ * Implementations can send commands to sensors, process, etc.
  * </p>
  *
  * @author Alex Robin <alex.robin@sensiasoftware.com>
@@ -38,10 +38,15 @@ public interface ISPSConnector
     
     
     /**
-     * Allows to check if provider is enabled
-     * @return true if enabled, false otherwise
+     * @return true if this connector is enabled, false otherwise
      */
     public boolean isEnabled();
+    
+    
+    /**
+     * @return unique ID of procedure linked to this connector
+     */
+    public String getProcedureID();
     
     
     /**

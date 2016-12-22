@@ -14,11 +14,10 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sps;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.security.SecurityConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig;
+import org.sensorhub.impl.service.swe.OfferingList;
 
 
 /**
@@ -32,10 +31,12 @@ import org.sensorhub.impl.service.ogc.OGCServiceConfig;
 public class SPSServiceConfig extends OGCServiceConfig
 {
         
-    /**
-     * Consumers configurations 
-     */
-    public List<SPSConnectorConfig> connectors = new ArrayList<SPSConnectorConfig>();
+    @DisplayInfo(desc="Set to true to enable transactional operation support")
+    public boolean enableTransactional = false;
+    
+    
+    @DisplayInfo(label="Offerings", desc="Configuration of connectors for SPS offerings")
+    public OfferingList<SPSConnectorConfig> connectors = new OfferingList<SPSConnectorConfig>();
     
     
     @DisplayInfo(desc="Security related options")

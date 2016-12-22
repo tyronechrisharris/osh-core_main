@@ -34,6 +34,7 @@ import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.impl.security.BasicSecurityRealmConfig;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
+import org.sensorhub.impl.service.sos.SOSServiceConfig;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.IModuleConfigForm;
 import org.slf4j.Logger;
@@ -134,6 +135,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             customPanels.put(SensorConfig.class.getCanonicalName(), SensorAdminPanel.class);        
             customPanels.put(StorageConfig.class.getCanonicalName(), StorageAdminPanel.class);
             customPanels.put(NetworkConfig.class.getCanonicalName(), NetworkAdminPanel.class);
+            customPanels.put(SOSServiceConfig.class.getCanonicalName(), SOSAdminPanel.class);
             
             // load custom panel builders defined in config
             for (CustomUIConfig customPanel: config.customPanels)

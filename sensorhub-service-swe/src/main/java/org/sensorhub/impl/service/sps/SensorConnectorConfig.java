@@ -21,8 +21,11 @@ import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.FieldType;
 import org.sensorhub.api.config.DisplayInfo.ModuleType;
 import org.sensorhub.api.config.DisplayInfo.Required;
+import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.api.sensor.ISensorModule;
+import org.sensorhub.impl.SensorHub;
+import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 
 
 /**
@@ -50,6 +53,11 @@ public class SensorConnectorConfig extends SPSConnectorConfig
     @Override
     protected ISPSConnector getConnector(SPSServlet service) throws SensorHubException
     {
-        return new DirectSensorConnector(service, this);
+        IModule<?> sensor = SensorHub.getInstance().getModuleRegistry().getModuleById(sensorID);
+        
+        if (sensor instanceof SWETransactionalSensor)
+            return new TransactionalSensorConnector(service, this);
+        else
+            return new DirectSensorConnector(service, this);
     }
 }

@@ -33,12 +33,19 @@ public class SPSSecurity extends ModuleSecurity
     public final IPermission sps_read_sensor;
     public final IPermission sps_read_params;
     public final IPermission sps_read_task;
+    
     public final IPermission sps_task;
     public final IPermission sps_task_submit;
     public final IPermission sps_task_feasibility;
     public final IPermission sps_task_update;
     public final IPermission sps_task_cancel;
     public final IPermission sps_task_reserve;
+    public final IPermission sps_task_direct;
+    
+    public final IPermission sps_insert_sensor;
+    public final IPermission sps_update_sensor;
+    public final IPermission sps_delete_sensor;
+    public final IPermission sps_connect_tasking;
     
     
     public SPSSecurity(SPSService sps, boolean enable)
@@ -58,6 +65,12 @@ public class SPSSecurity extends ModuleSecurity
         sps_task_update = new ItemPermission(sps_task, "update");
         sps_task_cancel = new ItemPermission(sps_task, "cancel");
         sps_task_reserve = new ItemPermission(sps_task, "reserve");
+        sps_task_direct = new ItemPermission(sps_task, "direct");
+        
+        sps_insert_sensor = new ItemPermission(rootPerm, "insert sensor");
+        sps_update_sensor = new ItemPermission(rootPerm, "update sensor");
+        sps_delete_sensor = new ItemPermission(rootPerm, "delete sensor");
+        sps_connect_tasking = new ItemPermission(rootPerm, "connect tasking");
         
         // register wildcard permission tree usable for all SPS services
         // do it at this point so we don't include specific offering permissions
@@ -66,16 +79,7 @@ public class SPSSecurity extends ModuleSecurity
                 
         // create permissions for each offering
         for (SPSConnectorConfig offering: sps.getConfiguration().connectors)
-        {
-            String permName = getOfferingPermissionName(offering.uri);
-            new ItemPermission(sps_read_sensor, permName);
-            new ItemPermission(sps_read_params, permName);
-            new ItemPermission(sps_read_task, permName);
-            new ItemPermission(sps_task_submit, permName);
-            new ItemPermission(sps_task_feasibility, permName);
-            new ItemPermission(sps_task_reserve, permName);
-            new ItemPermission(sps_task_update, permName);
-        }
+            addOfferingPermissions(offering.offeringID);
         
         // register this instance permission tree
         SensorHub.getInstance().getSecurityManager().registerModulePermissions(rootPerm);
@@ -92,5 +96,22 @@ public class SPSSecurity extends ModuleSecurity
     protected String getOfferingPermissionName(String offeringUri)
     {
         return "offering[" + offeringUri + "]";
+    }
+    
+    
+    protected void addOfferingPermissions(String offeringUri)
+    {
+        String permName = getOfferingPermissionName(offeringUri);
+        new ItemPermission(sps_read_sensor, permName);
+        new ItemPermission(sps_read_params, permName);
+        new ItemPermission(sps_read_task, permName);
+        new ItemPermission(sps_task_submit, permName);
+        new ItemPermission(sps_task_feasibility, permName);
+        new ItemPermission(sps_task_update, permName);
+        new ItemPermission(sps_task_cancel, permName);
+        new ItemPermission(sps_task_reserve, permName);
+        new ItemPermission(sps_task_direct, permName);
+        new ItemPermission(sps_update_sensor, permName);
+        new ItemPermission(sps_delete_sensor, permName);        
     }
 }

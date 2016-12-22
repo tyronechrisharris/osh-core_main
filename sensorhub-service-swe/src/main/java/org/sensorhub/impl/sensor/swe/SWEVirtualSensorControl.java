@@ -24,6 +24,7 @@ import org.sensorhub.impl.sensor.AbstractSensorControl;
 import org.vast.data.AbstractDataBlock;
 import org.vast.data.DataBlockInt;
 import org.vast.data.DataBlockMixed;
+import org.vast.util.Asserts;
 
 
 public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSensor>
@@ -35,6 +36,7 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
     public SWEVirtualSensorControl(SWEVirtualSensor parentSensor, DataComponent cmdDescription)
     {
         this(parentSensor, cmdDescription, -1);
+        Asserts.checkNotNull(cmdDescription.getName(), "Command must have a name");
     }
     
     

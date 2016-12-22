@@ -56,8 +56,10 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
     final SPSServlet service;
     final SensorConnectorConfig config;
     final ISensorModule<?> sensor;
+    final String procedureID;
     DataChoice commandChoice;
     String uniqueInterfaceName;
+    boolean disableEvents;
     
     
     public DirectSensorConnector(SPSServlet service, SensorConnectorConfig config) throws SensorHubException
@@ -67,9 +69,12 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
         
         // get handle to sensor instance using sensor manager
         this.sensor = SensorHub.getInstance().getSensorManager().getModuleById(config.sensorID);
+        this.procedureID = sensor.getUniqueIdentifier();
         
         // listen to sensor lifecycle events
+        disableEvents = true; // disable events on startup
         sensor.registerListener(this);
+        disableEvents = false;
     }
     
 
@@ -83,8 +88,8 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
             SPSOfferingCapabilities caps = new SPSOfferingCapabilities();
             
             // identifier
-            if (config.uri != null)
-                caps.setIdentifier(config.uri);
+            if (config.offeringID != null)
+                caps.setIdentifier(config.offeringID);
             else
                 caps.setIdentifier("baseURL#" + sensor.getLocalID()); // TODO obtain baseURL
             
@@ -117,6 +122,7 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
             List<DataComponent> commands = getCommandsFromSensor();
             if (commands.size() == 1)
             {
+                commandChoice = null;
                 descTaskingResp.setTaskingParameters(commands.get(0).copy());
                 uniqueInterfaceName = commands.get(0).getName();
             }
@@ -181,8 +187,7 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
     
     @Override
     public void updateCapabilities() throws Exception
-    {
-        
+    {        
     }
     
     
@@ -246,18 +251,35 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
     @Override
     public void handleEvent(Event<?> e)
     {
-        // if sensor is enabled/disabled
+        if (disableEvents)
+            return;
+        
+        // producer events
         if (e instanceof ModuleEvent && e.getSource() == sensor)
         {
-            ModuleState state = ((ModuleEvent)e).getNewState();
-            if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
+            switch (((ModuleEvent)e).getType())
             {
-                if (isEnabled())
-                    service.showConnectorCaps(this);
-                else
-                    service.hideConnectorCaps(this);
+                // show/hide offering when sensor is enabled/disabled
+                case STATE_CHANGED:
+                    ModuleState state = ((ModuleEvent)e).getNewState();
+                    if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
+                    {
+                        if (isEnabled())
+                            service.showConnectorCaps(this);
+                        else
+                            service.hideConnectorCaps(this);
+                    }
+                    break;
+                
+                // cleanly remove connector when sensor is deleted
+                case DELETED:
+                    service.removeConnector(procedureID);
+                    break;
+                    
+                default:
+                    return;
             }
-        }         
+        }      
     }
     
     
@@ -279,5 +301,12 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
     public void cleanup()
     {
         sensor.unregisterListener(this);
+    }
+
+
+    @Override
+    public String getProcedureID()
+    {
+        return procedureID;
     }
 }
