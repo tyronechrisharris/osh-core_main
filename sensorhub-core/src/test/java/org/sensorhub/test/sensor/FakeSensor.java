@@ -28,18 +28,17 @@ import org.sensorhub.impl.sensor.AbstractSensorModule;
 
 public class FakeSensor extends AbstractSensorModule<SensorConfig>
 {
-    String sensorUID;
-    
+   
     
     public FakeSensor()
     {
-        this.sensorUID = "urn:sensors:mysensor:001";
+        this.uniqueID = "urn:sensors:mysensor:001";
     }
     
     
     public void setSensorUID(String sensorUID)
     {
-        this.sensorUID = sensorUID;
+        this.uniqueID = sensorUID;
     }
     
     
@@ -91,7 +90,6 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
         synchronized (sensorDescLock)
         {
             super.updateSensorDescription();
-            sensorDescription.setUniqueIdentifier(sensorUID);
             Point pos = new PointImpl(3);
             pos.setId("P01");
             pos.setSrsName("http://www.opengis.net/def/crs/EPSG/0/4979");
