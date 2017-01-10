@@ -43,7 +43,7 @@ public class MyBeanItemContainer<BeanType> extends AbstractInMemoryContainer<Obj
         try
         {
             this.actualBeanType = beanType;
-            if ((beanType.getModifiers() & Modifier.ABSTRACT) == 0 && !Enum.class.isAssignableFrom(beanType))
+            if ((beanType.getModifiers() & Modifier.ABSTRACT) == 0 && !BeanUtils.isSimpleType(beanType))
                 this.templateItem = new MyBeanItem<BeanType>(beanType.newInstance());
             else
                 this.templateItem = null;
