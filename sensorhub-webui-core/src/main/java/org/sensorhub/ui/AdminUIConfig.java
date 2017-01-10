@@ -34,6 +34,7 @@ public class AdminUIConfig extends ModuleConfig
     public AdminUIConfig()
     {
         this.name = "Admin UI";
+        this.moduleClass = AdminUIModule.class.getCanonicalName();
     }
 
 }
