@@ -135,7 +135,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             customPanels.put(SensorConfig.class.getCanonicalName(), SensorAdminPanel.class);        
             customPanels.put(StorageConfig.class.getCanonicalName(), StorageAdminPanel.class);
             customPanels.put(NetworkConfig.class.getCanonicalName(), NetworkAdminPanel.class);
-            customPanels.put(SOSServiceConfig.class.getCanonicalName(), SOSAdminPanel.class);
+            //customPanels.put(SOSServiceConfig.class.getCanonicalName(), SOSAdminPanel.class);
             
             // load custom panel builders defined in config
             for (CustomUIConfig customPanel: config.customPanels)
