@@ -14,85 +14,31 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sps;
 
-import java.util.Hashtable;
-import java.util.UUID;
-import org.vast.ows.sps.FeasibilityReport;
-import org.vast.ows.sps.GetFeasibilityRequest;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.vast.ows.sps.StatusReport;
-import org.vast.ows.sps.SubmitRequest;
-import org.vast.ows.sps.TaskingRequest;
-import org.vast.ows.sps.StatusReport.RequestStatus;
 import org.vast.util.DateTime;
 
 
 public class InMemoryTaskDB implements ITaskDB
 {
-	public static String TASK_ID_PREFIX = "urn:sensorhub:sps:task:";
-	public static String FEASIBILITY_ID_PREFIX = "urn:sensorhub:sps:feas:";
-	protected Hashtable<String, Task> taskTable;
+	protected Map<String, ITask> taskTable;
 	
 	
 	public InMemoryTaskDB()
 	{
-		this.taskTable = new Hashtable<String, Task>();
+		this.taskTable = Collections.synchronizedMap(new HashMap<String, ITask>());
 	}
 	
 	
-	public synchronized Task createNewTask(TaskingRequest request)
+	public void addTask(ITask task)
 	{
-		if (request instanceof SubmitRequest)
-			return createNewTask((SubmitRequest)request);
-		else if (request instanceof GetFeasibilityRequest)
-			return createNewTask((GetFeasibilityRequest)request);
-		else
-			throw new IllegalStateException("Cannot create task for operation " + request.getOperation());
-	}
-	
-	
-	protected Task createNewTask(SubmitRequest request)
-	{
-		Task newTask = new Task();
-		newTask.setRequest(request);
-		String taskID = TASK_ID_PREFIX + UUID.randomUUID().toString();
-		
-		// initial status
-		newTask.getStatusReport().setTaskID(taskID);
-		newTask.getStatusReport().setTitle("Tasking Request Report");
-		newTask.getStatusReport().setSensorID(request.getProcedureID());
-		newTask.getStatusReport().setRequestStatus(RequestStatus.Pending);
-		
-		// creation time
-		newTask.setCreationTime(new DateTime());
-		
-		taskTable.put(taskID, newTask);
-		
-		return newTask;
-	}
-	
-	
-	protected Task createNewTask(GetFeasibilityRequest request)
-	{
-		Task newTask = new Task();
-		newTask.setStatusReport(new FeasibilityReport());
-		newTask.setRequest(request);
-		String taskID = FEASIBILITY_ID_PREFIX + UUID.randomUUID().toString();
-		
-		// initial status
-		newTask.getStatusReport().setTaskID(taskID);
-		newTask.getStatusReport().setTitle("Feasibility Study Report");
-		newTask.getStatusReport().setSensorID(request.getProcedureID());
-		newTask.getStatusReport().setRequestStatus(RequestStatus.Pending);
-		
-		// creation time
-		newTask.setCreationTime(new DateTime());
-		
-		taskTable.put(taskID, newTask);
-		
-		return newTask;
+	    taskTable.put(task.getID(), task);
 	}
 
 
-	public Task getTask(String taskID)
+	public ITask getTask(String taskID)
 	{
 		return taskTable.get(taskID);
 	}
@@ -100,7 +46,7 @@ public class InMemoryTaskDB implements ITaskDB
 
 	public StatusReport getTaskStatus(String taskID)
 	{
-		Task task = taskTable.get(taskID);
+	    ITask task = taskTable.get(taskID);
 		if (task == null)
 			return null;
 		
@@ -117,7 +63,7 @@ public class InMemoryTaskDB implements ITaskDB
 
 	public void updateTaskStatus(StatusReport report)
 	{
-		Task task = taskTable.get(report.getTaskID());
+	    ITask task = taskTable.get(report.getTaskID());
 		if (task == null)
 			return;
 		

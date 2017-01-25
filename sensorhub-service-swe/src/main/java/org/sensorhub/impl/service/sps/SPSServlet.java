@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.servlet.AsyncContext;
@@ -31,6 +32,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.xml.namespace.QName;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataEncoding;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
@@ -47,9 +49,11 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.swe.ITaskingCallback;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
+import org.sensorhub.impl.service.sps.Task;
 import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
 import org.slf4j.Logger;
+import org.vast.cdm.common.DataStreamParser;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.data.DataBlockList;
 import org.vast.ows.GetCapabilitiesRequest;
@@ -63,6 +67,8 @@ import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.ows.util.PostRequestFilter;
 import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEHelper;
+import org.vast.util.DateTime;
+import org.vast.util.TimeExtent;
 import org.vast.xml.DOMHelper;
 import org.w3c.dom.Element;
 
@@ -79,8 +85,10 @@ import org.w3c.dom.Element;
 public class SPSServlet extends OWSServlet
 {
     private static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";        
-    protected static final String DEFAULT_VERSION = "2.0.0";
+    private static final String DEFAULT_VERSION = "2.0.0";
     private static final QName EXT_WS = new QName("websocket");
+    private static final String TASK_ID_PREFIX = "urn:sensorhub:sps:task:";
+    private static final String FEASIBILITY_ID_PREFIX = "urn:sensorhub:sps:feas:";
     
     SPSServiceConfig config;
     SPSSecurity securityHandler;
@@ -91,7 +99,8 @@ public class SPSServlet extends OWSServlet
     SPSServiceCapabilities capabilities;
     Map<String, ISPSConnector> connectors = new HashMap<String, ISPSConnector>(); // key is procedure ID
     Map<String, SPSOfferingCapabilities> offeringCaps = new HashMap<String, SPSOfferingCapabilities>(); // key is procedure ID
-    Map<String, String> templateToProcedureMap = new HashMap<String, String>();
+    Map<String, TaskingSession> transmitSessionsMap = new HashMap<String, TaskingSession>();
+    Map<String, TaskingSession> receiveSessionsMap = new HashMap<String, TaskingSession>();
     IEventHandler eventHandler;
         
     SMLUtils smlUtils = new SMLUtils(SMLUtils.V2_0);
@@ -99,6 +108,15 @@ public class SPSServlet extends OWSServlet
     //SPSNotificationSystem notifSystem;
     
     ModuleState state;
+    
+    
+    static class TaskingSession
+    {
+        String procID;
+        TimeExtent timeSlot;
+        DataComponent taskingParams;
+        DataEncoding encoding;
+    }
     
     
     public SPSServlet(SPSServiceConfig config, SPSSecurity securityHandler, Logger log)
@@ -157,6 +175,8 @@ public class SPSServlet extends OWSServlet
         capabilities.getGetServers().put("DescribeSensor", config.endPoint);
         capabilities.getPostServers().putAll(capabilities.getGetServers());
         capabilities.getPostServers().put("Submit", config.endPoint);
+        capabilities.getPostServers().put("DirectTasking", config.endPoint);
+        capabilities.getGetServers().put("ConnectTasking", config.endPoint);
         
         if (config.enableTransactional)
         {
@@ -165,7 +185,6 @@ public class SPSServlet extends OWSServlet
             capabilities.getPostServers().put("InsertSensor", config.endPoint);
             capabilities.getPostServers().put("DeleteSensor", config.endPoint);
             capabilities.getPostServers().put("InsertTaskingTemplate", config.endPoint);
-            capabilities.getGetServers().put("ConnectTaskingTemplate", config.endPoint);
         }
         
         // generate profile list
@@ -412,14 +431,16 @@ public class SPSServlet extends OWSServlet
             handleRequest((ConfirmRequest)request);
         else if (request instanceof DescribeResultAccessRequest)
             handleRequest((DescribeResultAccessRequest)request);
+        else if (request instanceof DirectTaskingRequest)
+            handleRequest((DirectTaskingRequest)request);
+        else if (request instanceof ConnectTaskingRequest)
+            handleRequest((ConnectTaskingRequest)request);
         
         // transactional operations
         else if (request instanceof InsertSensorRequest)
             handleRequest((InsertSensorRequest)request);
         else if (request instanceof InsertTaskingTemplateRequest)
             handleRequest((InsertTaskingTemplateRequest)request);
-        else if (request instanceof ConnectTaskingRequest)
-            handleRequest((ConnectTaskingRequest)request);
         
         else
             throw new SPSException(SPSException.unsupported_op_code, request.getOperation());
@@ -523,17 +544,6 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected ITask findTask(String taskID) throws SPSException
-    {
-        ITask task = taskDB.getTask(taskID);
-        
-        if (task == null)
-            throw new SPSException(SPSException.invalid_param_code, "task", taskID);
-        
-        return task;
-    }
-    
-    
     protected void handleRequest(GetStatusRequest request) throws Exception
     {
         ITask task = findTask(request.getTaskID());
@@ -602,24 +612,29 @@ public class SPSServlet extends OWSServlet
         request.validate();
         
         // create task in DB
-        ITask newTask = taskDB.createNewTask(request);
-        final String taskID = newTask.getID();
+        ITask newTask = createNewTask(request);
         
         // send command through connector
-        DataBlockList dataBlockList = (DataBlockList)request.getParameters().getData();
-        Iterator<DataBlock> it = dataBlockList.blockIterator();
-        while (it.hasNext())
-            conn.sendSubmitData(newTask, it.next());        
+        // synchronize here so no concurrent commands are sent to same sensor
+        synchronized (conn)
+        {
+            DataBlockList dataBlockList = (DataBlockList)request.getParameters().getData();
+            Iterator<DataBlock> it = dataBlockList.blockIterator();
+            while (it.hasNext())
+                conn.sendSubmitData(newTask, it.next());        
+        }
         
         // add report and send response
         SubmitResponse sResponse = new SubmitResponse();
         sResponse.setVersion("2.0");
-        ITask task = findTask(taskID);
-        task.getStatusReport().setRequestStatus(RequestStatus.Accepted);
-        task.getStatusReport().setTaskStatus(TaskStatus.Completed);
-        task.getStatusReport().touch();
-        sResponse.setReport(task.getStatusReport());
+        StatusReport report = newTask.getStatusReport();
+        report.setRequestStatus(RequestStatus.Accepted);
+        report.setTaskStatus(TaskStatus.Completed);
+        report.touch();
+        taskDB.updateTaskStatus(report);
         
+        // send response
+        sResponse.setReport(report);
         sendResponse(request, sResponse);
     }
     
@@ -659,6 +674,198 @@ public class SPSServlet extends OWSServlet
         
         return resp;*/
         throw new SPSException(SPSException.unsupported_op_code, request.getOperation());
+    }
+    
+    
+    protected synchronized void handleRequest(DirectTaskingRequest request) throws Exception
+    {
+        // retrieve connector instance
+        String procID = request.getProcedureID();
+        
+        // security check
+        securityHandler.checkPermission(getOfferingID(procID), securityHandler.sps_task_direct);
+        
+        // retrieve tasking parameters
+        SPSOfferingCapabilities offering = offeringCaps.get(procID);
+        if (offering == null)
+            throw new SPSException(SPSException.invalid_param_code, "procedure", procID);
+        DataComponent taskingParams = offering.getParametersDescription().getTaskingParameters();
+        
+        // for now we don't support reserving a session for a specific time range
+        if (!request.getTimeSlot().isBaseAtNow())
+            throw new SPSException(SPSException.invalid_param_code, "timeSlot", null, "Scheduling direct tasking session is not supported yet");
+        
+        // fail if a session already exists for this procedure
+        for (TaskingSession session: receiveSessionsMap.values())
+        {
+            if (procID.equals(session.procID))
+                throw new SPSException("A direct tasking session is already started");
+        }
+        
+        // create task in DB
+        ITask newTask = createNewTask(request);
+        final String taskID = newTask.getID();
+        
+        // create session
+        TaskingSession newSession = new TaskingSession();
+        newSession.procID = procID;
+        newSession.timeSlot = request.getTimeSlot();
+        newSession.taskingParams = taskingParams;
+        newSession.encoding = request.getEncoding();
+        receiveSessionsMap.put(taskID, newSession);
+        
+        // add report and send response
+        DirectTaskingResponse sResponse = new DirectTaskingResponse();
+        sResponse.setVersion("2.0");
+        ITask task = findTask(taskID);
+        task.getStatusReport().setRequestStatus(RequestStatus.Accepted);
+        task.getStatusReport().setTaskStatus(TaskStatus.Reserved);
+        task.getStatusReport().touch();
+        sResponse.setReport(task.getStatusReport());
+        
+        sendResponse(request, sResponse);
+    }
+    
+    
+    // we dispatch request depending if it's for receiving or transmitting commands
+    protected synchronized void handleRequest(ConnectTaskingRequest request) throws Exception
+    {
+        String sessionID = request.getSessionID();
+        TaskingSession session;
+        
+        // check if receive sessions
+        session = receiveSessionsMap.get(sessionID);
+        if (session != null)
+        {
+            startReceiveTaskingStream(session, request);
+            return;
+        }
+        
+        // check if transmit sessions
+        session = transmitSessionsMap.get(sessionID);
+        if (session != null)
+        {
+            startTransmitTaskingStream(session, request);
+            return;
+        }
+        
+        throw new SPSException(SPSException.invalid_param_code, "session", sessionID, "Invalid session ID");
+    }
+    
+    
+    protected void startReceiveTaskingStream(TaskingSession session, ConnectTaskingRequest request) throws Exception
+    {
+        try
+        {
+            // retrieve connector
+            String procID = session.procID;
+            ISPSConnector conn = getConnector(procID);
+            
+            // security check
+            securityHandler.checkPermission(getOfferingID(procID), securityHandler.sps_task_direct);
+                        
+            // prepare parser for tasking stream
+            String taskID = request.getSessionID();
+            ITask task = taskDB.getTask(taskID);
+            DataStreamParser parser = SWEHelper.createDataParser(session.encoding);
+            parser.setDataComponents(session.taskingParams);
+            
+            // if it's a websocket request
+            if (isWebSocketRequest(request))
+            {
+                SPSWebSocketIn ws = new SPSWebSocketIn(this, task, parser, conn);
+                acceptWebSocket(request, ws);
+            }
+            
+            // else it's persistent HTTP
+            else
+            {
+                //final AsyncContext aCtx = request.getHttpRequest().startAsync(request.getHttpRequest(), request.getHttpResponse());
+                // TODO add support for HTTP persistent stream
+                throw new IOException("Only WebSocket ConnectTasking requests are supported");
+            }
+        }
+        finally
+        {
+            
+        }
+    }
+    
+    
+    protected ITask findTask(String taskID) throws SPSException
+    {
+        ITask task = taskDB.getTask(taskID);
+        
+        if (task == null)
+            throw new SPSException(SPSException.invalid_param_code, "task", taskID);
+        
+        return task;
+    }
+    
+    
+    protected Task createNewTask(GetFeasibilityRequest request)
+    {
+        Task newTask = new Task();
+        newTask.setStatusReport(new FeasibilityReport());
+        newTask.setRequest(request);
+        String taskID = FEASIBILITY_ID_PREFIX + UUID.randomUUID().toString();
+        
+        // initial status
+        newTask.getStatusReport().setTaskID(taskID);
+        newTask.getStatusReport().setTitle("Feasibility Study Report");
+        newTask.getStatusReport().setSensorID(request.getProcedureID());
+        newTask.getStatusReport().setRequestStatus(RequestStatus.Pending);
+        
+        // creation time
+        newTask.setCreationTime(new DateTime());
+        
+        taskDB.addTask(newTask);        
+        return newTask;
+    }
+    
+    
+    protected Task createNewTask(SubmitRequest request)
+    {
+        Task newTask = new Task();
+        newTask.setRequest(request);
+        String taskID = TASK_ID_PREFIX + UUID.randomUUID().toString();
+        
+        // initial status
+        newTask.getStatusReport().setTaskID(taskID);
+        newTask.getStatusReport().setTitle("Tasking Request Report");
+        newTask.getStatusReport().setSensorID(request.getProcedureID());
+        newTask.getStatusReport().setRequestStatus(RequestStatus.Pending);
+        
+        // creation time
+        newTask.setCreationTime(new DateTime());
+        
+        taskDB.addTask(newTask);        
+        return newTask;
+    }
+    
+    
+    protected Task createNewTask(DirectTaskingRequest request)
+    {
+        Task newTask = new Task();
+        String taskID = TASK_ID_PREFIX + UUID.randomUUID().toString();
+        
+        // initial status
+        newTask.getStatusReport().setTaskID(taskID);
+        newTask.getStatusReport().setTitle("Direct Tasking Report");
+        newTask.getStatusReport().setSensorID(request.getProcedureID());
+        newTask.getStatusReport().setRequestStatus(RequestStatus.Pending);
+        
+        // creation time
+        newTask.setCreationTime(new DateTime());
+        
+        taskDB.addTask(newTask);        
+        return newTask;
+    }
+    
+    
+    protected void cleanupSession(String sessionID)
+    {
+        
     }
     
     
@@ -760,15 +967,20 @@ public class SPSServlet extends OWSServlet
             // generate template ID
             String templateID = connector.newTaskingTemplate(request.getTaskingParameters(), request.getEncoding());
             
-            // only continue of template was not already registered
-            if (!templateToProcedureMap.containsKey(templateID))
-            {
+            // only continue if session was not already created
+            if (!transmitSessionsMap.containsKey(templateID))
+            {                
+                // create session
+                TaskingSession newSession = new TaskingSession();
+                newSession.procID = procID;
+                newSession.taskingParams = request.getTaskingParameters();
+                newSession.encoding = request.getEncoding();
+                transmitSessionsMap.put(templateID, newSession);
+                                
+                // re-generate capabilities
                 try
                 {
                     capabilitiesLock.writeLock().lock();
-                    templateToProcedureMap.put(templateID, procID);
-                
-                    // re-generate capabilities
                     SPSOfferingCapabilities newCaps = connector.generateCapabilities();
                     int oldIndex = 0;
                     for (SPSOfferingCapabilities offCaps: capabilities.getLayers())
@@ -788,7 +1000,7 @@ public class SPSServlet extends OWSServlet
             
             // build and send response
             InsertTaskingTemplateResponse resp = new InsertTaskingTemplateResponse();
-            resp.setAcceptedTemplateId(templateID);
+            resp.setSessionID(templateID);
             sendResponse(request, resp);
         }
         finally
@@ -798,22 +1010,22 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void handleRequest(ConnectTaskingRequest request) throws Exception
+    protected void startTransmitTaskingStream(TaskingSession session, ConnectTaskingRequest request) throws Exception
     {
         try
         {
             checkTransactionalSupport(request);
             
-            // retrieve connector using template id
-            String templateID = request.getTemplateId();
-            String procID = getProcedureID(templateID);
+            // retrieve connector
+            String procID = session.procID;
             ISPSTransactionalConnector conn = getTransactionalConnector(procID);
             
             // security check
             securityHandler.checkPermission(getOfferingID(procID), securityHandler.sps_connect_tasking);
                         
             // prepare writer for selected template
-            Template template = conn.getTemplate(templateID);
+            String sessionID = request.getSessionID();
+            Template template = conn.getTemplate(sessionID);
             final DataStreamWriter writer = SWEHelper.createDataWriter(template.encoding);
             writer.setDataComponents(template.component);
             
@@ -821,15 +1033,15 @@ public class SPSServlet extends OWSServlet
             if (isWebSocketRequest(request))
             {
                 SPSWebSocketOut ws = new SPSWebSocketOut(writer, log);
-                conn.registerCallback(templateID, ws);
                 acceptWebSocket(request, ws);
+                conn.registerCallback(sessionID, ws);
             }
             else
             {
                 final AsyncContext aCtx = request.getHttpRequest().startAsync(request.getHttpRequest(), request.getHttpResponse());
                 writer.setOutput(new BufferedOutputStream(request.getResponseStream()));
                 
-                conn.registerCallback(templateID, new ITaskingCallback() {
+                conn.registerCallback(sessionID, new ITaskingCallback() {
                     public void onCommandReceived(DataBlock cmdData)
                     {
                         try
@@ -901,16 +1113,6 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected String getProcedureID(String templateID) throws Exception
-    {
-        String procID = templateToProcedureMap.get(templateID);
-        if (procID == null)
-            throw new SPSException(SPSException.invalid_param_code, "template", templateID, "Invalid template ID");
-        
-        return procID;
-    }
-    
-    
     protected void checkQueryProcedureFormat(String procedureID, String format, OWSExceptionReport report) throws SPSException
     {
         // ok if default format can be used
@@ -949,6 +1151,6 @@ public class SPSServlet extends OWSServlet
     @Override
     protected String getDefaultVersion()
     {
-        return "2.0";
+        return DEFAULT_VERSION;
     }
 }

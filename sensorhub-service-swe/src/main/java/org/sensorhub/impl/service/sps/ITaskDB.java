@@ -15,13 +15,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sps;
 
 import org.vast.ows.sps.StatusReport;
-import org.vast.ows.sps.TaskingRequest;
 import org.vast.util.DateTime;
 
 
 public interface ITaskDB
 {
-	public ITask createNewTask(TaskingRequest request);
+	public void addTask(ITask task);
 	
 	public ITask getTask(String taskID);
 	

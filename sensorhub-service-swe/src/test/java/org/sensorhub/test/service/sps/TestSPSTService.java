@@ -123,12 +123,12 @@ public class TestSPSTService
     }
     
     
-    protected ConnectTaskingRequest buildConnect(String templateId) throws Exception
+    protected ConnectTaskingRequest buildConnect(String sessionID) throws Exception
     {
         ConnectTaskingRequest req = new ConnectTaskingRequest();
         req.setGetServer(TestSPSService.WS_ENDPOINT);
         req.setVersion("2.0");
-        req.setTemplateId(templateId);
+        req.setSessionID(sessionID);
         return req;
     }    
     
@@ -285,8 +285,9 @@ public class TestSPSTService
         InsertTaskingTemplateResponse itResp = utils.sendRequest(itReq, false);
         
         // connect tasking stream
-        ConnectTaskingRequest connReq = buildConnect(itResp.getAcceptedTemplateId());
+        ConnectTaskingRequest connReq = buildConnect(itResp.getSessionID());
         Future<String[]> result = sendConnectTasking(utils.buildURLQuery(connReq));
+        Thread.sleep(500); // wait for ws to be connected
         
         // get tasking msg structure
         DescribeTaskingRequest dtReq = spsTest.buildDescribeTasking(SENSOR_UID);

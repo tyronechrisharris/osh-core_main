@@ -15,11 +15,16 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.test.service.sps;
 
 import static org.junit.Assert.*;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.List;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,11 +37,14 @@ import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.sps.SPSConnectorConfig;
 import org.sensorhub.impl.service.sps.SPSService;
 import org.sensorhub.impl.service.sps.SPSServiceConfig;
+import org.sensorhub.impl.service.sps.SPSWebSocketOut;
 import org.sensorhub.impl.service.sps.SensorConnectorConfig;
 import org.sensorhub.test.sensor.FakeSensor;
 import org.sensorhub.test.sensor.FakeSensorControl1;
 import org.sensorhub.test.sensor.FakeSensorControl2;
 import org.sensorhub.test.sensor.FakeSensorData;
+import org.slf4j.LoggerFactory;
+import org.vast.cdm.common.DataStreamWriter;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.DataBlockMixed;
 import org.vast.data.DataBlockString;
@@ -45,12 +53,18 @@ import org.vast.ows.OWSException;
 import org.vast.ows.OWSExceptionReader;
 import org.vast.ows.OWSRequest;
 import org.vast.ows.OWSUtils;
+import org.vast.ows.sps.ConnectTaskingRequest;
 import org.vast.ows.sps.DescribeTaskingRequest;
 import org.vast.ows.sps.DescribeTaskingResponse;
+import org.vast.ows.sps.DirectTaskingRequest;
+import org.vast.ows.sps.DirectTaskingResponse;
 import org.vast.ows.sps.SPSUtils;
 import org.vast.ows.sps.SubmitRequest;
 import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.swe.SWEData;
+import org.vast.swe.SWEHelper;
+import org.vast.util.DateTimeFormat;
+import org.vast.util.TimeExtent;
 import org.vast.xml.DOMHelper;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -232,6 +246,28 @@ public class TestSPSService
             paramData.addData(dataBlock);
         subReq.setParameters(paramData);
         return subReq;
+    }
+    
+    
+    protected DirectTaskingRequest buildDirectTasking(String procedureId)
+    {
+        DirectTaskingRequest dtReq = new DirectTaskingRequest();
+        dtReq.setPostServer(HTTP_ENDPOINT);
+        dtReq.setVersion("2.0");
+        dtReq.setProcedureID(procedureId);
+        dtReq.setTimeSlot(TimeExtent.getNowInstant());
+        dtReq.setEncoding(new TextEncodingImpl());
+        return dtReq;
+    }
+    
+    
+    protected ConnectTaskingRequest buildConnect(String sessionID) throws Exception
+    {
+        ConnectTaskingRequest req = new ConnectTaskingRequest();
+        req.setGetServer(TestSPSService.WS_ENDPOINT);
+        req.setVersion("2.0");
+        req.setSessionID(sessionID);
+        return req;
     } 
     
     
@@ -360,6 +396,80 @@ public class TestSPSService
         dom = sendRequest(subReq, true);
         
         OWSExceptionReader.checkException(dom, dom.getBaseElement());
+    }
+    
+    
+    @Test
+    public void testDirectTasking() throws Exception
+    {
+        deployService(buildSensorConnector1());
+        OWSUtils utils = new OWSUtils();
+        
+        // create tasking session
+        DirectTaskingRequest req = buildDirectTasking(SENSOR_UID_1);
+        DirectTaskingResponse resp = (DirectTaskingResponse)utils.sendRequest(req, false);
+        
+        // connect tasking stream
+        ConnectTaskingRequest connReq = buildConnect(resp.getReport().getTaskID());
+        
+        // get tasking msg structure
+        DescribeTaskingRequest dtReq = buildDescribeTasking(SENSOR_UID_1);
+        DescribeTaskingResponse dtResp = (DescribeTaskingResponse)utils.sendRequest(dtReq, false);
+        
+        // create command writer
+        final DataStreamWriter writer = SWEHelper.createDataWriter(req.getEncoding());
+        writer.setDataComponents(dtResp.getTaskingParameters());
+                
+        // send commands
+        final int numCommands = 5;
+        String currentTime = new DateTimeFormat().formatIso(System.currentTimeMillis()/1000., 0);
+        System.out.println("Sending WebSocket request @ " + currentTime);
+        WebSocketClient client = new WebSocketClient();
+        client.start();
+        client.connect(new SPSWebSocketOut(writer, LoggerFactory.getLogger("ws")) {
+            public void onWebSocketConnect(Session sess)
+            {
+                super.onWebSocketConnect(sess);
+                
+                // write datablock
+                try
+                {
+                    for (int i=1; i<=numCommands; i++)
+                    {
+                        DataBlock dataBlock = new DataBlockMixed(new DataBlockDouble(1), new DataBlockString(1));
+                        dataBlock.setDoubleValue(0, i*10.0);
+                        dataBlock.setStringValue(1, "HIGH");
+                        writer.write(dataBlock);
+                        writer.flush();
+                    }
+                }
+                catch (IOException e)
+                {
+                    e.printStackTrace();
+                }
+            }            
+        }, new URI(utils.buildURLQuery(connReq)));
+        
+        // wait until all commands are received
+        FakeSensor sensor = (FakeSensor)SensorHub.getInstance().getSensorManager().getLoadedModules().iterator().next();
+        FakeSensorControl1 controlInterface = (FakeSensorControl1)sensor.getCommandInputs().get("command1");
+        List<DataBlock> receivedCommands = controlInterface.getReceivedCommands();
+        long t0 = System.currentTimeMillis();
+        while (receivedCommands.size() < numCommands)
+        {
+            Thread.sleep(50);
+            if (System.currentTimeMillis() - t0 > 10000)
+                fail("Not enough commands received before timeout");
+        }            
+        
+        // check command values
+        assertEquals("Wrong number of commands received", numCommands, receivedCommands.size());
+        for (int i=1; i<=numCommands; i++)
+        {
+            DataBlock data = receivedCommands.get(i-1);
+            assertEquals("Wrong command value received", i*10.0, data.getDoubleValue(0), 1e-15);
+            assertEquals("Wrong command value received", "HIGH", data.getStringValue(1).trim());
+        }
     }
 
     

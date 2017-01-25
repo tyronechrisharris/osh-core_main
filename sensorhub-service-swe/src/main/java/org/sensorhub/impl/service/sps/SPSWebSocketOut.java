@@ -55,17 +55,16 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
     @Override
     public void onWebSocketConnect(Session sess)
     {
-        super.onWebSocketConnect(sess);
-        
         try
         {
-            writer.setOutput(new WebSocketOutputStream(getSession(), 1024));
+            writer.setOutput(new WebSocketOutputStream(sess, 1024));
+            super.onWebSocketConnect(sess);
         }
         catch (IOException e)
         {
             log.error(WS_INIT_ERROR, e);
             if (isConnected())
-                getSession().close(StatusCode.SERVER_ERROR, WS_INIT_ERROR);
+                sess.close(StatusCode.SERVER_ERROR, WS_INIT_ERROR);
         }
     }
 
@@ -106,8 +105,11 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
     {
         try
         {
-            writer.write(cmdData);
-            writer.flush();
+            if (isConnected())
+            {
+                writer.write(cmdData);
+                writer.flush();
+            }
         }
         catch (IOException e)
         {

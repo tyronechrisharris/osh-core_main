@@ -19,6 +19,7 @@ import net.opengis.swe.v20.Category;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.Quantity;
+import java.util.ArrayList;
 import org.sensorhub.api.common.CommandStatus;
 import org.sensorhub.api.common.CommandStatus.StatusCode;
 import org.sensorhub.api.sensor.ISensorControlInterface;
@@ -42,6 +43,7 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
 {
     String name;
     int counter = 1;
+    ArrayList<DataBlock> receivedCommands = new ArrayList<DataBlock>();
     
     
     public FakeSensorControl1(FakeSensor parentSensor)
@@ -85,7 +87,14 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
     @Override
     public CommandStatus execCommand(DataBlock command) throws SensorException
     {
+        receivedCommands.add(command);
         return new CommandStatus(String.format("%03d",  counter++), StatusCode.COMPLETED);
+    }
+    
+    
+    public ArrayList<DataBlock> getReceivedCommands()
+    {
+        return receivedCommands;
     }
 
 }
