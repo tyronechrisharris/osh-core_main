@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.sos;
 
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.api.service.ServiceException;
 
 
 /**
@@ -33,7 +32,7 @@ public class SensorDataProvider extends StreamDataProvider implements ISOSDataPr
 {
 
     
-    public SensorDataProvider(ISensorModule<?> srcSensor, SensorDataProviderConfig config, SOSDataFilter filter) throws ServiceException
+    public SensorDataProvider(ISensorModule<?> srcSensor, SensorDataProviderConfig config, SOSDataFilter filter) throws Exception
     {
         super(srcSensor, config, filter);
     }

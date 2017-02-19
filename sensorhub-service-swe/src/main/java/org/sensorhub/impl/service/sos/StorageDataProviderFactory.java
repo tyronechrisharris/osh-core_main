@@ -41,7 +41,6 @@ import org.sensorhub.utils.MsgUtils;
 import org.vast.data.DataIterator;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.SOSOfferingCapabilities;
-import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.swe.SWEConstants;
 import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
@@ -142,10 +141,6 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
             if (storage.getLatestDataSourceDescription() == null)
                 throw new ServiceException("Storage is empty");
             caps.getProcedures().add(storage.getLatestDataSourceDescription().getUniqueIdentifier());
-            
-            // supported formats
-            caps.getResponseFormats().add(SWESOfferingCapabilities.FORMAT_OM2);
-            caps.getProcedureFormats().add(SWESOfferingCapabilities.FORMAT_SML2);
             
             // FOI stuff
             if (storage instanceof IObsStorage)

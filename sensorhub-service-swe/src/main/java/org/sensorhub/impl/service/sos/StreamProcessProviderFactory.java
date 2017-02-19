@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sos;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.processing.IStreamProcessModule;
-import org.sensorhub.api.service.ServiceException;
 import org.sensorhub.impl.SensorHub;
 
 
@@ -43,7 +42,7 @@ public class StreamProcessProviderFactory extends StreamDataProviderFactory<IStr
 
     
     @Override
-    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws ServiceException
+    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws Exception
     {
         checkEnabled();
         return new StreamProcessDataProvider(producer, (StreamProcessProviderConfig)config, filter);

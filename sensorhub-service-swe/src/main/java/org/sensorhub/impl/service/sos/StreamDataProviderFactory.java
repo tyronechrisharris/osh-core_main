@@ -37,7 +37,6 @@ import org.sensorhub.utils.MsgUtils;
 import org.vast.data.DataIterator;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.SOSOfferingCapabilities;
-import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.swe.SWEConstants;
 import org.vast.util.TimeExtent;
 
@@ -127,10 +126,6 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
         
             // use producer uniqueID as procedure ID
             caps.getProcedures().add(producer.getCurrentDescription().getUniqueIdentifier());
-            
-            // supported formats
-            caps.getResponseFormats().add(SWESOfferingCapabilities.FORMAT_OM2);
-            caps.getProcedureFormats().add(SWESOfferingCapabilities.FORMAT_SML2);
             
             // FOI IDs and BBOX
             FoiUtils.updateFois(caps, producer, config.maxFois);
@@ -284,7 +279,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
     
     
     @Override
-    public AbstractProcess generateSensorMLDescription(double time) throws ServiceException
+    public AbstractProcess generateSensorMLDescription(double time) throws Exception
     {
         checkEnabled();
         return producer.getCurrentDescription();

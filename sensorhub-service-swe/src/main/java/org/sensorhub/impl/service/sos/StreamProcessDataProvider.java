@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.sos;
 
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.processing.IStreamProcessModule;
-import org.sensorhub.api.service.ServiceException;
 
 
 /**
@@ -32,7 +31,7 @@ import org.sensorhub.api.service.ServiceException;
 public class StreamProcessDataProvider extends StreamDataProvider implements ISOSDataProvider, IEventListener
 {
     
-    public StreamProcessDataProvider(IStreamProcessModule<?> srcProcess, StreamProcessProviderConfig config, SOSDataFilter filter) throws ServiceException
+    public StreamProcessDataProvider(IStreamProcessModule<?> srcProcess, StreamProcessProviderConfig config, SOSDataFilter filter) throws Exception
     {
         super(srcProcess, config, filter);
     }

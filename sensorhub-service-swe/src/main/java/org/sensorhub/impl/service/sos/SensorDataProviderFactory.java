@@ -18,7 +18,6 @@ import net.opengis.sensorml.v20.AbstractProcess;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.api.service.ServiceException;
 import org.sensorhub.impl.SensorHub;
 
 
@@ -44,7 +43,7 @@ public class SensorDataProviderFactory extends StreamDataProviderFactory<ISensor
     
     
     @Override
-    public AbstractProcess generateSensorMLDescription(double time) throws ServiceException
+    public AbstractProcess generateSensorMLDescription(double time) throws Exception
     {
         checkEnabled();
         return producer.getCurrentDescription();
@@ -52,7 +51,7 @@ public class SensorDataProviderFactory extends StreamDataProviderFactory<ISensor
 
     
     @Override
-    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws ServiceException
+    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws Exception
     {
         checkEnabled();
         return new SensorDataProvider(producer, (SensorDataProviderConfig)config, filter);

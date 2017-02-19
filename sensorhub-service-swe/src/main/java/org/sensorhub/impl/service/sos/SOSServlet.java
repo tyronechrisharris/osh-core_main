@@ -91,6 +91,7 @@ import org.slf4j.Logger;
 import org.vast.cdm.common.DataSource;
 import org.vast.cdm.common.DataStreamParser;
 import org.vast.cdm.common.DataStreamWriter;
+import org.vast.data.JSONEncodingImpl;
 import org.vast.ogc.OGCRegistry;
 import org.vast.ogc.def.DefinitionRef;
 import org.vast.ogc.gml.GMLStaxBindings;
@@ -129,11 +130,13 @@ import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.ows.swe.UpdateSensorRequest;
 import org.vast.ows.swe.UpdateSensorResponse;
 import org.vast.sensorML.SMLStaxBindings;
+import org.vast.sensorML.json.SMLJsonStreamWriter;
 import org.vast.swe.AbstractDataWriter;
 import org.vast.swe.DataSourceDOM;
 import org.vast.swe.FilteredWriter;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
+import org.vast.swe.json.SWEJsonStreamWriter;
 import org.vast.util.ReaderException;
 import org.vast.util.TimeExtent;
 import org.vast.xml.DOMHelper;
@@ -362,6 +365,20 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
+    protected SOSOfferingCapabilities generateCapabilities(ISOSDataProviderFactory provider) throws Exception
+    {
+        SOSOfferingCapabilities caps = provider.generateCapabilities();
+        
+        // add supported formats
+        caps.getResponseFormats().add(SWESOfferingCapabilities.FORMAT_OM2);
+        caps.getResponseFormats().add(SWESOfferingCapabilities.FORMAT_OM2_JSON);
+        caps.getProcedureFormats().add(SWESOfferingCapabilities.FORMAT_SML2);
+        caps.getProcedureFormats().add(SWESOfferingCapabilities.FORMAT_SML2_JSON);
+        
+        return caps;
+    }
+    
+    
     protected void showProviderCaps(ISOSDataProviderFactory provider)
     {
         SOSProviderConfig config = provider.getConfig();
@@ -371,7 +388,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             capabilitiesLock.writeLock().lock();
             
             // generate offering metadata
-            SOSOfferingCapabilities offCaps = provider.generateCapabilities();
+            SOSOfferingCapabilities offCaps = generateCapabilities(provider);
             String procedureID = offCaps.getMainProcedure();
             
             // update offering if it was already advertised
@@ -764,11 +781,27 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         if (processDesc == null)
             throw new SOSException(SOSException.invalid_param_code, "validTime"); 
         
-        // init xml document writing
+        // init XML or JSON writer
+        String format = request.getFormat();
         OutputStream os = new BufferedOutputStream(request.getResponseStream());
-        XMLOutputFactory factory = XMLImplFinder.getStaxOutputFactory();
-        XMLStreamWriter xmlWriter = factory.createXMLStreamWriter(os, StandardCharsets.UTF_8.name());
-        xmlWriter = new IndentingXMLStreamWriter(xmlWriter);
+        
+        XMLStreamWriter xmlWriter;
+        if (SWESOfferingCapabilities.FORMAT_SML2.equals(format))
+        {
+            XMLOutputFactory factory = XMLImplFinder.getStaxOutputFactory();
+            xmlWriter = factory.createXMLStreamWriter(os, StandardCharsets.UTF_8.name());
+            xmlWriter = new IndentingXMLStreamWriter(xmlWriter);
+        }
+        else if (SWESOfferingCapabilities.FORMAT_SML2_JSON.equals(format))
+        {
+            xmlWriter = new SMLJsonStreamWriter(os, StandardCharsets.UTF_8.name());
+            request.getHttpResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
+            request.setSoapVersion(null);
+        }
+        else
+        {
+            throw new SOSException(SOSException.invalid_param_code, "procedureDescriptionFormat", format, "Procedure description format " + format + " is not supported");
+        }
         
         // prepare SensorML writing
         SMLStaxBindings smlBindings = new SMLStaxBindings();
@@ -779,20 +812,15 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         xmlWriter.writeStartDocument();
         
         // wrap with SOAP envelope if requested
-        String soapUri = request.getSoapVersion(); 
-        if (soapUri != null)
-        {
-            xmlWriter.writeStartElement(SOAP_PREFIX, "Envelope", soapUri);
-            xmlWriter.writeNamespace(SOAP_PREFIX, soapUri);
-            xmlWriter.writeStartElement(SOAP_PREFIX, "Body", soapUri);
-        }
+        startSoapEnvelope(request, xmlWriter);        
         
+        // wrap SensorML description inside response
         String swesNsUri = OGCRegistry.getNamespaceURI(SOSUtils.SWES, DEFAULT_VERSION);
         xmlWriter.writeStartElement(SWES_PREFIX, "DescribeSensorResponse", swesNsUri);
         xmlWriter.writeNamespace(SWES_PREFIX, swesNsUri);
         
         xmlWriter.writeStartElement(SWES_PREFIX, "procedureDescriptionFormat", swesNsUri);
-        xmlWriter.writeCharacters(DescribeSensorRequest.DEFAULT_FORMAT);
+        xmlWriter.writeCharacters(format);
         xmlWriter.writeEndElement();
         
         xmlWriter.writeStartElement(SWES_PREFIX, "description", swesNsUri);
@@ -806,11 +834,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         xmlWriter.writeEndElement();
         
         // close SOAP elements
-        if (soapUri != null)
-        {
-            xmlWriter.writeEndElement();
-            xmlWriter.writeEndElement();
-        }
+        endSoapEnvelope(request, xmlWriter);
         
         xmlWriter.writeEndDocument();
         xmlWriter.close();
@@ -864,14 +888,33 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             IXMLWriterDOM<IObservation> obsWriter = (IXMLWriterDOM<IObservation>)OGCRegistry.createWriter(OMUtils.OM, OMUtils.OBSERVATION, omVersion);
             String sosNsUri = OGCRegistry.getNamespaceURI(SOSUtils.SOS, DEFAULT_VERSION);
             
-            // init xml document writing
+            // init XML or JSON writer
             OutputStream os = new BufferedOutputStream(request.getResponseStream());
-            XMLStreamWriter xmlWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(os, "UTF-8");
-            xmlWriter = new IndentingXMLStreamWriter(xmlWriter);
+            XMLStreamWriter xmlWriter;
+            if (SWESOfferingCapabilities.FORMAT_OM2.equals(format))
+            {
+                XMLOutputFactory factory = XMLImplFinder.getStaxOutputFactory();
+                xmlWriter = factory.createXMLStreamWriter(os, StandardCharsets.UTF_8.name());
+                xmlWriter = new IndentingXMLStreamWriter(xmlWriter);
+            }
+            else if (SWESOfferingCapabilities.FORMAT_OM2_JSON.equals(format))
+            {
+                xmlWriter = new SWEJsonStreamWriter(os, StandardCharsets.UTF_8.name());
+                request.getHttpResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
+                request.setSoapVersion(null);
+            }
+            else
+            {
+                throw new SOSException(SOSException.invalid_param_code, "responseFormat", format, "Response format " + format + " is not supported");
+            }
+            
+            // start XML response
+            xmlWriter.writeStartDocument();
             
             // wrap with SOAP envelope if needed
-            xmlWriter.writeStartDocument();
             startSoapEnvelope(request, xmlWriter);
+            
+            // wrap all observations inside response
             xmlWriter.writeStartElement(SOS_PREFIX, "GetObservationResponse", sosNsUri);
             xmlWriter.writeNamespace(SOS_PREFIX, sosNsUri);
             
@@ -959,6 +1002,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 }
             }
             
+            // close SOAP elements
+            endSoapEnvelope(request, xmlWriter);
+            
             // this will automatically close all open elements
             xmlWriter.writeEndDocument();
             xmlWriter.close();
@@ -1014,15 +1060,15 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
         try
         {
+            // security check
+            securityHandler.checkPermission(request.getOffering(), securityHandler.sos_read_obs);
+            
             // check query parameters
             OWSExceptionReport report = new OWSExceptionReport();
             checkQueryObservables(request.getOffering(), request.getObservables(), report);
             checkQueryProcedures(request.getOffering(), request.getProcedures(), report);
             checkQueryTime(request.getOffering(), request.getTime(), report);
             report.process();
-            
-            // security check
-            securityHandler.checkPermission(request.getOffering(), securityHandler.sos_read_obs);
             
             // setup data filter (including extensions)
             SOSDataFilter filter = new SOSDataFilter(request.getFoiIDs(), request.getObservables(), request.getTime());
@@ -1037,13 +1083,17 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             dataProvider = getDataProvider(request.getOffering(), filter);
             DataComponent resultStructure = dataProvider.getResultStructure();
             DataEncoding resultEncoding = dataProvider.getDefaultResultEncoding();
-            
+                        
             // use specific format handler if available
             boolean dataWritten = writeCustomFormatStream(request, dataProvider);
             
             // otherwise write standard SWE common data stream
             if (!dataWritten)
             {
+                // use JSON format if requested
+                if (resultEncoding instanceof TextEncoding && OWSUtils.JSON_MIME_TYPE.equals(request.getFormat()))
+                    resultEncoding = new JSONEncodingImpl();
+                
                 OutputStream os = new BufferedOutputStream(request.getResponseStream());
                 
                 // write small xml wrapper if requested
@@ -1503,7 +1553,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 
                 // re-generate capabilities
                 ISOSDataProviderFactory provider = getDataProviderFactoryByOfferingID(offeringID);
-                SOSOfferingCapabilities newCaps = provider.generateCapabilities();
+                SOSOfferingCapabilities newCaps = generateCapabilities(provider);
                 int oldIndex = 0;
                 for (OWSLayerCapabilities offCaps: capabilities.getLayers())
                 {
