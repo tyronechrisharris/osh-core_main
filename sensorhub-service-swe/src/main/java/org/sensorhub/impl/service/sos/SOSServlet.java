@@ -92,6 +92,7 @@ import org.vast.cdm.common.DataSource;
 import org.vast.cdm.common.DataStreamParser;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.data.JSONEncodingImpl;
+import org.vast.data.XMLEncodingImpl;
 import org.vast.ogc.OGCRegistry;
 import org.vast.ogc.def.DefinitionRef;
 import org.vast.ogc.gml.GMLStaxBindings;
@@ -136,6 +137,8 @@ import org.vast.swe.DataSourceDOM;
 import org.vast.swe.FilteredWriter;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
+import org.vast.swe.fast.DataBlockProcessor;
+import org.vast.swe.fast.FilterByDefinition;
 import org.vast.swe.json.SWEJsonStreamWriter;
 import org.vast.util.ReaderException;
 import org.vast.util.TimeExtent;
@@ -1036,8 +1039,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             dataProvider = getDataProvider(request.getOffering(), filter);
             
             // build filtered component tree
+            // always keep sampling time and entity ID if present
             DataComponent filteredStruct = dataProvider.getResultStructure().copy();
-            request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME); // always keep sampling time
+            request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
+            String entityComponentUri = FoiUtils.findEntityIDComponentURI(filteredStruct);
+            if (entityComponentUri != null)
+                request.getObservables().add(entityComponentUri);
             filteredStruct.accept(new DataStructFilter(request.getObservables()));
             
             // build and send response 
@@ -1060,15 +1067,15 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
         try
         {
-            // security check
-            securityHandler.checkPermission(request.getOffering(), securityHandler.sos_read_obs);
-            
             // check query parameters
             OWSExceptionReport report = new OWSExceptionReport();
             checkQueryObservables(request.getOffering(), request.getObservables(), report);
             checkQueryProcedures(request.getOffering(), request.getProcedures(), report);
             checkQueryTime(request.getOffering(), request.getTime(), report);
             report.process();
+            
+            // security check
+            securityHandler.checkPermission(request.getOffering(), securityHandler.sos_read_obs);
             
             // setup data filter (including extensions)
             SOSDataFilter filter = new SOSDataFilter(request.getFoiIDs(), request.getObservables(), request.getTime());
@@ -1083,17 +1090,22 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             dataProvider = getDataProvider(request.getOffering(), filter);
             DataComponent resultStructure = dataProvider.getResultStructure();
             DataEncoding resultEncoding = dataProvider.getDefaultResultEncoding();
-                        
-            // use specific format handler if available
-            boolean dataWritten = writeCustomFormatStream(request, dataProvider);
+            boolean dataWritten = false;
+            
+            // use JSON, XML or custom format if requested
+            if (resultEncoding instanceof TextEncoding && OWSUtils.JSON_MIME_TYPE.equals(request.getFormat()))
+            {
+                resultEncoding = new JSONEncodingImpl();
+                request.setXmlWrapper(false);
+            }
+            else if (resultEncoding instanceof TextEncoding && OWSUtils.XML_MIME_TYPE.equals(request.getFormat()))
+                resultEncoding = new XMLEncodingImpl();
+            else
+                dataWritten = writeCustomFormatStream(request, dataProvider);
             
             // otherwise write standard SWE common data stream
             if (!dataWritten)
             {
-                // use JSON format if requested
-                if (resultEncoding instanceof TextEncoding && OWSUtils.JSON_MIME_TYPE.equals(request.getFormat()))
-                    resultEncoding = new JSONEncodingImpl();
-                
                 OutputStream os = new BufferedOutputStream(request.getResponseStream());
                 
                 // write small xml wrapper if requested
@@ -1128,17 +1140,23 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 String entityComponentUri = FoiUtils.findEntityIDComponentURI(resultStructure);
                 if (entityComponentUri != null)
                     request.getObservables().add(entityComponentUri);
-                writer = new FilteredWriter((AbstractDataWriter)writer, request.getObservables());
+                // temporary hack to switch btw old and new writer architecture
+                if (writer instanceof AbstractDataWriter)
+                    writer = new FilteredWriter((AbstractDataWriter)writer, request.getObservables());
+                else
+                    ((DataBlockProcessor)writer).setDataComponentFilter(new FilterByDefinition(request.getObservables()));
                 writer.setDataComponents(resultStructure);
                 writer.setOutput(os);
                 
                 // write each record in output stream
+                writer.writeBegin();
                 DataBlock nextRecord;
                 while ((nextRecord = dataProvider.getNextResultRecord()) != null)
                 {
                     writer.write(nextRecord);
                     writer.flush();
                 }
+                writer.writeEnd();
                 
                 // close xml wrapper
                 if (((GetResultRequest) request).isXmlWrapper())
