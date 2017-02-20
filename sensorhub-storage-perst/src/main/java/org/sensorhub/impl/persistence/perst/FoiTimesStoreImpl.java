@@ -160,7 +160,10 @@ class FoiTimesStoreImpl extends Persistent
             if (uid.equals(lastFoi))
             {
                 int numPeriods = entry.timePeriods.size();
-                entry.timePeriods.get(numPeriods-1)[1] = timeStamp;
+                double[] lastPeriod = entry.timePeriods.get(numPeriods-1);
+                double currentEndTime = lastPeriod[1];
+                if (timeStamp > currentEndTime)
+                    lastPeriod[1] = timeStamp;
             }
             
             // otherwise start new period

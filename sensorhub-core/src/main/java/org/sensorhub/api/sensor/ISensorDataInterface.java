@@ -14,8 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.sensor;
 
-import java.util.List;
 import net.opengis.swe.v20.DataBlock;
+import java.util.List;
 import org.sensorhub.api.data.IStreamingDataInterface;
 
 
@@ -58,26 +58,6 @@ public interface ISensorDataInterface extends IStreamingDataInterface
 
 
     /**
-     * Checks data storage capability
-     * <p><i>Note that storage can be provided by the sensor itself or by the
-     * driver.</i></p>
-     * @return true if record storage is supported internally, false otherwise
-     */
-    public boolean isStorageSupported();
-
-
-    //	/**
-    //	 * Requests acquisition of a new measurement
-    //	 * Measurement will be available via getLatestRecord until cleared or
-    //	 * replaced by another measurement. It will also be added to storage if supported.
-    //	 * Actual reception of the measurement by the driver triggers a NEW_DATA event.
-    //	 * @return
-    //	 * @throws SensorException
-    //	 */
-    //	public DataBlock requestNewRecord() throws SensorException;
-    //  SHOULD BE IMPLEMENTED AS A COMMAND
-
-    /**
      * Gets the latest record received on this data channel. Even implementations with no
      * storage support must always retain the last record and implement this method.
      * <p>When storage is supported, this method does not cause data to be removed from memory.</p>
@@ -89,6 +69,15 @@ public interface ISensorDataInterface extends IStreamingDataInterface
     public DataBlock getLatestRecord();
 
 
+    /**
+     * Checks data storage capability
+     * <p><i>Note that storage can be provided by the sensor itself or by the
+     * driver.</i></p>
+     * @return true if record storage is supported internally, false otherwise
+     */
+    public boolean isStorageSupported();
+    
+    
     /**
      * Gets the internal storage capacity.<br/>
      * This method must be implemented if {@link #isStorageSupported()} returns true.
@@ -140,5 +129,16 @@ public interface ISensorDataInterface extends IStreamingDataInterface
      *         clearing on-board sensor storage
      */
     public int clearAllRecords() throws SensorException;
-
+    
+    
+    //  /**
+    //   * Requests acquisition of a new measurement
+    //   * Measurement will be available via getLatestRecord until cleared or
+    //   * replaced by another measurement. It will also be added to storage if supported.
+    //   * Actual reception of the measurement by the driver triggers a NEW_DATA event.
+    //   * @return
+    //   * @throws SensorException
+    //   */
+    //  public DataBlock requestNewRecord() throws SensorException;
+    //  SHOULD BE IMPLEMENTED AS A COMMAND
 }

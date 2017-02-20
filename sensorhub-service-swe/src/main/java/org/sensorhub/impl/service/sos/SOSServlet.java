@@ -1123,7 +1123,11 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 DataStreamWriter writer = SWEHelper.createDataWriter(resultEncoding);
                 
                 // we also do filtering here in case data provider hasn't modified the datablocks
-                request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME); // always keep sampling time
+                // always keep sampling time and entity ID if present
+                request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
+                String entityComponentUri = FoiUtils.findEntityIDComponentURI(resultStructure);
+                if (entityComponentUri != null)
+                    request.getObservables().add(entityComponentUri);
                 writer = new FilteredWriter((AbstractDataWriter)writer, request.getObservables());
                 writer.setDataComponents(resultStructure);
                 writer.setOutput(os);

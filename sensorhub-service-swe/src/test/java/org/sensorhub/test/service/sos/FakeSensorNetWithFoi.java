@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.test.service.sos;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -108,4 +109,16 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
     {
         return Collections.unmodifiableCollection(foiIDs);
     }
+
+
+    @Override
+    public Collection<String> getEntitiesWithFoi(String foiID)
+    {
+        if (!foiIDs.contains(foiID))
+            return Collections.EMPTY_SET;
+        
+        String entityID = foiID.replace(FOI_UID_PREFIX, SENSOR_UID_PREFIX);
+        return Arrays.asList(entityID);
+    }
+    
 }

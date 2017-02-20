@@ -19,6 +19,19 @@ import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
+/**
+ * <p>
+ * Interface for multi-source data producers.<br/>
+ * This type of producer can be used to model an entire group of data sources
+ * (e.g. sensor network) and provides additional methods to filter data records
+ * and metadata by entity ID (aka source ID).<br/>
+ * In particular, outputs can be of type {@link IMultiSourceDataInterface}
+ * allowing data from multiple sources to be multiplexed in a single data stream. 
+ * </p>
+ *
+ * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @since May 31, 2015
+ */
 public interface IMultiSourceDataProducer
 {
 
@@ -57,7 +70,7 @@ public interface IMultiSourceDataProducer
     
     
     /**
-     * @return Collection all features of interest for which this producer
+     * @return List of all features of interest for which this producer
      * is generating data.
      */
     public Collection<? extends AbstractFeature> getFeaturesOfInterest();
@@ -70,5 +83,10 @@ public interface IMultiSourceDataProducer
     public Collection<String> getFeaturesOfInterestIDs();
     
     
-    //public Map<String, ? extends IMultiSourceStreamingDataInterface> getAllOutputs();
+    /**
+     * Gets IDs of entities that are observing the specified feature of interest. 
+     * @param foiIDs ID of feature of interest
+     * @return collection of entity IDs (can be empty)
+     */
+    public Collection<String> getEntitiesWithFoi(String foiID);
 }

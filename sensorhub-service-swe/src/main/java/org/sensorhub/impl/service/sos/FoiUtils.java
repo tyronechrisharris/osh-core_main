@@ -18,10 +18,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import net.opengis.OgcProperty;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.gml.v32.Envelope;
+import net.opengis.swe.v20.DataChoice;
+import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataRecord;
 import org.sensorhub.api.data.IDataProducerModule;
+import org.sensorhub.api.data.IMultiSourceDataInterface;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.persistence.IFoiFilter;
 import org.vast.ogc.gml.GMLUtils;
@@ -94,5 +99,25 @@ public class FoiUtils
             return (Iterator<AbstractFeature>)allFois;
         
         return new FilteredFoiIterator(allFois, filter);
+    }
+    
+    
+    public static String findEntityIDComponentURI(DataComponent dataStruct)
+    {
+        if (dataStruct instanceof DataRecord)
+        {        
+            for (int i = 0; i < dataStruct.getComponentCount(); i++)
+            {
+                OgcProperty<DataComponent> prop = ((DataRecord) dataStruct).getFieldList().getProperty(i);
+                if (IMultiSourceDataInterface.ENTITY_ID_URI.equals(prop.getRole()))
+                    return prop.getValue().getDefinition();
+            }
+        }
+        else if (dataStruct instanceof DataChoice)
+        {
+            return findEntityIDComponentURI(dataStruct.getComponent(0));
+        }
+        
+        return null;
     }
 }

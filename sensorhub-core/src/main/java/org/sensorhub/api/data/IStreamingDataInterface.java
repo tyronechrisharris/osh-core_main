@@ -40,6 +40,9 @@ public interface IStreamingDataInterface extends IEventProducer
     
     
     /**
+     * Gets this output interface name.
+     * <p><i>It MUST be the name reported in the map by getXXXOutputs methods
+     * of {@link org.sensorhub.api.data.IDataProducerModule}</i></p>
      * @return name of this data interface
      */
     public String getName();

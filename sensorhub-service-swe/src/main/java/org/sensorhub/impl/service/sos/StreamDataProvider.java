@@ -15,7 +15,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -25,12 +30,12 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
-import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducerModule;
+import org.sensorhub.api.data.IMultiSourceDataInterface;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.service.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.data.DataIterator;
@@ -39,7 +44,9 @@ import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.ObservationImpl;
 import org.vast.ogc.om.ProcedureRef;
+import org.vast.ows.sos.SOSException;
 import org.vast.swe.SWEConstants;
+import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 
 
@@ -54,7 +61,8 @@ import org.vast.util.TimeExtent;
 public abstract class StreamDataProvider implements ISOSDataProvider, IEventListener
 {
     private static final Logger log = LoggerFactory.getLogger(StreamDataProvider.class);
-    
+    private static final int DEFAULT_QUEUE_SIZE = 200;
+
     IDataProducerModule<?> dataSource;
     List<IStreamingDataInterface> sourceOutputs;
     BlockingQueue<DataEvent> eventQueue;
@@ -62,91 +70,160 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     long stopTime;
     long lastQueueErrorTime = Long.MIN_VALUE;
     boolean latestRecordOnly;
-    
+
     DataEvent lastDataEvent;
     int nextEventRecordIndex = 0;
-            
+    Set<String> requestedFois;
+    Map<String, String> currentFoiMap = new LinkedHashMap<String, String>(); // entity ID -> current FOI ID
     
-    public StreamDataProvider(IDataProducerModule<?> dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws ServiceException
+
+    public StreamDataProvider(IDataProducerModule<?> dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws Exception
     {
         this.dataSource = dataSource;
         this.sourceOutputs = new ArrayList<IStreamingDataInterface>();
-        this.eventQueue = new LinkedBlockingQueue<DataEvent>(200);
         
         // figure out stop time (if any)
-        stopTime = ((long)filter.getTimeRange().getStopTime()) * 1000L;
-        
+        stopTime = ((long) filter.getTimeRange().getStopTime()) * 1000L;
+
         // get list of desired stream outputs
-        dataSource.getConfiguration();
-        
+        dataSource.getConfiguration(); // why do we call this?
+
         // loop through all outputs and connect to the ones containing observables we need
-        for (IStreamingDataInterface outputInterface: dataSource.getAllOutputs().values())
+        for (IStreamingDataInterface outputInterface : dataSource.getAllOutputs().values())
         {
             // skip hidden outputs
             if (config.hiddenOutputs != null && config.hiddenOutputs.contains(outputInterface.getName()))
                 continue;
-            
+
             // keep it if we can find one of the observables
             DataIterator it = new DataIterator(outputInterface.getRecordDescription());
             while (it.hasNext())
             {
-                String defUri = (String)it.next().getDefinition();
+                String defUri = (String) it.next().getDefinition();
                 if (filter.getObservables().contains(defUri))
                 {
                     // time out after a certain period if no sensor data is produced
-                    timeOut = (long)(config.liveDataTimeout * 1000);
+                    timeOut = (long) (config.liveDataTimeout * 1000);
                     sourceOutputs.add(outputInterface);
-                    
+
                     // break for now since we support only requesting data from one output at a time
                     // TODO support case of multiple outputs since it is technically possible with GetObservation
-                    break; 
+                    break;
                 }
             }
         }
-        
-        // if everything went well listen for events on the selected outputs
-        for (final IStreamingDataInterface outputInterface: sourceOutputs)
+
+        // error if no output was selected
+        Asserts.checkArgument(!sourceOutputs.isEmpty(), "No output selected");
+
+        // scan FOIs
+        if (!filter.getFoiIds().isEmpty())
         {
-            // always send latest record if available
-            DataBlock data = outputInterface.getLatestRecord();
-            if (data != null)
-                eventQueue.offer(new DataEvent(System.currentTimeMillis(), outputInterface, data));
+            requestedFois = filter.getFoiIds();
+            String badFoi = null;
             
-            // don't register and use time out in case of time instant = now
+            // fill up initial FOI map
+            if (dataSource instanceof IMultiSourceDataProducer)
+            {
+                for (String foiID : filter.getFoiIds())
+                {
+                    Collection<String> entityIDs = ((IMultiSourceDataProducer) dataSource).getEntitiesWithFoi(foiID);
+                    if (entityIDs.isEmpty())
+                        badFoi = foiID;
+
+                    for (String entityID : entityIDs)
+                        currentFoiMap.put(entityID, foiID);
+                }
+            }
+            else
+            {
+                // error if no FOI is currently being observed
+                AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
+                if (foi == null || !requestedFois.contains(foi.getUniqueIdentifier()))
+                    badFoi = requestedFois.iterator().next();
+                
+                currentFoiMap.put(null, dataSource.getCurrentFeatureOfInterest().getUniqueIdentifier());
+            }
+            
+            // send error if foi is not currently observed
+            if (badFoi != null)
+                throw new SOSException(SOSException.invalid_param_code, "featureOfInterest", badFoi, "No real-time data available for FOI " + badFoi);
+        }
+
+        // listen for events on the selected outputs
+        for (final IStreamingDataInterface outputInterface : sourceOutputs)
+        {
+            // always send latest record(s) if available
+            // if multi-source send latest record of all selected FOIs
+            if (outputInterface instanceof IMultiSourceDataInterface)
+            {
+                if (!currentFoiMap.isEmpty())
+                {
+                    int queueSize = Math.max(DEFAULT_QUEUE_SIZE, currentFoiMap.size());
+                    eventQueue = new LinkedBlockingQueue<DataEvent>(queueSize);
+
+                    for (String entityID : currentFoiMap.keySet())
+                    {
+                        DataBlock data = ((IMultiSourceDataInterface) outputInterface).getLatestRecord(entityID);
+                        eventQueue.offer(new DataEvent(System.currentTimeMillis(), entityID, outputInterface, data));
+                    }
+                }
+                
+                else
+                {
+                    int queueSize = Math.max(DEFAULT_QUEUE_SIZE, ((IMultiSourceDataInterface) outputInterface).getEntityIDs().size());
+                    eventQueue = new LinkedBlockingQueue<DataEvent>(queueSize);
+
+                    Map<String, DataBlock> data = ((IMultiSourceDataInterface) outputInterface).getLatestRecords();
+                    for (Entry<String, DataBlock> rec : data.entrySet())
+                        eventQueue.offer(new DataEvent(System.currentTimeMillis(), rec.getKey(), outputInterface, rec.getValue()));
+                }
+            }
+            
+            // otherwise send latest record of single source 
+            else
+            {
+                eventQueue = new LinkedBlockingQueue<DataEvent>(DEFAULT_QUEUE_SIZE);
+                DataBlock data = outputInterface.getLatestRecord();
+                if (data != null)
+                    eventQueue.offer(new DataEvent(System.currentTimeMillis(), outputInterface, data));
+            }
+
+            // don't register and use timeout in case of time instant = now
             if (isNowTimeInstant(filter.getTimeRange()))
             {
                 stopTime = Long.MAX_VALUE; // make sure stoptime does not cause us to return null
                 timeOut = 0L;
                 latestRecordOnly = true;
             }
-            
+
             // otherwise register listener to stream next records
             else
                 outputInterface.registerListener(this);
         }
     }
-    
-    
+
+
     protected boolean isNowTimeInstant(TimeExtent timeFilter)
     {
         if (timeFilter.isTimeInstant() && timeFilter.isBaseAtNow())
             return true;
-        
+
         return false;
     }
-    
-    
+
+
     @Override
-    public IObservation getNextObservation() throws SensorHubException
+    public IObservation getNextObservation()
     {
         DataComponent result = getNextComponent();
         if (result == null)
             return null;
-        
+
         // get phenomenon time from record 'SamplingTime' if present
         // otherwise use current time
-        double samplingTime = System.currentTimeMillis()/1000.;
-        for (int i=0; i<result.getComponentCount(); i++)
+        double samplingTime = System.currentTimeMillis() / 1000.;
+        for (int i = 0; i < result.getComponentCount(); i++)
         {
             DataComponent comp = result.getComponent(i);
             if (comp.isSetDefinition())
@@ -158,19 +235,19 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                 }
             }
         }
-        
+
         TimeExtent phenTime = new TimeExtent();
         phenTime.setBaseTime(samplingTime);
-        
+
         // use same value for resultTime for now
         TimeExtent resultTime = new TimeExtent();
         resultTime.setBaseTime(samplingTime);
-        
+
         // observation property URI
         String obsPropDef = result.getDefinition();
         if (obsPropDef == null)
             obsPropDef = SWEConstants.NIL_UNKNOWN;
-        
+
         // FOI
         AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
         if (dataSource instanceof IMultiSourceDataProducer)
@@ -178,13 +255,13 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             String entityID = lastDataEvent.getRelatedEntityID();
             foi = ((IMultiSourceDataProducer) dataSource).getCurrentFeatureOfInterest(entityID);
         }
-        
+
         String foiID;
         if (foi != null)
             foiID = foi.getUniqueIdentifier();
         else
             foiID = SWEConstants.NIL_UNKNOWN;
-        
+
         // create observation object        
         IObservation obs = new ObservationImpl();
         obs.setFeatureOfInterest(new FeatureRef(foiID));
@@ -193,29 +270,29 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         obs.setPhenomenonTime(phenTime);
         obs.setResultTime(resultTime);
         obs.setResult(result);
-        
+
         return obs;
     }
-    
-    
+
+
     private DataComponent getNextComponent()
     {
         DataBlock data = getNextResultRecord();
         if (data == null)
             return null;
-        
+
         DataComponent copyComponent = getResultStructure().copy();
         copyComponent.setData(data);
         return copyComponent;
     }
-    
+
 
     @Override
     public DataBlock getNextResultRecord()
     {
         if (!hasMoreData())
             return null;
-        
+
         try
         {
             // only poll next event from queue once we have returned all records associated to last event
@@ -224,17 +301,17 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                 lastDataEvent = eventQueue.poll(timeOut, TimeUnit.MILLISECONDS);
                 if (lastDataEvent == null)
                     return null;
-                
+
                 // we stop if record is passed the given stop date
                 if (lastDataEvent.getTimeStamp() > stopTime)
                     return null;
-                
+
                 nextEventRecordIndex = 0;
             }
-            
+
             //System.out.println("->" + new DateTimeFormat().formatIso(lastDataEvent.getTimeStamp()/1000., 0));
             return lastDataEvent.getRecords()[nextEventRecordIndex++];
-            
+
             // TODO add choice token value if request includes several outputs
         }
         catch (InterruptedException e)
@@ -242,8 +319,8 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             return null;
         }
     }
-    
-    
+
+
     /*
      * For real-time streams, more data is always available unless
      * sensor is disabled or all sensor outputs are disabled
@@ -252,36 +329,37 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     {
         if (!dataSource.isStarted())
             return false;
-        
+
         boolean interfaceActive = false;
-        for (IStreamingDataInterface source: sourceOutputs)
+        for (IStreamingDataInterface source : sourceOutputs)
         {
-            if (source.isEnabled()) {
+            if (source.isEnabled())
+            {
                 interfaceActive = true;
                 break;
             }
         }
-        
+
         return interfaceActive;
     }
-    
+
 
     @Override
     public DataComponent getResultStructure()
     {
         // TODO generate choice if request includes several outputs
-        
+
         return sourceOutputs.get(0).getRecordDescription();
     }
-    
+
 
     @Override
     public DataEncoding getDefaultResultEncoding()
     {
         return sourceOutputs.get(0).getRecommendedEncoding();
     }
-    
-    
+
+
     @Override
     public void handleEvent(Event<?> e)
     {
@@ -289,30 +367,48 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         {
             if (((DataEvent) e).getType() == DataEvent.Type.NEW_DATA_AVAILABLE)
             {
-                if (!eventQueue.offer((DataEvent)e))
+                // check foi if filtering on it
+                if (requestedFois != null)
+                {
+                    // skip if entity/foi was not selected
+                    String entityID = ((DataEvent) e).getRelatedEntityID();
+                    String foiID = currentFoiMap.get(entityID);
+                    if (!requestedFois.contains(foiID))
+                        return;
+                }
+
+                // try to add to queue
+                if (!eventQueue.offer((DataEvent) e))
                 {
                     long now = System.currentTimeMillis();
                     if (now - lastQueueErrorTime > 10000)
                     {
-                        log.warn("Maximum queue size reached while streaming data from " + dataSource + ". "
-                               + "Some records will be discarded. This is often due to insufficient bandwidth");
+                        log.warn("Maximum queue size reached while streaming data from " + dataSource + ". " + "Some records will be discarded. This is often due to insufficient bandwidth");
                         lastQueueErrorTime = now;
                     }
                 }
             }
         }
+
+        else if (e instanceof FoiEvent && requestedFois != null)
+        {
+            // remember current FOI of each entity
+            FoiEvent foiEvent = (FoiEvent) e;
+            String producerID = ((FoiEvent) e).getRelatedEntityID();
+            currentFoiMap.put(producerID, foiEvent.getFoiID());
+        }
     }
-    
-    
+
+
     @Override
     public void close()
     {
         if (!latestRecordOnly)
         {
-            for (IStreamingDataInterface outputInterface: sourceOutputs)
+            for (IStreamingDataInterface outputInterface : sourceOutputs)
                 outputInterface.unregisterListener(this);
         }
-        
+
         eventQueue.clear();
     }
 }
