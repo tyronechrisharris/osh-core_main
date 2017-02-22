@@ -127,10 +127,12 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
         Map<String, ? extends IRecordStoreInfo> recordTypes;
         
         DataComponent recordDs1 = createDs1();
+        forceReadBackFromStorage();
         recordTypes = storage.getRecordStores();
         assertEquals(1, recordTypes.size());
         
         DataComponent recordDs2 = createDs2();
+        forceReadBackFromStorage();
         recordTypes = storage.getRecordStores();        
         assertEquals(2, recordTypes.size());  
         
