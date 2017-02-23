@@ -14,11 +14,17 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sensorhub.api.data.IDataProducerModule;
+import org.sensorhub.api.module.IModuleProvider;
+import org.sensorhub.api.persistence.IStorageProvider;
 import org.sensorhub.impl.persistence.MaxAgeAutoPurgeConfig;
+import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.ui.api.IModuleConfigForm;
+import org.sensorhub.ui.data.BaseProperty;
 import com.vaadin.data.Property;
 import com.vaadin.data.validator.StringLengthValidator;
 import com.vaadin.ui.Field;
@@ -53,7 +59,7 @@ public class GenericStorageConfigForm extends GenericConfigForm implements IModu
     
     
     @Override
-    public Map<String, Class<?>> getPossibleTypes(String propId)
+    public Map<String, Class<?>> getPossibleTypes(String propId, BaseProperty<?> prop)
     {
         if (propId.equals(PROP_AUTOPURGE))
         {
@@ -62,7 +68,27 @@ public class GenericStorageConfigForm extends GenericConfigForm implements IModu
             return classList;
         }
         
-        return super.getPossibleTypes(propId);
+        return super.getPossibleTypes(propId, prop);
+    }
+
+
+    @Override
+    public Collection<IModuleProvider> getPossibleModuleTypes(String propId, Class<?> configType)
+    {
+        Collection<IModuleProvider> storageModules = super.getPossibleModuleTypes(propId, configType);
+        
+        // remove all stream and read-only storage implementation from list
+        Iterator<IModuleProvider> it = storageModules.iterator();
+        while (it.hasNext())
+        {
+            IModuleProvider provider = it.next();
+            if (provider.getModuleConfigClass().isAssignableFrom(StreamStorageConfig.class))
+                it.remove();
+            else if (provider instanceof IStorageProvider && ((IStorageProvider)provider).isReadOnly())
+                it.remove();
+        }
+        
+        return storageModules;
     }
 
 }

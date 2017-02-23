@@ -14,8 +14,11 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui.api;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.sensorhub.api.module.IModuleProvider;
+import org.sensorhub.ui.data.BaseProperty;
 import org.sensorhub.ui.data.ComplexProperty;
 import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
@@ -34,7 +37,12 @@ import com.vaadin.ui.Layout;
  */
 public interface IModuleConfigForm extends ComponentContainer, Layout.MarginHandler
 {
-    
+    /**
+     * Special value to use as propID to identify the object at the root of the form
+     */
+    public static final String ROOT_PROPERTY = "_ROOT_"; 
+            
+            
     /**
      * Builds the whole form for a complex property (i.e. whose value is an object)
      * @param propertyId
@@ -70,18 +78,21 @@ public interface IModuleConfigForm extends ComponentContainer, Layout.MarginHand
     
     
     /**
-     * Get the class whose allowed bean types should derive from
-     * @return parent type or null if the bean cannot be replaced by another type 
+     * Return possible module types for the given property ID
+     * @param propId property ID
+     * @param beanType base module type for this property
+     * @return map of names to types assignable to that property
      */
-    public Class<?> getPolymorphicBeanParentType();
+    public Collection<IModuleProvider> getPossibleModuleTypes(String propId, Class<?> moduleType);
     
     
     /**
      * Return possible object types for the given property ID
      * @param propId property ID
+     * @param beanType declared value type for the property
      * @return map of names to types assignable to that property
      */
-    public Map<String, Class<?>> getPossibleTypes(String propId);
+    public Map<String, Class<?>> getPossibleTypes(String propId, BaseProperty<?> prop);
     
     
     /**

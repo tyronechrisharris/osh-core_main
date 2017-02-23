@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.api.common.SensorHubException;
@@ -40,7 +42,7 @@ public class ModuleTypeSelectionPopup extends Window
     
     protected interface ModuleTypeSelectionCallback
     {
-        public void onSelected(Class<?> moduleType, ModuleConfig config);
+        public void onSelected(ModuleConfig config);
     }
     
     
@@ -53,6 +55,30 @@ public class ModuleTypeSelectionPopup extends Window
     public ModuleTypeSelectionPopup(final Class<?> moduleType, final ModuleTypeSelectionCallback callback)
     {
         super("Select Module Type");
+        
+        ModuleRegistry registry = SensorHub.getInstance().getModuleRegistry();
+        Collection<IModuleProvider> providers = new ArrayList<IModuleProvider>();
+        for (IModuleProvider provider: registry.getInstalledModuleTypes())
+        {
+            Class<?> configClass = provider.getModuleConfigClass();
+            Class<?> moduleClass = provider.getModuleClass();
+            if (moduleType.isAssignableFrom(configClass) || moduleType.isAssignableFrom(moduleClass))
+                providers.add(provider);                
+        }
+        
+        buildDialog(providers, callback);
+    }
+    
+    
+    public ModuleTypeSelectionPopup(Collection<IModuleProvider> moduleProviders, final ModuleTypeSelectionCallback callback)
+    {
+        super("Select Module Type");
+        buildDialog(moduleProviders, callback);
+    }
+    
+    
+    protected void buildDialog(Collection<IModuleProvider> moduleProviders, final ModuleTypeSelectionCallback callback)
+    {
         VerticalLayout layout = new VerticalLayout();
         layout.setMargin(true);
         layout.setSpacing(true);
@@ -69,21 +95,15 @@ public class ModuleTypeSelectionPopup extends Window
         table.setPageLength(10);
         table.setMultiSelect(false);
         
-        final ModuleRegistry registry = SensorHub.getInstance().getModuleRegistry();
         final Map<Object, IModuleProvider> providerMap = new HashMap<Object, IModuleProvider>();
-        for (IModuleProvider provider: registry.getInstalledModuleTypes())
+        for (IModuleProvider provider: moduleProviders)
         {
-            Class<?> configClass = provider.getModuleConfigClass();
-            Class<?> moduleClass = provider.getModuleClass();
-            if (moduleType.isAssignableFrom(configClass) || moduleType.isAssignableFrom(moduleClass))
-            {
-                Object id = table.addItem(new Object[] {
-                        provider.getModuleName(),
-                        provider.getModuleVersion(),
-                        provider.getModuleDescription(),
-                        provider.getProviderName()}, null);
-                providerMap.put(id, provider);
-            }
+            Object id = table.addItem(new Object[] {
+                    provider.getModuleName(),
+                    provider.getModuleVersion(),
+                    provider.getModuleDescription(),
+                    provider.getProviderName()}, null);
+            providerMap.put(id, provider);
         }
         layout.addComponent(table);
         
@@ -94,6 +114,7 @@ public class ModuleTypeSelectionPopup extends Window
         layout.setComponentAlignment(buttons, Alignment.MIDDLE_CENTER);
         
         // OK button
+        final ModuleRegistry registry = SensorHub.getInstance().getModuleRegistry();
         Button okButton = new Button("OK");
         okButton.addClickListener(new Button.ClickListener() {
             private static final long serialVersionUID = 1L;
@@ -111,7 +132,7 @@ public class ModuleTypeSelectionPopup extends Window
                         ModuleConfig config = registry.createModuleConfig(provider);
                         
                         // send back new config object
-                        callback.onSelected(moduleType, config); 
+                        callback.onSelected(config); 
                     }
                     
                     close();

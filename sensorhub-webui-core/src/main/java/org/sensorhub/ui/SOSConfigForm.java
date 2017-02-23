@@ -16,10 +16,7 @@ package org.sensorhub.ui;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.sensorhub.ui.data.MyBeanItem;
-import com.vaadin.data.Property;
-import com.vaadin.server.ExternalResource;
-import com.vaadin.ui.Link;
+import org.sensorhub.ui.data.BaseProperty;
 
 
 public class SOSConfigForm extends GenericConfigForm
@@ -32,27 +29,6 @@ public class SOSConfigForm extends GenericConfigForm
     
     
     @Override
-    public void build(String title, String popupText, MyBeanItem<? extends Object> beanItem, boolean includeSubForms)
-    {
-        super.build(title, popupText, beanItem, includeSubForms);
-        
-        // add link to capabilities
-        Property<?> endPointProp = beanItem.getItemProperty(PROP_ENDPOINT);
-        if (endPointProp != null)
-        {
-            String baseUrl = (String)endPointProp.getValue();
-            if (baseUrl != null)
-            {
-                baseUrl = baseUrl.substring(1);
-                String href = baseUrl + "?service=SOS&version=2.0&request=GetCapabilities";
-                Link link = new Link("Link to capabilities", new ExternalResource(href), "_blank", 0, 0, null);
-                this.addComponent(link);
-            }
-        }
-    }
-
-
-    @Override
     public boolean isFieldVisible(String propId)
     {
         if (propId.equals(PROP_DATACONSUMERS))
@@ -63,7 +39,7 @@ public class SOSConfigForm extends GenericConfigForm
 
 
     @Override
-    public Map<String, Class<?>> getPossibleTypes(String propId)
+    public Map<String, Class<?>> getPossibleTypes(String propId, BaseProperty<?> prop)
     {
         if (propId.equals(PROP_DATAPROVIDERS))
         {
@@ -81,6 +57,6 @@ public class SOSConfigForm extends GenericConfigForm
             return classList;
         }
         
-        return super.getPossibleTypes(propId);
+        return super.getPossibleTypes(propId, prop);
     }
 }

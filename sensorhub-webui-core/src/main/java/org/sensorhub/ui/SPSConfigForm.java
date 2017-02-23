@@ -22,6 +22,7 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.service.sps.SPSConnectorConfig;
 import org.sensorhub.impl.service.sps.SPSServiceConfig;
 import org.sensorhub.impl.service.sps.SensorConnectorConfig;
+import org.sensorhub.ui.data.BaseProperty;
 import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.data.Property;
 import com.vaadin.server.ExternalResource;
@@ -87,7 +88,7 @@ public class SPSConfigForm extends GenericConfigForm
 
 
     @Override
-    public Map<String, Class<?>> getPossibleTypes(String propId)
+    public Map<String, Class<?>> getPossibleTypes(String propId, BaseProperty<?> prop)
     {
         if (propId.equals(PROP_CONNECTORS))
         {
@@ -103,6 +104,6 @@ public class SPSConfigForm extends GenericConfigForm
             return classList;
         }
         
-        return super.getPossibleTypes(propId);
+        return super.getPossibleTypes(propId, prop);
     }
 }

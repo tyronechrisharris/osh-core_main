@@ -24,8 +24,10 @@ import org.sensorhub.api.comm.ICommNetwork.NetworkType;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.api.config.DisplayInfo.ValueRange;
 import org.sensorhub.api.module.IModule;
+import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.SensorHub;
+import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorSystemConfig.ProcessMember;
 import org.sensorhub.impl.sensor.SensorSystemConfig.SensorMember;
 import org.sensorhub.ui.ModuleInstanceSelectionPopup.ModuleInstanceSelectionCallback;
@@ -541,17 +543,19 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         subform.build(propId, prop, true);
         subform.setParentForm(this);
         
-        // add change button if property is changeable module config
-        Class<?> changeableBeanType = subform.getPolymorphicBeanParentType();
-        if (changeableBeanType != null)
-            addChangeModuleButton(subform, propId, prop, changeableBeanType);
-        else if (ModuleConfig.class.isAssignableFrom(beanType))
+        // add change button if property is changeable module or object config
+        if (ModuleConfig.class.isAssignableFrom(beanType))
+        {
             addChangeModuleButton(subform, propId, prop, beanType);
+        }
+        else
+        {
+            // add change button if property can have multiple types
+            Map<String, Class<?>> possibleTypes = getPossibleTypes(propId, prop);
+            if (childBeanItem == null || !(possibleTypes == null || possibleTypes.isEmpty()))
+                addChangeObjectButton(subform, propId, prop, possibleTypes);
+        }
         
-        // add change button if property can have multiple types
-        Map<String, Class<?>> possibleTypes = getPossibleTypes(propId);
-        if (childBeanItem == null || !(possibleTypes == null || possibleTypes.isEmpty()))
-            addChangeObjectButton(subform, propId, prop, possibleTypes);
         
         if (childBeanItem != null)
             allForms.add(subform);
@@ -576,10 +580,12 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             private static final long serialVersionUID = 1L;
             public void buttonClick(ClickEvent event)
             {
+                Collection<IModuleProvider> moduleTypes = getPossibleModuleTypes(propId, objectType);
+                
                 // show popup to select among available module types
-                ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(objectType, new ModuleTypeSelectionWithClearCallback() {
+                ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(moduleTypes, new ModuleTypeSelectionWithClearCallback() {
                     @Override
-                    public void onSelected(Class<?> moduleType, ModuleConfig config)
+                    public void onSelected(ModuleConfig config)
                     {
                         config.id = null;
                         config.name = null;
@@ -599,7 +605,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     {
                         updateSubForm(chgButton, null, propId, prop);
                     }
-                });
+                });                    
+                    
                 popup.setModal(true);
                 getUI().addWindow(popup);
             }
@@ -885,7 +892,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     {
                         try
                         {
-                            Map<String, Class<?>> typeList = GenericConfigForm.this.getPossibleTypes(propId);
+                            Map<String, Class<?>> typeList = GenericConfigForm.this.getPossibleTypes(propId, prop);
                             
                             // create callback to add table item
                             ObjectTypeSelectionCallback callback = new ObjectTypeSelectionCallback() {
@@ -1064,7 +1071,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     
                     try
                     {
-                        Map<String, Class<?>> typeList = GenericConfigForm.this.getPossibleTypes(propId);
+                        Map<String, Class<?>> typeList = GenericConfigForm.this.getPossibleTypes(propId, prop);
                         
                         // create callback to add table item
                         ObjectTypeSelectionCallback callback = new ObjectTypeSelectionCallback() {
@@ -1183,10 +1190,26 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     {
         return subForms;
     }
+    
+    
+    @Override
+    public Collection<IModuleProvider> getPossibleModuleTypes(String propId, Class<?> configType)
+    {
+        final ModuleRegistry registry = SensorHub.getInstance().getModuleRegistry();
+        final Collection<IModuleProvider> providers = new ArrayList<IModuleProvider>();
+        for (IModuleProvider provider: registry.getInstalledModuleTypes())
+        {
+            Class<?> configClass = provider.getModuleConfigClass();
+            if (configType.isAssignableFrom(configClass))
+                providers.add(provider);                
+        }
+        
+        return providers;
+    }
 
 
     @Override
-    public Map<String, Class<?>> getPossibleTypes(String propId)
+    public Map<String, Class<?>> getPossibleTypes(String propId, BaseProperty<?> prop)
     {
         return Collections.EMPTY_MAP;
     }
@@ -1196,13 +1219,6 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     public List<Object> getPossibleValues(String propId)
     {
         return Collections.EMPTY_LIST;
-    }
-
-
-    @Override
-    public Class<?> getPolymorphicBeanParentType()
-    {
-        return null;
     }
     
     

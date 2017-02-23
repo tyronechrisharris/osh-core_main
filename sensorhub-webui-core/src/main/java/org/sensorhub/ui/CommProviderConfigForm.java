@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import org.sensorhub.api.comm.ICommProvider;
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.ComplexProperty;
 import org.sensorhub.ui.data.MyBeanItem;
@@ -82,9 +81,10 @@ public class CommProviderConfigForm extends GenericConfigForm
     }
     
     
-    @Override
-    public Class<?> getPolymorphicBeanParentType()
+    /*@Override
+    public Map<String, IModuleProvider> getPossibleModuleTypes(String propId, Class<?> moduleType);
     {
-        return ICommProvider.class;
-    }
+        if (propId == ROOT_PROPERTY)
+            return ICommProvider.class;
+    }*/
 }

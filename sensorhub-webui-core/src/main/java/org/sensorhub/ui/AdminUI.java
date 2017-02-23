@@ -636,7 +636,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     
                     // show popup to select among available module types
                     ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(configType, new ModuleTypeSelectionCallback() {
-                        public void onSelected(Class<?> moduleType, ModuleConfig config)
+                        public void onSelected(ModuleConfig config)
                         {
                             IModule<?> module = null;
                             
