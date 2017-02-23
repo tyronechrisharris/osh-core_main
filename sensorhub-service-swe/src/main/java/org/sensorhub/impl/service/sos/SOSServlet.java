@@ -137,6 +137,7 @@ import org.vast.swe.DataSourceDOM;
 import org.vast.swe.FilteredWriter;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
+import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.fast.DataBlockProcessor;
 import org.vast.swe.fast.FilterByDefinition;
 import org.vast.swe.json.SWEJsonStreamWriter;
@@ -789,6 +790,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         OutputStream os = new BufferedOutputStream(request.getResponseStream());
         
         XMLStreamWriter xmlWriter;
+        boolean isJson = false;
         if (SWESOfferingCapabilities.FORMAT_SML2.equals(format))
         {
             XMLOutputFactory factory = XMLImplFinder.getStaxOutputFactory();
@@ -799,7 +801,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         {
             xmlWriter = new SMLJsonStreamWriter(os, StandardCharsets.UTF_8.name());
             request.getHttpResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
-            request.setSoapVersion(null);
+            isJson = true;
         }
         else
         {
@@ -814,30 +816,37 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         // start XML response
         xmlWriter.writeStartDocument();
         
-        // wrap with SOAP envelope if requested
-        startSoapEnvelope(request, xmlWriter);        
-        
         // wrap SensorML description inside response
-        String swesNsUri = OGCRegistry.getNamespaceURI(SOSUtils.SWES, DEFAULT_VERSION);
-        xmlWriter.writeStartElement(SWES_PREFIX, "DescribeSensorResponse", swesNsUri);
-        xmlWriter.writeNamespace(SWES_PREFIX, swesNsUri);
+        if (!isJson)
+        {
+            // wrap with SOAP envelope if requested
+            startSoapEnvelope(request, xmlWriter);
+            
+            String swesNsUri = OGCRegistry.getNamespaceURI(SOSUtils.SWES, DEFAULT_VERSION);
+            xmlWriter.writeStartElement(SWES_PREFIX, "DescribeSensorResponse", swesNsUri);
+            xmlWriter.writeNamespace(SWES_PREFIX, swesNsUri);
+            
+            xmlWriter.writeStartElement(SWES_PREFIX, "procedureDescriptionFormat", swesNsUri);
+            xmlWriter.writeCharacters(format);
+            xmlWriter.writeEndElement();
+            
+            xmlWriter.writeStartElement(SWES_PREFIX, "description", swesNsUri);
+            xmlWriter.writeStartElement(SWES_PREFIX, "SensorDescription", swesNsUri);
+            xmlWriter.writeStartElement(SWES_PREFIX, "data", swesNsUri);
+        }
         
-        xmlWriter.writeStartElement(SWES_PREFIX, "procedureDescriptionFormat", swesNsUri);
-        xmlWriter.writeCharacters(format);
-        xmlWriter.writeEndElement();
-        
-        xmlWriter.writeStartElement(SWES_PREFIX, "description", swesNsUri);
-        xmlWriter.writeStartElement(SWES_PREFIX, "SensorDescription", swesNsUri);
-        xmlWriter.writeStartElement(SWES_PREFIX, "data", swesNsUri);
         smlBindings.writeAbstractProcess(xmlWriter, processDesc);
-        xmlWriter.writeEndElement();
-        xmlWriter.writeEndElement();
-        xmlWriter.writeEndElement();
         
-        xmlWriter.writeEndElement();
-        
-        // close SOAP elements
-        endSoapEnvelope(request, xmlWriter);
+        if (!isJson)
+        {
+            xmlWriter.writeEndElement();
+            xmlWriter.writeEndElement();
+            xmlWriter.writeEndElement();        
+            xmlWriter.writeEndElement();
+            
+            // close SOAP elements
+            endSoapEnvelope(request, xmlWriter);
+        }
         
         xmlWriter.writeEndDocument();
         xmlWriter.close();
@@ -1047,11 +1056,25 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 request.getObservables().add(entityComponentUri);
             filteredStruct.accept(new DataStructFilter(request.getObservables()));
             
-            // build and send response 
-            GetResultTemplateResponse resp = new GetResultTemplateResponse();
-            resp.setResultStructure(filteredStruct);
-            resp.setResultEncoding(dataProvider.getDefaultResultEncoding());
-            sendResponse(request, resp);            
+            // build and send response
+            if (OWSUtils.JSON_MIME_TYPE.equals(request.getFormat()))
+            {
+                OutputStream os = new BufferedOutputStream(request.getResponseStream());
+                SWEJsonStreamWriter writer = new SWEJsonStreamWriter(os, StandardCharsets.UTF_8.name());
+                request.getHttpResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
+                SWEStaxBindings sweBindings = new SWEStaxBindings();
+                writer.writeStartDocument();
+                sweBindings.writeDataComponent(writer, filteredStruct, false);
+                writer.writeEndDocument();
+                writer.close();
+            }
+            else
+            {
+                GetResultTemplateResponse resp = new GetResultTemplateResponse();
+                resp.setResultStructure(filteredStruct);
+                resp.setResultEncoding(dataProvider.getDefaultResultEncoding());
+                sendResponse(request, resp);
+            }
         }
         finally
         {
