@@ -29,9 +29,10 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.sensor.SensorSystemConfig.ProcessMember;
 import org.sensorhub.impl.sensor.SensorSystemConfig.SensorMember;
 import org.sensorhub.ui.ModuleInstanceSelectionPopup.ModuleInstanceSelectionCallback;
-import org.sensorhub.ui.ModuleTypeSelectionPopup.ModuleTypeSelectionCallback;
+import org.sensorhub.ui.ModuleTypeSelectionPopup.ModuleTypeSelectionWithClearCallback;
 import org.sensorhub.ui.NetworkAddressSelectionPopup.AddressSelectionCallback;
 import org.sensorhub.ui.ObjectTypeSelectionPopup.ObjectTypeSelectionCallback;
+import org.sensorhub.ui.ObjectTypeSelectionPopup.ObjectTypeSelectionWithClearCallback;
 import org.sensorhub.ui.ValueEntryPopup.ValueCallback;
 import org.sensorhub.ui.api.IModuleConfigForm;
 import org.sensorhub.ui.api.UIConstants;
@@ -561,36 +562,42 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     
     protected void addChangeModuleButton(final ComponentContainer parentForm, final String propId, final ComplexProperty prop, final Class<?> objectType)
     {
-        final Button chgButton = new Button("Modify");
+        final Button chgButton = new Button();
         //chgButton.addStyleName(STYLE_QUIET);
         chgButton.addStyleName(STYLE_SMALL);
         chgButton.addStyleName(STYLE_SECTION_BUTTONS);
         chgButton.setIcon(EDIT_ICON);
+        if (prop.getValue() == null)
+            chgButton.setCaption("Add");
+        else
+            chgButton.setCaption("Modify");
         
         chgButton.addClickListener(new ClickListener() {
             private static final long serialVersionUID = 1L;
             public void buttonClick(ClickEvent event)
             {
                 // show popup to select among available module types
-                ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(objectType, new ModuleTypeSelectionCallback() {
+                ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(objectType, new ModuleTypeSelectionWithClearCallback() {
+                    @Override
                     public void onSelected(Class<?> moduleType, ModuleConfig config)
                     {
-                        // regenerate form
                         config.id = null;
                         config.name = null;
-                        MyBeanItem<Object> newItem = new MyBeanItem<Object>(config, propId + ".");
-                        prop.setValue(newItem);
-                        IModuleConfigForm newForm = AdminUIModule.getInstance().generateForm(config.getClass());
-                        newForm.build(propId, prop, true);
-                        newForm.setCaption(null);
-                        ((VerticalLayout)newForm).addComponent(chgButton, 0);
-                                                
-                        // replace old form in UI
-                        allForms.add(newForm);
-                        allForms.remove((IModuleConfigForm)chgButton.getData());
-                        Component oldForm = (Component)chgButton.getData();
-                        ((ComponentContainer)oldForm.getParent()).replaceComponent(oldForm, newForm);
-                        chgButton.setData(newForm);
+                        
+                        try
+                        {
+                            updateSubForm(chgButton, config, propId, prop);
+                        }
+                        catch (Exception e)
+                        {
+                            Notification.show("Error", e.getMessage(), Notification.Type.ERROR_MESSAGE);
+                        }
+                    }
+
+                    @Override
+                    public void onClearSelection()
+                    {
+                        updateSubForm(chgButton, null, propId, prop);
                     }
                 });
                 popup.setModal(true);
@@ -605,56 +612,76 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     
     protected void addChangeObjectButton(final ComponentContainer parentForm, final String propId, final ComplexProperty prop, final Map<String, Class<?>> typeList)
     {
-        final Button chgButton = new Button("Modify");
+        final Button chgButton = new Button();
         //chgButton.addStyleName(STYLE_QUIET);
         chgButton.addStyleName(STYLE_SMALL);
         chgButton.addStyleName(STYLE_SECTION_BUTTONS);
         chgButton.setIcon(EDIT_ICON);
-        
-        chgButton.addClickListener(new ClickListener() {
-            private static final long serialVersionUID = 1L;
-            public void buttonClick(ClickEvent event)
+        if (prop.getValue() == null)
+            chgButton.setCaption("Add");
+        else
+            chgButton.setCaption("Modify");
+                
+        // show popup to select among available module types
+        final ObjectTypeSelectionWithClearCallback callback = new ObjectTypeSelectionWithClearCallback() {
+            @Override
+            public void onSelected(Class<?> objectType)
             {
-                // show popup to select among available module types
-                ObjectTypeSelectionCallback callback = new ObjectTypeSelectionCallback() {
-                    public void onSelected(Class<?> objectType)
+                try
+                {
+                    updateSubForm(chgButton, objectType.newInstance(), propId, prop);
+                }
+                catch (Exception e)
+                {
+                    Notification.show("Error", e.getMessage(), Notification.Type.ERROR_MESSAGE);
+                }
+            }
+
+            @Override
+            public void onClearSelection()
+            {
+                updateSubForm(chgButton, null, propId, prop);
+            }
+        };
+        
+        // if choice is limited to a single possibility
+        if (typeList.size() <= 1)
+        {
+            if (prop.getValue() != null)
+            {
+                // don't display remove button if value is required
+                if (prop.isRequired())
+                    return;
+                chgButton.setCaption("Remove");
+            }   
+            
+            chgButton.addClickListener(new ClickListener() {
+                private static final long serialVersionUID = 1L;
+                public void buttonClick(ClickEvent event)
+                {
+                    if (prop.getValue() == null)
                     {
-                        try
+                        // if empty list, we use the declared type
+                        if (typeList == null || typeList.isEmpty())
+                            callback.onSelected(prop.getBeanType());
+                        
+                        // if single item list,use the only possibility
+                        else if (typeList.size() == 1)
                         {
-                            // regenerate form
-                            MyBeanItem<Object> newItem = new MyBeanItem<Object>(objectType.newInstance(), propId + ".");
-                            prop.setValue(newItem);
-                            IModuleConfigForm newForm = AdminUIModule.getInstance().generateForm(objectType);
-                            newForm.build(propId, prop, true);
-                            newForm.setCaption(null);
-                            ((VerticalLayout)newForm).addComponent(chgButton, 0);
-                                                    
-                            // replace old form in UI
-                            allForms.add(newForm);
-                            allForms.remove((IModuleConfigForm)chgButton.getData());
-                            Component oldForm = (Component)chgButton.getData();
-                            ((ComponentContainer)oldForm.getParent()).replaceComponent(oldForm, newForm);
-                            chgButton.setData(newForm);
-                        }
-                        catch (Exception e)
-                        {
-                            Notification.show("Error", e.getMessage(), Notification.Type.ERROR_MESSAGE);
+                            Class<?> firstType = typeList.values().iterator().next();
+                            callback.onSelected(firstType);
                         }
                     }
-                };
-        
-                if (typeList == null || typeList.isEmpty())
-                {
-                    // we use the declared type
-                    callback.onSelected(prop.getBeanType());
+                    else
+                        callback.onClearSelection();
                 }
-                else if (typeList.size() == 1)
-                {
-                    // we automatically use the only type in the list
-                    Class<?> firstType = typeList.values().iterator().next();
-                    callback.onSelected(firstType);
-                }
-                else
+            });
+        }
+        else
+        {
+            chgButton.addClickListener(new ClickListener() {
+                private static final long serialVersionUID = 1L;
+                public void buttonClick(ClickEvent event)
                 {
                     // we popup the list so the user can select what he wants
                     String title = "Please select the desired option";
@@ -662,10 +689,32 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     popup.setModal(true);
                     getUI().addWindow(popup);
                 }
-            }
-        });
+            });
+        }        
+        
         chgButton.setData(parentForm);
         ((VerticalLayout)parentForm).addComponent(chgButton, 0);
+    }
+    
+    
+    protected void updateSubForm(final Button chgButton, final Object newBean, final String propId, final ComplexProperty prop)
+    {
+        Component oldForm = (Component)chgButton.getData();
+        
+        // generate new form (will be empty if bean is null)
+        MyBeanItem<Object> newItem = null;
+        if (newBean != null)
+            newItem = new MyBeanItem<Object>(newBean, propId + ".");
+        prop.setValue(newItem);                        
+        ComponentContainer newForm = buildSubForm(propId, prop);
+        newForm.setCaption(null);
+        
+        // replace old form in UI
+        if (oldForm != null)
+        {
+            allForms.remove(oldForm);                        
+            ((ComponentContainer)oldForm.getParent()).replaceComponent(oldForm, newForm);
+        }
     }
     
     

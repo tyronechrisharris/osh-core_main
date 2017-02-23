@@ -17,9 +17,11 @@ package org.sensorhub.ui;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import org.sensorhub.ui.ModuleTypeSelectionPopup.ModuleTypeSelectionWithClearCallback;
 import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
+import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.Table.ColumnHeaderMode;
 import com.vaadin.ui.VerticalLayout;
@@ -38,10 +40,17 @@ public class ObjectTypeSelectionPopup extends Window
     }
     
     
+    protected interface ObjectTypeSelectionWithClearCallback extends ObjectTypeSelectionCallback
+    {
+        public void onClearSelection();
+    }
+    
+    
     public ObjectTypeSelectionPopup(String title, final Map<String, Class<?>> typeList, final ObjectTypeSelectionCallback callback)
     {
         super(title);
         VerticalLayout layout = new VerticalLayout();
+        layout.setMargin(true);
         layout.setSpacing(true);
         
         // generate table with type list
@@ -61,6 +70,12 @@ public class ObjectTypeSelectionPopup extends Window
             idTypeMap.put(id, item.getValue());
         }
         layout.addComponent(table);
+        
+        // buttons bar
+        HorizontalLayout buttons = new HorizontalLayout();
+        buttons.setSpacing(true);
+        layout.addComponent(buttons);
+        layout.setComponentAlignment(buttons, Alignment.MIDDLE_CENTER);
         
         // add OK button
         Button okButton = new Button("OK");
@@ -82,8 +97,25 @@ public class ObjectTypeSelectionPopup extends Window
                 close();
             }
         });
-        layout.addComponent(okButton);
-        layout.setComponentAlignment(okButton, Alignment.MIDDLE_CENTER);
+        buttons.addComponent(okButton);
+        
+        // also add clear button if callback allows for clearing
+        if (callback instanceof ModuleTypeSelectionWithClearCallback)
+        {
+            // add clear button
+            Button clearButton = new Button("Select None");
+            clearButton.addClickListener(new Button.ClickListener() {
+                private static final long serialVersionUID = 1L;
+                
+                @Override
+                public void buttonClick(ClickEvent event)
+                {
+                    ((ObjectTypeSelectionWithClearCallback)callback).onClearSelection();
+                    close();            
+                }
+            });
+            buttons.addComponent(clearButton);
+        }
         
         setContent(layout);
         center();

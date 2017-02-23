@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.persistence;
 
 import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.module.ModuleConfig;
 
 
@@ -29,6 +30,7 @@ import org.sensorhub.api.module.ModuleConfig;
 public class StorageConfig extends ModuleConfig
 {
     
+    @Required
     @DisplayInfo(desc="Path to storage (actual format depends on storage type: e.g. file, folder, URL, etc...)")
 	public String storagePath;
 

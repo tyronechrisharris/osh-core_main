@@ -45,7 +45,10 @@ public class ComplexProperty extends BaseProperty<MyBeanItem<Object>>
         try
         {
             this.item = newValue;
-            f.set(parentObj, newValue.getBean());
+            if (newValue == null)
+                f.set(parentObj, null);
+            else
+                f.set(parentObj, newValue.getBean());
             fireValueChange();
         }
         catch (Exception e)

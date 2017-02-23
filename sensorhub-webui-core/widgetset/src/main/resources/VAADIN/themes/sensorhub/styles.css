@@ -1859,15 +1859,15 @@ div.v-layout.v-horizontal.v-widget {
 }
 
 .sensorhub .v-margin-right {
-	padding-right: 37px;
+	padding-right: 25px;
 }
 
 .sensorhub .v-margin-bottom {
-	padding-bottom: 37px;
+	padding-bottom: 25px;
 }
 
 .sensorhub .v-margin-left {
-	padding-left: 37px;
+	padding-left: 25px;
 }
 
 .sensorhub .v-spacing {
@@ -3840,23 +3840,23 @@ div.v-layout.v-horizontal.v-widget {
 }
 
 .sensorhub [class*="margin-bottom"] > tbody > [class*="lastrow"] > td {
-	padding-bottom: 37px;
+	padding-bottom: 25px;
 }
 
 .sensorhub [class*="margin-left"] > tbody > [class*="row"] > [class*="captioncell"] {
-	padding-left: 37px;
+	padding-left: 25px;
 }
 
 .sensorhub [class*="margin-left"] > tbody > [class*="row"] > [class*="contentcell"]  > .v-label-h2, .sensorhub [class*="margin-left"] > tbody > [class*="row"] > [class*="contentcell"]  > .v-label-h3, .sensorhub [class*="margin-left"] > tbody > [class*="row"] > [class*="contentcell"]  > .v-label-h4 {
-	left: 37px;
+	left: 25px;
 }
 
 .sensorhub [class*="margin-right"] > tbody > [class*="row"] > [class*="contentcell"] {
-	padding-right: 37px;
+	padding-right: 25px;
 }
 
 .sensorhub [class*="margin-right"] > tbody > [class*="row"] > [class*="contentcell"]  > .v-label-h2, .sensorhub [class*="margin-right"] > tbody > [class*="row"] > [class*="contentcell"]  > .v-label-h3, .sensorhub [class*="margin-right"] > tbody > [class*="row"] > [class*="contentcell"]  > .v-label-h4 {
-	right: 37px;
+	right: 25px;
 }
 
 .sensorhub .v-formlayout > table {
@@ -6644,15 +6644,15 @@ div.v-layout.v-horizontal.v-widget {
 }
 
 .sensorhub .v-gridlayout-margin-bottom {
-	padding-bottom: 37px;
+	padding-bottom: 25px;
 }
 
 .sensorhub .v-gridlayout-margin-left {
-	padding-left: 37px;
+	padding-left: 25px;
 }
 
 .sensorhub .v-gridlayout-margin-right {
-	padding-right: 37px;
+	padding-right: 25px;
 }
 
 .sensorhub .v-gridlayout-spacing-on {

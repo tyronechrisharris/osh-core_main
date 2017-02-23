@@ -28,6 +28,7 @@ import com.vaadin.ui.Table;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
 import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.HorizontalLayout;
 
 
 public class ModuleTypeSelectionPopup extends Window
@@ -43,15 +44,21 @@ public class ModuleTypeSelectionPopup extends Window
     }
     
     
+    protected interface ModuleTypeSelectionWithClearCallback extends ModuleTypeSelectionCallback
+    {
+        public void onClearSelection();
+    }
+    
+    
     public ModuleTypeSelectionPopup(final Class<?> moduleType, final ModuleTypeSelectionCallback callback)
     {
         super("Select Module Type");
         VerticalLayout layout = new VerticalLayout();
+        layout.setMargin(true);
         layout.setSpacing(true);
         
         // generate table with module list
         final Table table = new Table();
-        table.setSizeFull();
         table.setSelectable(true);
         table.setColumnReorderingAllowed(true);        
         table.addContainerProperty(PROP_NAME, String.class, null);
@@ -80,7 +87,13 @@ public class ModuleTypeSelectionPopup extends Window
         }
         layout.addComponent(table);
         
-        // add OK button
+        // buttons bar
+        HorizontalLayout buttons = new HorizontalLayout();
+        buttons.setSpacing(true);
+        layout.addComponent(buttons);
+        layout.setComponentAlignment(buttons, Alignment.MIDDLE_CENTER);
+        
+        // OK button
         Button okButton = new Button("OK");
         okButton.addClickListener(new Button.ClickListener() {
             private static final long serialVersionUID = 1L;
@@ -100,20 +113,40 @@ public class ModuleTypeSelectionPopup extends Window
                         // send back new config object
                         callback.onSelected(moduleType, config); 
                     }
+                    
+                    close();
                 }
                 catch (SensorHubException e)
                 {
-                    close();
                     Notification.show(e.getMessage(), null, Notification.Type.ERROR_MESSAGE);
-                }
-                finally
-                {
-                    close();
                 }
             }
         });
-        layout.addComponent(okButton);
-        layout.setComponentAlignment(okButton, Alignment.MIDDLE_CENTER);
+        buttons.addComponent(okButton);
+        
+        // also add clear button if callback allows for clearing
+        if (callback instanceof ModuleTypeSelectionWithClearCallback)
+        {
+            // add clear button
+            Button clearButton = new Button("Select None");
+            clearButton.addClickListener(new Button.ClickListener() {
+                private static final long serialVersionUID = 1L;
+                
+                @Override
+                public void buttonClick(ClickEvent event)
+                {
+                    try
+                    {
+                        ((ModuleTypeSelectionWithClearCallback)callback).onClearSelection();
+                    }
+                    finally
+                    {
+                        close();
+                    }                    
+                }
+            });
+            buttons.addComponent(clearButton);
+        }
         
         setContent(layout);
         center();
