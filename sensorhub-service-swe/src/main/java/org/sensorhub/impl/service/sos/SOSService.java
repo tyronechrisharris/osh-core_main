@@ -23,6 +23,7 @@ import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServer;
+import org.vast.ows.sos.SOSServiceCapabilities;
 
 
 /**
@@ -176,5 +177,14 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
             else if (newState == ModuleState.STOPPED)
                 stop();
         }
+    }
+    
+    
+    public SOSServiceCapabilities getCapabilities()
+    {
+        if (isStarted())
+            return servlet.capabilities;
+        else
+            return null;
     }
 }
