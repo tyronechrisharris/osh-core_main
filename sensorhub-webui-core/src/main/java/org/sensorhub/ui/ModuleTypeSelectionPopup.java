@@ -23,6 +23,7 @@ import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
+import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Notification;
@@ -30,10 +31,19 @@ import com.vaadin.ui.Table;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
 import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.HorizontalLayout;
 
 
-public class ModuleTypeSelectionPopup extends Window
+/**
+ * <p>
+ * Popup window showing a list of selectable OSH modules
+ * </p>
+ *
+ * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @since Feb 24, 2017
+ */
+public class ModuleTypeSelectionPopup extends Window implements UIConstants
 {
     private static final long serialVersionUID = -5368554789542357015L;
     private static final String PROP_NAME = "name";
@@ -85,8 +95,8 @@ public class ModuleTypeSelectionPopup extends Window
         
         // generate table with module list
         final Table table = new Table();
-        table.setSelectable(true);
-        table.setColumnReorderingAllowed(true);        
+        table.setSizeFull();
+        table.setSelectable(true);       
         table.addContainerProperty(PROP_NAME, String.class, null);
         table.addContainerProperty(PROP_VERSION, String.class, null);
         table.addContainerProperty("desc", String.class, null);
@@ -106,6 +116,23 @@ public class ModuleTypeSelectionPopup extends Window
             providerMap.put(id, provider);
         }
         layout.addComponent(table);
+        
+        // link to more modules
+        Button installNew = new Button("Install More Modules...");
+        installNew.setStyleName(STYLE_LINK);
+        layout.addComponent(installNew);
+        layout.setComponentAlignment(installNew, Alignment.MIDDLE_RIGHT);
+        installNew.addClickListener(new ClickListener()
+        {
+            private static final long serialVersionUID = 1L;
+            
+            @Override
+            public void buttonClick(ClickEvent event)
+            {
+                //close();
+                getUI().addWindow(new DownloadModulesPopup());
+            }
+        });
         
         // buttons bar
         HorizontalLayout buttons = new HorizontalLayout();

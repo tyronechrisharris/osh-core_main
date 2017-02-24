@@ -57,7 +57,7 @@ public class ObjectTypeSelectionPopup extends Window
         final Table table = new Table();
         table.setSizeFull();
         table.setSelectable(true);
-        table.setColumnReorderingAllowed(true);        
+        table.setSizeFull();       
         table.addContainerProperty(UIConstants.PROP_NAME, String.class, null);
         table.setColumnHeaderMode(ColumnHeaderMode.HIDDEN);
         table.setPageLength(10);
