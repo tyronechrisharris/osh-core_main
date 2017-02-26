@@ -1099,6 +1099,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             
             // security check
             securityHandler.checkPermission(request.getOffering(), securityHandler.sos_read_obs);
+            boolean isWs = isWebSocketRequest(request);
             
             // setup data filter (including extensions)
             SOSDataFilter filter = new SOSDataFilter(request.getFoiIDs(), request.getObservables(), request.getTime());
@@ -1113,23 +1114,25 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             dataProvider = getDataProvider(request.getOffering(), filter);
             DataComponent resultStructure = dataProvider.getResultStructure();
             DataEncoding resultEncoding = dataProvider.getDefaultResultEncoding();
-            boolean dataWritten = false;
+            boolean customFormatUsed = false;
             
             // use JSON, XML or custom format if requested
             if (resultEncoding instanceof TextEncoding && OWSUtils.JSON_MIME_TYPE.equals(request.getFormat()))
-            {
                 resultEncoding = new JSONEncodingImpl();
-                request.setXmlWrapper(false);
-            }
             else if (resultEncoding instanceof TextEncoding && OWSUtils.XML_MIME_TYPE.equals(request.getFormat()))
                 resultEncoding = new XMLEncodingImpl();
             else
-                dataWritten = writeCustomFormatStream(request, dataProvider);
+                customFormatUsed = writeCustomFormatStream(request, dataProvider);
             
-            // otherwise write standard SWE common data stream
-            if (!dataWritten)
+            // if no custom format was written write standard SWE common data stream
+            if (!customFormatUsed)
             {
                 OutputStream os = new BufferedOutputStream(request.getResponseStream());
+                
+                // force disable xmlWrapper in some cases
+                if (resultEncoding instanceof JSONEncodingImpl ||
+                    resultEncoding instanceof BinaryEncoding || isWs)
+                    request.setXmlWrapper(false);
                 
                 // write small xml wrapper if requested
                 if (((GetResultRequest) request).isXmlWrapper())
@@ -1139,7 +1142,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                     os.write(new String("<GetResultResponse xmlns=\"" + nsUri + "\">\n<resultValues>\n").getBytes());
                 }
                 
-                // set response headers in case of HTTP response
+                // else change response content type according to encoding
                 else if (request.getHttpResponse() != null)
                 {
                     if (resultEncoding instanceof TextEncoding)
@@ -1170,18 +1173,18 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                     ((DataBlockProcessor)writer).setDataComponentFilter(new FilterByDefinition(request.getObservables()));
                 writer.setDataComponents(resultStructure);
                 writer.setOutput(os);
-                
-                // write each record in output stream
-                writer.writeBegin();
+                                
+                // write all records in output stream
+                writer.startStream(!isWs);
                 DataBlock nextRecord;
                 while ((nextRecord = dataProvider.getNextResultRecord()) != null)
                 {
                     writer.write(nextRecord);
                     writer.flush();
                 }
-                writer.writeEnd();
+                writer.endStream();
                 
-                // close xml wrapper
+                // close xml wrapper if needed
                 if (((GetResultRequest) request).isXmlWrapper())
                     os.write(new String("\n</resultValues>\n</GetResultResponse>").getBytes());          
                         
