@@ -74,7 +74,7 @@ subprojects {
       }
       
       // OSGi manifest info
-      manifest {        
+      manifest {
         // main info
         symbolicName project.group + '.' + project.name
         if (project.description != null)
@@ -104,6 +104,14 @@ subprojects {
           }
           attributes 'Bundle-NativeCode': nativePaths
         }
+        
+        // bundle dependencies
+        def oshDeps = ''
+        project.configurations.runtime.each {
+          if (it.name.startsWith('sensorhub'))
+            oshDeps += it.name + ','
+        }
+        attributes 'OSH-Dependencies': oshDeps
       }
     }
     

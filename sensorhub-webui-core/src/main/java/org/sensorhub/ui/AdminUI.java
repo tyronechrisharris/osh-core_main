@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +48,7 @@ import org.sensorhub.ui.ModuleTypeSelectionPopup.ModuleTypeSelectionCallback;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.MyBeanItem;
+import org.sensorhub.utils.ModuleUtils;
 import com.vaadin.annotations.Push;
 import com.vaadin.annotations.Theme;
 import com.vaadin.data.Item;
@@ -59,6 +62,7 @@ import com.vaadin.event.ItemClickEvent;
 import com.vaadin.event.ItemClickEvent.ItemClickListener;
 import com.vaadin.server.ClassResource;
 import com.vaadin.server.FontAwesome;
+import com.vaadin.server.Page;
 import com.vaadin.server.Resource;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinRequest;
@@ -403,7 +407,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             }
                             catch (Exception ex)
                             {
-                                Notification.show("Error", ex.getMessage(), Notification.Type.ERROR_MESSAGE);
+                                displayErrorPopup(ex.getMessage());
                             }
                         }
                     }                        
@@ -580,7 +584,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                 {
                     String msg = "Unexpected error when selecting module";
                     AdminUIModule.log.error(msg, e);
-                    Notification.show("Error", msg + '\n' + e.getMessage(), Notification.Type.ERROR_MESSAGE);
+                    displayErrorPopup(msg + '\n' + e.getMessage());
                 }
             }            
         });        
@@ -638,26 +642,31 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     ModuleTypeSelectionPopup popup = new ModuleTypeSelectionPopup(configType, new ModuleTypeSelectionCallback() {
                         public void onSelected(ModuleConfig config)
                         {
-                            IModule<?> module = null;
-                            
                             try
                             {
-                                // add to main config
-                                module = registry.loadModule(config);
+                                // load module instance
+                                IModule<?> module = registry.loadModule(config);
+                                
+                                // no need to add module to table here
+                                // it will be loaded when the LOADED event is received
+                                
+                                // show new module config panel
+                                MyBeanItem<ModuleConfig> newBeanItem = new MyBeanItem<ModuleConfig>(config);
+                                openModuleInfo(newBeanItem, module);
+                            }
+                            catch (NoClassDefFoundError e)
+                            {
+                                showDependencyError(config.getClass());
+                                return;
                             }
                             catch (Throwable e)
                             {
-                                String msg = "The module could not be loaded";
-                                Notification.show("Error", msg + '\n' + e.getMessage(), Notification.Type.ERROR_MESSAGE);
+                                String msg = e.getMessage();
+                                if (e.getCause() != null)
+                                    msg += '\n' + e.getCause().getMessage();
+                                displayErrorPopup(msg);
                                 return;
                             }
-                            
-                            // no need to add module to table here
-                            // it will be loaded when the LOADED event is received
-                            
-                            // show new module config panel
-                            MyBeanItem<ModuleConfig> newBeanItem = new MyBeanItem<ModuleConfig>(config);
-                            openModuleInfo(newBeanItem, module);
                         }
                     });
                     popup.setModal(true);
@@ -695,7 +704,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     catch (SensorHubException ex)
                                     {                        
                                         String msg = "The module could not be removed";
-                                        Notification.show("Error", msg + '\n' + ex.getMessage(), Notification.Type.ERROR_MESSAGE);
+                                        displayErrorPopup(msg + '\n' + ex.getMessage());
                                     }
                                 }
                             }                        
@@ -730,7 +739,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     catch (SensorHubException ex)
                                     {
                                         String msg = "The module could not be started";
-                                        Notification.show("Error", msg + '\n' + ex.getMessage(), Notification.Type.ERROR_MESSAGE);
+                                        displayErrorPopup(msg + '\n' + ex.getMessage());
                                     }
                                 }
                             }                        
@@ -762,7 +771,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     catch (SensorHubException ex)
                                     {
                                         String msg = "The module could not be stopped";
-                                        Notification.show("Error", msg + '\n' + ex.getMessage(), Notification.Type.ERROR_MESSAGE);
+                                        displayErrorPopup(msg + '\n' + ex.getMessage());
                                     }
                                 }
                             }                        
@@ -794,7 +803,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     catch (SensorHubException ex)
                                     {
                                         String msg = "The module could not be restarted";
-                                        Notification.show("Error", msg + '\n' + ex.getMessage(), Notification.Type.ERROR_MESSAGE);
+                                        displayErrorPopup(msg + '\n' + ex.getMessage());
                                     }
                                 }
                             }                        
@@ -826,7 +835,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     catch (SensorHubException ex)
                                     {
                                         String msg = "The module could not be reinitialized";
-                                        Notification.show("Error", msg + '\n' + ex.getMessage(), Notification.Type.ERROR_MESSAGE);
+                                        displayErrorPopup(msg + '\n' + ex.getMessage());
                                     }
                                 }
                             }                        
@@ -979,5 +988,56 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         
         super.detach();
     }
+    
+    
+    public static void showDependencyError(Class<?> clazz)
+    {
+        StringBuilder msg = new StringBuilder();
+        msg.append("The module could not be loaded.\nPlease check that the following dependencies are installed:\n\n");
+        for (String dep: ModuleUtils.getBundleDependencies(clazz))
+            msg.append(dep).append('\n');
+        displayErrorPopup(msg.toString());
+    }
 
+    
+    public static void displayErrorPopup(String msg)
+    {
+        new Notification(
+                "Error<br/>",
+                msg,
+                Notification.Type.ERROR_MESSAGE, true)
+                .show(Page.getCurrent());
+    }
+    
+    
+    public static void displayErrorDetailsPopup(IModule<?> module, Throwable e)
+    {
+        StringWriter writer = new StringWriter();
+        
+        // scan causes for NoClassDefFoundErrors
+        // -> warn of a potential dependency problem
+        Throwable error = e;
+        while (error != null)
+        {
+            if (error instanceof NoClassDefFoundError)
+            {
+                writer.append("A class could not be found at runtime.\nPlease check that the following dependencies are installed:\n\n");
+                for (String dep: ModuleUtils.getBundleDependencies(module.getClass()))
+                    writer.append(dep).append('\n');
+                writer.append('\n');
+                break;
+            }
+            
+            error = error.getCause();
+        }
+        
+        e.printStackTrace(new PrintWriter(writer));
+        String stackTrace = "<pre>" + writer.toString() + "</pre>";
+        
+        new Notification(
+                "Error<br/>",
+                stackTrace,
+                Notification.Type.ERROR_MESSAGE, true)
+                .show(Page.getCurrent());
+    }
 }

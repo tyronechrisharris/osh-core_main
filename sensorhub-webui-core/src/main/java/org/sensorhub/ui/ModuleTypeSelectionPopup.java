@@ -150,19 +150,23 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
             public void buttonClick(ClickEvent event)
             {
                 Object selectedItemId = table.getValue();
+                IModuleProvider provider = providerMap.get(selectedItemId);
                 
                 try
                 {
                     if (selectedItemId != null)
                     {
-                        IModuleProvider provider = providerMap.get(selectedItemId);
-                        ModuleConfig config = registry.createModuleConfig(provider);
-                        
                         // send back new config object
+                        ModuleConfig config = registry.createModuleConfig(provider);
                         callback.onSelected(config); 
                     }
                     
                     close();
+                }
+                catch (NoClassDefFoundError e)
+                {
+                    AdminUI.showDependencyError(provider.getClass());
+                    return;
                 }
                 catch (SensorHubException e)
                 {

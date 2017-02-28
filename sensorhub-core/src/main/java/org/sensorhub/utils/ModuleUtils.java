@@ -32,7 +32,7 @@ public class ModuleUtils
     public final static String MODULE_VENDOR = "Bundle-Vendor";
     
     
-    private static Manifest getManifest(Class<?> clazz)
+    public static Manifest getManifest(Class<?> clazz)
     {
         try
         {
@@ -107,5 +107,16 @@ public class ModuleUtils
                 return null;
             }    
         };
+    }
+    
+    
+    public static String[] getBundleDependencies(Class<?> clazz)
+    {
+        Manifest manifest = getManifest(clazz);
+        String packages = manifest.getMainAttributes().getValue("OSH-Dependencies");
+        if (packages == null)
+            return new String[0];
+        else
+            return packages.split(",");
     }
 }

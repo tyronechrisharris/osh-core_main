@@ -383,7 +383,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 init(config);
                 setState(ModuleState.INITIALIZED);
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
                 reportError("Error while initializing module", e);
                 setState(ModuleState.LOADED);
@@ -448,7 +448,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 start();
                 setState(ModuleState.STARTED);
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
                 reportError("Error while starting module", e);
                 requestStop();
@@ -494,7 +494,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 else
                     setState(ModuleState.STOPPED);
             }
-            catch (SensorHubException e)
+            catch (Throwable e)
             {
                 reportError("Error while stopping module", e);
                 throw e;

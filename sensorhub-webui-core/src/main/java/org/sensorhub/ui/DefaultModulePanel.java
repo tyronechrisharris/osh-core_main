@@ -14,12 +14,11 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.IModuleConfigForm;
@@ -30,6 +29,7 @@ import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.VerticalLayout;
@@ -64,13 +64,22 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
         setMargin(false);
         setSpacing(true);
         
-        // module name
+        // header = module name + spinner
+        HorizontalLayout header = new HorizontalLayout();
+        header.setSpacing(true);
         String moduleName = beanItem.getBean().name;
         String className = beanItem.getBean().getClass().getSimpleName();
         Label title = new Label(moduleName);
         title.setDescription(className);
-        title.setStyleName(STYLE_H2);
-        addComponent(title);
+        title.addStyleName(STYLE_H2);
+        header.addComponent(title);
+        if (module.getCurrentState() == ModuleState.INITIALIZING || module.getCurrentState() == ModuleState.STARTING)
+        {
+            Label spinner = new Label();
+            spinner.addStyleName(STYLE_SPINNER);
+            header.addComponent(spinner);
+        }
+        addComponent(header);
         addComponent(new Label("<hr/>", ContentMode.HTML));
         
         // status message
@@ -152,28 +161,26 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
         {
             Button oldBtn = errorBtn;
             
+            // show link with error msg
             errorBtn = new Button();
             errorBtn.setStyleName(STYLE_LINK);
             errorBtn.setIcon(ERROR_ICON);
-            String errorMsg = errorObj.getMessage().trim();
-            if (!errorMsg.endsWith("."))
-                errorMsg += ". ";
+            StringBuilder errorMsg = new StringBuilder(errorObj.getMessage().trim());
+            if (errorMsg.charAt(errorMsg.length()-1) != '.')
+                errorMsg.append(". ");
             if (errorObj.getCause() != null && errorObj.getCause().getMessage() != null)
-                errorMsg += errorObj.getCause().getMessage();
-            errorBtn.setCaption(errorMsg);
+            {
+                if (errorObj.getCause() instanceof NoClassDefFoundError)
+                    errorMsg.append("Class not found ");
+                errorMsg.append(errorObj.getCause().getMessage());
+            }
+            errorBtn.setCaption(errorMsg.toString());
             
+            // show error details on button click
             errorBtn.addClickListener(new ClickListener() {
                 public void buttonClick(ClickEvent event)
                 {
-                    StringWriter writer = new StringWriter();
-                    errorObj.printStackTrace(new PrintWriter(writer));
-                    String stackTrace = "<pre>" + writer.toString() + "</pre>";
-                    
-                    new Notification(
-                            "Error<br/>",
-                            stackTrace,
-                            Notification.Type.ERROR_MESSAGE, true)
-                            .show(Page.getCurrent());
+                    AdminUI.displayErrorDetailsPopup(module, errorObj);
                 }
             });
             
