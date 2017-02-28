@@ -32,7 +32,6 @@ import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.Component;
-import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Layout;
@@ -57,16 +56,20 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
     Panel obsPanel, statusPanel, commandsPanel;
     
     
+    @SuppressWarnings("serial")
+    static class Spacing extends Label
+    {
+        public Spacing()
+        {
+            setHeight(0, Unit.PIXELS);
+        }
+    }
+    
+    
     @Override
     public void build(final MyBeanItem<ModuleConfig> beanItem, final ISensorModule<?> module)
     {
         super.build(beanItem, module);       
-        
-        // add section label
-        final GridLayout form = new GridLayout();
-        form.setWidth(100.0f, Unit.PERCENTAGE);
-        form.setMargin(false);
-        form.setSpacing(true);
         
         // sensor info panel
         if (module.isInitialized())
@@ -74,144 +77,181 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
             Label sectionLabel = new Label("Sensor Info");
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
-            form.addComponent(sectionLabel);
-            form.addComponent(new Label("<b>Unique ID:</b> " + module.getUniqueIdentifier(), ContentMode.HTML));
+            addComponent(sectionLabel);
+            addComponent(new Label("<b>Unique ID:</b> " + module.getUniqueIdentifier(), ContentMode.HTML));
             AbstractFeature foi = module.getCurrentFeatureOfInterest();
             if (foi != null)
-                form.addComponent(new Label("<b>FOI ID:</b> " + foi.getUniqueIdentifier(), ContentMode.HTML));
-        }
+                addComponent(new Label("<b>FOI ID:</b> " + foi.getUniqueIdentifier(), ContentMode.HTML));
         
-        // section title
-        form.addComponent(new Label("&nbsp;", ContentMode.HTML));
-        HorizontalLayout titleBar = new HorizontalLayout();
-        titleBar.setSpacing(true);
-        Label sectionLabel = new Label("Inputs/Outputs");
-        sectionLabel.addStyleName(STYLE_H3);
-        sectionLabel.addStyleName(STYLE_COLORED);
-        titleBar.addComponent(sectionLabel);
-        titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
-        
-        // refresh button to show latest record
-        final Timer timer = new Timer();
-        final Button refreshButton = new Button("Refresh");
-        refreshButton.setDescription("Toggle auto-refresh data once per second");
-        refreshButton.setIcon(REFRESH_ICON);
-        refreshButton.addStyleName(STYLE_SMALL);
-        refreshButton.addStyleName(STYLE_QUIET);
-        refreshButton.setData(false);
-        titleBar.addComponent(refreshButton);
-        titleBar.setComponentAlignment(refreshButton, Alignment.MIDDLE_LEFT);
-        refreshButton.addClickListener(new ClickListener() {
-            private static final long serialVersionUID = 1L;
-            TimerTask autoRefreshTask;
-            public void buttonClick(ClickEvent event)
+            // inputs section
+            if (!module.getCommandInputs().isEmpty())
             {
-                // toggle button state
-                boolean state = !(boolean)refreshButton.getData();
-                refreshButton.setData(state);
+                // title
+                addComponent(new Spacing());
+                HorizontalLayout titleBar = new HorizontalLayout();
+                titleBar.setSpacing(true);
+                sectionLabel = new Label("Inputs");
+                sectionLabel.addStyleName(STYLE_H3);
+                sectionLabel.addStyleName(STYLE_COLORED);
+                titleBar.addComponent(sectionLabel);
+                titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
+                titleBar.setHeight(31.0f, Unit.PIXELS);
+                addComponent(titleBar);
                 
-                if (state)
-                {
-                    autoRefreshTask = new TimerTask()
-                    {
-                        public void run()
-                        {
-                            final UI ui = SensorAdminPanel.this.getUI();
-                            
-                            if (ui != null)
-                            {
-                                ui.access(new Runnable() {
-                                    public void run()
-                                    {
-                                        rebuildSwePanels(form, module);
-                                        ui.push();
-                                    }
-                                });
-                            }
-                            else
-                                cancel(); // if panel was detached
-                        }
-                    };
-                    timer.schedule(autoRefreshTask, 0L, 1000L);                    
-                    refreshButton.setIcon(FontAwesome.TIMES);
-                    refreshButton.setCaption("Stop");
-                }
-                else
-                {
-                    autoRefreshTask.cancel();
-                    refreshButton.setIcon(REFRESH_ICON);
-                    refreshButton.setCaption("Refresh");
-                }
+                // control panels
+                buildControlInputsPanels(module);
             }
-        });
+            
+            // outputs section
+            if (!module.getAllOutputs().isEmpty())
+            {
+                // title
+                addComponent(new Spacing());
+                HorizontalLayout titleBar = new HorizontalLayout();
+                titleBar.setSpacing(true);
+                sectionLabel = new Label("Outputs");
+                sectionLabel.addStyleName(STYLE_H3);
+                sectionLabel.addStyleName(STYLE_COLORED);
+                titleBar.addComponent(sectionLabel);
+                titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
                 
-        form.addComponent(titleBar);
-        
-        // add I/O panel
-        rebuildSwePanels(form, module);
-        addComponent(form);
+                // refresh button
+                final Timer timer = new Timer();
+                final Button refreshButton = new Button("Refresh");
+                refreshButton.setDescription("Toggle auto-refresh data once per second");
+                refreshButton.setIcon(REFRESH_ICON);
+                refreshButton.addStyleName(STYLE_SMALL);
+                refreshButton.addStyleName(STYLE_QUIET);
+                refreshButton.setData(false);
+                titleBar.addComponent(refreshButton);
+                titleBar.setComponentAlignment(refreshButton, Alignment.MIDDLE_LEFT);
+                addComponent(titleBar);
+                
+                refreshButton.addClickListener(new ClickListener() {
+                    private static final long serialVersionUID = 1L;
+                    TimerTask autoRefreshTask;
+                    public void buttonClick(ClickEvent event)
+                    {
+                        // toggle button state
+                        boolean state = !(boolean)refreshButton.getData();
+                        refreshButton.setData(state);
+                        
+                        if (state)
+                        {
+                            autoRefreshTask = new TimerTask()
+                            {
+                                public void run()
+                                {
+                                    final UI ui = SensorAdminPanel.this.getUI();
+                                    
+                                    if (ui != null)
+                                    {
+                                        ui.access(new Runnable() {
+                                            public void run()
+                                            {
+                                                rebuildOutputsPanels(module);
+                                                ui.push();
+                                            }
+                                        });
+                                    }
+                                    else
+                                        cancel(); // if panel was detached
+                                }
+                            };
+                            timer.schedule(autoRefreshTask, 0L, 1000L);                    
+                            refreshButton.setIcon(FontAwesome.TIMES);
+                            refreshButton.setCaption("Stop");
+                        }
+                        else
+                        {
+                            autoRefreshTask.cancel();
+                            refreshButton.setIcon(REFRESH_ICON);
+                            refreshButton.setCaption("Refresh");
+                        }
+                    }
+                });               
+                        
+                // output panels
+                rebuildOutputsPanels(module);
+            }
+        }
     }
     
-    
-    protected void rebuildSwePanels(GridLayout form, ISensorModule<?> module)
+        
+    protected void rebuildOutputsPanels(ISensorModule<?> module)
     {
         if (module != null)
         {
             Panel oldPanel;
             
             // measurement outputs
-            oldPanel = obsPanel;
-            obsPanel = newPanel("Observation Outputs");
-            for (ISensorDataInterface output: module.getObservationOutputs().values())
+            if (!module.getObservationOutputs().isEmpty())
             {
-                DataComponent dataStruct = output.getRecordDescription().copy();
-                DataBlock latestRecord = output.getLatestRecord();
-                if (latestRecord != null)
-                    dataStruct.setData(latestRecord);
+                oldPanel = obsPanel;
+                obsPanel = newPanel("Observation Outputs");
+                for (ISensorDataInterface output: module.getObservationOutputs().values())
+                {
+                    DataComponent dataStruct = output.getRecordDescription().copy();
+                    DataBlock latestRecord = output.getLatestRecord();
+                    if (latestRecord != null)
+                        dataStruct.setData(latestRecord);
+                    
+                    // data structure
+                    Component sweForm = new SWECommonForm(dataStruct);
+                    ((Layout)obsPanel.getContent()).addComponent(sweForm);
+                }  
                 
-                // data structure
-                Component sweForm = new SWECommonForm(dataStruct);
-                ((Layout)obsPanel.getContent()).addComponent(sweForm);
-            }  
-            
-            if (oldPanel != null)
-                form.replaceComponent(oldPanel, obsPanel);
-            else
-                form.addComponent(obsPanel);
+                if (oldPanel != null)
+                    replaceComponent(oldPanel, obsPanel);
+                else
+                    addComponent(obsPanel);
+            }
             
             // status outputs
-            oldPanel = statusPanel;
-            statusPanel = newPanel("Status Outputs");
-            for (ISensorDataInterface output: module.getStatusOutputs().values())
+            if (!module.getStatusOutputs().isEmpty())
             {
-                DataComponent dataStruct = output.getRecordDescription().copy();
-                DataBlock latestRecord = output.getLatestRecord();
-                if (latestRecord != null)
-                    dataStruct.setData(latestRecord);
-                
-                // data structure
-                Component sweForm = new SWECommonForm(dataStruct);
-                ((Layout)statusPanel.getContent()).addComponent(sweForm);
-            }           
-
-            if (oldPanel != null)
-                form.replaceComponent(oldPanel, statusPanel);
-            else
-                form.addComponent(statusPanel);
+                oldPanel = statusPanel;
+                statusPanel = newPanel("Status Outputs");
+                for (ISensorDataInterface output: module.getStatusOutputs().values())
+                {
+                    DataComponent dataStruct = output.getRecordDescription().copy();
+                    DataBlock latestRecord = output.getLatestRecord();
+                    if (latestRecord != null)
+                        dataStruct.setData(latestRecord);
+                    
+                    // data structure
+                    Component sweForm = new SWECommonForm(dataStruct);
+                    ((Layout)statusPanel.getContent()).addComponent(sweForm);
+                }           
+    
+                if (oldPanel != null)
+                    replaceComponent(oldPanel, statusPanel);
+                else
+                    addComponent(statusPanel);
+            }
+        }
+    }
+    
+    
+    protected void buildControlInputsPanels(ISensorModule<?> module)
+    {
+        if (module != null)
+        {
+            Panel oldPanel;
             
             // command inputs
             oldPanel = commandsPanel;
             commandsPanel = newPanel("Command Inputs");
             for (ISensorControlInterface input: module.getCommandInputs().values())
             {
-                Component sweForm = new SWECommonForm(input.getCommandDescription());
+                Component sweForm = new SWEControlForm(input);
                 ((Layout)commandsPanel.getContent()).addComponent(sweForm);
             }           
 
             if (oldPanel != null)
-                form.replaceComponent(oldPanel, commandsPanel);
+                replaceComponent(oldPanel, commandsPanel);
             else
-                form.addComponent(commandsPanel);
+                addComponent(commandsPanel);
         }
     }
     

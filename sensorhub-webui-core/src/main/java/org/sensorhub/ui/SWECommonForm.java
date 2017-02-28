@@ -39,6 +39,10 @@ public class SWECommonForm extends VerticalLayout
     private static final long serialVersionUID = 8590941544560086101L;
     SWEDataTypeUtils sweUtils = new SWEDataTypeUtils();
     boolean showArrayTable;
+    boolean addSpacing = false;
+    
+    
+    protected SWECommonForm() {}
     
     
     public SWECommonForm(DataComponent dataComponent)
@@ -52,6 +56,7 @@ public class SWECommonForm extends VerticalLayout
         if (dataComponent instanceof DataRecord || dataComponent instanceof Vector)
         {
             VerticalLayout layout = new VerticalLayout();
+            layout.setSpacing(addSpacing);
             
             Label l = new Label();
             l.setContentMode(ContentMode.HTML);
@@ -60,8 +65,8 @@ public class SWECommonForm extends VerticalLayout
             layout.addComponent(l);
             
             VerticalLayout form = new VerticalLayout();
+            form.setSpacing(addSpacing);
             form.setMargin(new MarginInfo(false, false, false, true));
-            form.setSpacing(false);
             for (int i = 0; i < dataComponent.getComponentCount(); i++)
             {
                 DataComponent c = dataComponent.getComponent(i);
