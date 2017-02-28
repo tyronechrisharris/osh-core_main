@@ -78,7 +78,9 @@ subprojects {
         // main info
         symbolicName project.group + '.' + project.name
         if (project.description != null)
-          attributes 'Bundle-Description': project.description          
+          attributes 'Bundle-Name': project.description
+        if (project.details != null)
+          attributes 'Bundle-Description': project.details          
         
         // add embedded jars to OSGi classpath
         def classpath = '.'
@@ -167,7 +169,3 @@ afterEvaluate { project ->
     }
   }
 }
-
-
-// include release stuff
-//apply from: './release.gradle'
