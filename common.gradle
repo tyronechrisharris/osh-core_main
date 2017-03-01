@@ -61,60 +61,65 @@ subprojects {
       exceptionFormat 'full'
     }
   }
-
-  // do packaging stuff at the end in case subprojects add extra info
-  afterEvaluate { project ->
-    
-    // jar content
-    project.jar { 
-      into('lib') {
-        from {
-          project.configurations.embedded
-        }
-      }
-      
-      // OSGi manifest info
-      manifest {
-        // main info
-        symbolicName project.group + '.' + project.name
-        if (project.description != null)
-          attributes 'Bundle-Name': project.description
-        if (project.details != null)
-          attributes 'Bundle-Description': project.details          
-        
-        // add embedded jars to OSGi classpath
-        def classpath = '.'
-        project.configurations.embedded.each {
-          classpath += ',lib/' + it.name
-        }
-        attributes 'Bundle-ClassPath': classpath
-        
-        // native libs location
-        def resourcesFolder = new File(projectDir, '/src/main/resources')
-        def nativeFolder = new File(resourcesFolder, '/lib/native')
-        if (nativeFolder.exists()) {
-          def nativePaths = ''
-          fileTree(dir: nativeFolder).files.each {
-            def path = resourcesFolder.toPath().relativize(it.toPath())
-            def osname = path.getName(2)
-            def proc = path.getName(3)
-            nativePaths += 'osname=' + osname + '; '
-            nativePaths += 'processor=' + proc + '; '
-            nativePaths += path.toString() + ', '
+  
+  // configure packaging in separate task
+  task jarConfig {
+    doLast {    
+      // jar content
+      project.jar { 
+        into('lib') {
+          from {
+            project.configurations.embedded
           }
-          attributes 'Bundle-NativeCode': nativePaths
         }
         
-        // bundle dependencies
-        def oshDeps = ''
-        project.configurations.runtime.each {
-          if (it.name.startsWith('sensorhub'))
-            oshDeps += it.name + ','
+        // OSGi manifest info
+        manifest {
+          // main info
+          symbolicName project.group + '.' + project.name
+          if (project.description != null)
+            attributes 'Bundle-Name': project.description
+          if (project.details != null)
+            attributes 'Bundle-Description': project.details          
+          
+          // add embedded jars to OSGi classpath
+          def classpath = '.'
+          project.configurations.embedded.each {
+            classpath += ',lib/' + it.name
+          }
+          attributes 'Bundle-ClassPath': classpath
+          
+          // native libs location
+          def resourcesFolder = new File(projectDir, '/src/main/resources')
+          def nativeFolder = new File(resourcesFolder, '/lib/native')
+          if (nativeFolder.exists()) {
+            def nativePaths = ''
+            fileTree(dir: nativeFolder).files.each {
+              def path = resourcesFolder.toPath().relativize(it.toPath())
+              def osname = path.getName(2)
+              def proc = path.getName(3)
+              nativePaths += 'osname=' + osname + '; '
+              nativePaths += 'processor=' + proc + '; '
+              nativePaths += path.toString() + ', '
+            }
+            attributes 'Bundle-NativeCode': nativePaths
+          }
+          
+          // bundle dependencies
+          def oshDeps = ''
+          project.configurations.runtime.each {
+            if (it.name.startsWith('sensorhub'))
+              oshDeps += it.name + ','
+          }
+          attributes 'OSH-Dependencies': oshDeps
         }
-        attributes 'OSH-Dependencies': oshDeps
       }
     }
-    
+  }
+  jar.dependsOn(jarConfig)
+
+  // do maven stuff at the end in case subprojects add extra info
+  afterEvaluate { project ->    
     // maven artifact content
     project.publishing {
       publications {
@@ -152,8 +157,8 @@ subprojects {
   
   // custom task to install in local maven repo
   task install
-  install.dependsOn('build')
-  install.dependsOn('publishToMavenLocal')  
+  install.dependsOn(build)
+  install.dependsOn(publishToMavenLocal)  
 }
 
 
