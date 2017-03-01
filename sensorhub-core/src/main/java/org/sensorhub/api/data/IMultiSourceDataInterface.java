@@ -21,10 +21,10 @@ import net.opengis.swe.v20.DataBlock;
 
 /**
  * <p>
- * Data interface user with {@link org.sensorhub.api.data.IMultiSourceDataProducer}.<br/>
+ * Data interface used with {@link org.sensorhub.api.data.IMultiSourceDataProducer}.<br/>
  * This adds support for multiplexing multiple data streams in a single output
  * by specifying the ID of the source entity in the data record.<br/>
- * The data component carrying the entity ID must be tagged with the role
+ * The data component carrying the entity ID MUST be tagged with the role
  * {@link #ENTITY_ID_URI}
  * </p>
  *

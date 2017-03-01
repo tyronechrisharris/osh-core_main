@@ -139,7 +139,7 @@ public class SPSService extends AbstractModule<SPSServiceConfig> implements ISer
                 {
                     start();
                 }
-                catch (SensorHubException ex)
+                catch (Throwable ex)
                 {
                     reportError("SPS Service could not start", ex);
                 }

@@ -167,7 +167,7 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
                 {
                     start();
                 }
-                catch (SensorHubException ex)
+                catch (Throwable ex)
                 {
                     reportError("SOS Service could not start", ex);
                 }

@@ -169,7 +169,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                     }
                 }
                 
-                else
+                else // if no FOIs were specified, send data for all
                 {
                     int queueSize = Math.max(DEFAULT_QUEUE_SIZE, ((IMultiSourceDataInterface) outputInterface).getEntityIDs().size());
                     eventQueue = new LinkedBlockingQueue<DataEvent>(queueSize);

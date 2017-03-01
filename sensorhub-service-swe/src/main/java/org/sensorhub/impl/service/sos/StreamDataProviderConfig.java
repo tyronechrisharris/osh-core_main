@@ -46,10 +46,6 @@ public abstract class StreamDataProviderConfig extends SOSProviderConfig
     public List<String> hiddenOutputs = new ArrayList<String>();
     
     
-    @DisplayInfo(desc="If true, forward new data events via the WS-Notification interface of the service")
-    public boolean activateNotifications;
-    
-    
     @DisplayInfo(desc="Time-out after which real-time requests are disabled if no more "
             + "measurements are received (in seconds). Real-time is reactivated as soon as "
             + "new records start being received again")
