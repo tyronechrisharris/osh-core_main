@@ -42,7 +42,7 @@ import org.vast.util.Bbox;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since May 8, 2015
  */
-class MultiStorageRoot extends ObsStorageRoot implements IObsStorage, IMultiSourceStorage<IObsStorage>
+class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMultiSourceStorage<IObsStorage>
 {
     Map<String, ObsStorageRoot> obsStores;
     
@@ -131,10 +131,10 @@ class MultiStorageRoot extends ObsStorageRoot implements IObsStorage, IMultiSour
     
     
     // default constructor needed on Android JVM
-    MultiStorageRoot() {}
+    MultiEntityStorageRoot() {}
     
     
-    public MultiStorageRoot(Storage db)
+    public MultiEntityStorageRoot(Storage db)
     {
         super(db);
         obsStores = db.<String, ObsStorageRoot>createMap(String.class, 20);

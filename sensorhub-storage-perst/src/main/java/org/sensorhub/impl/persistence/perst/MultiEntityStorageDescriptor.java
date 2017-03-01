@@ -29,7 +29,7 @@ import org.sensorhub.impl.module.JarModuleProvider;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since May 25, 2015
  */
-public class MultiStorageDescriptor extends JarModuleProvider implements IModuleProvider
+public class MultiEntityStorageDescriptor extends JarModuleProvider implements IModuleProvider
 {
 
     @Override
@@ -49,7 +49,7 @@ public class MultiStorageDescriptor extends JarModuleProvider implements IModule
     @Override
     public Class<? extends IModule<?>> getModuleClass()
     {
-        return ObsStorageImpl.class;
+        return MultiEntityStorageImpl.class;
     }
 
 
