@@ -19,6 +19,7 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleSecurity;
 import org.sensorhub.impl.security.ItemPermission;
 import org.sensorhub.impl.security.ModulePermissions;
+import org.vast.util.Asserts;
 
 
 public class SOSSecurity extends ModuleSecurity
@@ -84,7 +85,9 @@ public class SOSSecurity extends ModuleSecurity
     public void checkPermission(String offeringUri, IPermission perm) throws SecurityException
     {
         String permName = getOfferingPermissionName(offeringUri);
-        checkPermission(perm.getChildren().get(permName));
+        IPermission offPerm = perm.getChildren().get(permName);
+        Asserts.checkNotNull(offPerm, "Invalid permission check");
+        checkPermission(offPerm);
     }
     
     
@@ -99,6 +102,7 @@ public class SOSSecurity extends ModuleSecurity
         String permName = getOfferingPermissionName(offeringUri);
         new ItemPermission(sos_read_caps, permName);
         new ItemPermission(sos_read_sensor, permName);
+        new ItemPermission(sos_read_foi, permName);
         new ItemPermission(sos_read_obs, permName);
         new ItemPermission(sos_insert_obs, permName);
         new ItemPermission(sos_update_obs, permName);
