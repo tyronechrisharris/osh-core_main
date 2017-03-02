@@ -325,7 +325,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                     // instantiate provider factories and map them to offering URIs
                     ISOSDataProviderFactory provider = providerConf.getFactory(this);
                     dataProviders.put(providerConf.offeringID, provider);
-                    showProviderCaps(provider);
+                    if (provider.isEnabled())
+                        showProviderCaps(provider);
                 }
                 catch (Exception e)
                 {
