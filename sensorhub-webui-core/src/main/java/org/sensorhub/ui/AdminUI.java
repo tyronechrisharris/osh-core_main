@@ -60,7 +60,6 @@ import com.vaadin.event.Action;
 import com.vaadin.event.Action.Handler;
 import com.vaadin.event.ItemClickEvent;
 import com.vaadin.event.ItemClickEvent.ItemClickListener;
-import com.vaadin.server.ClassResource;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Page;
 import com.vaadin.server.Resource;
@@ -101,7 +100,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     private static final Action STOP_MODULE_ACTION = new Action("Stop", new ThemeResource("icons/disable.gif"));
     private static final Action RESTART_MODULE_ACTION = new Action("Restart", new ThemeResource("icons/refresh.gif"));
     private static final Action REINIT_MODULE_ACTION = new Action("Force Init", new ThemeResource("icons/refresh.gif"));
-    private static final Resource LOGO_ICON = new ClassResource("/sensorhub_logo_128.png");
+    private static final Resource LOGO_ICON = new ThemeResource("icons/sensorhub_logo_128.png");
     private static final String STYLE_LOGO = "logo";
     private static final String PROP_STATE = "state";
     private static final String PROP_MODULE_OBJECT = "module";
