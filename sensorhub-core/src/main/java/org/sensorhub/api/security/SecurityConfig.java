@@ -28,15 +28,12 @@ import org.sensorhub.api.config.DisplayInfo;
 public class SecurityConfig
 {
     
-    //@DisplayInfo(label="Module alias", desc="Module alias that can be used in permission specs instead of module ID")
-    //public String alias;
+    @DisplayInfo(desc="Enables fine-grained permission-based access control for this module")
+    public boolean enableAccessControl = false;
     
     
     @DisplayInfo(label="Require Authentication", desc="Set to require users to be authentified before they can use this module")
-    public boolean requireAuth = false;
+    public boolean requireAuth = true;
     
-    
-    @DisplayInfo(desc="Enables fine-grained permission-based access control for this module")
-    public boolean enableAccessControl = false;
     
 }

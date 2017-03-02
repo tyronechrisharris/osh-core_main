@@ -643,10 +643,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
         // set current authentified user
+        String userID = ISecurityManager.ANONYMOUS_USER;
         if (req.getRemoteUser() != null)
-            securityHandler.setCurrentUser(req.getRemoteUser());
-        else
-            securityHandler.setCurrentUser(ISecurityManager.ANONYMOUS_USER);
+            userID = req.getRemoteUser();
         
         try
         {
@@ -664,7 +663,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                         
                         if (owsReq instanceof GetResultRequest)
                         {
-                            acceptWebSocket(owsReq, new SOSWebSocketOut(this, owsReq, log));
+                            acceptWebSocket(owsReq, new SOSWebSocketOut(this, owsReq, userID, log));
                         }
                         else if (owsReq instanceof InsertResultRequest)
                         {
@@ -685,6 +684,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             }
             
             // otherwise process as classical HTTP request
+            securityHandler.setCurrentUser(userID);
             super.service(req, resp);
         }
         finally

@@ -44,14 +44,16 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
     Session session;
     SOSServlet parentService;
     OWSRequest request;
+    String userID;
     WebSocketOutputStream respOutputStream;
     Executor threadPool;
     
     
-    public SOSWebSocketOut(SOSServlet parentService, OWSRequest request, Logger log)
+    public SOSWebSocketOut(SOSServlet parentService, OWSRequest request, String userID, Logger log)
     {
         this.parentService = parentService;
         this.request = request;
+        this.userID = userID;
         this.threadPool = Executors.newSingleThreadExecutor();
         this.log = log;
         
@@ -89,6 +91,10 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
     {
         try
         {
+            // set user in this thread for proper auth
+            parentService.securityHandler.setCurrentUser(userID);
+            
+            // handle request using same servlet logic as for HTTP
             parentService.handleRequest(request);
             
             log.debug("Data provider done");

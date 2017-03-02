@@ -233,7 +233,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                         }
                     }
                 }),"/test");
-                addServletSecurity("/test", true);
+                addServletSecurity("/test", false);
             }
             
             server.setHandler(handlers);
@@ -355,7 +355,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
         {
             Constraint constraint = new Constraint();
             constraint.setRoles(roles);
-            constraint.setAuthenticate(true);//requireAuth);
+            constraint.setAuthenticate(requireAuth);
             ConstraintMapping cm = new ConstraintMapping();
             cm.setConstraint(constraint);
             cm.setPathSpec(pathSpec);
