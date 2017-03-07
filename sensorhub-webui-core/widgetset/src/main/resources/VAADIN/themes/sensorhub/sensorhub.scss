@@ -50,6 +50,10 @@ $v-layout-margin-right: 25px;
       clear: none;
    }
    
+   .v-slot-spacer {
+      line-height: 0;
+   }
+   
    .v-slot-section-buttons {
       float: right;
       margin-top: 20px;

@@ -23,6 +23,7 @@ import org.vast.ows.sos.SOSOfferingCapabilities;
 import org.vast.ows.sos.SOSServiceCapabilities;
 import com.vaadin.data.Property;
 import com.vaadin.server.ExternalResource;
+import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Link;
@@ -43,7 +44,8 @@ import com.vaadin.ui.VerticalLayout;
 public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IModuleAdminPanel<SOSService>
 {
     private static final long serialVersionUID = -5196033911134749125L;
-    protected static final String PROP_ENDPOINT = "endPoint";
+    private static final String PROP_ENDPOINT = "endPoint";
+    private static final String LINK_TARGET = "osh-sos";
     
     
     @SuppressWarnings("serial")
@@ -53,12 +55,12 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
         {
             setSpacing(true);
             addComponent(new Label(label + ":"));
-            addComponent(new Link(linkText, new ExternalResource(href), "osh-sos", 0, 0, null));
+            addComponent(new Link(linkText, new ExternalResource(href), LINK_TARGET, 0, 0, null));
         }
         
         public void addLinkItem(String linkText, String href)
         {
-            addComponent(new Link(linkText, new ExternalResource(href), "osh-sos", 0, 0, null));
+            addComponent(new Link(linkText, new ExternalResource(href), LINK_TARGET, 0, 0, null));
         }
     }    
     
@@ -92,7 +94,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
             // link to capabilities
             baseUrl += "?service=SOS&version=2.0&request=";
             String href = baseUrl + "GetCapabilities";
-            Link link = new Link("Service Capabilities", new ExternalResource(href), "osh-sos", 0, 0, null);
+            Link link = new Link("Service Capabilities", new ExternalResource(href), LINK_TARGET, 0, 0, null);
             link.setWidthUndefined();
             addComponent(link);
             
@@ -122,22 +124,33 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                 //linkItem.addLinkItem("JSON", href);
                 tabLayout.addComponent(linkItem);
                 
-                // result template
-                href = baseUrl + "GetResultTemplate&offering=" + offering.getIdentifier() +
-                                 "&observedProperty=" + offering.getObservableProperties().iterator().next();
-                linkItem = new LinkItem("Record Description", "XML", href);
-                href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
-                linkItem.addLinkItem("JSON", href);
-                tabLayout.addComponent(linkItem);
-                
-                // latest obs
-                href = baseUrl + "GetResult&offering=" + offering.getIdentifier() +
-                        "&observedProperty=" + offering.getObservableProperties().iterator().next() +
-                        "&temporalFilter=phenomenonTime,now";
-                linkItem = new LinkItem("Latest Measurements", "RAW", href);
-                href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
-                linkItem.addLinkItem("JSON", href);
-                tabLayout.addComponent(linkItem);
+                for (String obs: offering.getObservableProperties())
+                {                
+                    // spacer
+                    Label spacer = new Label();
+                    spacer.setStyleName(STYLE_SPACER);
+                    spacer.setHeight(10, Unit.PIXELS);
+                    tabLayout.addComponent(spacer);
+                    
+                    // observable name
+                    String label = obs.substring(obs.lastIndexOf('/')+1);
+                    tabLayout.addComponent(new Label("<b>"+label+"</b>", ContentMode.HTML));
+                    
+                    // result template
+                    href = baseUrl + "GetResultTemplate&offering=" + offering.getIdentifier() + "&observedProperty=" + obs;
+                    linkItem = new LinkItem("Record Description", "XML", href);
+                    href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
+                    linkItem.addLinkItem("JSON", href);
+                    tabLayout.addComponent(linkItem);
+                    
+                    // latest obs
+                    href = baseUrl + "GetResult&offering=" + offering.getIdentifier() + "&observedProperty=" + obs +
+                                     "&temporalFilter=phenomenonTime,now";
+                    linkItem = new LinkItem("Latest Measurements", "RAW", href);
+                    href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
+                    linkItem.addLinkItem("JSON", href);
+                    tabLayout.addComponent(linkItem);
+                }
             }
         }
     }

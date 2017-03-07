@@ -12727,6 +12727,10 @@ div.v-layout.v-horizontal.v-widget {
 	clear: none;
 }
 
+.sensorhub .v-slot-spacer {
+	line-height: 0;
+}
+
 .sensorhub .v-slot-section-buttons {
 	float: right;
 	margin-top: 20px;
