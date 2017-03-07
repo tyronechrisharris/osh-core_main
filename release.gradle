@@ -22,32 +22,34 @@ allprojects  {
 
 subprojects {
 
-  // bintray publishing options
-  bintray {
-    user = bintray_user
-    key = bintray_api_key
-
-    publications = ['mavenJava']
-    dryRun = false // whether to run this as dry-run, without deploying
-    publish = true // whether version should be auto published after an upload    
-    override = true // whether to override version artifacts already published 
-   
-    pkg {
-        repo = 'osh'
-        name = 'osh-core'
-        userOrg = 'sensiasoft'
-        desc = 'OpenSensorHub Core Packages'
-        websiteUrl = 'https://github.com/opensensorhub/osh-core'
-        issueTrackerUrl = 'https://github.com/opensensorhub/osh-core/issues'
-        vcsUrl = 'git://github.com/opensensorhub/osh-core.git'
-        licenses = ['MPL-2.0']
-        labels = ['sensor', 'sensor hub', 'ogc', 'swe', 'iot']
-        publicDownloadNumbers = true
-
-        //githubRepo = 'opensensorhub/osh-core'
-        //githubReleaseNotesFile = 'RELEASE_NOTES.md'
+  if (project.hasProperty("bintray_user")) { 
+    // bintray publishing options
+    bintray {
+      user = bintray_user
+      key = bintray_api_key
+  
+      publications = ['mavenJava']
+      dryRun = false // whether to run this as dry-run, without deploying
+      publish = true // whether version should be auto published after an upload    
+      override = true // whether to override version artifacts already published 
+     
+      pkg {
+          repo = 'osh'
+          name = 'osh-core'
+          userOrg = 'sensiasoft'
+          desc = 'OpenSensorHub Core Packages'
+          websiteUrl = 'https://github.com/opensensorhub/osh-core'
+          issueTrackerUrl = 'https://github.com/opensensorhub/osh-core/issues'
+          vcsUrl = 'git://github.com/opensensorhub/osh-core.git'
+          licenses = ['MPL-2.0']
+          labels = ['sensor', 'sensor hub', 'ogc', 'swe', 'iot']
+          publicDownloadNumbers = true
+  
+          //githubRepo = 'opensensorhub/osh-core'
+          //githubReleaseNotesFile = 'RELEASE_NOTES.md'
+      }
     }
-  }  
+  }
 }
 
 
