@@ -1,6 +1,8 @@
 apply from: 'common.gradle'
 apply from: 'release.gradle'
 
+description = 'OSH Core Modules'
+
 
 allprojects  {
   version = oshCoreVersion

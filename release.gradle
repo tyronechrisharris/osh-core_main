@@ -21,32 +21,37 @@ allprojects  {
 
 
 subprojects {
-
-  if (project.hasProperty("bintray_user")) { 
-    // bintray publishing options
-    bintray {
-      user = bintray_user
-      key = bintray_api_key
-  
-      publications = ['mavenJava']
-      dryRun = false // whether to run this as dry-run, without deploying
-      publish = true // whether version should be auto published after an upload    
-      override = true // whether to override version artifacts already published 
-     
-      pkg {
-          repo = 'osh'
-          name = 'osh-core'
-          userOrg = 'sensiasoft'
-          desc = 'OpenSensorHub Core Packages'
-          websiteUrl = 'https://github.com/opensensorhub/osh-core'
-          issueTrackerUrl = 'https://github.com/opensensorhub/osh-core/issues'
-          vcsUrl = 'git://github.com/opensensorhub/osh-core.git'
-          licenses = ['MPL-2.0']
-          labels = ['sensor', 'sensor hub', 'ogc', 'swe', 'iot']
-          publicDownloadNumbers = true
-  
-          //githubRepo = 'opensensorhub/osh-core'
-          //githubReleaseNotesFile = 'RELEASE_NOTES.md'
+  afterEvaluate { project ->    
+    // only publish with bintray if credentials are configured 
+    // and project is not a SNAPSHOT
+    if (project.hasProperty("bintray_user") && !project.version.endsWith('SNAPSHOT')) { 
+      println project.name
+      // bintray publishing options
+      bintray {
+        user = bintray_user
+        key = bintray_api_key
+    
+        publications = ['mavenJava']
+        dryRun = false // whether to run this as dry-run, without deploying
+        publish = true // whether version should be auto published after an upload    
+        override = true // whether to override version artifacts already published 
+       
+        pkg {
+            repo = 'osh'
+            name = rootProject.name
+            userOrg = 'sensiasoft'
+            if (rootProject.description != null)
+              desc = rootProject.description
+            websiteUrl = 'https://github.com/opensensorhub/' + rootProject.name
+            issueTrackerUrl = 'https://github.com/opensensorhub/' + rootProject.name + '/issues'
+            vcsUrl = 'git://github.com/opensensorhub/' + rootProject.name + '.git'
+            licenses = ['MPL-2.0']
+            labels = ['sensor', 'sensor hub', 'ogc', 'swe', 'iot']
+            publicDownloadNumbers = true          
+            version {
+              name = rootProject.version
+            }
+        }
       }
     }
   }
@@ -123,17 +128,19 @@ task releaseGithub {
     def milestone = repo.listMilestones(GHIssueState.ALL).find {
       it.title == 'v' + project.version
     }
-    if (milestone == null)
-       throw new GradleException('No milestone found for release version ' + project.version)
-       
-    // append fixed issues
-    def issues = repo.getIssues(GHIssueState.CLOSED, milestone)
-    if (!issues.isEmpty())
-      text += "Resolved Issues:\n\n"
-    issues.each {
-      text += "  * **#" + it.number + "** " + it.title + "\n"
+    if (milestone == null) {
+       println 'No milestone found for release version ' + project.version
     }
-    println text
+    else {
+      // append issues fixed for this milestone
+      def issues = repo.getIssues(GHIssueState.CLOSED, milestone)
+      if (!issues.isEmpty())
+        text += "Resolved Issues:\n\n"
+      issues.each {
+        text += "  * **#" + it.number + "** " + it.title + "\n"
+      }
+      println text
+    }
     
     // publish new release
     GHReleaseBuilder builder = repo.createRelease('v' + project.version);

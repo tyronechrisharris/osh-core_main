@@ -46,8 +46,10 @@ import com.vaadin.ui.HorizontalLayout;
 public class ModuleTypeSelectionPopup extends Window implements UIConstants
 {
     private static final long serialVersionUID = -5368554789542357015L;
-    private static final String PROP_NAME = "name";
-    private static final String PROP_VERSION = "version";
+    static final String PROP_NAME = "name";
+    static final String PROP_VERSION = "version";
+    static final String PROP_DESC = "desc";
+    static final String PROP_AUTHOR = "author";
     
     
     protected interface ModuleTypeSelectionCallback
@@ -99,8 +101,8 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         table.setSelectable(true);       
         table.addContainerProperty(PROP_NAME, String.class, null);
         table.addContainerProperty(PROP_VERSION, String.class, null);
-        table.addContainerProperty("desc", String.class, null);
-        table.addContainerProperty("author", String.class, null);
+        table.addContainerProperty(PROP_DESC, String.class, null);
+        table.addContainerProperty(PROP_AUTHOR, String.class, null);
         table.setColumnHeaders(new String[] {"Module Type", "Version", "Description", "Author"});
         table.setPageLength(10);
         table.setMultiSelect(false);
