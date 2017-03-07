@@ -30,7 +30,8 @@ public interface UIConstants
     public final static String STYLE_QUIET = "quiet";
     public final static String STYLE_LINK = "link";
     public final static String STYLE_PRESSED = "v-pressed";
-    public final static String STYLE_SPINNER = "spinner";
+    public final static String STYLE_BORDERLESS = "borderless";
+    public final static String STYLE_SPINNER = "spinner";    
     public final static String STYLE_SECTION_BUTTONS = "section-buttons";
     
     // constants for icon resources

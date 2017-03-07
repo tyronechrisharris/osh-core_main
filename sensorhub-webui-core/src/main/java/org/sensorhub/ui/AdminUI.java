@@ -67,6 +67,7 @@ import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.communication.PushMode;
+import com.vaadin.shared.ui.label.ContentMode;
 import com.vaadin.shared.ui.ui.Transport;
 import com.vaadin.ui.AbstractSelect.ItemDescriptionGenerator;
 import com.vaadin.ui.Accordion;
@@ -79,12 +80,14 @@ import com.vaadin.ui.Image;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.TabSheet.Tab;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.Table.CellStyleGenerator;
 import com.vaadin.ui.Table.ColumnHeaderMode;
 import com.vaadin.ui.TreeTable;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Window;
 import com.vaadin.ui.Window.CloseEvent;
 import com.vaadin.ui.Window.CloseListener;
 
@@ -251,21 +254,58 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     {
         HorizontalLayout header = new HorizontalLayout();
         header.setMargin(false);
-        header.setHeight(77.0f, Unit.PIXELS);
         header.setWidth(100.0f, Unit.PERCENTAGE);
+        
+        // logo
         Image img = new Image(null, LOGO_ICON);
-        img.setHeight(90, Unit.PIXELS);
         img.setStyleName(STYLE_LOGO);
         header.addComponent(img);
-        Label title = new Label("SensorHub");
-        title.addStyleName(STYLE_H1);
-        title.addStyleName(STYLE_LOGO);
-        title.setWidth(null);
-        header.addComponent(title);
         header.setExpandRatio(img, 0);
-        header.setExpandRatio(title, 1);
         header.setComponentAlignment(img, Alignment.MIDDLE_LEFT);
+        
+        // title
+        Label title = new Label("OpenSensorHub");
+        title.addStyleName(STYLE_H2);
+        title.addStyleName(STYLE_LOGO);
+        //title.setWidth(null);
+        header.addComponent(title);
+        header.setExpandRatio(title, 1);
         header.setComponentAlignment(title, Alignment.MIDDLE_RIGHT);
+        
+        // about icon
+        Button about = new Button();
+        about.addStyleName(STYLE_QUIET);
+        about.addStyleName(STYLE_BORDERLESS);
+        about.setIcon(FontAwesome.QUESTION_CIRCLE);
+        about.addClickListener(new ClickListener() {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public void buttonClick(ClickEvent event)
+            {
+                String version = ModuleUtils.getModuleInfo(getClass()).getModuleVersion();
+                String buildNumber = ModuleUtils.getBuildNumber(getClass());
+                Window popup = new Window("<b>About OpenSensorHub</b>");
+                popup.setIcon(LOGO_ICON);
+                popup.setCaptionAsHtml(true);
+                popup.setModal(true);
+                popup.setClosable(true);
+                popup.setResizable(false);
+                popup.center();
+                VerticalLayout content = new VerticalLayout();
+                content.setMargin(true);
+                content.setSpacing(true);
+                content.addComponent(new Label("A software platform for building smart sensor networks and the Internet of Things"));
+                content.addComponent(new Label("Licenced under <a href=\"https://www.mozilla.org/en-US/MPL/2.0\"" +
+                                               " target=\"_blank\">Mozilla Public License v2.0</a>", ContentMode.HTML));
+                content.addComponent(new Label("<b>Version:</b> " + (version != null ? version: "?"), ContentMode.HTML));
+                content.addComponent(new Label("<b>Build Number:</b> " + (buildNumber != null ? buildNumber: "?"), ContentMode.HTML));                
+                popup.setContent(content);
+                addWindow(popup);
+            }
+        });
+        header.addComponent(about);
+        header.setExpandRatio(about, 0);
+        
         return header;
     }
     

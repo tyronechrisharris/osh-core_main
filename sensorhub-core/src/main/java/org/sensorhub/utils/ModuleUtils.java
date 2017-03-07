@@ -30,6 +30,8 @@ public class ModuleUtils
     public final static String MODULE_DESC = "Bundle-Description";
     public final static String MODULE_VERSION = "Bundle-Version";
     public final static String MODULE_VENDOR = "Bundle-Vendor";
+    public final static String MODULE_BUILD = "Bundle-BuildNumber";
+    public final static String MODULE_DEPS = "OSH-Dependencies";
     
     
     public static Manifest getManifest(Class<?> clazz)
@@ -113,10 +115,22 @@ public class ModuleUtils
     public static String[] getBundleDependencies(Class<?> clazz)
     {
         Manifest manifest = getManifest(clazz);
-        String packages = manifest.getMainAttributes().getValue("OSH-Dependencies");
+        if (manifest == null)
+            return new String[0];
+            
+        String packages = manifest.getMainAttributes().getValue(MODULE_DEPS);
         if (packages == null)
             return new String[0];
         else
             return packages.split(",");
+    }
+    
+    
+    public static String getBuildNumber(Class<?> clazz)
+    {
+        Manifest manifest = getManifest(clazz);
+        if (manifest == null)
+            return null;
+        return manifest.getMainAttributes().getValue(MODULE_BUILD);
     }
 }
