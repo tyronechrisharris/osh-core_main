@@ -1,4 +1,4 @@
-ext.oshCoreVersion = '1.2.0-SNAPSHOT'
+ext.oshCoreVersion = '1.2.0'
 
 
 allprojects  {
@@ -8,6 +8,14 @@ allprojects  {
     //jcenter() 
     maven { url "http://repo.maven.apache.org/maven2" }
   }
+  
+  // set build number to HEAD SHA-1
+  def stdout = new ByteArrayOutputStream()
+  exec {
+      commandLine('git','rev-parse','--short','HEAD')
+      standardOutput = stdout;
+  }
+  ext.buildNumber = "$stdout".trim()
 }
 
 
@@ -80,8 +88,8 @@ subprojects {
           if (project.description != null)
             attributes 'Bundle-Name': project.description
           if (project.details != null)
-            attributes 'Bundle-Description': project.details          
-          
+            attributes 'Bundle-Description': project.details
+            
           // add embedded jars to OSGi classpath
           def classpath = '.'
           project.configurations.embedded.each {
@@ -112,6 +120,10 @@ subprojects {
               oshDeps += it.name + ','
           }
           attributes 'OSH-Dependencies': oshDeps
+          
+          // build number
+          if (project.buildNumber != null)
+            attributes 'Bundle-BuildNumber': project.buildNumber
         }
       }
     }

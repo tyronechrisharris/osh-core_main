@@ -1,17 +1,9 @@
 apply from: 'common.gradle'
+apply from: 'release.gradle'
 
 
 allprojects  {
   version = oshCoreVersion
-}
-
-
-// task to generate aggregated javadocs
-task javadocs(type: Javadoc) {
-  Set<Project> javadocProjects = [':swe-common-core', ':sensorml-core', ':sensorhub-core']
-  source javadocProjects.collect {name -> project(name).sourceSets.main.allJava}
-  include 'org/sensorhub/api/**', 'net/opengis/**'
-  classpath = files(javadocProjects.collect {name -> project(name).sourceSets.main.compileClasspath})
 }
 
 
@@ -32,3 +24,18 @@ distributions {
     }
   }
 }
+
+
+// task to generate aggregated javadocs
+task javadocs(type: Javadoc) {
+  dependsOn build
+  doLast {
+    Set<Project> javadocProjects = [':swe-common-core', ':sensorml-core', ':sensorhub-core']
+    source javadocProjects.collect {name -> project(name).sourceSets.main.allJava}
+    include 'org/sensorhub/api/**', 'net/opengis/**'
+    classpath = files(javadocProjects.collect {name -> project(name).sourceSets.main.compileClasspath})
+  }
+}
+
+releaseJavadoc.dependsOn javadocs
+release.dependsOn releaseJavadoc

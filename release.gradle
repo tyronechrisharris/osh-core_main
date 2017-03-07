@@ -1,15 +1,22 @@
 
 buildscript {
+    repositories {
+      jcenter()
+    }
     dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.2'
-        classpath 'org.ajoberstar.grgit:grgit:1.6.0'
+      classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.2'
+      classpath 'org.ajoberstar:gradle-git:1.6.0'
+      classpath 'org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:2.2.1'
+      classpath 'org.kohsuke:github-api:1.85'
     }
 }
 
 
+apply plugin: org.sonarqube.gradle.SonarQubePlugin
+apply plugin: org.ajoberstar.gradle.git.base.GrgitPlugin
+
 allprojects  {
-  apply plugin: org.ajoberstar.gradle.git.base.GrgitPlugin
-  apply plugin: 'com.jfrog.bintray'
+  apply plugin: com.jfrog.bintray.gradle.BintrayPlugin
 }
 
 
@@ -17,13 +24,13 @@ subprojects {
 
   // bintray publishing options
   bintray {
-    user = bintrayUser
-    key = bintrayPwd
+    user = bintray_user
+    key = bintray_api_key
 
     publications = ['mavenJava']
-    dryRun = false //[Default: false] Whether to run this as dry-run, without deploying
-    publish = true //[Default: false] Whether version should be auto published after an upload    
-    override = true //[Default: false] Whether to override version artifacts already published 
+    dryRun = false // whether to run this as dry-run, without deploying
+    publish = true // whether version should be auto published after an upload    
+    override = true // whether to override version artifacts already published 
    
     pkg {
         repo = 'osh'
@@ -44,10 +51,11 @@ subprojects {
 }
 
 
-task prerelease {  
+// this task checks that release conditions are met
+task prerelease {
   doLast {
-    println 'Current version is ' + version 
-    println 'Current HEAD is ' + grgit.head().abbreviatedId 
+    println 'Current version is ' + version
+    println 'Current HEAD is ' + grgit.head().abbreviatedId
   
     // check that we're on master branch
     if (grgit.branch.current.name != 'master')
@@ -56,9 +64,9 @@ task prerelease {
     // check that current version is not a snapshot
     if (version.endsWith('SNAPSHOT'))
       throw new GradleException('Cannot release a SNAPSHOT. Please update the project version number')
-  
-    // check that we don't have any snapshot dependencies  
-  
+
+    // check that we don't have any snapshot dependencies
+
     // check that there is no existing tag with this version
     // this ensures version has been incremented since last release
     def tags = grgit.tag.list()
@@ -66,23 +74,19 @@ task prerelease {
       if (it.name == 'v' + version)
         throw new GradleException('Version ' + version + ' has already been released (existing tag)')
     }
-  
+
     // check for uncommited files
     def status = grgit.status()
     if (!status.isClean()) {
       throw new GradleException('Local version has uncommited changes')
     }
-  
-    // update version properties
   }
 }
 
 
-task release {  
+// this task creates a Git tag
+task releaseGit {  
   doLast {
-    // task dependency triggers new build here
-    println
-  
     // tag release version (after successful build)
     println '> Adding release tag for version ' + version
     grgit.tag.add {
@@ -93,19 +97,82 @@ task release {
     // push new tag
     println '> Pushing new tag to remote'
     grgit.push(tags: true)
-  
-    // publish to maven local and bintray
-    println '> Publishing Maven modules to Bintray'
-  
-    // create GitHub release??  
-  
-    // upload new javadocs
-  
-    // create and switch to new dev branch
   }
 }
 
 
-release.dependsOn build
-release.dependsOn prerelease
+// this task creates a GitHub release
+import org.kohsuke.github.*
+task releaseGithub {
+  doLast {
+    println '> Publishing Release to GitHub'
+    
+    GitHub gh = GitHub.connect(github_user, github_token);
+    GHRepository repo = gh.getRepository("opensensorhub/" + project.name);
+    
+    // load release template
+    String text = ""
+    File templateFile = new File(rootDir, 'release-text.md')
+    if (templateFile.exists()) { 
+      text = templateFile.text;
+    }
+    
+    // find version milestone
+    def milestone = repo.listMilestones(GHIssueState.ALL).find {
+      it.title == 'v' + project.version
+    }
+    if (milestone == null)
+       throw new GradleException('No milestone found for release version ' + project.version)
+       
+    // append fixed issues
+    def issues = repo.getIssues(GHIssueState.CLOSED, milestone)
+    if (!issues.isEmpty())
+      text += "Resolved Issues:\n\n"
+    issues.each {
+      text += "  * **#" + it.number + "** " + it.title + "\n"
+    }
+    println text
+    
+    // publish new release
+    GHReleaseBuilder builder = repo.createRelease('v' + project.version);
+    builder.name(project.name + " v" + project.version)
+           .draft(true)
+           .body(text)
+           .create()
+  }
+}
+
+
+// this task task publishes javadocs to GitHub pages (osh-docs)
+task releaseJavadoc {
+  doLast {
+    println '> Copying Javadoc to GitHub Pages'
+    
+    def ghPagesDir = "$rootDir/../osh-docs/site/"
+    if (!new File(ghPagesDir).exists())
+      throw new GradleException('osh-docs github pages repo was not found locally')
+      
+    // copy apidocs to osh-docs site repo
+    def javaDocRepoDir = "apidocs/v" + version
+    copy {
+      def javadocDir = ghPagesDir + javaDocRepoDir
+      mkdir javadocDir
+      into javadocDir
+      from ('build/docs/javadoc') {
+        include '**/*'
+      }
+    }   
+  }
+}
+
+
+// release subtasks ordering
+// prerelease > build > releaseGit > bintrayUpload > releaseGithub
+task release
 build.shouldRunAfter prerelease
+releaseGit.dependsOn prerelease
+releaseGit.dependsOn build
+bintrayUpload.dependsOn releaseGit
+releaseGithub.dependsOn bintrayUpload
+release.dependsOn releaseGithub
+
