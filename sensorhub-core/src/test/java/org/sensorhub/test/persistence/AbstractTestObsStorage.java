@@ -61,7 +61,7 @@ import com.vividsolutions.jts.geom.Polygon;
 public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModule<?>> extends AbstractTestBasicStorage<StorageType>
 {
     static String FOI_UID_PREFIX = "urn:domain:features:foi";
-    static int NUM_FOIS = 100;
+    protected int numFois = 100;
     GMLFactory gmlFac = new GMLFactory(true);
     Map<String, AbstractFeature> allFeatures;
     
@@ -83,9 +83,9 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     
     protected void addFoisToStorage() throws Exception
     {
-        allFeatures = new LinkedHashMap<String, AbstractFeature>(NUM_FOIS);
+        allFeatures = new LinkedHashMap<String, AbstractFeature>(numFois);
         
-        for (int foiNum = 1; foiNum <= NUM_FOIS; foiNum++)
+        for (int foiNum = 1; foiNum <= numFois; foiNum++)
         {
             QName fType = new QName("http://myNsUri", "MyFeature");
             AbstractFeature foi = new GenericFeatureImpl(fType);
@@ -112,8 +112,8 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         testFilterFoiByID(1, 2, 3, 22, 50, 78);
         testFilterFoiByID(1);
         testFilterFoiByID(56);
-        int[] ids = new int[NUM_FOIS];
-        for (int i = 1; i <= NUM_FOIS; i++)
+        int[] ids = new int[numFois];
+        for (int i = 1; i <= numFois; i++)
             ids[i-1] = i;
         testFilterFoiByID(ids);
     }
@@ -143,7 +143,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         
         int numWrongIDs = 0;        
         for (int foiNum: foiNums)
-            numWrongIDs += (foiNum > NUM_FOIS) ? 1 : 0;
+            numWrongIDs += (foiNum > numFois) ? 1 : 0;
             
         // test retrieve objects
         Iterator<AbstractFeature> it = storage.getFois(filter);
@@ -152,7 +152,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         while (it.hasNext())
         {
             int nextNum = foiNums[i++];
-            if (nextNum <= NUM_FOIS)
+            if (nextNum <= numFois)
             {
                 assertEquals(FOI_UID_PREFIX + nextNum, it.next().getUniqueIdentifier());
                 foiCount++;
@@ -167,7 +167,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         while (it2.hasNext())
         {
             int nextNum = foiNums[i++];
-            if (nextNum <= NUM_FOIS)
+            if (nextNum <= numFois)
             {
                 assertEquals(FOI_UID_PREFIX + nextNum, it2.next());
                 foiCount++;
@@ -182,7 +182,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     {
         addFoisToStorage();
         
-        for (int i = 1; i <= NUM_FOIS; i++)
+        for (int i = 1; i <= numFois; i++)
             testFilterFoiByRoi(new Bbox(i-0.5, i-0.5, i+0.5, i+0.5), i);
     }
     

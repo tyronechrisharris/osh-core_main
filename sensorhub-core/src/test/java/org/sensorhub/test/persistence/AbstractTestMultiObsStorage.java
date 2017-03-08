@@ -33,9 +33,9 @@ public abstract class AbstractTestMultiObsStorage<StorageType extends IObsStorag
 {
     static int NUM_PRODUCERS = 10;
         
-    static
+    protected AbstractTestMultiObsStorage()
     {
-        NUM_FOIS = 3;
+        numFois = 3;
     }
     
     protected void addProducersToStorage() throws Exception
