@@ -240,7 +240,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     protected void getFoisSpatialExtentFromStorage()
     {
         Bbox bbox = ((IObsStorage) storage).getFoisSpatialExtent();
-        if (bbox != null)
+        if (bbox != null && !bbox.isNull())
         {
             if (caps.getObservedAreas().size() == 0)
                 caps.getObservedAreas().add(bbox);
