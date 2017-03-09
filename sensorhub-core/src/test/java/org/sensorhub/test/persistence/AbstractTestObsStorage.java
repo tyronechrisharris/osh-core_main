@@ -141,39 +141,33 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             public Collection<String> getProducerIDs() {return producerFilterList; };
         };
         
-        int numWrongIDs = 0;        
+        // build set of good IDs
+        HashSet<String> validIDs = new HashSet<String>();        
         for (int foiNum: foiNums)
-            numWrongIDs += (foiNum > numFois) ? 1 : 0;
+            if (foiNum <= numFois)
+                validIDs.add(FOI_UID_PREFIX + foiNum);
             
         // test retrieve objects
         Iterator<AbstractFeature> it = storage.getFois(filter);
-        int i = 0;
         int foiCount = 0;
         while (it.hasNext())
         {
-            int nextNum = foiNums[i++];
-            if (nextNum <= numFois)
-            {
-                assertEquals(FOI_UID_PREFIX + nextNum, it.next().getUniqueIdentifier());
-                foiCount++;
-            }
+            String fid = it.next().getUniqueIdentifier();
+            assertTrue("Non requested FOI returned: " + fid, validIDs.contains(fid));
+            foiCount++;
         }
-        assertEquals(foiNums.length-numWrongIDs, foiCount);
+        assertEquals("Wrong number of FOIs returned", validIDs.size(), foiCount);
         
         // test retrieve ids only
         Iterator<String> it2 = storage.getFoiIDs(filter);
-        i = 0;
         foiCount = 0;
         while (it2.hasNext())
         {
-            int nextNum = foiNums[i++];
-            if (nextNum <= numFois)
-            {
-                assertEquals(FOI_UID_PREFIX + nextNum, it2.next());
-                foiCount++;
-            }
+            String fid = it2.next();
+            assertTrue("Non requested FOI id returned: " + fid, validIDs.contains(fid));
+            foiCount++;
         }
-        assertEquals(foiNums.length-numWrongIDs, foiCount);
+        assertEquals("Wrong number of FOIs returned", validIDs.size(), foiCount);
     }
     
     
@@ -576,4 +570,13 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         checkFilteredResults(filter, testList);
     }
     
+    
+    @Test
+    public void testGetFoiExtent() throws Exception
+    {
+        addFoisToStorage();        
+        Bbox realExtent = new Bbox(1.0, 1.0, 0, numFois, numFois, 0);
+        Bbox foiExtent = storage.getFoisSpatialExtent();
+        assertEquals("Wrong FOI spatial extent", realExtent, foiExtent);
+    }
 }
