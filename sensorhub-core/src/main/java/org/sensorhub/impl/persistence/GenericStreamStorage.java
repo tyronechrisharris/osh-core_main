@@ -220,7 +220,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     /*
      * Connects to data source and store initial metadata for all selected streams
      */
-    protected void connectToDataSource(IDataProducerModule<?> dataSource)
+    protected void connectDataSource(IDataProducerModule<?> dataSource)
     {
         // if storage is empty, initialize it
         if (storage.getLatestDataSourceDescription() == null)
@@ -300,6 +300,14 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         output.registerListener(this);
     }
     
+    
+    protected void disconnectDataSource(IDataProducerModule<?> dataSource)
+    {
+        dataSource.unregisterListener(this);        
+        for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
+            output.unregisterListener(this);
+    }
+    
         
     @Override
     public synchronized void stop() throws SensorHubException
@@ -309,12 +317,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             // unregister all listeners
             IDataProducerModule<?> dataSource = dataSourceRef.get();
             if (dataSource != null)
-            {            
-                dataSource.unregisterListener(this);
-                
-                for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
-                    output.unregisterListener(this);
-            }
+                disconnectDataSource(dataSource);
             
             dataSourceRef = null;
         }
@@ -351,7 +354,9 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 if (dataSource == eventSrc)
                 {
                     if (state == ModuleState.STARTED)
-                        connectToDataSource(dataSourceRef.get());
+                        connectDataSource(dataSource);
+                    else if (state == ModuleState.STOPPED)
+                        disconnectDataSource(dataSource);
                 }
             }
             catch (Exception ex)

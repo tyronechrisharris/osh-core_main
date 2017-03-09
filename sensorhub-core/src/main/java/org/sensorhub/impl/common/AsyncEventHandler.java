@@ -149,7 +149,8 @@ public class AsyncEventHandler implements IEventHandler
     {
         synchronized (listeners)
         {
-            listeners.put(listener, new ListenerQueue());
+            if (!listeners.containsKey(listener))
+                listeners.put(listener, new ListenerQueue());
         }
     }
 
