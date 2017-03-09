@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.test.persistence;
 
+import org.junit.Test;
 import org.sensorhub.api.persistence.IMultiSourceStorage;
 import org.sensorhub.api.persistence.IObsStorageModule;
 
@@ -214,6 +215,14 @@ public abstract class AbstractTestMultiObsStorage<StorageType extends IObsStorag
     {
         addProducersToStorage();
         super.testConcurrentReadWriteRecords();
+    }
+    
+    
+    @Test
+    public void testGetFoiExtent() throws Exception
+    {
+        addProducersToStorage();
+        super.testGetFoiExtent();
     }
     
 }
