@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
 import net.opengis.gml.v32.AbstractFeature;
@@ -38,6 +39,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducerModule;
+import org.sensorhub.api.data.IMultiSourceDataInterface;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.module.IModule;
@@ -255,6 +257,9 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             }
         }
         
+        // make sure data source info can be read back
+        storage.commit();
+        
         // register to data events
         for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
             prepareToReceiveEvents(output);
@@ -278,11 +283,19 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             timeStampIndexers.put(outputName, timeStampIndexer);
         }
         
-        // fetch latest record
-        DataBlock rec = output.getLatestRecord();
-        if (rec != null)
-            this.handleEvent(new DataEvent(System.currentTimeMillis(), output, rec));
-            
+        // fetch latest record(s)
+        if (output instanceof IMultiSourceDataInterface)
+        {
+            for (Entry<String, DataBlock> rec: ((IMultiSourceDataInterface) output).getLatestRecords().entrySet())
+                this.handleEvent(new DataEvent(System.currentTimeMillis(), rec.getKey(), output, rec.getValue()));
+        }
+        else
+        {
+            DataBlock rec = output.getLatestRecord();
+            if (rec != null)
+                this.handleEvent(new DataEvent(System.currentTimeMillis(), output, rec));
+        }
+        
         // register to receive future events
         output.registerListener(this);
     }
