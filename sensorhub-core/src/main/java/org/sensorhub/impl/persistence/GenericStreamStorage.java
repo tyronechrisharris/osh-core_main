@@ -303,7 +303,6 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     
     protected void disconnectDataSource(IDataProducerModule<?> dataSource)
     {
-        dataSource.unregisterListener(this);        
         for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
             output.unregisterListener(this);
     }
@@ -317,7 +316,10 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             // unregister all listeners
             IDataProducerModule<?> dataSource = dataSourceRef.get();
             if (dataSource != null)
+            {
+                dataSource.unregisterListener(this);
                 disconnectDataSource(dataSource);
+            }
             
             dataSourceRef = null;
         }
