@@ -63,6 +63,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     Map<String, ModuleConfig> configMap;
     Gson gson;
     File configFile;
+    boolean keepBackup;
     
     
     /* GSON type adapter factory for parsing JSON object to a custom subclass.
@@ -151,10 +152,11 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     }
         
     
-    public ModuleConfigJsonFile(String moduleConfigPath)
+    public ModuleConfigJsonFile(String moduleConfigPath, boolean keepBackup)
     {
-        configFile = new File(moduleConfigPath);
-        configMap = new LinkedHashMap<String, ModuleConfig>();
+        this.configFile = new File(moduleConfigPath);
+        this.keepBackup= keepBackup;
+        this.configMap = new LinkedHashMap<String, ModuleConfig>();
         
         // init json serializer/deserializer
         final GsonBuilder builder = new GsonBuilder();
@@ -236,7 +238,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     public synchronized void commit()
     {
         // keep old config with .bak extension
-        if (configFile.exists())
+        if (keepBackup && configFile.exists())
         {
             try
             {

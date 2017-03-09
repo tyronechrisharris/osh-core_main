@@ -44,7 +44,7 @@ public class TestModuleConfigJsonFile
         configFile.deleteOnExit();
         
         FileUtils.copyURLToFile(TestModuleConfigJsonFile.class.getResource("/module-config.json"), configFile);        
-        configDb = new ModuleConfigJsonFile(configFile.getAbsolutePath());
+        configDb = new ModuleConfigJsonFile(configFile.getAbsolutePath(), false);
     }
     
     
@@ -109,7 +109,7 @@ public class TestModuleConfigJsonFile
         // read back
         configDb.commit();
         configDb.close();        
-        configDb = new ModuleConfigJsonFile(configFile.getAbsolutePath());
+        configDb = new ModuleConfigJsonFile(configFile.getAbsolutePath(), false);
         
         storedConf = configDb.get(config1.id);
         assertTrue(storedConf.id.equals(config1.id));
@@ -156,7 +156,7 @@ public class TestModuleConfigJsonFile
         
         // read back and check it's not there
         configDb.close();
-        configDb = new ModuleConfigJsonFile(configFile.getAbsolutePath());
+        configDb = new ModuleConfigJsonFile(configFile.getAbsolutePath(), false);
         
         assertFalse(configDb.contains(config1.id));
     }

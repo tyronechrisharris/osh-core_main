@@ -71,7 +71,7 @@ public class SensorHub
         if (instance == null)
         {
             EventBus eventBus = new EventBus();
-            IModuleConfigRepository configDB = new ModuleConfigJsonFile(config.getModuleConfigPath());
+            IModuleConfigRepository configDB = new ModuleConfigJsonFile(config.getModuleConfigPath(), true);
             ModuleRegistry registry = new ModuleRegistry(configDB, eventBus);
             instance = new SensorHub(config, registry, eventBus);
         }

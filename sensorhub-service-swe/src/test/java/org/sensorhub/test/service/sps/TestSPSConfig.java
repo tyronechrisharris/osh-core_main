@@ -32,7 +32,7 @@ public class TestSPSConfig
     public void testAddToJsonDatabase() throws Exception
     {
         File configFile = new File("junittest.json");
-        ModuleConfigJsonFile db = new ModuleConfigJsonFile(configFile.getAbsolutePath());
+        ModuleConfigJsonFile db = new ModuleConfigJsonFile(configFile.getAbsolutePath(), false);
         
         SPSServiceConfig config = new SPSServiceConfig();
         config.id = UUID.randomUUID().toString();
