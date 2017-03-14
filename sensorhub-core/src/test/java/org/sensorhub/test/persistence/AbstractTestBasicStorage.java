@@ -481,8 +481,7 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
                             };
                         
                             // retrieve records
-                            Iterator<? extends IDataRecord> it = storage.getRecordIterator(filter);
-                            readCount++;
+                            Iterator<? extends IDataRecord> it = storage.getRecordIterator(filter);                            
                             
                             // check records time stamps and order
                             //System.out.format("Read Thread %d, [%f-%f]\n", Thread.currentThread().getId(), begin, end);
@@ -497,6 +496,7 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
                                 assertTrue(tid + ": Time stamp lower than begin: " + timeStamp + "<" + begin , timeStamp >= begin);
                                 assertTrue(tid + ": Time stamp higher than end: " + timeStamp + ">" + end, timeStamp <= end);
                                 lastTimeStamp = timeStamp;
+                                readCount++;
                             }
                             
                             Thread.sleep(1);
@@ -594,6 +594,46 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
             });
         }
     }
+    
+    
+    protected void startReadMetadataThreads(final ExecutorService exec, 
+            final int numReadThreads,
+            final Collection<Throwable> errors)
+    {
+        for (int i = 0; i < numReadThreads; i++)
+        {
+            exec.submit(new Runnable()
+            {
+                public void run()
+                {
+                    long tid = Thread.currentThread().getId();
+                    long startTimeOffset = System.currentTimeMillis() - refTime;
+                    System.out.format("Begin Read Desc Thread %d @ %dms\n", tid, startTimeOffset);
+                    int readCount = 0;
+
+                    try
+                    {
+                        while (numWriteThreadsRunning > 0 && !Thread.interrupted())
+                        {
+                            AbstractProcess p = storage.getLatestDataSourceDescription();
+                            if (p != null)
+                                assertTrue("Missing valid time", p.getValidTimeList().size() > 0);
+                            readCount++;
+                            Thread.sleep(1);
+                        }
+                    }
+                    catch (Throwable e)
+                    {
+                        errors.add(e);
+                        //exec.shutdownNow();
+                    }
+
+                    long stopTimeOffset = System.currentTimeMillis() - refTime;
+                    System.out.format("End Read Desc Thread %d @%dms - %d read ops\n", Thread.currentThread().getId(), stopTimeOffset, readCount);
+                }
+            });
+        }
+    }   
 
     
     protected void checkForAsyncErrors(Collection<Throwable> errors) throws Throwable
@@ -769,9 +809,10 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
         refTime = System.currentTimeMillis();
         
         startWriteRecordsThreads(exec, numWriteThreads, recordDef, timeStep, testDurationMs, errors);
-        startWriteMetadataThreads(exec, numWriteThreads, errors);     
+        startWriteMetadataThreads(exec, numWriteThreads, errors); 
         startReadRecordsThreads(exec, numReadThreads, recordDef, timeStep, errors);
-      
+        startReadMetadataThreads(exec, numReadThreads, errors);
+        
         exec.shutdown();
         exec.awaitTermination(testDurationMs*2, TimeUnit.MILLISECONDS);
 
