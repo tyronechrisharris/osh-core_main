@@ -89,7 +89,7 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
             db.setProperty("perst.concurrent.iterator", true); // allow insertions while iterating through indexes
             db.setProperty("perst.object.cache.init.size", config.objectCacheSize); // limit number of pinned objects in LRU object cache
             db.setProperty("perst.alternative.btree", true);
-            db.open(dbFile, config.memoryCacheSize*1024);
+            db.open(dbFile, Math.max(config.memoryCacheSize, 20)*1024);
             dbRoot = (BasicStorageRoot)db.getRoot();
             
             if (dbRoot == null)
@@ -297,7 +297,7 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
     
 
     @Override
-    public synchronized void storeRecord(DataKey key, DataBlock data)
+    public /*synchronized*/ void storeRecord(DataKey key, DataBlock data)
     {
         ((BasicStorageRoot)dbRoot).storeRecord(key, data);        
         if (autoCommit)

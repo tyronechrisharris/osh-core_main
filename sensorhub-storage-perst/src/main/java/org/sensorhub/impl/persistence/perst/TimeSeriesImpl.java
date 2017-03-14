@@ -421,7 +421,8 @@ class TimeSeriesImpl extends Persistent implements IRecordStoreInfo
         {
             recordIndex.exclusiveLock();
             DataBlock oldData = recordIndex.set(new Key(key.timeStamp), data);
-            getStorage().deallocate(oldData);
+            if (oldData != null && oldData != data)
+                getStorage().deallocate(oldData);
         }
         finally
         {

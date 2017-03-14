@@ -130,7 +130,7 @@ class BasicStorageRoot extends PersistentResource implements IBasicStorage
             if (update)
             {
                 AbstractProcess oldProcess = descriptionTimeIndex.set(new Key(time), process);
-                if (oldProcess != null)
+                if (oldProcess != null && oldProcess != process)
                     getStorage().deallocate(oldProcess);
                 return true;
             }

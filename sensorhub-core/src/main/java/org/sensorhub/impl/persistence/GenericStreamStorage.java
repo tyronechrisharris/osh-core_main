@@ -138,7 +138,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         {
             dataSource.registerListener(this);
             if (!dataSource.isStarted())
-                reportStatus("Waiting for data source " + MsgUtils.moduleString(dataSource));
+                disconnectDataSource(dataSource);
         }
     }
     
@@ -305,6 +305,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     {
         for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
             output.unregisterListener(this);
+        reportStatus("Waiting for data source " + MsgUtils.moduleString(dataSource));
     }
     
         
