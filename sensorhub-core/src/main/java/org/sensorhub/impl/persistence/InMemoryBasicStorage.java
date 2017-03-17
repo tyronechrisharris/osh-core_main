@@ -39,7 +39,6 @@ import org.sensorhub.api.persistence.IDataFilter;
 import org.sensorhub.api.persistence.IDataRecord;
 import org.sensorhub.api.persistence.IRecordStoreInfo;
 import org.sensorhub.api.persistence.IStorageModule;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.impl.module.AbstractModule;
 
@@ -54,7 +53,7 @@ import org.sensorhub.impl.module.AbstractModule;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Nov 8, 2013
  */
-public class InMemoryBasicStorage extends AbstractModule<StorageConfig> implements IRecordStorageModule<StorageConfig>
+public class InMemoryBasicStorage extends AbstractModule<InMemoryStorageConfig> implements IRecordStorageModule<InMemoryStorageConfig>
 {
     Map<String, TimeSeriesImpl> dataStores = new LinkedHashMap<String, TimeSeriesImpl>();
     ConcurrentSkipListMap<Double, AbstractProcess> dataSourceDescriptions = new ConcurrentSkipListMap<Double, AbstractProcess>();

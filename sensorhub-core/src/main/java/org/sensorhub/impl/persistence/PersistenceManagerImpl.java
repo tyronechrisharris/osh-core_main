@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.persistence;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.sensorhub.api.common.SensorHubException;
@@ -150,7 +149,6 @@ public class PersistenceManagerImpl implements IPersistenceManager
                 {
                     StorageConfig newConfig = (StorageConfig)provider.getModuleConfigClass().newInstance();
                     newConfig.moduleClass = moduleClass.getCanonicalName();
-                    newConfig.storagePath = basePath + File.separatorChar;
                     return newConfig;
                 }
             }

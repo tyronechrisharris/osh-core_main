@@ -47,12 +47,12 @@ import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.IRecordStorageModule;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.InMemoryBasicStorage;
+import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.impl.persistence.perst.BasicStorageConfig;
 import org.sensorhub.impl.persistence.perst.ObsStorageImpl;
@@ -255,7 +255,7 @@ public class TestSOSService
         StreamStorageConfig streamStorageConfig = new StreamStorageConfig();
         streamStorageConfig.name = "Memory Storage";
         streamStorageConfig.autoStart = true;
-        streamStorageConfig.storageConfig = new StorageConfig();
+        streamStorageConfig.storageConfig = new InMemoryStorageConfig();
         streamStorageConfig.storageConfig.moduleClass = InMemoryBasicStorage.class.getCanonicalName();
         streamStorageConfig.dataSourceID = sosProviderConfig.sensorID;
         
@@ -284,12 +284,13 @@ public class TestSOSService
         SensorDataProviderConfig sosProviderConfig = buildSensorProvider2(start);
                        
         // configure object DB storage
+        BasicStorageConfig storageConfig = new BasicStorageConfig();
+        storageConfig.moduleClass = ObsStorageImpl.class.getCanonicalName();
+        storageConfig.storagePath = dbFile.getAbsolutePath();
         StreamStorageConfig streamStorageConfig = new StreamStorageConfig();
         streamStorageConfig.name = "Obs Storage";
         streamStorageConfig.autoStart = true;
-        streamStorageConfig.storageConfig = new BasicStorageConfig();
-        streamStorageConfig.storageConfig.moduleClass = ObsStorageImpl.class.getCanonicalName();
-        streamStorageConfig.storageConfig.storagePath = dbFile.getAbsolutePath();
+        streamStorageConfig.storageConfig = storageConfig;
         streamStorageConfig.dataSourceID = sosProviderConfig.sensorID;
         
         // start storage module

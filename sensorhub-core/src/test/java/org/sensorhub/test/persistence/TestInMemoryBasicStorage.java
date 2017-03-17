@@ -15,8 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.test.persistence;
 
 import org.junit.Before;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.impl.persistence.InMemoryBasicStorage;
+import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 
 
 public class TestInMemoryBasicStorage extends AbstractTestBasicStorage<InMemoryBasicStorage>
@@ -25,7 +25,7 @@ public class TestInMemoryBasicStorage extends AbstractTestBasicStorage<InMemoryB
     @Before
     public void init() throws Exception
     {
-        StorageConfig config = new StorageConfig();
+        InMemoryStorageConfig config = new InMemoryStorageConfig();
         config.name = "In-Memory Storage";
         config.autoStart = true;        
         

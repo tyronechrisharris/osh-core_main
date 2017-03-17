@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.impl.persistence.InMemoryBasicStorage;
+import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 import org.sensorhub.impl.service.sos.SOSProviderConfig;
 import org.sensorhub.impl.service.sos.SOSService;
 import org.sensorhub.impl.service.sos.SensorDataProviderConfig;
@@ -234,7 +235,7 @@ public class TestSOSTService
         SOSService sos = deployService(buildSensorProvider1());
         
         // configure default in-memory storage
-        StorageConfig storageConfig = new StorageConfig();
+        StorageConfig storageConfig = new InMemoryStorageConfig();
         storageConfig.moduleClass = InMemoryBasicStorage.class.getCanonicalName();
         sos.getConfiguration().newStorageConfig = storageConfig;
         

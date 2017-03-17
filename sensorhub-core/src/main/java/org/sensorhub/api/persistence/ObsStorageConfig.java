@@ -23,7 +23,7 @@ package org.sensorhub.api.persistence;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since May 15, 2015
  */
-public class ObsStorageConfig extends StorageConfig
+public abstract class ObsStorageConfig extends StorageConfig
 {
     
 	/**

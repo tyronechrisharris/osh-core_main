@@ -34,6 +34,7 @@ import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
+import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 
 
 public class TestModuleRegistry
@@ -102,12 +103,11 @@ public class TestModuleRegistry
         assertTrue(clone2.autoStart = config2.autoStart);
         assertTrue(Arrays.deepEquals(clone2.hiddenIO, config2.hiddenIO));
         
-        StorageConfig config4 = new StorageConfig();
+        StorageConfig config4 = new InMemoryStorageConfig();
         config4.id = UUID.randomUUID().toString();
         config4.name = "DB1";
         config4.moduleClass = "org.sensorhub.persistence.FeatureStorage";
         config4.autoStart = true;
-        config4.storagePath = "path/to/db";
         
         StorageConfig clone4 = (StorageConfig)config4.clone();
         assertTrue(clone4.id.equals(config4.id));

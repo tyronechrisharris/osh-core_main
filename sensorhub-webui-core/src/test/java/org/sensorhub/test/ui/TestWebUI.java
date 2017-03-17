@@ -20,11 +20,11 @@ import java.net.URL;
 import java.util.UUID;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
+import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.test.module.DummyModule;
@@ -82,7 +82,7 @@ public class TestWebUI
             if (name.contains("Service"))
                 config = new TestServiceConfig();
             else if (name.contains("Storage"))
-                config = new StorageConfig();
+                config = new InMemoryStorageConfig();
             else if (name.contains("Process"))
                 config = new ProcessConfig();
             else

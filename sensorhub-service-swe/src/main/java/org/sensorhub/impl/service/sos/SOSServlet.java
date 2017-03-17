@@ -86,7 +86,6 @@ import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
-import org.sensorhub.utils.FileUtils;
 import org.slf4j.Logger;
 import org.vast.cdm.common.DataSource;
 import org.vast.cdm.common.DataStreamParser;
@@ -625,7 +624,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             streamStorageConfig.autoStart = true;
             streamStorageConfig.dataSourceID = sensorUID;
             streamStorageConfig.storageConfig = (StorageConfig)config.newStorageConfig.clone();
-            streamStorageConfig.storageConfig.storagePath = FileUtils.safeFileName(sensorUID) + ".dat";
+            streamStorageConfig.storageConfig.setStorageIdentifier(sensorUID);
             storageModule = moduleReg.loadModule(streamStorageConfig);
                                 
             /*// also add related features to storage

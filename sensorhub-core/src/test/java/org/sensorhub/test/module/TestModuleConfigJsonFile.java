@@ -28,6 +28,7 @@ import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.service.ServiceConfig;
 import org.sensorhub.impl.module.ModuleConfigJsonFile;
+import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 import static org.junit.Assert.*;
 
 
@@ -100,7 +101,7 @@ public class TestModuleConfigJsonFile
         config3.moduleClass = "org.sensorhub.service.SpsService";
         configDb.add(config3);
         
-        StorageConfig config4 = new StorageConfig();
+        StorageConfig config4 = new InMemoryStorageConfig();
         config4.id = UUID.randomUUID().toString();
         config4.name = "DB1";
         config4.moduleClass = "org.sensorhub.persistence.FeatureStorage";

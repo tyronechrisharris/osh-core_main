@@ -15,16 +15,19 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.persistence;
 
 import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.persistence.StorageConfig;
 
 
 public class StreamStorageConfig extends StorageConfig
 {
     
+    @Required
     @DisplayInfo(label="Storage Config", desc="Configuration of underlying storage")
     public StorageConfig storageConfig;
     
     
+    @Required
     @DisplayInfo(label="Data Source ID", desc="Local ID of streaming data source which data will be store.")
     public String dataSourceID;
     
@@ -47,7 +50,14 @@ public class StreamStorageConfig extends StorageConfig
     
     public StreamStorageConfig()
     {
-        // set default associated implementation
         this.moduleClass = GenericStreamStorage.class.getCanonicalName();
+    }
+
+
+    @Override
+    public void setStorageIdentifier(String name)
+    {
+        if (storageConfig != null)
+            storageConfig.setStorageIdentifier(name);
     }
 }

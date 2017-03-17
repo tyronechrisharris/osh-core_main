@@ -14,8 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.persistence;
 
-import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.module.ModuleConfig;
 
 
@@ -27,11 +25,13 @@ import org.sensorhub.api.module.ModuleConfig;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Nov 5, 2010
  */
-public class StorageConfig extends ModuleConfig
+public abstract class StorageConfig extends ModuleConfig
 {
     
-    @Required
-    @DisplayInfo(desc="Path to storage (actual format depends on storage type: e.g. file, folder, URL, etc...)")
-	public String storagePath;
-
+    /**
+     * Configure with the given storage identifier.<br/>
+     * It can be used to configure a file name or a table name in a relational DB
+     * @param name
+     */
+    public abstract void setStorageIdentifier(String name);
 }

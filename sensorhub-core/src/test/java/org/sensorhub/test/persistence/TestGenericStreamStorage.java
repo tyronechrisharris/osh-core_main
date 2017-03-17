@@ -27,6 +27,7 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.GenericStreamStorage;
 import org.sensorhub.impl.persistence.InMemoryBasicStorage;
+import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.test.sensor.FakeSensor;
 import org.sensorhub.test.sensor.FakeSensorData;
@@ -63,7 +64,7 @@ public class TestGenericStreamStorage
         genericStorageConfig.name = "SensorStorageTest";
         genericStorageConfig.autoStart = true;
         genericStorageConfig.dataSourceID = sensor.getLocalID();
-        StorageConfig storageConfig = new StorageConfig();
+        StorageConfig storageConfig = new InMemoryStorageConfig();
         storageConfig.moduleClass = InMemoryBasicStorage.class.getCanonicalName();
         genericStorageConfig.storageConfig = storageConfig;
         storage = (GenericStreamStorage)registry.loadModule(genericStorageConfig);
