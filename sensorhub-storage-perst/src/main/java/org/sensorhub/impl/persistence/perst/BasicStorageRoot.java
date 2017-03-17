@@ -132,6 +132,8 @@ class BasicStorageRoot extends PersistentResource implements IBasicStorage
                 AbstractProcess oldProcess = descriptionTimeIndex.set(new Key(time), process);
                 if (oldProcess != null && oldProcess != process)
                     getStorage().deallocate(oldProcess);
+                else
+                    getStorage().modify(process);
                 return true;
             }
             else
@@ -376,5 +378,19 @@ class BasicStorageRoot extends PersistentResource implements IBasicStorage
     public int removeRecords(IDataFilter filter)
     {
         return getRecordStore(filter.getRecordType()).remove(filter);
+    }
+
+
+    @Override
+    public boolean isReadSupported()
+    {
+        return true;
+    }
+
+
+    @Override
+    public boolean isWriteSupported()
+    {
+        return true;
     }
 }

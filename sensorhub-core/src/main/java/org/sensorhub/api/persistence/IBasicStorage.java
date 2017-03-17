@@ -203,5 +203,16 @@ public interface IBasicStorage
      * @return number of deleted records
      */
     public int removeRecords(IDataFilter filter);
-
+        
+   
+    /**
+     * @return true if read operations are supported by this storage, false otherwise
+     */
+    public boolean isReadSupported();
+    
+    
+    /**
+     * @return true if write operations are supported by this storage, false otherwise
+     */
+    public boolean isWriteSupported();
 }

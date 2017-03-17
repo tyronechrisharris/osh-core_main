@@ -550,4 +550,18 @@ public class InMemoryBasicStorage extends AbstractModule<StorageConfig> implemen
                 return new double[] {recordList.firstKey(), recordList.lastKey()};
         }
     }
+
+
+    @Override
+    public boolean isReadSupported()
+    {
+        return true;
+    }
+
+
+    @Override
+    public boolean isWriteSupported()
+    {
+        return true;
+    }
 }

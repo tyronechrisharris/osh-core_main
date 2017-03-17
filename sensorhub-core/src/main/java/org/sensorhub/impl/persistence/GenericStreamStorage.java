@@ -735,4 +735,18 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             
         super.setState(newState);
     }
+
+
+    @Override
+    public boolean isReadSupported()
+    {
+        return storage.isReadSupported();
+    }
+
+
+    @Override
+    public boolean isWriteSupported()
+    {
+        return true;
+    }
 }

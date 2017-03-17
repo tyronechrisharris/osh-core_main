@@ -331,4 +331,18 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
             commit();
         return count;
     }
+
+
+    @Override
+    public boolean isReadSupported()
+    {
+        return true;
+    }
+
+
+    @Override
+    public boolean isWriteSupported()
+    {
+        return true;
+    }
 }
