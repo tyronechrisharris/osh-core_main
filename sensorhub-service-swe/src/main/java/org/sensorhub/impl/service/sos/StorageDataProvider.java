@@ -55,6 +55,7 @@ public class StorageDataProvider implements ISOSDataProvider
     private static final String TOO_MANY_OBS_MSG = "Too many observations requested. Please further restrict your filtering options";
     
     IBasicStorage storage;
+    IObsFilter storageFilter;
     List<StorageState> dataStoresStates;
     String foiID;
     
@@ -111,7 +112,7 @@ public class StorageDataProvider implements ISOSDataProvider
                 if (filter.getObservables().contains(defUri))
                 {
                     // prepare record filter
-                    IObsFilter storageFilter = new ObsFilter(recordType) {
+                    storageFilter = new ObsFilter(recordType) {
                         public double[] getTimeStampRange() { return timePeriod; }
                         public Set<String> getFoiIDs() { return filter.getFoiIds(); }
                         public Polygon getRoi() {return filter.getRoi(); }
@@ -124,9 +125,6 @@ public class StorageDataProvider implements ISOSDataProvider
                     
                     StorageState state = new StorageState();
                     state.recordInfo = recordInfo;
-                    state.recordIterator = storage.getRecordIterator(storageFilter);
-                    if (state.recordIterator.hasNext()) // prefetch first record
-                        state.nextRecord = state.recordIterator.next();
                     dataStoresStates.add(state);
                     
                     // break for now since currently we support only requesting data from one store at a time
@@ -212,7 +210,16 @@ public class StorageDataProvider implements ISOSDataProvider
         // select data store with next earliest time stamp
         for (int i = 0; i < dataStoresStates.size(); i++)
         {
-            StorageState state = dataStoresStates.get(i);          
+            StorageState state = dataStoresStates.get(i);
+            
+            // init iterator if needed
+            if (state.recordIterator == null)
+            {
+                state.recordIterator = storage.getRecordIterator(storageFilter);
+                if (state.recordIterator.hasNext()) // prefetch first record
+                    state.nextRecord = state.recordIterator.next();
+            }
+            
             if (state.nextRecord == null)
                 continue;                
             
