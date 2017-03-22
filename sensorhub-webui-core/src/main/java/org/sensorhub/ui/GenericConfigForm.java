@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import org.sensorhub.api.comm.ICommNetwork;
 import org.sensorhub.api.comm.ICommNetwork.NetworkType;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
@@ -58,6 +59,7 @@ import com.vaadin.data.validator.StringLengthValidator;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Page;
 import com.vaadin.shared.ui.MarginInfo;
+import com.vaadin.shared.ui.datefield.Resolution;
 import com.vaadin.ui.AbstractComponent;
 import com.vaadin.ui.AbstractField;
 import com.vaadin.ui.AbstractSelect.ItemCaptionMode;
@@ -67,6 +69,7 @@ import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.CheckBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.ComponentContainer;
+import com.vaadin.ui.DateField;
 import com.vaadin.ui.Field;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.GridLayout;
@@ -310,6 +313,11 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             ((TextField)field).setImmediate(true);
             ((TextField)field).setNullSettingAllowed(true);
             ((TextField)field).setNullRepresentation("");
+        }
+        
+        else if (field instanceof DateField) {
+            ((DateField) field).setTimeZone(TimeZone.getTimeZone("UTC"));
+            ((DateField) field).setResolution(Resolution.SECOND);
         }
         
         // special fields

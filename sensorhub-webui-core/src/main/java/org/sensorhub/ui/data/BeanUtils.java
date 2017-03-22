@@ -15,6 +15,7 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.ui.data;
 
 import java.lang.reflect.Field;
+import java.util.Date;
 
 
 public class BeanUtils
@@ -33,6 +34,9 @@ public class BeanUtils
             return true;
         
         if (type == String.class)
+            return true;
+        
+        if (type == Date.class)
             return true;
         
         if (Number.class.isAssignableFrom(type))
