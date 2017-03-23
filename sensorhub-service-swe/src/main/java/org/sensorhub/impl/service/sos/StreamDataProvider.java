@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -33,10 +32,11 @@ import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
-import org.sensorhub.api.data.IDataProducerModule;
+import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataInterface;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
+import org.sensorhub.api.module.IModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.data.DataIterator;
@@ -45,7 +45,6 @@ import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.ObservationImpl;
 import org.vast.ogc.om.ProcedureRef;
-import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSException;
 import org.vast.swe.SWEConstants;
 import org.vast.util.Asserts;
@@ -65,7 +64,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     private static final Logger log = LoggerFactory.getLogger(StreamDataProvider.class);
     private static final int DEFAULT_QUEUE_SIZE = 200;
 
-    IDataProducerModule<?> dataSource;
+    IDataProducer dataSource;
     List<IStreamingDataInterface> sourceOutputs;
     BlockingQueue<DataEvent> eventQueue;
     long timeOut;
@@ -79,16 +78,13 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     Map<String, String> currentFoiMap = new LinkedHashMap<String, String>(); // entity ID -> current FOI ID
     
 
-    public StreamDataProvider(IDataProducerModule<?> dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws OWSException, IOException
+    public StreamDataProvider(IDataProducer dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws Exception
     {
         this.dataSource = dataSource;
         this.sourceOutputs = new ArrayList<IStreamingDataInterface>();
         
         // figure out stop time (if any)
         stopTime = ((long) filter.getTimeRange().getStopTime()) * 1000L;
-
-        // get list of desired stream outputs
-        dataSource.getConfiguration(); // why do we call this?
 
         // loop through all outputs and connect to the ones containing observables we need
         for (IStreamingDataInterface outputInterface : dataSource.getAllOutputs().values())
@@ -167,7 +163,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                     for (String entityID : currentFoiMap.keySet())
                     {
                         DataBlock data = ((IMultiSourceDataInterface) outputInterface).getLatestRecord(entityID);
-                        eventQueue.offer(new DataEvent(System.currentTimeMillis(), entityID, outputInterface, data));
+                        eventQueue.offer(new DataEvent(System.currentTimeMillis(), outputInterface, data));
                     }
                 }
                 
@@ -178,7 +174,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
 
                     Map<String, DataBlock> data = ((IMultiSourceDataInterface) outputInterface).getLatestRecords();
                     for (Entry<String, DataBlock> rec : data.entrySet())
-                        eventQueue.offer(new DataEvent(System.currentTimeMillis(), rec.getKey(), outputInterface, rec.getValue()));
+                        eventQueue.offer(new DataEvent(System.currentTimeMillis(), outputInterface, rec.getValue()));
                 }
             }
             
@@ -255,7 +251,9 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         if (dataSource instanceof IMultiSourceDataProducer)
         {
             String entityID = lastDataEvent.getRelatedEntityID();
-            foi = ((IMultiSourceDataProducer) dataSource).getCurrentFeatureOfInterest(entityID);
+            IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getProducer(entityID);
+            Asserts.checkNotNull(producer, IDataProducer.class);
+            foi = producer.getCurrentFeatureOfInterest();
         }
 
         String foiID;
@@ -329,7 +327,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
      */
     private boolean hasMoreData()
     {
-        if (!dataSource.isStarted())
+        if (dataSource instanceof IModule<?> && !((IModule<?>)dataSource).isStarted())
             return false;
 
         boolean interfaceActive = false;
