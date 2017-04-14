@@ -111,6 +111,7 @@ public class UDPCommProvider extends AbstractModule<UDPCommProviderConfig> imple
         }
         catch (IOException e)
         {
+            log.error("Cannot close datagram channel", e);
         }        
     }
 

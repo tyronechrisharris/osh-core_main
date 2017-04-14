@@ -18,7 +18,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +25,8 @@ import java.io.OutputStream;
 import java.util.Properties;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.utils.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -41,6 +42,7 @@ import org.sensorhub.utils.FileUtils;
  */
 public class DefaultModuleStateManager implements IModuleStateManager
 {
+    private static final Logger log = LoggerFactory.getLogger(DefaultModuleStateManager.class);
     private static final String stateFileName = "state.txt";
     File folder;
     Properties stateProps;
@@ -62,7 +64,7 @@ public class DefaultModuleStateManager implements IModuleStateManager
         }
         catch (Exception e)
         {
-            throw new RuntimeException("Cannot read module state information", e);
+            throw new IllegalStateException("Cannot read module state information", e);
         }
     }
 
@@ -121,14 +123,15 @@ public class DefaultModuleStateManager implements IModuleStateManager
         
         try
         {
-            if (dataFile.exists())
-                return new BufferedInputStream(new FileInputStream(dataFile));
+            if (!dataFile.exists())
+                return null;
+            
+            return new BufferedInputStream(new FileInputStream(dataFile));
         }
-        catch (FileNotFoundException e)
+        catch (Exception e)
         {
+            throw new IllegalStateException("Cannot open data file for reading", e);
         }
-        
-        return null;
     }
 
 
@@ -177,9 +180,9 @@ public class DefaultModuleStateManager implements IModuleStateManager
             File dataFile = getDataFile(key);
             return new BufferedOutputStream(new FileOutputStream(dataFile));
         }
-        catch (FileNotFoundException e)
+        catch (Exception e)
         {
-            return null;
+            throw new IllegalStateException("Cannot open data file for writing", e);
         }
     }
     
@@ -197,7 +200,7 @@ public class DefaultModuleStateManager implements IModuleStateManager
         }
         catch (Exception e)
         {
-            throw new RuntimeException("Cannot save module state information", e);
+            throw new IllegalStateException("Cannot save module state information", e);
         }        
     }
     
@@ -220,7 +223,7 @@ public class DefaultModuleStateManager implements IModuleStateManager
         }
         catch (IOException e)
         {
-            throw new RuntimeException("Error while deleting module state information", e);
+            log.error("Cannot delete module state information: " + folder, e);
         }
     }
     

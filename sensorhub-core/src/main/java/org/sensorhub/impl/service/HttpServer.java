@@ -85,7 +85,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     public HttpServer()
     {
         if (instance != null)
-            throw new RuntimeException("Cannot start several HTTP server instances");
+            throw new IllegalStateException("Cannot start several HTTP server instances");
         
         instance = this;
     }
@@ -207,7 +207,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                     {
                         Authenticator authenticator = securityManager.getAuthenticator();
                         if (authenticator == null)
-                            throw new RuntimeException("External authentication method was selected but no authenticator implementation is available");
+                            throw new IllegalStateException("External authentication method was selected but no authenticator implementation is available");
                         securityHandler.setAuthenticator(authenticator);
                     }
                     
@@ -221,6 +221,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 // add default test servlet
                 servletHandler.addServlet(new ServletHolder(new HttpServlet() {
                     private static final long serialVersionUID = 1L;
+                    @Override
                     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException
                     {
                         try
@@ -271,7 +272,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     protected void checkStarted()
     {
         if (!isStarted())
-            throw new RuntimeException("HTTP service must be started before servlets can be deployed");
+            throw new IllegalStateException("HTTP service must be started before servlets can be deployed");
     }
     
     

@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  */
 public class NativeClassLoader extends URLClassLoader
 {
-    static final URL[] EMPTY_URLS = new URL[] {};
+    private static final URL[] EMPTY_URLS = new URL[] {};
     private Logger log; // cannot be a static logger in case it is used as system classloader
     private Map<String, String> loadedLibraries = new HashMap<String, String>();
     private List<File> tmpFolders = new ArrayList<File>(); 
@@ -69,6 +69,7 @@ public class NativeClassLoader extends URLClassLoader
     protected void setupShutdownHook()
     {
         Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
             public void run()
             {
                 // remove temp folders
@@ -80,6 +81,8 @@ public class NativeClassLoader extends URLClassLoader
                     }
                     catch (IOException e)
                     {
+                        if (log != null)
+                            log.error("Cannot delete folder " + f, e);
                     }
                 }
             }            
@@ -202,13 +205,15 @@ public class NativeClassLoader extends URLClassLoader
             log.debug("Using native library from: " + libPath);
             return libPath;
         }
-        catch (java.io.IOException e)
+        catch (Exception e)
         {
+            log.trace("Cannot find library " + libName + " in " + url, e);
             return null;
         }
     }
 
 
+    @Override
     protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
     {
         Class<?> c = findLoadedClass(name);
@@ -221,6 +226,7 @@ public class NativeClassLoader extends URLClassLoader
             }
             catch (ClassNotFoundException e)
             {
+                log.trace("Cannot find class in parent classloader", e);
                 c = findClass(name);
             }
         }

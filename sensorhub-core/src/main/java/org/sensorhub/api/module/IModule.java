@@ -30,7 +30,13 @@ import org.sensorhub.api.module.ModuleEvent.ModuleState;
  * @since Nov 12, 2010
  */
 public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
-{    
+{
+    public static final String CANNOT_LOAD_MSG = "Could not load module ";
+    public static final String CANNOT_INIT_MSG = "Could not initialize module ";
+    public static final String CANNOT_START_MSG = "Could not start module ";
+    public static final String CANNOT_STOP_MSG = "Could not stop module ";
+    public static final String CANNOT_UPDATE_MSG = "Could not update module configuration";
+    
     
     /**
      * Sets the module configuration

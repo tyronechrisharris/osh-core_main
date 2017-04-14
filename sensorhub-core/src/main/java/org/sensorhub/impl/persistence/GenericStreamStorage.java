@@ -104,7 +104,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             storageConfig = (StorageConfig)config.storageConfig.clone();
             storageConfig.id = getLocalID();
             storageConfig.name = getName();
-            Class<?> clazz = (Class<?>)Class.forName(storageConfig.moduleClass);
+            Class<?> clazz = Class.forName(storageConfig.moduleClass);
             storage = (IRecordStorageModule<StorageConfig>)clazz.newInstance();
             storage.init(storageConfig);
             storage.start();
@@ -120,6 +120,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             final IStorageAutoPurgePolicy policy = config.autoPurgeConfig.getPolicy();
             autoPurgeTimer = new Timer();
             TimerTask task = new TimerTask() {
+                @Override
                 public void run()
                 {
                     policy.trimStorage(storage);
@@ -149,7 +150,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     protected void configureStorageForDataSource(IDataProducerModule<?> dataSource, IRecordStorageModule<?> storage)
     {
         if (storage.getRecordStores().size() > 0)
-            throw new RuntimeException("Storage " + MsgUtils.moduleString(storage) + " is already configured");
+            throw new IllegalStateException("Storage " + MsgUtils.moduleString(storage) + " is already configured");
         
         // copy data source description
         storage.storeDataSourceDescription(dataSource.getCurrentDescription());
@@ -574,6 +575,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     }
 
 
+    @Override
     public DataBlock getDataBlock(DataKey key)
     {
         checkStarted();
@@ -721,7 +723,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     private void checkStarted()
     {
         if (storage == null)
-            throw new RuntimeException("Storage is disabled");
+            throw new IllegalStateException("Storage is disabled");
     }
 
 
