@@ -39,9 +39,7 @@ import org.w3c.dom.Element;
 
 public class DbExport
 {
-    
-    
-    
+        
     public static void main(String[] args) throws Exception
     {
         if (args.length < 1)
@@ -105,6 +103,7 @@ public class DbExport
                 
                 // prepare filter
                 IDataFilter recordFilter = new DataFilter(recordType) {
+                    @Override
                     public double[] getTimeStampRange() { return timePeriod; }
                 };
                 
@@ -132,16 +131,7 @@ public class DbExport
                     Iterator<? extends IDataRecord> it = db.getRecordIterator(recordFilter);
                     while (it.hasNext())
                     {
-                        IDataRecord rec;
-                        try
-                        {
-                            rec = it.next();
-                        }
-                        catch (Exception e)
-                        {
-                            errorCount++;
-                            continue;
-                        }
+                        IDataRecord rec = it.next();
                         
                         dos.writeDouble(rec.getKey().timeStamp);
                         if (rec.getKey().producerID == null)

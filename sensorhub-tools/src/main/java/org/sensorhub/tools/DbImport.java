@@ -23,6 +23,8 @@ import net.opengis.swe.v20.DataEncoding;
 import org.sensorhub.api.persistence.DataKey;
 import org.sensorhub.impl.persistence.perst.BasicStorageConfig;
 import org.sensorhub.impl.persistence.perst.BasicStorageImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vast.cdm.common.DataStreamParser;
 import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEUtils;
@@ -34,7 +36,9 @@ import org.w3c.dom.NodeList;
 
 public class DbImport
 {
-
+    private static final Logger log = LoggerFactory.getLogger(DbImport.class);
+    
+    
     public static void main(String[] args) throws Exception
     {
         if (args.length < 2)
@@ -120,6 +124,7 @@ public class DbImport
                     }
                     catch (EOFException e)
                     {
+                        log.trace("No more records", e);
                         break;
                     }
                 }
