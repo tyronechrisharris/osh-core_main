@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -44,6 +45,7 @@ import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.ObservationImpl;
 import org.vast.ogc.om.ProcedureRef;
+import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSException;
 import org.vast.swe.SWEConstants;
 import org.vast.util.Asserts;
@@ -77,7 +79,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     Map<String, String> currentFoiMap = new LinkedHashMap<String, String>(); // entity ID -> current FOI ID
     
 
-    public StreamDataProvider(IDataProducerModule<?> dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws Exception
+    public StreamDataProvider(IDataProducerModule<?> dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws OWSException, IOException
     {
         this.dataSource = dataSource;
         this.sourceOutputs = new ArrayList<IStreamingDataInterface>();

@@ -565,6 +565,7 @@ public class TestSOSService
         
         // start sensor1
         SensorHub.getInstance().getModuleRegistry().startModule(provider1.sensorID);
+        Thread.sleep(500L);
         is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
         dom = checkOfferings(is, new String[] {UID_SENSOR2, UID_SENSOR1});
         checkOfferingTimeRange(dom, 0, "unknown", "unknown");

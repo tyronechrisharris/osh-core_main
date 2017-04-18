@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
+import java.io.IOException;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.sensor.ISensorModule;
 
@@ -32,7 +33,7 @@ public class SensorDataProvider extends StreamDataProvider implements ISOSDataPr
 {
 
     
-    public SensorDataProvider(ISensorModule<?> srcSensor, SensorDataProviderConfig config, SOSDataFilter filter) throws Exception
+    public SensorDataProvider(ISensorModule<?> srcSensor, SensorDataProviderConfig config, SOSDataFilter filter) throws IOException
     {
         super(srcSensor, config, filter);
     }

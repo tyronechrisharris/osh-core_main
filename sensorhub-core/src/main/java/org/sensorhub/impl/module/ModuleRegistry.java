@@ -111,8 +111,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             }
             catch (Exception e)
             {
-                log.error(IModule.CANNOT_LOAD_MSG  + MsgUtils.moduleString(config), e);
-                // continue loading other modules
+                // log error and continue loading other modules
+                log.error(IModule.CANNOT_LOAD_MSG, e);
             }
         }
         
@@ -170,7 +170,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         if (config.autoStart)
         {
             if (!module.waitForState(ModuleState.STARTED, timeOut))
-                throw new SensorHubException(IModule.CANNOT_START_MSG + MsgUtils.moduleString(module) + " in the requested time frame");
+                throw new SensorHubException(IModule.CANNOT_START_MSG + MsgUtils.moduleString(module) + TIMEOUT_MSG);
         }
         
         return module;
@@ -217,16 +217,15 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             
             // send event
             eventHandler.publishEvent(new ModuleEvent(module, Type.LOADED));
+            
+            // also init & start if autostart is set
+            if (config.autoStart)
+                startModuleAsync(config.id, null);
         }
         catch (Exception e)
         {
-            String msg = IModule.CANNOT_LOAD_MSG + config.name + "' [" + config.id + "]";
-            log.error(msg, e);
+            throw new SensorHubException(IModule.CANNOT_LOAD_MSG  + MsgUtils.moduleString(config), e);
         }
-        
-        // launch init if autostart is set
-        if (config.autoStart)
-            startModuleAsync(config.id, null);
         
         return module;
     }
@@ -245,7 +244,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             Class<?> clazz = Class.forName(className);
             return clazz.newInstance();
         }
-        catch (ClassNotFoundException | IllegalAccessException | InstantiationException e)
+        catch (NoClassDefFoundError | ClassNotFoundException | IllegalAccessException | InstantiationException e)
         {
             throw new SensorHubException("Cannot instantiate class " + className, e);
         }

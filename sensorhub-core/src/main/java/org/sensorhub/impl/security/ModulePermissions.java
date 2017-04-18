@@ -51,7 +51,7 @@ public class ModulePermissions extends AbstractPermission
     
     public ModulePermissions(String moduleIdString)
     {
-        super(null, moduleIdString);
+        this.name = moduleIdString;
         
         // extract module type alias and module ID
         int qualifierIndex = moduleIdString.indexOf('[');

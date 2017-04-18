@@ -31,11 +31,11 @@ import org.sensorhub.api.module.ModuleEvent.ModuleState;
  */
 public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
 {
-    public static final String CANNOT_LOAD_MSG = "Could not load module ";
-    public static final String CANNOT_INIT_MSG = "Could not initialize module ";
-    public static final String CANNOT_START_MSG = "Could not start module ";
-    public static final String CANNOT_STOP_MSG = "Could not stop module ";
-    public static final String CANNOT_UPDATE_MSG = "Could not update module configuration";
+    public static final String CANNOT_LOAD_MSG = "Cannot load module ";
+    public static final String CANNOT_INIT_MSG = "Cannot initialize module ";
+    public static final String CANNOT_START_MSG = "Cannot start module ";
+    public static final String CANNOT_STOP_MSG = "Cannot stop module ";
+    public static final String CANNOT_UPDATE_MSG = "Cannot update module configuration";
     
     
     /**
