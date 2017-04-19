@@ -700,7 +700,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         try
         {
             // remove from repository
-            configRepo.remove(moduleID);
+            if (configRepo.contains(moduleID))
+                configRepo.remove(moduleID);
             
             // stop it and call cleanup if it was loaded
             IModule<?> module = loadedModules.remove(moduleID);
