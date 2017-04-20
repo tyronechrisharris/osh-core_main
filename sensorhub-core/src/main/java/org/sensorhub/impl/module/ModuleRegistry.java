@@ -59,9 +59,6 @@ import org.slf4j.LoggerFactory;
  * as well as dynamically loading/unloading modules on demand.
  * It also keeps lists of all loaded and available modules.
  * </p>
- * 
- * TODO implement global event manager for all modules ? 
- * TODO return weak references to modules ?
  *
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Sep 2, 2013
@@ -821,7 +818,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      */
     public Collection<ModuleConfig> getAvailableModules(Class<?> moduleClass)
     {
-        ArrayList<ModuleConfig> availableModules = new ArrayList<ModuleConfig>();
+        ArrayList<ModuleConfig> availableModules = new ArrayList<>();
         
         // retrieve all modules of specified type
         for (ModuleConfig config: getAvailableModules())
@@ -847,7 +844,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      */
     public Collection<IModuleProvider> getInstalledModuleTypes()
     {
-        ArrayList<IModuleProvider> installedModules = new ArrayList<IModuleProvider>();
+        ArrayList<IModuleProvider> installedModules = new ArrayList<>();
         
         ServiceLoader<IModuleProvider> sl = ServiceLoader.load(IModuleProvider.class);
         try
@@ -872,7 +869,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      */
     public Collection<IModuleProvider> getInstalledModuleTypes(Class<?> moduleClass)
     {
-        ArrayList<IModuleProvider> installedModules = new ArrayList<IModuleProvider>();
+        ArrayList<IModuleProvider> installedModules = new ArrayList<>();
 
         ServiceLoader<IModuleProvider> sl = ServiceLoader.load(IModuleProvider.class);
         for (IModuleProvider provider: sl)

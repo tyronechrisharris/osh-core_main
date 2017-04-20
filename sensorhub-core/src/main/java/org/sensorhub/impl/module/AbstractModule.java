@@ -548,7 +548,8 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             // first create logger object
             String localID = getLocalID();
-            String loggerId = Integer.toHexString(Math.abs(localID.hashCode()));
+            String loggerId = Integer.toHexString(localID.hashCode());
+            loggerId.replaceAll("-", ""); // remove minus sign if any
             logger = LoggerFactory.getLogger(this.getClass().getCanonicalName() + ":" + loggerId);
         
             // also configure logger to append to log file in module folder

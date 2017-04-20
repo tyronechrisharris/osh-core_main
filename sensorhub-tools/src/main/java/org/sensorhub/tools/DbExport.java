@@ -14,7 +14,6 @@ import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -39,7 +38,12 @@ import org.w3c.dom.Element;
 
 public class DbExport
 {
-        
+    
+    private DbExport()
+    {        
+    }
+    
+    
     public static void main(String[] args) throws Exception
     {
         if (args.length < 1)
@@ -59,13 +63,17 @@ public class DbExport
         db.init(dbConf);
         db.start();
         
-        // write everything to output file
-        try
+        // write metadata file
+        String outputName = new File(dbPath).getName();
+        File metadataFile = new File(outputName + ".export.metadata");
+        if (metadataFile.exists())
         {
-            File outputFile = new File(dbPath + ".export.metadata");
-            if (outputFile.exists())
-                throw new IOException("DB export file already exist: " + outputFile);
-            
+            System.err.println("DB export file already exist: " + metadataFile);
+            System.exit(1);
+        }
+        
+        try (OutputStream metadataOs = new BufferedOutputStream(new FileOutputStream(metadataFile)))
+        {            
             // prepare XML output
             DOMHelper dom = new DOMHelper("db_export");
             SMLUtils smlUtils = new SMLUtils(SMLUtils.V2_0);
@@ -108,22 +116,22 @@ public class DbExport
                 };
                 
                 // write records to separate binary file
-                DataStreamWriter recordWriter = null;
-                try
+                File dataFile = new File(outputName + '.' + recordType + ".export.data");
+                if (dataFile.exists())
                 {
-                    File dataFile = new File(outputFile.getParent(), recordType + ".export.data");
-                    if (dataFile.exists())
-                    {
-                        System.err.println("Data store export file already exist: " + dataFile);
-                        continue;
-                    }
-                    OutputStream recordOutput = new BufferedOutputStream(new FileOutputStream(dataFile));
-                    DataOutputStream dos = new DataOutputStream(recordOutput);
+                    System.err.println("DB export file already exist: " + dataFile);
+                    System.exit(1);
+                }
+                
+                DataStreamWriter recordWriter = null;
+                try (OutputStream recordOs = new BufferedOutputStream(new FileOutputStream(dataFile)))
+                {
+                    DataOutputStream dos = new DataOutputStream(recordOs);
                     
                     // prepare record writer
                     recordWriter = SWEHelper.createDataWriter(recordEncoding);
                     recordWriter.setDataComponents(recordStruct);
-                    recordWriter.setOutput(recordOutput);
+                    recordWriter.setOutput(dos);
                     
                     // write all records
                     int errorCount = 0;
@@ -139,32 +147,25 @@ public class DbExport
                         else
                             dos.writeUTF(rec.getKey().producerID);
                         recordWriter.write(rec.getData());
-                        recordWriter.flush();
                         if (recordEncoding instanceof TextEncoding)
                             dos.write('\n');
-                        recordCount++;
+                        dos.flush();
                         
+                        recordCount++;
                         if (recordCount % 100 == 0)
                             System.out.print(recordCount + "\r");
                     }
                     
                     System.out.println("Exported " + recordCount + " records (" + errorCount + " errors)");
                 }
-                finally
-                {
-                    if (recordWriter != null)
-                        recordWriter.close();
-                }
             }
             
             // write out the whole metadata file
-            OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile));
-            dom.serialize(dom.getRootElement(), os, true);
+            dom.serialize(dom.getRootElement(), metadataOs, true);
         }
         finally
         {
-
+            db.stop();
         }
     }
-
 }

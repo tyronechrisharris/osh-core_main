@@ -47,7 +47,7 @@ public class SensorManagerImpl implements ISensorManager
     @Override
     public Collection<ISensorModule<?>> getLoadedModules()
     {
-        ArrayList<ISensorModule<?>> enabledSensors = new ArrayList<ISensorModule<?>>();
+        ArrayList<ISensorModule<?>> enabledSensors = new ArrayList<>();
         
         // retrieve all modules implementing ISensorInterface
         for (IModule<?> module: moduleRegistry.getLoadedModules())
@@ -92,7 +92,7 @@ public class SensorManagerImpl implements ISensorManager
         Collection<ISensorModule<?>> enabledSensors = getLoadedModules();
         for (ISensorModule<?> sensor: enabledSensors)
         {
-            if (uid.equals(sensor.getCurrentDescription().getIdentifier()))
+            if (uid.equals(sensor.getUniqueIdentifier()))
                 return sensor;
         }
         
@@ -103,7 +103,7 @@ public class SensorManagerImpl implements ISensorManager
     @Override
     public Collection<ISensorModule<?>> getConnectedSensors()
     {
-        ArrayList<ISensorModule<?>> connectedSensors = new ArrayList<ISensorModule<?>>();
+        ArrayList<ISensorModule<?>> connectedSensors = new ArrayList<>();
         
         // scan module list
         for (IModule<?> module: moduleRegistry.getLoadedModules())

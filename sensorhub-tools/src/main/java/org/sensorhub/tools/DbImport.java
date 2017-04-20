@@ -39,6 +39,11 @@ public class DbImport
     private static final Logger log = LoggerFactory.getLogger(DbImport.class);
     
     
+    private DbImport()
+    {        
+    }
+    
+    
     public static void main(String[] args) throws Exception
     {
         if (args.length < 2)
@@ -59,6 +64,12 @@ public class DbImport
         
         // read XML metadata file
         File metadataFile = new File(args[0]);
+        if (!metadataFile.exists())
+        {
+            System.err.println("Missing DB export file: " + metadataFile);
+            System.exit(1);
+        }
+        
         DOMHelper dom = new DOMHelper("file://" + metadataFile.getAbsolutePath(), false);
         SMLUtils smlUtils = new SMLUtils(SMLUtils.V2_0);
         SWEUtils sweUtils = new SWEUtils(SWEUtils.V2_0);
@@ -91,10 +102,15 @@ public class DbImport
             
             // read records data            
             DataStreamParser recordParser = null;
-            try
+            File dataFile = new File(metadataFile.getParent(), recordType + ".export.data");
+            if (!dataFile.exists())
             {
-                File dataFile = new File(metadataFile.getParent(), recordType + ".export.data");
-                InputStream recordInput = new BufferedInputStream(new FileInputStream(dataFile));
+                System.err.println("Missing DB export file: " + dataFile);
+                System.exit(1);
+            }
+            
+            try (InputStream recordInput = new BufferedInputStream(new FileInputStream(dataFile)))
+            {
                 DataInputStream dis = new DataInputStream(recordInput);
                 
                 // prepare record writer
@@ -106,7 +122,7 @@ public class DbImport
                 int recordCount = 0;
                 while (true)
                 {
-                    try
+                    try 
                     {
                         double timeStamp = dis.readDouble();
                         String producerID = dis.readUTF();

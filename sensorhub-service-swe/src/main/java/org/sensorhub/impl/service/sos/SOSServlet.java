@@ -151,15 +151,15 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     final transient SOSServiceConfig config;
     final transient SOSSecurity securityHandler;
     final transient Logger log;
-    final transient WebSocketServletFactory factory = new WebSocketServerFactory();
+    final transient WebSocketServletFactory wsFactory = new WebSocketServerFactory();
     final transient ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
     final transient SOSServiceCapabilities capabilities = new SOSServiceCapabilities();
-    final transient Map<String, SOSOfferingCapabilities> offeringCaps = new HashMap<String, SOSOfferingCapabilities>();
-    final transient Map<String, String> procedureToOfferingMap = new HashMap<String, String>();
-    final transient Map<String, String> templateToOfferingMap = new HashMap<String, String>();    
-    final transient Map<String, ISOSDataProviderFactory> dataProviders = new LinkedHashMap<String, ISOSDataProviderFactory>();
-    final transient Map<String, ISOSDataConsumer> dataConsumers = new LinkedHashMap<String, ISOSDataConsumer>();
-    final transient Map<String, ISOSCustomSerializer> customFormats = new HashMap<String, ISOSCustomSerializer>();
+    final transient Map<String, SOSOfferingCapabilities> offeringCaps = new HashMap<>();
+    final transient Map<String, String> procedureToOfferingMap = new HashMap<>();
+    final transient Map<String, String> templateToOfferingMap = new HashMap<>();    
+    final transient Map<String, ISOSDataProviderFactory> dataProviders = new LinkedHashMap<>();
+    final transient Map<String, ISOSDataConsumer> dataConsumers = new LinkedHashMap<>();
+    final transient Map<String, ISOSCustomSerializer> customFormats = new HashMap<>();
     
     
     protected SOSServlet(SOSServiceConfig config, SOSSecurity securityHandler, Logger log) throws SensorHubException
@@ -638,7 +638,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         try
         {
             // check if we have an upgrade request for websockets
-            if (factory.isUpgradeRequest(req, resp))
+            if (wsFactory.isUpgradeRequest(req, resp))
             {
                 // parse request
                 try
@@ -684,7 +684,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected void acceptWebSocket(final OWSRequest owsReq, final WebSocketListener socket) throws IOException
     {
-        factory.acceptWebSocket(new WebSocketCreator() {
+        wsFactory.acceptWebSocket(new WebSocketCreator() {
             @Override
             public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
             {
@@ -732,7 +732,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 try
                 {
                     if (provider.isEnabled())
-                        ((ISOSDataProviderFactory)provider).updateCapabilities();
+                        provider.updateCapabilities();
                 }
                 catch (SensorHubException e)
                 {
@@ -843,7 +843,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             request.setFormat(GetObservationRequest.DEFAULT_FORMAT);
         
         // build offering set (also from procedures ID)
-        Set<String> selectedOfferings = new HashSet<String>();
+        Set<String> selectedOfferings = new HashSet<>();
         for (String procID: request.getProcedures())
         {
             String offering = procedureToOfferingMap.get(procID);
@@ -912,7 +912,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 if (selectedObservables.isEmpty())
                 {
                    SOSOfferingCapabilities caps = offeringCaps.get(offering);
-                   selectedObservables = new ArrayList<String>();
+                   selectedObservables = new ArrayList<>();
                    selectedObservables.addAll(caps.getObservableProperties());
                    sendAllObservables = true;
                 }
@@ -948,11 +948,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                         
                         // remove redundant obs in wildcard case
                         DataComponent result = obs.getResult();
-                        if (sendAllObservables)
-                        {
-                            if (result instanceof DataRecord || result instanceof DataChoice)
-                                continue;
-                        }
+                        if (sendAllObservables && (result instanceof DataRecord || result instanceof DataChoice))
+                            continue;
                         
                         // set correct obs type depending on final result structure                        
                         if (result instanceof SimpleComponent)
@@ -1003,6 +1000,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
+    @Override
     protected void handleRequest(GetResultTemplateRequest request) throws IOException
     {
         // check query parameters        
@@ -1016,7 +1014,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         // setup data provider
         SOSDataFilter filter = new SOSDataFilter(request.getObservables().get(0));
         ISOSDataProvider dataProvider = getDataProvider(request.getOffering(), filter);
-            
+        
         try
         {
             // build filtered component tree
@@ -1054,8 +1052,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         }
         finally
         {
-            if (dataProvider != null)
-                dataProvider.close();
+            dataProvider.close();
         }
     }
     
@@ -1111,11 +1108,11 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                     request.setXmlWrapper(false);
                 
                 // write small xml wrapper if requested
-                if (((GetResultRequest) request).isXmlWrapper())
+                if (request.isXmlWrapper())
                 {
                     String nsUri = OGCRegistry.getNamespaceURI(SOSUtils.SOS, request.getVersion());
-                    os.write(new String("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n").getBytes());
-                    os.write(new String("<GetResultResponse xmlns=\"" + nsUri + "\">\n<resultValues>\n").getBytes());
+                    os.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n".getBytes());
+                    os.write(("<GetResultResponse xmlns=\"" + nsUri + "\">\n<resultValues>\n").getBytes());
                 }
                 
                 // else change response content type according to encoding
@@ -1162,7 +1159,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 
                 // close xml wrapper if needed
                 if (request.isXmlWrapper())
-                    os.write(new String("\n</resultValues>\n</GetResultResponse>").getBytes());          
+                    os.write("\n</resultValues>\n</GetResultResponse>".getBytes());          
                         
                 os.flush();
             }
@@ -1173,8 +1170,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         }
         finally
         {
-            if (dataProvider != null)
-                dataProvider.close();
+            dataProvider.close();
         }
     }
     
@@ -1183,7 +1179,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     protected void handleRequest(final GetFeatureOfInterestRequest request) throws IOException
     {
         OWSExceptionReport report = new OWSExceptionReport();
-        Set<String> selectedProcedures = new LinkedHashSet<String>();
+        Set<String> selectedProcedures = new LinkedHashSet<>();
                 
         // get list of procedures to scan
         List<String> procedures = request.getProcedures();
@@ -1292,7 +1288,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             
             // scan offering corresponding to each selected procedure
             boolean first = true;
-            HashSet<String> returnedFids = new HashSet<String>();
+            HashSet<String> returnedFids = new HashSet<>();
             
             for (String procID: selectedProcedures)
             {
@@ -1362,7 +1358,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
         // get sensor UID
         String sensorUID = request.getProcedureDescription().getUniqueIdentifier();
-        log.info("Registering new sensor " + sensorUID);
+        log.info("Registering new sensor {}", sensorUID);
         
         // offering name is derived from sensor UID
         String offeringID = sensorUID + "-sos";
@@ -1370,7 +1366,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         ///////////////////////////////////////////////////////////////////////////////////////
         // we configure things step by step so we can fix config if it was partially altered //
         ///////////////////////////////////////////////////////////////////////////////////////
-        HashSet<ModuleConfig> configSaveList = new HashSet<ModuleConfig>();
+        HashSet<ModuleConfig> configSaveList = new HashSet<>();
         ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
         
         // create new virtual sensor module if needed            
@@ -1601,7 +1597,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
         // retrieve consumer based on template id
         String templateID = request.getTemplateId();
-        ISOSDataConsumer consumer = (ISOSDataConsumer)getDataConsumerByTemplateID(templateID);
+        ISOSDataConsumer consumer = getDataConsumerByTemplateID(templateID);
         
         // security check
         String offeringID = templateToOfferingMap.get(templateID);
@@ -1820,7 +1816,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         // refresh offering capabilities if needed
         try
         {
-            ISOSDataProviderFactory provider = (ISOSDataProviderFactory)dataProviders.get(offeringID);
+            ISOSDataProviderFactory provider = dataProviders.get(offeringID);
             provider.updateCapabilities();
         }
         catch (Exception e)
@@ -1926,7 +1922,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             ISOSDataProviderFactory factory = dataProviders.get(offering);
             if (factory == null)
                 throw new IllegalStateException("No valid data provider factory found for offering " + offering);
-            return (ISOSDataProviderFactory)factory;
+            return factory;
         }
         finally
         {
