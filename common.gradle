@@ -49,10 +49,7 @@ subprojects {
       file.whenMerged { 
         entries.each {
           if (it.hasProperty('exported'))
-          {
             it.exported = true
-            println it
-          }
         }
       }
     }
