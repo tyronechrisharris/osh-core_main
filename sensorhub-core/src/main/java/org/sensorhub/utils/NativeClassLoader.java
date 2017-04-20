@@ -49,8 +49,8 @@ public class NativeClassLoader extends URLClassLoader
 {
     private static final URL[] EMPTY_URLS = new URL[] {};
     private Logger log; // cannot be a static logger in case it is used as system classloader
-    private Map<String, String> loadedLibraries = new HashMap<String, String>();
-    private List<File> tmpFolders = new ArrayList<File>(); 
+    private Map<String, String> loadedLibraries = new HashMap<>();
+    private List<File> tmpFolders = new ArrayList<>(); 
     
 
     public NativeClassLoader()
@@ -109,13 +109,13 @@ public class NativeClassLoader extends URLClassLoader
     {
         String osarch = System.getProperty("os.arch");
         
-        if (osarch.equals("amd64"))
+        if ("amd64".equals(osarch))
             return "x86_64";
         
-        if (osarch.equals("i386"))
+        if ("i386".equals(osarch))
             return "x86";
         
-        if (osarch.equals("arm"))
+        if ("arm".equals(osarch))
         {
             String armabi = System.getProperty("os.armabi");
             if (armabi == null)
@@ -130,9 +130,7 @@ public class NativeClassLoader extends URLClassLoader
     @Override
     protected String findLibrary(String libName)
     {
-        // setup logger cause it doesn't work the static way when used as system class loader
-        if (log == null)
-            log = LoggerFactory.getLogger(NativeClassLoader.class);
+        ensureLogger();
         
         // get path directly if we have already found this library
         String libPath = loadedLibraries.get(libName);
@@ -167,16 +165,19 @@ public class NativeClassLoader extends URLClassLoader
     
     private String extractResource(String libName, URL url)
     {
+        String libPath;
+        InputStream in = null;
+        OutputStream out = null;
+        
         try
         {
             URLConnection con = url.openConnection();
-            String libPath;
-            
+                        
             if (con instanceof JarURLConnection)
             {                
                 // get resource from jar
                 JarURLConnection jarItemConn = (JarURLConnection)con;
-                InputStream in = new BufferedInputStream(jarItemConn.getInputStream());
+                in = new BufferedInputStream(jarItemConn.getInputStream());
                 
                 // copy to temp location (folder named as jar file)
                 File jarFile = new File(jarItemConn.getJarFile().getName());
@@ -184,14 +185,12 @@ public class NativeClassLoader extends URLClassLoader
                 tmpFolders.add(tmpDir);
                 File outFile = new File(tmpDir, jarItemConn.getJarEntry().getName());
                 outFile.getParentFile().mkdirs();
-                OutputStream out = new BufferedOutputStream(new FileOutputStream(outFile));            
+                out = new BufferedOutputStream(new FileOutputStream(outFile));            
                 byte[] buffer = new byte[1024];
                 int len;
                 while ((len = in.read(buffer)) > 0)
                     out.write(buffer, 0, len);
-                out.close();
-                in.close();
-    
+                    
                 // use path to temp file
                 libPath = outFile.getPath();
             }
@@ -207,8 +206,20 @@ public class NativeClassLoader extends URLClassLoader
         }
         catch (Exception e)
         {
-            log.trace("Cannot find library " + libName + " in " + url, e);
+            log.trace("Cannot find library {} in {}", libName, url, e);
             return null;
+        }
+        finally
+        {
+            try
+            {
+                out.close();
+                in.close();
+            }
+            catch (IOException e)
+            {
+                log.error("Cannot close streams", e);
+            }
         }
     }
 
@@ -216,6 +227,7 @@ public class NativeClassLoader extends URLClassLoader
     @Override
     protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
     {
+        ensureLogger();
         Class<?> c = findLoadedClass(name);
         
         if (c == null)
@@ -226,7 +238,8 @@ public class NativeClassLoader extends URLClassLoader
             }
             catch (ClassNotFoundException e)
             {
-                log.trace("Cannot find class in parent classloader", e);
+                if (log.isTraceEnabled())
+                    log.trace("Cannot find class in parent classloader", e);
                 c = findClass(name);
             }
         }
@@ -237,5 +250,13 @@ public class NativeClassLoader extends URLClassLoader
         }
         
         return c;
+    }
+    
+    
+    private void ensureLogger()
+    {
+        // setup logger cause it doesn't work the static way when used as system class loader
+        if (log == null)
+            log = LoggerFactory.getLogger(NativeClassLoader.class);
     }
 }
