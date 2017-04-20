@@ -149,21 +149,6 @@ class TimeSeriesImpl extends Persistent implements IRecordStoreInfo
     @Override
     public DataEncoding getRecommendedEncoding()
     {
-        /*// HACK to fix broken ByteOrder enum
-        // java.nio.ByteOrder is a class with static singletons instead of an enum
-        // This causes instances deserialized from storage to be unequal with the constant
-        if (recommendedEncoding instanceof BinaryEncoding)
-        {
-            ByteOrder byteOrder = ((BinaryEncoding) recommendedEncoding).getByteOrder();
-            if (byteOrder != null && byteOrder != ByteOrder.BIG_ENDIAN && byteOrder != ByteOrder.LITTLE_ENDIAN)
-            {
-                if (byteOrder.toString().equals(ByteOrder.LITTLE_ENDIAN.toString()))
-                    byteOrder = ByteOrder.LITTLE_ENDIAN;
-                else
-                    byteOrder = ByteOrder.BIG_ENDIAN;
-            }
-        }*/
-        
         return recommendedEncoding;
     }
 
