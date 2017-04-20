@@ -20,19 +20,23 @@ import java.util.NoSuchElementException;
 
 /**
  * <p>
- * Helper class to write iterators that filter elements returned by another
- * iterator on-the-fly
+ * Helper class to wrap iterators with some logic used to further filter or
+ * modify the returned elements
  * </p>
  *
  * @author Alex Robin <alex.robin@sensiasoftware.com>
- * @since Mar 15, 2017
+ * @since Apr 15, 2017
  */
-public abstract class FilteredIterator<E> extends IteratorWrapper<E, E>
+public abstract class IteratorWrapper<IN, OUT> implements Iterator<OUT>
 {
+    protected OUT next;
+    protected Iterator<IN> it;
     
-    public FilteredIterator(Iterator<E> it)
+    
+    public IteratorWrapper(Iterator<IN> it)
     {
-        super(it);
+        this.it = it;
+        preloadNext();
     }
     
     
@@ -44,7 +48,7 @@ public abstract class FilteredIterator<E> extends IteratorWrapper<E, E>
     
 
     @Override
-    public E next()
+    public OUT next()
     {
         if (!hasNext())
             throw new NoSuchElementException();
@@ -52,15 +56,26 @@ public abstract class FilteredIterator<E> extends IteratorWrapper<E, E>
     }
     
     
-    @Override
-    protected E process(E elt)
+    /**
+     * Preload next element and return current element
+     * @return the current element (i.e. the one that should be returned by next())
+     */
+    protected OUT preloadNext()
     {
-        if (accept(elt))
-            return elt;
-        return null;
+        OUT current = next;        
+        next = null;
+        
+        // loop until we find the next acceptable item
+        // or end of iteration
+        while (next == null && it.hasNext())
+        {
+            IN elt = it.next();
+            next = process(elt);
+        }
+        
+        return current;
     }
     
     
-    protected abstract boolean accept(E elt);
-
+    protected abstract OUT process(IN elt);
 }
