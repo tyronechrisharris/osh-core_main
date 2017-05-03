@@ -227,7 +227,6 @@ public class NativeClassLoader extends URLClassLoader
     @Override
     protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
     {
-        ensureLogger();
         Class<?> c = findLoadedClass(name);
         
         if (c == null)
@@ -238,9 +237,8 @@ public class NativeClassLoader extends URLClassLoader
             }
             catch (ClassNotFoundException e)
             {
-                if (log.isTraceEnabled())
-                    log.trace("Cannot find class in parent classloader", e);
                 c = findClass(name);
+                // cannot log in a classloader because the logger class itself may not be loaded!
             }
         }
 
