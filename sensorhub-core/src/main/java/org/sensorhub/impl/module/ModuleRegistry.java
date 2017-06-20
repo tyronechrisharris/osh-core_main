@@ -30,12 +30,14 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.common.Event;
+import org.sensorhub.api.common.IEntity;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventProducer;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.config.IGlobalConfig;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.module.IModuleManager;
@@ -45,9 +47,7 @@ import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.module.ModuleEvent.Type;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.common.DefaultThreadFactory;
-import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.utils.FileUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
@@ -71,10 +71,11 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     private static final Logger log = LoggerFactory.getLogger(ModuleRegistry.class);
     private static final String REGISTRY_SHUTDOWN_MSG = "Registry was shut down";
     private static final String TIMEOUT_MSG = " in the requested time frame";
-    public static final String ID = "MODULE_REGISTRY";
+    public static final String EVENT_PRODUCER_ID = "MODULE_REGISTRY";
     public static final String LOG_MODULE_ID = "MODULE_ID";
     public static final long SHUTDOWN_TIMEOUT_MS = 10000L;
-
+    
+    ISensorHub hub;
     IModuleConfigRepository configRepo;
     Map<String, IModule<?>> loadedModules;
     Map<String, Logger> moduleLoggers;
@@ -84,12 +85,13 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     volatile boolean shutdownCalled;
     
     
-    public ModuleRegistry(IModuleConfigRepository configRepos, EventBus eventBus)
+    public ModuleRegistry(ISensorHub hub, IModuleConfigRepository configRepos)
     {
+        this.hub = hub;
         this.configRepo = configRepos;
         this.loadedModules = Collections.synchronizedMap(new LinkedHashMap<String, IModule<?>>());
         this.moduleLoggers = Collections.synchronizedMap(new HashMap<String, Logger>());
-        this.eventHandler = eventBus.registerProducer(ID);
+        this.eventHandler = hub.getEventBus().registerProducer(EVENT_PRODUCER_ID);
         this.asyncExec = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                                                 10L, TimeUnit.SECONDS,
                                                 new SynchronousQueue<Runnable>(),
@@ -206,6 +208,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             // instantiate module class
             module = (IModule)loadClass(config.moduleClass);
             log.debug("Module " + MsgUtils.moduleString(config) + " loaded");
+            module.setParentHub(hub);
             
             // set config
             module.setConfiguration(config);
@@ -783,6 +786,26 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     }
     
     
+    /**
+     * Retrieves list of all loaded modules that are sub-types
+     * of the specified class
+     * @param moduleType parent class of modules to search for
+     * @return list of module instances of the specified type
+     */
+    public synchronized <ModuleType> Collection<ModuleType> getLoadedModules(Class<ModuleType> moduleType)
+    {
+        ArrayList<ModuleType> matchingModules = new ArrayList<>();
+        
+        for (IModule<?> module: getLoadedModules())
+        {
+            if (moduleType.isAssignableFrom(module.getClass()))
+                matchingModules.add((ModuleType)module);
+        }
+        
+        return matchingModules;
+    }
+    
+    
     @Override
     public IModule<?> getModuleById(String moduleID) throws SensorHubException
     {
@@ -799,10 +822,10 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     }
     
     
-    public WeakReference<? extends IModule<?>> getModuleRef(String moduleID) throws SensorHubException
+    public <ModuleType> WeakReference<ModuleType> getModuleRef(String moduleID) throws SensorHubException
     {
         IModule<?> module = getModuleById(moduleID);
-        return new WeakReference<>(module);
+        return new WeakReference<>((ModuleType)module);
     }
     
     
@@ -819,10 +842,10 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     /**
      * Retrieves list of all available module types that are sub-types
      * of the specified class
-     * @param moduleClass parent class of modules to search for
+     * @param moduleType parent class of modules to search for
      * @return list of config classes for available modules
      */
-    public Collection<ModuleConfig> getAvailableModules(Class<?> moduleClass)
+    public Collection<ModuleConfig> getAvailableModules(Class<?> moduleType)
     {
         ArrayList<ModuleConfig> availableModules = new ArrayList<>();
         
@@ -831,7 +854,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         {
             try
             {
-                if (moduleClass.isAssignableFrom(Class.forName(config.moduleClass)))
+                if (moduleType.isAssignableFrom(Class.forName(config.moduleClass)))
                     availableModules.add(config);
             }
             catch (Exception e)
@@ -1007,7 +1030,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      */
     public IModuleStateManager getStateManager(String moduleID)
     {
-        String moduleDataPath = SensorHub.getInstance().getConfig().getModuleDataPath();
+        String moduleDataPath = hub.getConfig().getModuleDataPath();
         if (moduleDataPath != null)
             return new DefaultModuleStateManager(moduleDataPath, moduleID);
         else
@@ -1022,11 +1045,11 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      */
     public File getModuleDataFolder(String moduleID)
     {
-        IGlobalConfig oshConfig = SensorHub.getInstance().getConfig();
+        ISensorHubConfig oshConfig = hub.getConfig();
         if (oshConfig == null)
             return null;
         
-        String moduleDataRoot = SensorHub.getInstance().getConfig().getModuleDataPath();
+        String moduleDataRoot = hub.getConfig().getModuleDataPath();
         if (moduleDataRoot == null)
             return null;
         
@@ -1154,6 +1177,10 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         catch (SensorHubException e)
         {
             log.error("Cannot load state of module " + moduleString, e);
-        }        
+        }
+        
+        // if module is an entity, register it now
+        if (module instanceof IEntity)
+            hub.getEntityManager().registerEntity((IEntity)module);
     }
 }

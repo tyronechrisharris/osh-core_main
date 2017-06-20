@@ -150,6 +150,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     private static final QName EXT_REPLAY = new QName("replayspeed"); // kvp params are always lower case
     private static final QName EXT_WS = new QName("websocket");
     
+    final transient SOSService service;
     final transient SOSServiceConfig config;
     final transient SOSSecurity securityHandler;
     final transient ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
@@ -163,10 +164,11 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     WebSocketServletFactory wsFactory;
     
     
-    protected SOSServlet(SOSServiceConfig config, SOSSecurity securityHandler, Logger log) throws SensorHubException
+    protected SOSServlet(SOSService service, SOSSecurity securityHandler, Logger log) throws SensorHubException
     {
         super(log);
-        this.config = config;
+        this.service = service;
+        this.config = service.getConfiguration();
         this.securityHandler = securityHandler;
         generateCapabilities();
     }
@@ -345,7 +347,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 try
                 {
                     // for now we support only virtual sensors as consumers
-                    ISOSDataConsumer consumer = consumerConf.getConsumer();
+                    ISOSDataConsumer consumer = consumerConf.getConsumer(this);
                     dataConsumers.put(consumerConf.offeringID, consumer);
                 }
                 catch (SensorHubException e)
@@ -356,7 +358,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         }
         
         // preload custom format serializers
-        ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
+        ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
         for (SOSCustomFormatConfig allowedFormat: config.customFormats)
         {
             try
@@ -541,7 +543,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 consumerConfig.storageID = null;
                                 
                 // replace old consumer
-                consumer = consumerConfig.getConsumer();
+                consumer = consumerConfig.getConsumer(this);
                 dataConsumers.put(offeringID, consumer);
             }
         }
@@ -619,7 +621,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
      */
     protected IModule<?> addStorageForSensor(ISensorModule<?> sensorModule) throws IOException
     {
-        ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
+        ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
         String sensorUID = sensorModule.getUniqueIdentifier();
             
         try
@@ -1465,7 +1467,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             // instantiate and register consumer
             try
             {
-                consumer = consumerConfig.getConsumer();
+                consumer = consumerConfig.getConsumer(this);
                 dataConsumers.put(offeringID, consumer);
             }
             catch (SensorHubException e)
@@ -1510,7 +1512,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         {
             dataProviders.remove(offeringID);
             SWETransactionalSensor virtualSensor = (SWETransactionalSensor)dataConsumers.remove(offeringID);
-            SensorHub.getInstance().getModuleRegistry().destroyModule(virtualSensor.getLocalID());
+            service.getParentHub().getModuleRegistry().destroyModule(virtualSensor.getLocalID());
         }
         catch (SensorHubException e)
         {
@@ -2151,5 +2153,17 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         }
         
         return false;
+    }
+    
+    
+    protected SensorHub getParentHub()
+    {
+        return service.getParentHub();
+    }
+    
+    
+    protected Logger getLogger()
+    {
+        return log;
     }
 }

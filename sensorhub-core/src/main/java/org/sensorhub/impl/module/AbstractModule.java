@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.module;
 
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
@@ -22,10 +23,10 @@ import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
+import org.vast.util.Asserts;
 
 
 /**
@@ -39,6 +40,7 @@ import org.slf4j.Logger;
  */
 public abstract class AbstractModule<ConfigType extends ModuleConfig> implements IModule<ConfigType>
 {
+    protected ISensorHub hub;
     protected Logger logger;
     protected IEventHandler eventHandler;
     protected ConfigType config;
@@ -50,8 +52,26 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected String statusMsg;
     
 
-    public AbstractModule()
+    public AbstractModule() {}
+    
+    
+    public void setParentHub(ISensorHub hub)
     {
+        if (this.hub != null)
+            throw new IllegalStateException("Parent hub has already been assigned");
+        this.hub = hub;
+    }
+    
+    
+    public ISensorHub getParentHub()
+    {
+        return this.hub;
+    }
+    
+    
+    protected void checkParentHub()
+    {
+        Asserts.checkState(hub != null, "Parent sensor hub hasn't been set");
     }
     
     
@@ -79,12 +99,14 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void setConfiguration(ConfigType config)
     {
+        checkParentHub();
+        
         if (this.config != config)
         {
             this.config = config;
             
             // get assigned event handler
-            this.eventHandler = SensorHub.getInstance().getEventBus().registerProducer(config.id, EventBus.MAIN_TOPIC);
+            this.eventHandler = getParentHub().getEventBus().registerProducer(config.id, EventBus.MAIN_TOPIC);
             
             // set default security handler
             this.securityHandler = new ModuleSecurity(this, "all", false);
@@ -125,14 +147,14 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public boolean isInitialized()
     {
-        return (state.ordinal() >= ModuleState.INITIALIZED.ordinal());
+        return state.ordinal() >= ModuleState.INITIALIZED.ordinal();
     }
 
     
     @Override
     public boolean isStarted()
     {
-        return (state == ModuleState.STARTED);
+        return state == ModuleState.STARTED;
     }
     
     
@@ -254,8 +276,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 this.lastError = new SensorHubException(msg, error);
             else
                 this.lastError = error;
-            
-            //stateLock.notifyAll();
             
             if (!logAsDebug || getLogger().isDebugEnabled())
             {
@@ -507,13 +527,15 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void cleanup() throws SensorHubException
     {
-        eventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DELETED));
+        if (eventHandler != null)
+            eventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DELETED));
     }
 
 
     @Override
     public void registerListener(IEventListener listener)
     {
+        checkParentHub();        
         synchronized (stateLock)
         {
             eventHandler.registerListener(listener);
@@ -529,14 +551,16 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void unregisterListener(IEventListener listener)
     {
+        checkParentHub();
         eventHandler.unregisterListener(listener);
     }
     
     
     public Logger getLogger()
     {
+        checkParentHub();
         if (logger == null)
-            logger = SensorHub.getInstance().getModuleRegistry().getModuleLogger(this);
+            logger = getParentHub().getModuleRegistry().getModuleLogger(this);
         
         return logger;
     }

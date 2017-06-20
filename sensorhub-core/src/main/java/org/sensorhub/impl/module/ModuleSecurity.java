@@ -25,6 +25,7 @@ import org.sensorhub.impl.security.PermissionRequest;
 
 public class ModuleSecurity
 {    
+    final IModule<?> module;
     public final ModulePermissions rootPerm;
     protected boolean enable = true;
     ThreadLocal<IUserInfo> currentUser = new ThreadLocal<>();
@@ -32,6 +33,7 @@ public class ModuleSecurity
     
     public ModuleSecurity(IModule<?> module, String moduleTypeAlias, boolean enable)
     {
+        this.module = module;
         this.rootPerm = new ModulePermissions(module, moduleTypeAlias);
         this.enable = enable;
         
@@ -47,7 +49,7 @@ public class ModuleSecurity
     
     private final boolean isAccessControlEnabled()
     {
-        return SensorHub.getInstance().getSecurityManager().isAccessControlEnabled();
+        return module.getParentHub().getSecurityManager().isAccessControlEnabled();
     }
     
     
@@ -67,7 +69,7 @@ public class ModuleSecurity
             throw new AccessControlException(perm.getErrorMessage() + ": No user specified");
         
         // request authorization
-        return SensorHub.getInstance().getSecurityManager().isAuthorized(user, new PermissionRequest(perm));
+        return module.getParentHub().getSecurityManager().isAuthorized(user, new PermissionRequest(perm));
     }
     
     
@@ -104,7 +106,7 @@ public class ModuleSecurity
             return;
         
         // lookup user info 
-        IUserInfo user = SensorHub.getInstance().getSecurityManager().getUserInfo(userID);
+        IUserInfo user = module.getParentHub().getSecurityManager().getUserInfo(userID);
         if (user == null)
             throw new AccessControlException("Permission denied: Unknown user " + userID);
         
@@ -126,6 +128,6 @@ public class ModuleSecurity
      */
     public void unregister()
     {
-        SensorHub.getInstance().getSecurityManager().unregisterModulePermissions(rootPerm);
+        module.getParentHub().getSecurityManager().unregisterModulePermissions(rootPerm);
     }
 }

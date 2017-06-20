@@ -89,6 +89,7 @@ public class SPSServlet extends OWSServlet
     private static final String TASK_ID_PREFIX = "urn:sensorhub:sps:task:";
     private static final String FEASIBILITY_ID_PREFIX = "urn:sensorhub:sps:feas:";
     
+    final transient SPSService service;
     final transient SPSServiceConfig config;
     final transient SPSSecurity securityHandler;
     final transient ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
@@ -113,10 +114,11 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    public SPSServlet(SPSServiceConfig config, SPSSecurity securityHandler, Logger log)
+    public SPSServlet(SPSService service, SPSSecurity securityHandler, Logger log)
     {
         super(new SPSUtils(), log);
-        this.config = config;
+        this.service = service;
+        this.config = service.getConfiguration();        
         this.securityHandler = securityHandler;
         generateCapabilities();       
     }
@@ -926,7 +928,7 @@ public class SPSServlet extends OWSServlet
             IModule<?> sensorModule = moduleReg.getLoadedModuleById(sensorUID);
             if (sensorModule == null)
             {
-                sensorModule = TransactionUtils.createSensorModule(sensorUID, request.getProcedureDescription());
+                sensorModule = TransactionUtils.createSensorModule(getParentHub(), sensorUID, request.getProcedureDescription());
                 configSaveList.add(sensorModule.getConfiguration());
             }            
             // else simply update description
@@ -1164,5 +1166,17 @@ public class SPSServlet extends OWSServlet
     protected String getDefaultVersion()
     {
         return DEFAULT_VERSION;
+    }
+    
+    
+    protected SensorHub getParentHub()
+    {
+        return service.getParentHub();
+    }
+    
+    
+    protected Logger getLogger()
+    {
+        return log;
     }
 }
