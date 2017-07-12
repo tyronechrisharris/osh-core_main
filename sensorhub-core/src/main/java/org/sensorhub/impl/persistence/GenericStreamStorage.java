@@ -34,6 +34,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import org.sensorhub.api.common.EntityEvent;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
@@ -58,8 +59,6 @@ import org.sensorhub.api.persistence.IRecordStoreInfo;
 import org.sensorhub.api.persistence.ObsKey;
 import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.persistence.StorageException;
-import org.sensorhub.api.sensor.SensorEvent;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.vast.swe.SWEHelper;
@@ -79,7 +78,8 @@ import org.vast.util.Bbox;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Feb 21, 2015
  */
-public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> implements IRecordStorageModule<StreamStorageConfig>, IObsStorage, IEventListener
+public class GenericStreamStorage extends AbstractModule<StreamStorageConfig>
+       implements IRecordStorageModule<StreamStorageConfig>, IObsStorage, IMultiSourceStorage<IBasicStorage>, IEventListener
 {
     static final String WAITING_STATUS_MSG = "Waiting for data source ";
     
@@ -154,14 +154,14 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     {
         if (config.selectedOutputs == null || config.selectedOutputs.length == 0)
         {
-            return dataSource.getAllOutputs().values();
+            return dataSource.getOutputs().values();
         }
         else
         {
             int numOutputs = config.selectedOutputs.length;
             List <IStreamingDataInterface> selectedOutputs = new ArrayList<>(numOutputs);
             for (String outputName: config.selectedOutputs)
-                selectedOutputs.add(dataSource.getAllOutputs().get(outputName));
+                selectedOutputs.add(dataSource.getOutputs().get(outputName));
             return selectedOutputs;
         }
     }
@@ -232,11 +232,12 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             {
                 IBasicStorage dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
                 
-                // create data store if needed
-                if (dataStore == null)
+                if (((IMultiSourceStorage<?>)storage).getProducerIDs().contains(producerID))
+                    dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
+                else
                     dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID);
                 
-                connectDataSource(dataSource, dataStore);                
+                connectDataSource(producer, dataStore);
             }
         }
     }
@@ -459,7 +460,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         // prepare to receive events
         IDataProducer dataSource = dataSourceRef.get();
         if (dataSource != null)
-            prepareToReceiveEvents(dataSource.getAllOutputs().get(name));
+            prepareToReceiveEvents(dataSource.getOutputs().get(name));
     }
 
 
@@ -709,6 +710,42 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         checkStarted();
         if (storage instanceof IObsStorage)
             storeFoi(producerID, foi);        
+    }
+
+
+    @Override
+    public Collection<String> getProducerIDs()
+    {
+        checkStarted();
+        
+        if (storage instanceof IMultiSourceStorage)
+            return ((IMultiSourceStorage<?>)storage).getProducerIDs();
+        else
+            return Collections.emptyList();
+    }
+
+
+    @Override
+    public IBasicStorage getDataStore(String producerID)
+    {
+        checkStarted();
+        
+        if (storage instanceof IMultiSourceStorage)
+            return ((IMultiSourceStorage<IBasicStorage>)storage).getDataStore(producerID);
+        else
+            return null;
+    }
+
+
+    @Override
+    public IBasicStorage addDataStore(String producerID)
+    {
+        checkStarted();
+        
+        if (storage instanceof IMultiSourceStorage)
+            return ((IMultiSourceStorage<IBasicStorage>)storage).addDataStore(producerID);
+        else
+            return null;
     }
     
     

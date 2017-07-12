@@ -121,10 +121,10 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         
         // else generate output name
         if (outputName == null)
-            outputName = "output" + getAllOutputs().size();
+            outputName = "output" + getOutputs().size();
         
         // create new sensor output interface if needed
-        if (!getAllOutputs().containsKey(outputName))
+        if (!getOutputs().containsKey(outputName))
         {
             component.setName(outputName);
             SWETransactionalSensorOutput newOutput = new SWETransactionalSensorOutput(this, component, encoding);
@@ -132,7 +132,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         }
         else
         {
-            ISensorDataInterface output = getAllOutputs().get(outputName);
+            ISensorDataInterface output = getOutputs().get(outputName);
             
             // check that output definition is same as previously registered
             DataStructureHash oldOutputHashObj = new DataStructureHash(output.getRecordDescription(), output.getRecommendedEncoding());
@@ -197,7 +197,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         // process feature of interest
         if (foi != null)
         {
-            SWETransactionalSensorOutput output = (SWETransactionalSensorOutput)getAllOutputs().get(outputName);
+            SWETransactionalSensorOutput output = (SWETransactionalSensorOutput)getOutputs().get(outputName);
             currentFoi = foi;
             output.publishNewFeatureOfInterest(currentFoi);
         }
@@ -210,7 +210,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         if (state != ModuleState.STARTED)
             return;
         
-        SWETransactionalSensorOutput output = (SWETransactionalSensorOutput)getAllOutputs().get(outputName);
+        SWETransactionalSensorOutput output = (SWETransactionalSensorOutput)getOutputs().get(outputName);
         log.trace("New record received for output " + output.getName());
         
         for (DataBlock dataBlock: dataBlocks)
@@ -276,7 +276,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         // record update time
         long unixTime = System.currentTimeMillis();
         lastUpdatedSensorDescription = unixTime;
-        eventHandler.publishEvent(new SensorEvent(unixTime, this, SensorEvent.Type.SENSOR_CHANGED));
+        sensorEventHandler.publishEvent(new SensorEvent(unixTime, this, SensorEvent.Type.SENSOR_CHANGED));
     }
 
 
