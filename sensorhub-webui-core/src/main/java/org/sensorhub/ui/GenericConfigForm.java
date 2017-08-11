@@ -14,10 +14,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import org.sensorhub.api.comm.ICommNetwork;
@@ -54,6 +56,7 @@ import com.vaadin.data.fieldgroup.FieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitEvent;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitHandler;
+import com.vaadin.data.util.converter.StringToDoubleConverter;
 import com.vaadin.data.validator.IntegerRangeValidator;
 import com.vaadin.data.validator.StringLengthValidator;
 import com.vaadin.server.FontAwesome;
@@ -290,19 +293,46 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         else if (propId.endsWith("." + PROP_AUTOSTART))
             field.setVisible(false);
         
+        
+        
         // size depending on field type
         if (propType.equals(String.class))
         {
             field.setWidth(500, Unit.PIXELS);
         }
-        else if (propType.equals(int.class) || propType.equals(Integer.class) ||
-                propType.equals(float.class) || propType.equals(Float.class))
+        else if (propType.equals(int.class) || propType.equals(Integer.class))
         {
             field.setWidth(100, Unit.PIXELS);
+        }
+        else if (propType.equals(float.class) || propType.equals(Float.class))
+        {
+            field.setWidth(100, Unit.PIXELS);
+            
+            // allow for more digits
+            ((TextField)field).setConverter(new StringToDoubleConverter() {
+                @Override
+                protected NumberFormat getFormat(Locale locale)
+                {
+                    NumberFormat f = NumberFormat.getInstance(locale);
+                    f.setMaximumFractionDigits(8);
+                    return f;
+                }                
+            });
         }
         else if (propType.equals(double.class) || propType.equals(Double.class))
         {
             field.setWidth(150, Unit.PIXELS);
+            
+            // allow for more digits
+            ((TextField)field).setConverter(new StringToDoubleConverter() {
+                @Override
+                protected NumberFormat getFormat(Locale locale)
+                {
+                    NumberFormat f = NumberFormat.getInstance(locale);
+                    f.setMaximumFractionDigits(16);
+                    return f;
+                }                
+            });
         }
         else if (Enum.class.isAssignableFrom(propType))
         {
