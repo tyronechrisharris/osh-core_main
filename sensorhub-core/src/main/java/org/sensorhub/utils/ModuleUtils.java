@@ -25,10 +25,14 @@ import java.util.jar.Manifest;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ModuleUtils
 {
+    private static final Logger log = LoggerFactory.getLogger(ModuleUtils.class);
+    
     public static final String MODULE_NAME = "Bundle-Name";
     public static final String MODULE_DESC = "Bundle-Description";
     public static final String MODULE_VERSION = "Bundle-Version";
@@ -42,9 +46,12 @@ public class ModuleUtils
         try
         {
             URL srcUrl = clazz.getProtectionDomain().getCodeSource().getLocation();
-            if (srcUrl != null && "jar".equalsIgnoreCase(srcUrl.getProtocol()))
+            
+            if (srcUrl != null && srcUrl.getFile().toLowerCase().endsWith(".jar"))
             {
                 String jarName = URLDecoder.decode(srcUrl.getFile(), StandardCharsets.UTF_8.name());
+                log.debug("Loading manifest from JAR file: {}", jarName);
+                
                 try ( JarFile jar = new JarFile(new File(jarName)) ) {
                     return jar.getManifest();
                 }
