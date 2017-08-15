@@ -19,7 +19,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
-import net.opengis.OgcProperty;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.TimePeriod;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
@@ -421,18 +420,14 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
      */
     protected void wrapOutputWithDataStream(String outputName, DataComponent dataStruct, DataEncoding encoding)
     {
-        OgcProperty<AbstractSWEIdentifiable> output = sensorDescription.getOutputList().getProperty(outputName);            
-        if (output == null || !(output.getValue() instanceof DataStream))
-        {
-            DataStream ds = new SWEFactory().newDataStream();
-            ds.setElementType(outputName, dataStruct);
-            ds.setEncoding(encoding);
-            
-            if (output == null)
-                sensorDescription.addOutput(outputName, ds);
-            else
-                output.setValue(ds);
-        }
+        DataStream ds = new SWEFactory().newDataStream();
+        ds.setElementType(outputName, dataStruct);
+        ds.setEncoding(encoding);
+        
+        if (!sensorDescription.getOutputList().hasProperty(outputName))
+            sensorDescription.addOutput(outputName, ds);
+        else
+            sensorDescription.getOutputList().getProperty(outputName).setValue(ds);
     }
     
     
@@ -442,18 +437,14 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
      */
     protected void wrapParamWithDataStream(String paramName, DataComponent dataStruct, DataEncoding encoding)
     {
-        OgcProperty<AbstractSWEIdentifiable> param = sensorDescription.getParameterList().getProperty(paramName);            
-        if (param == null || !(param.getValue() instanceof DataStream))
-        {
-            DataStream ds = new SWEFactory().newDataStream();
-            ds.setElementType(paramName, dataStruct);
-            ds.setEncoding(encoding);
-            
-            if (param == null)
-                sensorDescription.addParameter(paramName, ds);
-            else
-                param.setValue(ds);
-        }
+        DataStream ds = new SWEFactory().newDataStream();
+        ds.setElementType(paramName, dataStruct);
+        ds.setEncoding(encoding);
+        
+        if (!sensorDescription.getParameterList().hasProperty(paramName))
+            sensorDescription.addParameter(paramName, ds);
+        else
+            sensorDescription.getParameterList().getProperty(paramName).setValue(ds);
     }
 
 }
