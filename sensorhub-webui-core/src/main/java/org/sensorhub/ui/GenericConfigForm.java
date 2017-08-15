@@ -57,6 +57,7 @@ import com.vaadin.data.fieldgroup.FieldGroup.CommitEvent;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitHandler;
 import com.vaadin.data.util.converter.StringToDoubleConverter;
+import com.vaadin.data.util.converter.StringToFloatConverter;
 import com.vaadin.data.validator.IntegerRangeValidator;
 import com.vaadin.data.validator.StringLengthValidator;
 import com.vaadin.server.FontAwesome;
@@ -309,7 +310,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             field.setWidth(100, Unit.PIXELS);
             
             // allow for more digits
-            ((TextField)field).setConverter(new StringToDoubleConverter() {
+            ((TextField)field).setConverter(new StringToFloatConverter() {
                 @Override
                 protected NumberFormat getFormat(Locale locale)
                 {
