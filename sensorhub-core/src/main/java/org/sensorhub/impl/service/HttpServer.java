@@ -128,7 +128,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 ServerConnector http = new ServerConnector(server,
                         new HttpConnectionFactory(httpConfig));
                 http.setPort(config.httpPort);
-                http.setIdleTimeout(30000);
+                http.setIdleTimeout(300000);
                 server.addConnector(http);
             }
             
