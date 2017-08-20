@@ -1406,6 +1406,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             providerConfig.sensorID = sensorUID;
             providerConfig.storageID = (storageModule != null) ? storageModule.getLocalID() : null;
             providerConfig.offeringID = offeringID;
+            providerConfig.liveDataTimeout = 600;
             config.dataProviders.replaceOrAdd(providerConfig);
             
             // instantiate and register provider
@@ -1572,7 +1573,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                                                        request.getResultEncoding(),
                                                        request.getObservationTemplate());
                     
-        // only continue of template was not already registered
+        // update caps only if template was not already registered
         if (!templateToOfferingMap.containsKey(templateID))
         {
             templateToOfferingMap.put(templateID, offeringID);
