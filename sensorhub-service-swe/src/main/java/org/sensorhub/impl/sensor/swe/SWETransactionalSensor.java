@@ -252,7 +252,6 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         uniqueID = systemDesc.getUniqueIdentifier();
         
         // generate output hashcodes to compare with newly registered outputs
-        structureToOutputMap.clear();
         IOPropertyList outputList = sensorDescription.getOutputList();
         for (int i = 0; i  < outputList.size(); i++)
         {
@@ -261,7 +260,6 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         }
         
         // generate control input hashcodes to compare with newly registered inputs
-        structureToTaskableParamMap.clear();
         IOPropertyList paramList = sensorDescription.getParameterList();
         for (int i = 0; i  < paramList.size(); i++)
         {
