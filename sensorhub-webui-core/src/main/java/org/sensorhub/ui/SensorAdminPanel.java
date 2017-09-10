@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import net.opengis.gml.v32.AbstractFeature;
@@ -54,6 +56,7 @@ import com.vaadin.ui.VerticalLayout;
 public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> implements IModuleAdminPanel<ISensorModule<?>>
 {
     Panel obsPanel, statusPanel, commandsPanel;
+    Map<String, DataComponent> outputBuffers = new HashMap<>();
     
     
     static class Spacing extends Label
@@ -159,7 +162,7 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
                                         cancel(); // if panel was detached
                                 }
                             };
-                            timer.schedule(autoRefreshTask, 0L, 1000L);                    
+                            timer.schedule(autoRefreshTask, 0L, 1000L);
                             refreshButton.setIcon(FontAwesome.TIMES);
                             refreshButton.setCaption("Stop");
                         }
@@ -192,7 +195,15 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
                 obsPanel = newPanel("Observation Outputs");
                 for (ISensorDataInterface output: module.getObservationOutputs().values())
                 {
-                    DataComponent dataStruct = output.getRecordDescription().copy();
+                    // used cached output component if available
+                    DataComponent dataStruct = outputBuffers.get(output.getName());                    
+                    if (dataStruct == null)
+                    {
+                        dataStruct = output.getRecordDescription().copy();
+                        outputBuffers.put(dataStruct.getName(), dataStruct);
+                    }
+                        
+                    // load latest data into component
                     DataBlock latestRecord = output.getLatestRecord();
                     if (latestRecord != null)
                         dataStruct.setData(latestRecord);
@@ -200,7 +211,7 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
                     // data structure
                     Component sweForm = new SWECommonForm(dataStruct);
                     ((Layout)obsPanel.getContent()).addComponent(sweForm);
-                }  
+                }
                 
                 if (oldPanel != null)
                     replaceComponent(oldPanel, obsPanel);
@@ -215,7 +226,15 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
                 statusPanel = newPanel("Status Outputs");
                 for (ISensorDataInterface output: module.getStatusOutputs().values())
                 {
-                    DataComponent dataStruct = output.getRecordDescription().copy();
+                    // used cached output component if available
+                    DataComponent dataStruct = outputBuffers.get(output.getName());                    
+                    if (dataStruct == null)
+                    {
+                        dataStruct = output.getRecordDescription().copy();
+                        outputBuffers.put(dataStruct.getName(), dataStruct);
+                    }
+                    
+                    // load latest data into component
                     DataBlock latestRecord = output.getLatestRecord();
                     if (latestRecord != null)
                         dataStruct.setData(latestRecord);
