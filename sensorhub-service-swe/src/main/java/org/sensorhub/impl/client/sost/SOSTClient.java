@@ -59,6 +59,7 @@ import org.vast.ows.sos.SOSUtils;
 import org.vast.ows.swe.InsertSensorResponse;
 import org.vast.ows.swe.SWESUtils;
 import org.vast.ows.swe.UpdateSensorRequest;
+import org.vast.swe.Base64Encoder;
 import org.vast.swe.SWEData;
 
 
@@ -583,6 +584,13 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                         HttpURLConnection conn = sosUtils.sendPostRequestWithQuery(req);                        
                         conn.setRequestProperty("Content-type", "text/plain");
                         conn.setChunkedStreamingMode(32);
+                        if (config.sos.user != null && config.sos.password != null)
+                        {
+                            // need to configure auth manually when using streaming
+                            byte[] data = (config.sos.user+":"+config.sos.password).getBytes("UTF-8");
+                            String encoded = new String(Base64Encoder.encode(data));
+                            conn.setRequestProperty("Authorization", "Basic "+encoded);
+                        }
                         conn.connect();
                         
                         // prepare writer
