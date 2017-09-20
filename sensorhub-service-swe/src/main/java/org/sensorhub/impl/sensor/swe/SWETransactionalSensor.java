@@ -100,10 +100,16 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
     }
 
 
+    /*
+     * This method either adds a new output or selects an existing output
+     * if no output with the given name exists, it is created
+     * if output already exists with same structure and encoding, its name is returned
+     * if output already exists with different structure and/or encoding, an error is thrown
+     */
     public String newOutput(DataComponent component, DataEncoding encoding) throws SensorException
     {
-        Asserts.checkNotNull(component);
-        Asserts.checkNotNull(encoding);
+        Asserts.checkNotNull(component, DataComponent.class);
+        Asserts.checkNotNull(encoding, DataEncoding.class);
         
         // use SensorML output name if structure matches one of the outputs
         DataStructureHash outputHashObj = new DataStructureHash(component, null);
@@ -145,8 +151,8 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
     
     public String newControlInput(DataComponent component, DataEncoding encoding) throws SensorException
     {
-        Asserts.checkNotNull(component);
-        Asserts.checkNotNull(encoding);
+        Asserts.checkNotNull(component, DataComponent.class);
+        Asserts.checkNotNull(encoding, DataEncoding.class);
         
         // use SensorML param name if structure matches one of the taskable parameters
         DataStructureHash paramHashObj = new DataStructureHash(component, null);
@@ -259,7 +265,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
             structureToOutputMap.put(hashObj, outputList.getProperty(i).getName());
         }
         
-        // generate control input hashcodes to compare with newly registered inputs
+        // generate control param hashcodes to compare with newly registered control inputs
         IOPropertyList paramList = sensorDescription.getParameterList();
         for (int i = 0; i  < paramList.size(); i++)
         {
@@ -271,17 +277,6 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         long unixTime = System.currentTimeMillis();
         lastUpdatedSensorDescription = unixTime;
         eventHandler.publishEvent(new SensorEvent(unixTime, this, SensorEvent.Type.SENSOR_CHANGED));
-    }
-    
-    
-    /*
-     * Set sensor description when reviving from storage (w/o sending event)
-     */
-    public void setSensorDescription(AbstractProcess systemDesc)
-    {
-        sensorDescription = (AbstractPhysicalProcess)systemDesc;
-        long unixTime = System.currentTimeMillis();
-        lastUpdatedSensorDescription = unixTime;
     }
 
 
@@ -306,9 +301,8 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
     @Override
     public void saveState(IModuleStateManager saver) throws SensorHubException
     {
-        try
-        {
-            OutputStream os = saver.getOutputStream(STATE_SML_DESC);
+        try (OutputStream os = saver.getOutputStream(STATE_SML_DESC))
+        {            
             new SMLUtils(SMLUtils.V2_0).writeProcess(os, sensorDescription, true);
         }
         catch (Exception e)
@@ -321,9 +315,8 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
     @Override
     public void loadState(IModuleStateManager loader) throws SensorHubException
     {
-        try
+        try (InputStream is = loader.getAsInputStream(STATE_SML_DESC))
         {
-            InputStream is = loader.getAsInputStream(STATE_SML_DESC);
             if (is != null)
             {
                 // read saved description

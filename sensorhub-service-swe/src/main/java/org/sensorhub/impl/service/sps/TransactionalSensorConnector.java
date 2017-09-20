@@ -14,12 +14,9 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sps;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.api.service.ServiceException;
-import org.sensorhub.impl.sensor.swe.DataStructureHash;
 import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 import org.sensorhub.impl.sensor.swe.SWETransactionalSensorControl;
 import org.sensorhub.impl.service.swe.Template;
@@ -39,9 +36,7 @@ import net.opengis.swe.v20.DataStream;
  */
 public class TransactionalSensorConnector extends DirectSensorConnector implements ISPSTransactionalConnector
 {
-    Map<DataStructureHash, String> structureToTemplateIdMap = new HashMap<DataStructureHash, String>();
-    
-    
+        
     public TransactionalSensorConnector(SPSServlet service, SensorConnectorConfig config) throws SensorHubException
     {
         super(service, config);
@@ -51,25 +46,18 @@ public class TransactionalSensorConnector extends DirectSensorConnector implemen
     @Override
     public String newTaskingTemplate(DataComponent component, DataEncoding encoding) throws SensorHubException
     {
-        DataStructureHash templateHashObj = new DataStructureHash(component, encoding);
-        String templateID = structureToTemplateIdMap.get(templateHashObj);
-        
         try
         {
-            // add new sensor control input if needed
-            if (templateID == null)
-            {
-                String inputName = ((SWETransactionalSensor)sensor).newControlInput(component, encoding);
-                templateID = generateTemplateID(inputName);
-                structureToTemplateIdMap.put(templateHashObj, templateID);
-            }
+            // get new/existing control input
+            String inputName = ((SWETransactionalSensor)sensor).newControlInput(component, encoding);
+            
+            // return template ID
+            return generateTemplateID(inputName);
         }
         catch (SensorException e)
         {
             throw new ServiceException("Invalid template", e);
         }
-        
-        return templateID;
     }
 
 

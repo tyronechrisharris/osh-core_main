@@ -61,14 +61,6 @@ public interface ISOSDataConsumer
     
     
     /**
-     * Requests consumer to process a list of new observations
-     * @param observations 
-     * @throws IOException
-     */
-    public void newObservation(IObservation... observations) throws IOException;
-    
-    
-    /**
      * Requests consumer to prepare for receiving new result records with given
      * data structure and encoding
      * @param component
@@ -87,6 +79,14 @@ public interface ISOSDataConsumer
      * @throws IOException 
      */
     public void newResultRecord(String templateID, DataBlock... datablocks) throws IOException;
+    
+    
+    /**
+     * Requests consumer to process a list of new observations
+     * @param observations 
+     * @throws IOException
+     */
+    public void newObservation(IObservation... observations) throws IOException;
     
     
     /**

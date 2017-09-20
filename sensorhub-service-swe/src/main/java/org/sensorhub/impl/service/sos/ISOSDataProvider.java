@@ -46,7 +46,7 @@ public interface ISOSDataProvider
      * Requests provider to generate the next observation from the
      * underlying data, given the current config and filter
      * @return observation instance
-     * @throws Exception
+     * @throws IOException
      */
     public IObservation getNextObservation() throws IOException;
     
@@ -55,7 +55,7 @@ public interface ISOSDataProvider
      * Requests provider to generate the next CDM record from the
      * underlying data, given the current config and filter
      * @return data block
-     * @throws Exception
+     * @throws IOException
      */
     public DataBlock getNextResultRecord() throws IOException;
     
@@ -64,7 +64,7 @@ public interface ISOSDataProvider
      * Requests provider to provide the result structure corresponding
      * to the current config and filter
      * @return data component
-     * @throws Exception 
+     * @throws IOException 
      */
     public DataComponent getResultStructure() throws IOException;
     
@@ -73,7 +73,7 @@ public interface ISOSDataProvider
      * Requests provider to specify the preferred encoding for the
      * underlying data, given the current config and filter
      * @return encoding instance
-     * @throws Exception 
+     * @throws IOException 
      */
     public DataEncoding getDefaultResultEncoding() throws IOException;
     

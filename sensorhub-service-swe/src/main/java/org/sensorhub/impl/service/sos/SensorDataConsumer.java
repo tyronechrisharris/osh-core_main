@@ -19,14 +19,11 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.sensor.swe.DataStructureHash;
 import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
@@ -46,7 +43,6 @@ public class SensorDataConsumer implements ISOSDataConsumer
 {
     SensorConsumerConfig config;
     SWETransactionalSensor sensor;
-    Map<DataStructureHash, String> structureToTemplateIdMap = new HashMap<DataStructureHash, String>();
     
     
     public SensorDataConsumer(SensorConsumerConfig config) throws SensorHubException
@@ -65,48 +61,24 @@ public class SensorDataConsumer implements ISOSDataConsumer
 
 
     @Override
-    public void newObservation(IObservation... observations) throws IOException
-    {
-        try
-        {
-            sensor.newObservation(observations);
-        }
-        catch (SensorException e)
-        {
-            throw new IOException("Cannot ingest new observation", e);
-        }
-    }
-
-
-    @Override
     public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws IOException
     {
-        DataStructureHash templateHashObj = new DataStructureHash(component, encoding);
-        String templateID = structureToTemplateIdMap.get(templateHashObj);
-        
         try
         {
-            // register new sensor output if needed
-            if (templateID == null)
-            {
-                String outputName = sensor.newOutput(component, encoding);
-                templateID = generateTemplateID(outputName);
-                structureToTemplateIdMap.put(templateHashObj, templateID);
-            }
+            // get new/existing sensor output
+            String outputName = sensor.newOutput(component, encoding);
             
             // register current foi if needed
             if (obsTemplate != null)
-            {
-                String outputName = getOutputNameFromTemplateID(templateID);
                 sensor.newFeatureOfInterest(outputName, obsTemplate.getFeatureOfInterest());
-            }
+            
+            // return template ID
+            return generateTemplateID(outputName);
         }
         catch (SensorException e)
         {
             throw new SOSException(SOSException.invalid_param_code, "ResultTemplate", e);
-        }
-        
-        return templateID;
+        }        
     }
 
 
@@ -121,6 +93,20 @@ public class SensorDataConsumer implements ISOSDataConsumer
         catch (SensorException e)
         {
             throw new IOException("Cannot ingest new data record", e);
+        }
+    }
+
+
+    @Override
+    public void newObservation(IObservation... observations) throws IOException
+    {
+        try
+        {
+            sensor.newObservation(observations);
+        }
+        catch (SensorException e)
+        {
+            throw new IOException("Cannot ingest new observation", e);
         }
     }
 
