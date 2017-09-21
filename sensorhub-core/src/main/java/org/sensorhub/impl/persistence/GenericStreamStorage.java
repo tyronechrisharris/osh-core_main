@@ -346,6 +346,10 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     @Override
     public synchronized void handleEvent(Event<?> e)
     {
+        // don't do anything if stop was called
+        if (dataSourceRef == null)
+            return;
+        
         if (e instanceof ModuleEvent)
         {
             IModule<?> eventSrc = (IModule<?>)e.getSource();
