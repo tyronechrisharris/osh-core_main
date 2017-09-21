@@ -92,6 +92,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         private int minRecordsPerRequest = 10;
         private SWEData resultData = new SWEData();
         private ThreadPoolExecutor threadPool;
+        private HttpURLConnection connection;
         private DataStreamWriter persistentWriter;
         private volatile boolean connecting = false;
         private volatile boolean stopping = false;
@@ -100,7 +101,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     
     public SOSTClient()
     {
-        this.dataStreams = new LinkedHashMap<ISensorDataInterface, StreamInfo>();
+        this.dataStreams = new LinkedHashMap<>();
     }
     
     
@@ -168,7 +169,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     request.setConnectTimeOut(connectConfig.connectTimeout);
                     request.setService(SOSUtils.SOS);
                     request.setGetServer(getSosEndpointUrl());
-                    caps = (SOSServiceCapabilities)sosUtils.sendRequest(request, false);
+                    caps = sosUtils.sendRequest(request, false);
                 }
                 catch (OWSException e)
                 {
@@ -237,7 +238,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         {   
             // register sensor
             registerSensor(sensor);
-            getLogger().info("Sensor " + MsgUtils.moduleString(sensor) + " registered with SOS");
+            getLogger().info("Sensor {} registered with SOS", MsgUtils.moduleString(sensor));
         }
         catch (Exception e)
         {
@@ -294,6 +295,8 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             streamInfo.stopping = true;
             if (streamInfo.persistentWriter != null)
                 streamInfo.persistentWriter.close();
+            if (streamInfo.connection != null)
+                streamInfo.connection.disconnect();
         }
         catch (IOException e)
         {
@@ -311,6 +314,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         }
         catch (InterruptedException e)
         {
+            Thread.currentThread().interrupt();
         }
     }
     
@@ -331,7 +335,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         req.getFoiTypes().add("gml:Feature");
         
         // send request and get assigned ID
-        InsertSensorResponse resp = (InsertSensorResponse)sosUtils.sendRequest(req, false);
+        InsertSensorResponse resp = sosUtils.sendRequest(req, false);
         this.offering = resp.getAssignedOffering();
     }
     
@@ -377,7 +381,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         req.setObservationTemplate(obsTemplate);
         
         // send request
-        InsertResultTemplateResponse resp = (InsertResultTemplateResponse)sosUtils.sendRequest(req, false);
+        InsertResultTemplateResponse resp = sosUtils.sendRequest(req, false);
         
         // add stream info to map
         StreamInfo streamInfo = new StreamInfo();
@@ -389,7 +393,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         dataStreams.put(sensorOutput, streamInfo);
         
         // start thread pool
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<Runnable>(config.connection.maxQueueSize);
+        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(config.connection.maxQueueSize);
         streamInfo.threadPool = new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, workQueue);
         
         // register to data events
@@ -458,7 +462,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             if (streamInfo.threadPool.getQueue().remainingCapacity() == 0)
             {
                 String outputName = ((SensorDataEvent)e).getSource().getName();
-                getLogger().warn("Too many '" + outputName + "' records to send to SOS-T. Bandwidth cannot keep up.");
+                getLogger().warn("Too many '{}' records to send to SOS-T. Bandwidth cannot keep up.", outputName);
                 getLogger().info("Skipping records by purging record queue");
                 streamInfo.threadPool.getQueue().clear();
                 return;
@@ -503,7 +507,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     private void sendAsNewRequest(final SensorDataEvent e, final StreamInfo streamInfo)
     {
         // append records to buffer
-        for (DataBlock record: ((SensorDataEvent)e).getRecords())
+        for (DataBlock record: e.getRecords())
             streamInfo.resultData.pushNextDataBlock(record);
         
         // send request if min record count is reached
@@ -533,7 +537,6 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                             getLogger().trace("Queue size is " + streamInfo.threadPool.getQueue().size());
                         }
                         
-                        //sosUtils.writeXMLQuery(System.out, req);
                         sosUtils.sendRequest(req, false);
                     }
                     catch (Exception ex)
@@ -592,6 +595,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                             conn.setRequestProperty("Authorization", "Basic "+encoded);
                         }
                         conn.connect();
+                        streamInfo.connection = conn;
                         
                         // prepare writer
                         streamInfo.persistentWriter = streamInfo.resultData.getDataWriter();
@@ -660,6 +664,6 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     @Override
     public void cleanup() throws SensorHubException
     {
-        
+        // nothing to clean
     }
 }
