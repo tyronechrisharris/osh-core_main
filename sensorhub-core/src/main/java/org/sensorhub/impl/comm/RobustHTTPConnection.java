@@ -75,9 +75,10 @@ public abstract class RobustHTTPConnection extends RobustIPConnection
         if (postData != null)
         {
             // send POST data
-            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
-            out.write(postData);
-            out.close();
+            try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream())))
+            {
+                out.write(postData);
+            }
         }
         
         // check response error code

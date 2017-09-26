@@ -159,15 +159,13 @@ public class NativeClassLoader extends URLClassLoader
         if (url == null)
             return null;
         
-        return extractResource(libName, url);
+        return getResourcePath(libName, url);
     }
     
     
-    private String extractResource(String libName, URL url)
+    private String getResourcePath(String libName, URL url)
     {
         String libPath;
-        InputStream in = null;
-        OutputStream out = null;
         
         try
         {
@@ -175,24 +173,12 @@ public class NativeClassLoader extends URLClassLoader
                         
             if (con instanceof JarURLConnection)
             {                
-                // get resource from jar
+                // extract resource from jar
                 JarURLConnection jarItemConn = (JarURLConnection)con;
-                in = new BufferedInputStream(jarItemConn.getInputStream());
+                File libFile = extractResource(jarItemConn);
                 
-                // copy to temp location (folder named as jar file)
-                File jarFile = new File(jarItemConn.getJarFile().getName());
-                File tmpDir = Files.createTempDirectory(jarFile.getName()).toFile();
-                tmpFolders.add(tmpDir);
-                File outFile = new File(tmpDir, jarItemConn.getJarEntry().getName());
-                outFile.getParentFile().mkdirs();
-                out = new BufferedOutputStream(new FileOutputStream(outFile));            
-                byte[] buffer = new byte[1024];
-                int len;
-                while ((len = in.read(buffer)) > 0)
-                    out.write(buffer, 0, len);
-                    
                 // use path to temp file
-                libPath = outFile.getPath();
+                libPath = libFile.getPath();
             }
             else
             {
@@ -209,20 +195,29 @@ public class NativeClassLoader extends URLClassLoader
             log.trace("Cannot find library {} in {}", libName, url, e);
             return null;
         }
-        finally
+    }
+    
+    
+    private File extractResource(JarURLConnection jarItemConn) throws IOException
+    {
+        // prepare temp location
+        File jarFile = new File(jarItemConn.getJarFile().getName());
+        File tmpDir = Files.createTempDirectory(jarFile.getName()).toFile();
+        tmpFolders.add(tmpDir);
+        File outFile = new File(tmpDir, jarItemConn.getJarEntry().getName());
+        outFile.getParentFile().mkdirs();
+        
+        // extract to temp location
+        try (InputStream in = new BufferedInputStream(jarItemConn.getInputStream());
+             OutputStream out = new BufferedOutputStream(new FileOutputStream(outFile)))
         {
-            try
-            {
-                if (out != null)
-                    out.close();
-                if (in != null)
-                    in.close();
-            }
-            catch (IOException e)
-            {
-                log.error("Cannot close streams", e);
-            }
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = in.read(buffer)) > 0)
+                out.write(buffer, 0, len);
         }
+        
+        return outFile;
     }
 
 
