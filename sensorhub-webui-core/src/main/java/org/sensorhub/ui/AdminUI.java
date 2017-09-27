@@ -47,6 +47,9 @@ import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.MyBeanItem;
 import org.sensorhub.utils.ModuleUtils;
+import org.sensorhub.utils.MsgUtils;
+import org.slf4j.Logger;
+import org.vast.ows.OWSUtils;
 import com.vaadin.annotations.Push;
 import com.vaadin.annotations.Theme;
 import com.vaadin.data.Item;
@@ -62,6 +65,7 @@ import com.vaadin.server.FontAwesome;
 import com.vaadin.server.Resource;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinRequest;
+import com.vaadin.server.VaadinService;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.communication.PushMode;
 import com.vaadin.shared.ui.label.ContentMode;
@@ -96,6 +100,9 @@ import com.vaadin.ui.Window.CloseListener;
 @SuppressWarnings("serial")
 public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConstants
 {
+    private static final String LOG_INIT_MSG = "New connection to admin UI (from ip={}, user={})";
+    private static final String LOG_ACTION_MSG = "New UI action: {} (from ip={}, user={})";
+        
     private static final Action ADD_MODULE_ACTION = new Action("Add New Module", new ThemeResource("icons/module_add.png"));
     private static final Action REMOVE_MODULE_ACTION = new Action("Remove Module", new ThemeResource("icons/module_delete.png"));
     private static final Action START_MODULE_ACTION = new Action("Start", new ThemeResource("icons/enable.png"));
@@ -107,6 +114,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     private static final String PROP_STATE = "state";
     private static final String PROP_MODULE_OBJECT = "module";
     
+    transient Logger log;
     transient AdminUIConfig uiConfig;
     transient AdminUISecurity securityHandler;
     transient Map<Class<?>, TreeTable> moduleTables = new HashMap<>();
@@ -122,6 +130,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
             Properties initParams = request.getService().getDeploymentConfiguration().getInitParameters();
             String moduleID = initParams.getProperty(AdminUIModule.SERVLET_PARAM_MODULE_ID);
             AdminUIModule module = (AdminUIModule)SensorHub.getInstance().getModuleRegistry().getModuleById(moduleID);
+            log = module.getLogger();
             uiConfig = module.getConfiguration();
             securityHandler = module.securityHandler;
         }
@@ -129,6 +138,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         {
             throw new IllegalStateException("Cannot get UI module configuration", e);
         }
+        
+        // log request
+        logInitRequest(request);
         
         // security check
         if (!securityHandler.hasPermission(securityHandler.admin_access))
@@ -141,12 +153,12 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         // register new field converter for integer numbers
         ConverterFactory converterFactory = new DefaultConverterFactory() {
             @Override
-            protected <PRESENTATION, MODEL> Converter<PRESENTATION, MODEL> findConverter(
-                    Class<PRESENTATION> presentationType, Class<MODEL> modelType) {
+            protected <Presentation, Model> Converter<Presentation, Model> findConverter(
+                    Class<Presentation> presentationType, Class<Model> modelType) {
                 // Handle String <-> Integer/Short/Long
                 if (presentationType == String.class &&
                    (modelType == Long.class || modelType == Integer.class || modelType == Short.class )) {
-                    return (Converter<PRESENTATION, MODEL>) new StringToIntegerConverter() {
+                    return (Converter<Presentation, Model>) new StringToIntegerConverter() {
                         @Override
                         protected NumberFormat getFormat(Locale locale) {
                             NumberFormat format = super.getFormat(Locale.US);
@@ -362,6 +374,8 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     {
                         if (popup.isConfirmed())
                         {                    
+                            logAction(securityHandler.osh_shutdown.getName());
+                            
                             SensorHub.getInstance().getModuleRegistry().unregisterListener(AdminUI.this);
                             
                             Notification notif = new Notification(
@@ -413,6 +427,8 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     {
                         if (popup.isConfirmed())
                         {                    
+                            logAction(securityHandler.osh_restart.getName());
+                            
                             SensorHub.getInstance().getModuleRegistry().unregisterListener(AdminUI.this);
                             
                             Notification notif = new Notification(
@@ -464,6 +480,8 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     {
                         if (popup.isConfirmed())
                         {                    
+                            logAction(securityHandler.osh_saveconfig.getName());
+                            
                             try
                             {
                                 SensorHub.getInstance().getModuleRegistry().saveModulesConfiguration();
@@ -676,7 +694,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
             }
             
             @Override
-            public void handleAction(Action action, Object sender, Object target)
+            public void handleAction(final Action action, Object sender, Object target)
             {
                 final Object selectedId = table.getValue();
 
@@ -703,6 +721,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                         {
                             try
                             {
+                                // log action
+                                logAction(action, config.moduleClass);                                
+                                
                                 // load module instance
                                 IModule<?> module = registry.loadModule(config);
                                 
@@ -748,6 +769,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             {
                                 if (popup.isConfirmed())
                                 {                    
+                                    // log action
+                                    logAction(action, selectedModule);
+                                    
                                     try
                                     {
                                         table.removeItem(selectedId);
@@ -780,6 +804,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             {
                                 if (popup.isConfirmed())
                                 {                    
+                                    // log action
+                                    logAction(action, selectedModule);
+                                    
                                     try 
                                     {
                                         if (selectedModule != null)
@@ -811,6 +838,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             {
                                 if (popup.isConfirmed())
                                 {                    
+                                    // log action
+                                    logAction(action, selectedModule);
+                                    
                                     try 
                                     {
                                         if (selectedModule != null)
@@ -842,6 +872,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             {
                                 if (popup.isConfirmed())
                                 {                    
+                                    // log action
+                                    logAction(action, selectedModule);
+                                    
                                     try 
                                     {
                                         if (selectedModule != null)
@@ -873,6 +906,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             {
                                 if (popup.isConfirmed())
                                 {                    
+                                    // log action
+                                    logAction(action, selectedModule);
+                                    
                                     try 
                                     {
                                         if (selectedModule != null)
@@ -1041,6 +1077,55 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                 default:  
             }
         }     
+    }
+    
+    
+    protected void logInitRequest(VaadinRequest req)
+    {
+        if (log.isInfoEnabled())
+        {
+            String ip = req.getRemoteAddr();
+            String user = req.getRemoteUser() != null ? req.getRemoteUser() : OWSUtils.ANONYMOUS_USER;
+            log.info(LOG_INIT_MSG, ip, user);
+        }
+    }
+    
+    
+    protected void logAction(String action)
+    {
+        if (log.isInfoEnabled())
+        {
+            VaadinRequest req = VaadinService.getCurrentRequest();
+            String ip = req.getRemoteAddr();
+            String user = (req.getRemoteUser() != null) ? req.getRemoteUser() : OWSUtils.ANONYMOUS_USER;
+            log.info(LOG_ACTION_MSG, action, ip, user);
+        }
+    }
+    
+    
+    protected void logAction(String action, String item)
+    {
+        if (log.isInfoEnabled())
+            logAction(action + " " + item);
+    }
+    
+    
+    protected void logAction(String action, IModule<?> module)
+    {
+        if (log.isInfoEnabled())
+            logAction(action, MsgUtils.moduleString(module));
+    }
+    
+    
+    protected void logAction(Action action, String item)
+    {
+        logAction(action.getCaption(), item);
+    }
+    
+    
+    protected void logAction(Action action, IModule<?> module)
+    {
+        logAction(action.getCaption(), module);
     }
 
 

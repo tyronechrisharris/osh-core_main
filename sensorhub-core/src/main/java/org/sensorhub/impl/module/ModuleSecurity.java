@@ -27,7 +27,7 @@ public class ModuleSecurity
 {    
     public final ModulePermissions rootPerm;
     protected boolean enable = true;
-    ThreadLocal<IUserInfo> currentUser = new ThreadLocal<IUserInfo>();
+    ThreadLocal<IUserInfo> currentUser = new ThreadLocal<>();
         
     
     public ModuleSecurity(IModule<?> module, String moduleTypeAlias, boolean enable)
