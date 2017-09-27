@@ -160,7 +160,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
             throw new IllegalArgumentException("Cannot find config file " + configFile.getAbsolutePath());
         
         this.keepBackup= keepBackup;
-        this.configMap = new LinkedHashMap<String, ModuleConfig>();
+        this.configMap = new LinkedHashMap<>();
         
         // init json serializer/deserializer
         final GsonBuilder builder = new GsonBuilder();
@@ -178,7 +178,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     {
         if (configMap.isEmpty())
             readJSON();        
-        return new ArrayList<ModuleConfig>(configMap.values());
+        return new ArrayList<>(configMap.values());
     }
     
     

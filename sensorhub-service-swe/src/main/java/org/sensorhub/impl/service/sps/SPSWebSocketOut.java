@@ -36,13 +36,11 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallback 
 {
-    final static String WS_INTERNAL_ERROR = "Internal websocket error";
-    final static String WS_INIT_ERROR = "Error while initializing SWE data writer";
     final static String WS_WRITE_ERROR = "Error while writing SWE command message";
-    final static String INPUT_NOT_SUPPORTED = "Incoming data not supported";
     
     Logger log;
     DataStreamWriter writer;
+    Session session;
     
     
     public SPSWebSocketOut(DataStreamWriter writer, Logger log)
@@ -53,18 +51,19 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
     
     
     @Override
-    public void onWebSocketConnect(Session sess)
+    public void onWebSocketConnect(Session session)
     {
+        this.session = session;
+        WebSocketUtils.logOpen(session, log);
+        
         try
         {
-            writer.setOutput(new WebSocketOutputStream(sess, 1024));
-            super.onWebSocketConnect(sess);
+            writer.setOutput(new WebSocketOutputStream(session, 1024));
+            super.onWebSocketConnect(session);
         }
-        catch (IOException e)
+        catch (Exception e)
         {
-            log.error(WS_INIT_ERROR, e);
-            if (isConnected())
-                sess.close(StatusCode.SERVER_ERROR, WS_INIT_ERROR);
+            WebSocketUtils.closeSession(session, StatusCode.SERVER_ERROR, WebSocketUtils.INIT_ERROR, log);
         }
     }
 
@@ -72,14 +71,14 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
     @Override
     public void onWebSocketError(Throwable e)
     {
-        log.error(WS_INTERNAL_ERROR, e);
+        log.error(WebSocketUtils.SEND_ERROR_MSG, e);
     }
     
     
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
-        WebSocketUtils.logClose(statusCode, reason, log);
+        WebSocketUtils.logClose(session, statusCode, reason, log);
         super.onWebSocketClose(statusCode, reason);
     }
     
@@ -87,16 +86,14 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
     @Override
     public void onWebSocketBinary(byte payload[], int offset, int len)
     {
-        if (isConnected())
-            getSession().close(StatusCode.BAD_DATA, INPUT_NOT_SUPPORTED);
+        WebSocketUtils.closeSession(session, StatusCode.BAD_DATA, WebSocketUtils.INPUT_NOT_SUPPORTED, log);
     }
 
 
     @Override
     public void onWebSocketText(String msg)
     {
-        if (isConnected())
-            getSession().close(StatusCode.BAD_DATA, INPUT_NOT_SUPPORTED);
+        WebSocketUtils.closeSession(session, StatusCode.BAD_DATA, WebSocketUtils.INPUT_NOT_SUPPORTED, log);
     }
 
 

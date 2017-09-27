@@ -150,7 +150,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     final transient SOSServiceConfig config;
     final transient SOSSecurity securityHandler;
-    final transient Logger log;
     final transient WebSocketServletFactory wsFactory = new WebSocketServerFactory();
     final transient ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
     final transient SOSServiceCapabilities capabilities = new SOSServiceCapabilities();
@@ -164,9 +163,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected SOSServlet(SOSServiceConfig config, SOSSecurity securityHandler, Logger log) throws SensorHubException
     {
+        super(log);
         this.config = config;
         this.securityHandler = securityHandler;
-        this.log = log;
         generateCapabilities();
     }
     
@@ -365,7 +364,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected void showProviderCaps(ISOSDataProviderFactory provider)
     {
-        SOSProviderConfig config = provider.getConfig();
+        SOSProviderConfig providerConf = provider.getConfig();
                 
         try
         {
@@ -376,10 +375,10 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             String procedureID = offCaps.getMainProcedure();
             
             // update offering if it was already advertised
-            if (offeringCaps.containsKey(config.offeringID))
+            if (offeringCaps.containsKey(providerConf.offeringID))
             {
                 // replace old offering
-                SOSOfferingCapabilities oldCaps = offeringCaps.put(config.offeringID, offCaps);
+                SOSOfferingCapabilities oldCaps = offeringCaps.put(providerConf.offeringID, offCaps);
                 capabilities.getLayers().set(capabilities.getLayers().indexOf(oldCaps), offCaps);
                 
                 if (log.isDebugEnabled())
@@ -400,7 +399,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         }
         catch (Exception e)
         {
-            log.error("Cannot generate offering " + config.offeringID, e);
+            log.error("Cannot generate offering " + providerConf.offeringID, e);
         }
         finally
         {
@@ -411,18 +410,18 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected void hideProviderCaps(ISOSDataProviderFactory provider)
     {
-        SOSProviderConfig config = provider.getConfig();
+        SOSProviderConfig providerConf = provider.getConfig();
         
         try
         {
             capabilitiesLock.writeLock().lock();
             
             // stop here if provider is not advertised
-            if (!offeringCaps.containsKey(config.offeringID))
+            if (!offeringCaps.containsKey(providerConf.offeringID))
                 return;
             
             // remove offering from capabilities
-            SOSOfferingCapabilities offCaps = offeringCaps.remove(config.offeringID);
+            SOSOfferingCapabilities offCaps = offeringCaps.remove(providerConf.offeringID);
             capabilities.getLayers().remove(offCaps);
             
             // remove from procedure map

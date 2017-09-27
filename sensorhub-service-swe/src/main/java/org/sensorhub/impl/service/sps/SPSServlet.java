@@ -88,14 +88,13 @@ public class SPSServlet extends OWSServlet
     
     final transient SPSServiceConfig config;
     final transient SPSSecurity securityHandler;
-    final transient Logger log;
     final transient WebSocketServletFactory factory = new WebSocketServerFactory();
     final transient ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
     final transient SPSServiceCapabilities capabilities = new SPSServiceCapabilities();
-    final transient Map<String, ISPSConnector> connectors = new HashMap<String, ISPSConnector>(); // key is procedure ID
-    final transient Map<String, SPSOfferingCapabilities> offeringCaps = new HashMap<String, SPSOfferingCapabilities>(); // key is procedure ID
-    final transient Map<String, TaskingSession> transmitSessionsMap = new HashMap<String, TaskingSession>();
-    final transient Map<String, TaskingSession> receiveSessionsMap = new HashMap<String, TaskingSession>();
+    final transient Map<String, ISPSConnector> connectors = new HashMap<>(); // key is procedure ID
+    final transient Map<String, SPSOfferingCapabilities> offeringCaps = new HashMap<>(); // key is procedure ID
+    final transient Map<String, TaskingSession> transmitSessionsMap = new HashMap<>();
+    final transient Map<String, TaskingSession> receiveSessionsMap = new HashMap<>();
         
     final transient SMLUtils smlUtils = new SMLUtils(SMLUtils.V2_0);
     final transient ITaskDB taskDB = new InMemoryTaskDB();
@@ -113,10 +112,9 @@ public class SPSServlet extends OWSServlet
     
     public SPSServlet(SPSServiceConfig config, SPSSecurity securityHandler, Logger log)
     {
-        super(new SPSUtils());
+        super(new SPSUtils(), log);
         this.config = config;
         this.securityHandler = securityHandler;
-        this.log = log;
         generateCapabilities();       
     }
     
@@ -203,8 +201,7 @@ public class SPSServlet extends OWSServlet
     {
         try
         {
-            SPSOfferingCapabilities caps = connector.generateCapabilities();            
-            return caps;
+            return connector.generateCapabilities();
         }
         catch (SensorHubException e)
         {
@@ -728,7 +725,7 @@ public class SPSServlet extends OWSServlet
             // if it's a websocket request
             if (isWebSocketRequest(request))
             {
-                SPSWebSocketIn ws = new SPSWebSocketIn(this, task, parser, conn);
+                SPSWebSocketIn ws = new SPSWebSocketIn(this, task, parser, conn, log);
                 acceptWebSocket(request, ws);
             }
             

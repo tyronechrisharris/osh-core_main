@@ -14,18 +14,63 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.swe;
 
-import org.eclipse.jetty.websocket.api.StatusCode;
+import java.security.Principal;
+import org.eclipse.jetty.websocket.api.Session;
 import org.slf4j.Logger;
+import org.vast.ows.OWSUtils;
 
 
 public class WebSocketUtils
 {
+    public static final String CONNECT_MSG = "Websocket session {} opened (from ip={}, user={})";
+    public static final String CLOSE_BY_CLIENT_MSG = "Websocket session {} closed by client (status={}, reason={})";
+    public static final String CLOSE_BY_SERVER_MSG = "Websocket session {} closed by server (status={}, reason={})";
+    public static final String INTERNAL_ERROR_MSG = "Websocket protocol error";
+    public static final String SEND_ERROR_MSG = "Error while sending websocket stream";
+    public static final String REQUEST_ERROR_MSG = "Invalid websocket request";
+    public static final String RECEIVE_ERROR_MSG = "Error while processing websocket request";
+    public static final String PARSE_ERROR_MSG = "Error while parsing websocket packet";
+    public static final String INPUT_NOT_SUPPORTED = "Incoming data is not supported";
+    public static final String TEXT_NOT_SUPPORTED = "Incoming text data is not supported";
+    public static final String INIT_ERROR = "Error while initializing websocket connection";
     
-    public static void logClose(int statusCode, String reason, Logger log)
+    
+    private WebSocketUtils()
+    {        
+    }
+    
+    
+    public static void closeSession(Session session, int statusCode, String reason, Logger log)
     {
-        if (statusCode == StatusCode.NORMAL)
-            log.debug("Incoming websocket session closed normally by client");
-        else
-            log.debug("Incoming websocket session closed (status=" + statusCode + ((reason != null) ? ", reason=" + reason : ""));
+        if (session != null && session.isOpen())
+        {
+            log.info(CLOSE_BY_SERVER_MSG, getSessionID(session), statusCode, reason);
+            session.close(statusCode, reason);
+        }
+    }
+    
+    
+    public static void logOpen(Session session, Logger log)
+    {
+        if (log.isInfoEnabled())
+        {
+            String remoteIp = session.getRemoteAddress().getAddress().getHostAddress();
+            Principal user = session.getUpgradeRequest().getUserPrincipal();
+            String userID = user != null ? user.getName() : OWSUtils.ANONYMOUS_USER;
+            log.info(CONNECT_MSG, getSessionID(session), remoteIp, userID);
+        }
+    }
+    
+    
+    public static void logClose(Session session, int statusCode, String reason, Logger log)
+    {
+        log.info(CLOSE_BY_CLIENT_MSG, getSessionID(session), statusCode, reason);
+    }
+    
+    
+    private static String getSessionID(Session session)
+    {
+        int objId = System.identityHashCode(session);
+        return Integer.toString(objId);
     }
 }

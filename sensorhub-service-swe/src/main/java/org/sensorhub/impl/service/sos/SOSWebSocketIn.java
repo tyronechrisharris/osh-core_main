@@ -34,9 +34,6 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class SOSWebSocketIn implements WebSocketListener
 {
-    final static String TEXT_NOT_SUPPORTED = "Incoming text data is not supported";
-    final static String WS_ERROR = "Error while processing incoming websocket stream";
-    
     Logger log;
     Session session;
     DataStreamParser parser;
@@ -86,7 +83,7 @@ public class SOSWebSocketIn implements WebSocketListener
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
-        WebSocketUtils.logClose(statusCode, reason, log);        
+        WebSocketUtils.logClose(session, statusCode, reason, log);
         session = null;
     }
     
@@ -94,13 +91,19 @@ public class SOSWebSocketIn implements WebSocketListener
     @Override
     public void onWebSocketError(Throwable e)
     {
-        log.error(WS_ERROR, e);
+        log.error(WebSocketUtils.INTERNAL_ERROR_MSG, e);
     }
 
 
     @Override
     public void onWebSocketText(String msg)
     {
-        session.close(StatusCode.BAD_DATA, TEXT_NOT_SUPPORTED);
+        WebSocketUtils.closeSession(session, StatusCode.BAD_DATA, WebSocketUtils.INPUT_NOT_SUPPORTED, log);
+    }
+    
+    
+    public void close()
+    {
+        WebSocketUtils.closeSession(session, StatusCode.NORMAL, "End of streaming session", log);
     }
 }

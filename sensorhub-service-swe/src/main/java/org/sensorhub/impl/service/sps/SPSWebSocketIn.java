@@ -34,9 +34,6 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class SPSWebSocketIn implements WebSocketListener
 {
-    final static String TEXT_NOT_SUPPORTED = "Incoming text data is not supported";
-    final static String WS_ERROR = "Error while processing incoming websocket stream";
-    
     SPSServlet service;
     Logger log;
     Session session;
@@ -45,10 +42,10 @@ public class SPSWebSocketIn implements WebSocketListener
     ITask task;
     
     
-    public SPSWebSocketIn(SPSServlet service, ITask task, DataStreamParser parser, ISPSConnector connector)
+    public SPSWebSocketIn(SPSServlet service, ITask task, DataStreamParser parser, ISPSConnector connector, Logger log)
     {
         this.service = service;
-        this.log = service.log;
+        this.log = log;
         this.task = task;
         this.parser = parser;
         this.connector = connector;
@@ -78,9 +75,9 @@ public class SPSWebSocketIn implements WebSocketListener
         }
         catch (Exception e)
         {
-            log.error("Error while parsing websocket packet", e);
+            log.error(WebSocketUtils.PARSE_ERROR_MSG, e);
             if (session != null)
-                session.close(StatusCode.BAD_DATA, e.getMessage());
+                WebSocketUtils.closeSession(session, StatusCode.BAD_DATA, e.getMessage(), log);
         }
     }
 
@@ -88,7 +85,7 @@ public class SPSWebSocketIn implements WebSocketListener
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
-        WebSocketUtils.logClose(statusCode, reason, log);
+        WebSocketUtils.logClose(session, statusCode, reason, log);
         service.cleanupSession(task.getID());        
         session = null;
     }
@@ -97,20 +94,20 @@ public class SPSWebSocketIn implements WebSocketListener
     @Override
     public void onWebSocketError(Throwable e)
     {
-        log.error(WS_ERROR, e);
+        log.error(WebSocketUtils.INTERNAL_ERROR_MSG, e);
     }
 
 
     @Override
     public void onWebSocketText(String msg)
     {
-        session.close(StatusCode.BAD_DATA, TEXT_NOT_SUPPORTED);
+        WebSocketUtils.closeSession(session, StatusCode.BAD_DATA, WebSocketUtils.TEXT_NOT_SUPPORTED, log);
     }
     
     
     public void close()
     {
-        session.close(StatusCode.NORMAL, "End of tasking session");
+        WebSocketUtils.closeSession(session, StatusCode.NORMAL, "End of tasking session", log);
         service.cleanupSession(task.getID());
     }
 }

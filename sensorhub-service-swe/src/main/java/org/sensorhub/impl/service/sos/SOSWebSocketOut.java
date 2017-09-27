@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.io.EOFException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import org.eclipse.jetty.websocket.api.Session;
@@ -23,7 +22,9 @@ import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.sensorhub.impl.service.swe.WebSocketOutputStream;
 import org.sensorhub.impl.service.swe.WebSocketUtils;
 import org.slf4j.Logger;
+import org.vast.ows.OWSException;
 import org.vast.ows.OWSRequest;
+import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.GetResultRequest;
 
 
@@ -37,9 +38,6 @@ import org.vast.ows.sos.GetResultRequest;
  */
 public class SOSWebSocketOut implements WebSocketListener, Runnable
 {
-    final static String WS_ERROR = "Error while sending websocket stream";
-    final static String INPUT_NOT_SUPPORTED = "Incoming data not supported";
-    
     Logger log;
     Session session;
     SOSServlet parentService;
@@ -67,22 +65,53 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
     public void onWebSocketConnect(Session session)
     {
         this.session = session;
+        WebSocketUtils.logOpen(session, log);
         
-        respOutputStream = new WebSocketOutputStream(session, 1024);
-        request.setResponseStream(respOutputStream);
-        
-        // launch processing in separate thread
-        threadPool.execute(this);
+        try
+        {
+            respOutputStream = new WebSocketOutputStream(session, 1024);
+            request.setResponseStream(respOutputStream);
+            
+            // launch processing in separate thread
+            threadPool.execute(this);
+        }
+        catch (Exception e)
+        {
+            WebSocketUtils.closeSession(session, StatusCode.SERVER_ERROR, WebSocketUtils.INIT_ERROR, log);
+        }
     }
 
 
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
-        WebSocketUtils.logClose(statusCode, reason, log);    
+        WebSocketUtils.logClose(session, statusCode, reason, log);
+        
         if (respOutputStream != null)
             respOutputStream.close();
+        
         session = null;
+    }
+    
+    
+    @Override
+    public void onWebSocketError(Throwable e)
+    {
+        log.error(WebSocketUtils.INTERNAL_ERROR_MSG, e);
+    }
+    
+    
+    @Override
+    public void onWebSocketBinary(byte[] payload, int offset, int len)
+    {
+        WebSocketUtils.closeSession(session, StatusCode.BAD_DATA, WebSocketUtils.INPUT_NOT_SUPPORTED, log);
+    }
+
+
+    @Override
+    public void onWebSocketText(String msg)
+    {
+        WebSocketUtils.closeSession(session, StatusCode.BAD_DATA, WebSocketUtils.INPUT_NOT_SUPPORTED, log);
     }
 
 
@@ -97,43 +126,26 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
             // handle request using same servlet logic as for HTTP
             parentService.handleRequest(request);
             
-            log.debug("Data provider done");
             if (session != null)
-                session.close(StatusCode.NORMAL, null);
+                WebSocketUtils.closeSession(session, StatusCode.NORMAL, "Data provider done", log);
         }
-        catch (EOFException e)
+        catch (OWSException e)
         {
-            // if connection was closed by client during processing, we end on
-            // an EOFException when writing next record to respOutputStream.
-            // this is a normal state so we have nothing special to do
-            log.debug("Data provider exited on client abort", e);
+            if (!OWSUtils.isClientDisconnectError(e))
+            {
+                log.debug(WebSocketUtils.REQUEST_ERROR_MSG, e);
+                if (session != null)
+                    WebSocketUtils.closeSession(session, StatusCode.BAD_PAYLOAD, e.getMessage(), log);
+            }
         }
         catch (Exception e)
         {
-            log.debug("Data provider exited on error", e);
-            if (session != null)
-                session.close(StatusCode.PROTOCOL, e.getMessage());
+            if (!OWSUtils.isClientDisconnectError(e))
+            {
+                log.error(WebSocketUtils.RECEIVE_ERROR_MSG, e);
+                if (session != null)
+                    WebSocketUtils.closeSession(session, StatusCode.SERVER_ERROR, e.getMessage(), log);
+            }
         }
-    }
-    
-    
-    @Override
-    public void onWebSocketError(Throwable e)
-    {
-        log.error(WS_ERROR, e);
-    }
-    
-    
-    @Override
-    public void onWebSocketBinary(byte payload[], int offset, int len)
-    {
-        session.close(StatusCode.BAD_DATA, INPUT_NOT_SUPPORTED);
-    }
-
-
-    @Override
-    public void onWebSocketText(String msg)
-    {
-        session.close(StatusCode.BAD_DATA, INPUT_NOT_SUPPORTED);
     }
 }
