@@ -14,8 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.module;
 
-import java.io.File;
-import java.io.PrintWriter;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
@@ -26,15 +24,11 @@ import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.common.EventBus;
+import org.sensorhub.utils.FileUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.classic.spi.LoggingEvent;
-import ch.qos.logback.core.FileAppender;
+import ch.qos.logback.classic.util.ContextInitializer;
 
 
 /**
@@ -48,6 +42,8 @@ import ch.qos.logback.core.FileAppender;
  */
 public abstract class AbstractModule<ConfigType extends ModuleConfig> implements IModule<ConfigType>
 {
+    public static final String LOG_MODULE_ID = "MODULE_ID";
+    
     protected Logger logger;
     protected IEventHandler eventHandler;
     protected ConfigType config;
@@ -546,42 +542,26 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     {
         if (logger == null)
         {
-            // first create logger object
+            // generate instance ID
             String localID = getLocalID();
-            String loggerId = Integer.toHexString(localID.hashCode());
-            loggerId.replaceAll("-", ""); // remove minus sign if any
-            logger = LoggerFactory.getLogger(this.getClass().getCanonicalName() + ":" + loggerId);
-        
-            // also configure logger to append to log file in module folder
-            File moduleDataFolder = SensorHub.getInstance().getModuleRegistry().getModuleDataFolder(localID);
-            if (moduleDataFolder != null && logger instanceof ch.qos.logback.classic.Logger)
+            String instanceID = Integer.toHexString(localID.hashCode());
+            instanceID.replaceAll("-", ""); // remove minus sign if any
+            
+            // create logger in new context
+            try
             {
-                LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-                ch.qos.logback.classic.Logger logback = (ch.qos.logback.classic.Logger)logger;                
+                LoggerContext logContext = new LoggerContext();
+                logContext.setName(FileUtils.safeFileName(localID));
+                logContext.putProperty(LOG_MODULE_ID, FileUtils.safeFileName(localID));
+                new ContextInitializer(logContext).autoConfig();
+                logger = logContext.getLogger(getClass().getCanonicalName() + ":" + instanceID);
                 
-                PatternLayoutEncoder ple = new PatternLayoutEncoder();
-                ple.setPattern("%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] - %msg%n");
-                ple.setContext(lc);
-                ple.start();
-                
-                File logFile = new File(moduleDataFolder, "log.txt");
-                FileAppender<ILoggingEvent> fa = new FileAppender<ILoggingEvent>();
-                fa.setFile(logFile.getAbsolutePath());
-                fa.setEncoder(ple);
-                fa.setAppend(true);
-                fa.setContext(lc);
-                fa.start(); 
-                
-                logback.addAppender(fa);
-                logback.setLevel(Level.DEBUG);
-                logback.setAdditive(true);
-                
-                // write initial messages on startup
-                new PrintWriter(fa.getOutputStream()).println();
-                fa.doAppend(new LoggingEvent(null, logback, Level.INFO, "", null, null));
-                fa.doAppend(new LoggingEvent(null, logback, Level.INFO, "*************************************************", null, null));
-                fa.doAppend(new LoggingEvent(null, logback, Level.INFO, "SensorHub Restarted", null, null));
-                fa.doAppend(new LoggingEvent(null, logback, Level.INFO, "Starting log for " + MsgUtils.moduleString(this), null, null));
+                logger.info("*************************************************");
+                logger.info("Starting log for {}", MsgUtils.moduleString(this));
+            }
+            catch (Exception e)
+            {
+                throw new IllegalStateException("Could not configure module logger", e);
             }
         }
         
