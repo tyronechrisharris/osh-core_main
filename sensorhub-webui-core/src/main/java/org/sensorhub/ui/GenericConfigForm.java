@@ -292,18 +292,16 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         else if (propId.endsWith("." + PROP_ID))
             field.setVisible(false);
         else if (propId.endsWith("." + PROP_AUTOSTART))
-            field.setVisible(false);
-        
-        
+            field.setVisible(false);        
         
         // size depending on field type
         if (propType.equals(String.class))
         {
-            field.setWidth(500, Unit.PIXELS);
+            field.setWidth(500, Unit.PIXELS);            
         }
         else if (propType.equals(int.class) || propType.equals(Integer.class))
         {
-            field.setWidth(100, Unit.PIXELS);
+            field.setWidth(100, Unit.PIXELS);                
         }
         else if (propType.equals(float.class) || propType.equals(Float.class))
         {
@@ -383,11 +381,17 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     default:
                 }
             }
-        
-            // field constraints
-            if (advProp.isRequired())
-                field.addValidator(new StringLengthValidator(MSG_REQUIRED_FIELD, 1, 50, false));                
             
+            // required
+            if (advProp.isRequired())
+            {
+                if (propType.equals(String.class))
+                    field.addValidator(new StringLengthValidator(MSG_REQUIRED_FIELD, 1, Integer.MAX_VALUE, false));
+                else if (propType.equals(int.class) || propType.equals(Integer.class))
+                    field.addValidator(new IntegerRangeValidator(MSG_REQUIRED_FIELD, Integer.MIN_VALUE, Integer.MAX_VALUE));
+            }
+                
+            // valid range
             ValueRange range = advProp.getValueRange();
             if (range != null)
             {

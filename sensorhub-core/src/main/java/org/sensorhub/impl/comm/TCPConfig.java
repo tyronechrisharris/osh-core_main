@@ -16,6 +16,7 @@ package org.sensorhub.impl.comm;
 
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.FieldType;
+import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.config.DisplayInfo.ValueRange;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 
@@ -32,6 +33,7 @@ public class TCPConfig extends IPConfig
 {    
     @DisplayInfo(desc="Port number to connect to on remote host")
     @ValueRange(min=0, max=65535)
+    @Required
     public int remotePort;
     
     @DisplayInfo(label="User Name", desc="Remote user name")

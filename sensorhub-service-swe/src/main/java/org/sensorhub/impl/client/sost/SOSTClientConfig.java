@@ -18,6 +18,7 @@ import org.sensorhub.api.client.ClientConfig;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.FieldType;
 import org.sensorhub.api.config.DisplayInfo.ModuleType;
+import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.impl.comm.HTTPConfig;
@@ -37,6 +38,7 @@ public class SOSTClientConfig extends ClientConfig
     @DisplayInfo(desc="Local ID of sensor to register with SOS")
     @FieldType(Type.MODULE_ID)
     @ModuleType(ISensorModule.class)
+    @Required
     public String sensorID;
     
     

@@ -19,6 +19,7 @@ import org.sensorhub.api.comm.ICommNetwork.NetworkType;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.AddressType;
 import org.sensorhub.api.config.DisplayInfo.FieldType;
+import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 
 
@@ -39,6 +40,7 @@ public abstract class IPConfig implements ICommConfig
     @DisplayInfo(desc="IP or DNS name of remote host")
     @FieldType(Type.REMOTE_ADDRESS)
     @AddressType(NetworkType.IP)
+    @Required
     public String remoteHost; 
     
     
