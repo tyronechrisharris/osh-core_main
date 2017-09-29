@@ -57,8 +57,6 @@ import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServerConfig.AuthMethod;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
 
 
@@ -72,7 +70,6 @@ import org.vast.util.Asserts;
  */
 public class HttpServer extends AbstractModule<HttpServerConfig>
 {
-    private static final Logger log = LoggerFactory.getLogger(HttpServer.class);
     private static final String CERT_ALIAS = "jetty";
     public static final String TEST_MSG = "SensorHub web server is up";
     private static HttpServer instance;
@@ -173,7 +170,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 fileResourceContext.addAliasCheck(new AllowSymLinkAliasChecker());
                 
                 handlers.addHandler(fileResourceContext);
-                log.info("Static resources root is " + config.staticDocRootUrl);
+                getLogger().info("Static resources root is " + config.staticDocRootUrl);
             }
             
             // servlets
@@ -183,7 +180,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 this.servletHandler = new ServletContextHandler(ServletContextHandler.SESSIONS);
                 servletHandler.setContextPath(config.servletsRootUrl);
                 handlers.addHandler(servletHandler);
-                log.info("Servlets root is " + config.servletsRootUrl);
+                getLogger().info("Servlets root is " + config.servletsRootUrl);
                 
                 // DOS filter
                 FilterHolder holder = servletHandler.addFilter(DoSFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
@@ -236,12 +233,12 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                         {
                             try
                             {
-                                log.error("Cannot send test message", e);
+                                getLogger().error("Cannot send test message", e);
                                 resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                             }
                             catch (IOException e1)
                             {
-                                log.trace("Cannot send HTTP error code", e1);
+                                getLogger().trace("Cannot send HTTP error code", e1);
                             }
                         }
                     }
@@ -251,7 +248,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
             
             server.setHandler(handlers);
             server.start();
-            log.info("HTTP server started on port " + config.httpPort);
+            getLogger().info("HTTP server started on port " + config.httpPort);
             
             setState(ModuleState.STARTED);
         }
@@ -308,7 +305,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
         
         servletHandler.getServletHandler().addServlet(holder);
         servletHandler.getServletHandler().addServletMapping(mapping);
-        log.debug("Servlet deployed " + mapping.toString());
+        getLogger().debug("Servlet deployed " + mapping.toString());
     }
     
     
@@ -351,7 +348,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
         }
         catch (ServletException e)
         {
-            log.error("Error while undeploying servlet", e);
+            getLogger().error("Error while undeploying servlet", e);
         }       
     }
     
