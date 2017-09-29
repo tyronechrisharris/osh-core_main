@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -64,8 +65,9 @@ import net.opengis.swe.v20.SimpleComponent;
 import net.opengis.swe.v20.TextEncoding;
 import net.opengis.swe.v20.Vector;
 import net.opengis.swe.v20.XMLEncoding;
+import org.eclipse.jetty.websocket.api.WebSocketBehavior;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
-import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
+import org.eclipse.jetty.websocket.api.WebSocketPolicy;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
@@ -150,7 +152,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     final transient SOSServiceConfig config;
     final transient SOSSecurity securityHandler;
-    final transient WebSocketServletFactory wsFactory = new WebSocketServerFactory();
     final transient ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
     final transient SOSServiceCapabilities capabilities = new SOSServiceCapabilities();
     final transient Map<String, SOSOfferingCapabilities> offeringCaps = new HashMap<>();
@@ -159,6 +160,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     final transient Map<String, ISOSDataProviderFactory> dataProviders = new LinkedHashMap<>();
     final transient Map<String, ISOSDataConsumer> dataConsumers = new LinkedHashMap<>();
     final transient Map<String, ISOSCustomSerializer> customFormats = new HashMap<>();
+    WebSocketServletFactory wsFactory;
     
     
     protected SOSServlet(SOSServiceConfig config, SOSSecurity securityHandler, Logger log) throws SensorHubException
@@ -170,6 +172,42 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
+    @Override
+    public void init(ServletConfig config) throws ServletException
+    {
+        super.init(config);
+        
+        // create websocket factory
+        try
+        {
+            WebSocketPolicy wsPolicy = new WebSocketPolicy(WebSocketBehavior.SERVER);
+            wsFactory = WebSocketServletFactory.Loader.load(getServletContext(), wsPolicy);
+            wsFactory.start();
+        }
+        catch (Exception e)
+        {
+            throw new ServletException("Cannot initialize websocket factory", e);
+        }
+    }
+    
+    
+    @Override
+    public void destroy()
+    {
+        stop();
+        
+        // destroy websocket factory
+        try
+        {
+            wsFactory.stop();
+        }
+        catch (Exception e)
+        {
+            log.error("Cannot stop websocket factory", e);
+        }
+    }
+
+
     protected void stop()
     {
         // cleanup all providers
@@ -179,13 +217,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         // cleanup all consumers
         for (ISOSDataConsumer consumer: dataConsumers.values())
             consumer.cleanup();
-    }
-    
-    
-    @Override
-    public void destroy()
-    {
-        stop();
     }
     
     

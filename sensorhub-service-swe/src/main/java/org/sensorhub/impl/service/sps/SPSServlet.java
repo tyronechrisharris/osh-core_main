@@ -25,14 +25,17 @@ import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.servlet.AsyncContext;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.namespace.QName;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import org.eclipse.jetty.websocket.api.WebSocketBehavior;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
-import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
+import org.eclipse.jetty.websocket.api.WebSocketPolicy;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
@@ -88,7 +91,6 @@ public class SPSServlet extends OWSServlet
     
     final transient SPSServiceConfig config;
     final transient SPSSecurity securityHandler;
-    final transient WebSocketServletFactory factory = new WebSocketServerFactory();
     final transient ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
     final transient SPSServiceCapabilities capabilities = new SPSServiceCapabilities();
     final transient Map<String, ISPSConnector> connectors = new HashMap<>(); // key is procedure ID
@@ -99,6 +101,7 @@ public class SPSServlet extends OWSServlet
     final transient SMLUtils smlUtils = new SMLUtils(SMLUtils.V2_0);
     final transient ITaskDB taskDB = new InMemoryTaskDB();
     //SPSNotificationSystem notifSystem;
+    WebSocketServletFactory wsFactory;
     
     
     static class TaskingSession
@@ -119,11 +122,22 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void stop()
+    @Override
+    public void init(ServletConfig config) throws ServletException
     {
-        // clean all connectors
-        for (ISPSConnector connector: connectors.values())
-            connector.cleanup();
+        super.init(config);
+        
+        // create websocket factory
+        try
+        {
+            WebSocketPolicy wsPolicy = new WebSocketPolicy(WebSocketBehavior.SERVER);
+            wsFactory = WebSocketServletFactory.Loader.load(getServletContext(), wsPolicy);
+            wsFactory.start();
+        }
+        catch (Exception e)
+        {
+            throw new ServletException("Cannot initialize websocket factory", e);
+        }
     }
     
     
@@ -131,6 +145,24 @@ public class SPSServlet extends OWSServlet
     public void destroy()
     {
         stop();
+        
+        // destroy websocket factory
+        try
+        {
+            wsFactory.stop();
+        }
+        catch (Exception e)
+        {
+            log.error("Cannot stop websocket factory", e);
+        }
+    }
+    
+    
+    protected void stop()
+    {
+        // clean all connectors
+        for (ISPSConnector connector: connectors.values())
+            connector.cleanup();
     }
     
     
@@ -323,7 +355,7 @@ public class SPSServlet extends OWSServlet
             OWSRequest owsRequest = super.parseRequest(req, resp, isXmlRequest);
             
             // detect websocket request
-            if (factory.isUpgradeRequest(req, resp))
+            if (wsFactory.isUpgradeRequest(req, resp))
             {
                 if (owsRequest instanceof ConnectTaskingRequest)
                     owsRequest.getExtensions().put(EXT_WS, true);
@@ -371,7 +403,7 @@ public class SPSServlet extends OWSServlet
     
     protected void acceptWebSocket(final OWSRequest owsReq, final WebSocketListener socket) throws IOException
     {
-        factory.acceptWebSocket(new WebSocketCreator() {
+        wsFactory.acceptWebSocket(new WebSocketCreator() {
             @Override
             public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
             {

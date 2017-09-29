@@ -75,7 +75,8 @@ public class TransactionUtils
         ISensorModule<?> sensorModule = (ISensorModule<?>)sensor;
         
         // check that unique ID is same as one being updated
-        if (!sensorModule.getUniqueIdentifier().equals(newSensorDesc.getUniqueIdentifier()))
+        String uid = sensorModule.getUniqueIdentifier();
+        if (uid != null && !uid.equals(newSensorDesc.getUniqueIdentifier()))
             throw new OWSException("The unique ID in the description must be the same as the UID of the procedure being updated");        
         
         // check that sensor has been previously created by SOS or SPS

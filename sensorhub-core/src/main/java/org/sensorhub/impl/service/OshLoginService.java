@@ -16,6 +16,7 @@ package org.sensorhub.impl.service;
 
 import java.security.Principal;
 import javax.security.auth.Subject;
+import javax.servlet.ServletRequest;
 import org.eclipse.jetty.security.DefaultIdentityService;
 import org.eclipse.jetty.security.IdentityService;
 import org.eclipse.jetty.security.LoginService;
@@ -70,7 +71,7 @@ public class OshLoginService implements LoginService
 
 
     @Override
-    public UserIdentity login(String username, Object credential)
+    public UserIdentity login(String username, Object credentials, ServletRequest request)
     {
         if (username == null)
             return null;
@@ -90,11 +91,11 @@ public class OshLoginService implements LoginService
         if (!isCert)
         {
             Credential storedCredential = Credential.getCredential(user.getPassword());                
-            if (storedCredential.check(credential))
-                identity = createUserIdentity(user, credential);
+            if (storedCredential.check(credentials))
+                identity = createUserIdentity(user, credentials);
         }
         else
-            identity = createUserIdentity(user, credential);
+            identity = createUserIdentity(user, credentials);
         
         return identity;
     }

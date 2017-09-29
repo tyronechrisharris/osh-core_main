@@ -19,7 +19,7 @@ dependencies {
   }
   compile 'org.n52.amused:amused-wsn-impl:1.0.0'
   compile 'xml-apis:xml-apis:1.4.01'
-  compile 'org.eclipse.jetty.websocket:websocket-server:9.2.7.v20150116'
+  compile 'org.eclipse.jetty.websocket:websocket-server:9.4.7.v20170914'
     
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
   testCompile project(':sensorhub-storage-perst')
