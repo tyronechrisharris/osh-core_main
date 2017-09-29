@@ -261,7 +261,10 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
 
     @Override
     public void cleanup() throws SensorHubException
-    {        
+    {
+        // unregister security handler
+        if (securityHandler != null)
+            securityHandler.unregister();
     }
     
     

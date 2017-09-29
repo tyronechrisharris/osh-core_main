@@ -141,6 +141,7 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
     @Override
     public void cleanup() throws SensorHubException
     {
+        // stop listening to http server events
         HttpServer httpServer = HttpServer.getInstance();
         if (httpServer != null)
             httpServer.unregisterListener(this);
@@ -148,6 +149,10 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
         // TODO destroy all virtual sensors?
         //for (SOSConsumerConfig consumerConf: config.dataConsumers)
         //    SensorHub.getInstance().getModuleRegistry().destroyModule(consumerConf.sensorID);
+        
+        // unregister security handler
+        if (securityHandler != null)
+            securityHandler.unregister();
     }
     
     

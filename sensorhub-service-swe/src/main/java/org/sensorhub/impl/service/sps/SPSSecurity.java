@@ -74,8 +74,8 @@ public class SPSSecurity extends ModuleSecurity
         
         // register wildcard permission tree usable for all SPS services
         // do it at this point so we don't include specific offering permissions
-        ModulePermissions templatePerm = rootPerm.cloneAsTemplatePermission("SPS Services");
-        SensorHub.getInstance().getSecurityManager().registerModulePermissions(templatePerm);
+        ModulePermissions wildcardPerm = rootPerm.cloneAsTemplatePermission("SPS Services");
+        SensorHub.getInstance().getSecurityManager().registerModulePermissions(wildcardPerm);
                 
         // create permissions for each offering
         for (SPSConnectorConfig offering: sps.getConfiguration().connectors)

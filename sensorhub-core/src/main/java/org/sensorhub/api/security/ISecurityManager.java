@@ -46,6 +46,9 @@ public interface ISecurityManager extends IUserRegistry, IAuthorizer
     public void registerModulePermissions(IPermission perm);
     
     
+    public void unregisterModulePermissions(IPermission perm);
+    
+    
     public Authenticator getAuthenticator();
     
     

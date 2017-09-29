@@ -119,4 +119,13 @@ public class ModuleSecurity
     {
         currentUser.remove();
     }
+    
+    
+    /**
+     * Unregister permission tree from security manager
+     */
+    public void unregister()
+    {
+        SensorHub.getInstance().getSecurityManager().unregisterModulePermissions(rootPerm);
+    }
 }

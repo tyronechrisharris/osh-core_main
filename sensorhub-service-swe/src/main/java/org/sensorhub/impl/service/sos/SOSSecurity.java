@@ -70,8 +70,8 @@ public class SOSSecurity extends ModuleSecurity
         
         // register wildcard permission tree usable for all SOS services
         // do it at this point so we don't include specific offering permissions
-        ModulePermissions templatePerm = rootPerm.cloneAsTemplatePermission("SOS Services");
-        SensorHub.getInstance().getSecurityManager().registerModulePermissions(templatePerm);
+        ModulePermissions wildcardPerm = rootPerm.cloneAsTemplatePermission("SOS Services");
+        SensorHub.getInstance().getSecurityManager().registerModulePermissions(wildcardPerm);
                 
         // create permissions for each offering
         for (SOSProviderConfig offering: sos.getConfiguration().dataProviders)

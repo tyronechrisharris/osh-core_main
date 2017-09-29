@@ -117,9 +117,14 @@ public class SPSService extends AbstractModule<SPSServiceConfig> implements ISer
     @Override
     public void cleanup() throws SensorHubException
     {
+        // stop listening to http server events
         HttpServer httpServer = HttpServer.getInstance();
         if (httpServer != null)
             httpServer.unregisterListener(this);
+        
+        // unregister security handler
+        if (securityHandler != null)
+            securityHandler.unregister();
     }
     
     
