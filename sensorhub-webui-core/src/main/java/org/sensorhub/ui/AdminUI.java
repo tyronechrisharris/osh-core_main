@@ -118,6 +118,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     transient AdminUIConfig uiConfig;
     transient AdminUISecurity securityHandler;
     transient Map<Class<?>, TreeTable> moduleTables = new HashMap<>();
+    transient IModule<?> moduleAddedFromUI;
     VerticalLayout configArea;
     
     
@@ -730,7 +731,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 // no need to add module to table here
                                 // it will be loaded when the LOADED event is received
                                 
-                                selectModule(module, table);
+                                moduleAddedFromUI = module;
                             }
                             catch (NoClassDefFoundError e)
                             {
@@ -959,9 +960,16 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
             table.setChildrenAllowed(moduleID, false);
         }
         
-        // select if first item to be added
-        if (table.size() == 1)
-            table.select(moduleID);
+        // select if module was just added from UI
+        if (moduleAddedFromUI == module)
+        {
+            selectModule(module, table);
+            moduleAddedFromUI = null;
+        }
+        
+        // also select if first item added
+        else if (table.size() == 1)
+            table.select(moduleID);        
     }
     
     
@@ -1068,6 +1076,11 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 // update module state
                                 ModuleState state = ((IModule<?>)e.getSource()).getCurrentState();
                                 foundItem.getItemProperty(PROP_STATE).setValue(state);
+                                
+                                // update config panel if currently visible
+                                if (module.getLocalID().equals(foundTable.getValue()))
+                                    selectModule(module, foundTable);
+                                
                                 push();
                             }
                         });
