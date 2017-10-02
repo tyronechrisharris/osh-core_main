@@ -19,6 +19,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,8 @@ import org.sensorhub.utils.FileUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.util.ContextInitializer;
 
 
 /**
@@ -69,10 +72,12 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     private static final String REGISTRY_SHUTDOWN_MSG = "Registry was shut down";
     private static final String TIMEOUT_MSG = " in the requested time frame";
     public static final String ID = "MODULE_REGISTRY";
+    public static final String LOG_MODULE_ID = "MODULE_ID";
     public static final long SHUTDOWN_TIMEOUT_MS = 10000L;
-    
+
     IModuleConfigRepository configRepo;
     Map<String, IModule<?>> loadedModules;
+    Map<String, Logger> moduleLoggers;
     IEventHandler eventHandler;
     ExecutorService asyncExec;
     volatile boolean allModulesLoaded = true;
@@ -83,6 +88,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     {
         this.configRepo = configRepos;
         this.loadedModules = Collections.synchronizedMap(new LinkedHashMap<String, IModule<?>>());
+        this.moduleLoggers = Collections.synchronizedMap(new HashMap<String, Logger>());
         this.eventHandler = eventBus.registerProducer(ID);
         this.asyncExec = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                                                 10L, TimeUnit.SECONDS,
@@ -796,7 +802,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     public WeakReference<? extends IModule<?>> getModuleRef(String moduleID) throws SensorHubException
     {
         IModule<?> module = getModuleById(moduleID);
-        return new WeakReference<IModule<?>>(module);
+        return new WeakReference<>(module);
     }
     
     
@@ -1025,6 +1031,44 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             return null;
         
         return new File(moduleDataRoot, FileUtils.safeFileName(moduleID));
+    }
+    
+    
+    /**
+     * Creates or retrieves logger dedicated to the specified module
+     * @param module Module to get logger for
+     * @return Logger instance in a separate logging context
+     */
+    public Logger getModuleLogger(IModule<?> module)
+    {
+        String moduleID = module.getLocalID();
+        Logger logger = moduleLoggers.get(moduleID);
+        
+        if (logger == null)
+        {
+            // generate instance ID
+            String instanceID = Integer.toHexString(moduleID.hashCode());
+            instanceID.replaceAll("-", ""); // remove minus sign if any
+            
+            // create logger in new context
+            try
+            {
+                LoggerContext logContext = new LoggerContext();
+                logContext.setName(FileUtils.safeFileName(moduleID));
+                logContext.putProperty(LOG_MODULE_ID, FileUtils.safeFileName(moduleID));
+                new ContextInitializer(logContext).autoConfig();
+                logger = logContext.getLogger(getClass().getCanonicalName() + ":" + instanceID);
+                
+                logger.info("*************************************************");
+                logger.info("Starting log for {}", MsgUtils.moduleString(module));
+            }
+            catch (Exception e)
+            {
+                throw new IllegalStateException("Could not configure module logger", e);
+            }
+        }
+        
+        return logger;
     }
 
 

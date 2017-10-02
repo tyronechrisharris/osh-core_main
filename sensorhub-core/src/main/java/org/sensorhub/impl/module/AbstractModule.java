@@ -24,11 +24,8 @@ import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.common.EventBus;
-import org.sensorhub.utils.FileUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.util.ContextInitializer;
 
 
 /**
@@ -42,8 +39,6 @@ import ch.qos.logback.classic.util.ContextInitializer;
  */
 public abstract class AbstractModule<ConfigType extends ModuleConfig> implements IModule<ConfigType>
 {
-    public static final String LOG_MODULE_ID = "MODULE_ID";
-    
     protected Logger logger;
     protected IEventHandler eventHandler;
     protected ConfigType config;
@@ -541,29 +536,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     public Logger getLogger()
     {
         if (logger == null)
-        {
-            // generate instance ID
-            String localID = getLocalID();
-            String instanceID = Integer.toHexString(localID.hashCode());
-            instanceID.replaceAll("-", ""); // remove minus sign if any
-            
-            // create logger in new context
-            try
-            {
-                LoggerContext logContext = new LoggerContext();
-                logContext.setName(FileUtils.safeFileName(localID));
-                logContext.putProperty(LOG_MODULE_ID, FileUtils.safeFileName(localID));
-                new ContextInitializer(logContext).autoConfig();
-                logger = logContext.getLogger(getClass().getCanonicalName() + ":" + instanceID);
-                
-                logger.info("*************************************************");
-                logger.info("Starting log for {}", MsgUtils.moduleString(this));
-            }
-            catch (Exception e)
-            {
-                throw new IllegalStateException("Could not configure module logger", e);
-            }
-        }
+            logger = SensorHub.getInstance().getModuleRegistry().getModuleLogger(this);
         
         return logger;
     }
