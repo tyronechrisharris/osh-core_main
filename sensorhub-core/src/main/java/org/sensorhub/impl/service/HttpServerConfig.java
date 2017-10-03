@@ -69,6 +69,10 @@ public class HttpServerConfig extends ModuleConfig
     @DisplayInfo(desc="Password to use for key and trust stores")
     public String keyStorePassword;
     
+    
+    @DisplayInfo(desc="Path to external config file (in Jetty IOC XML format)")
+    public String xmlConfigFile;
+    
 
     public HttpServerConfig()
     {

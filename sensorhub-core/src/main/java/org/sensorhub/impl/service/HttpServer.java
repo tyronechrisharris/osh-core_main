@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -51,6 +52,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.ServletMapping;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.eclipse.jetty.xml.XmlConfiguration;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.security.ISecurityManager;
@@ -70,6 +72,12 @@ import org.vast.util.Asserts;
  */
 public class HttpServer extends AbstractModule<HttpServerConfig>
 {
+    private static final String OSH_SERVER_ID = "osh-server";
+    private static final String OSH_HTTP_CONNECTOR_ID = "osh-http";
+    private static final String OSH_HTTPS_CONNECTOR_ID = "osh-https";
+    private static final String OSH_STATIC_CONTENT_ID = "osh-static";
+    private static final String OSH_SERVLET_HANDLER_ID = "osh-servlets";
+    
     private static final String CERT_ALIAS = "jetty";
     public static final String TEST_MSG = "SensorHub web server is up";
     private static HttpServer instance;
@@ -114,6 +122,8 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
         try
         {
             server = new Server();
+            ServerConnector http = null;
+            ServerConnector https = null;
             HandlerList handlers = new HandlerList();
             
             // HTTP connector
@@ -122,7 +132,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
             httpConfig.setSecurePort(config.httpsPort);
             if (config.httpPort > 0)
             {
-                ServerConnector http = new ServerConnector(server,
+                http = new ServerConnector(server,
                         new HttpConnectionFactory(httpConfig));
                 http.setPort(config.httpPort);
                 http.setIdleTimeout(300000);
@@ -146,21 +156,22 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 sslContextFactory.setWantClientAuth(true);
                 HttpConfiguration httpsConfig = new HttpConfiguration(httpConfig);
                 httpsConfig.addCustomizer(new SecureRequestCustomizer());
-                ServerConnector https = new ServerConnector(server, 
+                https = new ServerConnector(server, 
                         new SslConnectionFactory(sslContextFactory, HttpVersion.HTTP_1_1.asString()),
                         new HttpConnectionFactory(httpsConfig));
                 https.setPort(config.httpsPort);
-                https.setIdleTimeout(30000);
+                https.setIdleTimeout(300000);
                 server.addConnector(https);
             }
             
             // static content
+            ContextHandler fileResourceContext = null;
             if (config.staticDocRootUrl != null)
             {
                 ResourceHandler fileResourceHandler = new ResourceHandler();
                 fileResourceHandler.setEtags(true);
                 
-                ContextHandler fileResourceContext = new ContextHandler();
+                fileResourceContext = new ContextHandler();
                 fileResourceContext.setContextPath("/");
                 //fileResourceContext.setAllowNullPathInfo(true);
                 fileResourceContext.setHandler(fileResourceHandler);
@@ -247,6 +258,35 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
             }
             
             server.setHandler(handlers);
+            
+            // also load external xml config file if any
+            if (config.xmlConfigFile != null)
+            {
+                try
+                {
+                    FileInputStream is = new FileInputStream(config.xmlConfigFile);
+                    XmlConfiguration xmlConfig = new XmlConfiguration(is);
+                    
+                    // assign IDs to existing beans so they can be reconfigured
+                    xmlConfig.getIdMap().put(OSH_SERVER_ID, server);
+                    if (http != null)
+                        xmlConfig.getIdMap().put(OSH_HTTP_CONNECTOR_ID, http);
+                    if (https != null)
+                        xmlConfig.getIdMap().put(OSH_HTTPS_CONNECTOR_ID, https);
+                    if (fileResourceContext != null)
+                        xmlConfig.getIdMap().put(OSH_STATIC_CONTENT_ID, fileResourceContext);
+                    if (servletHandler != null)
+                        xmlConfig.getIdMap().put(OSH_SERVLET_HANDLER_ID, servletHandler);
+                    
+                    // append xml config
+                    xmlConfig.configure();
+                }
+                catch (Exception e)
+                {
+                    throw new IOException("Cannot configure Jetty using external XML file", e);
+                }
+            }            
+            
             server.start();
             getLogger().info("HTTP server started on port " + config.httpPort);
             
