@@ -33,6 +33,29 @@ public class OshLoginService implements LoginService
     //Map<String, UserIdentity>
     
     
+    public static class UserPrincipal implements Principal
+    {
+        private final IUserInfo user;
+        
+        public UserPrincipal(IUserInfo user)
+        {
+            this.user = user;
+        }
+        
+        @Override
+        public String getName()
+        {
+            return user.getId();
+        }
+        
+        @Override
+        public String toString()
+        {
+            return getName();
+        }
+    }
+    
+    
     public static class RolePrincipal implements Principal
     {
         private final String _roleName;
@@ -103,13 +126,7 @@ public class OshLoginService implements LoginService
     
     protected UserIdentity createUserIdentity(final IUserInfo user, Object credential)
     {
-        Principal principal = new Principal() {
-            @Override
-            public String getName()
-            {
-                return user.getId();
-            }
-        };
+        Principal principal = new UserPrincipal(user);
         Subject subject = new Subject();
         subject.getPrincipals().add(principal);
         subject.getPrivateCredentials().add(credential);            
