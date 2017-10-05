@@ -134,6 +134,7 @@ public class SensorHub
     
     public void start()
     {
+        log.info("*****************************************");
         log.info("Starting SensorHub...");
         
         // prepare client authenticator (e.g. for HTTP connections, etc...)

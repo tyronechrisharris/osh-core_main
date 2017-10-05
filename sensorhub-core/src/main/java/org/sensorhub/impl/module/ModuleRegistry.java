@@ -1058,9 +1058,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                 logContext.putProperty(LOG_MODULE_ID, FileUtils.safeFileName(moduleID));
                 new ContextInitializer(logContext).autoConfig();
                 logger = logContext.getLogger(getClass().getCanonicalName() + ":" + instanceID);
-                
-                logger.info("*************************************************");
-                logger.info("Starting log for {}", MsgUtils.moduleString(module));
             }
             catch (Exception e)
             {
