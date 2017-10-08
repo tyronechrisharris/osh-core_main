@@ -50,10 +50,6 @@ public class HttpServerConfig extends ModuleConfig
     public String servletsRootUrl = "/sensorhub";
     
     
-    @DisplayInfo(desc="Maximum number of requests per second allowed per session/connection")
-    public int maxRequestsPerSecond = 20;
-    
-    
     @DisplayInfo(label="Authentication Method", desc="Method used to authenticate users on this server")
     public AuthMethod authMethod = AuthMethod.NONE;
     
