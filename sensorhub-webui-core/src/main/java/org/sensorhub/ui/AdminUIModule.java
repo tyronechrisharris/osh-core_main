@@ -156,7 +156,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
         // reset java util logging config so we don't get annoying atmosphere logs
         LogManager.getLogManager().reset();//.getLogger("org.atmosphere").setLevel(Level.OFF);
         
-        vaadinServlet = new AdminUIServlet(securityHandler);
+        vaadinServlet = new AdminUIServlet(securityHandler, getLogger());
         Map<String, String> initParams = new HashMap<String, String>();
         initParams.put(SERVLET_PARAM_UI_CLASS, AdminUI.class.getCanonicalName());
         initParams.put(SERVLET_PARAM_MODULE_ID, getLocalID());

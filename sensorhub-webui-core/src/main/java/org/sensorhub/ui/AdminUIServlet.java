@@ -19,17 +19,21 @@ import java.security.Principal;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.vast.ows.OWSUtils;
 import com.vaadin.server.VaadinServlet;
 
 
 @SuppressWarnings("serial")
 public class AdminUIServlet extends VaadinServlet
 {
+    final transient Logger log;
     final transient AdminUISecurity securityHandler;
     
     
-    AdminUIServlet(AdminUISecurity securityHandler)
+    AdminUIServlet(AdminUISecurity securityHandler, Logger log)
     {
+        this.log = log;
         this.securityHandler = securityHandler;
     }
     
@@ -46,10 +50,29 @@ public class AdminUIServlet extends VaadinServlet
             securityHandler.checkPermission(securityHandler.admin_access);            
             super.service(request, response);
         }
+        catch (SecurityException e)
+        {
+            log.info("Access Forbidden: {}", e.getMessage());
+            sendError(response, HttpServletResponse.SC_FORBIDDEN, e.getMessage());
+        }
         finally
         {
             securityHandler.clearCurrentUser();
         }
+    }
+    
+    
+    protected void sendError(HttpServletResponse resp, int errorCode, String errorMsg)
+    {
+        try
+        {
+            resp.sendError(errorCode, errorMsg);
+        }
+        catch (IOException e)
+        {
+            if (!OWSUtils.isClientDisconnectError(e) && log.isDebugEnabled())
+                log.error("Cannot send error", e);
+        } 
     }
 
 }
