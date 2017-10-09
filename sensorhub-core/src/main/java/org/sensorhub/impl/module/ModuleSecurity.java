@@ -64,7 +64,7 @@ public class ModuleSecurity
         // retrieve currently logged in user
         IUserInfo user = currentUser.get();
         if (user == null)
-            throw new SecurityException(perm.getErrorMessage() + ": No user specified");
+            throw new AccessControlException(perm.getErrorMessage() + ": No user specified");
         
         // request authorization
         return SensorHub.getInstance().getSecurityManager().isAuthorized(user, new PermissionRequest(perm));
@@ -77,7 +77,7 @@ public class ModuleSecurity
      * @param perm
      * @throws SecurityException
      */
-    public void checkPermission(IPermission perm) throws SecurityException
+    public void checkPermission(IPermission perm)
     {
         if (!enable || !isAccessControlEnabled())
             return;
@@ -85,7 +85,7 @@ public class ModuleSecurity
         // retrieve currently logged in user
         IUserInfo user = currentUser.get();
         if (user == null)
-            throw new SecurityException(perm.getErrorMessage() + ": No user specified");
+            throw new AccessControlException(perm.getErrorMessage() + ": No user specified");
         
         // request authorization
         if (!hasPermission(perm))
@@ -106,7 +106,7 @@ public class ModuleSecurity
         // lookup user info 
         IUserInfo user = SensorHub.getInstance().getSecurityManager().getUserInfo(userID);
         if (user == null)
-            throw new SecurityException("Permission denied: Unknown user " + userID);
+            throw new AccessControlException("Permission denied: Unknown user " + userID);
         
         currentUser.set(user);
     }
