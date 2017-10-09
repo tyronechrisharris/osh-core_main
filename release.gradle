@@ -152,29 +152,6 @@ task releaseGithub {
 }
 
 
-// this task task publishes javadocs to GitHub pages (osh-docs)
-task releaseJavadoc {
-  doLast {
-    println '> Copying Javadoc to GitHub Pages'
-    
-    def ghPagesDir = "$rootDir/../osh-docs/site/"
-    if (!new File(ghPagesDir).exists())
-      throw new GradleException('osh-docs github pages repo was not found locally')
-      
-    // copy apidocs to osh-docs site repo
-    def javaDocRepoDir = "apidocs/v" + version
-    copy {
-      def javadocDir = ghPagesDir + javaDocRepoDir
-      mkdir javadocDir
-      into javadocDir
-      from ('build/docs/javadoc') {
-        include '**/*'
-      }
-    }   
-  }
-}
-
-
 // release subtasks ordering
 // prerelease > build > releaseGit > bintrayUpload > releaseGithub
 task release

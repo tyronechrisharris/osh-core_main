@@ -29,15 +29,37 @@ distributions {
 
 
 // task to generate aggregated javadocs
-task javadocs(type: Javadoc) {
+Set<Project> javadocProjects = [':swe-common-core', ':sensorml-core', ':sensorhub-core']
+task alljavadoc(type: Javadoc) {
   dependsOn build
+  source javadocProjects.collect {name -> project(name).sourceSets.main.allJava}
+  classpath = files(javadocProjects.collect {name -> project(name).sourceSets.main.compileClasspath})
+  include 'org/sensorhub/api/**', 'net/opengis/**'
+  destinationDir = file("${buildDir}/docs/javadoc")
+}
+
+
+// task to publish javadocs to GitHub pages (osh-docs)
+task releaseJavadoc {
   doLast {
-    Set<Project> javadocProjects = [':swe-common-core', ':sensorml-core', ':sensorhub-core']
-    source javadocProjects.collect {name -> project(name).sourceSets.main.allJava}
-    include 'org/sensorhub/api/**', 'net/opengis/**'
-    classpath = files(javadocProjects.collect {name -> project(name).sourceSets.main.compileClasspath})
+    println '> Copying Javadoc to GitHub Pages'
+    
+    def ghPagesDir = "$rootDir/../osh-docs/site/"
+    if (!new File(ghPagesDir).exists())
+      throw new GradleException('osh-docs github pages repo was not found locally')
+      
+    // copy apidocs to osh-docs site repo
+    def javaDocRepoDir = "apidocs/v" + version
+    def javadocDir = ghPagesDir + javaDocRepoDir
+    mkdir javadocDir
+    copy {
+      into javadocDir
+      from ("${buildDir}/docs/javadoc") {
+        include '**/*'
+      }
+    }   
   }
 }
 
-releaseJavadoc.dependsOn javadocs
+releaseJavadoc.dependsOn alljavadoc
 release.dependsOn releaseJavadoc
