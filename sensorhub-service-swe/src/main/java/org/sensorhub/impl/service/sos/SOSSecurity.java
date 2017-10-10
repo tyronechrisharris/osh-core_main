@@ -77,7 +77,7 @@ public class SOSSecurity extends ModuleSecurity
             addOfferingPermissions(offering.offeringID);
         
         // register permission tree
-        register();
+        sos.getParentHub().getSecurityManager().registerModulePermissions(rootPerm);
     }
     
     

@@ -44,7 +44,7 @@ public interface ISensorDataInterface extends IStreamingDataInterface
      * Allows by-reference access to parent sensor module
      */
     @Override
-    public IDataProducer getProducer();
+    public IDataProducer getParentProducer();
     
     
     /**

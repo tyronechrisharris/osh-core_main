@@ -165,7 +165,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
                 latestRecord = data;
                 
                 // if testing multisource producer
-                IDataProducer producer = FakeSensorData2.this.getProducer();
+                IDataProducer producer = FakeSensorData2.this.getParentProducer();
                 if (obsFoiMap != null && producer instanceof IMultiSourceDataProducer)
                 {
                     Integer foiNum = obsFoiMap.get(sampleCount);
@@ -173,7 +173,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
                     {
                         String entityID = FakeSensorNetWithFoi.SENSOR_UID_PREFIX + foiNum;
                         AbstractFeature foi = ((IMultiSourceDataProducer)producer).getEntities().get(entityID).getCurrentFeatureOfInterest();
-                        eventHandler.publishEvent(new FoiEvent(latestRecordTime, getProducer(), foi, latestRecordTime/1000.));
+                        eventHandler.publishEvent(new FoiEvent(latestRecordTime, getParentProducer(), foi, latestRecordTime/1000.));
                         System.out.println("Observing FOI #" + foiNum);
                     }
                 }

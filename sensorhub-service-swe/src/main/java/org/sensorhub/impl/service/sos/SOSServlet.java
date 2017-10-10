@@ -1400,13 +1400,13 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         // we configure things step by step so we can fix config if it was partially altered //
         ///////////////////////////////////////////////////////////////////////////////////////
         HashSet<ModuleConfig> configSaveList = new HashSet<>();
-        ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
+        ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
         
         // create new virtual sensor module if needed            
         IModule<?> sensorModule = moduleReg.getLoadedModuleById(sensorUID);
         if (sensorModule == null)
         {
-            sensorModule = TransactionUtils.createSensorModule(sensorUID, request.getProcedureDescription());
+            sensorModule = TransactionUtils.createSensorModule(getParentHub(), sensorUID, request.getProcedureDescription());
             configSaveList.add(sensorModule.getConfiguration());
         }            
         // else simply update description

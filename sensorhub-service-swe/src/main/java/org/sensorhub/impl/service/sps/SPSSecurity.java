@@ -81,7 +81,7 @@ public class SPSSecurity extends ModuleSecurity
             addOfferingPermissions(offering.offeringID);
         
         // register permission tree
-        register();
+        sps.getParentHub().getSecurityManager().registerModulePermissions(rootPerm);
     }
     
     

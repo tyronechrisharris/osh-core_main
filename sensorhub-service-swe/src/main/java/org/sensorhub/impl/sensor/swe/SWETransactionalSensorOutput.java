@@ -92,17 +92,17 @@ public class SWETransactionalSensorOutput extends AbstractSensorOutput<SWETransa
                 try
                 {
                     foi = ((FeatureRef) foi).getTarget();
-                    e = new FoiEvent(now, getProducer(), foi, now/1000.0);
+                    e = new FoiEvent(now, getParentProducer(), foi, now/1000.0);
                 }
                 catch (Exception ex)
                 {
                     parentSensor.getLogger().trace("Cannot fetch feature object", ex);
-                    e = new FoiEvent(now, getProducer(), ((FeatureRef) foi).getHref(), now/1000.0);
+                    e = new FoiEvent(now, getParentProducer(), ((FeatureRef) foi).getHref(), now/1000.0);
                 }                    
             }
             else
             {
-                e = new FoiEvent(now, getProducer(), foi, now/1000.0);
+                e = new FoiEvent(now, getParentProducer(), foi, now/1000.0);
             }
 
             eventHandler.publishEvent(e);

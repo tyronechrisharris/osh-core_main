@@ -99,7 +99,7 @@ class SMLOutputInterface implements IStreamingDataInterface
     
 
     @Override
-    public IDataProducer getProducer()
+    public IDataProducer getParentProducer()
     {
         return parentProcess;
     }

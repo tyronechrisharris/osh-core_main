@@ -376,7 +376,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         ObservationImpl obsTemplate = new ObservationImpl();
         
         // set FOI if known
-        AbstractFeature foi = output.getProducer().getCurrentFeatureOfInterest();
+        AbstractFeature foi = output.getParentProducer().getCurrentFeatureOfInterest();
         if (foi != null)
             obsTemplate.setFeatureOfInterest(foi);
         req.setObservationTemplate(obsTemplate);

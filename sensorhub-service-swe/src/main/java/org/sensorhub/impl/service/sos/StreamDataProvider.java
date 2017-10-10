@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -80,7 +81,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     Map<String, String> currentFoiMap = new LinkedHashMap<String, String>(); // entity ID -> current FOI ID
     
 
-    public StreamDataProvider(IDataProducer dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws Exception
+    public StreamDataProvider(IDataProducer dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws IOException
     {
         this.dataSource = dataSource;
         

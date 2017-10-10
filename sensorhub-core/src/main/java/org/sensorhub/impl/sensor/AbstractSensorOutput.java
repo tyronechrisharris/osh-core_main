@@ -85,7 +85,7 @@ public abstract class AbstractSensorOutput<ProducerType extends IDataProducer> i
     
     
     @Override
-    public ProducerType getProducer()
+    public ProducerType getParentProducer()
     {
         return parentSensor;
     }

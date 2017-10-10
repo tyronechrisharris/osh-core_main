@@ -36,7 +36,7 @@ public interface IStreamingDataInterface extends IEventProducer
      * Allows by-reference access to parent producer
      * @return parent producer instance
      */
-    public IDataProducer getProducer();
+    public IDataProducer getParentProducer();
     
     
     /**

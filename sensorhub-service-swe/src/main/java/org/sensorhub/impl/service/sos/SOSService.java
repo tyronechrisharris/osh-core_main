@@ -94,7 +94,7 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
     public void start() throws SensorHubException
     {
         // deploy servlet
-        servlet = new SOSServlet(this, (SOSSecurity)this.securityHandler);
+        servlet = new SOSServlet(this, (SOSSecurity)this.securityHandler, getLogger());
         deploy();
         
         setState(ModuleState.STARTED);

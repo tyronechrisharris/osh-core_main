@@ -913,7 +913,7 @@ public class SPSServlet extends OWSServlet
         {
             // get sensor UID
             String sensorUID = request.getProcedureDescription().getUniqueIdentifier();
-            log.info("Registering new sensor " + sensorUID);
+            log.info("Registering new sensor {}", sensorUID);
             
             // offering name is derived from sensor UID
             String offeringID = sensorUID + "-sps";
@@ -921,8 +921,8 @@ public class SPSServlet extends OWSServlet
             ///////////////////////////////////////////////////////////////////////////////////////
             // we configure things step by step so we can fix config if it was partially altered //
             ///////////////////////////////////////////////////////////////////////////////////////
-            HashSet<ModuleConfig> configSaveList = new HashSet<ModuleConfig>();
-            ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
+            HashSet<ModuleConfig> configSaveList = new HashSet<>();
+            ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
             
             // create new virtual sensor module if needed            
             IModule<?> sensorModule = moduleReg.getLoadedModuleById(sensorUID);
