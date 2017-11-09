@@ -414,7 +414,7 @@ public class SPSServlet extends OWSServlet
     
     
     @Override
-    protected void handleRequest(OWSRequest request) throws IOException
+    protected void handleRequest(OWSRequest request) throws IOException, OWSException
     {
         if (request instanceof GetCapabilitiesRequest)
             handleRequest((GetCapabilitiesRequest)request);
@@ -471,7 +471,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void handleRequest(GetCapabilitiesRequest request) throws IOException
+    protected void handleRequest(GetCapabilitiesRequest request) throws IOException, OWSException
     {
         /*// check that version 2.0.0 is supported by client
         if (!request.getAcceptedVersions().isEmpty())
@@ -515,7 +515,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void handleRequest(DescribeSensorRequest request) throws IOException
+    protected void handleRequest(DescribeSensorRequest request) throws IOException, OWSException
     {
         String procID = request.getProcedureID();
         
@@ -544,7 +544,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void handleRequest(DescribeTaskingRequest request) throws IOException
+    protected void handleRequest(DescribeTaskingRequest request) throws IOException, OWSException
     {
         String procID = request.getProcedureID();
         SPSOfferingCapabilities offering = offeringCaps.get(procID);
@@ -559,7 +559,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void handleRequest(GetStatusRequest request) throws IOException
+    protected void handleRequest(GetStatusRequest request) throws IOException, OWSException
     {
         ITask task = findTask(request.getTaskID());
         StatusReport status = task.getStatusReport();
@@ -576,7 +576,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected GetFeasibilityResponse handleRequest(GetFeasibilityRequest request) throws IOException
+    protected GetFeasibilityResponse handleRequest(GetFeasibilityRequest request) throws IOException, OWSException
     {               
         /*GetFeasibilityResponse gfResponse = new GetFeasibilityResponse();
         
@@ -614,7 +614,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void handleRequest(SubmitRequest request) throws IOException
+    protected void handleRequest(SubmitRequest request) throws IOException, OWSException
     {
         // retrieve connector instance
         String procID = request.getProcedureID();
@@ -661,7 +661,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected synchronized void handleRequest(DirectTaskingRequest request) throws IOException
+    protected synchronized void handleRequest(DirectTaskingRequest request) throws IOException, OWSException
     {
         // retrieve connector instance
         String procID = request.getProcedureID();
@@ -712,7 +712,7 @@ public class SPSServlet extends OWSServlet
     
     
     // we dispatch request depending if it's for receiving or transmitting commands
-    protected synchronized void handleRequest(ConnectTaskingRequest request) throws IOException
+    protected synchronized void handleRequest(ConnectTaskingRequest request) throws IOException, OWSException
     {
         String sessionID = request.getSessionID();
         TaskingSession session;
@@ -737,7 +737,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void startReceiveTaskingStream(TaskingSession session, ConnectTaskingRequest request) throws IOException
+    protected void startReceiveTaskingStream(TaskingSession session, ConnectTaskingRequest request) throws IOException, OWSException
     {
         try
         {
@@ -776,31 +776,31 @@ public class SPSServlet extends OWSServlet
     }
     
 
-    protected void handleRequest(UpdateRequest request) throws IOException
+    protected void handleRequest(UpdateRequest request) throws IOException, OWSException
     {
         throw new SPSException(SPSException.unsupported_op_code, request.getOperation());
     }
     
     
-    protected void handleRequest(CancelRequest request) throws IOException
+    protected void handleRequest(CancelRequest request) throws IOException, OWSException
     {
         throw new SPSException(SPSException.unsupported_op_code, request.getOperation());
     }
     
 
-    protected void handleRequest(ReserveRequest request) throws IOException
+    protected void handleRequest(ReserveRequest request) throws IOException, OWSException
     {
         throw new SPSException(SPSException.unsupported_op_code, request.getOperation());
     }
     
     
-    protected void handleRequest(ConfirmRequest request) throws IOException
+    protected void handleRequest(ConfirmRequest request) throws IOException, OWSException
     {
         throw new SPSException(SPSException.unsupported_op_code, request.getOperation());
     }
     
     
-    protected void handleRequest(DescribeResultAccessRequest request) throws IOException
+    protected void handleRequest(DescribeResultAccessRequest request) throws IOException, OWSException
     {
         /*ITask task = findTask(request.getTaskID());
         
@@ -895,7 +895,7 @@ public class SPSServlet extends OWSServlet
     // Transactional Operations //
     //////////////////////////////    
     
-    protected void handleRequest(InsertSensorRequest request) throws IOException
+    protected void handleRequest(InsertSensorRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
         
@@ -973,7 +973,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void handleRequest(InsertTaskingTemplateRequest request) throws IOException
+    protected void handleRequest(InsertTaskingTemplateRequest request) throws IOException, OWSException
     {
         try
         {
@@ -1015,7 +1015,7 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    protected void startTransmitTaskingStream(TaskingSession session, ConnectTaskingRequest request) throws IOException
+    protected void startTransmitTaskingStream(TaskingSession session, ConnectTaskingRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
         

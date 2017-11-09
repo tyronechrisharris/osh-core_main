@@ -41,6 +41,7 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.data.DataIterator;
 import org.vast.ogc.om.IObservation;
+import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSOfferingCapabilities;
 import org.vast.swe.SWEConstants;
 import org.vast.util.Bbox;
@@ -371,7 +372,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     
     
     @Override
-    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws SensorHubException
+    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws SensorHubException, OWSException
     {
         checkEnabled();
         

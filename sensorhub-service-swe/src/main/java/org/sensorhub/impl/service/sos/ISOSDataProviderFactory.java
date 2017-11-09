@@ -19,6 +19,7 @@ import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.sensorml.v20.AbstractProcess;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.persistence.IFoiFilter;
+import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSOfferingCapabilities;
 
 
@@ -94,9 +95,10 @@ public interface ISOSDataProviderFactory
      * Instantiates a new data provider
      * @param filter
      * @return sos data provider
+     * @throws OWSException 
      * @throws SensorHubException
      */
-    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws SensorHubException;
+    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws SensorHubException, OWSException;
     
     
     /**

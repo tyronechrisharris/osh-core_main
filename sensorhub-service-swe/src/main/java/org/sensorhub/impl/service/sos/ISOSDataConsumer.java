@@ -30,6 +30,7 @@ import net.opengis.swe.v20.DataComponent;
 import java.io.IOException;
 import org.sensorhub.impl.service.swe.Template;
 import org.vast.ogc.om.IObservation;
+import org.vast.ows.OWSException;
 
 
 /**
@@ -56,8 +57,9 @@ public interface ISOSDataConsumer
      * Requests consumer to update sensor description
      * @param newSensorDescription
      * @throws IOException
+     * @throws OWSException 
      */
-    public void updateSensor(AbstractProcess newSensorDescription) throws IOException;
+    public void updateSensor(AbstractProcess newSensorDescription) throws IOException, OWSException;
     
     
     /**
@@ -68,8 +70,9 @@ public interface ISOSDataConsumer
      * @param obsTemplate 
      * @return new template ID
      * @throws IOException
+     * @throws OWSException 
      */
-    public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws IOException;
+    public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws IOException, OWSException;
     
     
     /**
@@ -77,16 +80,18 @@ public interface ISOSDataConsumer
      * @param templateID 
      * @param datablocks 
      * @throws IOException 
+     * @throws OWSException 
      */
-    public void newResultRecord(String templateID, DataBlock... datablocks) throws IOException;
+    public void newResultRecord(String templateID, DataBlock... datablocks) throws IOException, OWSException;
     
     
     /**
      * Requests consumer to process a list of new observations
      * @param observations 
      * @throws IOException
+     * @throws OWSException 
      */
-    public void newObservation(IObservation... observations) throws IOException;
+    public void newObservation(IObservation... observations) throws IOException, OWSException;
     
     
     /**
@@ -94,8 +99,9 @@ public interface ISOSDataConsumer
      * @param templateID
      * @return stream description (structure +encoding)
      * @throws IOException 
+     * @throws OWSException 
      */
-    public Template getTemplate(String templateID) throws IOException;
+    public Template getTemplate(String templateID) throws IOException, OWSException;
     
     
     /**

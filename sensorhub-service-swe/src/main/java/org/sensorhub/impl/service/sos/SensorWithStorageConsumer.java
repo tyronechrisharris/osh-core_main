@@ -23,6 +23,7 @@ import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.vast.ogc.om.IObservation;
+import org.vast.ows.OWSException;
 
 
 /**
@@ -47,7 +48,7 @@ public class SensorWithStorageConsumer extends SensorDataConsumer implements ISO
 
 
     @Override
-    public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws IOException
+    public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws IOException, OWSException
     {
         // call superclass w/o obs template so no FOI is published yet
         // we need to wait until we have a record store to do that

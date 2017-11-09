@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sos;
 import java.io.IOException;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.sensor.ISensorModule;
+import org.vast.ows.OWSException;
 
 
 /**
@@ -33,7 +34,7 @@ public class SensorDataProvider extends StreamDataProvider implements ISOSDataPr
 {
 
     
-    public SensorDataProvider(ISensorModule<?> srcSensor, SensorDataProviderConfig config, SOSDataFilter filter) throws IOException
+    public SensorDataProvider(ISensorModule<?> srcSensor, SensorDataProviderConfig config, SOSDataFilter filter) throws IOException, OWSException
     {
         super(srcSensor, config, filter);
     }

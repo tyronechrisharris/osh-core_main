@@ -104,6 +104,7 @@ import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.OMUtils;
 import org.vast.ogc.om.SamplingPoint;
 import org.vast.ows.GetCapabilitiesRequest;
+import org.vast.ows.OWSException;
 import org.vast.ows.OWSExceptionReport;
 import org.vast.ows.OWSRequest;
 import org.vast.ows.OWSUtils;
@@ -725,7 +726,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
 
     @Override
-    protected void handleRequest(GetCapabilitiesRequest request) throws IOException
+    protected void handleRequest(GetCapabilitiesRequest request) throws IOException, OWSException
     {
         // check that version 2.0.0 is supported by client
         if (!request.getAcceptedVersions().isEmpty())
@@ -788,7 +789,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
     
     @Override
-    protected void handleRequest(DescribeSensorRequest request) throws IOException
+    protected void handleRequest(DescribeSensorRequest request) throws IOException, OWSException
     {        
         String sensorID = request.getProcedureID();
                 
@@ -864,7 +865,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(GetObservationRequest request) throws IOException
+    protected void handleRequest(GetObservationRequest request) throws IOException, OWSException
     {
         ISOSDataProvider dataProvider = null;
         
@@ -1031,7 +1032,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(GetResultTemplateRequest request) throws IOException
+    protected void handleRequest(GetResultTemplateRequest request) throws IOException, OWSException
     {
         // check query parameters        
         OWSExceptionReport report = new OWSExceptionReport();
@@ -1087,7 +1088,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected void handleRequest(GetResultRequest request) throws IOException
+    protected void handleRequest(GetResultRequest request) throws IOException, OWSException
     {
         ISOSDataProvider dataProvider = null;
         
@@ -1206,7 +1207,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(final GetFeatureOfInterestRequest request) throws IOException
+    protected void handleRequest(final GetFeatureOfInterestRequest request) throws IOException, OWSException
     {
         OWSExceptionReport report = new OWSExceptionReport();
         Set<String> selectedProcedures = new LinkedHashSet<>();
@@ -1374,7 +1375,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(InsertSensorRequest request) throws IOException
+    protected void handleRequest(InsertSensorRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
         
@@ -1497,7 +1498,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(DeleteSensorRequest request) throws IOException
+    protected void handleRequest(DeleteSensorRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
         
@@ -1533,7 +1534,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(UpdateSensorRequest request) throws IOException
+    protected void handleRequest(UpdateSensorRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
         
@@ -1566,7 +1567,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(InsertObservationRequest request) throws IOException
+    protected void handleRequest(InsertObservationRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
         
@@ -1586,7 +1587,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(InsertResultTemplateRequest request) throws IOException
+    protected void handleRequest(InsertResultTemplateRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
         
@@ -1620,7 +1621,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     
     @Override
-    protected void handleRequest(InsertResultRequest request) throws IOException
+    protected void handleRequest(InsertResultRequest request) throws IOException, OWSException
     {
         DataStreamParser parser = null;
         
@@ -1920,7 +1921,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected ISOSDataProvider getDataProvider(String offering, SOSDataFilter filter) throws IOException
+    protected ISOSDataProvider getDataProvider(String offering, SOSDataFilter filter) throws IOException, OWSException
     {
         try
         {
@@ -1932,8 +1933,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 throw new IllegalStateException("No provider factory found");
             
             return factory.getNewDataProvider(filter);
-        }
-        catch (Exception e)
+        }        
+        catch (SensorHubException e)
         {
             throw new IOException("Cannot get provider for offering " + offering, e);
         }
@@ -2108,7 +2109,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected boolean writeCustomFormatStream(GetResultRequest request, ISOSDataProvider dataProvider) throws IOException
+    protected boolean writeCustomFormatStream(GetResultRequest request, ISOSDataProvider dataProvider) throws IOException, SOSException
     {
         String format = request.getFormat();
         

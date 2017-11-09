@@ -28,6 +28,7 @@ import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
 import org.vast.ogc.om.IObservation;
+import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSException;
 
 
@@ -54,14 +55,14 @@ public class SensorDataConsumer implements ISOSDataConsumer
     
     
     @Override
-    public void updateSensor(AbstractProcess newSensorDescription) throws IOException
+    public void updateSensor(AbstractProcess newSensorDescription) throws IOException, OWSException
     {
         TransactionUtils.updateSensorDescription(sensor, newSensorDescription);
     }
 
 
     @Override
-    public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws IOException
+    public String newResultTemplate(DataComponent component, DataEncoding encoding, IObservation obsTemplate) throws IOException, OWSException
     {
         try
         {
