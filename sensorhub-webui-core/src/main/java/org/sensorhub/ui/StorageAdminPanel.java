@@ -22,7 +22,9 @@ import java.util.Locale;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
+import net.opengis.swe.v20.HasUom;
 import net.opengis.swe.v20.ScalarComponent;
+import net.opengis.swe.v20.Time;
 import net.opengis.swe.v20.Vector;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.persistence.DataFilter;
@@ -34,7 +36,6 @@ import org.tltv.gantt.Gantt;
 import org.tltv.gantt.client.shared.Resolution;
 import org.tltv.gantt.client.shared.Step;
 import org.tltv.gantt.client.shared.SubStep;
-import org.vast.swe.SWEConstants;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.DateTimeFormat;
 import com.vaadin.data.util.converter.Converter;
@@ -212,7 +213,7 @@ public class StorageAdminPanel extends DefaultModulePanel<IRecordStorageModule<?
         table.setPageLength(10);
         
         // add column names
-        List<ScalarIndexer> indexers = new ArrayList<ScalarIndexer>();
+        List<ScalarIndexer> indexers = new ArrayList<>();
         DataComponent recordDef = recordInfo.getRecordDescription();
         addColumns(recordDef, recordDef, table, indexers);
         
@@ -246,8 +247,8 @@ public class StorageAdminPanel extends DefaultModulePanel<IRecordStorageModule<?
             table.addContainerProperty(propId, String.class, null, label, null, null);
             
             // correct time formatting
-            String def = component.getDefinition();
-            if (def != null && def.equals(SWEConstants.DEF_SAMPLING_TIME))
+            String uomUri = (component instanceof HasUom) ? ((HasUom)component).getUom().getHref() : null;
+            if (Time.ISO_TIME_UNIT.equals(uomUri))
             {
                 table.setConverter(propId, new Converter<String, String>() {
                     DateTimeFormat dateFormat = new DateTimeFormat();
@@ -259,7 +260,7 @@ public class StorageAdminPanel extends DefaultModulePanel<IRecordStorageModule<?
                     }
                     
                     @Override
-                    public String convertToModel(String value, Class<? extends String> targetType, Locale locale) throws com.vaadin.data.util.converter.Converter.ConversionException
+                    public String convertToModel(String value, Class<? extends String> targetType, Locale locale)
                     {
                         return null;
                     }
