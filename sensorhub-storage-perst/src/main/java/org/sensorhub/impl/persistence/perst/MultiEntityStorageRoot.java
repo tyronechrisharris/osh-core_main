@@ -220,6 +220,9 @@ class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMul
             }
         }
         
+        if (Double.isInfinite(timeRange[0]))
+            timeRange[0] = timeRange[1] = Double.NaN;
+        
         return timeRange;
     }
 

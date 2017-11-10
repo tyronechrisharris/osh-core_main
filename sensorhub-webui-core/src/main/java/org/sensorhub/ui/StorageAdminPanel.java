@@ -129,8 +129,10 @@ public class StorageAdminPanel extends DefaultModulePanel<IRecordStorageModule<?
                 
                 // stored time period
                 double[] timeRange = storage.getRecordsTimeRange(dsInfo.getName());
-                Label l = new Label("<b>Time Range:</b> " + new DateTimeFormat().formatIso(timeRange[0], 0)
-                                     + " / " + new DateTimeFormat().formatIso(timeRange[1], 0));
+                String timeRangeText = Double.isNaN(timeRange[0]) ? "Empty" : 
+                        new DateTimeFormat().formatIso(timeRange[0], 0) + " / " +
+                        new DateTimeFormat().formatIso(timeRange[1], 0);
+                Label l = new Label("<b>Time Range:</b> " + timeRangeText);
                 l.setContentMode(ContentMode.HTML);
                 panelLayout.addComponent(l, 0, 0, 1, 0);
                 
