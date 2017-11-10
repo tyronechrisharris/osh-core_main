@@ -73,10 +73,10 @@ public class StorageDataProvider implements ISOSDataProvider
     }
     
     
-    public StorageDataProvider(IBasicStorage storage, StorageDataProviderConfig config, final SOSDataFilter filter) throws IOException
+    public StorageDataProvider(IBasicStorage storage, StorageDataProviderConfig config, final SOSDataFilter filter) throws IOException, SOSException
     {
         this.storage = storage;
-        this.dataStoresStates = new ArrayList<StorageState>();
+        this.dataStoresStates = new ArrayList<>();
         this.replaySpeedFactor = filter.getReplaySpeedFactor();
         this.requestSystemTime = System.currentTimeMillis();
                         
@@ -108,7 +108,7 @@ public class StorageDataProvider implements ISOSDataProvider
             DataIterator it = new DataIterator(recordInfo.getRecordDescription());
             while (it.hasNext())
             {
-                String defUri = (String)it.next().getDefinition();
+                String defUri = it.next().getDefinition();
                 if (filter.getObservables().contains(defUri))
                 {
                     // prepare record filter

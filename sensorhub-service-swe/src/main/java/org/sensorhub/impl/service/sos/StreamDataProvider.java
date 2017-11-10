@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -76,13 +75,13 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     DataEvent lastDataEvent;
     int nextEventRecordIndex = 0;
     Set<String> requestedFois;
-    Map<String, String> currentFoiMap = new LinkedHashMap<String, String>(); // entity ID -> current FOI ID
+    Map<String, String> currentFoiMap = new LinkedHashMap<>(); // entity ID -> current FOI ID
     
 
-    public StreamDataProvider(IDataProducerModule<?> dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws OWSException, IOException
+    public StreamDataProvider(IDataProducerModule<?> dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws OWSException
     {
         this.dataSource = dataSource;
-        this.sourceOutputs = new ArrayList<IStreamingDataInterface>();
+        this.sourceOutputs = new ArrayList<>();
         
         // figure out stop time (if any)
         stopTime = ((long) filter.getTimeRange().getStopTime()) * 1000L;
@@ -101,7 +100,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             DataIterator it = new DataIterator(outputInterface.getRecordDescription());
             while (it.hasNext())
             {
-                String defUri = (String) it.next().getDefinition();
+                String defUri = it.next().getDefinition();
                 if (filter.getObservables().contains(defUri))
                 {
                     // time out after a certain period if no sensor data is produced
@@ -162,7 +161,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                 if (!currentFoiMap.isEmpty())
                 {
                     int queueSize = Math.max(DEFAULT_QUEUE_SIZE, currentFoiMap.size());
-                    eventQueue = new LinkedBlockingQueue<DataEvent>(queueSize);
+                    eventQueue = new LinkedBlockingQueue<>(queueSize);
 
                     for (String entityID : currentFoiMap.keySet())
                     {
@@ -174,7 +173,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                 else // if no FOIs were specified, send data for all
                 {
                     int queueSize = Math.max(DEFAULT_QUEUE_SIZE, ((IMultiSourceDataInterface) outputInterface).getEntityIDs().size());
-                    eventQueue = new LinkedBlockingQueue<DataEvent>(queueSize);
+                    eventQueue = new LinkedBlockingQueue<>(queueSize);
 
                     Map<String, DataBlock> data = ((IMultiSourceDataInterface) outputInterface).getLatestRecords();
                     for (Entry<String, DataBlock> rec : data.entrySet())
@@ -185,7 +184,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             // otherwise send latest record of single source 
             else
             {
-                eventQueue = new LinkedBlockingQueue<DataEvent>(DEFAULT_QUEUE_SIZE);
+                eventQueue = new LinkedBlockingQueue<>(DEFAULT_QUEUE_SIZE);
                 DataBlock data = outputInterface.getLatestRecord();
                 if (data != null)
                     eventQueue.offer(new DataEvent(System.currentTimeMillis(), outputInterface, data));
@@ -318,6 +317,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         }
         catch (InterruptedException e)
         {
+            Thread.currentThread().interrupt();
             return null;
         }
     }
@@ -385,7 +385,8 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                     long now = System.currentTimeMillis();
                     if (now - lastQueueErrorTime > 10000)
                     {
-                        log.warn("Maximum queue size reached while streaming data from " + dataSource + ". " + "Some records will be discarded. This is often due to insufficient bandwidth");
+                        log.warn("Maximum queue size reached while streaming data from {}. "
+                               + "Some records will be discarded. This is often due to insufficient bandwidth", dataSource);
                         lastQueueErrorTime = now;
                     }
                 }

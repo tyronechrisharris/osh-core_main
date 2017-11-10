@@ -1741,6 +1741,25 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
         return null;
     }
+    
+    
+    protected SOSOfferingCapabilities checkAndGetOffering(String offeringID) throws SOSException
+    {
+        try
+        {
+            capabilitiesLock.readLock().lock();
+            SOSOfferingCapabilities offCaps = offeringCaps.get(offeringID);
+            
+            if (offCaps == null)
+                throw new SOSException(SOSException.invalid_param_code, "offering", offeringID, null);
+            
+            return offCaps;
+        }
+        finally
+        {
+            capabilitiesLock.readLock().unlock();
+        }
+    }
 
 
     protected void checkQueryOfferings(List<String> offerings, OWSExceptionReport report) throws SOSException
@@ -1895,28 +1914,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         {
             if (!offering.getProcedureFormats().contains(format))
                 report.add(new SOSException(SOSException.invalid_param_code, "procedureDescriptionFormat", format, "Procedure description format " + format + " is not available for offering " + offeringID));
-        }
-    }
-    
-    
-    
-    
-    
-    protected SOSOfferingCapabilities checkAndGetOffering(String offeringID) throws SOSException
-    {
-        try
-        {
-            capabilitiesLock.readLock().lock();
-            SOSOfferingCapabilities offCaps = offeringCaps.get(offeringID);
-            
-            if (offCaps == null)
-                throw new SOSException(SOSException.invalid_param_code, "offering", offeringID, null);
-            
-            return offCaps;
-        }
-        finally
-        {
-            capabilitiesLock.readLock().unlock();
         }
     }
     
