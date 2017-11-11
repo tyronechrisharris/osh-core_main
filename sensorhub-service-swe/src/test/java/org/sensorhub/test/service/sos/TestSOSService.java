@@ -1055,6 +1055,32 @@ public class TestSOSService
     }
     
     
+    @Test
+    public void testGetObsByBbox() throws Exception
+    {
+        obsFoiMap.put(1, 1);
+        obsFoiMap.put(3, 2);
+        obsFoiMap.put(4, 3);
+        
+        deployService(buildSensorProvider2WithObsStorage());
+        
+        // wait until data has been produced and archived
+        FakeSensor sensor = getSensorModule(0);
+        while (sensor.getAllOutputs().get(NAME_OUTPUT2).isEnabled())
+            Thread.sleep(((long)SAMPLING_PERIOD*500));
+        DOMHelper dom;
+        
+        dom = sendRequest(generateGetObsByBbox(URI_OFFERING2, URI_PROP2, new Bbox(0,0,0,0)), true);        
+        assertEquals("Wrong number of observations returned", 0, dom.getElements("*/OM_Observation").getLength());
+        
+        dom = sendRequest(generateGetObsByBbox(URI_OFFERING2, URI_PROP2, new Bbox(0,0,1.5,1.5)), true);        
+        assertEquals("Wrong number of observations returned", 2, dom.getElements("*/OM_Observation").getLength());
+        
+        dom = sendRequest(generateGetObsByBbox(URI_OFFERING2, URI_PROP2, new Bbox(1.5,1.5,2.0,2.0)), true);
+        assertEquals("Wrong number of observations returned", 1, dom.getElements("*/OM_Observation").getLength());
+    }
+    
+    
     @Test(expected = OGCException.class)
     public void testGetObsWrongFormat() throws Exception
     {
@@ -1126,6 +1152,14 @@ public class TestSOSService
         GetObservationRequest getObs = generateGetObs(offeringId, obsProp);
         for (int foiNum: foiNums)
             getObs.getFoiIDs().add(FakeSensorNetWithFoi.FOI_UID_PREFIX + foiNum);
+        return getObs;
+    }
+    
+    
+    protected GetObservationRequest generateGetObsByBbox(String offeringId, String obsProp, Bbox bbox)
+    {
+        GetObservationRequest getObs = generateGetObs(offeringId, obsProp);
+        getObs.setBbox(bbox);
         return getObs;
     }
     

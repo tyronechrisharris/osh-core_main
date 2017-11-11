@@ -26,8 +26,15 @@ package org.sensorhub.impl.service.sos;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.vast.ows.fes.FESRequestUtils;
+import org.vast.util.Asserts;
+import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Polygon;
+import net.opengis.fes.v20.BBOX;
+import net.opengis.fes.v20.BinarySpatialOp;
 
 
 /**
@@ -40,19 +47,13 @@ import com.vividsolutions.jts.geom.Polygon;
  * */
 public class SOSDataFilter
 {
-    Set<String> observables = new LinkedHashSet<String>();
-    Set<String> foiIds = new LinkedHashSet<String>();
+    Set<String> observables = new LinkedHashSet<>();
+    Set<String> foiIds = new LinkedHashSet<>();
     TimeExtent timeRange = new TimeExtent(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
     Polygon roi;
     
     double replaySpeedFactor = Double.NaN;
     long maxObsCount = Long.MAX_VALUE;
-    
-    
-    public SOSDataFilter(TimeExtent timeRange)
-    {
-        this(null, null, timeRange);
-    }
     
     
     public SOSDataFilter(String observable)
@@ -61,23 +62,29 @@ public class SOSDataFilter
     }
     
     
-    public SOSDataFilter(String observable, TimeExtent timeRange)
+    public SOSDataFilter(List<String> observables, TimeExtent timeRange, List<String> foiIds, BinarySpatialOp spatialFilter)
     {
-        this.observables.add(observable);
-        this.timeRange = timeRange.copy();
-    }
-    
-    
-    public SOSDataFilter(List<String> foiIds, List<String> observables, TimeExtent timeRange)
-    {
-        if (foiIds != null)
-            this.foiIds.addAll(foiIds);
-        
         if (observables != null)
             this.observables.addAll(observables);
         
         if (timeRange != null)
             this.timeRange = timeRange.copy();
+        
+        if (foiIds != null)
+            this.foiIds.addAll(foiIds);
+        
+        if (spatialFilter != null)
+        {
+            Asserts.checkState(spatialFilter instanceof BBOX, "Only BBOX filter is supported");
+            Bbox bbox = FESRequestUtils.filterToBbox(spatialFilter);
+            this.roi = new GeometryFactory().createPolygon(new Coordinate[] {
+               new Coordinate(bbox.getMinX(), bbox.getMinY()),
+               new Coordinate(bbox.getMinX(), bbox.getMaxY()),
+               new Coordinate(bbox.getMaxX(), bbox.getMaxY()),
+               new Coordinate(bbox.getMaxX(), bbox.getMinY()),
+               new Coordinate(bbox.getMinX(), bbox.getMinY())
+            });
+        }
     }
     
 
