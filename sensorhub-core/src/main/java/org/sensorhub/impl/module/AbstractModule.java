@@ -24,6 +24,7 @@ import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.common.EventBus;
+import org.sensorhub.utils.ModuleUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
 
@@ -536,7 +537,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     public Logger getLogger()
     {
         if (logger == null)
-            logger = SensorHub.getInstance().getModuleRegistry().getModuleLogger(this);
+            logger = ModuleUtils.createModuleLogger(this);
         
         return logger;
     }

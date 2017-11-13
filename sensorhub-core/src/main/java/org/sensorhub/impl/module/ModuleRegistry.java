@@ -52,8 +52,6 @@ import org.sensorhub.utils.FileUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.util.ContextInitializer;
 
 
 /**
@@ -72,7 +70,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     private static final String REGISTRY_SHUTDOWN_MSG = "Registry was shut down";
     private static final String TIMEOUT_MSG = " in the requested time frame";
     public static final String ID = "MODULE_REGISTRY";
-    public static final String LOG_MODULE_ID = "MODULE_ID";
     public static final long SHUTDOWN_TIMEOUT_MS = 10000L;
 
     IModuleConfigRepository configRepo;
@@ -1031,41 +1028,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             return null;
         
         return new File(moduleDataRoot, FileUtils.safeFileName(moduleID));
-    }
-    
-    
-    /**
-     * Creates or retrieves logger dedicated to the specified module
-     * @param module Module to get logger for
-     * @return Logger instance in a separate logging context
-     */
-    public Logger getModuleLogger(IModule<?> module)
-    {
-        String moduleID = module.getLocalID();
-        Logger logger = moduleLoggers.get(moduleID);
-        
-        if (logger == null)
-        {
-            // generate instance ID
-            String instanceID = Integer.toHexString(moduleID.hashCode());
-            instanceID.replaceAll("-", ""); // remove minus sign if any
-            
-            // create logger in new context
-            try
-            {
-                LoggerContext logContext = new LoggerContext();
-                logContext.setName(FileUtils.safeFileName(moduleID));
-                logContext.putProperty(LOG_MODULE_ID, FileUtils.safeFileName(moduleID));
-                new ContextInitializer(logContext).autoConfig();
-                logger = logContext.getLogger(module.getClass().getCanonicalName() + ":" + instanceID);
-            }
-            catch (Exception e)
-            {
-                throw new IllegalStateException("Could not configure module logger", e);
-            }
-        }
-        
-        return logger;
     }
 
 

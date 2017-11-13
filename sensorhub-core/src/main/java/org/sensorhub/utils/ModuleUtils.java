@@ -27,6 +27,9 @@ import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.util.Asserts;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.util.ContextInitializer;
 
 
 public class ModuleUtils
@@ -39,6 +42,8 @@ public class ModuleUtils
     public static final String MODULE_VENDOR = "Bundle-Vendor";
     public static final String MODULE_BUILD = "Bundle-BuildNumber";
     public static final String MODULE_DEPS = "OSH-Dependencies";
+    
+    public static final String LOG_MODULE_ID = "MODULE_ID";
     
     
     public static Manifest getManifest(Class<?> clazz)
@@ -148,5 +153,39 @@ public class ModuleUtils
         if (manifest == null)
             return null;
         return manifest.getMainAttributes().getValue(MODULE_BUILD);
+    }
+    
+    
+    /**
+     * Creates or retrieves logger dedicated to the specified module
+     * @param module Module to get logger for
+     * @return Logger instance in a separate logging context
+     */
+    public static Logger createModuleLogger(IModule<?> module)
+    {
+        Asserts.checkNotNull(module, IModule.class);        
+        String moduleID = module.getLocalID();
+        
+        // if module config wasn't initialized, use class logger
+        if (moduleID == null)
+            return LoggerFactory.getLogger(module.getClass());
+        
+        // generate instance ID
+        String instanceID = Integer.toHexString(moduleID.hashCode());
+        instanceID.replaceAll("-", ""); // remove minus sign if any
+        
+        // create logger in new context
+        try
+        {
+            LoggerContext logContext = new LoggerContext();
+            logContext.setName(FileUtils.safeFileName(moduleID));
+            logContext.putProperty(LOG_MODULE_ID, FileUtils.safeFileName(moduleID));
+            new ContextInitializer(logContext).autoConfig();
+            return logContext.getLogger(module.getClass().getCanonicalName() + ":" + instanceID);
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException("Could not configure module logger", e);
+        }
     }
 }
