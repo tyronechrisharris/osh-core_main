@@ -47,8 +47,8 @@ import org.sensorhub.api.persistence.IRecordStoreInfo;
  */
 class BasicStorageRoot extends PersistentResource implements IBasicStorage
 {
-    private static Key KEY_SML_START_ALL_TIME = new Key(Double.NEGATIVE_INFINITY);
-    private static Key KEY_SML_END_ALL_TIME = new Key(Double.POSITIVE_INFINITY);
+    private static final Key KEY_SML_START_ALL_TIME = new Key(Double.NEGATIVE_INFINITY);
+    private static final Key KEY_SML_END_ALL_TIME = new Key(Double.POSITIVE_INFINITY);
     
     Index<AbstractProcess> descriptionTimeIndex;
     HashMap<String, TimeSeriesImpl> dataStores;
@@ -61,7 +61,7 @@ class BasicStorageRoot extends PersistentResource implements IBasicStorage
     public BasicStorageRoot(Storage db)
     {
         super(db);
-        dataStores = new HashMap<String,TimeSeriesImpl>(10);
+        dataStores = new HashMap<>(10);
         descriptionTimeIndex = db.<AbstractProcess>createIndex(double.class, true);
     }
     

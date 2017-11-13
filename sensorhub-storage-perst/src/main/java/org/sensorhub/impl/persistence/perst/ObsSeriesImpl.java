@@ -148,7 +148,7 @@ public class ObsSeriesImpl extends TimeSeriesImpl
             
             FeatureStoreImpl fStore = ((ObsStorageRoot)parentStore).featureStore;
             Iterator<String> foiIt = fStore.getFeatureIDs(foiFilter);
-            Collection<String> allFoiIDs = new ArrayList<String>(100);
+            Collection<String> allFoiIDs = new ArrayList<>(100);
             
             // apply OR between FOI id list and ROI
             // this is not standard compliant but more useful than AND
@@ -242,7 +242,7 @@ public class ObsSeriesImpl extends TimeSeriesImpl
                 stop = filter.getTimeStampRange()[1];
             }
             
-            foiTimePeriods = new HashSet<FoiTimePeriod>();
+            foiTimePeriods = new HashSet<>();
             foiTimePeriods.add(new FoiTimePeriod(null, start, stop));
         }
         

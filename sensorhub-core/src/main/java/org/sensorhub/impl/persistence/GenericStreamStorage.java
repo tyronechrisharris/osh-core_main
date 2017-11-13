@@ -83,8 +83,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
 {
     IRecordStorageModule<StorageConfig> storage;
     WeakReference<IDataProducerModule<?>> dataSourceRef;
-    Map<String, ScalarIndexer> timeStampIndexers = new HashMap<String, ScalarIndexer>();
-    Map<String, String> currentFoiMap = new HashMap<String, String>(); // entity ID -> current FOI ID
+    Map<String, ScalarIndexer> timeStampIndexers = new HashMap<>();
+    Map<String, String> currentFoiMap = new HashMap<>(); // entity ID -> current FOI ID
     
     long lastCommitTime = Long.MIN_VALUE;
     String currentFoi;
@@ -123,9 +123,10 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 @Override
                 public void run()
                 {
-                    policy.trimStorage(storage);
+                    policy.trimStorage(storage, logger);
                 }
-            };            
+            };
+            
             autoPurgeTimer.schedule(task, 0, (long)(config.autoPurgeConfig.purgePeriod*1000)); 
         }
         
@@ -411,14 +412,6 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                     if (getLogger().isTraceEnabled())
                         getLogger().trace("Storing record " + key.timeStamp + " for output " + outputName);
                 }
-                
-                // commit only when necessary
-                long now = System.currentTimeMillis();
-                if (lastCommitTime == Long.MIN_VALUE || (now - lastCommitTime) > config.minCommitPeriod)
-                {
-                    storage.commit();
-                    lastCommitTime = now;
-                }
             }
             
             else if (e instanceof SensorEvent)
@@ -454,6 +447,14 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                     currentFoiMap.put(producerID, foiEvent.getFoiID());
                 else
                     currentFoi = foiEvent.getFoiID();
+            }
+            
+            // commit only when necessary
+            long now = System.currentTimeMillis();
+            if (lastCommitTime == Long.MIN_VALUE || (now - lastCommitTime) > config.minCommitPeriod)
+            {
+                storage.commit();
+                lastCommitTime = now;
             }
         }
     }

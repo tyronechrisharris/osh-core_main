@@ -297,8 +297,9 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
     
 
     @Override
-    public /*synchronized*/ void storeRecord(DataKey key, DataBlock data)
+    public synchronized void storeRecord(DataKey key, DataBlock data)
     {
+        getLogger().trace("Storing record with {}", key);
         ((BasicStorageRoot)dbRoot).storeRecord(key, data);        
         if (autoCommit)
             commit();
@@ -308,6 +309,7 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
     @Override
     public synchronized void updateRecord(DataKey key, DataBlock data)
     {
+        getLogger().trace("Updating record with {}", key);
         ((BasicStorageRoot)dbRoot).updateRecord(key, data);
         if (autoCommit)
             commit();
@@ -317,6 +319,7 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
     @Override
     public synchronized void removeRecord(DataKey key)
     {
+        getLogger().trace("Removing record with {}", key);
         ((BasicStorageRoot)dbRoot).removeRecord(key);
         if (autoCommit)
             commit();
@@ -326,6 +329,7 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
     @Override
     public synchronized int removeRecords(IDataFilter filter)
     {
+        getLogger().trace("Removing records with {}", filter);
         int count = ((BasicStorageRoot)dbRoot).removeRecords(filter);
         if (autoCommit)
             commit();

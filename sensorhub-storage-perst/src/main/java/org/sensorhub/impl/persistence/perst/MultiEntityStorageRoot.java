@@ -76,6 +76,7 @@ class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMul
             nextRecord();
         }
         
+        @Override
         public final boolean hasNext()
         {
             return nextRecord != null;
@@ -120,12 +121,12 @@ class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMul
             return rec;
         }
         
-        public abstract ObjectType next();
-        
         protected abstract Iterator<DBRecord> getSubIterator(String producerID);
     
+        @Override
         public final void remove()
         {
+            throw new UnsupportedOperationException();
         }
     }
     
@@ -167,13 +168,22 @@ class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMul
     @Override
     public IObsStorage addDataStore(String producerID)
     {
-        ObsStorageRoot obsStore = obsStores.get(producerID);
-        if (obsStore != null)
+        try
+        {
+            obsStores.exclusiveLock();
+            
+            ObsStorageRoot obsStore = obsStores.get(producerID);
+            if (obsStore != null)
+                return obsStore;
+            
+            obsStore = new ObsStorageRoot(getStorage());
+            obsStores.put(producerID, obsStore);
             return obsStore;
-        
-        obsStore = new ObsStorageRoot(getStorage());
-        obsStores.put(producerID, obsStore);
-        return obsStore;
+        }
+        finally
+        {
+            obsStores.unlock();
+        }
     }
 
 
@@ -242,18 +252,27 @@ class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMul
         if (producerIDs == null || producerIDs.isEmpty())
             producerIDs = this.getProducerIDs();
         
-        return new MultiProducerTimeSortIterator<DataBlock>(producerIDs)
+        try
         {
-            public DataBlock next()
+            obsStores.sharedLock();
+            
+            return new MultiProducerTimeSortIterator<DataBlock>(producerIDs)
             {
-                return nextRecord().value;
-            }
-
-            protected Iterator<DBRecord> getSubIterator(String producerID)
-            {
-                return (Iterator<DBRecord>)getEntityStorage(producerID).getRecordIterator(filter);
-            }
-        };
+                public DataBlock next()
+                {
+                    return nextRecord().value;
+                }
+    
+                protected Iterator<DBRecord> getSubIterator(String producerID)
+                {
+                    return (Iterator<DBRecord>)getEntityStorage(producerID).getRecordIterator(filter);
+                }
+            };
+        }
+        finally
+        {
+            obsStores.unlock();
+        }
     }
 
 
@@ -265,18 +284,27 @@ class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMul
         if (producerIDs == null || producerIDs.isEmpty())
             producerIDs = this.getProducerIDs();
         
-        return new MultiProducerTimeSortIterator<IDataRecord>(producerIDs)
+        try
         {
-            public IDataRecord next()
+            obsStores.sharedLock();
+            
+            return new MultiProducerTimeSortIterator<IDataRecord>(producerIDs)
             {
-                return nextRecord();
-            }
+                public IDataRecord next()
+                {
+                    return nextRecord();
+                }
 
-            protected Iterator<DBRecord> getSubIterator(String producerID)
-            {
-                return (Iterator<DBRecord>)getEntityStorage(producerID).getRecordIterator(filter);
-            }
-        };
+                protected Iterator<DBRecord> getSubIterator(String producerID)
+                {
+                    return (Iterator<DBRecord>)getEntityStorage(producerID).getRecordIterator(filter);
+                }
+            };
+        }
+        finally
+        {
+            obsStores.unlock();
+        }
     }
 
 
@@ -330,9 +358,10 @@ class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMul
             producerIDs = this.getProducerIDs();
         
         int numDeleted = 0;        
-        for (String producerID: producerIDs)
-            numDeleted += getEntityStorage(producerID).removeRecords(filter);
-        
+        for (String producerID: producerIDs) {
+            int count = getEntityStorage(producerID).removeRecords(filter);
+            numDeleted += count;
+        }
         return numDeleted;
     }
 

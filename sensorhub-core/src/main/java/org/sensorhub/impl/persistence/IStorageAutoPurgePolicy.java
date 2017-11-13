@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.persistence;
 
 import org.sensorhub.api.persistence.IRecordStorageModule;
+import org.slf4j.Logger;
 
 
 public interface IStorageAutoPurgePolicy
@@ -24,7 +25,8 @@ public interface IStorageAutoPurgePolicy
      * Implementation of this method executes whatever actions are necessary
      * for this aging policy
      * @param storage
+     * @param log 
      * @return the number of records removed
      */
-    public int trimStorage(IRecordStorageModule<?> storage); 
+    public int trimStorage(IRecordStorageModule<?> storage, Logger log); 
 }

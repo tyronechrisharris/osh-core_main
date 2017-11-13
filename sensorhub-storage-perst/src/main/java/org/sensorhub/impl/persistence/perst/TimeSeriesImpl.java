@@ -355,20 +355,29 @@ class TimeSeriesImpl extends Persistent implements IRecordStoreInfo
 
     int remove(IDataFilter filter)
     {
-        int count = 0;
-        
-        Key keyFirst = new Key(filter.getTimeStampRange()[0]);
-        Key keyLast = new Key(filter.getTimeStampRange()[1]);
-        Iterator<Entry<Object,DataBlock>> it = getEntryIterator(keyFirst, keyLast, Index.ASCENT_ORDER, false);
-            
-        while (it.hasNext())
+        try
         {
-            Entry<Object,DataBlock> oldData = it.next();            
-            getStorage().deallocate(oldData.getValue());
-            it.remove();
+            recordIndex.exclusiveLock();
+            int count = 0;
+        
+            Key keyFirst = new Key(filter.getTimeStampRange()[0]);
+            Key keyLast = new Key(filter.getTimeStampRange()[1]);
+            Iterator<Entry<Object,DataBlock>> it = getEntryIterator(keyFirst, keyLast, Index.ASCENT_ORDER, true);
+                
+            while (it.hasNext())
+            {
+                Entry<Object,DataBlock> oldData = it.next();
+                it.remove();
+                getStorage().deallocate(oldData.getValue());
+                count++;
+            }
+    
+            return count;
         }
-
-        return count;
+        finally
+        {
+            recordIndex.unlock();
+        }
     }
 
 

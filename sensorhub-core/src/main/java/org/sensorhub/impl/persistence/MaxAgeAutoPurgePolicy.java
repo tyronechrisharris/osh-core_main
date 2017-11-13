@@ -16,6 +16,8 @@ package org.sensorhub.impl.persistence;
 
 import org.sensorhub.api.persistence.DataFilter;
 import org.sensorhub.api.persistence.IRecordStoreInfo;
+import org.slf4j.Logger;
+import org.vast.util.DateTimeFormat;
 import org.sensorhub.api.persistence.IRecordStorageModule;
 
 
@@ -31,7 +33,7 @@ import org.sensorhub.api.persistence.IRecordStorageModule;
 public class MaxAgeAutoPurgePolicy implements IStorageAutoPurgePolicy
 {
     MaxAgeAutoPurgeConfig config;
-    
+    DateTimeFormat df = new DateTimeFormat();
     
     MaxAgeAutoPurgePolicy(MaxAgeAutoPurgeConfig config)
     {
@@ -40,7 +42,7 @@ public class MaxAgeAutoPurgePolicy implements IStorageAutoPurgePolicy
     
     
     @Override
-    public int trimStorage(IRecordStorageModule<?> storage)
+    public int trimStorage(IRecordStorageModule<?> storage, Logger log)
     {
         int numDeletedRecords = 0;
         
@@ -54,6 +56,13 @@ public class MaxAgeAutoPurgePolicy implements IStorageAutoPurgePolicy
             {
                 final double[] obsoleteTimeRange = new double[] {beginTime, endTime - config.maxRecordAge};
                 
+                if (log.isInfoEnabled())
+                {
+                    log.info("Purging data for period {}/{}",
+                             df.formatIso(obsoleteTimeRange[0], 0),
+                             df.formatIso(obsoleteTimeRange[1], 0));
+                }
+
                 // remove records
                 numDeletedRecords += storage.removeRecords(new DataFilter(streamInfo.getName())
                 {
