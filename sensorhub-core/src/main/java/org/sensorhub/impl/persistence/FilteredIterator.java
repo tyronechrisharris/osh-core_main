@@ -15,7 +15,6 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.persistence;
 
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 
 /**
@@ -25,6 +24,7 @@ import java.util.NoSuchElementException;
  * </p>
  *
  * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @param <E> 
  * @since Mar 15, 2017
  */
 public abstract class FilteredIterator<E> extends IteratorWrapper<E, E>
@@ -33,22 +33,6 @@ public abstract class FilteredIterator<E> extends IteratorWrapper<E, E>
     public FilteredIterator(Iterator<E> it)
     {
         super(it);
-    }
-    
-    
-    @Override
-    public boolean hasNext()
-    {
-        return next != null;
-    }
-    
-
-    @Override
-    public E next()
-    {
-        if (!hasNext())
-            throw new NoSuchElementException();
-        return preloadNext();
     }
     
     

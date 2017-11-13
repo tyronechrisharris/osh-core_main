@@ -16,6 +16,7 @@ package org.sensorhub.impl.persistence;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import org.vast.util.Asserts;
 
 
 /**
@@ -25,6 +26,8 @@ import java.util.NoSuchElementException;
  * </p>
  *
  * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @param <IN> Input Type
+ * @param <OUT> Output Type
  * @since Apr 15, 2017
  */
 public abstract class IteratorWrapper<IN, OUT> implements Iterator<OUT>
@@ -35,14 +38,16 @@ public abstract class IteratorWrapper<IN, OUT> implements Iterator<OUT>
     
     public IteratorWrapper(Iterator<IN> it)
     {
+        Asserts.checkNotNull(it, Iterator.class);
         this.it = it;
-        preloadNext();
     }
     
     
     @Override
     public boolean hasNext()
     {
+        if (next == null)
+            preloadNext();
         return next != null;
     }
     
@@ -50,9 +55,18 @@ public abstract class IteratorWrapper<IN, OUT> implements Iterator<OUT>
     @Override
     public OUT next()
     {
-        if (!hasNext())
+        if (next == null && !hasNext())
             throw new NoSuchElementException();
-        return preloadNext();
+        OUT nextElt = next;
+        next = null;
+        return nextElt;
+    }
+    
+
+    @Override
+    public void remove()
+    {
+        it.remove();
     }
     
     
