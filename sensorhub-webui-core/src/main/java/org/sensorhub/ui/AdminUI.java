@@ -204,19 +204,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
             @Override
             public void selectedTabChange(SelectedTabChangeEvent event)
             {
-                VerticalLayout tabLayout = (VerticalLayout)stack.getSelectedTab();                
-                if (tabLayout.getComponentCount() > 0)
-                {
-                    TreeTable table = (TreeTable)tabLayout.getComponent(0);
-                    Object itemId = table.getValue();
-                    if (itemId != null)
-                    {
-                        IModule<?> module = (IModule<?>)table.getItem(itemId).getItemProperty(PROP_MODULE_OBJECT).getValue();
-                        selectModule(module, table);
-                    }
-                    else
-                        selectNone(table);
-                }
+                selectStackItem(stack);
             }
         });        
         VerticalLayout layout;
@@ -279,8 +267,26 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         splitPanel.addComponent(configArea);
         
         // select first tab
-        stack.setSelectedTab(1);
         stack.setSelectedTab(0);
+        selectStackItem(stack);
+    }
+    
+    
+    protected void selectStackItem(Accordion stack)
+    {
+        VerticalLayout tabLayout = (VerticalLayout)stack.getSelectedTab();                
+        if (tabLayout.getComponentCount() > 0)
+        {
+            TreeTable table = (TreeTable)tabLayout.getComponent(0);
+            Object itemId = table.getValue();
+            if (itemId != null)
+            {
+                IModule<?> module = (IModule<?>)table.getItem(itemId).getItemProperty(PROP_MODULE_OBJECT).getValue();
+                selectModule(module, table);
+            }
+            else
+                selectNone(table);
+        }
     }
     
     

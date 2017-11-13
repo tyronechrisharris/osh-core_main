@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
@@ -168,6 +169,7 @@ public class StorageAdminPanel extends DefaultModulePanel<IRecordStorageModule<?
         gantt.setHeight(130, Unit.PIXELS);
         gantt.setResizableSteps(false);
         gantt.setMovableSteps(false);
+        gantt.setTimeZone(TimeZone.getTimeZone("UTC"));
         gantt.setStartDate(new Date((long)(timeRange[0]*1000)));
         gantt.setEndDate(new Date((long)(timeRange[1]*1000)));        
         gantt.setYearsVisible(false);
