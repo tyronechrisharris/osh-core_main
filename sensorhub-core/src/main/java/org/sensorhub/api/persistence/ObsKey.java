@@ -79,4 +79,14 @@ public class ObsKey extends DataKey
         this(recordType, foiID, timeStamp);
         this.producerID = producerID;
     }
+    
+    
+    @Override
+    protected void toString(StringBuilder buf)
+    {
+        super.toString(buf);
+        buf.append(", foiID=").append(foiID).append(", ");
+        buf.append("resultTime=").append(resultTime).append(", ");
+        buf.append("samplingGeometry=").append(samplingGeometry);
+    }
 }

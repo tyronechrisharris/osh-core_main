@@ -15,6 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.persistence;
 
 import java.util.Collection;
+import org.vast.util.Asserts;
+import org.vast.util.DateTimeFormat;
 
 
 /**
@@ -34,6 +36,7 @@ public class DataFilter implements IDataFilter
     
     public DataFilter(String recordType)
     {
+        Asserts.checkNotNull(recordType, "recordType");
         this.recordType = recordType;
     }
     
@@ -57,5 +60,31 @@ public class DataFilter implements IDataFilter
     {
         return null;
     }
-
+    
+    
+    @Override
+    public String toString()
+    {
+        StringBuilder buf = new StringBuilder();
+        buf.append("Filter {");
+        toString(buf);
+        buf.append('}');
+        return buf.toString();
+    }
+    
+    
+    protected void toString(StringBuilder buf)
+    {
+        buf.append("recordType=").append(recordType).append(", ");
+        buf.append("producers=").append(getProducerIDs() == null ? "ALL" : getProducerIDs()).append(", ");
+        buf.append("timeRange=");
+        double[] timeRange = getTimeStampRange();                
+        if (timeRange != null)
+        {
+            buf.append(new DateTimeFormat().formatIso(timeRange[0], 0));
+            buf.append(new DateTimeFormat().formatIso(timeRange[1], 0));
+        }
+        else
+            buf.append("ALL");
+    }
 }

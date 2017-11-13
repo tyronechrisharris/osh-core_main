@@ -15,6 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.persistence;
 
 import java.io.Serializable;
+import org.vast.util.Asserts;
+import org.vast.util.DateTimeFormat;
 
 /**
  * <p>
@@ -58,6 +60,7 @@ public class DataKey implements Serializable
      */
     public DataKey(String recordType, double timeStamp)
     {
+        Asserts.checkNotNull(recordType, "recordType");
         this.recordType = recordType;
         this.timeStamp = timeStamp;
     }
@@ -73,5 +76,24 @@ public class DataKey implements Serializable
     {
         this(recordType, timeStamp);
         this.producerID = producerID;
+    }
+    
+    
+    @Override
+    public String toString()
+    {
+        StringBuilder buf = new StringBuilder();
+        buf.append(getClass().getSimpleName()).append(" {");
+        toString(buf);
+        buf.append('}');
+        return buf.toString();
+    }
+    
+    
+    protected void toString(StringBuilder buf)
+    {
+        buf.append("producer=").append(producerID).append(", ");
+        buf.append("recordType=").append(recordType).append(", ");
+        buf.append("time=").append(new DateTimeFormat().formatIso(timeStamp, 0));
     }
 }

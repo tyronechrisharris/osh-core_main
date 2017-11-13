@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.persistence;
 
 import java.util.Collection;
+import org.vast.util.DateTimeFormat;
 import com.vividsolutions.jts.geom.Polygon;
 
 
@@ -55,5 +56,23 @@ public class ObsFilter extends DataFilter implements IObsFilter
     public Polygon getRoi()
     {
         return null;
+    }
+    
+    
+    @Override
+    protected void toString(StringBuilder buf)
+    {
+        super.toString(buf);
+        buf.append("fois=").append(getFoiIDs() == null ? "ALL" : getFoiIDs()).append(", ");
+        buf.append("resultTimeRange=");
+        double[] timeRange = getResultTimeRange();                
+        if (timeRange != null)
+        {
+            buf.append(new DateTimeFormat().formatIso(timeRange[0], 0));
+            buf.append(new DateTimeFormat().formatIso(timeRange[1], 0));
+        }
+        else
+            buf.append("ALL");
+        buf.append("roi=").append(getRoi());
     }
 }
