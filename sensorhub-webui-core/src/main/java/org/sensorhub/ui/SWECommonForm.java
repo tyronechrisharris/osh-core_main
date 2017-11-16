@@ -190,7 +190,10 @@ public class SWECommonForm extends VerticalLayout
     
     protected String getTooltip(DataComponent dataComponent)
     {
-        StringBuffer tooltip = new StringBuffer();
+        StringBuilder tooltip = new StringBuilder();
+        
+        if (dataComponent.getName() != null)
+            tooltip.append("<p><b>Field Name: </b>").append(dataComponent.getName()).append("</p>");
         
         if (dataComponent.getDescription() != null)
             tooltip.append("<p><b>Description: </b>").append(dataComponent.getDescription()).append("</p>");
