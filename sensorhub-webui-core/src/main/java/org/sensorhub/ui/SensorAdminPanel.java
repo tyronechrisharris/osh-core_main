@@ -55,6 +55,7 @@ import com.vaadin.ui.VerticalLayout;
 @SuppressWarnings("serial")
 public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> implements IModuleAdminPanel<ISensorModule<?>>
 {
+    public static final int REFRESH_TIMEOUT = 3*AdminUIModule.HEARTBEAT_INTERVAL*1000;
     Panel obsPanel, statusPanel, commandsPanel;
     Map<String, DataComponent> outputBuffers = new HashMap<>();
     
@@ -146,9 +147,12 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
                                 public void run()
                                 {
                                     final UI ui = SensorAdminPanel.this.getUI();
+                                    long now = System.currentTimeMillis();
                                     
-                                    if (ui != null)
-                                    {
+                                    if (ui != null && (now - ui.getLastHeartbeatTimestamp()) < REFRESH_TIMEOUT)
+                                    {                                        
+                                        System.out.println("Last heartbeat=" + ui.getLastHeartbeatTimestamp());
+                                        
                                         ui.access(new Runnable() {
                                             @Override
                                             public void run()

@@ -45,12 +45,13 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
     protected static final String SERVLET_PARAM_UI_CLASS = "UI";
     protected static final String SERVLET_PARAM_MODULE_ID = "module_id";
     protected static final String WIDGETSET = "widgetset";
+    protected static final int HEARTBEAT_INTERVAL = 10; // in seconds
     
     private static AdminUIModule singleton;
     VaadinServlet vaadinServlet;
     AdminUISecurity securityHandler;
-    Map<String, Class<? extends IModuleConfigForm>> customForms = new HashMap<String, Class<? extends IModuleConfigForm>>();
-    Map<String, Class<? extends IModuleAdminPanel<?>>> customPanels = new HashMap<String, Class<? extends IModuleAdminPanel<?>>>();
+    Map<String, Class<? extends IModuleConfigForm>> customForms = new HashMap<>();
+    Map<String, Class<? extends IModuleAdminPanel<?>>> customPanels = new HashMap<>();
     
     
     public AdminUIModule()
@@ -115,12 +116,12 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
                 configClass = customForm.configClass;
                 Class<?> clazz = Class.forName(customForm.uiClass);
                 customForms.put(configClass, (Class<IModuleConfigForm>)clazz);
-                getLogger().debug("Loaded custom form for " + configClass);            
+                getLogger().debug("Loaded custom form for {}", configClass);            
             }
         }
         catch (Exception e)
         {
-            getLogger().error("Error while instantiating form builder for config class " + configClass, e);
+            getLogger().error("Error while instantiating form builder for config class {}", configClass, e);
         }
         
         // load custom panels
@@ -140,12 +141,12 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
                 configClass = customPanel.configClass;
                 Class<?> clazz = Class.forName(customPanel.uiClass);
                 customPanels.put(configClass, (Class<IModuleAdminPanel<?>>)clazz);
-                getLogger().debug("Loaded custom panel for " + configClass);
+                getLogger().debug("Loaded custom panel for {}", configClass);
             } 
         }
         catch (Exception e)
         {
-            getLogger().error("Error while instantiating panel builder for config class " + configClass, e);
+            getLogger().error("Error while instantiating panel builder for config class {}", configClass, e);
         }
     }
     
@@ -163,6 +164,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
         if (config.widgetSet != null)
             initParams.put(WIDGETSET, config.widgetSet);
         initParams.put("productionMode", "true");  // set to false to compile theme on-the-fly
+        initParams.put("heartbeatInterval", Integer.toString(HEARTBEAT_INTERVAL));
         
         // get HTTP server instance
         HttpServer httpServer = HttpServer.getInstance();
@@ -224,7 +226,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
         }
         
         if (panel == null)
-            return new DefaultModulePanel<IModule<?>>();
+            return new DefaultModulePanel<>();
         else
             return panel;
     }
