@@ -151,8 +151,6 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
                                     
                                     if (ui != null && (now - ui.getLastHeartbeatTimestamp()) < REFRESH_TIMEOUT)
                                     {                                        
-                                        System.out.println("Last heartbeat=" + ui.getLastHeartbeatTimestamp());
-                                        
                                         ui.access(new Runnable() {
                                             @Override
                                             public void run()

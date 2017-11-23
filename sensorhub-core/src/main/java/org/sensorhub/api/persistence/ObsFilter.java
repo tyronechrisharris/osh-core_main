@@ -63,8 +63,8 @@ public class ObsFilter extends DataFilter implements IObsFilter
     protected void toString(StringBuilder buf)
     {
         super.toString(buf);
-        buf.append("fois=").append(getFoiIDs() == null ? "ALL" : getFoiIDs()).append(", ");
-        buf.append("resultTimeRange=");
+        buf.append(", fois=").append(getFoiIDs() == null ? "ALL" : getFoiIDs());
+        buf.append(", resultTimeRange=");
         double[] timeRange = getResultTimeRange();                
         if (timeRange != null)
         {
@@ -73,6 +73,6 @@ public class ObsFilter extends DataFilter implements IObsFilter
         }
         else
             buf.append("ALL");
-        buf.append("roi=").append(getRoi());
+        buf.append(", roi=").append(getRoi());
     }
 }

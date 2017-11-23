@@ -75,9 +75,9 @@ public class DataFilter implements IDataFilter
     
     protected void toString(StringBuilder buf)
     {
-        buf.append("recordType=").append(recordType).append(", ");
-        buf.append("producers=").append(getProducerIDs() == null ? "ALL" : getProducerIDs()).append(", ");
-        buf.append("timeRange=");
+        buf.append("recordType=").append(recordType);
+        buf.append(", producers=").append(getProducerIDs() == null ? "ALL" : getProducerIDs());
+        buf.append(", timeRange=");
         double[] timeRange = getTimeStampRange();                
         if (timeRange != null)
         {
