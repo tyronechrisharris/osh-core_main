@@ -360,8 +360,9 @@ class TimeSeriesImpl extends Persistent implements IRecordStoreInfo
             recordIndex.exclusiveLock();
             int count = 0;
         
-            Key keyFirst = new Key(filter.getTimeStampRange()[0]);
-            Key keyLast = new Key(filter.getTimeStampRange()[1]);
+            double[] timeRange = filter.getTimeStampRange();
+            Key keyFirst = new Key(timeRange == null ? Double.NEGATIVE_INFINITY : timeRange[0]);
+            Key keyLast = new Key(timeRange == null ? Double.POSITIVE_INFINITY : timeRange[1]);
             Iterator<Entry<Object,DataBlock>> it = getEntryIterator(keyFirst, keyLast, Index.ASCENT_ORDER, true);
                 
             while (it.hasNext())
