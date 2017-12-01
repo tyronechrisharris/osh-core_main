@@ -96,7 +96,7 @@ import com.vaadin.ui.Window.CloseListener;
 
 
 @Theme("sensorhub")
-@Push(value=PushMode.MANUAL, transport=Transport.STREAMING)
+@Push(value=PushMode.MANUAL, transport=Transport.LONG_POLLING)
 @SuppressWarnings("serial")
 public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConstants
 {

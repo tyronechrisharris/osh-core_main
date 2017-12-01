@@ -156,7 +156,7 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
                                             public void run()
                                             {
                                                 rebuildOutputsPanels(module);
-                                                ui.push();
+                                                UI.getCurrent().push();
                                             }
                                         });
                                     }
