@@ -347,22 +347,28 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
         forceReadBackFromStorage();
         
         // prepare filter
+        final int firstMatchingRecord = 10;
+        final int lastMatchingRecord = 60;
+        final int numFilteredRecords = lastMatchingRecord - firstMatchingRecord + 1;
         IDataFilter filter = new DataFilter(recordDef.getName()) {
             @Override
-            public double[] getTimeStampRange() { return new double[] {0, numRecords*timeStep}; }
+            public double[] getTimeStampRange() { return new double[] {firstMatchingRecord*timeStep, lastMatchingRecord*timeStep}; }
         };
-    
+        
+        // check num matching filter
+        int numMatching = storage.getNumMatchingRecords(filter, numRecords);
+        assertEquals("Wrong number of matching records", numFilteredRecords, numMatching);
+        
         // retrieve records and check their values
-        int i = 0;
+        int i = firstMatchingRecord;
         Iterator<? extends IDataRecord> it = storage.getRecordIterator(filter);
         while (it.hasNext())
         {
-            assertTrue("Wrong number of records returned", i < numRecords);
             TestUtils.assertEquals(dataList.get(i), it.next().getData());
             i++;
         }
         
-        assertEquals("Wrong number of records returned", numRecords, i);
+        assertEquals("Wrong number of records returned", numFilteredRecords, i-firstMatchingRecord);
     }
     
     
