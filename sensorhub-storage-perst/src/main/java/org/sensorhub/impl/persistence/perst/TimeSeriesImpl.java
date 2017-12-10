@@ -276,12 +276,12 @@ class TimeSeriesImpl extends Persistent implements IRecordStoreInfo
             return new IteratorWrapper<Entry<Object,DataBlock>, Entry<Object,DataBlock>>(indexIt)
             {
                 @Override
-                protected Entry<Object,DataBlock> preloadNext()
+                protected void preloadNext()
                 {
                     try
                     {    
                         recordIndex.sharedLock();
-                        return super.preloadNext();
+                        super.preloadNext();
                     }
                     finally
                     {

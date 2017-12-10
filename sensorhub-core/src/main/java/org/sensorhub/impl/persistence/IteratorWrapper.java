@@ -71,12 +71,10 @@ public abstract class IteratorWrapper<IN, OUT> implements Iterator<OUT>
     
     
     /**
-     * Preload next element and return current element
-     * @return the current element (i.e. the one that should be returned by next())
+     * Preload next element
      */
-    protected OUT preloadNext()
+    protected void preloadNext()
     {
-        OUT current = next;        
         next = null;
         
         // loop until we find the next acceptable item
@@ -86,10 +84,11 @@ public abstract class IteratorWrapper<IN, OUT> implements Iterator<OUT>
             IN elt = it.next();
             next = process(elt);
         }
-        
-        return current;
     }
     
     
-    protected abstract OUT process(IN elt);
+    protected OUT process(IN elt)
+    {
+        return (OUT)elt;
+    }
 }
