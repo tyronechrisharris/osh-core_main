@@ -31,7 +31,7 @@ public class TestPerstBasicStorage extends AbstractTestBasicStorage<BasicStorage
     public void init() throws Exception
     {
         BasicStorageConfig config = new BasicStorageConfig();
-        config.memoryCacheSize = 20;
+        config.memoryCacheSize = 1024;
         dbFile = File.createTempFile("testdb", ".dat");
         dbFile.deleteOnExit();
         config.storagePath = dbFile.getAbsolutePath();

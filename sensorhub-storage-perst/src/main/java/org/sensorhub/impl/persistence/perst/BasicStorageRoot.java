@@ -259,7 +259,9 @@ class BasicStorageRoot extends PersistentResource implements IBasicStorage
             exclusiveLock();
             recordStructure.setName(name);
             TimeSeriesImpl newTimeSeries = new TimeSeriesImpl(getStorage(), recordStructure, recommendedEncoding);
-            dataStores.put(name, newTimeSeries);
+            TimeSeriesImpl oldRs = dataStores.put(name, newTimeSeries);
+            if (oldRs != null)
+                getStorage().deallocate(oldRs);
             modify();
         }
         finally

@@ -32,7 +32,7 @@ public class TestPerstMultiStorage extends AbstractTestMultiObsStorage<MultiEnti
     {
         BasicStorageConfig config = new BasicStorageConfig();
         config.autoStart = true;
-        config.memoryCacheSize = 20;
+        config.memoryCacheSize = 1024;
         dbFile = File.createTempFile("testdb", ".dat");
         dbFile.deleteOnExit();
         config.storagePath = dbFile.getAbsolutePath();
