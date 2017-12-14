@@ -219,7 +219,8 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 }
                 
                 // filter to add proper cross-origin headers
-                servletHandler.addFilter(CrossOriginFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
+                if (config.enableCORS)
+                    servletHandler.addFilter(CrossOriginFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
                 
                 // add default test servlet
                 servletHandler.addServlet(new ServletHolder(new HttpServlet() {

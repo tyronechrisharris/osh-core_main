@@ -69,6 +69,10 @@ public class HttpServerConfig extends ModuleConfig
     @DisplayInfo(desc="Path to external config file (in Jetty IOC XML format)")
     public String xmlConfigFile;
     
+    
+    @DisplayInfo(label="Enable CORS", desc="Enable generation of CORS headers to allow cross-domain requests from browsers")
+    public boolean enableCORS = true;
+    
 
     public HttpServerConfig()
     {
