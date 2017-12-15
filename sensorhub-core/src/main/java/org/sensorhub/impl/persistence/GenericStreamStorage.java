@@ -146,31 +146,6 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     
     
     /*
-     * Initializes storage by loading initial sensor description and FOI, and creating appropriate record stores
-     */
-    protected void configureStorageForDataSource(IDataProducerModule<?> dataSource, IRecordStorageModule<?> storage)
-    {
-        if (storage.getRecordStores().size() > 0)
-            throw new IllegalStateException("Storage " + MsgUtils.moduleString(storage) + " is already configured");
-        
-        // copy data source description
-        storage.storeDataSourceDescription(dataSource.getCurrentDescription());
-            
-        // for multi-source producers, prepare data stores for all entities
-        if (dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
-        {
-            for (String entityID: ((IMultiSourceDataProducer)dataSource).getEntityIDs())
-                ensureProducerInfo(entityID);
-        }
-        
-        // create one data store for each sensor output
-        // we do that in multi source storage even if it's also done in each provider data store
-        for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
-            storage.addRecordStore(output.getName(), output.getRecordDescription(), output.getRecommendedEncoding());
-    }
-    
-    
-    /*
      * Gets the list of selected outputs (i.e. a subset of all data source outputs)
      */
     protected Collection<? extends IStreamingDataInterface> getSelectedOutputs(IDataProducerModule<?> dataSource)
@@ -182,39 +157,10 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         else
         {
             int numOutputs = config.selectedOutputs.length;
-            List <IStreamingDataInterface> selectedOutputs = new ArrayList<IStreamingDataInterface>(numOutputs);
+            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>(numOutputs);
             for (String outputName: config.selectedOutputs)
                 selectedOutputs.add(dataSource.getAllOutputs().get(outputName));
             return selectedOutputs;
-        }
-    }
-    
-    
-    /*
-     * Ensures metadata for the new producer is stored (for multi-producer sources)
-     */
-    protected void ensureProducerInfo(String producerID)
-    {
-        if (storage instanceof IMultiSourceStorage)
-        {
-            if (((IMultiSourceStorage<?>)storage).getProducerIDs().contains(producerID))
-                return;
-        
-            IDataProducerModule<?> dataSource = dataSourceRef.get();
-            if (dataSource != null && dataSource instanceof IMultiSourceDataProducer)
-            {
-                // create producer data store
-                IBasicStorage dataStore = ((IMultiSourceStorage<IBasicStorage>)storage).addDataStore(producerID);
-                
-                // save producer SensorML description if any
-                AbstractProcess sml = ((IMultiSourceDataProducer) dataSource).getCurrentDescription(producerID);
-                if (sml != null)
-                    dataStore.storeDataSourceDescription(sml);
-                
-                // create one data store for each sensor output
-                for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
-                    dataStore.addRecordStore(output.getName(), output.getRecordDescription(), output.getRecommendedEncoding());
-            }
         }
     }
     
@@ -224,47 +170,46 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
      */
     protected void connectDataSource(IDataProducerModule<?> dataSource)
     {
-        // if storage is empty, initialize it
-        if (storage.getLatestDataSourceDescription() == null)
-            configureStorageForDataSource(dataSource, storage);
-        
-        // otherwise just get the latest sensor description in case we were down during the last update
-        else if (dataSource.getLastDescriptionUpdate() != Long.MIN_VALUE)
-            storage.updateDataSourceDescription(dataSource.getCurrentDescription());
-        
-        // also init current FOI
-        if (dataSource instanceof IMultiSourceDataProducer)
+        // set data source description
+        AbstractProcess sml = dataSource.getCurrentDescription();
+        if (sml != null)
         {
-            for (String entityID: ((IMultiSourceDataProducer)dataSource).getEntityIDs())
-            {
-                AbstractFeature foi = ((IMultiSourceDataProducer)dataSource).getCurrentFeatureOfInterest(entityID);
-                if (foi != null)
-                {
-                    currentFoiMap.put(entityID, foi.getUniqueIdentifier());
-                    if (storage instanceof IObsStorage)
-                        ((IObsStorage)storage).storeFoi(entityID, foi);
-                }
-            }
-        }
-        else
-        {
-            String producerID = dataSource.getCurrentDescription().getUniqueIdentifier();
-            AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
-            if (foi != null)
-            {
-                currentFoi = foi.getUniqueIdentifier();
-                currentFoiMap.put(producerID, currentFoi);
-                if (storage instanceof IObsStorage)
-                    ((IObsStorage)storage).storeFoi(producerID, foi);
-            }
+            // if no description yet, initialize it
+            if (storage.getLatestDataSourceDescription() == null)
+                storage.storeDataSourceDescription(sml);
+            
+            // otherwise just get the latest sensor description in case we were down during the last update
+            else if (dataSource.getLastDescriptionUpdate() != Long.MIN_VALUE)
+                storage.updateDataSourceDescription(sml);
         }
         
-        // make sure data source info can be read back
-        storage.commit();
+        // create one data store for each sensor output that's not yet registered
+        // we do that in multi source storage even if it's also done in each provider data store
+        for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
+        {
+            if (!storage.getRecordStores().containsKey(output.getName()))
+                storage.addRecordStore(output.getName(), output.getRecordDescription(), output.getRecommendedEncoding());
+            
+            // TODO check that structure is compatible w/ what's already in storage
+        }
+        
+        // set current FOI
+        String producerID = dataSource.getCurrentDescription().getUniqueIdentifier();
+        AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
+        if (foi != null)
+        {
+            currentFoi = foi.getUniqueIdentifier();
+            currentFoiMap.put(producerID, currentFoi);
+            if (storage instanceof IObsStorage)
+                ((IObsStorage)storage).storeFoi(producerID, foi);
+        }
         
         // register to data events
         for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
             prepareToReceiveEvents(output);
+        
+        // make sure data source info can be read back
+        storage.commit();
         
         setState(ModuleState.STARTED);
         clearStatus();
@@ -289,7 +234,15 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         if (output instanceof IMultiSourceDataInterface)
         {
             for (Entry<String, DataBlock> rec: ((IMultiSourceDataInterface) output).getLatestRecords().entrySet())
-                this.handleEvent(new DataEvent(System.currentTimeMillis(), rec.getKey(), output, rec.getValue()));
+            {
+                String producerID = rec.getKey();
+                
+                // for multi-source storage, prepare producer data store
+                if (storage instanceof IMultiSourceStorage)
+                    ensureProducerInfo(producerID, true);
+                
+                handleEvent(new DataEvent(System.currentTimeMillis(), producerID, output, rec.getValue()));
+            }
         }
         else
         {
@@ -300,6 +253,59 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         
         // register to receive future events
         output.registerListener(this);
+    }
+    
+    
+    /*
+     * Ensures metadata for the new producer is stored (for multi-producer sources)
+     */
+    protected void ensureProducerInfo(String producerID, boolean updateAll)
+    {
+        if (storage instanceof IMultiSourceStorage)
+        {
+            boolean hasDataStore = ((IMultiSourceStorage<?>)storage).getProducerIDs().contains(producerID);
+            if (hasDataStore && !updateAll)
+                return;
+            
+            IDataProducerModule<?> dataSource = dataSourceRef.get();
+            if (dataSource != null && dataSource instanceof IMultiSourceDataProducer)
+            {
+                // create producer data store if needed
+                IBasicStorage dataStore;
+                if (!hasDataStore)
+                    dataStore = ((IMultiSourceStorage<IBasicStorage>)storage).addDataStore(producerID);
+                else
+                    dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
+                
+                // save producer SensorML description
+                AbstractProcess sml = ((IMultiSourceDataProducer) dataSource).getCurrentDescription(producerID);
+                if (sml != null)
+                {
+                    if (dataStore.getLatestDataSourceDescription() == null)
+                        dataStore.storeDataSourceDescription(sml);
+                    else
+                        dataStore.updateDataSourceDescription(sml);
+                }
+                
+                // record current FOI
+                AbstractFeature foi = ((IMultiSourceDataProducer)dataSource).getCurrentFeatureOfInterest(producerID);
+                if (foi != null)
+                {
+                    currentFoiMap.put(producerID, foi.getUniqueIdentifier());
+                    if (storage instanceof IObsStorage)
+                        ((IObsStorage)storage).storeFoi(producerID, foi);
+                }
+                
+                // create record store for each output that's not already registered
+                for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
+                {
+                    if (!dataStore.getRecordStores().containsKey(output.getName()))
+                        dataStore.addRecordStore(output.getName(), output.getRecordDescription(), output.getRecommendedEncoding());
+                    
+                    // TODO check that structure is compatible w/ what's already in storage
+                }
+            }
+        }
     }
     
     
@@ -399,7 +405,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                     String entityID = dataEvent.getRelatedEntityID();
                     if (entityID != null)
                     {
-                        ensureProducerInfo(entityID); // to handle new producer
+                        ensureProducerInfo(entityID, false); // to handle new producer
                         foiID = currentFoiMap.get(entityID);
                     }
                     else
@@ -438,7 +444,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 if (foiEvent.getFoi() != null)
                 {
                     if (producerID != null)
-                        ensureProducerInfo(producerID); // in case no data has been received for this producer yet
+                        ensureProducerInfo(producerID, false); // in case no data has been received for this producer yet
                     ((IObsStorage) storage).storeFoi(producerID, foiEvent.getFoi());
                 }
                 
@@ -700,7 +706,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         if (storage instanceof IObsStorage)
             return ((IObsStorage) storage).getFoiIDs(filter);
         
-        return Collections.EMPTY_LIST.iterator();
+        return Collections.<String>emptyList().iterator();
     }
 
 
@@ -712,7 +718,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         if (storage instanceof IObsStorage)
             return ((IObsStorage) storage).getFois(filter);
         
-        return Collections.EMPTY_LIST.iterator();
+        return Collections.<AbstractFeature>emptyList().iterator();
     }
 
 
