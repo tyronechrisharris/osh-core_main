@@ -17,7 +17,6 @@ package org.sensorhub.test.persistence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -190,7 +189,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             @Override
             public Polygon getRoi() { return poly; };
             @Override
-            public Collection<String> getProducerIDs() {return producerFilterList; };
+            public Set<String> getProducerIDs() {return producerFilterList; };
         };
         
         // test retrieve objects
