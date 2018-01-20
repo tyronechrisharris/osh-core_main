@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -60,6 +61,7 @@ import org.vast.sensorML.SMLFactory;
 import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEHelper;
 import org.vast.util.DateTimeFormat;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -79,7 +81,7 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
     
     protected StorageType storage;
     protected String producerID = SENSOR_UID_PREFIX + 1;
-    protected Collection<String> producerFilterList = null;
+    protected Set<String> producerFilterList = Sets.newHashSet(producerID);
     
     
     protected abstract void forceReadBackFromStorage() throws Exception;
@@ -353,6 +355,7 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
         IDataFilter filter = new DataFilter(recordDef.getName()) {
             @Override
             public double[] getTimeStampRange() { return new double[] {firstMatchingRecord*timeStep, lastMatchingRecord*timeStep}; }
+            public Set<String> getProducerIDs() { return producerFilterList; }
         };
         
         // check num matching filter

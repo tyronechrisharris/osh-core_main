@@ -24,7 +24,6 @@
 package org.sensorhub.impl.service.sos;
 
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 import org.vast.ows.fes.FESRequestUtils;
 import org.vast.util.Asserts;
@@ -56,16 +55,16 @@ public class SOSDataFilter
     long maxObsCount = Long.MAX_VALUE;
     
     
-    public SOSDataFilter(String observable)
-    {
-        this.observables.add(observable);
-    }
-    
-    
-    public SOSDataFilter(List<String> observables, TimeExtent timeRange, List<String> foiIds, BinarySpatialOp spatialFilter)
+    public SOSDataFilter(Set<String> observables)
     {
         if (observables != null)
             this.observables.addAll(observables);
+    }
+    
+    
+    public SOSDataFilter(Set<String> observables, TimeExtent timeRange, Set<String> foiIds, BinarySpatialOp spatialFilter)
+    {
+        this(observables);
         
         if (timeRange != null)
             this.timeRange = timeRange.copy();

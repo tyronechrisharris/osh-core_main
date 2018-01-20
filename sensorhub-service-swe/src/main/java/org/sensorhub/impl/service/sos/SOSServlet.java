@@ -20,8 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -935,7 +933,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             boolean firstObs = true;
             for (String offering: selectedOfferings)
             {
-                List<String> selectedObservables = request.getObservables();
+                Set<String> selectedObservables = request.getObservables();
                                 
                 // if no observables were selected, add all of them
                 // we'll filter redundant one later
@@ -943,7 +941,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 if (selectedObservables.isEmpty())
                 {
                    SOSOfferingCapabilities caps = offeringCaps.get(offering);
-                   selectedObservables = new ArrayList<>();
+                   selectedObservables = new LinkedHashSet<>();
                    selectedObservables.addAll(caps.getObservableProperties());
                    sendAllObservables = true;
                 }
@@ -1043,7 +1041,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         securityHandler.checkPermission(request.getOffering(), securityHandler.sos_read_obs);
         
         // setup data provider
-        SOSDataFilter filter = new SOSDataFilter(request.getObservables().get(0));
+        SOSDataFilter filter = new SOSDataFilter(request.getObservables());
         ISOSDataProvider dataProvider = getDataProvider(request.getOffering(), filter);
         
         try
@@ -1213,7 +1211,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         Set<String> selectedProcedures = new LinkedHashSet<>();
                 
         // get list of procedures to scan
-        List<String> procedures = request.getProcedures();
+        Set<String> procedures = request.getProcedures();
         if (procedures != null && !procedures.isEmpty())
         {
             // check listed procedures are valid
@@ -1229,7 +1227,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         }
         
         // process observed properties
-        List<String> observables = request.getObservables();
+        Set<String> observables = request.getObservables();
         if (observables != null && !observables.isEmpty())
         {
             // first check observables are valid in at least one offering
@@ -1289,7 +1287,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         IFoiFilter filter = new FoiFilter()
         {
             public Polygon getRoi() { return poly; }
-            public Collection<String> getFeatureIDs() { return request.getFoiIDs(); };
+            public Set<String> getFeatureIDs() { return request.getFoiIDs(); };
         };
             
         try
@@ -1762,7 +1760,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    protected void checkQueryOfferings(List<String> offerings, OWSExceptionReport report) throws SOSException
+    protected void checkQueryOfferings(Set<String> offerings, OWSExceptionReport report) throws SOSException
     {
         try
         {
@@ -1781,7 +1779,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected void checkQueryObservables(String offeringID, List<String> observables, OWSExceptionReport report) throws SOSException
+    protected void checkQueryObservables(String offeringID, Set<String> observables, OWSExceptionReport report) throws SOSException
     {
         SWESOfferingCapabilities offering = checkAndGetOffering(offeringID);
         for (String obsProp: observables)
@@ -1792,7 +1790,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected void checkQueryObservables(List<String> observables, OWSExceptionReport report) throws SOSException
+    protected void checkQueryObservables(Set<String> observables, OWSExceptionReport report) throws SOSException
     {
         for (String obsProp: observables)
         {
@@ -1813,7 +1811,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    protected void checkQueryProcedures(String offeringID, List<String> procedures, OWSExceptionReport report) throws SOSException
+    protected void checkQueryProcedures(String offeringID, Set<String> procedures, OWSExceptionReport report) throws SOSException
     {
         SWESOfferingCapabilities offering = checkAndGetOffering(offeringID);
         for (String procID: procedures)
@@ -1824,7 +1822,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected void checkQueryProcedures(List<String> procedures, OWSExceptionReport report) throws SOSException
+    protected void checkQueryProcedures(Set<String> procedures, OWSExceptionReport report) throws SOSException
     {
         for (String procID: procedures)
         {

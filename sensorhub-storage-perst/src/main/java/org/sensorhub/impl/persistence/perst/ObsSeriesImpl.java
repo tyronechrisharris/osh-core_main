@@ -135,11 +135,13 @@ public class ObsSeriesImpl extends TimeSeriesImpl
         {
             IFeatureFilter foiFilter = new FeatureFilter()
             {
-                public Collection<String> getFeatureIDs()
+                @Override
+                public Set<String> getFeatureIDs()
                 {
                     return ((IObsFilter)filter).getFoiIDs();
                 }
 
+                @Override
                 public Polygon getRoi()
                 {
                     return ((IObsFilter) filter).getRoi();

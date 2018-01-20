@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -131,16 +132,14 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     
     protected void testFilterFoiByID(int... foiNums)
     {
-        final List<String> idList = new ArrayList<String>(foiNums.length);
+        final Set<String> idList = new LinkedHashSet<String>(foiNums.length);
         for (int foiNum: foiNums)
             idList.add(FOI_UID_PREFIX + foiNum);
             
         FoiFilter filter = new FoiFilter()
         {
             @Override
-            public Collection<String> getFeatureIDs() { return idList; };
-            @Override
-            public Collection<String> getProducerIDs() {return producerFilterList; };
+            public Set<String> getFeatureIDs() { return idList; };
         };
         
         // build set of good IDs
@@ -252,7 +251,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             @Override
             public Set<String> getFoiIDs() { return foiSet; }
             @Override
-            public Collection<String> getProducerIDs() {return producerFilterList; };
+            public Set<String> getProducerIDs() {return producerFilterList; };
         };
         
         // filter dataList to provide ground truth
@@ -314,7 +313,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             @Override
             public Polygon getRoi() { return roi; }
             @Override
-            public Collection<String> getProducerIDs() {return producerFilterList; };
+            public Set<String> getProducerIDs() {return producerFilterList; };
         };
         
         return filter;
@@ -334,7 +333,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             @Override
             public Set<String> getFoiIDs() { return foiSet; }
             @Override
-            public Collection<String> getProducerIDs() {return producerFilterList; };
+            public Set<String> getProducerIDs() {return producerFilterList; };
         };
         
         // filter dataList to provide ground truth

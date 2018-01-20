@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.persistence;
 
-import java.util.Collection;
+import java.util.Set;
 import com.vividsolutions.jts.geom.Polygon;
 
 
@@ -32,7 +32,7 @@ public class FeatureFilter implements IFeatureFilter
 {
     
     @Override
-    public Collection<String> getFeatureIDs()
+    public Set<String> getFeatureIDs()
     {
         return null;
     }

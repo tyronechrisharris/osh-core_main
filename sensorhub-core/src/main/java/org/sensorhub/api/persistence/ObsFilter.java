@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.persistence;
 
-import java.util.Collection;
+import java.util.Set;
 import org.vast.util.DateTimeFormat;
 import com.vividsolutions.jts.geom.Polygon;
 
@@ -46,7 +46,7 @@ public class ObsFilter extends DataFilter implements IObsFilter
 
 
     @Override
-    public Collection<String> getFoiIDs()
+    public Set<String> getFoiIDs()
     {
         return null;
     }

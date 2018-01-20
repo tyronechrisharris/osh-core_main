@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.persistence;
 
-import java.util.Collection;
+import java.util.Set;
 import com.vividsolutions.jts.geom.Polygon;
 
 
@@ -59,7 +59,7 @@ public interface IObsFilter extends IDataFilter
      * If the list is null or empty, no filtering on FoI ID will be applied.
      * @return List of desired feature of interest IDs
      */
-    public Collection<String> getFoiIDs();
+    public Set<String> getFoiIDs();
     
     
     /**
