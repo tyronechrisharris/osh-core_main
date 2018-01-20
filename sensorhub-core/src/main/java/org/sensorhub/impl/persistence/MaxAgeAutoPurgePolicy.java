@@ -58,7 +58,8 @@ public class MaxAgeAutoPurgePolicy implements IStorageAutoPurgePolicy
                 
                 if (log.isInfoEnabled())
                 {
-                    log.info("Purging data for period {}/{}",
+                    log.info("Purging {} data for period {}/{}",
+                             streamInfo.getName(),
                              df.formatIso(obsoleteTimeRange[0], 0),
                              df.formatIso(obsoleteTimeRange[1], 0));
                 }
@@ -73,10 +74,12 @@ public class MaxAgeAutoPurgePolicy implements IStorageAutoPurgePolicy
                     }                    
                 });
                 
+                log.info("{} records deleted", numDeletedRecords);
+                
                 // remove data source descriptions
                 storage.removeDataSourceDescriptionHistory(obsoleteTimeRange[0], obsoleteTimeRange[1]);
             }
-        }
+        }        
         
         storage.commit();
         return numDeletedRecords;
