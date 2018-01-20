@@ -188,8 +188,6 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         {
             @Override
             public Polygon getRoi() { return poly; };
-            @Override
-            public Set<String> getProducerIDs() {return producerFilterList; };
         };
         
         // test retrieve objects
