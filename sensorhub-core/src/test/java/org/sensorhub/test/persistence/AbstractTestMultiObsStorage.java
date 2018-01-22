@@ -184,6 +184,22 @@ public abstract class AbstractTestMultiObsStorage<StorageType extends IObsStorag
         addProducersToStorage();
         super.testStoreIncompatibleRecord();
     }
+    
+    
+    @Test
+    public void testStoreAndRemoveRecordsByKey() throws Exception
+    {
+        addProducersToStorage();
+        super.testStoreAndRemoveRecordsByKey();
+    }
+    
+    
+    @Test
+    public void testStoreAndRemoveRecordsByFilter() throws Exception
+    {
+        addProducersToStorage();
+        super.testStoreAndRemoveRecordsByFilter();
+    }
 
 
     @Override

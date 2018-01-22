@@ -403,6 +403,79 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
         // TODO check that a datablock that is incompatible with record definition is rejected
     }
     
+    
+    @Test
+    public void testStoreAndRemoveRecordsByKey() throws Exception
+    {
+        DataComponent recordDef = createDs2();
+        
+        // write N records
+        int numRecords = 100;
+        double timeStep = 0.1;
+        writeRecords(recordDef, 0.0, timeStep, numRecords);
+        forceReadBackFromStorage();
+        
+        // remove some records by key
+        int startIndex = 20;
+        int deleteCount = 10;
+        for (int i=startIndex; i<startIndex+deleteCount;i++)
+        {
+            DataKey key = new DataKey(recordDef.getName(), producerID, timeStep*i);
+            storage.removeRecord(key);
+        }
+        
+        // check that they are not there
+        int recordCount = storage.getNumRecords(recordDef.getName());
+        assertEquals("Wrong number of records returned", numRecords-deleteCount, recordCount);
+    }
+    
+    
+    @Test
+    public void testStoreAndRemoveRecordsByFilter() throws Exception
+    {
+        DataComponent recordDef = createDs2();
+        
+        // write N records
+        int numRecords = 100;
+        double timeStep = 0.1;
+        writeRecords(recordDef, 0.0, timeStep, numRecords);
+        forceReadBackFromStorage();
+        
+        // remove some records by key
+        final double startTime = 3.0;
+        final double endTime = 8.0;
+        int deleteCount = (int)((endTime-startTime)/timeStep)+1;
+        DataFilter filter = new DataFilter(recordDef.getName()) {
+            @Override
+            public double[] getTimeStampRange()
+            {
+                return new double[] {startTime, endTime};
+            }            
+        };        
+        int numDeleted = storage.removeRecords(filter);
+        
+        // check deleted count
+        assertEquals("Wrong remove count", deleteCount, numDeleted);
+        
+        // check that they are not there
+        int recordCount = storage.getNumRecords(recordDef.getName());
+        assertEquals("Wrong number of records returned", numRecords-deleteCount, recordCount);
+        
+        // check that they are still not there after reload
+        forceReadBackFromStorage();
+        recordCount = storage.getNumRecords(recordDef.getName());
+        assertEquals("Wrong number of records returned", numRecords-deleteCount, recordCount);
+        
+        int readCount = storage.getNumMatchingRecords(filter, Integer.MAX_VALUE);
+        assertEquals("Wrong number of records returned", 0, readCount);
+        
+        // remove everything
+        storage.removeRecords(new DataFilter(recordDef.getName()));
+        recordCount = storage.getNumRecords(recordDef.getName());
+        assertEquals("Wrong number of records returned", 0, recordCount);
+    }
+    
+    
     ///////////////////////
     // Concurrency Tests //
     ///////////////////////
