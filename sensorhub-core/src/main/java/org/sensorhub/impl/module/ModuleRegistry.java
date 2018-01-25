@@ -119,7 +119,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         synchronized (loadedModules)
         {
             this.allModulesLoaded = true;
-            this.notifyAll();
+            loadedModules.notifyAll();
         }
     }
     
