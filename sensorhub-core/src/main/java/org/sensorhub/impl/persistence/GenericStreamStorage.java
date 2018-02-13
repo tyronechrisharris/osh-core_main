@@ -79,7 +79,7 @@ import org.vast.util.Bbox;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Feb 21, 2015
  */
-public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> implements IRecordStorageModule<StreamStorageConfig>, IObsStorage, IEventListener
+public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> implements IRecordStorageModule<StreamStorageConfig>, IObsStorage, IMultiSourceStorage<IObsStorage>, IEventListener
 {
     IRecordStorageModule<StorageConfig> storage;
     WeakReference<IDataProducerModule<?>> dataSourceRef;
@@ -273,7 +273,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 // create producer data store if needed
                 IBasicStorage dataStore;
                 if (!hasDataStore)
-                    dataStore = ((IMultiSourceStorage<IBasicStorage>)storage).addDataStore(producerID);
+                    dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID);
                 else
                     dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
                 
@@ -753,6 +753,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     @Override
     public boolean isReadSupported()
     {
+        checkStarted();
         return storage.isReadSupported();
     }
 
@@ -761,5 +762,43 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     public boolean isWriteSupported()
     {
         return true;
+    }
+    
+    
+    public boolean isMultiSource()
+    {
+        checkStarted();
+        return storage instanceof IMultiSourceStorage;
+    }
+
+
+    @Override
+    public Collection<String> getProducerIDs()
+    {
+        checkStarted();
+        
+        if (storage instanceof IMultiSourceStorage)
+            return ((IMultiSourceStorage<?>)storage).getProducerIDs();
+        
+        return Collections.<String>emptyList();
+    }
+
+
+    @Override
+    public IObsStorage getDataStore(String producerID)
+    {
+        checkStarted();
+        
+        if (storage instanceof IMultiSourceStorage)
+            return (IObsStorage) ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
+        
+        return null;
+    }
+
+
+    @Override
+    public IObsStorage addDataStore(String producerID)
+    {
+        throw new UnsupportedOperationException();
     }
 }
