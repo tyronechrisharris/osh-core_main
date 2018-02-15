@@ -19,7 +19,6 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +84,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     {
         this.configRepo = configRepos;
         this.loadedModules = Collections.synchronizedMap(new LinkedHashMap<String, IModule<?>>());
-        this.moduleLoggers = Collections.synchronizedMap(new HashMap<String, Logger>());
         this.eventHandler = eventBus.registerProducer(ID);
         this.asyncExec = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                                                 10L, TimeUnit.SECONDS,
