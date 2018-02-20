@@ -32,7 +32,7 @@ public interface IMessageQueuePush
     }
     
     
-    public void init(Object config);
+    public void init(MessageQueueConfig config);
     
     
     public void publish(byte[] msg);
