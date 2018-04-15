@@ -17,6 +17,7 @@ package org.sensorhub.test.persistence;
 import static org.junit.Assert.*;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,8 +28,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import net.opengis.DateTimeDouble;
-import net.opengis.IDateTime;
 import net.opengis.gml.v32.TimeInstant;
 import net.opengis.gml.v32.TimePeriod;
 import net.opengis.gml.v32.TimePosition;
@@ -53,6 +52,7 @@ import org.vast.data.BinaryEncodingImpl;
 import org.vast.data.CountImpl;
 import org.vast.data.DataArrayImpl;
 import org.vast.data.DataRecordImpl;
+import org.vast.data.DateTimeOrDouble;
 import org.vast.data.QuantityImpl;
 import org.vast.data.TextEncodingImpl;
 import org.vast.data.TextImpl;
@@ -60,7 +60,6 @@ import org.vast.sensorML.PhysicalSystemImpl;
 import org.vast.sensorML.SMLFactory;
 import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEHelper;
-import org.vast.util.DateTimeFormat;
 import com.google.common.collect.Sets;
 
 
@@ -177,51 +176,53 @@ public abstract class AbstractTestBasicStorage<StorageType extends IRecordStorag
         // load SensorML doc and set first validity period
         is = new BufferedInputStream(getClass().getResourceAsStream("/gamma2070_more.xml"));
         AbstractProcess smlIn1 = smlUtils.readProcess(is);
-        IDateTime begin1 = new DateTimeDouble(new DateTimeFormat().parseIso("2010-05-15Z"));
-        ((TimePeriod)smlIn1.getValidTimeList().get(0)).getBeginPosition().setDateTimeValue(begin1);
-        IDateTime end1 = new DateTimeDouble(new DateTimeFormat().parseIso("2010-09-23Z"));
-        ((TimePeriod)smlIn1.getValidTimeList().get(0)).getEndPosition().setDateTimeValue(end1);
+        TimePeriod validityPeriod1 = (TimePeriod)smlIn1.getValidTimeList().get(0);
+        OffsetDateTime begin1 = OffsetDateTime.parse("2010-05-15T00:00:00Z");
+        OffsetDateTime end1 = OffsetDateTime.parse("2010-09-23T00:00:00Z");
+        validityPeriod1.getBeginPosition().setDateTimeValue(begin1);        
+        validityPeriod1.getEndPosition().setDateTimeValue(end1);
         storage.storeDataSourceDescription(smlIn1);
         forceReadBackFromStorage();
         
         AbstractProcess smlOut = storage.getLatestDataSourceDescription();
         TestUtils.assertEquals(smlIn1, smlOut);
         
-        smlOut = storage.getDataSourceDescriptionAtTime(begin1.getAsDouble());
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(begin1).getAsDouble());
         TestUtils.assertEquals(smlIn1, smlOut);
         
-        smlOut = storage.getDataSourceDescriptionAtTime(end1.getAsDouble());
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(end1).getAsDouble());
         TestUtils.assertEquals(smlIn1, smlOut);
         
-        smlOut = storage.getDataSourceDescriptionAtTime(begin1.getAsDouble() + 3600*24*10);
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(begin1).getAsDouble() + 3600*24*10);
         TestUtils.assertEquals(smlIn1, smlOut);
         
         // load SensorML doc another time and set with a different validity period
         is = new BufferedInputStream(getClass().getResourceAsStream("/gamma2070_more.xml"));
         AbstractProcess smlIn2 = smlUtils.readProcess(is);
-        IDateTime begin2 = new DateTimeDouble(new DateTimeFormat().parseIso("2010-09-24Z"));
-        ((TimePeriod)smlIn2.getValidTimeList().get(0)).getBeginPosition().setDateTimeValue(begin2);
-        IDateTime end2 = new DateTimeDouble(new DateTimeFormat().parseIso("2010-12-08Z"));
-        ((TimePeriod)smlIn2.getValidTimeList().get(0)).getEndPosition().setDateTimeValue(end2);
+        TimePeriod validityPeriod2 = (TimePeriod)smlIn2.getValidTimeList().get(0);
+        OffsetDateTime begin2 = OffsetDateTime.parse("2010-09-24T00:00:00Z");
+        OffsetDateTime end2 = OffsetDateTime.parse("2010-12-08T00:00:00Z");
+        validityPeriod2.getBeginPosition().setDateTimeValue(begin2);        
+        validityPeriod2.getEndPosition().setDateTimeValue(end2);
         storage.storeDataSourceDescription(smlIn2);        
         forceReadBackFromStorage();
         
-        smlOut = storage.getDataSourceDescriptionAtTime(begin1.getAsDouble());
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(begin1).getAsDouble());
         TestUtils.assertEquals(smlIn1, smlOut);
         
-        smlOut = storage.getDataSourceDescriptionAtTime(end1.getAsDouble());
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(end1).getAsDouble());
         TestUtils.assertEquals(smlIn1, smlOut);
         
-        smlOut = storage.getDataSourceDescriptionAtTime(begin1.getAsDouble() + 3600*24*10);
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(begin1).getAsDouble() + 3600*24*10);
         TestUtils.assertEquals(smlIn1, smlOut);
         
-        smlOut = storage.getDataSourceDescriptionAtTime(begin2.getAsDouble());
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(begin2).getAsDouble());
         TestUtils.assertEquals(smlIn2, smlOut);
         
-        smlOut = storage.getDataSourceDescriptionAtTime(end2.getAsDouble());
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(end2).getAsDouble());
         TestUtils.assertEquals(smlIn2, smlOut);
         
-        smlOut = storage.getDataSourceDescriptionAtTime(begin2.getAsDouble() + 3600*24*10);
+        smlOut = storage.getDataSourceDescriptionAtTime(new DateTimeOrDouble(begin2).getAsDouble() + 3600*24*10);
         TestUtils.assertEquals(smlIn2, smlOut);
     }
     
