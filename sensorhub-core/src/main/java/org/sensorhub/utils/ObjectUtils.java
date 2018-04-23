@@ -33,7 +33,7 @@ public class ObjectUtils
             return "null";
 
         Class<?> clazz = object.getClass();
-        StringBuilder sb = new StringBuilder(clazz.getSimpleName()).append(" {");
+        StringBuilder sb = new StringBuilder(clazz.getSimpleName()).append(" { ");
 
         while (clazz != null && !clazz.equals(Object.class))
         {
@@ -45,7 +45,7 @@ public class ObjectUtils
                     try
                     {
                         f.setAccessible(true);
-                        sb.append(f.getName()).append(": ").append(f.get(object)).append(",");
+                        sb.append(f.getName()).append(": ").append(f.get(object)).append(", ");
                     }
                     catch (IllegalAccessException e)
                     {                        
