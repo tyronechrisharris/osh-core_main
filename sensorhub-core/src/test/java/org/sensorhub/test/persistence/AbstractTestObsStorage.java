@@ -39,6 +39,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Polygon;
+import org.vast.util.SpatialExtent;
 
 
 /**
@@ -85,7 +86,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     int[] FOI_STARTS = FOI_SET1_STARTS;
     
     
-    protected void addFoisToStorage() throws Exception
+    protected void addFoisToStorage(Bbox extent) throws Exception
     {
         allFeatures = new LinkedHashMap<String, AbstractFeature>(numFois);
         
@@ -100,6 +101,9 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             Point p = gmlFac.newPoint();
             p.setPos(new double[] {interpolate(foiNum, numFois, longitudeBounds),
                     interpolate(foiNum, numFois, latitudeBounds), 0.0});
+            if(extent != null) {
+                extent.add(new Bbox(p.getPos()[0],p.getPos()[1], 0,p.getPos()[0],p.getPos()[1], 0));
+            }
             foi.setLocation(p);
             allFeatures.put(foi.getUniqueIdentifier(), foi);
             storage.storeFoi(producerID, foi);
@@ -113,7 +117,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     @Test
     public void testStoreAndRetrieveFoisByID() throws Exception
     {
-        addFoisToStorage();
+        addFoisToStorage(null);
         testFilterFoiByID(1, 2, 3, 22, 50, 78);
         testFilterFoiByID(1);
         testFilterFoiByID(56);
@@ -127,7 +131,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     @Test
     public void testStoreAndRetrieveFoisWithWrongIDs() throws Exception
     {
-        addFoisToStorage();
+        addFoisToStorage(null);
         testFilterFoiByID(102);
         testFilterFoiByID(102, 56, 516);
         testFilterFoiByID(102, 103, 104, 56, 516, 5);
@@ -179,7 +183,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     @Test
     public void testStoreAndRetrieveFoisByRoi() throws Exception
     {
-        addFoisToStorage();
+        addFoisToStorage(null);
         
         for (int i = 1; i <= numFois; i++) {
             double x = interpolate(i, numFois, longitudeBounds);
@@ -522,7 +526,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     @Test
     public void testGetRecordsByRoi() throws Exception
     {
-        addFoisToStorage();
+        addFoisToStorage(null);
         
         DataComponent recordDef = createDs2();
         List<DataBlock> dataList = addObservationsWithFoiToStorage(recordDef);
@@ -589,8 +593,8 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     @Test
     public void testGetFoiExtent() throws Exception
     {
-        addFoisToStorage();        
-        Bbox realExtent = new Bbox(1.0, 1.0, 0, numFois, numFois, 0);
+        Bbox realExtent = new Bbox();
+        addFoisToStorage(realExtent);
         Bbox foiExtent = storage.getFoisSpatialExtent();
         assertEquals("Wrong FOI spatial extent", realExtent, foiExtent);
     }
