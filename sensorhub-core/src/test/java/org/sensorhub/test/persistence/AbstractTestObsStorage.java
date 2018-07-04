@@ -594,6 +594,28 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         filter = buildFilterByRoi(recordDef, testList, roi);
         checkFilteredResults(filter, testList);
     }
+
+    public boolean bboxContains(Bbox a, Bbox bbox, double epsilon) {
+
+        double bboxX1 = bbox.getMinX();
+        double bboxX2 = bbox.getMaxX();
+        double bboxY1 = bbox.getMinY();
+        double bboxY2 = bbox.getMaxY();
+
+        if ( a.getMinX() - bboxX1 > epsilon || bboxX1 - a.getMaxX() > epsilon)
+            return false;
+
+        if ( a.getMinX() - bboxX2 > epsilon  || bboxX2 - a.getMaxX() > epsilon)
+            return false;
+
+        if (a.getMinY() - bboxY1 > epsilon  || bboxY1 - a.getMaxY() > epsilon)
+            return false;
+
+        if (a.getMinY() - bboxY2 > epsilon  || bboxY2 - a.getMaxY() > epsilon)
+            return false;
+
+        return true;
+    }
     
     
     @Test
@@ -603,6 +625,6 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         addFoisToStorage(realExtent);
         Bbox foiExtent = storage.getFoisSpatialExtent();
         // Storage bounding box may be larger than real extent, but not smaller (rounding)
-        assertTrue("Wrong FOI spatial extent", foiExtent.contains(realExtent));
+        assertTrue("Wrong FOI spatial extent", bboxContains(foiExtent, realExtent, 1e-6));
     }
 }
