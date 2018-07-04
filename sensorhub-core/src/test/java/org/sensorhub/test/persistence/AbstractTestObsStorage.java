@@ -602,6 +602,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         Bbox realExtent = new Bbox();
         addFoisToStorage(realExtent);
         Bbox foiExtent = storage.getFoisSpatialExtent();
-        assertEquals("Wrong FOI spatial extent", realExtent, foiExtent);
+        // Storage bounding box may be larger than real extent, but not smaller (rounding)
+        assertTrue("Wrong FOI spatial extent", foiExtent.contains(realExtent));
     }
 }
