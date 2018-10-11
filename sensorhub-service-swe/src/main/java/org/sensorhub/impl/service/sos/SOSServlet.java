@@ -83,6 +83,7 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
+import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
@@ -131,6 +132,7 @@ import org.vast.xml.IXMLWriterDOM;
 import org.vast.xml.IndentingXMLStreamWriter;
 import org.vast.xml.XMLImplFinder;
 import org.w3c.dom.Element;
+import com.google.common.base.Strings;
 import com.vividsolutions.jts.geom.Polygon;
 
 
@@ -241,14 +243,15 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         capabilities.setServiceProvider(serviceInfo.serviceProvider);
         
         // supported operations and extensions
+        String endpoint = config.getPublicEndpoint();
         capabilities.getProfiles().add(SOSServiceCapabilities.PROFILE_RESULT_RETRIEVAL);
         capabilities.getProfiles().add(SOSServiceCapabilities.PROFILE_OMXML);
-        capabilities.getGetServers().put("GetCapabilities", config.endPoint);
-        capabilities.getGetServers().put("DescribeSensor", config.endPoint);
-        capabilities.getGetServers().put("GetFeatureOfInterest", config.endPoint);
-        capabilities.getGetServers().put("GetObservation", config.endPoint);
-        capabilities.getGetServers().put("GetResult", config.endPoint);
-        capabilities.getGetServers().put("GetResultTemplate", config.endPoint);
+        capabilities.getGetServers().put("GetCapabilities", endpoint);
+        capabilities.getGetServers().put("DescribeSensor", endpoint);
+        capabilities.getGetServers().put("GetFeatureOfInterest", endpoint);
+        capabilities.getGetServers().put("GetObservation", endpoint);
+        capabilities.getGetServers().put("GetResult", endpoint);
+        capabilities.getGetServers().put("GetResultTemplate", endpoint);
         capabilities.getPostServers().putAll(capabilities.getGetServers());
         
         if (config.enableTransactional)
@@ -257,12 +260,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             capabilities.getProfiles().add(SOSServiceCapabilities.PROFILE_SENSOR_DELETION);
             capabilities.getProfiles().add(SOSServiceCapabilities.PROFILE_OBS_INSERTION);
             capabilities.getProfiles().add(SOSServiceCapabilities.PROFILE_RESULT_INSERTION);
-            capabilities.getPostServers().put("InsertSensor", config.endPoint);
-            capabilities.getPostServers().put("DeleteSensor", config.endPoint);
-            capabilities.getPostServers().put("InsertObservation", config.endPoint);
-            capabilities.getPostServers().put("InsertResultTemplate", config.endPoint);
-            capabilities.getPostServers().put("InsertResult", config.endPoint);
-            capabilities.getGetServers().put("InsertResult", config.endPoint);
+            capabilities.getPostServers().put("InsertSensor", endpoint);
+            capabilities.getPostServers().put("DeleteSensor", endpoint);
+            capabilities.getPostServers().put("InsertObservation", endpoint);
+            capabilities.getPostServers().put("InsertResultTemplate", endpoint);
+            capabilities.getPostServers().put("InsertResult", endpoint);
+            capabilities.getGetServers().put("InsertResult", endpoint);
             
             // insertion capabilities
             SOSInsertionCapabilities insertCaps = new SOSInsertionCapabilities();
@@ -745,12 +748,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         {
             capabilitiesLock.writeLock().lock();
             
-            // update operation URLs
-            String endpointUrl = request.getHttpRequest().getRequestURL().toString();
-            for (Entry<String, String> op: capabilities.getGetServers().entrySet())
-                capabilities.getGetServers().put(op.getKey(), endpointUrl);
-            for (Entry<String, String> op: capabilities.getPostServers().entrySet())
-                capabilities.getPostServers().put(op.getKey(), endpointUrl);
+            // update operation URLs dynamically if base URL not set in config
+            if (Strings.isNullOrEmpty(HttpServer.getInstance().getConfiguration().proxyBaseUrl))
+            {
+                String endpointUrl = request.getHttpRequest().getRequestURL().toString();
+                capabilities.updateAllEndpointUrls(endpointUrl);
+            }
             
             // ask providers to refresh their capabilities if needed.
             // we do that here so capabilities doc contains the most up-to-date info.

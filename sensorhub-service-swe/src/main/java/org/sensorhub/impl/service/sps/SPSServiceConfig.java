@@ -41,5 +41,11 @@ public class SPSServiceConfig extends OGCServiceConfig
     
     @DisplayInfo(desc="Security related options")
     public SecurityConfig security = new SecurityConfig();
+    
+    
+    public SPSServiceConfig()
+    {
+        this.endPoint = "/sps";
+    }
 
 }

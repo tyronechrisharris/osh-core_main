@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletConfig;
@@ -47,6 +46,7 @@ import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.swe.ITaskingCallback;
+import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.sps.Task;
 import org.sensorhub.impl.service.swe.Template;
@@ -70,6 +70,7 @@ import org.vast.util.DateTime;
 import org.vast.util.TimeExtent;
 import org.vast.xml.DOMHelper;
 import org.w3c.dom.Element;
+import com.google.common.base.Strings;
 
 
 /**
@@ -183,20 +184,21 @@ public class SPSServlet extends OWSServlet
         capabilities.setServiceProvider(serviceInfo.serviceProvider);
         
         // supported operations
-        capabilities.getGetServers().put("GetCapabilities", config.endPoint);
-        capabilities.getGetServers().put("DescribeSensor", config.endPoint);
+        String endpoint = config.getPublicEndpoint();
+        capabilities.getGetServers().put("GetCapabilities", endpoint);
+        capabilities.getGetServers().put("DescribeSensor", endpoint);
         capabilities.getPostServers().putAll(capabilities.getGetServers());
-        capabilities.getPostServers().put("Submit", config.endPoint);
-        capabilities.getPostServers().put("DirectTasking", config.endPoint);
-        capabilities.getGetServers().put("ConnectTasking", config.endPoint);
+        capabilities.getPostServers().put("Submit", endpoint);
+        capabilities.getPostServers().put("DirectTasking", endpoint);
+        capabilities.getGetServers().put("ConnectTasking", endpoint);
         
         if (config.enableTransactional)
         {
             //capabilities.getProfiles().add(SOSServiceCapabilities.PROFILE_SENSOR_INSERTION);
             //capabilities.getProfiles().add(SOSServiceCapabilities.PROFILE_SENSOR_DELETION);/
-            capabilities.getPostServers().put("InsertSensor", config.endPoint);
-            capabilities.getPostServers().put("DeleteSensor", config.endPoint);
-            capabilities.getPostServers().put("InsertTaskingTemplate", config.endPoint);
+            capabilities.getPostServers().put("InsertSensor", endpoint);
+            capabilities.getPostServers().put("DeleteSensor", endpoint);
+            capabilities.getPostServers().put("InsertTaskingTemplate", endpoint);
         }
         
         // generate profile list
@@ -492,11 +494,12 @@ public class SPSServlet extends OWSServlet
         {
             capabilitiesLock.writeLock().lock();
         
-            String endpointUrl = request.getHttpRequest().getRequestURL().toString();
-            for (Entry<String, String> op: capabilities.getGetServers().entrySet())
-                capabilities.getGetServers().put(op.getKey(), endpointUrl);
-            for (Entry<String, String> op: capabilities.getPostServers().entrySet())
-                capabilities.getPostServers().put(op.getKey(), endpointUrl);
+            // update operation URLs dynamically if base URL not set in config
+            if (Strings.isNullOrEmpty(HttpServer.getInstance().getConfiguration().proxyBaseUrl))
+            {
+                String endpointUrl = request.getHttpRequest().getRequestURL().toString();
+                capabilities.updateAllEndpointUrls(endpointUrl);
+            }
         }
         finally
         {            
