@@ -63,17 +63,10 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
 {
     static String FOI_UID_PREFIX = "urn:domain:features:foi";
     protected int numFois = 100;
+    protected double[] longitudeBounds = new double[] {-179, 179};
+    protected double[] latitudeBounds = new double[] {-89, 89};
     GMLFactory gmlFac = new GMLFactory(true);
     Map<String, AbstractFeature> allFeatures;
-
-
-    static final double[] longitudeBounds = new double[] {-170, 170, 340};
-    static final double[] latitudeBounds = new double[] {-80, 80, 160};
-
-    static double interpolate(double val, double max, double[] bounds) {
-        return (val / max) * bounds[2] + bounds[0];
-    }
-
 
     
     static String[] FOI_SET1_IDS = new String[]
@@ -105,11 +98,12 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             foi.setName("FOI" + foiNum);
             foi.setDescription("This is feature of interest #" + foiNum);                        
             Point p = gmlFac.newPoint();
-            p.setPos(new double[] {interpolate(foiNum, numFois, longitudeBounds),
-                    interpolate(foiNum, numFois, latitudeBounds), 0.0});
-            if(extent != null) {
+            p.setPos(new double[] {
+                    interpolate(foiNum, numFois, longitudeBounds),
+                    interpolate(foiNum, numFois, latitudeBounds), 0.0
+            });
+            if (extent != null)
                 extent.add(new Bbox(p.getPos()[0],p.getPos()[1], 0,p.getPos()[0],p.getPos()[1], 0));
-            }
             foi.setLocation(p);
             allFeatures.put(foi.getUniqueIdentifier(), foi);
             storage.storeFoi(producerID, foi);
@@ -118,6 +112,12 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         storage.commit();
         forceReadBackFromStorage();
     }
+    
+    
+    protected double interpolate(double val, double max, double[] bounds)
+    {
+        return (val / max) * (bounds[1] - bounds[0]) + bounds[0];
+    }    
     
     
     @Test
@@ -594,28 +594,6 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         filter = buildFilterByRoi(recordDef, testList, roi);
         checkFilteredResults(filter, testList);
     }
-
-    public boolean bboxContains(Bbox a, Bbox bbox, double epsilon) {
-
-        double bboxX1 = bbox.getMinX();
-        double bboxX2 = bbox.getMaxX();
-        double bboxY1 = bbox.getMinY();
-        double bboxY2 = bbox.getMaxY();
-
-        if ( a.getMinX() - bboxX1 > epsilon || bboxX1 - a.getMaxX() > epsilon)
-            return false;
-
-        if ( a.getMinX() - bboxX2 > epsilon  || bboxX2 - a.getMaxX() > epsilon)
-            return false;
-
-        if (a.getMinY() - bboxY1 > epsilon  || bboxY1 - a.getMaxY() > epsilon)
-            return false;
-
-        if (a.getMinY() - bboxY2 > epsilon  || bboxY2 - a.getMaxY() > epsilon)
-            return false;
-
-        return true;
-    }
     
     
     @Test
@@ -623,8 +601,11 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
     {
         Bbox realExtent = new Bbox();
         addFoisToStorage(realExtent);
-        Bbox foiExtent = storage.getFoisSpatialExtent();
-        // Storage bounding box may be larger than real extent, but not smaller (rounding)
-        assertTrue("Wrong FOI spatial extent", bboxContains(foiExtent, realExtent, 1e-6));
+        
+        Bbox foiExtent = storage.getFoisSpatialExtent();        
+        assertTrue("FOI spatial extent is null", foiExtent != null);
+        
+        // Storage bounding box may be larger than real extent, but not smaller
+        assertTrue("Wrong FOI spatial extent", foiExtent.contains(realExtent));
     }
 }
