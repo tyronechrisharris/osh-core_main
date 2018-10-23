@@ -59,14 +59,17 @@ public class DataEvent extends EntityEvent<Type>
 	
 	
 	/**
-	 * Constructs a data event with no related entity
+	 * Constructs a data event related to the default entity (i.e. the parent of the data interface)
 	 * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param dataInterface stream interface that generated the associated data
 	 * @param records arrays of records that triggered this notification
 	 */
 	public DataEvent(long timeStamp, IStreamingDataInterface dataInterface, DataBlock ... records)
 	{
-	    this(timeStamp, null, dataInterface, records);
+	    this(timeStamp,
+	         dataInterface.getParentModule().getUniqueIdentifier(),
+	         dataInterface,
+	         records);
 	}
 	
 	
