@@ -12,7 +12,7 @@ buildscript {
 }
 
 
-apply plugin: org.sonarqube.gradle.SonarQubePlugin
+//apply plugin: org.sonarqube.gradle.SonarQubePlugin
 apply plugin: org.ajoberstar.gradle.git.base.GrgitPlugin
 
 allprojects  {
