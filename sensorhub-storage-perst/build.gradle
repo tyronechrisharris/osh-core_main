@@ -10,7 +10,7 @@ rootProject.allprojects {
 
 dependencies {
   compile project(':sensorhub-core')
-  embedded 'org.garret:perst-fixed:4.36'
+  embedded 'org.garret:perst-fixed:4.39'
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }
 
