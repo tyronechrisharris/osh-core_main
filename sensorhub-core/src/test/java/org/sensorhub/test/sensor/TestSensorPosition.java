@@ -52,12 +52,12 @@ public class TestSensorPosition
         new GMLUtils(GMLUtils.V3_2).writeFeature(System.out, f, true);
         System.out.println('\n');
         
-        assertTrue("FoI must be a point", f.getLocation() instanceof Point);
-        double[] loc = ((Point)f.getLocation()).getPos();
+        assertTrue("FoI must be a point", f.getGeometry() instanceof Point);
+        double[] loc = ((Point)f.getGeometry()).getPos();
         assertEquals("Wrong latitude value", lat, loc[0], 0.0);
         assertEquals("Wrong longitude value", lon, loc[1], 0.0);
         assertEquals("Wrong altitude value", alt, loc[2], 0.0);
-        assertEquals("Wrong CRS", SWEConstants.REF_FRAME_4979, f.getLocation().getSrsName());
+        assertEquals("Wrong CRS", SWEConstants.REF_FRAME_4979, f.getGeometry().getSrsName());
     }
     
     

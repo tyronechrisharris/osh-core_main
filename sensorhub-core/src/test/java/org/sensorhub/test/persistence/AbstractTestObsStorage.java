@@ -95,7 +95,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             foi.setDescription("This is feature of interest #" + foiNum);                        
             Point p = gmlFac.newPoint();
             p.setPos(new double[] {foiNum, foiNum, 0.0});
-            foi.setLocation(p);
+            foi.setGeometry(p);
             allFeatures.put(foi.getUniqueIdentifier(), foi);
             storage.storeFoi(producerID, foi);
         }
@@ -292,7 +292,7 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
             AbstractFeature f = allFeatures.get(foiID);
             if (f != null)
             {
-                if (roi.intersects((Geometry)f.getLocation()))
+                if (roi.intersects((Geometry)f.getGeometry()))
                     foiIndexList.add(fIndex);                
             }
             fIndex++;

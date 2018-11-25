@@ -53,7 +53,7 @@ public class FoiUtils
                 if (numFois <= maxFois)
                     caps.getRelatedFeatures().add(foi.getUniqueIdentifier());
                 
-                AbstractGeometry geom = foi.getLocation();
+                AbstractGeometry geom = foi.getGeometry();
                 if (geom != null)
                 {
                     Envelope env = geom.getGeomEnvelope();
@@ -71,7 +71,7 @@ public class FoiUtils
             {
                 caps.getRelatedFeatures().add(foi.getUniqueIdentifier());
                 
-                AbstractGeometry geom = foi.getLocation();
+                AbstractGeometry geom = foi.getGeometry();
                 if (geom != null)
                 {
                     Envelope env = geom.getGeomEnvelope();
@@ -83,6 +83,7 @@ public class FoiUtils
     }
     
     
+    @SuppressWarnings("unchecked")
     public static Iterator<AbstractFeature> getFilteredFoiIterator(IDataProducerModule<?> producer, IFoiFilter filter)
     {
         // get all fois from producer
@@ -92,7 +93,7 @@ public class FoiUtils
         else if (producer.getCurrentFeatureOfInterest() != null)
             allFois = Arrays.asList(producer.getCurrentFeatureOfInterest()).iterator();
         else
-            allFois = Collections.EMPTY_LIST.iterator();
+            allFois = Collections.emptyIterator();
         
         // return all features if no filter is used
         if ((filter.getFeatureIDs() == null || filter.getFeatureIDs().isEmpty()) && filter.getRoi() == null)

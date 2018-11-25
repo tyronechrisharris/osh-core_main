@@ -44,7 +44,7 @@ public class FilterUtils
         // roi criteria
         if (filter.getRoi() != null)
         {
-            Geometry geom = (Geometry)f.getLocation();
+            Geometry geom = (Geometry)f.getGeometry();
             if (geom != null && !filter.getRoi().intersects(geom))
                 return false;
         }

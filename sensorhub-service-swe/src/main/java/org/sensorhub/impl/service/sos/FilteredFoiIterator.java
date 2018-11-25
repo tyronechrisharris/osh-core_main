@@ -52,9 +52,9 @@ public class FilteredFoiIterator implements Iterator<AbstractFeature>
                 }
     
                 // filter on feature geometry
-                if (keep && filter.getRoi() != null && f.getLocation() != null)
+                if (keep && filter.getRoi() != null && f.getGeometry() != null)
                 {
-                    Geometry fGeom = JTSUtils.getAsJTSGeometry(f.getLocation());
+                    Geometry fGeom = JTSUtils.getAsJTSGeometry(f.getGeometry());
                     if (fGeom.disjoint(filter.getRoi()))
                         keep = false;
                 }

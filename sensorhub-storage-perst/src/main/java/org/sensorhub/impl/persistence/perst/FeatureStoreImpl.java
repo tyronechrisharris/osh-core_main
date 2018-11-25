@@ -213,7 +213,7 @@ class FeatureStoreImpl extends PersistentResource implements IFeatureStorage
                     while (nextFeature == null && geoIt.hasNext())
                     {
                         AbstractFeature f = geoIt.next();
-                        Geometry geom = (Geometry)f.getLocation();
+                        Geometry geom = (Geometry)f.getGeometry();
                         if (geom != null && roi.intersects(geom))
                             nextFeature = f;
                     }
@@ -293,9 +293,9 @@ class FeatureStoreImpl extends PersistentResource implements IFeatureStorage
             geoIndex.exclusiveLock();
             
             newFoi = idIndex.put(foi.getUniqueIdentifier(), foi);
-            if (newFoi && foi.getLocation() != null)
+            if (newFoi && foi.getGeometry() != null)
             {
-                RectangleRn rect = PerstUtils.getBoundingRectangle(foi.getLocation());
+                RectangleRn rect = PerstUtils.getBoundingRectangle(foi.getGeometry());
                 geoIndex.put(rect, foi);
             }
         }

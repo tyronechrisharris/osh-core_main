@@ -58,7 +58,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
             foi.setDescription("This is feature of interest #" + foiNum);                        
             Point p = gmlFac.newPoint();
             p.setPos(new double[] {foiNum, foiNum, 0.0});
-            foi.setLocation(p);
+            foi.setGeometry(p);
             fois.put(SENSOR_UID_PREFIX + foiNum, foi);
             foiIDs.add(foi.getUniqueIdentifier());
         }        
@@ -115,7 +115,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
     public Collection<String> getEntitiesWithFoi(String foiID)
     {
         if (!foiIDs.contains(foiID))
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         
         String entityID = foiID.replace(FOI_UID_PREFIX, SENSOR_UID_PREFIX);
         return Arrays.asList(entityID);
