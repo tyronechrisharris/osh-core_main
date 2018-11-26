@@ -16,9 +16,9 @@ package org.sensorhub.ui;
 
 import java.util.Arrays;
 import org.sensorhub.ui.ValueEntryPopup.ValueCallback;
-import com.vaadin.data.Property.ValueChangeEvent;
-import com.vaadin.data.Property.ValueChangeListener;
-import com.vaadin.ui.ListSelect;
+import com.vaadin.v7.data.Property.ValueChangeEvent;
+import com.vaadin.v7.data.Property.ValueChangeListener;
+import com.vaadin.v7.ui.ListSelect;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
 

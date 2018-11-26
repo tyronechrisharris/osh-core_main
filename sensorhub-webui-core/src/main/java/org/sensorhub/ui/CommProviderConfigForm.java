@@ -17,9 +17,9 @@ package org.sensorhub.ui;
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.ComplexProperty;
 import org.sensorhub.ui.data.MyBeanItem;
-import com.vaadin.data.Property;
+import com.vaadin.v7.data.Property;
 import com.vaadin.ui.ComponentContainer;
-import com.vaadin.ui.Field;
+import com.vaadin.v7.ui.Field;
 
 
 @SuppressWarnings("serial")

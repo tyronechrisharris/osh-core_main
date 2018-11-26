@@ -27,7 +27,7 @@ import net.opengis.swe.v20.Time;
 import net.opengis.swe.v20.UnitReference;
 import net.opengis.swe.v20.Vector;
 import com.vaadin.shared.ui.MarginInfo;
-import com.vaadin.shared.ui.label.ContentMode;
+import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.VerticalLayout;

@@ -23,12 +23,12 @@ import org.sensorhub.api.comm.INetworkInfo;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.data.MyBeanItem;
-import com.vaadin.data.Item;
+import com.vaadin.v7.data.Item;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
-import com.vaadin.ui.Table;
+import com.vaadin.v7.ui.Table;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.UI;
 

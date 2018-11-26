@@ -39,8 +39,8 @@ import org.tltv.gantt.client.shared.Step;
 import org.tltv.gantt.client.shared.SubStep;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.DateTimeFormat;
-import com.vaadin.data.util.converter.Converter;
-import com.vaadin.shared.ui.label.ContentMode;
+import com.vaadin.v7.data.util.converter.Converter;
+import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -50,7 +50,7 @@ import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Panel;
-import com.vaadin.ui.Table;
+import com.vaadin.v7.ui.Table;
 
 
 /**

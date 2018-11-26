@@ -24,7 +24,7 @@ import org.sensorhub.impl.service.sps.SPSServiceConfig;
 import org.sensorhub.impl.service.sps.SensorConnectorConfig;
 import org.sensorhub.ui.data.BaseProperty;
 import org.sensorhub.ui.data.MyBeanItem;
-import com.vaadin.data.Property;
+import com.vaadin.v7.data.Property;
 import com.vaadin.server.ExternalResource;
 import com.vaadin.ui.Link;
 

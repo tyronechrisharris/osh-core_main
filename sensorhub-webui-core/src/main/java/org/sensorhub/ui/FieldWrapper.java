@@ -14,9 +14,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import com.vaadin.data.Validator.InvalidValueException;
-import com.vaadin.ui.CustomField;
-import com.vaadin.ui.Field;
+import com.vaadin.v7.data.Validator.InvalidValueException;
+import com.vaadin.v7.ui.CustomField;
+import com.vaadin.v7.ui.Field;
 
 
 @SuppressWarnings("serial")
@@ -34,7 +34,7 @@ public abstract class FieldWrapper<T extends Object> extends CustomField<T>
         // make sure we refresh when inner field is changed directly
         innerField.addValueChangeListener(new ValueChangeListener() {
             @Override
-            public void valueChange(com.vaadin.data.Property.ValueChangeEvent event)
+            public void valueChange(com.vaadin.v7.data.Property.ValueChangeEvent event)
             {
                 markAsDirty();             
             }            

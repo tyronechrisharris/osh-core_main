@@ -2,7 +2,8 @@ description = 'OSH Vaadin Admin UI'
 ext.details = 'Web based admin user interface for OSH'
 
 rootProject.allprojects {
-  ext.vaadinVersion = '7.7.12'
+  //ext.vaadinVersion = '7.7.12'
+  ext.vaadinVersion = '8.6.1'
   repositories {
     maven { url "http://maven.vaadin.com/vaadin-addons" }
   }
@@ -13,10 +14,12 @@ dependencies {
   compile project(':sensorhub-service-swe')
   compile project(':sensorhub-webui-widgetset')
   compile 'com.vaadin:vaadin-server:' + vaadinVersion
+  compile 'com.vaadin:vaadin-compatibility-server:' + vaadinVersion
   compile 'com.vaadin:vaadin-push:' + vaadinVersion
   compile 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
+  compile 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
   compile 'com.vaadin:vaadin-themes:' + vaadinVersion
-  compile 'org.tltv.gantt:gantt-addon:0.9.0'
+  compile 'org.tltv.gantt:gantt-addon:1.0.4'
   
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }

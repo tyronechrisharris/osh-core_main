@@ -20,8 +20,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import com.vaadin.data.Property;
-import com.vaadin.data.util.AbstractInMemoryContainer;
+import com.vaadin.v7.data.Property;
+import com.vaadin.v7.data.util.AbstractInMemoryContainer;
 
 
 @SuppressWarnings("serial")

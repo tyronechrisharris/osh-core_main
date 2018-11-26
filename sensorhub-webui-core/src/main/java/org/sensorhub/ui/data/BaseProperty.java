@@ -25,7 +25,7 @@ import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.config.DisplayInfo.TextInfo;
 import org.sensorhub.api.config.DisplayInfo.ValueRange;
 import org.sensorhub.api.module.IModule;
-import com.vaadin.data.util.AbstractProperty;
+import com.vaadin.v7.data.util.AbstractProperty;
 
 
 @SuppressWarnings({ "serial" })

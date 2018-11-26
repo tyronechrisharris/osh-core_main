@@ -25,9 +25,9 @@ import org.sensorhub.impl.persistence.MaxAgeAutoPurgeConfig;
 import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.ui.api.IModuleConfigForm;
 import org.sensorhub.ui.data.BaseProperty;
-import com.vaadin.data.Property;
-import com.vaadin.data.validator.StringLengthValidator;
-import com.vaadin.ui.Field;
+import com.vaadin.v7.data.Property;
+import com.vaadin.v7.data.validator.StringLengthValidator;
+import com.vaadin.v7.ui.Field;
 
 
 @SuppressWarnings("serial")

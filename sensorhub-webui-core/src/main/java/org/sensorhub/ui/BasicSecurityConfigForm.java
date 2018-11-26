@@ -28,22 +28,22 @@ import org.sensorhub.impl.security.PermissionSetting;
 import org.sensorhub.ui.ValueEntryPopup.ValueCallback;
 import org.sensorhub.ui.data.ContainerProperty;
 import org.sensorhub.ui.data.MyBeanItem;
-import com.vaadin.data.Item;
-import com.vaadin.data.fieldgroup.FieldGroup;
-import com.vaadin.data.util.converter.Converter;
+import com.vaadin.v7.data.Item;
+import com.vaadin.v7.data.fieldgroup.FieldGroup;
+import com.vaadin.v7.data.util.converter.Converter;
 import com.vaadin.event.Action;
 import com.vaadin.event.Action.Handler;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.HorizontalLayout;
-import com.vaadin.ui.Table;
-import com.vaadin.ui.TreeTable;
+import com.vaadin.v7.ui.Table;
+import com.vaadin.v7.ui.TreeTable;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
-import com.vaadin.ui.Table.CellStyleGenerator;
-import com.vaadin.ui.Table.ColumnHeaderMode;
+import com.vaadin.v7.ui.Table.CellStyleGenerator;
+import com.vaadin.v7.ui.Table.ColumnHeaderMode;
 
 
 @SuppressWarnings("serial")
