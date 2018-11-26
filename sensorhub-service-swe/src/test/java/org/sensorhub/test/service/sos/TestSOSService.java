@@ -115,7 +115,7 @@ public class TestSOSService
     static final String WS_ENDPOINT = HTTP_ENDPOINT.replace("http://", "ws://"); 
     static final String GETCAPS_REQUEST = "?service=SOS&version=2.0&request=GetCapabilities";
     static final String OFFERING_NODES = "contents/Contents/offering/*";
-    static final String TIMERANGE_FUTURE = "now/2080-01-01";
+    static final String TIMERANGE_FUTURE = "now/2080-01-01Z";
     static final String TIMERANGE_NOW = "now";
     
     
