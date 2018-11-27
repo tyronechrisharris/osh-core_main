@@ -38,11 +38,17 @@ task compileWidgetset(type: JavaExec) {
 
 
 dependencies {
+  compile 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
+  compile 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
   compile 'org.tltv.gantt:gantt-addon:1.0.4'
 }
 
 vaadin {  
   version vaadinVersion
+  
+  vaadinCompile {
+    manageWidgetset false
+  }
 }
 
 webAppDirName = 'src/main/resources'

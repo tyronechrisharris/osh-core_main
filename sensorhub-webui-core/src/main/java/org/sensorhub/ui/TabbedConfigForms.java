@@ -33,6 +33,7 @@ public class TabbedConfigForms extends VerticalLayout implements UIConstants
     public TabbedConfigForms(IModuleConfigForm form)
     {
         setSizeUndefined();
+        setMargin(false);
         setWidth(100.0f, Unit.PERCENTAGE);
         
         Label sectionLabel = new Label("Configuration");

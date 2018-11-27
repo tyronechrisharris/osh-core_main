@@ -14,9 +14,11 @@ dependencies {
   compile project(':sensorhub-service-swe')
   compile project(':sensorhub-webui-widgetset')
   compile 'com.vaadin:vaadin-server:' + vaadinVersion
-  compile 'com.vaadin:vaadin-compatibility-server:' + vaadinVersion
-  compile 'com.vaadin:vaadin-push:' + vaadinVersion
+  compile 'com.vaadin:vaadin-push:' + vaadinVersion  
+  compile 'com.vaadin:vaadin-client:' + vaadinVersion
   compile 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
+  compile 'com.vaadin:vaadin-compatibility-server:' + vaadinVersion
+  compile 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
   compile 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
   compile 'com.vaadin:vaadin-themes:' + vaadinVersion
   compile 'org.tltv.gantt:gantt-addon:1.0.4'

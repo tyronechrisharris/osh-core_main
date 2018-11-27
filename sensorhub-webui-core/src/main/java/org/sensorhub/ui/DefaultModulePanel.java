@@ -74,7 +74,9 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
         title.addStyleName(STYLE_H2);
         header.addComponent(title);        
         addComponent(header);
-        addComponent(new Label("<hr/>", ContentMode.HTML));
+        Label hr = new Label("<hr/>", ContentMode.HTML);
+        hr.setWidth(100.0f, Unit.PERCENTAGE);
+        addComponent(hr);
         
         // status message
         refreshState();

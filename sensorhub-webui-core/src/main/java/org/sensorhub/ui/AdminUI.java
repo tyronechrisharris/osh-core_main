@@ -69,6 +69,7 @@ import com.vaadin.server.VaadinService;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.communication.PushMode;
 import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.shared.ui.ui.Transport;
 import com.vaadin.v7.ui.AbstractSelect.ItemDescriptionGenerator;
 import com.vaadin.ui.Accordion;
@@ -184,7 +185,8 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         // build left pane
         VerticalLayout leftPane = new VerticalLayout();
         leftPane.setSizeFull();
-        leftPane.setSpacing(true);
+        leftPane.setSpacing(false);
+        leftPane.setMargin(false);
         
         // header image and title
         Component header = buildHeader();
@@ -355,6 +357,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         HorizontalLayout toolbar = new HorizontalLayout();
         toolbar.setWidth(100.0f, Unit.PERCENTAGE);
         toolbar.setSpacing(true);
+        toolbar.setStyleName("toolbar");
                 
         // shutdown button
         Button shutdownButton = new Button("Shutdown");
@@ -936,6 +939,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         });        
         
         layout.setSizeFull();
+        layout.setMargin(false);
     }
     
     
