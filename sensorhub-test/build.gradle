@@ -1,0 +1,9 @@
+description = 'OSH Test Project'
+
+dependencies {
+  compile 'org.sensorhub:sensorhub-core:[0.1,2.0)'
+  compile 'org.sensorhub:sensorhub-service-swe:[0.1,2.0)'
+  compile 'org.sensorhub:sensorhub-storage-perst:[0.1,2.0)'
+  compile 'org.sensorhub:sensorhub-webui-core:[0.1,2.0)'
+  compile 'org.sensorhub:sensorhub-storage-h2:[0.1,2.0)'
+}

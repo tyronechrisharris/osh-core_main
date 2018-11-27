@@ -13,6 +13,7 @@ include 'sensorhub-service-swe'
 include 'sensorhub-tools'
 include 'sensorhub-webui-core'
 include 'sensorhub-webui-widgetset'
+include 'sensorhub-test'
 
 project(':swe-common-core').projectDir = "$rootDir/lib-swe-common/swe-common-core" as File
 project(':swe-common-om').projectDir = "$rootDir/lib-swe-common/swe-common-om" as File
