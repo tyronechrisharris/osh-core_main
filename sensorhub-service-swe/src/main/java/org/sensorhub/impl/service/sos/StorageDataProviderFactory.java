@@ -177,7 +177,8 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
         {
             // update time extent
             TimeExtent newTimeExtent = getTimeExtentFromStorage();
-            caps.setPhenomenonTime(newTimeExtent);
+            if (!newTimeExtent.isNull())
+                caps.setPhenomenonTime(newTimeExtent);
             
             // update FOI list and BBOX
             if (storage instanceof IObsStorage)

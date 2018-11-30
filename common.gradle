@@ -28,8 +28,8 @@ subprojects {
   apply plugin: 'eclipse'
   apply plugin: 'maven-publish'
   
-  sourceCompatibility = 1.8
-  targetCompatibility = 1.8
+  sourceCompatibility = 1.11
+  targetCompatibility = 1.11
   ext.details = null
   ext.pom = {} // pom data that subprojects can append to
   
@@ -186,6 +186,7 @@ subprojects {
 // distribution zip files
 apply plugin: 'java'
 apply plugin: 'distribution'
+targetCompatibility = 1.11
 tasks.jar.enabled = false
 afterEvaluate { // disable all distTar tasks
   tasks.each {

@@ -50,6 +50,10 @@ public class HttpServerConfig extends ModuleConfig
     public String servletsRootUrl = "/sensorhub";
     
     
+    @DisplayInfo(label="Proxy Base URL", desc="Public URL as viewed from the outside when requests transit through a proxy server.")
+    public String proxyBaseUrl = null;
+    
+    
     @DisplayInfo(label="Authentication Method", desc="Method used to authenticate users on this server")
     public AuthMethod authMethod = AuthMethod.NONE;
     

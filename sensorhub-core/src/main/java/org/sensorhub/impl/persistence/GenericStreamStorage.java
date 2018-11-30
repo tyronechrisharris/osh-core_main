@@ -170,6 +170,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
      */
     protected void connectDataSource(IDataProducerModule<?> dataSource)
     {
+        ensureProducerInfo(dataSource.getUniqueIdentifier(), true);
+        
         // set data source description
         AbstractProcess sml = dataSource.getCurrentDescription();
         if (sml != null)
@@ -236,11 +238,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             for (Entry<String, DataBlock> rec: ((IMultiSourceDataInterface) output).getLatestRecords().entrySet())
             {
                 String producerID = rec.getKey();
-                
-                // for multi-source storage, prepare producer data store
-                if (storage instanceof IMultiSourceStorage)
-                    ensureProducerInfo(producerID, true);
-                
+                ensureProducerInfo(producerID, true);
                 handleEvent(new DataEvent(System.currentTimeMillis(), producerID, output, rec.getValue()));
             }
         }
@@ -267,16 +265,17 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             if (hasDataStore && !updateAll)
                 return;
             
+            // create producer data store if needed
+            IBasicStorage dataStore;
+            if (!hasDataStore)
+                dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID);
+            else
+                dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
+            
+            // handle multisource producers
             IDataProducerModule<?> dataSource = dataSourceRef.get();
             if (dataSource != null && dataSource instanceof IMultiSourceDataProducer)
             {
-                // create producer data store if needed
-                IBasicStorage dataStore;
-                if (!hasDataStore)
-                    dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID);
-                else
-                    dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
-                
                 // save producer SensorML description
                 AbstractProcess sml = ((IMultiSourceDataProducer) dataSource).getCurrentDescription(producerID);
                 if (sml != null)
@@ -391,6 +390,18 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 String outputName = dataEvent.getSource().getName();
                 ScalarIndexer timeStampIndexer = timeStampIndexers.get(outputName);
                 
+                // get entity and FOI ID
+                String foiID;
+                String entityID = dataEvent.getRelatedEntityID();
+                if (entityID != null)
+                {
+                    ensureProducerInfo(entityID, false); // to handle new producer
+                    foiID = currentFoiMap.get(entityID);
+                }
+                else
+                    foiID = currentFoi; 
+                
+                // process all records
                 for (DataBlock record: dataEvent.getRecords())
                 {
                     // get time stamp
@@ -400,19 +411,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                     else
                         time = e.getTimeStamp() / 1000.;
                     
-                    // get FOI ID
-                    String foiID;
-                    String entityID = dataEvent.getRelatedEntityID();
-                    if (entityID != null)
-                    {
-                        ensureProducerInfo(entityID, false); // to handle new producer
-                        foiID = currentFoiMap.get(entityID);
-                    }
-                    else
-                        foiID = currentFoi; 
-                    
                     // store record with proper key
-                    ObsKey key = new ObsKey(outputName, entityID, foiID, time);                    
+                    ObsKey key = new ObsKey(outputName, entityID, foiID, time);
                     storage.storeRecord(key, record);
                     
                     if (getLogger().isTraceEnabled())

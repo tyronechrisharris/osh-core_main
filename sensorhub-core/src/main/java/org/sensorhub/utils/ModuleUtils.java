@@ -27,6 +27,7 @@ import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.impl.StaticLoggerBinder;
 import org.vast.util.Asserts;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.util.ContextInitializer;
@@ -165,9 +166,10 @@ public class ModuleUtils
     {
         Asserts.checkNotNull(module, IModule.class);        
         String moduleID = module.getLocalID();
-        
-        // if module config wasn't initialized, use class logger
-        if (moduleID == null)
+
+        // if module config wasn't initialized or logback not available, use class logger
+        StaticLoggerBinder binder = StaticLoggerBinder.getSingleton();
+        if (moduleID == null || !binder.getLoggerFactoryClassStr().contains("logback"))
             return LoggerFactory.getLogger(module.getClass());
         
         // generate instance ID
