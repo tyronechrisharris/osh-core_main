@@ -47,7 +47,7 @@ public class StorageDataProviderConfig extends SOSProviderConfig
     
     @DisplayInfo(desc="Names of data stores whose data will be hidden from the SOS " +
             "If this is null, all streams offered by storage are exposed")
-    public List<String> hiddenOutputs = new ArrayList<String>();
+    public List<String> hiddenOutputs = new ArrayList<>();
     
 
     public StorageDataProviderConfig()

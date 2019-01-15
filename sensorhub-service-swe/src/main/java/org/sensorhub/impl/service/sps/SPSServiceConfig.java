@@ -36,7 +36,7 @@ public class SPSServiceConfig extends OGCServiceConfig
     
     
     @DisplayInfo(label="Offerings", desc="Configuration of connectors for SPS offerings")
-    public OfferingList<SPSConnectorConfig> connectors = new OfferingList<SPSConnectorConfig>();
+    public OfferingList<SPSConnectorConfig> connectors = new OfferingList<>();
     
     
     @DisplayInfo(desc="Security related options")
@@ -45,6 +45,7 @@ public class SPSServiceConfig extends OGCServiceConfig
     
     public SPSServiceConfig()
     {
+        this.moduleClass = SPSService.class.getCanonicalName();
         this.endPoint = "/sps";
     }
 
