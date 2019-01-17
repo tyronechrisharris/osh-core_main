@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -200,7 +201,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                         
             // instantiate module class
             module = (IModule)loadClass(config.moduleClass);
-            log.debug("Module " + MsgUtils.moduleString(config) + " loaded");
+            log.debug("Module {} loaded", MsgUtils.moduleString(config));
             
             // set config
             module.setConfiguration(config);
@@ -297,7 +298,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         stopModule(moduleID);        
         IModule<?> module = loadedModules.remove(moduleID);
         eventHandler.publishEvent(new ModuleEvent(module, Type.UNLOADED));
-        log.debug("Module " + MsgUtils.moduleString(module) +  " unloaded");
+        log.debug("Module {} unloaded", MsgUtils.moduleString(module));
     }
     
     
@@ -710,7 +711,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                 module.cleanup();
             }
             
-            log.debug("Module " + MsgUtils.moduleString(module) +  " deleted");
+            log.debug("Module {} deleted", MsgUtils.moduleString(module));
         }
         catch (Exception e)
         {
@@ -853,9 +854,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             for (IModuleProvider provider: sl)
                 installedModules.add(provider);
         }
-        catch (Exception e)
+        catch (ServiceConfigurationError e)
         {
-            log.error("Invalid reference to module descriptor", e);
+            log.error("{}: {}", ServiceConfigurationError.class.getName(), e.getMessage());
         }
         
         return installedModules;
@@ -1057,28 +1058,28 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                     switch (((ModuleEvent) e).getNewState())
                     {
                         case INITIALIZING:
-                            log.info("Initializing module " + moduleString);
+                            log.info("Initializing module {}", moduleString);
                             break;
                             
                         case INITIALIZED:
-                            log.info("Module " + moduleString + " initialized");
+                            log.info("Module {} initialized", moduleString);
                             postInit(module);
                             break;
                             
                         case STARTING:
-                            log.info("Starting module " + moduleString);
+                            log.info("Starting module {}", moduleString);
                             break;
                             
                         case STARTED:
-                            log.info("Module " + moduleString + " started");
+                            log.info("Module {} started", moduleString);
                             break;
                             
                         case STOPPING:
-                            log.info("Stopping module " + moduleString);
+                            log.info("Stopping module {}", moduleString);
                             break;
                             
                         case STOPPED:
-                            log.info("Module " + moduleString + " stopped");
+                            log.info("Module {} stopped", moduleString);
                             break;
                             
                         default:
@@ -1087,7 +1088,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                     break;
                     
                 case ERROR:
-                    log.error("Error in module " + moduleString);
+                    log.error("Error in module {}", moduleString);
                     break;
                     
                 default:
@@ -1113,7 +1114,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         }
         catch (SensorHubException e)
         {
-            log.error("Cannot load state of module " + moduleString, e);
+            log.error("Cannot load state of module {}", moduleString, e);
         }        
     }
 }
