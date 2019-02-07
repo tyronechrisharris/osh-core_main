@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.client.sost;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.sensorhub.api.client.ClientConfig;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.FieldType;
@@ -40,6 +42,10 @@ public class SOSTClientConfig extends ClientConfig
     @ModuleType(ISensorModule.class)
     @Required
     public String sensorID;
+    
+    
+    @DisplayInfo(desc="Names of outputs that should not be pushed to remote SOS server")
+    public List<String> excludedOutputs = new ArrayList<>();
     
     
     @DisplayInfo(label="SOS Endpoint", desc="SOS endpoint where the requests are sent")

@@ -193,8 +193,8 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
         long lastRecordTime = refTimeOut;
         for (IStreamingDataInterface output: producer.getAllOutputs().values())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(output.getName()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(output.getName()))
                 continue;
             
             long recTime = output.getLatestRecordTime();
@@ -213,8 +213,8 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
         // scan outputs descriptions
         for (Entry<String, ? extends IStreamingDataInterface> entry: producer.getAllOutputs().entrySet())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(entry.getKey()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
                 continue;
             
             // iterate through all SWE components and add all definition URIs as observables
@@ -242,8 +242,8 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
         // process outputs descriptions
         for (Entry<String, ? extends IStreamingDataInterface> entry: producer.getAllOutputs().entrySet())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(entry.getKey()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
                 continue;
             
             // obs type depends on top-level component
@@ -266,8 +266,8 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
         // process outputs descriptions
         for (Entry<String, ? extends IStreamingDataInterface> entry: producer.getAllOutputs().entrySet())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(entry.getKey()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
                 continue;
             
             double samplingPeriod = entry.getValue().getAverageSamplingPeriod();

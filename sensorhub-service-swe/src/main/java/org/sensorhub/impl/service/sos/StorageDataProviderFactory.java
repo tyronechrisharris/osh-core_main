@@ -204,8 +204,8 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
         // process outputs descriptions
         for (Entry<String, ? extends IRecordStoreInfo> entry: storage.getRecordStores().entrySet())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(entry.getKey()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
                 continue;
             
             double[] storedPeriod = storage.getRecordsTimeRange(entry.getKey());
@@ -261,8 +261,8 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
         // process outputs descriptions
         for (Entry<String, ? extends IRecordStoreInfo> entry: storage.getRecordStores().entrySet())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(entry.getKey()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
                 continue;
             
             // iterate through all SWE components and add all definition URIs as observables
@@ -290,8 +290,8 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
         // process outputs descriptions
         for (Entry<String, ? extends IRecordStoreInfo> entry: storage.getRecordStores().entrySet())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(entry.getKey()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
                 continue;
             
             // obs type depends on top-level component

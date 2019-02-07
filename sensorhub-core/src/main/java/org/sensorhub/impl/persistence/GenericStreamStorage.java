@@ -150,16 +150,21 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
      */
     protected Collection<? extends IStreamingDataInterface> getSelectedOutputs(IDataProducerModule<?> dataSource)
     {
-        if (config.selectedOutputs == null || config.selectedOutputs.length == 0)
+        if (config.excludedOutputs == null || config.excludedOutputs.isEmpty())
         {
             return dataSource.getAllOutputs().values();
         }
         else
         {
-            int numOutputs = config.selectedOutputs.length;
-            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>(numOutputs);
-            for (String outputName: config.selectedOutputs)
-                selectedOutputs.add(dataSource.getAllOutputs().get(outputName));
+            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>();
+            
+            for (IStreamingDataInterface outputInterface : dataSource.getAllOutputs().values())
+            {
+                // skip excluded outputs
+                if (!config.excludedOutputs.contains(outputInterface.getName()))                                    
+                    selectedOutputs.add(outputInterface);
+            }
+            
             return selectedOutputs;
         }
     }

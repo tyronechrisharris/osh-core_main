@@ -42,8 +42,8 @@ public abstract class StreamDataProviderConfig extends SOSProviderConfig
     public String storageID;
     
     
-    @DisplayInfo(desc="Names of process outputs to hide from SOS")
-    public List<String> hiddenOutputs = new ArrayList<>();
+    @DisplayInfo(desc="Names of outputs that should not be exposed through SOS")
+    public List<String> excludedOutputs = new ArrayList<>();
     
     
     @DisplayInfo(desc="Time-out after which real-time requests are disabled if no more "
