@@ -97,8 +97,8 @@ public class StorageDataProvider implements ISOSDataProvider
         // loop through all outputs and connect to the ones containing observables we need
         for (Entry<String, ? extends IRecordStoreInfo> dsEntry: storage.getRecordStores().entrySet())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(dsEntry.getKey()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(dsEntry.getKey()))
                 continue;
             
             IRecordStoreInfo recordInfo = dsEntry.getValue();

@@ -47,7 +47,7 @@ public class StorageDataProviderConfig extends SOSProviderConfig
     
     @DisplayInfo(desc="Names of data stores whose data will be hidden from the SOS " +
             "If this is null, all streams offered by storage are exposed")
-    public List<String> hiddenOutputs = new ArrayList<String>();
+    public List<String> excludedOutputs = new ArrayList<>();
     
 
     public StorageDataProviderConfig()
@@ -65,7 +65,7 @@ public class StorageDataProviderConfig extends SOSProviderConfig
         this.name = streamProducerConfig.name;
         this.description = streamProducerConfig.description;
         this.storageID = streamProducerConfig.storageID;
-        this.hiddenOutputs = streamProducerConfig.hiddenOutputs;
+        this.excludedOutputs = streamProducerConfig.excludedOutputs;
         this.maxFois = streamProducerConfig.maxFois;
     }
     

@@ -92,8 +92,8 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         // loop through all outputs and connect to the ones containing observables we need
         for (IStreamingDataInterface outputInterface : dataSource.getAllOutputs().values())
         {
-            // skip hidden outputs
-            if (config.hiddenOutputs != null && config.hiddenOutputs.contains(outputInterface.getName()))
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(outputInterface.getName()))
                 continue;
 
             // keep it if we can find one of the observables

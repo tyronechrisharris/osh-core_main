@@ -105,10 +105,8 @@ public class ModuleSecurity
         
         // lookup user info 
         IUserInfo user = SensorHub.getInstance().getSecurityManager().getUserInfo(userID);
-        if (user == null)
-            throw new AccessControlException("Permission denied: Unknown user " + userID);
-        
-        currentUser.set(user);
+        if (user != null)        
+            currentUser.set(user);
     }
     
     

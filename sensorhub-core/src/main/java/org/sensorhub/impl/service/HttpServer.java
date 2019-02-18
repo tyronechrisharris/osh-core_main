@@ -44,6 +44,7 @@ import org.eclipse.jetty.server.handler.AllowSymLinkAliasChecker;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.ResourceHandler;
+import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -75,6 +76,9 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     private static final String OSH_HTTPS_CONNECTOR_ID = "osh-https";
     private static final String OSH_STATIC_CONTENT_ID = "osh-static";
     private static final String OSH_SERVLET_HANDLER_ID = "osh-servlets";
+    
+    private static final String CORS_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS";
+    private static final String CORS_ALLOWED_HEADERS = "origin, content-type, accept, authorization";
     
     private static final String CERT_ALIAS = "jetty";
     public static final String TEST_MSG = "SensorHub web server is up";
@@ -220,7 +224,11 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 
                 // filter to add proper cross-origin headers
                 if (config.enableCORS)
-                    servletHandler.addFilter(CrossOriginFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
+                {
+                    FilterHolder holder = servletHandler.addFilter(CrossOriginFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
+                    holder.setInitParameter("allowedMethods", CORS_ALLOWED_METHODS);
+                    holder.setInitParameter("allowedHeaders", CORS_ALLOWED_HEADERS);
+                }
                 
                 // add default test servlet
                 servletHandler.addServlet(new ServletHolder(new HttpServlet() {

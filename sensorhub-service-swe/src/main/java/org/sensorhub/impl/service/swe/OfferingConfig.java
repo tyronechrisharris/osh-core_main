@@ -32,7 +32,7 @@ public abstract class OfferingConfig
     
     @Required
     @DisplayInfo(desc="Offering URI as exposed in capabilities")
-    @SerializedName(value="Offering ID", alternate={"uri"})
+    @SerializedName(value="offeringID", alternate={"uri"})
     public String offeringID;
     
     

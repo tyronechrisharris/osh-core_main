@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.persistence;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.persistence.StorageConfig;
@@ -32,8 +34,8 @@ public class StreamStorageConfig extends StorageConfig
     public String dataSourceID;
     
     
-    @DisplayInfo(label="Selected Outputs", desc="Names of data source outputs to save to storage")
-    public String[] selectedOutputs;
+    @DisplayInfo(desc="Names of data source outputs that should not be saved to storage")
+    public List<String> excludedOutputs = new ArrayList<>();
     
     
     @DisplayInfo(label="Automatic Purge Policy", desc="Policy for automatically purging stored data")

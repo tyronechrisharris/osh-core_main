@@ -68,7 +68,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         super("Select Module Type");
         
         ModuleRegistry registry = SensorHub.getInstance().getModuleRegistry();
-        Collection<IModuleProvider> providers = new ArrayList<IModuleProvider>();
+        Collection<IModuleProvider> providers = new ArrayList<>();
         for (IModuleProvider provider: registry.getInstalledModuleTypes())
         {
             Class<?> configClass = provider.getModuleConfigClass();
@@ -102,11 +102,11 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         table.addContainerProperty(PROP_VERSION, String.class, null);
         table.addContainerProperty(PROP_DESC, String.class, null);
         table.addContainerProperty(PROP_AUTHOR, String.class, null);
-        table.setColumnHeaders(new String[] {"Module Type", "Version", "Description", "Author"});
+        table.setColumnHeaders("Module Type", "Version", "Description", "Author");
         table.setPageLength(10);
-        table.setMultiSelect(false);
+        table.setMultiSelect(false);        
+        final Map<Object, IModuleProvider> providerMap = new HashMap<>();
         
-        final Map<Object, IModuleProvider> providerMap = new HashMap<Object, IModuleProvider>();
         for (IModuleProvider provider: moduleProviders)
         {
             Object id = table.addItem(new Object[] {

@@ -249,6 +249,10 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         // register all stream templates
         for (ISensorDataInterface o: sensor.getAllOutputs().values())
         {
+            // skip excluded outputs
+            if (config.excludedOutputs != null && config.excludedOutputs.contains(o.getName()))
+                continue;
+            
             try
             {
                 registerDataStream(o);
@@ -395,6 +399,13 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         // start thread pool
         BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(config.connection.maxQueueSize);
         streamInfo.threadPool = new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, workQueue);
+        
+        // send last record
+        if (sensorOutput.getLatestRecord() != null)
+            sendAsNewRequest(new SensorDataEvent(
+                    sensorOutput.getLatestRecordTime(), 
+                    sensorOutput, sensorOutput.getLatestRecord()),
+                    streamInfo);
         
         // register to data events
         sensorOutput.registerListener(this);

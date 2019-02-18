@@ -51,15 +51,15 @@ public class SOSServiceConfig extends OGCServiceConfig
     
     
     @DisplayInfo(label="Offerings", desc="Configuration of data providers for SOS offerings")
-    public OfferingList<SOSProviderConfig> dataProviders = new OfferingList<SOSProviderConfig>();
+    public OfferingList<SOSProviderConfig> dataProviders = new OfferingList<>();
     
     
     @DisplayInfo(desc="Configuration of data consumers for SOS offerings created by SOS-T")
-    public OfferingList<SOSConsumerConfig> dataConsumers = new OfferingList<SOSConsumerConfig>();
+    public OfferingList<SOSConsumerConfig> dataConsumers = new OfferingList<>();
     
     
     @DisplayInfo(desc="Mapping of custom formats mime-types to custom serializer classes")
-    public List<SOSCustomFormatConfig> customFormats = new ArrayList<SOSCustomFormatConfig>();
+    public List<SOSCustomFormatConfig> customFormats = new ArrayList<>();
     
     
     @DisplayInfo(desc="Security related options")
@@ -68,6 +68,7 @@ public class SOSServiceConfig extends OGCServiceConfig
     
     public SOSServiceConfig()
     {
+        this.moduleClass = SOSService.class.getCanonicalName();
         this.endPoint = "/sos";
         this.customFormats.add(new SOSCustomFormatConfig("video/mp4", "org.sensorhub.impl.service.sos.video.MP4Serializer"));
         this.customFormats.add(new SOSCustomFormatConfig("video/x-motion-jpeg", "org.sensorhub.impl.service.sos.video.MJPEGSerializer"));
