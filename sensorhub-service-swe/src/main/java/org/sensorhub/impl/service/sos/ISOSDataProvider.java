@@ -46,7 +46,12 @@ public interface ISOSDataProvider
      * Requests provider to generate the next observation from the
      * underlying data, given the current config and filter
      * @return observation instance
+<<<<<<< Upstream, based on master
      * @throws IOException
+=======
+     * @throws IOException 
+     * @throws Exception
+>>>>>>> 531e416 Removed SensorHub and AdminUI singletons
      */
     public IObservation getNextObservation() throws IOException;
     
@@ -55,7 +60,12 @@ public interface ISOSDataProvider
      * Requests provider to generate the next CDM record from the
      * underlying data, given the current config and filter
      * @return data block
+<<<<<<< Upstream, based on master
      * @throws IOException
+=======
+     * @throws IOException 
+     * @throws Exception
+>>>>>>> 531e416 Removed SensorHub and AdminUI singletons
      */
     public DataBlock getNextResultRecord() throws IOException;
     
@@ -65,6 +75,10 @@ public interface ISOSDataProvider
      * to the current config and filter
      * @return data component
      * @throws IOException 
+<<<<<<< Upstream, based on master
+=======
+     * @throws Exception 
+>>>>>>> 531e416 Removed SensorHub and AdminUI singletons
      */
     public DataComponent getResultStructure() throws IOException;
     
@@ -74,8 +88,32 @@ public interface ISOSDataProvider
      * underlying data, given the current config and filter
      * @return encoding instance
      * @throws IOException 
+<<<<<<< Upstream, based on master
+=======
+     * @throws Exception 
+>>>>>>> 531e416 Removed SensorHub and AdminUI singletons
      */
     public DataEncoding getDefaultResultEncoding() throws IOException;
+    
+    
+    /**
+     * @return true if this provider aggregates data from several producers
+     */
+    public boolean hasMultipleProducers();
+    
+    
+    /**
+     * Prefix to use for generating full FOI URIs
+     * @return
+     */
+    public String getProducerIDPrefix();
+    
+    
+    /**
+     * @return ID of the producer associated to the result
+     * record returned by the last call to getNextResultRecord()
+     */
+    public String getNextProducerID();
     
     
     /**

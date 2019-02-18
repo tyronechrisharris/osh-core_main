@@ -39,11 +39,11 @@ import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.security.ISecurityManager;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.swe.ITaskingCallback;
 import org.sensorhub.impl.service.HttpServer;
@@ -90,6 +90,7 @@ public class SPSServlet extends OWSServlet
     private static final String TASK_ID_PREFIX = "urn:sensorhub:sps:task:";
     private static final String FEASIBILITY_ID_PREFIX = "urn:sensorhub:sps:feas:";
     
+    final transient SPSService service;
     final transient SPSServiceConfig config;
     final transient SPSSecurity securityHandler;
     final transient ReentrantReadWriteLock capabilitiesLock = new ReentrantReadWriteLock();
@@ -114,10 +115,11 @@ public class SPSServlet extends OWSServlet
     }
     
     
-    public SPSServlet(SPSServiceConfig config, SPSSecurity securityHandler, Logger log)
+    public SPSServlet(SPSService service, SPSSecurity securityHandler, Logger log)
     {
         super(new SPSUtils(), log);
-        this.config = config;
+        this.service = service;
+        this.config = service.getConfiguration();        
         this.securityHandler = securityHandler;
         generateCapabilities();       
     }
@@ -914,7 +916,7 @@ public class SPSServlet extends OWSServlet
         {
             // get sensor UID
             String sensorUID = request.getProcedureDescription().getUniqueIdentifier();
-            log.info("Registering new sensor " + sensorUID);
+            log.info("Registering new sensor {}", sensorUID);
             
             // offering name is derived from sensor UID
             String offeringID = sensorUID + "-sps";
@@ -922,14 +924,14 @@ public class SPSServlet extends OWSServlet
             ///////////////////////////////////////////////////////////////////////////////////////
             // we configure things step by step so we can fix config if it was partially altered //
             ///////////////////////////////////////////////////////////////////////////////////////
-            HashSet<ModuleConfig> configSaveList = new HashSet<ModuleConfig>();
-            ModuleRegistry moduleReg = SensorHub.getInstance().getModuleRegistry();
+            HashSet<ModuleConfig> configSaveList = new HashSet<>();
+            ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
             
             // create new virtual sensor module if needed            
             IModule<?> sensorModule = moduleReg.getLoadedModuleById(sensorUID);
             if (sensorModule == null)
             {
-                sensorModule = TransactionUtils.createSensorModule(sensorUID, request.getProcedureDescription());
+                sensorModule = TransactionUtils.createSensorModule(getParentHub(), sensorUID, request.getProcedureDescription());
                 configSaveList.add(sensorModule.getConfiguration());
             }            
             // else simply update description
@@ -1167,5 +1169,17 @@ public class SPSServlet extends OWSServlet
     protected String getDefaultVersion()
     {
         return DEFAULT_VERSION;
+    }
+    
+    
+    protected ISensorHub getParentHub()
+    {
+        return service.getParentHub();
+    }
+    
+    
+    protected Logger getLogger()
+    {
+        return log;
     }
 }

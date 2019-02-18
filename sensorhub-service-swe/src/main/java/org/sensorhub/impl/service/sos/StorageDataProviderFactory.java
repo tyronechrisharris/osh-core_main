@@ -30,14 +30,15 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.FoiFilter;
+import org.sensorhub.api.persistence.IBasicStorage;
 import org.sensorhub.api.persistence.IFoiFilter;
+import org.sensorhub.api.persistence.IMultiSourceStorage;
 import org.sensorhub.api.persistence.IObsStorage;
 import org.sensorhub.api.persistence.IRecordStorageModule;
 import org.sensorhub.api.persistence.IRecordStoreInfo;
 import org.sensorhub.api.persistence.IStorageModule;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.api.service.ServiceException;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.data.DataIterator;
 import org.vast.ogc.om.IObservation;
@@ -67,23 +68,23 @@ import org.vast.util.TimeExtent;
  */
 public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEventListener
 {
-    final SOSServlet service;
+    final SOSServlet servlet;
     final StorageDataProviderConfig config;
     final IRecordStorageModule<?> storage;
     SOSOfferingCapabilities caps;
     boolean disableEvents;
     
     
-    protected StorageDataProviderFactory(SOSServlet service, StorageDataProviderConfig config) throws SensorHubException
+    protected StorageDataProviderFactory(SOSServlet servlet, StorageDataProviderConfig config) throws SensorHubException
     {
-        this.service = service;
+        this.servlet = servlet;
         this.config = config;
         IStorageModule<?> storageModule = null;
         
         try
         {
             // get handle to data storage instance
-            storageModule = SensorHub.getInstance().getPersistenceManager().getModuleById(config.storageID);
+            storageModule = (IStorageModule<?>)servlet.getParentHub().getModuleRegistry().getModuleById(config.storageID);
         }
         catch (Exception e)
         {
@@ -133,9 +134,6 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
             else
                 caps.setDescription("Archive data from " + storage.getName());
             
-            // observable properties
-            getObservablePropertiesFromStorage(caps.getObservableProperties());
-            
             // add phenomenon time = period of data available in storage
             caps.setPhenomenonTime(getTimeExtentFromStorage());
         
@@ -154,8 +152,8 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
                 getFoisSpatialExtentFromStorage();
             }
             
-            // obs types
-            getObservationTypesFromStorage(caps.getObservationTypes());
+            // obs properties & obs types
+            getObsPropertiesAndTypesFromStorage();
             
             return caps;
         }
@@ -200,15 +198,21 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     protected TimeExtent getTimeExtentFromStorage()
     {
         TimeExtent timeExtent = new TimeExtent();
+        getTimeExtentFromStorage(storage, timeExtent);
+        return timeExtent;
+    }
+    
         
+    protected void getTimeExtentFromStorage(IBasicStorage dataStore, TimeExtent timeExtent)
+    {
         // process outputs descriptions
-        for (Entry<String, ? extends IRecordStoreInfo> entry: storage.getRecordStores().entrySet())
+        for (Entry<String, ? extends IRecordStoreInfo> entry: dataStore.getRecordStores().entrySet())
         {
             // skip excluded outputs
             if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
                 continue;
             
-            double[] storedPeriod = storage.getRecordsTimeRange(entry.getKey());
+            double[] storedPeriod = dataStore.getRecordsTimeRange(entry.getKey());
             
             if (!Double.isNaN(storedPeriod[0]))
             {
@@ -217,7 +221,13 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
             }
         }
         
-        return timeExtent;
+        // if multisource, call recursively on child data stores
+        if (dataStore instanceof IMultiSourceStorage)
+        {
+            IMultiSourceStorage<IBasicStorage> multiStore = (IMultiSourceStorage<IBasicStorage>)dataStore;
+            for (String producerID: multiStore.getProducerIDs())
+                getTimeExtentFromStorage(multiStore.getDataStore(producerID), timeExtent);
+        }
     }
     
     
@@ -245,7 +255,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
         Bbox bbox = ((IObsStorage) storage).getFoisSpatialExtent();
         if (bbox != null && !bbox.isNull())
         {
-            if (caps.getObservedAreas().size() == 0)
+            if (caps.getObservedAreas().isEmpty())
                 caps.getObservedAreas().add(bbox);
             else
                 caps.getObservedAreas().set(0, bbox);
@@ -256,50 +266,47 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     /*
      * Builds list of observable properties by scanning record structure of each data store
      */
-    protected void getObservablePropertiesFromStorage(Set<String> observables)
+    protected void getObsPropertiesAndTypesFromStorage()
     {
-        // process outputs descriptions
-        for (Entry<String, ? extends IRecordStoreInfo> entry: storage.getRecordStores().entrySet())
-        {
-            // skip excluded outputs
-            if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
-                continue;
-            
-            // iterate through all SWE components and add all definition URIs as observables
-            // this way only composites with URI will get added
-            DataComponent recordStruct = entry.getValue().getRecordDescription();
-            DataIterator it = new DataIterator(recordStruct);
-            while (it.hasNext())
-            {
-                String defUri = (String)it.next().getDefinition();
-                if (defUri != null && !defUri.equals(SWEConstants.DEF_SAMPLING_TIME))
-                    observables.add(defUri);
-            }
-        }
+        caps.getObservationTypes().add(IObservation.OBS_TYPE_GENERIC);
+        caps.getObservationTypes().add(IObservation.OBS_TYPE_SCALAR);        
+        getObsPropertiesAndTypesFromStorage(storage);
     }
     
     
-    /*
-     * Build list of observation types by scanning record structure of each data store
-     */
-    protected void getObservationTypesFromStorage(Set<String> obsTypes)
+    protected void getObsPropertiesAndTypesFromStorage(IBasicStorage dataStore)
     {
-        obsTypes.add(IObservation.OBS_TYPE_GENERIC);
-        obsTypes.add(IObservation.OBS_TYPE_SCALAR);
-        
         // process outputs descriptions
-        for (Entry<String, ? extends IRecordStoreInfo> entry: storage.getRecordStores().entrySet())
+        for (Entry<String, ? extends IRecordStoreInfo> entry: dataStore.getRecordStores().entrySet())
         {
             // skip excluded outputs
             if (config.excludedOutputs != null && config.excludedOutputs.contains(entry.getKey()))
                 continue;
             
-            // obs type depends on top-level component
+            // obs type only depends on top-level component
             DataComponent recordStruct = entry.getValue().getRecordDescription();
             if (recordStruct instanceof DataRecord)
-                obsTypes.add(IObservation.OBS_TYPE_RECORD);
+                caps.getObservationTypes().add(IObservation.OBS_TYPE_RECORD);
             else if (recordStruct instanceof DataArray)
-                obsTypes.add(IObservation.OBS_TYPE_ARRAY);
+                caps.getObservationTypes().add(IObservation.OBS_TYPE_ARRAY);
+            
+            // iterate through all SWE components and add all definition URIs as observables
+            // this way only composites with URI will get added
+            DataIterator it = new DataIterator(recordStruct);
+            while (it.hasNext())
+            {
+                String defUri = it.next().getDefinition();
+                if (defUri != null && !defUri.equals(SWEConstants.DEF_SAMPLING_TIME))
+                    caps.getObservableProperties().add(defUri);
+        }
+    }
+    
+        // if multisource, call recursively on child data stores
+        if (dataStore instanceof IMultiSourceStorage)
+        {
+            IMultiSourceStorage<IBasicStorage> multiStore = (IMultiSourceStorage<IBasicStorage>)dataStore;
+            for (String producerID: multiStore.getProducerIDs())
+                getObsPropertiesAndTypesFromStorage(multiStore.getDataStore(producerID));
         }
     }
     
@@ -320,7 +327,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
         if (storage instanceof IObsStorage)
             return ((IObsStorage) storage).getFois(filter);
         
-        return Collections.EMPTY_LIST.iterator();
+        return Collections.emptyIterator();
     }
     
     
@@ -354,15 +361,15 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
                     if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
                     {
                         if (isEnabled())
-                            service.showProviderCaps(this);
+                            servlet.showProviderCaps(this);
                         else
-                            service.hideProviderCaps(this);
+                            servlet.hideProviderCaps(this);
                     }
                     break;
                 
                 // cleanly remove provider when storage is deleted
                 case DELETED:
-                    service.removeProvider(config.offeringID);
+                    servlet.removeProvider(config.offeringID);
                     break;
                     
                 default:

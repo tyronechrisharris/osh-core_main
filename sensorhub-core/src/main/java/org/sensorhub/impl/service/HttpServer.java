@@ -55,7 +55,6 @@ import org.eclipse.jetty.xml.XmlConfiguration;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.security.ISecurityManager;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServerConfig.AuthMethod;
 import org.vast.util.Asserts;
@@ -107,7 +106,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     @Override
     public synchronized void updateConfig(HttpServerConfig config) throws SensorHubException
     {
-        boolean accessControlEnabled = SensorHub.getInstance().getSecurityManager().isAccessControlEnabled();
+        boolean accessControlEnabled = getParentHub().getSecurityManager().isAccessControlEnabled();
         if (!accessControlEnabled && config.authMethod != null && config.authMethod != AuthMethod.NONE)
         {
             reportError("Cannot enable authentication if no user registry is setup", null);
@@ -201,7 +200,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                     jettySecurityHandler = new ConstraintSecurityHandler();
                     
                     // load user list
-                    ISecurityManager securityManager = SensorHub.getInstance().getSecurityManager();
+                    ISecurityManager securityManager = getParentHub().getSecurityManager();
                     OshLoginService loginService = new OshLoginService(securityManager);
                     
                     if (config.authMethod == AuthMethod.BASIC)

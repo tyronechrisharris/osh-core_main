@@ -20,9 +20,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
+import javax.servlet.ServletContext;
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.client.ClientConfig;
 import org.sensorhub.api.comm.NetworkConfig;
 import org.sensorhub.api.common.IEventListener;
@@ -37,7 +38,6 @@ import org.sensorhub.api.security.SecurityModuleConfig;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.service.ServiceConfig;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorSystem;
@@ -66,6 +66,7 @@ import com.vaadin.server.Resource;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinService;
+import com.vaadin.server.VaadinServlet;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.communication.PushMode;
 import com.vaadin.shared.ui.ContentMode;
@@ -116,7 +117,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     private static final String PROP_MODULE_OBJECT = "module";
     
     transient Logger log;
-    transient AdminUIConfig uiConfig;
+    transient ISensorHub hub;
+    transient AdminUIModule adminModule;
+    transient ModuleRegistry moduleRegistry;
     transient AdminUISecurity securityHandler;
     transient Map<Class<?>, TreeTable> moduleTables = new HashMap<>();
     transient IModule<?> moduleAddedFromUI;
@@ -129,12 +132,12 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         // retrieve module config
         try
         {
-            Properties initParams = request.getService().getDeploymentConfiguration().getInitParameters();
-            String moduleID = initParams.getProperty(AdminUIModule.SERVLET_PARAM_MODULE_ID);
-            AdminUIModule module = (AdminUIModule)SensorHub.getInstance().getModuleRegistry().getModuleById(moduleID);
-            log = module.getLogger();
-            uiConfig = module.getConfiguration();
-            securityHandler = module.securityHandler;
+            ServletContext servletContext = VaadinServlet.getCurrent().getServletContext();
+            this.adminModule = (AdminUIModule)servletContext.getAttribute(AdminUIModule.SERVLET_PARAM_MODULE);
+            this.hub = adminModule.getParentHub();
+            this.log = adminModule.getLogger();
+            this.moduleRegistry = hub.getModuleRegistry();
+            this.securityHandler = adminModule.getSecurityHandler();
         }
         catch (Exception e)
         {
@@ -271,6 +274,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         // select first tab
         stack.setSelectedTab(0);
         selectStackItem(stack);
+        
+        // register to module registry events
+        hub.getEventBus().registerListener(ModuleRegistry.EVENT_PRODUCER_ID, EventBus.MAIN_TOPIC, this);
     }
     
     
@@ -386,7 +392,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                         {                    
                             logAction(securityHandler.osh_shutdown.getName());
                             
-                            SensorHub.getInstance().getModuleRegistry().unregisterListener(AdminUI.this);
+                            moduleRegistry.unregisterListener(AdminUI.this);
                             
                             Notification notif = new Notification(
                                     FontAwesome.WARNING.getHtml() + "&nbsp; Shutdown Initiated...",
@@ -400,7 +406,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 @Override
                                 public void run()
                                 {
-                                    SensorHub.getInstance().stop(false, true);
+                                    hub.stop(false, true);
                                     System.exit(0);
                                 }
                             }, 1000);
@@ -439,7 +445,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                         {                    
                             logAction(securityHandler.osh_restart.getName());
                             
-                            SensorHub.getInstance().getModuleRegistry().unregisterListener(AdminUI.this);
+                            moduleRegistry.unregisterListener(AdminUI.this);
                             
                             Notification notif = new Notification(
                                     FontAwesome.WARNING.getHtml() + "&nbsp; Restart Initiated...",
@@ -453,7 +459,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 @Override
                                 public void run()
                                 {
-                                    SensorHub.getInstance().stop(false, true);
+                                    hub.stop(false, true);
                                     System.exit(10); // return code 10 means restart
                                 }
                             }, 1000);
@@ -494,7 +500,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             
                             try
                             {
-                                SensorHub.getInstance().getModuleRegistry().saveModulesConfiguration();
+                                moduleRegistry.saveModulesConfiguration();
                                 DisplayUtils.showOperationSuccessful("SensorHub Configuration Saved");
                             }
                             catch (Exception ex)
@@ -517,12 +523,11 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     
     protected void buildNetworkModuleList(VerticalLayout layout)
     {
-        ModuleRegistry reg = SensorHub.getInstance().getModuleRegistry();
         ArrayList<IModule<?>> moduleList = new ArrayList<>();
         
         // add network modules to list
         moduleList.add(HttpServer.getInstance());
-        for (IModule<?> module: reg.getLoadedModules())
+        for (IModule<?> module: moduleRegistry.getLoadedModules())
         {
             ModuleConfig config = module.getConfiguration();
             if (config != null && NetworkConfig.class.isAssignableFrom(config.getClass()))
@@ -535,11 +540,10 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     
     protected void buildModuleList(VerticalLayout layout, final Class<?> configType)
     {
-        ModuleRegistry reg = SensorHub.getInstance().getModuleRegistry();
         ArrayList<IModule<?>> moduleList = new ArrayList<>();
         
         // add selected modules to list        
-        for (IModule<?> module: reg.getLoadedModules())
+        for (IModule<?> module: moduleRegistry.getLoadedModules())
         {
             ModuleConfig config = module.getConfiguration();
             if (config != null && configType.isAssignableFrom(config.getClass()))
@@ -552,8 +556,6 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     
     protected void buildModuleList(VerticalLayout layout, List<IModule<?>> moduleList, final Class<?> configType)
     {
-        final ModuleRegistry registry = SensorHub.getInstance().getModuleRegistry();
-        
         // create table to display module list
         final TreeTable table = new TreeTable();
         table.setSizeFull();
@@ -735,7 +737,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 logAction(action, config.moduleClass);                                
                                 
                                 // load module instance
-                                IModule<?> module = registry.loadModule(config);
+                                IModule<?> module = moduleRegistry.loadModule(config);
                                 
                                 // no need to add module to table here
                                 // it will be loaded when the LOADED event is received
@@ -785,7 +787,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     try
                                     {
                                         table.removeItem(selectedId);
-                                        registry.destroyModule(moduleId);
+                                        moduleRegistry.destroyModule(moduleId);
                                         selectNone(table);
                                     }
                                     catch (SensorHubException ex)
@@ -820,7 +822,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     try 
                                     {
                                         if (selectedModule != null)
-                                            registry.startModuleAsync(selectedModule);
+                                            moduleRegistry.startModuleAsync(selectedModule);
                                     }
                                     catch (SensorHubException ex)
                                     {
@@ -854,7 +856,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     try 
                                     {
                                         if (selectedModule != null)
-                                            registry.stopModuleAsync(selectedModule);
+                                            moduleRegistry.stopModuleAsync(selectedModule);
                                     }
                                     catch (SensorHubException ex)
                                     {
@@ -888,7 +890,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     try 
                                     {
                                         if (selectedModule != null)
-                                            registry.restartModuleAsync(selectedModule);
+                                            moduleRegistry.restartModuleAsync(selectedModule);
                                     }
                                     catch (SensorHubException ex)
                                     {
@@ -922,7 +924,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                     try 
                                     {
                                         if (selectedModule != null)
-                                            registry.initModuleAsync(selectedModule, true);
+                                            moduleRegistry.initModuleAsync(selectedModule, true);
                                     }
                                     catch (SensorHubException ex)
                                     {
@@ -1011,7 +1013,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         
         // get panel for this config object        
         Class<?> configClass = beanItem.getBean().getClass();
-        IModuleAdminPanel<IModule<?>> panel = AdminUIModule.getInstance().generatePanel(configClass);
+        IModuleAdminPanel<IModule<?>> panel = adminModule.generatePanel(configClass);
         panel.build(beanItem, module);
         
         // generate module admin panel        
@@ -1153,21 +1155,29 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
 
 
     @Override
-    public void attach()
-    {
-        super.attach();
-        
-        // register to module registry events
-        SensorHub.getInstance().getEventBus().registerListener(ModuleRegistry.ID, EventBus.MAIN_TOPIC, this);
-    }
-    
-    
-    @Override
     public void detach()
     {
         // unregister from module registry events
-        SensorHub.getInstance().getEventBus().unregisterListener(ModuleRegistry.ID, EventBus.MAIN_TOPIC, this);
+        hub.getEventBus().unregisterListener(ModuleRegistry.EVENT_PRODUCER_ID, EventBus.MAIN_TOPIC, this);
         
         super.detach();
+    }
+    
+    
+    public ISensorHub getParentHub()
+    {
+        return hub;
+    }
+        
+    
+    public AdminUIModule getParentModule()
+    {
+        return adminModule;
+    }
+    
+    
+    public Logger getLogger()
+    {
+        return adminModule.getLogger();
     }
 }

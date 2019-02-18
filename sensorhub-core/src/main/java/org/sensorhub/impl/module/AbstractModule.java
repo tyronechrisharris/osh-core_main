@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.module;
 
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
@@ -22,11 +23,11 @@ import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.utils.ModuleUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
+import org.vast.util.Asserts;
 
 
 /**
@@ -40,8 +41,9 @@ import org.slf4j.Logger;
  */
 public abstract class AbstractModule<ConfigType extends ModuleConfig> implements IModule<ConfigType>
 {
+    protected ISensorHub hub;
     protected Logger logger;
-    protected IEventHandler eventHandler;
+    protected IEventHandler moduleEventHandler;
     protected ConfigType config;
     protected ModuleState state = ModuleState.LOADED;
     protected ModuleSecurity securityHandler;
@@ -51,8 +53,26 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected String statusMsg;
     
 
-    public AbstractModule()
+    public AbstractModule() {}
+    
+    
+    public void setParentHub(ISensorHub hub)
     {
+        if (this.hub != null)
+            throw new IllegalStateException("Parent hub has already been assigned");
+        this.hub = hub;
+    }
+    
+    
+    public ISensorHub getParentHub()
+    {
+        return this.hub;
+    }
+    
+    
+    protected void checkParentHub()
+    {
+        Asserts.checkState(hub != null, "Parent sensor hub hasn't been set");
     }
     
     
@@ -80,12 +100,14 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void setConfiguration(ConfigType config)
     {
+        checkParentHub();
+        
         if (this.config != config)
         {
             this.config = config;
             
             // get assigned event handler
-            this.eventHandler = SensorHub.getInstance().getEventBus().registerProducer(config.id, EventBus.MAIN_TOPIC);
+            this.moduleEventHandler = getParentHub().getEventBus().registerProducer(config.id, EventBus.MAIN_TOPIC);
             
             // set default security handler
             this.securityHandler = new ModuleSecurity(this, "all", false);
@@ -107,7 +129,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         try
         {
             setConfiguration(config);
-            eventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.CONFIG_CHANGED));
+            moduleEventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.CONFIG_CHANGED));
         }
         catch (Exception e)
         {
@@ -126,14 +148,14 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public boolean isInitialized()
     {
-        return (state.ordinal() >= ModuleState.INITIALIZED.ordinal());
+        return state.ordinal() >= ModuleState.INITIALIZED.ordinal();
     }
 
     
     @Override
     public boolean isStarted()
     {
-        return (state == ModuleState.STARTED);
+        return state == ModuleState.STARTED;
     }
     
     
@@ -158,10 +180,10 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 stateLock.notifyAll();
                 getLogger().info("Module " + newState);
                 
-                if (eventHandler != null)
+                if (moduleEventHandler != null)
                 {
                     ModuleEvent event = new ModuleEvent(this, newState);
-                    eventHandler.publishEvent(event);
+                    moduleEventHandler.publishEvent(event);
                 }
                 
                 // process delayed start request
@@ -256,8 +278,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             else
                 this.lastError = error;
             
-            //stateLock.notifyAll();
-            
             if (!logAsDebug || getLogger().isDebugEnabled())
             {
                 if (msg != null)
@@ -270,10 +290,10 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 getLogger().error(msg);
             }
             
-            if (eventHandler != null)
+            if (moduleEventHandler != null)
             {
                 ModuleEvent event = new ModuleEvent(this, this.lastError);               
-                eventHandler.publishEvent(event);
+                moduleEventHandler.publishEvent(event);
             }
         }
     }
@@ -307,10 +327,10 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         this.statusMsg = msg;
         getLogger().info(msg);
         
-        if (eventHandler != null)
+        if (moduleEventHandler != null)
         {
             ModuleEvent event = new ModuleEvent(this, this.statusMsg);               
-            eventHandler.publishEvent(event);
+            moduleEventHandler.publishEvent(event);
         }
     }
     
@@ -333,12 +353,12 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         if (connected)
         {
             reportStatus("Connected to " + remoteServiceName);
-            eventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.CONNECTED));
+            moduleEventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.CONNECTED));
         }
         else
         {
             reportStatus("Disconnected from " + remoteServiceName);
-            eventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DISCONNECTED));
+            moduleEventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DISCONNECTED));
         }
     }
     
@@ -369,9 +389,9 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             try
             {
-                // default implementation just calls init()
-                // for backward compatibility, we must call the old init method
-                init(config);
+                // default implementation just calls init() and postInit()
+                init();
+                postInit();
                 setState(ModuleState.INITIALIZED);
             }
             catch (Exception e)
@@ -386,6 +406,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void init() throws SensorHubException
     {        
+        Asserts.checkState(config != null, "Configuration must be set before calling init()");
     }
     
     
@@ -394,6 +415,19 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     {   
         setConfiguration(config);
         init();
+    }
+
+
+    /**
+     * This method is called right after init().<br/>
+     * It is typically implemented whenever a super class needs to run some logic
+     * at the end of the initialization phase even when init() is overriden by
+     * its descendants
+     * @throws SensorHubException
+     */
+    protected void postInit() throws SensorHubException
+    {
+        // to be implemented by derived classes 
     }
 
 
@@ -508,16 +542,18 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void cleanup() throws SensorHubException
     {
-        eventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DELETED));
+        if (moduleEventHandler != null)
+            moduleEventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DELETED));
     }
 
 
     @Override
     public void registerListener(IEventListener listener)
     {
+        checkParentHub();        
         synchronized (stateLock)
         {
-            eventHandler.registerListener(listener);
+            moduleEventHandler.registerListener(listener);
             
             // notify current state synchronously while we're locked
             // so the listener can't miss it
@@ -530,15 +566,16 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void unregisterListener(IEventListener listener)
     {
-        eventHandler.unregisterListener(listener);
+        checkParentHub();
+        moduleEventHandler.unregisterListener(listener);
     }
     
     
     public Logger getLogger()
     {
+        checkParentHub();
         if (logger == null)
-            logger = ModuleUtils.createModuleLogger(this);
-        
+            logger = ModuleUtils.createModuleLogger(this);        
         return logger;
     }
     

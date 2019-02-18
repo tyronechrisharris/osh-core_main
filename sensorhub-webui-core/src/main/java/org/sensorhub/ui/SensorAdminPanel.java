@@ -106,7 +106,7 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
             }
             
             // outputs section
-            if (!module.getAllOutputs().isEmpty())
+            if (!module.getOutputs().isEmpty())
             {
                 // title
                 addComponent(new Spacing());

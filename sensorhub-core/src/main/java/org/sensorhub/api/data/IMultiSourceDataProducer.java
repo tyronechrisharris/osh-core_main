@@ -15,8 +15,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import java.util.Collection;
+import java.util.Map;
+import org.sensorhub.api.common.IEntityGroup;
 import net.opengis.gml.v32.AbstractFeature;
-import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
@@ -32,61 +33,22 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since May 31, 2015
  */
-public interface IMultiSourceDataProducer
+public interface IMultiSourceDataProducer extends IDataProducer, IEntityGroup<IDataProducer>
 {
-
+        
     /**
-     * @return List of entity IDs for which this module produces data
+     * Retrieves the list of features of interest for which this producer
+     * is generating data
+     * @return read-only map of all FOI ids -> feature objects
      */
-    public Collection<String> getEntityIDs();
-    
-    
-    /**
-     * Retrieves the most current SensorML description of the given entity.
-     * @param entityID unique ID of the desired entity (e.g. sensor in a network)
-     * @return AbstractProcess SensorML description of the data producing entity
-     * or null if no description is available
-     */
-    public AbstractProcess getCurrentDescription(String entityID);
-    
-    
-    /**
-     * Used to check when SensorML description of the given entity was last updated.
-     * This is useful to avoid requesting the object when it hasn't changed.
-     * @param entityID unique ID of the desired entity (e.g. sensor in a network)
-     * @return Date/time of last description update as julian time (1970) or
-     * {@link Long#MIN_VALUE} if description was never updated.
-     */
-    public double getLastDescriptionUpdate(String entityID);
-    
-    
-    /**
-     * Retrieves the feature of interest for which the given entity is 
-     * currently generating data.<br/>
-     * @param entityID unique ID of the desired entity (e.g. sensor in a network)
-     * @return Feature object
-     */
-    public AbstractFeature getCurrentFeatureOfInterest(String entityID);
-    
-    
-    /**
-     * @return List of all features of interest for which this producer
-     * is generating data.
-     */
-    public Collection<? extends AbstractFeature> getFeaturesOfInterest();
-    
-    
-    /**
-     * @return Collection of IDs of all features of interest for which this
-     * producer is generating data.
-     */
-    public Collection<String> getFeaturesOfInterestIDs();
+    public Map<String, ? extends AbstractFeature> getFeaturesOfInterest();
     
     
     /**
      * Gets IDs of entities that are observing the specified feature of interest. 
-     * @param foiIDs ID of feature of interest
+     * @param foiID ID of feature of interest
      * @return collection of entity IDs (can be empty)
      */
     public Collection<String> getEntitiesWithFoi(String foiID);
+    
 }

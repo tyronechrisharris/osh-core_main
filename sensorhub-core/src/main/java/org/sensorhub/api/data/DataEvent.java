@@ -50,6 +50,12 @@ public class DataEvent extends EntityEvent<Type>
 	
 	
 	/**
+     * Name of channel that produced the event
+     */
+    protected String channelID;
+	
+	
+	/**
 	 * New data that triggered this event.<br/>
 	 * Multiple records can be associated to a single event because with high
 	 * rate producers, it is often not practical to generate an event for
@@ -67,7 +73,7 @@ public class DataEvent extends EntityEvent<Type>
 	public DataEvent(long timeStamp, IStreamingDataInterface dataInterface, DataBlock ... records)
 	{
 	    this(timeStamp,
-	         dataInterface.getParentModule().getUniqueIdentifier(),
+	         dataInterface.getParentProducer().getUniqueIdentifier(),
 	         dataInterface,
 	         records);
 	}
@@ -84,9 +90,8 @@ public class DataEvent extends EntityEvent<Type>
     {
         this.type = Type.NEW_DATA_AVAILABLE;
         this.timeStamp = timeStamp;
-        //this.producerID = dataInterface.getParentModule().getLocalID();
-        //this.channelID = dataInterface.getName();
         this.source = dataInterface;
+        this.channelID = dataInterface.getName();
         this.relatedEntityID = entityID;
         this.records = records;
     }
@@ -103,6 +108,15 @@ public class DataEvent extends EntityEvent<Type>
     public IStreamingDataInterface getSource()
     {
         return (IStreamingDataInterface)this.source;
+    }
+	   
+	
+    /**
+     * @return Name of channel the event was produced on (e.g. output name)
+     */
+    public String getChannelID()
+    {
+        return channelID;
     }
 	   
 	

@@ -18,7 +18,7 @@ import java.util.Iterator;
 import net.opengis.gml.v32.AbstractFeature;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.data.IDataProducerModule;
+import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.IFoiFilter;
@@ -39,7 +39,7 @@ import org.vast.util.TimeExtent;
  * @param <ProducerType> Type of producer handled by this provider
  * @since Feb 28, 2015
  */
-public class StreamWithStorageProviderFactory<ProducerType extends IDataProducerModule<?>> extends StorageDataProviderFactory
+public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer> extends StorageDataProviderFactory
 {
     final ProducerType producer;
     final StreamDataProviderConfig altConfig;
@@ -47,15 +47,15 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
     long liveDataTimeOut;
     
     
-    public StreamWithStorageProviderFactory(SOSServlet service, StreamDataProviderConfig config, ProducerType producer) throws SensorHubException
+    public StreamWithStorageProviderFactory(SOSServlet servlet, StreamDataProviderConfig config, ProducerType producer) throws SensorHubException
     {
-        super(service, new StorageDataProviderConfig(config));
+        super(servlet, new StorageDataProviderConfig(config));
         this.producer = producer;
         this.altConfig = config;
         this.liveDataTimeOut = (long)(config.liveDataTimeout * 1000);
         
         // build alt provider to generate capabilities in case storage is disabled
-        this.altProvider = new StreamDataProviderFactory<ProducerType>(config, producer, "Stream");
+        this.altProvider = new StreamDataProviderFactory<>(config, producer, "Stream");
         
         // listen to producer lifecycle events
         disableEvents = true; // disable events on startup
@@ -83,7 +83,7 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
         }
         
         // enable real-time requests only if streaming data source is enabled
-        if (producer.isStarted())
+        if (producer.isEnabled())
         {
             // replace description
             if (config.description == null && storage.isStarted())
@@ -92,12 +92,8 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
             // enable live by setting end time to now
             TimeExtent timeExtent = capabilities.getPhenomenonTime();
             if (timeExtent.isNull())
-            {
                 timeExtent.setBeginNow(true);
-                timeExtent.setEndNow(true);
-            }
-            else            
-                timeExtent.setEndNow(true);     
+            timeExtent.setEndNow(true);     
         }
         
         return capabilities;
@@ -114,11 +110,10 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
             super.updateCapabilities();
         
         // enable real-time requests if streaming data source is enabled
-        if (producer.isStarted())
+        if (producer.isEnabled())
         {
             // if latest record is not too old, enable real-time
-            long delta = altProvider.getTimeSinceLastRecord();
-            if (delta < liveDataTimeOut)
+            if (altProvider.hasNewRecords(liveDataTimeOut))
                 caps.getPhenomenonTime().setEndNow(true);
             
             // if storage does support FOIs, list the current ones
@@ -158,9 +153,9 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
                         if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
                         {
                             if (isEnabled())
-                                service.showProviderCaps(this);
+                                servlet.showProviderCaps(this);
                             else
-                                service.hideProviderCaps(this);
+                                servlet.hideProviderCaps(this);
                         }
                     }
                     break;
@@ -168,9 +163,9 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
                 // cleanly transmute provider when producer or storage is deleted
                 case DELETED:
                     if (e.getSource() == producer)
-                        service.onSensorDeleted(config.offeringID);
+                        servlet.onSensorDeleted(config.offeringID);
                     else if (e.getSource() == storage)
-                        service.onStorageDeleted(config.offeringID);
+                        servlet.onStorageDeleted(config.offeringID);
                     break;
                     
                 default:
@@ -186,7 +181,7 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
         if (!config.enabled)
             throw new ServiceException("Offering " + config.offeringID + " is disabled");
         
-        if (!storage.isStarted() && !producer.isStarted())
+        if (!storage.isStarted() && !producer.isEnabled())
             throw new ServiceException("Storage " + MsgUtils.moduleString(storage) + " is disabled");
     }
     
@@ -199,7 +194,7 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
             if (storage != null && storage.isStarted())
                 return true;
             
-            if (producer != null && producer.isStarted())
+            if (producer != null && producer.isEnabled())
                 return true;
         }
         

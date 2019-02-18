@@ -86,7 +86,7 @@ public class TransactionalSensorConnector extends DirectSensorConnector implemen
     
     protected final String generateTemplateID(String inputName)
     {
-        return sensor.getLocalID() + '#' + inputName;
+        return sensor.getUniqueIdentifier() + '#' + inputName;
     }
     
     

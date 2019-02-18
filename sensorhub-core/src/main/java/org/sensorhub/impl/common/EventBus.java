@@ -38,7 +38,7 @@ import org.sensorhub.api.common.IEventListener;
  */
 public class EventBus
 {
-    public static final String MAIN_TOPIC = "_MAIN"; 
+    public static final String MAIN_TOPIC = "_MAIN_"; 
         
     private Map<String, IEventHandler> eventHandlers;
     private ExecutorService threadPool;
@@ -46,13 +46,13 @@ public class EventBus
     
     public EventBus()
     {
-        eventHandlers = new HashMap<String, IEventHandler>();
+        eventHandlers = new HashMap<>();
         
         // create thread pool that will be used by all asynchronous event handlers
         threadPool = new ThreadPoolExecutor(0, 100,
                                             10L, TimeUnit.SECONDS,
                                             new SynchronousQueue<Runnable>(),
-                                            new DefaultThreadFactory("EventBus"));
+                                            new EventThreadFactory("EventBus"));
     }
     
     
@@ -118,7 +118,6 @@ public class EventBus
         // register new handleronly if non already exist for this key
         if (handler == null)
         {
-            //handler = new BasicEventHandler();
             handler = new AsyncEventHandler(threadPool);
             eventHandlers.put(key, handler);
         }
@@ -129,7 +128,7 @@ public class EventBus
     
     private final String getKey(String moduleID, String topic)
     {
-        return moduleID + topic;
+        return moduleID + '#' + topic;
     }
 
     

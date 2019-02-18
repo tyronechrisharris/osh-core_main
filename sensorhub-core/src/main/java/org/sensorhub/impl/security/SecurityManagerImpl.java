@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.eclipse.jetty.security.Authenticator;
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.security.IAuthorizer;
 import org.sensorhub.api.security.IPermission;
 import org.sensorhub.api.security.IPermissionPath;
@@ -44,17 +45,17 @@ public class SecurityManagerImpl implements ISecurityManager
     
     
     
-    public SecurityManagerImpl(ModuleRegistry moduleRegistry)
+    public SecurityManagerImpl(ISensorHub hub)
     {
-        this.moduleRegistry = moduleRegistry;
+        this.moduleRegistry = hub.getModuleRegistry();
     }
     
     
     @Override
     public boolean isAccessControlEnabled()
     {        
-        return (userDB != null && userDB.get() != null &&
-                authorizer != null && authorizer.get() != null);
+        return userDB != null && userDB.get() != null &&
+               authorizer != null && authorizer.get() != null;
     }
     
     

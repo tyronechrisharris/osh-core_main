@@ -30,7 +30,7 @@ public class StreamStorageConfig extends StorageConfig
     
     
     @Required
-    @DisplayInfo(label="Data Source ID", desc="Local ID of streaming data source which data will be store.")
+    @DisplayInfo(label="Data Source ID", desc="Unique ID of streaming data source whose data will be stored")
     public String dataSourceID;
     
     

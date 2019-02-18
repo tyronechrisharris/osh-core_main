@@ -37,11 +37,11 @@ import org.sensorhub.impl.comm.RobustIPConnectionConfig;
  */
 public class SOSTClientConfig extends ClientConfig
 {
-    @DisplayInfo(desc="Local ID of sensor to register with SOS")
+    @DisplayInfo(desc="Local ID of data source to register with remote SOS")
     @FieldType(Type.MODULE_ID)
     @ModuleType(ISensorModule.class)
     @Required
-    public String sensorID;
+    public String dataSourceID;
     
     
     @DisplayInfo(desc="Names of outputs that should not be pushed to remote SOS server")

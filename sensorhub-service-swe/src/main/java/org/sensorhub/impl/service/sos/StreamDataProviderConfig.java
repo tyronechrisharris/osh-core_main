@@ -41,7 +41,7 @@ public abstract class StreamDataProviderConfig extends SOSProviderConfig
     @ModuleType(IStorageModule.class)
     public String storageID;
     
-    
+
     @DisplayInfo(desc="Names of outputs that should not be exposed through SOS")
     public List<String> excludedOutputs = new ArrayList<>();
     

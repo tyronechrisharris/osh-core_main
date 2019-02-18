@@ -14,17 +14,19 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.IModuleConfigForm;
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.shared.ui.ContentMode;
+import org.slf4j.Logger;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -115,7 +117,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
                     if (module != null)
                     {
                         beforeUpdateConfig();
-                        SensorHub.getInstance().getModuleRegistry().updateModuleConfigAsync(module, beanItem.getBean());
+                        getParentHub().getModuleRegistry().updateModuleConfigAsync(module, beanItem.getBean());
                         DisplayUtils.showOperationSuccessful("Module Configuration Updated");
                     }
                 }
@@ -128,7 +130,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     }
     
     
-    protected void beforeUpdateConfig()
+    protected void beforeUpdateConfig() throws SensorHubException
     {
         
     }
@@ -229,9 +231,16 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     }
     
     
+    protected void refreshContent()
+    {
+        // do nothing by default
+        // can be overriden by custom panels
+    }
+    
+    
     protected IModuleConfigForm getConfigForm(MyBeanItem<ModuleConfig> beanItem)
     {
-        IModuleConfigForm form = AdminUIModule.getInstance().generateForm(beanItem.getBean().getClass());
+        IModuleConfigForm form = getParentModule().generateForm(beanItem.getBean().getClass());
         form.build(GenericConfigForm.MAIN_CONFIG, "General module configuration", beanItem, false);
         return form;
     }
@@ -254,7 +263,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
 
 
     @Override
-    public void handleEvent(org.sensorhub.api.common.Event<?> e)
+    public void handleEvent(final org.sensorhub.api.common.Event<?> e)
     {
         if (e instanceof ModuleEvent)
         {
@@ -292,13 +301,14 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
                             refreshState();
                             refreshStatusMessage();
                             refreshErrorMessage();
+                            refreshContent();                            
                             if (isAttached())
                                 getUI().push();
                         }
                     });  
                     break;
                     
-                /*case CONFIG_CHANGED:
+                case CONFIG_CHANGED:
                     getUI().access(new Runnable() {
                         public void run()
                         {
@@ -308,12 +318,30 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
                                 getUI().push();
                         }
                     });  
-                    break;*/
+                    break;
                     
                 default:
                     return;
             }
         }        
+    }
+
+    
+    protected ISensorHub getParentHub()
+    {
+        return ((AdminUI)UI.getCurrent()).getParentHub();
+    }
+    
+    
+    protected AdminUIModule getParentModule()
+    {
+        return ((AdminUI)UI.getCurrent()).getParentModule();
+    }
+    
+    
+    protected Logger getLogger()
+    {
+        return ((AdminUI)UI.getCurrent()).getLogger();
     }
 
 }
