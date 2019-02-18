@@ -61,8 +61,31 @@ public class NativeClassLoader extends URLClassLoader
 
     public NativeClassLoader(ClassLoader parent)
     {
-        super((parent instanceof URLClassLoader) ? ((URLClassLoader) parent).getURLs() : EMPTY_URLS, parent);
+        super(EMPTY_URLS, parent);
+        parseClasspath();
         setupShutdownHook();
+    }
+    
+    
+    protected void parseClasspath()
+    {
+        String classPath = System.getProperty("java.class.path");
+         
+        try
+        {
+            for (String filePath: classPath.split(File.pathSeparator))
+            {
+                String url = "file:" + filePath;
+                if (filePath.toLowerCase().endsWith(".jar"))
+                    url = "jar:" + url + "!/";
+                this.addURL(new URL(url));
+            }
+        }
+        catch (Exception e)
+        {
+            System.err.println("Cannot parse classpath:\n" + classPath);
+            e.printStackTrace();
+        }
     }
     
     
@@ -221,7 +244,7 @@ public class NativeClassLoader extends URLClassLoader
     }
 
 
-    @Override
+    /*@Override
     protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
     {
         Class<?> c = findLoadedClass(name);
@@ -245,7 +268,7 @@ public class NativeClassLoader extends URLClassLoader
         }
         
         return c;
-    }
+    }*/
     
     
     private void ensureLogger()
