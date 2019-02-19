@@ -24,7 +24,7 @@ import org.sensorhub.api.common.SensorHubException;
  * Module managers are used to manage all modules of the same type
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ModuleType> 
  * @since Nov 12, 2010
  */

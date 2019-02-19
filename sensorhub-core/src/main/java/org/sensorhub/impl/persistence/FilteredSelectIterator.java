@@ -24,7 +24,7 @@ import java.util.NoSuchElementException;
  * iterator on-the-fly
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 15, 2017
  */
 public abstract class FilteredSelectIterator<InputE, E> implements Iterator<E>

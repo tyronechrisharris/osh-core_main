@@ -27,7 +27,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * In memory config database used by JUnit tests
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 11, 2013
  */
 public class InMemoryConfigDb implements IModuleConfigRepository

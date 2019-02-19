@@ -20,7 +20,7 @@ package org.sensorhub.api.comm;
  * queue implementations
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 29, 2017
  */
 public interface IMessageQueuePush

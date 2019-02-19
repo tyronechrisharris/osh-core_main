@@ -34,7 +34,7 @@ import org.sensorhub.api.data.IStreamingDataInterface;
  * by sensor.
  * </p>
  * 
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public interface ISensorDataInterface extends IStreamingDataInterface

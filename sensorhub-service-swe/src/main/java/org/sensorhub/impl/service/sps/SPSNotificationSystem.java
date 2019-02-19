@@ -29,7 +29,7 @@ import org.w3c.dom.Element;
  * Helper class to send notification messages to client
  * subscribed to the given topic channels of SPS 2.0.
  * 
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  */
 public class SPSNotificationSystem extends NotificationSystem
 {

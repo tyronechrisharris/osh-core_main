@@ -22,7 +22,7 @@ import org.sensorhub.api.comm.ICommConfig;
  * Driver configuration options for the USB hardware interface
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class USBConfig implements ICommConfig

@@ -31,7 +31,7 @@ import net.opengis.swe.v20.DataBlock;
  * Output only websocket for sending live SPS commands to registered sensor
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 20, 2016
  */
 public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallback 

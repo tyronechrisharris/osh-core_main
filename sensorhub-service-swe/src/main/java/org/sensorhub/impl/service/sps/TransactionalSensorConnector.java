@@ -31,7 +31,7 @@ import net.opengis.swe.v20.DataStream;
  * Conenctor for receiving commands from a SWETransactionalSensor
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 20, 2016
  */
 public class TransactionalSensorConnector extends DirectSensorConnector implements ISPSTransactionalConnector

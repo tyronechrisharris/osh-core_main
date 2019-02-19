@@ -63,7 +63,7 @@ import org.vast.util.TimeExtent;
  * to be threadsafe. 
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 15, 2013
  */
 public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEventListener

@@ -27,7 +27,7 @@ import org.sensorhub.api.module.IModule;
  * type of result (and corresponding event) on each of its output.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> Type of configuration class
  * @since Feb 20, 2015
  */

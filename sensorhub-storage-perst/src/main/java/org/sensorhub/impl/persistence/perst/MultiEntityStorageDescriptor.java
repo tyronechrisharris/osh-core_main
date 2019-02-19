@@ -26,7 +26,7 @@ import org.sensorhub.impl.module.JarModuleProvider;
  * This is needed for automatic discovery by the ModuleRegistry.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 25, 2015
  */
 public class MultiEntityStorageDescriptor extends JarModuleProvider implements IModuleProvider

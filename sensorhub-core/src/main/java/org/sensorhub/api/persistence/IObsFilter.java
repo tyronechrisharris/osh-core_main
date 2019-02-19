@@ -25,7 +25,7 @@ import com.vividsolutions.jts.geom.Polygon;
  * There is an implicit logical AND between all criteria.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public interface IObsFilter extends IDataFilter

@@ -23,7 +23,7 @@ import com.vividsolutions.jts.geom.Polygon;
  * This type of key is used to store observations in storage.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 6, 2010
  */
 public class ObsKey extends DataKey

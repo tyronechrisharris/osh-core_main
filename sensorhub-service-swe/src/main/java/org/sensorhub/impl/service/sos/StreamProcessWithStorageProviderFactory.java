@@ -28,7 +28,7 @@ import org.vast.util.TimeExtent;
  * Most of the logic is inherited from {@link StreamWithStorageProviderFactory}.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 28, 2015
  */
 public class StreamProcessWithStorageProviderFactory extends StreamWithStorageProviderFactory<IDataProcess>

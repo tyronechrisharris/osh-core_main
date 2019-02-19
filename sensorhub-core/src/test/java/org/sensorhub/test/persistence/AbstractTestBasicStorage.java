@@ -70,7 +70,7 @@ import com.google.common.collect.Sets;
  * tagged with '@Before'.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <StorageType> type of storage under test
  * @since Nov 29, 2014
  */

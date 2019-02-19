@@ -27,7 +27,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * must handle all obs filter criteria when they are specified)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since April 25, 2015
  */
 public interface IObsStorage extends IBasicStorage

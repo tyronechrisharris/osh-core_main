@@ -22,7 +22,7 @@ import java.util.List;
  * Interface for the module configuration repository.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 3, 2013
  */
 public interface IModuleConfigRepository

@@ -36,7 +36,7 @@ import org.vast.data.QuantityImpl;
  * Fake control input implementation for testing sensor control API
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jan 29, 2015
  */
 public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implements ISensorControlInterface

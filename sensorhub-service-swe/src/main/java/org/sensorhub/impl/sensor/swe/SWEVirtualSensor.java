@@ -46,7 +46,7 @@ import org.vast.util.TimeExtent;
  * TODO forward full SensorML description
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 5, 2015
  */
 public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfig>

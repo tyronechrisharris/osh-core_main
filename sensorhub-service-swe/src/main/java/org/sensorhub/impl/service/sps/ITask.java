@@ -24,7 +24,7 @@ import org.vast.util.DateTime;
  * Interface for a SPS task
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 12, 2014
  */
 public interface ITask

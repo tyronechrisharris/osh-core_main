@@ -42,7 +42,7 @@ import org.sensorhub.api.persistence.IRecordStoreInfo;
  * PERST implementation of a basic record storage fed by a single producer
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 8, 2015
  */
 class BasicStorageRoot extends PersistentResource implements IBasicStorage

@@ -38,7 +38,7 @@ import com.vaadin.ui.VerticalLayout;
  * This adds a section with example links to SOS operations
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since 1.0
  */
 @SuppressWarnings("serial")

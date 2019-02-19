@@ -24,7 +24,7 @@ import org.vast.util.ResponsibleParty;
  * Abstract configuration class for all OGC service types
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 6, 2013
  */
 public abstract class OGCServiceConfig extends ServiceConfig

@@ -21,7 +21,7 @@ package org.sensorhub.api.security;
  * permissions for a given user
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 23, 2016
  */
 public interface IAuthorizer

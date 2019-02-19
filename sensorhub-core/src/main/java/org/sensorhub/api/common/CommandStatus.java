@@ -20,7 +20,7 @@ package org.sensorhub.api.common;
  * Simple data structure to hold status information for a command
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class CommandStatus

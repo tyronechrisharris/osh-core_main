@@ -26,7 +26,7 @@ import org.sensorhub.api.module.ModuleEvent.ModuleState;
  * Generic interface for all modules in the system.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> 
  * @since Nov 12, 2010
  */

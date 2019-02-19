@@ -25,7 +25,7 @@ import org.vast.ows.OWSRequest;
  * to MP4 on the fly so that video data can be streamed directly to a browser.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 5, 2016
  */
 public interface ISOSCustomSerializer

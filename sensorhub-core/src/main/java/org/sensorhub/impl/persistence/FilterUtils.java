@@ -25,7 +25,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * Helper methods to filter SWE objects read from database
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 15, 2017
  */
 public class FilterUtils

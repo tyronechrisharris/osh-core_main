@@ -23,7 +23,7 @@ import org.sensorhub.api.module.ModuleEvent.Type;
  * Event type generated at various times during a module's lifecycle
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 5, 2013
  */
 public class ModuleEvent extends Event<Type>

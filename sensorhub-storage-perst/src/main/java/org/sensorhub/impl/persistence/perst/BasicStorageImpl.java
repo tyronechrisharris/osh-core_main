@@ -47,7 +47,7 @@ import org.sensorhub.utils.FileUtils;
  * PERST implementation of {@link IBasicStorage} for storing simple data records.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 15, 2014
  */
 public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> implements IRecordStorageModule<BasicStorageConfig>

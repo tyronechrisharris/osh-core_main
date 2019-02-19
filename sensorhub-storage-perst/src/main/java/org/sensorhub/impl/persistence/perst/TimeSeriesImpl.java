@@ -37,7 +37,7 @@ import org.sensorhub.impl.persistence.IteratorWrapper;
  * PERST implementation of a time series data store for a single record type
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jan 7, 2015
  */
 class TimeSeriesImpl extends Persistent implements IRecordStoreInfo

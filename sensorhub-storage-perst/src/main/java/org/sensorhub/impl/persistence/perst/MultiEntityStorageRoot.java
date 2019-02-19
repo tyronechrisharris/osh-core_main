@@ -39,7 +39,7 @@ import org.vast.util.Bbox;
  * producers
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 8, 2015
  */
 class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMultiSourceStorage<IObsStorage>

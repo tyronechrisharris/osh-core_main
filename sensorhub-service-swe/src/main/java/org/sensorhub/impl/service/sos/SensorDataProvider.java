@@ -27,7 +27,7 @@ import org.vast.ows.OWSException;
  * Most of the logic is inherited from {@link StreamDataProvider}.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 public class SensorDataProvider extends StreamDataProvider implements ISOSDataProvider, IEventListener

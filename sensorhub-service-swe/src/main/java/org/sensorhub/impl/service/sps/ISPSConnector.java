@@ -26,7 +26,7 @@ import net.opengis.swe.v20.DataBlock;
  * Implementations can send commands to sensors, process, etc.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 13, 2014
  */
 public interface ISPSConnector

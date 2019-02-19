@@ -39,7 +39,7 @@ import com.vaadin.ui.Label;
  * Popup window showing a list of selectable OSH modules
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 24, 2017
  */
 @SuppressWarnings("serial")

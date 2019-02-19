@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * Communication provider for UDP links
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 12, 2015
  */
 public class UDPCommProvider extends AbstractModule<UDPCommProviderConfig> implements ICommProvider<UDPCommProviderConfig>

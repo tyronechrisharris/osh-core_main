@@ -26,7 +26,7 @@ import org.sensorhub.api.module.IModule;
  * for reading incoming data and an output stream for sending outgoing data.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> Comm module config type
  * @since Jun 19, 2015
  */

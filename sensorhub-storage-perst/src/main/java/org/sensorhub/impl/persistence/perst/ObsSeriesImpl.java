@@ -42,7 +42,7 @@ import com.vividsolutions.jts.geom.Polygon;
  * record type
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 8, 2015
  */
 public class ObsSeriesImpl extends TimeSeriesImpl

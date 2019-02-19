@@ -28,7 +28,7 @@ import org.sensorhub.api.sensor.ISensorManager;
  * Default implementation of the sensor manager interface
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 public class SensorManagerImpl implements ISensorManager

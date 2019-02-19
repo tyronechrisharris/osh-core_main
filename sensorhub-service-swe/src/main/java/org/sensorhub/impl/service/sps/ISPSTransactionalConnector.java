@@ -29,7 +29,7 @@ import net.opengis.swe.v20.DataEncoding;
  * connected to SPS via a persistent tasking stream
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 20, 2016
  */
 public interface ISPSTransactionalConnector extends ISPSConnector

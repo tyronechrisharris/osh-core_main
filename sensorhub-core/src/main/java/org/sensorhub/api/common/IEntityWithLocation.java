@@ -22,7 +22,7 @@ import net.opengis.gml.v32.Point;
  * Interface for all entities that can be geolocated
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 12, 2017
  */
 public interface IEntityWithLocation extends IEntity

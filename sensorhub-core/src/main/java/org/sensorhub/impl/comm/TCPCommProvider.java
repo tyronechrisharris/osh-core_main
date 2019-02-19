@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * Communication provider for TCP/IP links
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since July 2, 2015
  */
 public class TCPCommProvider extends AbstractModule<TCPCommProviderConfig> implements ICommProvider<TCPCommProviderConfig>

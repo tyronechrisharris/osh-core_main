@@ -13,11 +13,11 @@
  Portions created by the Initial Developer are Copyright (C) 2012
  the Initial Developer. All Rights Reserved.
 
- Please Contact Alexandre Robin <alex.robin@sensiasoftware.com> for more
+ Please Contact Alexandre Robin for more
  information.
  
  Contributor(s): 
-    Alexandre Robin <alex.robin@sensiasoftware.com>
+    Alexandre Robin
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -41,7 +41,7 @@ import org.vast.ows.OWSException;
  * InsertObservation, InsertResultTemplate, InsertResult).
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @date March 1, 2014
  * */
 public interface ISOSDataConsumer

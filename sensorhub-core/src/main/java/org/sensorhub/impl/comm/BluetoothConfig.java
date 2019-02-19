@@ -23,7 +23,7 @@ import org.sensorhub.api.config.DisplayInfo;
  * Driver configuration options for the Bluetooth hardware interface
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since June 18, 2015
  */
 public class BluetoothConfig implements ICommConfig

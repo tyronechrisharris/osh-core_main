@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * each info stored as an OutputStream.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Aug 2, 2015
  */
 public class DefaultModuleStateManager implements IModuleStateManager

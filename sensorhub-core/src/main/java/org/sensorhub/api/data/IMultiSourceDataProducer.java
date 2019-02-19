@@ -30,7 +30,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * allowing data from multiple sources to be multiplexed in a single data stream. 
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 31, 2015
  */
 public interface IMultiSourceDataProducer extends IDataProducer, IEntityGroup<IDataProducer>

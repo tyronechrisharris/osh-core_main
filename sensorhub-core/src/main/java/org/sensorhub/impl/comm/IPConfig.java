@@ -28,7 +28,7 @@ import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
  * Driver configuration options for IP network protocols
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 5, 2016
  */
 public abstract class IPConfig implements ICommConfig

@@ -30,7 +30,7 @@ import org.vast.util.Bbox;
  * used as a local memory cache of a remote storage.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since March 25, 2017
  */
 public class InMemoryObsStorage extends InMemoryBasicStorage implements IObsStorageModule<InMemoryStorageConfig>

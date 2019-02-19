@@ -23,7 +23,7 @@ import org.sensorhub.api.common.SensorHubException;
  * Management interface for persistent storage modules
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public interface IPersistenceManager

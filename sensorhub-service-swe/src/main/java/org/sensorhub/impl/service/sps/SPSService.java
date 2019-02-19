@@ -32,7 +32,7 @@ import org.sensorhub.impl.service.HttpServer;
  * interfaces.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jan 15, 2015
  */
 public class SPSService extends AbstractModule<SPSServiceConfig> implements IServiceModule<SPSServiceConfig>, IEventListener

@@ -51,7 +51,7 @@ import org.w3c.dom.Element;
  * events.<br/>
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Aug 25, 2015
  */
 public class SOSClient

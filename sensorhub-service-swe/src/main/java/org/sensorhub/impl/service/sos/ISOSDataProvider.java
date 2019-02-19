@@ -13,11 +13,11 @@
  Portions created by the Initial Developer are Copyright (C) 2012
  the Initial Developer. All Rights Reserved.
 
- Please Contact Alexandre Robin <alex.robin@sensiasoftware.com> for more
+ Please Contact Alexandre Robin for more
  information.
  
  Contributor(s): 
-    Alexandre Robin <alex.robin@sensiasoftware.com>
+    Alexandre Robin
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -36,7 +36,7 @@ import org.vast.ogc.om.IObservation;
  * One data provider is mapped for each SOS offering.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @date Nov 18, 2012
  * */
 public interface ISOSDataProvider

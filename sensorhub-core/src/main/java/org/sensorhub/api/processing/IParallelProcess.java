@@ -24,7 +24,7 @@ package org.sensorhub.api.processing;
  * separate instances are needed to launch in parallel.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> Type of configuration class
  * @since Feb 20, 2015
  */

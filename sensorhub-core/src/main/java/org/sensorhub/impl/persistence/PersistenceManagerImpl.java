@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * Default implementation of the persistence manager. 
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 15, 2010
  */
 public class PersistenceManagerImpl implements IPersistenceManager

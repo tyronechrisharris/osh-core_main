@@ -23,7 +23,7 @@ import org.sensorhub.api.ISensorHubConfig;
  * Configuration class containing bootstrap configuration options
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 20, 2013
  */
 public class SensorHubConfig implements ISensorHubConfig

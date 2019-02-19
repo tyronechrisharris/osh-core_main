@@ -27,7 +27,7 @@ import org.eclipse.jetty.websocket.api.Session;
  * Data is actually sent to the web socket only when flush() is called.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 19, 2015
  */
 public class WebSocketOutputStream extends ByteArrayOutputStream

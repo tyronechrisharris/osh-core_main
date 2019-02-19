@@ -22,7 +22,7 @@ import org.sensorhub.api.ISensorHub;
  * as data sources and sinks.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 20, 2017
  */
 public interface ISensorHubProcess

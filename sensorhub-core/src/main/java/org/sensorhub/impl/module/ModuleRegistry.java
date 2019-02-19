@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
  * It also keeps lists of all loaded and available modules.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 2, 2013
  */
 public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProducer, IEventListener

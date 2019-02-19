@@ -42,7 +42,7 @@ import org.sensorhub.api.common.IEventListener;
  * cases where listeners forget to unregister themselves.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 16, 2010
  */
 public class BasicEventHandler implements IEventHandler

@@ -33,7 +33,7 @@ import org.vast.ows.sps.SubmitResponse;
  * a remote sensor.<br/>
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 5, 2015
  */
 public class SPSClient

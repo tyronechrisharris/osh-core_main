@@ -24,7 +24,7 @@ import com.vividsolutions.jts.geom.Polygon;
  * from storage.<br/> There is an implicit logical AND between all criteria.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 13, 2015
  */
 public interface IFeatureFilter

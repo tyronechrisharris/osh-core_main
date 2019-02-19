@@ -23,7 +23,7 @@ import org.sensorhub.api.config.DisplayInfo;
  * Driver configuration options for RS232 hardware interface
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class UARTConfig implements ICommConfig

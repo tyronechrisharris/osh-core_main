@@ -25,7 +25,7 @@ import net.opengis.sensorml.v20.AbstractPhysicalProcess;
  * Interface for sensors combining data and control interfaces
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 23, 2017
  */
 public interface ISensor extends IDataProducer, ICommandReceiver

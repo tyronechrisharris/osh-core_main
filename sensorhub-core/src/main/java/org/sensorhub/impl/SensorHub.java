@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * Main class reponsible for starting/stopping all modules
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 4, 2013
  */
 public class SensorHub implements ISensorHub

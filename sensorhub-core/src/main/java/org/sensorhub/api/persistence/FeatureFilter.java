@@ -25,7 +25,7 @@ import com.vividsolutions.jts.geom.Polygon;
  * unlike {@link IFeatureFilter} doesn't require implementing all methods.  
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 9, 2015
  */
 public class FeatureFilter implements IFeatureFilter

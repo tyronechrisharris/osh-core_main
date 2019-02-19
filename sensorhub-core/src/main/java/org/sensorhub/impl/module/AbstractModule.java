@@ -35,7 +35,7 @@ import org.vast.util.Asserts;
  * Class providing default implementation of common module API methods 
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> 
  * @since Oct 30, 2014
  */

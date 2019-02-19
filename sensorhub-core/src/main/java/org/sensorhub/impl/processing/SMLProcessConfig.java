@@ -24,7 +24,7 @@ import org.sensorhub.api.processing.ProcessConfig;
  * Configuration class for SensorML based processors.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 20, 2015
  */
 public class SMLProcessConfig extends ProcessConfig

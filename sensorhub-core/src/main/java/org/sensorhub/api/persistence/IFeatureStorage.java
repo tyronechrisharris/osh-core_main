@@ -25,7 +25,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * provides spatial filtering capabilities.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 6, 2010
  */
 public interface IFeatureStorage

@@ -20,7 +20,7 @@ package org.sensorhub.api.common;
  * Base exception class for all exceptions generated in SensorHub
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class SensorHubException extends Exception

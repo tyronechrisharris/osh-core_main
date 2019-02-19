@@ -102,7 +102,7 @@ import com.vaadin.ui.Button.ClickEvent;
  * This auto-generates widget giving types of properties.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 1, 2014
  */
 @SuppressWarnings("serial")

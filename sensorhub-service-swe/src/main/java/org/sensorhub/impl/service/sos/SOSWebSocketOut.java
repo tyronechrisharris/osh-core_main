@@ -33,7 +33,7 @@ import org.vast.ows.sos.GetResultRequest;
  * Output only websocket for sending SOS live responses
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 19, 2015
  */
 public class SOSWebSocketOut implements WebSocketListener, Runnable

@@ -23,7 +23,7 @@ import org.vast.sensorML.IProcessFactory;
  * Management interface for process implementations
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public interface IProcessingManager extends IProcessFactory

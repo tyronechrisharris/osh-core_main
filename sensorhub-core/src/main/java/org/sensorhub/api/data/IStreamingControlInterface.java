@@ -26,7 +26,7 @@ import net.opengis.swe.v20.DataComponent;
  * structure and encoding of commands they accept (e.g. actuators, processes...)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 23, 2017
  */
 public interface IStreamingControlInterface

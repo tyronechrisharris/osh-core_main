@@ -55,7 +55,7 @@ import org.vast.util.TimeExtent;
  * Implementation of SOS data provider connecting to a streaming data source
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 public abstract class StreamDataProvider implements ISOSDataProvider, IEventListener

@@ -24,7 +24,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * Static utility methods for generating messages
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 27, 2014
  */
 public class MsgUtils

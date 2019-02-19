@@ -23,7 +23,7 @@ import org.sensorhub.api.common.IEntity;
  * Interface for all receivers of command data (e.g. actuator, process)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 23, 2017
  */
 public interface ICommandReceiver extends IEntity

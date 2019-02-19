@@ -23,7 +23,7 @@ package org.sensorhub.api.sensor;
  * internal values or status information. 
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 11, 2017
  */
 public interface IActuator extends ISensor

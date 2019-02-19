@@ -32,7 +32,7 @@ import org.sensorhub.api.persistence.IStorageModule;
  * with its own storage to an SOS service, use the SensorDataProviderConfig
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 14, 2013
  */
 public class StorageDataProviderConfig extends SOSProviderConfig

@@ -24,7 +24,7 @@ import net.opengis.swe.v20.DataBlock;
  * It is immutable and carries sensor data by reference
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class SensorDataEvent extends DataEvent

@@ -24,7 +24,7 @@ import org.sensorhub.api.common.IEntityFilter;
  * Management interface for sensors connected to the system
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public interface ISensorManager

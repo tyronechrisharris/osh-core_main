@@ -24,7 +24,7 @@ package org.sensorhub.api.common;
  * for dispatching the events.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 5, 2013
  */
 public interface IEventHandler extends IEventProducer

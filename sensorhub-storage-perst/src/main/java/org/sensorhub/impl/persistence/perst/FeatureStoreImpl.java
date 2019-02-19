@@ -38,7 +38,7 @@ import com.vividsolutions.jts.geom.Polygon;
  * PERST implementation of FoI store with indexes and search methods
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 8, 2015
  */
 class FeatureStoreImpl extends PersistentResource implements IFeatureStorage

@@ -22,7 +22,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * Configuration options for processing modules
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 20, 2015
  */
 public class ProcessConfig extends ModuleConfig

@@ -25,7 +25,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * as Ethernet, WiFi, Bluetooth, Bluetooth LE, ZigBee, etc...
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> Type of network configuration
  * @since Feb 9, 2016
  */

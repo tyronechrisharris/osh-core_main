@@ -23,7 +23,7 @@ import java.util.Map;
  * Base interface for objects representing users in the security API
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 23, 2016
  */
 public interface IUserInfo extends IUserPermissions

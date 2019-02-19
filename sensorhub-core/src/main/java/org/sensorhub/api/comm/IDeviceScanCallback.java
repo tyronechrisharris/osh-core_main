@@ -20,7 +20,7 @@ package org.sensorhub.api.comm;
  * Device scan callback to which newly found devices are reported during a scan
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 6, 2016
  */
 public interface IDeviceScanCallback

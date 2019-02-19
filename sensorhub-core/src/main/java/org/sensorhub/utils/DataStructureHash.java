@@ -29,7 +29,7 @@ import net.opengis.swe.v20.DataEncoding;
  * Utility class to compute data component structure hashcode
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 16, 2016
  */
 public class DataStructureHash

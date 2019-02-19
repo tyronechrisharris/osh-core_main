@@ -22,7 +22,7 @@ package org.sensorhub.api.comm;
  * to discover sensors connected via USB, bluetooth, zeroconf, etc.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 6, 2016
  */
 public interface IDeviceScanner

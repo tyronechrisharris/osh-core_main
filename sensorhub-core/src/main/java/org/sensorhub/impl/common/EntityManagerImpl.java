@@ -40,7 +40,7 @@ import org.sensorhub.utils.MsgUtils;
  * registered entities in memory
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 11, 2017
  */
 public class EntityManagerImpl implements IEntityManager

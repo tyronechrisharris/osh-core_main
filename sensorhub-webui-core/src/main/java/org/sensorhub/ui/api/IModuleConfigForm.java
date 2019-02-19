@@ -32,7 +32,7 @@ import com.vaadin.ui.Layout;
  * Interface for all UI forms used to configure modules
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since 0.5
  */
 public interface IModuleConfigForm extends ComponentContainer, Layout.MarginHandler

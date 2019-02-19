@@ -22,7 +22,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * Configuration options for sensor/actuator drivers
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class SensorDriverConfig extends ModuleConfig

@@ -22,7 +22,7 @@ import org.vast.process.ProcessInfo;
 /**
  * Provider interface used for executable process discovery
  * 
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 5, 2017
  */
 public interface IProcessProvider extends IModuleProvider

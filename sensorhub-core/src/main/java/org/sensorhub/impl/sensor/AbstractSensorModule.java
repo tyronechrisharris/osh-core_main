@@ -76,7 +76,7 @@ import org.vast.swe.helper.GeoPosHelper;
  * It also provides helper methods to implement automatic reconnection.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> 
  * @since Oct 30, 2014
  */

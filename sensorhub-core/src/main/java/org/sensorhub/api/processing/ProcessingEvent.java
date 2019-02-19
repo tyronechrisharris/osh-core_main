@@ -23,7 +23,7 @@ import org.sensorhub.api.processing.ProcessingEvent.Type;
  * Simple base data structure for all events linked to processing modules
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 20, 2015
  */
 public class ProcessingEvent extends Event<Type>

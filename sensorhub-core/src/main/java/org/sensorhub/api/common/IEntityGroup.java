@@ -22,7 +22,7 @@ import java.util.Map;
  * Interface for groups of entities (e.g. sensor networks, sensor systems).
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <EntityType> Type of entity composing this group
  * @since Jun 9, 2017
  */

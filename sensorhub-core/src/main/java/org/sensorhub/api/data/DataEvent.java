@@ -26,7 +26,7 @@ import net.opengis.swe.v20.DataComponent;
  * It is immutable and carries data by reference.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 20, 2015
  */
 public class DataEvent extends EntityEvent<Type>

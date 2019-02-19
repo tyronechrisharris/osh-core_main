@@ -26,7 +26,7 @@ import org.sensorhub.api.persistence.IObsStorage;
  * PERST implementation of {@link IMultiSourceStorage} module.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 25, 2015
  */
 public class MultiEntityStorageImpl extends ObsStorageImpl implements IMultiSourceStorage<IObsStorage>

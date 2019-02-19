@@ -78,7 +78,7 @@ import com.google.common.base.Strings;
  * Extension of OWSSServlet implementing Sensor Planning Service operations
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jan 15, 2015
  */
 @SuppressWarnings("serial")

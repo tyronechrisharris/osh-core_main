@@ -49,7 +49,7 @@ import org.vast.sensorML.SMLUtils;
  * the process flow and the SensorML execution engine to run the process.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> Type of process configuration
  * @since Feb 22, 2015
  */

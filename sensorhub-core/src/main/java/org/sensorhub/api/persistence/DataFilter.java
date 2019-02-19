@@ -26,7 +26,7 @@ import org.vast.util.DateTimeFormat;
  * unlike {@link IDataFilter} doesn't require implementing all methods.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 9, 2015
  */
 public class DataFilter implements IDataFilter

@@ -143,7 +143,7 @@ import com.vividsolutions.jts.geom.Polygon;
  * Extension of SOSServlet deployed as a SensorHub service
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 @SuppressWarnings("serial")

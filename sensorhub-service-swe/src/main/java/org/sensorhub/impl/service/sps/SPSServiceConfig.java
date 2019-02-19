@@ -25,7 +25,7 @@ import org.sensorhub.impl.service.swe.OfferingList;
  * Configuration class for the SPS service module
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 6, 2013
  */
 public class SPSServiceConfig extends OGCServiceConfig

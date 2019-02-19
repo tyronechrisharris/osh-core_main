@@ -31,7 +31,7 @@ import net.opengis.swe.v20.DataEncoding;
  * data source is provided. 
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 27, 2014
  */
 public interface IBasicStorage

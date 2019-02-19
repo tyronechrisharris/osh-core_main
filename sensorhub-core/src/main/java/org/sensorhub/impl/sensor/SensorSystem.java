@@ -42,7 +42,7 @@ import org.sensorhub.utils.MsgUtils;
  * Relative location and orientation of components can also be set
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 19, 2016
  */
 public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>

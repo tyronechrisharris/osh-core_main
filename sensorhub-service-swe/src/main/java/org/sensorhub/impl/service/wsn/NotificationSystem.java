@@ -42,7 +42,7 @@ import org.w3c.dom.Element;
  * WS-Notification format. It relies on the Apache
  * MUSE library version 2.2.0.
  * 
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  */
 public class NotificationSystem
 {

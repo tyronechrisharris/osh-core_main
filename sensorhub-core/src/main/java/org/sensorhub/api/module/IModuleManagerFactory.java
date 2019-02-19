@@ -23,7 +23,7 @@ import java.util.Map;
  * to be called to get instances of module managers.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 15, 2010
  */
 public interface IModuleManagerFactory

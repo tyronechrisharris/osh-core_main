@@ -27,7 +27,7 @@ import org.vast.swe.helper.GeoPosHelper;
  * Use of this class is highly recommended even for static sensors.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 19, 2015
  */
 public class DefaultLocationOutputLLA extends DefaultLocationOutput

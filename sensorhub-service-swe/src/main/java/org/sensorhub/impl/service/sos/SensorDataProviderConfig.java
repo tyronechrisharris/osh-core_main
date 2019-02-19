@@ -31,7 +31,7 @@ import org.sensorhub.api.sensor.ISensorModule;
  * for this sensor data can be handled through the same offering.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 public class SensorDataProviderConfig extends StreamDataProviderConfig

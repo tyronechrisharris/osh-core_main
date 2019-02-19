@@ -23,7 +23,7 @@ import net.opengis.swe.v20.DataEncoding;
  * Default location output for sensor drivers outputing their own location.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 19, 2015
  */
 public abstract class DefaultLocationOutput extends AbstractSensorOutput<AbstractSensorModule<?>>

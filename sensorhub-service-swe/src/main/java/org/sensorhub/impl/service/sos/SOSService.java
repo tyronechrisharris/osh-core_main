@@ -33,7 +33,7 @@ import org.vast.ows.sos.SOSServiceCapabilities;
  * from the selected data sources (sensors, storages, processes, etc).
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 public class SOSService extends AbstractModule<SOSServiceConfig> implements IServiceModule<SOSServiceConfig>, IEventListener

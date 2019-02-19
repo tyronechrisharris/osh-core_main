@@ -26,7 +26,7 @@ import org.sensorhub.api.common.IEventProducer;
  * structure and encoding of data they generate (e.g. sensors, processes...)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 21, 2015
  */
 public interface IStreamingDataInterface extends IEventProducer

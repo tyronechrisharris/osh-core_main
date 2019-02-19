@@ -26,7 +26,7 @@ import java.util.UUID;
  * fully stored in memory.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 12, 2014
  */
 public class InMemorySubscriptionDB extends HashMap<String, SubscriptionInfo> implements ISubscriptionDB

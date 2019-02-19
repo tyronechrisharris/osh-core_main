@@ -52,7 +52,7 @@ import com.google.gson.stream.JsonWriter;
  * persist all modules' configuration.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 3, 2013
  */
 public class ModuleConfigJsonFile implements IModuleConfigRepository

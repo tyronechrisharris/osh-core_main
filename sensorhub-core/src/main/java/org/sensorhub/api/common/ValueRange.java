@@ -20,7 +20,7 @@ package org.sensorhub.api.common;
  * Immutable object for storing ranges of values of any types
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <DataType> 
  * @since Nov 12, 2010
  */

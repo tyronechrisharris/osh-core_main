@@ -32,7 +32,7 @@ import org.sensorhub.impl.comm.RobustIPConnectionConfig;
  * Configuration class for the SOS-T client module
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 6, 2015
  */
 public class SOSTClientConfig extends ClientConfig

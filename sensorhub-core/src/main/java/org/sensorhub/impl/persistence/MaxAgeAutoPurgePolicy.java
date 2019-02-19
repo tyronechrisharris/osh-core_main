@@ -27,7 +27,7 @@ import org.sensorhub.api.persistence.IRecordStorageModule;
  * certain age
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jul 26, 2015
  */
 public class MaxAgeAutoPurgePolicy implements IStorageAutoPurgePolicy

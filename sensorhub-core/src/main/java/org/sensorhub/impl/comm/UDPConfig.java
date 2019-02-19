@@ -23,7 +23,7 @@ import org.sensorhub.api.config.DisplayInfo.ValueRange;
  * Driver configuration options for the UDP network protocol
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 12, 2015
  */
 public class UDPConfig extends IPConfig

@@ -26,7 +26,7 @@ import org.sensorhub.api.persistence.IObsStorageModule;
  * tagged with '@Before'.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <StorageType> type of storage under test
  * @since May 29, 2015
  */

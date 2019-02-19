@@ -31,7 +31,7 @@ import org.vast.util.Bbox;
  * PERST implementation of {@link IObsStorage} for storing observations.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 15, 2015
  */
 public class ObsStorageImpl extends BasicStorageImpl implements IObsStorageModule<BasicStorageConfig>

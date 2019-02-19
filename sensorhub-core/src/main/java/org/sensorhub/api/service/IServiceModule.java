@@ -22,7 +22,7 @@ import org.sensorhub.api.module.IModule;
  * Common base to all service interfaces
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> 
  * @since Nov 5, 2010
  */

@@ -25,7 +25,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * process. It is immutable and carries feature data by reference.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Apr 23, 2015
  */
 public class FoiEvent extends EntityEvent<Type>

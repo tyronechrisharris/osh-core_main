@@ -20,7 +20,7 @@ package org.sensorhub.api.module;
  * Interface to be implemented to enable automatic module discovery
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 public interface IModuleProvider

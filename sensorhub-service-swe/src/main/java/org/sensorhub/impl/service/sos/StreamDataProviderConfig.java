@@ -30,7 +30,7 @@ import org.sensorhub.api.persistence.IStorageModule;
  * can be handled through the same offering.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 20, 2015
  */
 public abstract class StreamDataProviderConfig extends SOSProviderConfig

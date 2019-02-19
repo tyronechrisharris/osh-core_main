@@ -25,7 +25,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * Interface for all producers of streaming data
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 23, 2017
  */
 public interface IDataProducer extends IEntity, IEventProducer

@@ -29,7 +29,7 @@ import org.vast.ows.OWSException;
  * Most of the logic is inherited from {@link StreamDataProviderFactory}.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 15, 2013
  */
 public class SensorDataProviderFactory extends StreamDataProviderFactory<ISensor> implements ISOSDataProviderFactory, IEventListener

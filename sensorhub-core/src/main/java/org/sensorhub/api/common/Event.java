@@ -21,7 +21,7 @@ package org.sensorhub.api.common;
  * All sub-classes should remain immutable.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <EventTypeEnum> Enum of possible event sub-type
  * @since Nov 5, 2010
  */

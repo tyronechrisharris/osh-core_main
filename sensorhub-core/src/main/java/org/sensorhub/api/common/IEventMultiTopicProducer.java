@@ -21,7 +21,7 @@ package org.sensorhub.api.common;
  * topic channels.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 19, 2015
  */
 public interface IEventMultiTopicProducer

@@ -33,7 +33,7 @@ import org.sensorhub.api.common.IEventListener;
  * distributed event messaging.<br/>
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 19, 2015
  */
 public class EventBus

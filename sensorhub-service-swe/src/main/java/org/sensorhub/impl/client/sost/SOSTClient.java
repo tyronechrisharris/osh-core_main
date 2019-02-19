@@ -71,7 +71,7 @@ import org.vast.swe.SWEData;
  * and InsertResult requests.<br/>
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 6, 2015
  */
 public class SOSTClient extends AbstractModule<SOSTClientConfig> implements IClientModule<SOSTClientConfig>, IEventListener

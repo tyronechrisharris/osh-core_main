@@ -32,7 +32,7 @@ import net.opengis.swe.v20.DataComponent;
  * polled or pushed to registered listeners.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 8, 2017
  */
 public interface IDataProcess extends IDataProducer, ICommandReceiver

@@ -30,7 +30,7 @@ import org.sensorhub.impl.module.ModuleRegistry;
  * 
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 23, 2017
  */
 public interface ISensorHub

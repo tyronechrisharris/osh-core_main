@@ -60,7 +60,7 @@ import com.vaadin.v7.ui.Table;
  * and allows the user to send commands and view output data values.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since 1.0
  */
 @SuppressWarnings("serial")

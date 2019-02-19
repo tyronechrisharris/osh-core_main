@@ -31,7 +31,7 @@ import com.vaadin.ui.Window;
  * Generic confirmation dialog with OK and Cancel buttons
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 24, 2013
  */
 @SuppressWarnings("serial")

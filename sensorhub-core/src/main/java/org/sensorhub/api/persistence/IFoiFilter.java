@@ -23,7 +23,7 @@ import java.util.Set;
  * of interest from storage.<br/> There is an implicit logical AND between all criteria.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 25, 2015
  */
 public interface IFoiFilter extends IFeatureFilter

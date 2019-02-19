@@ -29,7 +29,7 @@ import net.opengis.swe.v20.DataBlock;
  * Input only websocket for receiving live record streams (via InsertResult)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 13, 2016
  */
 public class SOSWebSocketIn implements WebSocketListener

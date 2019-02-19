@@ -29,7 +29,7 @@ import org.vast.util.TimeExtent;
  * Most of the logic is inherited from {@link StreamWithStorageProviderFactory}.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 15, 2014
  */
 public class SensorWithStorageProviderFactory extends StreamWithStorageProviderFactory<ISensor>

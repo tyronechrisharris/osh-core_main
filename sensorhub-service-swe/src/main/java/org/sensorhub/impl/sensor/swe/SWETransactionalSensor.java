@@ -54,7 +54,7 @@ import org.vast.util.Asserts;
  * when a new sensor is registered through these interfaces.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 16, 2016
  */
 public class SWETransactionalSensor extends AbstractSensorModule<SWETransactionalSensorConfig>

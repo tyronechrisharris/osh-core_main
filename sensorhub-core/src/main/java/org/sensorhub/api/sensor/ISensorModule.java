@@ -23,7 +23,7 @@ import org.sensorhub.api.module.IModule;
  * further modified during or after startup.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> 
  * @since Nov 5, 2010
  */

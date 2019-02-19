@@ -75,7 +75,7 @@ import org.vast.util.Bbox;
  * uses the storage API to store records in the underlying storage.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 21, 2015
  */
 public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> implements IRecordStorageModule<StreamStorageConfig>, IObsStorage, IMultiSourceStorage<IObsStorage>, IEventListener

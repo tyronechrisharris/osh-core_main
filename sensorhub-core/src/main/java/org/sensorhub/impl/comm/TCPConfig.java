@@ -26,7 +26,7 @@ import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
  * Driver configuration options for the TCP/IP network protocol
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class TCPConfig extends IPConfig

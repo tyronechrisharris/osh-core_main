@@ -48,7 +48,7 @@ import com.vividsolutions.jts.geom.Polygon;
  * SensorHub's persistence API (ITimeSeriesStorage and derived classes)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 public class StorageDataProvider implements ISOSDataProvider

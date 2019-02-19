@@ -51,7 +51,7 @@ import org.vast.util.NumberUtils;
  * used as a local memory cache of a remote storage.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 8, 2013
  */
 public class InMemoryBasicStorage extends AbstractModule<InMemoryStorageConfig> implements IRecordStorageModule<InMemoryStorageConfig>

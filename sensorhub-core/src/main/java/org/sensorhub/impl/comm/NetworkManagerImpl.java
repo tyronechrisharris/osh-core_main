@@ -32,7 +32,7 @@ import org.sensorhub.impl.module.ModuleRegistry;
  * available on the platform.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 7, 2016
  */
 public class NetworkManagerImpl implements INetworkManager

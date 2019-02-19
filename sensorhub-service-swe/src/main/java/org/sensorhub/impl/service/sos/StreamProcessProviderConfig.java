@@ -31,7 +31,7 @@ import org.sensorhub.api.processing.IProcessModule;
  * for this process data can be handled through the same offering.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 28, 2015
  */
 public class StreamProcessProviderConfig extends StreamDataProviderConfig

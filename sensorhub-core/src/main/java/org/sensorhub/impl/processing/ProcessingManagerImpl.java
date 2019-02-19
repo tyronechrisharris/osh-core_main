@@ -32,7 +32,7 @@ import org.vast.process.ProcessInfo;
  * Default implementation of the processing manager interface
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 28, 2015
  */
 public class ProcessingManagerImpl implements IProcessingManager

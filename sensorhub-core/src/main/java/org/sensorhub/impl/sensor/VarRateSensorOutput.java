@@ -23,7 +23,7 @@ import org.sensorhub.api.sensor.ISensorModule;
  * This provides facility to compute the average sampling rate on the fly.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <SensorType> Type of parent sensor
  * @since Sep 5, 2015
  */

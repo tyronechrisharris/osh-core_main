@@ -26,7 +26,7 @@ import org.sensorhub.api.service.ServiceException;
  * Most of the logic is inherited from {@link StreamDataProviderFactory}.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 28, 2015
  */
 public class StreamProcessProviderFactory extends StreamDataProviderFactory<IProcessModule<?>> implements ISOSDataProviderFactory, IEventListener

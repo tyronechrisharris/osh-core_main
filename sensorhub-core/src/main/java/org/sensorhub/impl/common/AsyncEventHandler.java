@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * were received.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Aug 30, 2013
  */
 public class AsyncEventHandler implements IEventHandler

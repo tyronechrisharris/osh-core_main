@@ -22,7 +22,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * Simple data structure for describing storage configuration options
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public abstract class StorageConfig extends ModuleConfig

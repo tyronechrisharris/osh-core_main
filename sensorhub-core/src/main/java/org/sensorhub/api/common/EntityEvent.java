@@ -23,7 +23,7 @@ package org.sensorhub.api.common;
  * such as a sensor network or a process grid.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <EventTypeEnum> Enum of possible event sub-type
  * @since Apr 23, 2015
  */

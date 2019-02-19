@@ -47,7 +47,7 @@ import net.opengis.swe.v20.DataComponent;
  * This connector doesn't support scheduling or persistent task management
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 13, 2014
  */
 public class DirectSensorConnector implements ISPSConnector, IEventListener

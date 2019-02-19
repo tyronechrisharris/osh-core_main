@@ -24,7 +24,7 @@ import com.rits.cloning.Cloner;
  * Base class to hold modules' configuration options
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 16, 2010
  */
 public class ModuleConfig implements Cloneable

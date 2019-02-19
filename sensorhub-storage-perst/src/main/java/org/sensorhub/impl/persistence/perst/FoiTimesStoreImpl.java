@@ -30,7 +30,7 @@ import org.garret.perst.Storage;
  * PERST implementation of FoI observation periods
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 8, 2015
  */
 class FoiTimesStoreImpl extends Persistent

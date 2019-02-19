@@ -38,7 +38,7 @@ import com.vaadin.v7.data.util.MethodProperty;
  * (i.e. even without getter and setter methods)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <BeanType> Type of java bean wrapped by this class
  * @since Nov 24, 2013
  */

@@ -65,7 +65,7 @@ import org.vast.util.Asserts;
  * Wrapper module for the HTTP server engine (Jetty for now)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 6, 2013
  */
 public class HttpServer extends AbstractModule<HttpServerConfig>

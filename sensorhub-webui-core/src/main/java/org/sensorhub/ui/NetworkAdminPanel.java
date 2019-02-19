@@ -39,7 +39,7 @@ import com.vaadin.ui.UI;
  * This adds features to view available networks and scan for devices.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since 1.0
  */
 @SuppressWarnings("serial")

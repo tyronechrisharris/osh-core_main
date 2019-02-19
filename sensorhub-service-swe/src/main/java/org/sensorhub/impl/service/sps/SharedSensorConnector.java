@@ -26,7 +26,7 @@ import net.opengis.swe.v20.DataBlock;
  * This connector supports priorities, scheduling and persistent task management
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jan 16, 2015
  */
 public class SharedSensorConnector extends DirectSensorConnector implements ISPSConnector

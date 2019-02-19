@@ -46,7 +46,7 @@ import org.vast.util.DateTimeFormat;
  * Fake sensor output implementation for testing sensor data API
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 20, 2013
  */
 public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implements IFakeSensorOutput

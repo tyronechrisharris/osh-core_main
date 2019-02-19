@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * (e.g. lib/native/linux/x86_64/libsomething.so)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 3, 2015
  */
 public class NativeClassLoader extends URLClassLoader

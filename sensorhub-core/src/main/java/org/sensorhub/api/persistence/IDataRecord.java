@@ -22,7 +22,7 @@ import net.opengis.swe.v20.DataBlock;
  * Interface encapsulating records composed of a key and a data block as value
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 12, 2010
  */
 public interface IDataRecord

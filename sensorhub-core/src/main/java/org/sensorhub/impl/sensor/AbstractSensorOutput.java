@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
  * API methods. By default, storage is unsupported.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ProducerType> Type of parent sensor
  * @since Nov 2, 2014
  */

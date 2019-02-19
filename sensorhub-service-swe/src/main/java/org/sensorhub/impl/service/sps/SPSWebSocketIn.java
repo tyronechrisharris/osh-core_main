@@ -29,7 +29,7 @@ import net.opengis.swe.v20.DataBlock;
  * Input only websocket for receiving live command streams (for direct tasking)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jan 24, 2017
  */
 public class SPSWebSocketIn implements WebSocketListener

@@ -22,7 +22,7 @@ import org.sensorhub.api.config.DisplayInfo;
  * Configuration options for a custom panel
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Feb 13, 2015
  */
 public class CustomUIConfig

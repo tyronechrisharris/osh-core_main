@@ -26,7 +26,7 @@ import com.google.common.base.Strings;
  * Common configuration options for all services
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 16, 2010
  */
 public class ServiceConfig extends ModuleConfig

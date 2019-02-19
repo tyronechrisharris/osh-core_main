@@ -31,7 +31,7 @@ import org.vast.util.Bbox;
  * observation times.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 8, 2015
  */
 class ObsStorageRoot extends BasicStorageRoot implements IObsStorage

@@ -22,7 +22,7 @@ import org.sensorhub.api.module.IModule;
  * Common base for client modules connecting to remote services
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ConfigType> 
  * @since Apr 1, 2016
  */

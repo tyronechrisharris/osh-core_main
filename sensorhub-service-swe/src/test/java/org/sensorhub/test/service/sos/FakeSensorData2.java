@@ -45,7 +45,7 @@ import org.vast.swe.SWEHelper;
  * Fake array sensor implementation for testing SOS service
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 20, 2013
  */
 public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> implements IFakeSensorOutput

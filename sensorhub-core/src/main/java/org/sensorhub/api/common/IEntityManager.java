@@ -26,7 +26,7 @@ import java.util.Collection;
  * @see IEntity.class
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 11, 2017
  */
 public interface IEntityManager extends IEventProducer

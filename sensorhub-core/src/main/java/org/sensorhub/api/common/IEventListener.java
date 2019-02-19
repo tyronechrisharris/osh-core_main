@@ -20,7 +20,7 @@ package org.sensorhub.api.common;
  * Generic event listener
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public interface IEventListener

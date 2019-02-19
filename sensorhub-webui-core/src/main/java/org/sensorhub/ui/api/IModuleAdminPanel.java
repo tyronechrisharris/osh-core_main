@@ -25,7 +25,7 @@ import com.vaadin.ui.ComponentContainer;
  * Interface for all UI panels used to interact with modules
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ModuleType> Type of module supported by this panel builder
  * @since 0.5
  */

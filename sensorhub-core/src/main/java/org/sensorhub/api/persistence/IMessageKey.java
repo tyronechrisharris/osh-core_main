@@ -20,7 +20,7 @@ package org.sensorhub.api.persistence;
  * Interface for keys used to index messages (such as commands)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 12, 2010
  */
 public interface IMessageKey

@@ -42,7 +42,7 @@ import com.vaadin.ui.VerticalLayout;
  * configuration through a generic auto-generated form.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ModuleType> Type of module supported by this panel builder
  * @since 0.5
  */

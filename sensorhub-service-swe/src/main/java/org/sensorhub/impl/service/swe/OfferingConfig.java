@@ -24,7 +24,7 @@ import com.google.gson.annotations.SerializedName;
  * Base class for offering configurations (e.g. providers, connectors, etc.)
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 20, 2016
  */
 public abstract class OfferingConfig

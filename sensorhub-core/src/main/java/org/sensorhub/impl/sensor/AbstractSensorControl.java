@@ -36,7 +36,7 @@ import org.vast.util.DateTime;
  * unsupported.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <SensorType> Type of parent sensor
  * @since Nov 22, 2014
  */

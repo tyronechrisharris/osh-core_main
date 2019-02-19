@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * Static utility methods for dealing with files
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Aug 27, 2015
  */
 public class FileUtils

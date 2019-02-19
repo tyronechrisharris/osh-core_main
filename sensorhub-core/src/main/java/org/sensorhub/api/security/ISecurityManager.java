@@ -23,7 +23,7 @@ import org.eclipse.jetty.security.Authenticator;
  * Management interface for SensorHub security
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jul 15, 2016
  */
 public interface ISecurityManager extends IUserRegistry, IAuthorizer

@@ -22,7 +22,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * Common configuration options for all clients connecting to remote services
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Aug 9, 2015
  */
 public class ClientConfig extends ModuleConfig

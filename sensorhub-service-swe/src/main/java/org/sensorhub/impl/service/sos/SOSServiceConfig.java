@@ -28,7 +28,7 @@ import org.sensorhub.impl.service.swe.OfferingList;
  * Configuration class for the SOS service module
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 7, 2013
  */
 public class SOSServiceConfig extends OGCServiceConfig

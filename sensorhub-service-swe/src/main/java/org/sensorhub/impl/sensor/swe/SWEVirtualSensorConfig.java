@@ -25,7 +25,7 @@ import org.sensorhub.api.sensor.SensorConfig;
  * Configuration for a SWE Virtual Sensor.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 5, 2015
  */
 public class SWEVirtualSensorConfig extends SensorConfig

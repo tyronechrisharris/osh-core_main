@@ -24,7 +24,7 @@ import org.vast.util.DateTimeFormat;
  * Keys are used to store time stamped data records in storage.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 6, 2010
  */
 public class DataKey implements Serializable

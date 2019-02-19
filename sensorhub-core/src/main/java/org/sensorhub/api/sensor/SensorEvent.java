@@ -23,7 +23,7 @@ import org.sensorhub.api.sensor.SensorEvent.Type;
  * Event generated when sensor state/configuration changes.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class SensorEvent extends EntityEvent<Type>

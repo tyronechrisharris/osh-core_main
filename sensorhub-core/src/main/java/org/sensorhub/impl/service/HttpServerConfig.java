@@ -23,7 +23,7 @@ import org.sensorhub.api.module.ModuleConfig;
  * Configuration class for the HTTP server module
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Sep 6, 2013
  */
 public class HttpServerConfig extends ModuleConfig

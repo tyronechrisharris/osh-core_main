@@ -22,7 +22,7 @@ import org.sensorhub.api.sensor.SensorConfig;
  * Configuration for SOS virtual sensors created with InsertSensor
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 2, 2014
  */
 public class SWETransactionalSensorConfig extends SensorConfig

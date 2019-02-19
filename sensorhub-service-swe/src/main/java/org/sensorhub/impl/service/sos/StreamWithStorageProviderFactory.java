@@ -35,7 +35,7 @@ import org.vast.util.TimeExtent;
  * Most of the logic is inherited from {@link StorageDataProviderFactory}.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <ProducerType> Type of producer handled by this provider
  * @since Feb 28, 2015
  */

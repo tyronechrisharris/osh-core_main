@@ -22,7 +22,7 @@ import org.sensorhub.api.config.DisplayInfo;
  * Base configuration for automatic storage purge policies
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jul 25, 2015
  */
 public abstract class StorageAutoPurgeConfig

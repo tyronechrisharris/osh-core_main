@@ -23,7 +23,7 @@ import java.util.Set;
  * There is an implicit logical AND between all criteria.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 12, 2010
  */
 public interface IDataFilter

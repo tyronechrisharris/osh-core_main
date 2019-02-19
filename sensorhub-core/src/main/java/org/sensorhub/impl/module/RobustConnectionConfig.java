@@ -22,7 +22,7 @@ import org.sensorhub.api.config.DisplayInfo;
  * Common configuration options for robust connections
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 25, 2016
  */
 public class RobustConnectionConfig

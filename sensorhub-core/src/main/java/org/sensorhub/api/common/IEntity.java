@@ -26,7 +26,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * the entity description should do its best to reflect its current state.
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since June 9, 2017
  */
 public interface IEntity

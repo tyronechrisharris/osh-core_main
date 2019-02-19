@@ -23,7 +23,7 @@ import org.sensorhub.api.common.EntityEvent;
  * Special type of immutable event carrying status data by reference
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class SensorControlEvent extends EntityEvent<CommandStatus.StatusCode>

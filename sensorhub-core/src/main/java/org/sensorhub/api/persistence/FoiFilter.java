@@ -24,7 +24,7 @@ import java.util.Set;
  * unlike {@link IFoiFilter} doesn't require implementing all methods.  
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since May 25, 2015
  */
 public class FoiFilter extends FeatureFilter implements IFoiFilter

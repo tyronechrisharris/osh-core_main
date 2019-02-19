@@ -22,7 +22,7 @@ import java.util.Collection;
  * Interface for multi-source storage implementations
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <StorageType> Type of record storage used for each source
  * @since March 1, 2014
  */

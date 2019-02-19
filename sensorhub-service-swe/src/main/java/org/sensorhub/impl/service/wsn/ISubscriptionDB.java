@@ -23,7 +23,7 @@ import java.util.List;
  * Interface for a WSN subscription database
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 12, 2014
  */
 public interface ISubscriptionDB

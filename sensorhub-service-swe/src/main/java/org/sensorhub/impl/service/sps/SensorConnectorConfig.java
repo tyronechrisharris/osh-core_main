@@ -32,7 +32,7 @@ import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
  * Configuration class for SPS connectors using the sensor API
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Dec 13, 2014
  */
 public class SensorConnectorConfig extends SPSConnectorConfig

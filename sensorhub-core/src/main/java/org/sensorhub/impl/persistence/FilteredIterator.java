@@ -23,7 +23,7 @@ import java.util.Iterator;
  * iterator on-the-fly
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <E> 
  * @since Mar 15, 2017
  */

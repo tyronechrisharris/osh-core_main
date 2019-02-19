@@ -28,7 +28,7 @@ import javax.crypto.spec.PBEKeySpec;
  * Authenticator used by HTTP clients
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Mar 24, 2016
  */
 public class ClientAuth extends Authenticator

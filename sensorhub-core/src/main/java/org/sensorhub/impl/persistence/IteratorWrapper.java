@@ -25,7 +25,7 @@ import org.vast.util.Asserts;
  * modify the returned elements
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @param <IN> Input Type
  * @param <OUT> Output Type
  * @since Apr 15, 2017

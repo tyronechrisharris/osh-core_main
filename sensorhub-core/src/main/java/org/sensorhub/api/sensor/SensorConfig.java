@@ -26,7 +26,7 @@ import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
  * Configuration options for sensors/actuators
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Nov 5, 2010
  */
 public class SensorConfig extends ModuleConfig
