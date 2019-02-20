@@ -34,7 +34,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
-import org.sensorhub.api.common.EntityEvent;
+import org.sensorhub.api.common.ProcedureEvent;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
@@ -218,7 +218,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         if (dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (String entityID: multiSource.getEntities().keySet())
+            for (String entityID: multiSource.getMembers().keySet())
                 ensureProducerInfo(entityID);
         }
     }
@@ -232,7 +232,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         IDataProducer dataSource = dataSourceRef.get();
         if (dataSource != null && dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
         {
-            IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getEntities().get(producerID);
+            IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getMembers().get(producerID);
             if (producer != null)
             {
                 IBasicStorage dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
@@ -286,8 +286,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         if (dataSource instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (String entityID: multiSource.getEntities().keySet())
-                disconnectDataSource(multiSource.getEntities().get(entityID));
+            for (String entityID: multiSource.getMembers().keySet())
+                disconnectDataSource(multiSource.getMembers().get(entityID));
         }
     }
     
@@ -369,7 +369,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             if (e instanceof DataEvent)
             {
                 DataEvent dataEvent = (DataEvent)e;
-                String producerID = dataEvent.getRelatedEntityID();
+                String producerID = dataEvent.getProcedureID();
                 
                 if (producerID != null && registeredProducers.contains(producerID))
                 {
@@ -403,7 +403,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             else if (e instanceof FoiEvent && storage instanceof IObsStorage)
             {
                 FoiEvent foiEvent = (FoiEvent)e;
-                String producerID = ((FoiEvent) e).getRelatedEntityID();
+                String producerID = ((FoiEvent) e).getProcedureID();
                 
                 if (producerID != null && registeredProducers.contains(producerID))
                 {
@@ -421,16 +421,16 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 }
             }
             
-            else if (e instanceof EntityEvent)
+            else if (e instanceof ProcedureEvent)
             {
-                EntityEvent.Type type = ((EntityEvent<EntityEvent.Type>) e).getType();
+                ProcedureEvent.Type type = ((ProcedureEvent<ProcedureEvent.Type>) e).getType();
                 
-                if (type == EntityEvent.Type.ENTITY_ADDED)
+                if (type == ProcedureEvent.Type.PROCEDURE_ADDED)
                 {
-                    ensureProducerInfo(((EntityEvent<?>)e).getRelatedEntityID());
+                    ensureProducerInfo(((ProcedureEvent<?>)e).getProcedureID());
                 }
                 
-                else if (type == EntityEvent.Type.ENTITY_CHANGED)
+                else if (type == ProcedureEvent.Type.PROCEDURE_CHANGED)
                 {
                     // TODO check that description was actually updated?
                     // in the current state, the same description would be added at each restart

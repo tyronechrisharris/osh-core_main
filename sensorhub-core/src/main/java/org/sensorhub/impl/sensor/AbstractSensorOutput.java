@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import java.util.List;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IEventHandler;
@@ -22,8 +21,6 @@ import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,48 +113,6 @@ public abstract class AbstractSensorOutput<ProducerType extends IDataProducer> i
     public long getLatestRecordTime()
     {
         return latestRecordTime;
-    }
-    
-    
-    @Override
-    public boolean isStorageSupported()
-    {
-        return false;
-    }
-
-
-    @Override
-    public int getStorageCapacity() throws SensorException
-    {
-        return 0;
-    }
-
-
-    @Override
-    public int getNumberOfAvailableRecords() throws SensorException
-    {
-        throw new SensorException(ERROR_NO_STORAGE + MsgUtils.entityString(parentSensor));
-    }
-
-
-    @Override
-    public List<DataBlock> getLatestRecords(int maxRecords, boolean clear) throws SensorException
-    {
-        throw new SensorException(ERROR_NO_STORAGE + MsgUtils.entityString(parentSensor));
-    }
-
-
-    @Override
-    public List<DataBlock> getAllRecords(boolean clear) throws SensorException
-    {
-        throw new SensorException(ERROR_NO_STORAGE + MsgUtils.entityString(parentSensor));
-    }
-
-
-    @Override
-    public int clearAllRecords() throws SensorException
-    {
-        throw new SensorException(ERROR_NO_STORAGE + MsgUtils.entityString(parentSensor));
     }
     
     

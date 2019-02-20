@@ -28,8 +28,8 @@ import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.AbstractSWEIdentifiable;
 import net.opengis.swe.v20.DataComponent;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IEntity;
-import org.sensorhub.api.common.IEntityGroup;
+import org.sensorhub.api.common.IProcedure;
+import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
@@ -289,7 +289,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public IEntityGroup<IEntity> getParentGroup()
+    public IProcedureGroup<IProcedure> getParentGroup()
     {
         return null;
     }

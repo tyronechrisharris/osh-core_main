@@ -28,8 +28,8 @@ import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.PhysicalComponent;
 import net.opengis.sensorml.v20.PhysicalSystem;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IEntity;
-import org.sensorhub.api.common.IEntityGroup;
+import org.sensorhub.api.common.IProcedure;
+import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
@@ -91,7 +91,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
         }        
 
         @Override
-        public IEntityGroup<? extends IEntity> getParentGroup()
+        public IProcedureGroup<? extends IProcedure> getParentGroup()
         {
             return FakeSensorNetWithFoi.this;
     }
@@ -172,7 +172,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
 
 
     @Override
-    public Map<String, IDataProducer> getEntities()
+    public Map<String, IDataProducer> getMembers()
     {
         return Collections.unmodifiableMap(sensors);
     }

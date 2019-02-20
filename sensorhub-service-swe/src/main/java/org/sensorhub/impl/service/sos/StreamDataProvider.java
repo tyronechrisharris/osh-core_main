@@ -92,7 +92,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             if (!currentFoiMap.isEmpty())
                 numProducers = currentFoiMap.size();
             else
-                numProducers = ((IMultiSourceDataProducer)dataSource).getEntities().size();
+                numProducers = ((IMultiSourceDataProducer)dataSource).getMembers().size();
         }
 
         // create queue with proper size
@@ -184,7 +184,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         if (producer instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)producer;
-            for (IDataProducer member: multiSource.getEntities().values())
+            for (IDataProducer member: multiSource.getMembers().values())
             {
                 // return the first one we find
                 String outputName = findOutput(member, excludedOutputs, defUris);
@@ -203,7 +203,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         if (producer instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)producer;            
-            for (IDataProducer member: multiSource.getEntities().values())
+            for (IDataProducer member: multiSource.getMembers().values())
                 connectDataSource(member);
         }
 
@@ -239,7 +239,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         if (producer instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)producer;            
-            for (IDataProducer member: multiSource.getEntities().values())
+            for (IDataProducer member: multiSource.getMembers().values())
                 disconnectDataSource(member);
         }
     }
@@ -293,8 +293,8 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
         if (dataSource instanceof IMultiSourceDataProducer)
         {
-            String entityID = lastDataEvent.getRelatedEntityID();
-            IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getEntities().get(entityID);
+            String entityID = lastDataEvent.getProcedureID();
+            IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getMembers().get(entityID);
             Asserts.checkNotNull(producer, IDataProducer.class);
             foi = producer.getCurrentFeatureOfInterest();
         }
@@ -389,7 +389,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         if (producer instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)producer;            
-            for (IDataProducer member: multiSource.getEntities().values())
+            for (IDataProducer member: multiSource.getMembers().values())
             {
                 if (hasMoreData(member))
                     return true;
@@ -426,7 +426,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                 if (requestedFois != null)
                 {
                     // skip if entity/foi was not selected
-                    String entityID = ((DataEvent) e).getRelatedEntityID();
+                    String entityID = ((DataEvent) e).getProcedureID();
                     String foiID = currentFoiMap.get(entityID);
                     if (!requestedFois.contains(foiID))
                         return;
@@ -450,7 +450,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         {
             // remember current FOI of each entity
             FoiEvent foiEvent = (FoiEvent) e;
-            String producerID = ((FoiEvent) e).getRelatedEntityID();
+            String producerID = ((FoiEvent) e).getProcedureID();
             currentFoiMap.put(producerID, foiEvent.getFoiID());
         }
     }
@@ -473,7 +473,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             boolean first = true;
             
             // try to detect common prefix            
-            for (String uid: multiProducer.getEntities().keySet())
+            for (String uid: multiProducer.getMembers().keySet())
             {
                 if (first)
                 {
@@ -508,7 +508,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     @Override
     public String getNextProducerID()
         {
-        return lastDataEvent.getRelatedEntityID();
+        return lastDataEvent.getProcedureID();
         }
 
 

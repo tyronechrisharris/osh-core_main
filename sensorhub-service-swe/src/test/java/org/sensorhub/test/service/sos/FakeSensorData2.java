@@ -172,7 +172,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
                     if (foiNum != null)
                     {
                         String entityID = FakeSensorNetWithFoi.SENSOR_UID_PREFIX + foiNum;
-                        AbstractFeature foi = ((IMultiSourceDataProducer)producer).getEntities().get(entityID).getCurrentFeatureOfInterest();
+                        AbstractFeature foi = ((IMultiSourceDataProducer)producer).getMembers().get(entityID).getCurrentFeatureOfInterest();
                         eventHandler.publishEvent(new FoiEvent(latestRecordTime, getParentProducer(), foi, latestRecordTime/1000.));
                         System.out.println("Observing FOI #" + foiNum);
                     }

@@ -18,7 +18,7 @@ package org.sensorhub.api.sensor;
 /**
  * <p>
  * This is just a semantic interface for systems that are considered actuators.
- * Actuators have the same functionality as sensors because,in addition to
+ * Actuators have the same functionality as sensors because, in addition to
  * receiving commands, they often have outputs that provide some measured
  * internal values or status information. 
  * </p>

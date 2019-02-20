@@ -16,9 +16,9 @@ package org.sensorhub.impl.sensor;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.function.Predicate;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IEntityFilter;
-import org.sensorhub.api.common.IEntityManager;
+import org.sensorhub.api.common.IProcedureRegistry;
 import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.ISensorManager;
 
@@ -33,12 +33,12 @@ import org.sensorhub.api.sensor.ISensorManager;
  */
 public class SensorManagerImpl implements ISensorManager
 {
-    protected IEntityManager entityManager;
+    protected IProcedureRegistry entityManager;
     
     
     public SensorManagerImpl(ISensorHub hub)
     {
-        this.entityManager = hub.getEntityManager();
+        this.entityManager = hub.getProcedureRegistry();
     }
 
 
@@ -48,7 +48,7 @@ public class SensorManagerImpl implements ISensorManager
         ArrayList<ISensor> connectedSensors = new ArrayList<>();
         
         // delegate to entity manager and filter on connected status
-        for (ISensor sensor: entityManager.getEntities(ISensor.class))
+        for (ISensor sensor: entityManager.list(ISensor.class))
         {
             if (sensor.isConnected())
                 connectedSensors.add(sensor);
@@ -59,7 +59,7 @@ public class SensorManagerImpl implements ISensorManager
 
 
     @Override
-    public Collection<ISensor> findSensors(IEntityFilter filter)
+    public Collection<ISensor> findSensors(Predicate<ISensor> filter)
     {
         // TODO Auto-generated method stub
         return null;

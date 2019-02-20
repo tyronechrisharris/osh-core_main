@@ -15,8 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.sensor;
 
 import java.util.Collection;
-import org.sensorhub.api.common.IEntity;
-import org.sensorhub.api.common.IEntityFilter;
+import java.util.function.Predicate;
+import org.sensorhub.api.common.IProcedure;
 
 
 /**
@@ -42,10 +42,10 @@ public interface ISensorManager
     
     /**
      * Retrieves all sensors matching the filter
-     * @param entityType type of entity to retrieve (subclass of {@link IEntity})
+     * @param entityType type of entity to retrieve (subclass of {@link IProcedure})
      * @param filter entity filtering criteria
      * @return collection of entities with the given type
      */
-    public Collection<ISensor> findSensors(IEntityFilter filter);
+    public Collection<ISensor> findSensors(Predicate<ISensor> filter);
     
 }

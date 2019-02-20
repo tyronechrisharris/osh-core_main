@@ -41,8 +41,8 @@ public interface IStreamingDataInterface extends IEventProducer
     
     /**
      * Gets this output interface name.
-     * <p><i>It MUST be the name reported in the map by getXXXOutputs methods
-     * of {@link org.sensorhub.api.data.IDataProducer}</i></p>
+     * <p><i>It MUST be the name reported in the map obtained by the getOutputs()
+     * method of {@link org.sensorhub.api.data.IDataProducer}</i></p>
      * @return name of this data interface
      */
     public String getName();
@@ -77,6 +77,8 @@ public interface IStreamingDataInterface extends IEventProducer
     
     /**
      * Gets the latest record received on this data channel.
+     * <p><i>Note that this does not trigger a new measurement but simply
+     * retrieves the result of the last measurement made.</i></p>
      * @return the last measurement record or null if no data is available
      */
     public DataBlock getLatestRecord();
@@ -89,7 +91,8 @@ public interface IStreamingDataInterface extends IEventProducer
      * equal the sampling time stamp that is often sent with the data.
      * <p><i>Note: this method is useful to know if a record has been produced since the
      * last call to {@link #getLatestRecord}.</i></p>
-     * @return time of last record as unix time (ms since 1970) or {@link Long#MIN_VALUE} if no record is available yet
+     * @return time of last record as unix time (ms since 1970) or {@link Long#MIN_VALUE}
+     * if no record is available yet
      */
     public long getLatestRecordTime();
     
@@ -97,8 +100,8 @@ public interface IStreamingDataInterface extends IEventProducer
     /**
      * Gets the average rate at which this interface produces data.<br/>
      * This can be {@link Double#NaN} if the data is not streamed regularly 
-     * (e.g. case of a sensor/process that is triggered manually or by another unpredictable
-     * external stimulus)
+     * (e.g. case of a sensor/process that is triggered manually or by another
+     * unpredictable external stimulus)
      * @return sampling period in seconds or {@link Double#NaN} if unknown
      */
     public double getAverageSamplingPeriod();

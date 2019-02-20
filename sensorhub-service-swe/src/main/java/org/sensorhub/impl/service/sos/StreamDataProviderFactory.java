@@ -203,7 +203,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
         // if multi-source, call recursively on child producers
         if (producer instanceof IMultiSourceDataProducer)
         {
-            for (IDataProducer childProducer: ((IMultiSourceDataProducer) producer).getEntities().values())
+            for (IDataProducer childProducer: ((IMultiSourceDataProducer) producer).getMembers().values())
             {
                 if (hasNewRecords(childProducer, maxAge))
                     return true;
@@ -252,7 +252,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
         // if multisource, call recursively on child producers
         if (producer instanceof IMultiSourceDataProducer)
         {
-            for (IDataProducer childProducer: ((IMultiSourceDataProducer) producer).getEntities().values())
+            for (IDataProducer childProducer: ((IMultiSourceDataProducer) producer).getMembers().values())
                 getObsPropertiesAndTypesFromProducer(childProducer);
         }
     }

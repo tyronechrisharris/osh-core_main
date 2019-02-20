@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.data;
 
-import org.sensorhub.api.common.EntityEvent;
+import org.sensorhub.api.common.ProcedureEvent;
 import org.sensorhub.api.data.FoiEvent.Type;
 import net.opengis.gml.v32.AbstractFeature;
 
@@ -28,7 +28,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @since Apr 23, 2015
  */
-public class FoiEvent extends EntityEvent<Type>
+public class FoiEvent extends ProcedureEvent<Type>
 {
 	/**
      * Possible event types for a FoiEvent
@@ -80,7 +80,7 @@ public class FoiEvent extends EntityEvent<Type>
 	    this.type = Type.NEW_FOI;
         this.timeStamp = timeStamp;
         this.source = producer;
-        this.relatedEntityID = producer.getUniqueIdentifier();
+        this.procedureID = producer.getUniqueIdentifier();
         this.foiID = foiID;
 	}
 	
@@ -97,7 +97,7 @@ public class FoiEvent extends EntityEvent<Type>
         this.type = Type.NEW_FOI;
         this.timeStamp = timeStamp;
         this.source = producer;
-        this.relatedEntityID = producer.getUniqueIdentifier();
+        this.procedureID = producer.getUniqueIdentifier();
         this.foi = foi;
         this.foiID = foi.getUniqueIdentifier();
         this.startTime = startTime;
@@ -117,7 +117,7 @@ public class FoiEvent extends EntityEvent<Type>
         this.type = Type.NEW_FOI;
         this.timeStamp = timeStamp;
         this.source = producer;
-        this.relatedEntityID = entityID;
+        this.procedureID = entityID;
         this.foi = foi;
         this.foiID = foi.getUniqueIdentifier();
         this.startTime = startTime;

@@ -15,7 +15,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api;
 
 import org.sensorhub.api.comm.INetworkManager;
-import org.sensorhub.api.common.IEntityManager;
+import org.sensorhub.api.common.IProcedureRegistry;
 import org.sensorhub.api.persistence.IPersistenceManager;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
@@ -43,6 +43,9 @@ public interface ISensorHub
 
     
     public ModuleRegistry getModuleRegistry();
+
+
+    public IProcedureRegistry getProcedureRegistry();
     
 
     public INetworkManager getNetworkManager();
@@ -52,9 +55,6 @@ public interface ISensorHub
 
 
     public IPersistenceManager getPersistenceManager();
-
-
-    public IEntityManager getEntityManager();
 
 
     public ISensorManager getSensorManager();

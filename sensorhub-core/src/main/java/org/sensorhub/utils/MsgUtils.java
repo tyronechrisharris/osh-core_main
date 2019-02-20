@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.utils;
 
-import org.sensorhub.api.common.IEntity;
+import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 
@@ -54,7 +54,7 @@ public class MsgUtils
     }
     
     
-    public static String entityString(IEntity entity)
+    public static String entityString(IProcedure entity)
     {
         return "'" + entity.getName() + "' [" + entity.getUniqueIdentifier() + "]";
     }

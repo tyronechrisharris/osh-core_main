@@ -16,7 +16,7 @@ package org.sensorhub.api.data;
 
 import java.util.Collection;
 import java.util.Map;
-import org.sensorhub.api.common.IEntityGroup;
+import org.sensorhub.api.common.IProcedureGroup;
 import net.opengis.gml.v32.AbstractFeature;
 
 
@@ -33,7 +33,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @since May 31, 2015
  */
-public interface IMultiSourceDataProducer extends IDataProducer, IEntityGroup<IDataProducer>
+public interface IMultiSourceDataProducer extends IDataProducer, IProcedureGroup<IDataProducer>
 {
         
     /**

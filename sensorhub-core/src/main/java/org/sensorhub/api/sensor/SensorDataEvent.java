@@ -54,7 +54,7 @@ public class SensorDataEvent extends DataEvent
      */
     public String getSensorID()
     {
-        return relatedEntityID;
+        return procedureID;
     }
 
 

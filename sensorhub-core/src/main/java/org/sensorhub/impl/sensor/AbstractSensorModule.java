@@ -29,11 +29,12 @@ import net.opengis.gml.v32.TimeIndeterminateValue;
 import net.opengis.gml.v32.TimePosition;
 import net.opengis.gml.v32.impl.GMLFactory;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
+import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
-import org.sensorhub.api.common.IEntity;
-import org.sensorhub.api.common.IEntityGroup;
+import org.sensorhub.api.common.IProcedure;
+import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModuleStateManager;
@@ -219,7 +220,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     
 
     @Override
-    public IEntityGroup<IEntity> getParentGroup()
+    public IProcedureGroup<IProcedure> getParentGroup()
     {
         return null;
     }
@@ -427,7 +428,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         // send event
         lastUpdatedSensorDescription = updateTime;
-        sensorEventHandler.publishEvent(new SensorEvent(updateTime, this, SensorEvent.Type.SENSOR_CHANGED));
+        sensorEventHandler.publishEvent(new SensorEvent(updateTime, this, SensorEvent.Type.PROCEDURE_CHANGED));
     }
         
     
@@ -491,6 +492,24 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         }
         
         return foi;
+    }
+    
+    
+    public Point getCurrentLocation()
+    {
+        if (locationOutput == null)
+            return null;
+        
+        DataBlock loc = locationOutput.getLatestRecord();
+        if (loc == null)
+            return null;
+        
+        Point point = new GMLFactory().newPoint();
+        point.setSrsName(SWEConstants.REF_FRAME_4979);
+        point.setSrsDimension(3);
+        point.setPos(new double[] {loc.getDoubleValue(0), loc.getDoubleValue(1), loc.getDoubleValue(2)});
+        
+        return point;
     }
 
 

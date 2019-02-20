@@ -19,20 +19,20 @@ import net.opengis.gml.v32.Point;
 
 /**
  * <p>
- * Interface for all entities that can be geolocated
+ * Interface for all procedures that can be geolocated
  * </p>
  *
  * @author Alex Robin
  * @since Jun 12, 2017
  */
-public interface IEntityWithLocation extends IEntity
+public interface IProcedureWithLocation extends IProcedure
 {
 
     /**
-     * Retrieves the current geographic location of the entity as a GML point.<br/>
-     * Note that the entity location can be different from the feature of
-     * interest location/geometry.
-     * @return the entity location
+     * Retrieves the current geographic location of the procedure.
+     * <p><i>Note that the entity location can be different from the feature of interest
+     * location/geometry.</i></p>
+     * @return the procedure location as a GML point or null if unknown
      */
     public Point getCurrentLocation();
 }

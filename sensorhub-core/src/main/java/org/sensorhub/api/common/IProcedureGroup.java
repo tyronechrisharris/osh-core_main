@@ -19,18 +19,18 @@ import java.util.Map;
 
 /**
  * <p>
- * Interface for groups of entities (e.g. sensor networks, sensor systems).
+ * Interface for groups of procedures (e.g. sensor networks, sensor systems).
  * </p>
  *
  * @author Alex Robin
- * @param <EntityType> Type of entity composing this group
+ * @param <T> Type of procedure composing this group
  * @since Jun 9, 2017
  */
-public interface IEntityGroup<EntityType extends IEntity> extends IEntity
+public interface IProcedureGroup<T extends IProcedure> extends IProcedure
 {
     
     /**
-     * @return map of member entities (entity ID -> IEntity object)
+     * @return map of member procedures (procedure UID -> IProcedure object)
      */
-    public Map<String, ? extends EntityType> getEntities();
+    public Map<String, ? extends T> getMembers();
 }

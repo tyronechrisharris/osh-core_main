@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEntity;
+import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventProducer;
@@ -1149,8 +1149,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      */
     protected void registerModule(IModule<?> module)
     {
-        if (module instanceof IEntity)
-            hub.getEntityManager().registerEntity((IEntity)module);
+        if (module instanceof IProcedure)
+            hub.getProcedureRegistry().register((IProcedure)module);
     }
     
     
@@ -1159,8 +1159,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      */
     protected void unregisterModule(IModule<?> module)
     {
-        if (module instanceof IEntity)
-            hub.getEntityManager().unregisterEntity(((IEntity)module).getUniqueIdentifier());
+        if (module instanceof IProcedure)
+            hub.getProcedureRegistry().unregister(((IProcedure)module).getUniqueIdentifier());
     }
     
     

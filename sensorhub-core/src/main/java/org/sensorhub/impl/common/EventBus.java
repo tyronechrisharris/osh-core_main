@@ -17,9 +17,12 @@ package org.sensorhub.impl.common;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Flow;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 
@@ -108,6 +111,18 @@ public class EventBus
         IEventHandler handler = eventHandlers.get(key);
         if (handler != null)
             handler.unregisterListener(listener);
+    }
+    
+    
+    public synchronized void subscribe(Flow.Subscriber<Event> subscriber)
+    {
+        
+    }
+    
+    
+    public synchronized void subscribe(Flow.Subscriber<Event> subscriber, Predicate<Event> filter)
+    {
+        
     }
     
     

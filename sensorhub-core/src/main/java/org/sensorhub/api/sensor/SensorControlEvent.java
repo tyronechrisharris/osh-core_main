@@ -15,7 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.sensor;
 
 import org.sensorhub.api.common.CommandStatus;
-import org.sensorhub.api.common.EntityEvent;
+import org.sensorhub.api.common.ProcedureEvent;
 
 
 /**
@@ -26,7 +26,7 @@ import org.sensorhub.api.common.EntityEvent;
  * @author Alex Robin
  * @since Nov 5, 2010
  */
-public class SensorControlEvent extends EntityEvent<CommandStatus.StatusCode>
+public class SensorControlEvent extends ProcedureEvent<CommandStatus.StatusCode>
 {
 	/**
 	 * Status of the command that triggered this event
@@ -57,7 +57,7 @@ public class SensorControlEvent extends EntityEvent<CommandStatus.StatusCode>
     {
         this.timeStamp = timeStamp;
         this.source = controlInterface;
-        this.relatedEntityID = sensorID;
+        this.procedureID = sensorID;
         this.type = status.status;
     }
     
@@ -71,7 +71,7 @@ public class SensorControlEvent extends EntityEvent<CommandStatus.StatusCode>
      */
     public String getSensorID()
     {
-        return relatedEntityID;
+        return procedureID;
     }
 	
 

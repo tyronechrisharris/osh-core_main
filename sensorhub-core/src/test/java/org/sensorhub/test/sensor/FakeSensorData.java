@@ -14,10 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.test.sensor;
 
-import java.util.ArrayList;
 import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -30,7 +27,6 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.sensor.SensorDataEvent;
-import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.DataRecordImpl;
@@ -231,13 +227,6 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
             return false;
         else
             return true;
-    }    
-    
-    
-    @Override
-    public boolean isStorageSupported()
-    {
-        return (bufferSize > 0);
     }
 
 
@@ -259,82 +248,6 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     public DataEncoding getRecommendedEncoding()
     {
         return outputEncoding;
-    }
-
-
-    @Override
-    public int getStorageCapacity() throws SensorException
-    {
-        return bufferSize;
-    }
-
-
-    @Override
-    public int getNumberOfAvailableRecords() throws SensorException
-    {
-        synchronized (dataQueue)
-        {
-            return dataQueue.size();
-        }
-    }
-
-
-    @Override
-    public List<DataBlock> getLatestRecords(int maxRecords, boolean clear) throws SensorException
-    {
-        synchronized (dataQueue)
-        {
-            List<DataBlock> records = new ArrayList<DataBlock>(maxRecords);
-            
-            if (clear)
-            {
-                for (int i=0; i<maxRecords; i++)
-                    records.add(0, dataQueue.pollLast());
-            }
-            else
-            {
-                Iterator<DataBlock> it = dataQueue.descendingIterator();
-                for (int i=0; it.hasNext() && i<maxRecords; i++)
-                    records.add(0, it.next());
-            }
-            
-            return records;
-        }
-    }
-
-
-    @Override
-    public List<DataBlock> getAllRecords(boolean clear) throws SensorException
-    {
-        synchronized (dataQueue)
-        {
-            List<DataBlock> records = new ArrayList<DataBlock>();
-            
-            if (clear)
-            {
-                while (!dataQueue.isEmpty())
-                    records.add(0, dataQueue.poll());
-            }
-            else
-            {
-                for (DataBlock data: dataQueue)
-                    records.add(data);
-            }
-            
-            return records;
-        } 
-    }
-
-
-    @Override
-    public int clearAllRecords() throws SensorException
-    {
-        synchronized (dataQueue)
-        {
-            int numRecords = dataQueue.size();
-            dataQueue.clear();
-            return numRecords;
-        }
     }
 
 

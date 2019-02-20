@@ -14,10 +14,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.data;
 
-import org.sensorhub.api.common.EntityEvent;
+import org.sensorhub.api.common.ProcedureEvent;
 import org.sensorhub.api.data.DataEvent.Type;
 import net.opengis.swe.v20.DataBlock;
-import net.opengis.swe.v20.DataComponent;
 
 
 /**
@@ -29,7 +28,7 @@ import net.opengis.swe.v20.DataComponent;
  * @author Alex Robin
  * @since Feb 20, 2015
  */
-public class DataEvent extends EntityEvent<Type>
+public class DataEvent extends ProcedureEvent<Type>
 {
 	/**
      * Possible event types for a DataEvent
@@ -65,7 +64,8 @@ public class DataEvent extends EntityEvent<Type>
 	
 	
 	/**
-	 * Constructs a data event related to the default entity (i.e. the parent of the data interface)
+	 * Constructs a data event associated to the procedure that is the parent 
+	 * of the given data interface)
 	 * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param dataInterface stream interface that generated the associated data
 	 * @param records arrays of records that triggered this notification
@@ -74,25 +74,25 @@ public class DataEvent extends EntityEvent<Type>
 	{
 	    this(timeStamp,
 	         dataInterface.getParentProducer().getUniqueIdentifier(),
-	         dataInterface,
+	         dataInterface.getName(),
 	         records);
+	    this.source = dataInterface;
 	}
 	
 	
 	/**
-     * Constructs a data event associated to an identifiable entity
+     * Constructs a data event associated to a specific procedure and channel
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-	 * @param entityID Unique ID of entity that produced the data records
-     * @param dataInterface stream interface that generated the associated data
+	 * @param procedureID Unique ID of procedure that produced the data records
+     * @param channelID id/name of the output interface that generated the data
      * @param records arrays of records that triggered this notification
      */
-    public DataEvent(long timeStamp, String entityID, IStreamingDataInterface dataInterface, DataBlock ... records)
+    public DataEvent(long timeStamp, String procedureID, String channelID, DataBlock ... records)
     {
         this.type = Type.NEW_DATA_AVAILABLE;
         this.timeStamp = timeStamp;
-        this.source = dataInterface;
-        this.channelID = dataInterface.getName();
-        this.relatedEntityID = entityID;
+        this.procedureID = procedureID;
+        this.channelID = channelID;
         this.records = records;
     }
 		
@@ -117,15 +117,6 @@ public class DataEvent extends EntityEvent<Type>
     public String getChannelID()
     {
         return channelID;
-    }
-	   
-	
-    /**
-     * @return description of the data records attached to this event
-     */
-    public DataComponent getRecordDescription()
-    {
-        return ((IStreamingDataInterface)source).getRecordDescription();
     }
 
 

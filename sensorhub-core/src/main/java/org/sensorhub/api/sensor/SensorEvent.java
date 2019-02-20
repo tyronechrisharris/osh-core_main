@@ -14,8 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.sensor;
 
-import org.sensorhub.api.common.EntityEvent;
-import org.sensorhub.api.sensor.SensorEvent.Type;
+import org.sensorhub.api.common.ProcedureEvent;
+import org.sensorhub.api.common.ProcedureEvent.Type;
 
 
 /**
@@ -26,29 +26,8 @@ import org.sensorhub.api.sensor.SensorEvent.Type;
  * @author Alex Robin
  * @since Nov 5, 2010
  */
-public class SensorEvent extends EntityEvent<Type>
+public class SensorEvent extends ProcedureEvent<Type>
 {
-    /**
-	 * Possible event types for a SensorEvent
-	 */
-    public static enum Type
-	{
-		/**
-		 * Sensor added to network
-		 */
-		SENSOR_ADDED,
-		
-		/**
-		 * Sensor removed from network (not just disconnected)
-		 */
-		SENSOR_REMOVED,
-		
-		/**
-		 * Sensor configuration changed (should be reflected by SensorML)
-		 */
-		SENSOR_CHANGED
-	};
-	
 	
 	/**
 	 * Constructs the event for an individual sensor
@@ -61,7 +40,7 @@ public class SensorEvent extends EntityEvent<Type>
 	    this.type = type;
         this.timeStamp = timeStamp;
         this.source = sensor;
-        this.relatedEntityID = sensor.getUniqueIdentifier();
+        this.procedureID = sensor.getUniqueIdentifier();
 	}
 	
 
@@ -74,7 +53,7 @@ public class SensorEvent extends EntityEvent<Type>
      */
     public String getSensorID()
     {
-        return relatedEntityID;
+        return procedureID;
     }
     
     

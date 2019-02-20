@@ -17,14 +17,14 @@ package org.sensorhub.impl;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
-import org.sensorhub.api.common.IEntityManager;
+import org.sensorhub.api.common.IProcedureRegistry;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.persistence.IPersistenceManager;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.sensor.ISensorManager;
 import org.sensorhub.impl.comm.NetworkManagerImpl;
-import org.sensorhub.impl.common.EntityManagerImpl;
+import org.sensorhub.impl.common.InMemoryProcedureRegistry;
 import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.impl.module.InMemoryConfigDb;
 import org.sensorhub.impl.module.ModuleConfigJsonFile;
@@ -56,7 +56,7 @@ public class SensorHub implements ISensorHub
     private ModuleRegistry moduleRegistry;
     private INetworkManager networkManager;
     private ISecurityManager securityManager;
-    private IEntityManager entityManager;
+    private IProcedureRegistry entityManager;
     private ISensorManager sensorManager;
     private IPersistenceManager persistenceManager;
     private IProcessingManager processingManager;
@@ -192,10 +192,10 @@ public class SensorHub implements ISensorHub
     
     
     @Override
-    public synchronized IEntityManager getEntityManager()
+    public synchronized IProcedureRegistry getProcedureRegistry()
     {
         if (entityManager == null)
-            entityManager = new EntityManagerImpl(this);
+            entityManager = new InMemoryProcedureRegistry(this);
         return entityManager;
     }
     

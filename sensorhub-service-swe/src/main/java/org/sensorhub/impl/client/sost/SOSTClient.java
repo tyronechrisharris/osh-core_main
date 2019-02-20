@@ -38,7 +38,6 @@ import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.api.sensor.SensorEvent;
 import org.sensorhub.impl.comm.RobustIPConnection;
 import org.sensorhub.impl.module.AbstractModule;
@@ -439,7 +438,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         // sensor description updated
         else if (e instanceof SensorEvent)
         {
-            if (((SensorEvent) e).getType() == SensorEvent.Type.SENSOR_CHANGED)
+            if (((SensorEvent) e).getType() == SensorEvent.Type.PROCEDURE_CHANGED)
             {
                 try
                 {

@@ -276,7 +276,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         // record update time
         long unixTime = System.currentTimeMillis();
         lastUpdatedSensorDescription = unixTime;
-        sensorEventHandler.publishEvent(new SensorEvent(unixTime, this, SensorEvent.Type.SENSOR_CHANGED));
+        sensorEventHandler.publishEvent(new SensorEvent(unixTime, this, SensorEvent.Type.PROCEDURE_CHANGED));
     }
 
 
