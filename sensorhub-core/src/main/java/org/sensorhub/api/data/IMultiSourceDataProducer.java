@@ -37,18 +37,18 @@ public interface IMultiSourceDataProducer extends IDataProducer, IProcedureGroup
 {
         
     /**
-     * Retrieves the list of features of interest for which this producer
+     * Retrieves the list of all features of interest for which this producer
      * is generating data
-     * @return read-only map of all FOI ids -> feature objects
+     * @return read-only map of FOI ids -> feature objects
      */
     public Map<String, ? extends AbstractFeature> getFeaturesOfInterest();
     
     
     /**
-     * Gets IDs of entities that are observing the specified feature of interest. 
+     * Get nested procedures that are observing the specified feature of interest. 
      * @param foiID ID of feature of interest
-     * @return collection of entity IDs (can be empty)
+     * @return read-only collection of procedure IDs (can be empty)
      */
-    public Collection<String> getEntitiesWithFoi(String foiID);
+    public Collection<String> getProceduresWithFoi(String foiID);
     
 }

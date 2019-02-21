@@ -78,7 +78,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     DataEvent lastDataEvent;
     int nextEventRecordIndex = 0;
     Set<String> requestedFois;
-    Map<String, String> currentFoiMap = new LinkedHashMap<>(); // entity ID -> current FOI ID
+    Map<String, String> currentFoiMap = new LinkedHashMap<>(); // producerID ID -> current FOI ID
     
 
     public StreamDataProvider(IDataProducer dataSource, StreamDataProviderConfig config, SOSDataFilter filter) throws OWSException
@@ -113,12 +113,12 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             {
                 for (String foiID : filter.getFoiIds())
                 {
-                    Collection<String> entityIDs = ((IMultiSourceDataProducer) dataSource).getEntitiesWithFoi(foiID);
-                    if (entityIDs.isEmpty())
+                    Collection<String> producerIDs = ((IMultiSourceDataProducer) dataSource).getProceduresWithFoi(foiID);
+                    if (producerIDs.isEmpty())
                         badFoi = foiID;
 
-                    for (String entityID : entityIDs)
-                        currentFoiMap.put(entityID, foiID);
+                    for (String producerID: producerIDs)
+                        currentFoiMap.put(producerID, foiID);
                 }
             }
             else
@@ -206,6 +206,10 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             for (IDataProducer member: multiSource.getMembers().values())
                 connectDataSource(member);
         }
+        
+        // skip if foi was not requested
+        if (!requestedFois.contains(producer.getCurrentFeatureOfInterest().getUniqueIdentifier()))
+            return;
 
         // get selected output
         IStreamingDataInterface output = producer.getOutputs().get(selectedOutput);
@@ -293,8 +297,8 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
         if (dataSource instanceof IMultiSourceDataProducer)
         {
-            String entityID = lastDataEvent.getProcedureID();
-            IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getMembers().get(entityID);
+            String producerID = lastDataEvent.getProcedureID();
+            IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getMembers().get(producerID);
             Asserts.checkNotNull(producer, IDataProducer.class);
             foi = producer.getCurrentFeatureOfInterest();
         }
@@ -425,9 +429,9 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                 // check foi if filtering on it
                 if (requestedFois != null)
                 {
-                    // skip if entity/foi was not selected
-                    String entityID = ((DataEvent) e).getProcedureID();
-                    String foiID = currentFoiMap.get(entityID);
+                    // skip if procedure/foi was not selected
+                    String producerID = ((DataEvent) e).getProcedureID();
+                    String foiID = currentFoiMap.get(producerID);
                     if (!requestedFois.contains(foiID))
                         return;
                 }
@@ -448,7 +452,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
 
         else if (e instanceof FoiEvent && requestedFois != null)
         {
-            // remember current FOI of each entity
+            // remember current FOI of each producer
             FoiEvent foiEvent = (FoiEvent) e;
             String producerID = ((FoiEvent) e).getProcedureID();
             currentFoiMap.put(producerID, foiEvent.getFoiID());

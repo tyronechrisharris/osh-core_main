@@ -186,7 +186,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
 
 
     @Override
-    public Collection<String> getEntitiesWithFoi(String foiID)
+    public Collection<String> getProceduresWithFoi(String foiID)
     {
         if (!fois.containsKey(foiID))
             return Collections.emptySet();
