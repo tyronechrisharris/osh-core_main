@@ -78,7 +78,7 @@ public class TestSOSTClient
         sensorCfg.name = "Sensor1";
         FakeSensor sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
         sensor.setSensorUID(SENSOR_UID);
-        sensor.setDataInterfaces(new FakeSensorData(sensor, TestSOSService.NAME_OUTPUT1, 10, SAMPLING_PERIOD, numSamples));
+        sensor.setDataInterfaces(new FakeSensorData(sensor, TestSOSService.NAME_OUTPUT1, SAMPLING_PERIOD, numSamples));
         sensor.requestInit(false);
         sensor.requestStart();
         return sensor;

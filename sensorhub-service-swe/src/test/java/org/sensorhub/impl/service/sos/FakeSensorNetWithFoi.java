@@ -27,7 +27,6 @@ import net.opengis.gml.v32.impl.GMLFactory;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.PhysicalComponent;
 import net.opengis.sensorml.v20.PhysicalSystem;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.IEventListener;
@@ -83,11 +82,10 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
             fois.put(foiID, foi);
             
             // create output
-            ISensorHub hub = FakeSensorNetWithFoi.this.getParentHub();
             outputs.put(TestSOSService.NAME_OUTPUT1,
-                    new FakeSensorData(this, TestSOSService.NAME_OUTPUT1, 1, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, hub));
+                    new FakeSensorData(this, TestSOSService.NAME_OUTPUT1, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, sensorEventHandler));
             outputs.put(TestSOSService.NAME_OUTPUT2,
-                    new FakeSensorData2(this, TestSOSService.NAME_OUTPUT2, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, null, hub));
+                    new FakeSensorData2(this, TestSOSService.NAME_OUTPUT2, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, null, sensorEventHandler));
         }        
 
         @Override
@@ -102,11 +100,11 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
             return sensor.getUniqueIdentifier();
         }
     
-    @Override
+        @Override
         public AbstractProcess getCurrentDescription()
-    {
+        {
             return sensor;
-    }
+        }
 
         @Override
         public long getLastDescriptionUpdate()
@@ -114,11 +112,11 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
             return 0;
         }
 
-    @Override
+        @Override
         public Map<String, ? extends IStreamingDataInterface> getOutputs()
-    {
+        {
             return Collections.unmodifiableMap(outputs);
-    }
+        }
 
         @Override
         public AbstractFeature getCurrentFeatureOfInterest()
@@ -126,10 +124,10 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
             return foi;
         }
 
-    @Override
+        @Override
         public void registerListener(IEventListener listener)
-    {
-    }
+        {
+        }
 
         @Override
         public void unregisterListener(IEventListener listener)
@@ -142,7 +140,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
             return sensor.getName();
         }
 
-    @Override
+        @Override
         public boolean isEnabled()
         {
             return FakeSensorNetWithFoi.this.isStarted();

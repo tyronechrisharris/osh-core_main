@@ -191,7 +191,7 @@ public class TestSOSService
         sensorCfg.name = "Sensor1";
         FakeSensor sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
         sensor.setSensorUID(UID_SENSOR1);
-        sensor.setDataInterfaces(new FakeSensorData(sensor, NAME_OUTPUT1, 10, SAMPLING_PERIOD, NUM_GEN_SAMPLES));
+        sensor.setDataInterfaces(new FakeSensorData(sensor, NAME_OUTPUT1, SAMPLING_PERIOD, NUM_GEN_SAMPLES));
         if (start)
         {
             moduleRegistry.startModule(sensorCfg.id, TIMEOUT);

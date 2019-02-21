@@ -14,18 +14,17 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import java.util.Deque;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.LinkedBlockingDeque;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.Quantity;
 import net.opengis.swe.v20.Time;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.vast.data.DataBlockDouble;
@@ -55,11 +54,10 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     String name;
     DataComponent outputStruct;
     DataEncoding outputEncoding;
+    DataBlock latestRecord;
     int maxSampleCount;
     int sampleCount;
-    int bufferSize;
     double samplingPeriod; // seconds
-    Deque<DataBlock> dataQueue;
     Timer timer;
     TimerTask sendTask;
     boolean started;
@@ -68,29 +66,25 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     
     public FakeSensorData(FakeSensor sensor, String name)
     {
-        this(sensor, name, 1, 1.0, 5);
+        this(sensor, name, 1.0, 5);
     }
     
     
-    public FakeSensorData(FakeSensor sensor, final String name, final int bufferSize, final double samplingPeriod, final int maxSampleCount)
+    public FakeSensorData(ISensorModule<?> sensor, final String name, final double samplingPeriod, final int maxSampleCount)
     {
         super(name, sensor);
         this.name = name;
-        this.bufferSize = bufferSize;
         this.samplingPeriod = samplingPeriod;
-        this.dataQueue = new LinkedBlockingDeque<DataBlock>(bufferSize);
         this.maxSampleCount = maxSampleCount;
         init();
     }
     
     
-    public FakeSensorData(IDataProducer sensor, final String name, final int bufferSize, final double samplingPeriod, final int maxSampleCount, final ISensorHub hub)
+    public FakeSensorData(IDataProducer sensor, final String name, final double samplingPeriod, final int maxSampleCount, IEventPublisher eventHandler)
     {
-        super(name, sensor, hub);
+        super(name, sensor, eventHandler);
         this.name = name;
-        this.bufferSize = bufferSize;
         this.samplingPeriod = samplingPeriod;
-        this.dataQueue = new LinkedBlockingDeque<DataBlock>(bufferSize);
         this.maxSampleCount = maxSampleCount;
         init();
     }
@@ -145,32 +139,26 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
                 if (sampleCount >= maxSampleCount)
                     return;
                 
-                synchronized (dataQueue)
-                {
-                    // miss random samples 20% of the time
-                    if (Math.random() > 0.8)
-                        return;
-                    
-                    double samplingTime = System.currentTimeMillis() / 1000.;
-                    DataBlock data = new DataBlockDouble(4);
-                    data.setDoubleValue(0, samplingTime);
-                    data.setDoubleValue(1, 1.0 + ((int)(Math.random()*100))/1000.);
-                    data.setDoubleValue(2, 2.0 + ((int)(Math.random()*100))/1000.);
-                    data.setDoubleValue(3, 3.0 + ((int)(Math.random()*100))/1000.);
-                               
-                    sampleCount++;
-                    String isoTime = new DateTimeFormat().formatIso(samplingTime, 0);
-                    System.out.println("Weather record #" + sampleCount + " generated @ " + isoTime);
-                    if (sampleCount >= maxSampleCount)
-                        cancel();
-                    
-                    if (dataQueue.size() == bufferSize)
-                        dataQueue.remove();
-                    dataQueue.offer(data);
-                    
-                    latestRecordTime = System.currentTimeMillis();
-                    eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, FakeSensorData.this, data));
-                }                        
+                // miss random samples 20% of the time
+                if (Math.random() > 0.8)
+                    return;
+                
+                double samplingTime = System.currentTimeMillis() / 1000.;
+                DataBlock data = new DataBlockDouble(4);
+                data.setDoubleValue(0, samplingTime);
+                data.setDoubleValue(1, 1.0 + ((int)(Math.random()*100))/1000.);
+                data.setDoubleValue(2, 2.0 + ((int)(Math.random()*100))/1000.);
+                data.setDoubleValue(3, 3.0 + ((int)(Math.random()*100))/1000.);
+                           
+                sampleCount++;
+                String isoTime = new DateTimeFormat().formatIso(samplingTime, 0);
+                System.out.println("Weather record #" + sampleCount + " generated @ " + isoTime);
+                if (sampleCount >= maxSampleCount)
+                    cancel();
+                
+                latestRecord = data;
+                latestRecordTime = System.currentTimeMillis();
+                eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, FakeSensorData.this, data));                        
             }                
         };
         
@@ -194,17 +182,7 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     @Override
     public DataBlock getLatestRecord()
     {
-        synchronized (dataQueue)
-        {   
-            // make sure the first record is produced
-            if (!hasListeners & sendTask != null)
-            {
-                while (dataQueue.isEmpty())
-                    sendTask.run();
-            }
-            
-            return dataQueue.peekLast();
-        }
+        return latestRecord;
     }
     
     

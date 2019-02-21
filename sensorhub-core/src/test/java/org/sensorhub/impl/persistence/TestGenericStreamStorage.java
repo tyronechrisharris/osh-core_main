@@ -56,7 +56,7 @@ public class TestGenericStreamStorage
         sensorCfg.name = "Sensor1";
         sensorCfg.setLocation(45., 2.5, 325.);
         fakeSensor = (FakeSensorWithPos)registry.loadModule(sensorCfg);
-        fakeSensorData = new FakeSensorData(fakeSensor, OUTPUT_NAME, 10, 0.05, 10);
+        fakeSensorData = new FakeSensorData(fakeSensor, OUTPUT_NAME, 0.05, 10);
         fakeSensor.setDataInterfaces(fakeSensorData);
         registry.startModule(fakeSensor.getLocalID());
         

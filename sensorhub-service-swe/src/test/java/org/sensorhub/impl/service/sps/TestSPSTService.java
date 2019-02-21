@@ -99,7 +99,7 @@ public class TestSPSTService
         config.name = "Auto-Registered Sensor";
         sensor.init(config);
         sensor.setSensorUID(SENSOR_UID);
-        sensor.setDataInterfaces(new FakeSensorData(sensor, "output1", 10, 1.0, 0));
+        sensor.setDataInterfaces(new FakeSensorData(sensor, "output1", 1.0, 0));
         sensor.setControlInterfaces(new FakeSensorControl1(sensor), new FakeSensorControl2(sensor));
         
         // build insert sensor request

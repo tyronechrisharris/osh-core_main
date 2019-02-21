@@ -67,7 +67,7 @@ public class TestStreamProcess implements IEventListener
         sensorCfg.id = FAKE_SENSOR1_ID;
         sensorCfg.name = "Sensor1";
         IModule<?> sensor = registry.loadModule(sensorCfg);
-        FakeSensorData sensorOutput = new FakeSensorData((FakeSensor)sensor, NAME_OUTPUT1, 10, SAMPLING_PERIOD, SAMPLE_COUNT);
+        FakeSensorData sensorOutput = new FakeSensorData((FakeSensor)sensor, NAME_OUTPUT1, SAMPLING_PERIOD, SAMPLE_COUNT);
         ((FakeSensor)sensor).setDataInterfaces(sensorOutput);
         sensor.requestInit(false);
         return (FakeSensor)sensor;

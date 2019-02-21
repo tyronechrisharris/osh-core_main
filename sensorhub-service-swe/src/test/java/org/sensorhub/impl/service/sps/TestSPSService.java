@@ -147,7 +147,7 @@ public class TestSPSService
         sensor1.setSensorUID(SENSOR_UID_1);
         
         // add custom interfaces
-        sensor1.setDataInterfaces(new FakeSensorData(sensor1, "output1", 10, 1.0, 0));
+        sensor1.setDataInterfaces(new FakeSensorData(sensor1, "output1", 1.0, 0));
         sensor1.setControlInterfaces(new FakeSensorControl1(sensor1));
         
         // create SOS data provider config
@@ -173,7 +173,7 @@ public class TestSPSService
         sensor2.setSensorUID(SENSOR_UID_2);
         
         // add custom interfaces
-        sensor2.setDataInterfaces(new FakeSensorData(sensor2, "output1", 10, 1.0, 0));
+        sensor2.setDataInterfaces(new FakeSensorData(sensor2, "output1", 1.0, 0));
         sensor2.setControlInterfaces(new FakeSensorControl1(sensor2), new FakeSensorControl2(sensor2));
         
         // create SOS data provider config
