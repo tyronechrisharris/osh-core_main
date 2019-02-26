@@ -348,6 +348,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         else if (field instanceof DateField) {
             ((DateField) field).setTimeZone(TimeZone.getTimeZone("UTC"));
             ((DateField) field).setResolution(Resolution.SECOND);
+            ((DateField) field).setDateFormat("yyyy-MM-dd HH:mm:ss '(UTC)'");
+            field.setWidth(250, Unit.PIXELS);
         }
         
         // special fields
