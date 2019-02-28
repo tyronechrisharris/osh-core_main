@@ -25,7 +25,6 @@ subprojects {
     // only publish with bintray if credentials are configured 
     // and project is not a SNAPSHOT
     if (project.hasProperty("bintray_user") && !project.version.endsWith('SNAPSHOT')) { 
-      println project.name
       // bintray publishing options
       bintray {
         user = bintray_user
