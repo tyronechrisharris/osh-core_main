@@ -16,7 +16,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
-import org.sensorhub.api.persistence.ObsStorageConfig;
+import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.utils.FileUtils;
 
 
@@ -28,7 +28,7 @@ import org.sensorhub.utils.FileUtils;
  * @author Alex Robin
  * @since Sep 7, 2013
  */
-public class MVStorageConfig extends ObsStorageConfig
+public class MVStorageConfig extends StorageConfig
 {
     
     @Required

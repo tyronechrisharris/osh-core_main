@@ -14,7 +14,7 @@ import java.nio.file.Files;
 import java.time.ZoneOffset;
 import org.h2.mvstore.MVStore;
 import org.junit.After;
-import org.sensorhub.test.datastore.AbstractTestFeatureStore;
+import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
 
 
 public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreImpl>
