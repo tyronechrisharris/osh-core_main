@@ -32,7 +32,7 @@ public class SensorEvent extends ProcedureEvent<Type>
 	/**
 	 * Constructs the event for an individual sensor
 	 * @param timeStamp unix time of event generation
-	 * @param sensorModule sensor module that generated the event
+	 * @param sensor sensor module that generated the event
 	 * @param type type of event
 	 */
 	public SensorEvent(long timeStamp, ISensor sensor, Type type)
@@ -40,7 +40,7 @@ public class SensorEvent extends ProcedureEvent<Type>
 	    this.type = type;
         this.timeStamp = timeStamp;
         this.source = sensor;
-        this.procedureID = sensor.getUniqueIdentifier();
+        this.sourceID = sensor.getUniqueIdentifier();
 	}
 	
 
@@ -53,7 +53,7 @@ public class SensorEvent extends ProcedureEvent<Type>
      */
     public String getSensorID()
     {
-        return procedureID;
+        return sourceID;
     }
     
     

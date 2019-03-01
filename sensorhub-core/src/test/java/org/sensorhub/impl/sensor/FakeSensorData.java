@@ -158,7 +158,7 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
                 
                 latestRecord = data;
                 latestRecordTime = System.currentTimeMillis();
-                eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, FakeSensorData.this, data));                        
+                eventHandler.publish(new SensorDataEvent(latestRecordTime, FakeSensorData.this, data));                        
             }                
         };
         

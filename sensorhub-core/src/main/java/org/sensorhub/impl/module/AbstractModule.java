@@ -15,7 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.module;
 
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IEventHandler;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
@@ -23,7 +23,6 @@ import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.utils.ModuleUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
@@ -43,7 +42,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
 {
     protected ISensorHub hub;
     protected Logger logger;
-    protected IEventHandler moduleEventHandler;
+    protected IEventPublisher moduleEventHandler;
     protected ConfigType config;
     protected ModuleState state = ModuleState.LOADED;
     protected ModuleSecurity securityHandler;
@@ -107,7 +106,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             this.config = config;
             
             // get assigned event handler
-            this.moduleEventHandler = getParentHub().getEventBus().registerProducer(config.id, EventBus.MAIN_TOPIC);
+            this.moduleEventHandler = getParentHub().getEventBus().getPublisher(config.id);
             
             // set default security handler
             this.securityHandler = new ModuleSecurity(this, "all", false);
@@ -129,7 +128,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         try
         {
             setConfiguration(config);
-            moduleEventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.CONFIG_CHANGED));
+            moduleEventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.CONFIG_CHANGED));
         }
         catch (Exception e)
         {
@@ -178,12 +177,12 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             {
                 this.state = newState;
                 stateLock.notifyAll();
-                getLogger().info("Module " + newState);
+                getLogger().info("Module {}", newState);
                 
                 if (moduleEventHandler != null)
                 {
                     ModuleEvent event = new ModuleEvent(this, newState);
-                    moduleEventHandler.publishEvent(event);
+                    moduleEventHandler.publish(event);
                 }
                 
                 // process delayed start request
@@ -293,7 +292,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             if (moduleEventHandler != null)
             {
                 ModuleEvent event = new ModuleEvent(this, this.lastError);               
-                moduleEventHandler.publishEvent(event);
+                moduleEventHandler.publish(event);
             }
         }
     }
@@ -330,7 +329,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         if (moduleEventHandler != null)
         {
             ModuleEvent event = new ModuleEvent(this, this.statusMsg);               
-            moduleEventHandler.publishEvent(event);
+            moduleEventHandler.publish(event);
         }
     }
     
@@ -353,12 +352,12 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         if (connected)
         {
             reportStatus("Connected to " + remoteServiceName);
-            moduleEventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.CONNECTED));
+            moduleEventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.CONNECTED));
         }
         else
         {
             reportStatus("Disconnected from " + remoteServiceName);
-            moduleEventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DISCONNECTED));
+            moduleEventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.DISCONNECTED));
         }
     }
     
@@ -481,7 +480,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     }
     
     
-    protected boolean canStop() throws SensorHubException
+    protected boolean canStop()
     {
         synchronized (stateLock)
         {
@@ -543,7 +542,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     public void cleanup() throws SensorHubException
     {
         if (moduleEventHandler != null)
-            moduleEventHandler.publishEvent(new ModuleEvent(this, ModuleEvent.Type.DELETED));
+            moduleEventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.DELETED));
     }
 
 

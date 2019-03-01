@@ -24,9 +24,10 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.IProcedureRegistry;
-import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.module.IModule;
+import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.FilteredIterator;
 import org.sensorhub.utils.MsgUtils;
@@ -43,19 +44,17 @@ import org.sensorhub.utils.MsgUtils;
  */
 public class InMemoryProcedureRegistry implements IProcedureRegistry
 {
-    public static final String EVENT_PRODUCER_ID = "ENTITY_MANAGER";
-
     ReadWriteLock lock = new ReentrantReadWriteLock();
     ModuleRegistry moduleRegistry;
     Map<String, WeakReference<IProcedure>> rootProcedures = new TreeMap<>();
     Map<String, WeakReference<IProcedure>> allProcedures = new TreeMap<>();
-    IEventHandler eventHandler;
+    IEventPublisher eventHandler;
     
     
     public InMemoryProcedureRegistry(ISensorHub hub)
     {
         this.moduleRegistry = hub.getModuleRegistry();
-        this.eventHandler = hub.getEventBus().registerProducer(EVENT_PRODUCER_ID);
+        this.eventHandler = hub.getEventBus().getPublisher(SensorHub.PROCEDURE_REGISTRY_ID);
     }
     
     

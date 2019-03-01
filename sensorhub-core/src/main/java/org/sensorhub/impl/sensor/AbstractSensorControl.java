@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.UUID;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.common.CommandStatus;
-import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.data.ICommandReceiver;
 import org.sensorhub.api.common.CommandStatus.StatusCode;
 import org.sensorhub.api.sensor.ISensorControlInterface;
@@ -42,12 +42,12 @@ import org.vast.util.DateTime;
  */
 public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>> implements ISensorControlInterface
 {
-    protected static String ERROR_NO_ASYNC = "Asynchronous command processing is not supported by driver ";
-    protected static String ERROR_NO_SCHED = "Command scheduling is not supported by driver ";
-    protected static String ERROR_NO_STATUS_HISTORY = "Status history is not supported by driver ";
+    protected static final String ERROR_NO_ASYNC = "Asynchronous command processing is not supported by driver ";
+    protected static final String ERROR_NO_SCHED = "Command scheduling is not supported by driver ";
+    protected static final String ERROR_NO_STATUS_HISTORY = "Status history is not supported by driver ";
     protected String name;
     protected SensorType parentSensor;
-    protected IEventHandler eventHandler;
+    protected IEventPublisher eventHandler;
     
     
     public AbstractSensorControl(SensorType parentSensor)
@@ -61,10 +61,9 @@ public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>>
         this.name = name;
         this.parentSensor = parentSensor;
         
-        // obtain an event handler for this control input
-        String moduleID = parentSensor.getLocalID();
-        String topic = getName();
-        this.eventHandler = parentSensor.getParentHub().getEventBus().registerProducer(moduleID, topic);
+        // use event handler of the parent sensor
+        String procedureID = parentSensor.getUniqueIdentifier();
+        eventHandler = parentSensor.getParentHub().getEventBus().getPublisher(procedureID);
     }
     
     

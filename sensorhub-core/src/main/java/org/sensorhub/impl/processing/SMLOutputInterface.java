@@ -17,8 +17,8 @@ package org.sensorhub.impl.processing;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
-import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
@@ -36,7 +36,7 @@ import org.vast.util.Asserts;
 class SMLOutputInterface implements IStreamingDataInterface
 {
     SMLProcessImpl parentProcess;
-    IEventHandler eventHandler;
+    IEventPublisher eventHandler;
     DataComponent outputDef;
     DataEncoding outputEncoding;
     DataBlock lastRecord;
@@ -71,7 +71,7 @@ class SMLOutputInterface implements IStreamingDataInterface
             lastRecord = data;
             lastRecordTime = now;
             DataEvent e = new DataEvent(now, SMLOutputInterface.this, data);
-            eventHandler.publishEvent(e);
+            eventHandler.publish(e);
         }        
     };
     
@@ -92,9 +92,8 @@ class SMLOutputInterface implements IStreamingDataInterface
         }
         
         // obtain an event handler for this output
-        String moduleID = parentProcess.getLocalID();
-        String topic = getName();
-        this.eventHandler = parentProcess.getParentHub().getEventBus().registerProducer(moduleID, topic);
+        String processID = parentProcess.getLocalID();
+        this.eventHandler = parentProcess.getParentHub().getEventBus().getPublisher(processID);
     }
     
 

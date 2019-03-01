@@ -34,9 +34,9 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IProcedure;
-import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventProducer;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleConfigRepository;
@@ -75,7 +75,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     ISensorHub hub;
     IModuleConfigRepository configRepo;
     Map<String, IModule<?>> loadedModules;
-    IEventHandler eventHandler;
+    IEventPublisher eventHandler;
     ExecutorService asyncExec;
     volatile boolean allModulesLoaded = true;
     volatile boolean shutdownCalled;
@@ -86,7 +86,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         this.hub = hub;
         this.configRepo = configRepos;
         this.loadedModules = Collections.synchronizedMap(new LinkedHashMap<String, IModule<?>>());
-        this.eventHandler = hub.getEventBus().registerProducer(EVENT_PRODUCER_ID);
+        this.eventHandler = hub.getEventBus().getPublisher(EVENT_PRODUCER_ID);
         this.asyncExec = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                                                 10L, TimeUnit.SECONDS,
                                                 new SynchronousQueue<Runnable>(),
@@ -1010,9 +1010,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         
         // clear loaded modules
         loadedModules.clear();
-        
-        // make sure to clear all listeners in case they failed to unregister themselves
-        eventHandler.clearAllListeners();
         
         // properly close config database
         configRepo.close();

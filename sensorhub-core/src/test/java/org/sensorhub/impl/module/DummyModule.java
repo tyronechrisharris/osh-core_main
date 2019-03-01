@@ -15,8 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.module;
 
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleStateManager;
@@ -30,7 +30,7 @@ public class DummyModule implements IModule<ModuleConfig>
     ISensorHub hub;
     ModuleConfig config;
     ModuleState state = ModuleState.LOADED;
-    IEventHandler eventHandler;
+    IEventPublisher eventHandler;
 
 
     @Override
@@ -71,7 +71,7 @@ public class DummyModule implements IModule<ModuleConfig>
     public void setConfiguration(ModuleConfig config)
     {
         this.config = config;
-        this.eventHandler = hub.getEventBus().registerProducer(config.id);
+        this.eventHandler = hub.getEventBus().getPublisher(config.id);
     }
 
 
@@ -188,7 +188,7 @@ public class DummyModule implements IModule<ModuleConfig>
     protected void setState(ModuleState newState)
     {
         this.state = newState;
-        eventHandler.publishEvent(new ModuleEvent(this, newState));
+        eventHandler.publish(new ModuleEvent(this, newState));
     }
 
 

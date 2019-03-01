@@ -23,7 +23,6 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
 
@@ -51,7 +50,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IE
                             
                             if (!config.useWaitLoopForInit)
                             {
-                                getParentHub().getEventBus().registerListener(config.moduleIDNeededForInit, EventBus.MAIN_TOPIC, AsyncModule.this);
+                                getParentHub().getEventBus().registerListener(config.moduleIDNeededForInit, AsyncModule.this);
                                 return null;
                             }
                             else
@@ -116,7 +115,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IE
                             
                             if (!config.useWaitLoopForStart)
                             {
-                                getParentHub().getEventBus().registerListener(config.moduleIDNeededForStart, EventBus.MAIN_TOPIC, AsyncModule.this);
+                                getParentHub().getEventBus().registerListener(config.moduleIDNeededForStart, AsyncModule.this);
                                 return null;
                             }
                             else

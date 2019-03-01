@@ -61,6 +61,23 @@ public class DataEvent extends ProcedureEvent<Type>
 	 * every single record of measurements.
 	 */
 	protected DataBlock[] records;
+    
+    
+    /**
+     * Constructs a data event associated to a specific procedure and channel
+     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
+     * @param procedureID Unique ID of procedure that produced the data records
+     * @param channelID id/name of the output interface that generated the data
+     * @param records arrays of records that triggered this notification
+     */
+    public DataEvent(long timeStamp, String procedureID, String channelID, DataBlock ... records)
+    {
+        this.type = Type.NEW_DATA_AVAILABLE;
+        this.timeStamp = timeStamp;
+        this.sourceID = procedureID;
+        this.channelID = channelID;
+        this.records = records;
+    }
 	
 	
 	/**
@@ -78,23 +95,6 @@ public class DataEvent extends ProcedureEvent<Type>
 	         records);
 	    this.source = dataInterface;
 	}
-	
-	
-	/**
-     * Constructs a data event associated to a specific procedure and channel
-     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-	 * @param procedureID Unique ID of procedure that produced the data records
-     * @param channelID id/name of the output interface that generated the data
-     * @param records arrays of records that triggered this notification
-     */
-    public DataEvent(long timeStamp, String procedureID, String channelID, DataBlock ... records)
-    {
-        this.type = Type.NEW_DATA_AVAILABLE;
-        this.timeStamp = timeStamp;
-        this.procedureID = procedureID;
-        this.channelID = channelID;
-        this.records = records;
-    }
 		
 	
 	@Override

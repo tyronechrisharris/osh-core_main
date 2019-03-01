@@ -57,7 +57,7 @@ public class SensorControlEvent extends ProcedureEvent<CommandStatus.StatusCode>
     {
         this.timeStamp = timeStamp;
         this.source = controlInterface;
-        this.procedureID = sensorID;
+        this.sourceID = sensorID;
         this.type = status.status;
     }
     
@@ -71,7 +71,7 @@ public class SensorControlEvent extends ProcedureEvent<CommandStatus.StatusCode>
      */
     public String getSensorID()
     {
-        return procedureID;
+        return sourceID;
     }
 	
 

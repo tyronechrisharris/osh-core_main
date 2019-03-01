@@ -30,6 +30,7 @@ import net.opengis.sensorml.v20.PhysicalSystem;
 import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
@@ -82,10 +83,12 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
             fois.put(foiID, foi);
             
             // create output
+            String parentSensorID = FakeSensorNetWithFoi.this.getUniqueIdentifier();
+            IEventPublisher eventHandler = hub.getEventBus().getPublisher(parentSensorID, getUniqueIdentifier());
             outputs.put(TestSOSService.NAME_OUTPUT1,
-                    new FakeSensorData(this, TestSOSService.NAME_OUTPUT1, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, sensorEventHandler));
+                    new FakeSensorData(this, TestSOSService.NAME_OUTPUT1, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, eventHandler));
             outputs.put(TestSOSService.NAME_OUTPUT2,
-                    new FakeSensorData2(this, TestSOSService.NAME_OUTPUT2, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, null, sensorEventHandler));
+                    new FakeSensorData2(this, TestSOSService.NAME_OUTPUT2, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, null, eventHandler));
         }        
 
         @Override

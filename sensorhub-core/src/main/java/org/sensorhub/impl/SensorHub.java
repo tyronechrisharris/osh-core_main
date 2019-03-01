@@ -34,6 +34,7 @@ import org.sensorhub.impl.processing.ProcessingManagerImpl;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.impl.security.SecurityManagerImpl;
 import org.sensorhub.impl.sensor.SensorManagerImpl;
+import org.sensorhub.utils.ModuleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,8 @@ import org.slf4j.LoggerFactory;
  */
 public class SensorHub implements ISensorHub
 {
+    public static final String PROCEDURE_REGISTRY_ID = "PROCEDURE_REGISTRY";
+    
     private static final Logger log = LoggerFactory.getLogger(SensorHub.class);    
     private static final String ERROR_MSG = "Fatal error during sensorhub execution";
     
@@ -223,8 +226,11 @@ public class SensorHub implements ISensorHub
         // if no arg provided
         if (args.length < 2)
         {
+            String version = ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion();
+            String buildNumber = ModuleUtils.getBuildNumber(SensorHub.class);
+            
             // print usage
-            System.out.println("SensorHub v1.1");
+            System.out.println("SensorHub " + version + " (build " + buildNumber + ")");
             System.out.println("Command syntax: sensorhub [module_config_path] [base_storage_path]");
             System.exit(1);
         }

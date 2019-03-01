@@ -35,7 +35,7 @@ import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
 import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IProcedureGroup;
-import org.sensorhub.api.common.IEventHandler;
+import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.sensor.ISensorControlInterface;
@@ -46,7 +46,6 @@ import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorEvent;
 import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.ogc.om.SamplingPoint;
@@ -94,7 +93,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected static final String STATE_UNIQUE_ID = "UniqueID";
     protected static final String STATE_LAST_SML_UPDATE = "LastUpdatedSensorDescription";
     
-    protected IEventHandler sensorEventHandler;
+    protected IEventPublisher sensorEventHandler;
     private Map<String, ISensorDataInterface> obsOutputs = new LinkedHashMap<>();
     private Map<String, ISensorDataInterface> statusOutputs = new LinkedHashMap<>();
     private Map<String, ISensorControlInterface> controlInputs = new LinkedHashMap<>();
@@ -144,7 +143,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         }
         
         // get handler for sensor events
-        this.sensorEventHandler = getParentHub().getEventBus().registerProducer(getUniqueIdentifier(), EventBus.MAIN_TOPIC);        
+        this.sensorEventHandler = getParentHub().getEventBus().getPublisher(getUniqueIdentifier());        
         
         // add location output if a location is provided
         LLALocation loc = config.getLocation();
@@ -428,7 +427,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         // send event
         lastUpdatedSensorDescription = updateTime;
-        sensorEventHandler.publishEvent(new SensorEvent(updateTime, this, SensorEvent.Type.PROCEDURE_CHANGED));
+        sensorEventHandler.publish(new SensorEvent(updateTime, this, SensorEvent.Type.PROCEDURE_CHANGED));
     }
         
     
@@ -445,6 +444,17 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         allOutputs.putAll(obsOutputs);
         allOutputs.putAll(statusOutputs);
         return Collections.unmodifiableMap(allOutputs);
+    }
+    
+    
+    /**
+     * @deprecated use {@link #getOutputs()} instead
+     * @return read-only map of output names -> data interface objects 
+     */
+    @Deprecated(forRemoval=true)
+    public Map<String, ISensorDataInterface> getAllOutputs()
+    {
+        return getOutputs();
     }
 
 

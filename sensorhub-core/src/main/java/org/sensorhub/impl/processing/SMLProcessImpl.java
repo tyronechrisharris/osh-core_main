@@ -50,7 +50,6 @@ import org.vast.sensorML.SMLUtils;
  * </p>
  *
  * @author Alex Robin
- * @param <ConfigType> Type of process configuration
  * @since Feb 22, 2015
  */
 public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements IProcessModule<SMLProcessConfig>

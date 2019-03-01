@@ -29,7 +29,7 @@ public interface IEventProducer
     
     /**
      * Registers a listener with this event producer.
-     * The listener is reponsible for filtering received events.
+     * The listener is responsible for filtering received events.
      * @param listener
      */
     public void registerListener(IEventListener listener);

@@ -126,6 +126,7 @@ public class ModuleEvent extends Event<Type>
     public ModuleEvent(IModule<?> module, Type type)
     {
         this.timeStamp = System.currentTimeMillis();
+        this.sourceID = module.getLocalID();
         this.source = module;
         this.type = type;
         

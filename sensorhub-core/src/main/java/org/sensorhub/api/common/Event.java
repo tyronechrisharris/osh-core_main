@@ -29,6 +29,7 @@ public abstract class Event<EventTypeEnum extends Enum<?>>
 {
     protected long timeStamp;
     protected EventTypeEnum type;
+    protected String sourceID;
     protected transient Object source;
         
     
@@ -47,6 +48,16 @@ public abstract class Event<EventTypeEnum extends Enum<?>>
     public EventTypeEnum getType()
     {
         return type;
+    }
+    
+    
+    /**
+     * Gets the ID of the source of event.
+     * @return ID of the event source
+     */
+    public String getSourceID()
+    {
+        return sourceID;
     }
     
     

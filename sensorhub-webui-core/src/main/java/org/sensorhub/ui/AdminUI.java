@@ -276,7 +276,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         selectStackItem(stack);
         
         // register to module registry events
-        hub.getEventBus().registerListener(ModuleRegistry.EVENT_PRODUCER_ID, EventBus.MAIN_TOPIC, this);
+        hub.getEventBus().registerListener(ModuleRegistry.EVENT_PRODUCER_ID, this);
     }
     
     
@@ -1158,7 +1158,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     public void detach()
     {
         // unregister from module registry events
-        hub.getEventBus().unregisterListener(ModuleRegistry.EVENT_PRODUCER_ID, EventBus.MAIN_TOPIC, this);
+        hub.getEventBus().unregisterListener(ModuleRegistry.EVENT_PRODUCER_ID, this);
         
         super.detach();
     }

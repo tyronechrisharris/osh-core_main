@@ -52,12 +52,6 @@ public abstract class ProcedureEvent<TypeEnum extends Enum<?>> extends Event<Typ
     
     
     /**
-     * @see #getProcedureID()
-     */
-    protected String procedureID;
-    
-    
-    /**
      * Gets the unique ID of the procedure related to this event.<br/>
      * For procedure groups (e.g. sensor networks), it will be either the ID
      * of the group as a whole (if the event is global) or the ID of a single
@@ -66,7 +60,7 @@ public abstract class ProcedureEvent<TypeEnum extends Enum<?>> extends Event<Typ
      */
     public String getProcedureID()
     {
-        return procedureID;
+        return sourceID;
     }
     
 }
