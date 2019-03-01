@@ -1,16 +1,10 @@
-description = 'PERST Object Storage'
-ext.details = 'Storage module backed by a PERST object database'
-
-def thisProjectDir = projectDir
-rootProject.allprojects {
-  repositories {
-    maven { url "file:///$thisProjectDir/libs" }
-  }
-}
+description = 'H2 MVStore Storage'
+ext.details = 'Storage module backed by a H2 MVStore object database'
 
 dependencies {
   compile project(':sensorhub-core')
-  embedded 'org.garret:perst-fixed:4.39'
+  compile 'com.h2database:h2-mvstore:1.4.197'
+  compile 'com.esotericsoftware:kryo:4.0.2'
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }
 
