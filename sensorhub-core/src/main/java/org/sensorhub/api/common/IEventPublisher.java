@@ -28,14 +28,14 @@ import java.util.function.BiPredicate;
  * @author Alex Robin
  * @date Feb 21, 2019
  */
-public interface IEventPublisher extends Publisher<Event<?>>, IEventProducer
+public interface IEventPublisher extends Publisher<Event>
 {
     
     /**
      * Dispatch event to all subscribers
      * @param e event to dispatch
      */
-    public void publish(Event<?> e);
+    public void publish(Event e);
     
     
     /**
@@ -45,22 +45,11 @@ public interface IEventPublisher extends Publisher<Event<?>>, IEventProducer
      * @param e event to dispatch
      * @param onDrop called when event was dropped by a subscriber
      */
-    public void publish(Event<?> e, BiPredicate<Subscriber<? super Event<?>>, ? super Event<?>> onDrop);
+    public void publish(Event e, BiPredicate<Subscriber<? super Event>, ? super Event> onDrop);
     
     
     /**
      * @return the number of current subscribers
      */
     public int getNumberOfSubscribers();
-    
-    
-    /**
-     * @deprecated use {@link #publish(Event)} instead
-     * @param e
-     */
-    @Deprecated(forRemoval=true)
-    public default void publishEvent(Event<?> e)
-    {
-        publish(e);
-    }
 }

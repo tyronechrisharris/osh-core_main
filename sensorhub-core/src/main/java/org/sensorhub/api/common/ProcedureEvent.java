@@ -24,31 +24,16 @@ package org.sensorhub.api.common;
  * </p>
  *
  * @author Alex Robin
- * @param <TypeEnum> Enum of possible event sub-type
  * @since Apr 23, 2015
  */
-public abstract class ProcedureEvent<TypeEnum extends Enum<?>> extends Event<TypeEnum>
-{
-    /**
-     * Possible event types for a ProcedureEvent
-     */
-    public static enum Type
+public abstract class ProcedureEvent extends Event
+{    
+    
+    public ProcedureEvent(long timeStamp, String procedureID)
     {
-        /**
-         * Procedure added to hub or parent group
-         */
-        PROCEDURE_ADDED,
-        
-        /**
-         * Procedure removed from hub or parent group
-         */
-        PROCEDURE_REMOVED,
-        
-        /**
-         * Procedure configuration changed (should be reflected by SensorML)
-         */
-        PROCEDURE_CHANGED
-    };
+        this.timeStamp = timeStamp;
+        this.sourceID = procedureID;
+    }
     
     
     /**

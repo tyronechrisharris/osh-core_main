@@ -17,12 +17,15 @@ package org.sensorhub.impl.processing;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
-import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
+import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.processing.ProcessingException;
+import org.sensorhub.impl.common.BasicEventHandler;
+import org.sensorhub.impl.event.EventSourceInfo;
 import org.vast.process.DataQueue;
 import org.vast.process.ProcessException;
 import org.vast.swe.SWEHelper;
@@ -35,8 +38,9 @@ import org.vast.util.Asserts;
  */
 class SMLOutputInterface implements IStreamingDataInterface
 {
-    SMLProcessImpl parentProcess;
-    IEventPublisher eventHandler;
+    final SMLProcessImpl parentProcess;
+    final IEventHandler eventHandler;
+    final IEventSourceInfo eventSrcInfo;
     DataComponent outputDef;
     DataEncoding outputEncoding;
     DataBlock lastRecord;
@@ -91,9 +95,11 @@ class SMLOutputInterface implements IStreamingDataInterface
             throw new ProcessingException("Error while connecting output " + outputDef.getName(), e);
         }
         
-        // obtain an event handler for this output
-        String processID = parentProcess.getLocalID();
-        this.eventHandler = parentProcess.getParentHub().getEventBus().getPublisher(processID);
+        // setup event handling stuff
+        this.eventHandler = new BasicEventHandler();
+        String groupID = parentProcess.getUniqueIdentifier();
+        String sourceID = parentProcess.getUniqueIdentifier() + "/outputs/" + getName();
+        this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
     }
     
 
@@ -164,6 +170,13 @@ class SMLOutputInterface implements IStreamingDataInterface
     public void unregisterListener(IEventListener listener)
     {
         eventHandler.unregisterListener(listener);
+    }
+
+
+    @Override
+    public IEventSourceInfo getEventSourceInfo()
+    {
+        return eventSrcInfo;
     }
 
 }

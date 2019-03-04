@@ -18,6 +18,7 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.common.IProcedureRegistry;
+import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.persistence.IPersistenceManager;
 import org.sensorhub.api.processing.IProcessingManager;
@@ -25,7 +26,7 @@ import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.sensor.ISensorManager;
 import org.sensorhub.impl.comm.NetworkManagerImpl;
 import org.sensorhub.impl.common.InMemoryProcedureRegistry;
-import org.sensorhub.impl.common.EventBus;
+import org.sensorhub.impl.event.EventBus;
 import org.sensorhub.impl.module.InMemoryConfigDb;
 import org.sensorhub.impl.module.ModuleConfigJsonFile;
 import org.sensorhub.impl.module.ModuleRegistry;
@@ -49,13 +50,11 @@ import org.slf4j.LoggerFactory;
  */
 public class SensorHub implements ISensorHub
 {
-    public static final String PROCEDURE_REGISTRY_ID = "PROCEDURE_REGISTRY";
-    
     private static final Logger log = LoggerFactory.getLogger(SensorHub.class);    
     private static final String ERROR_MSG = "Fatal error during sensorhub execution";
     
     private ISensorHubConfig config;
-    private EventBus eventBus;
+    private IEventBus eventBus;
     private ModuleRegistry moduleRegistry;
     private INetworkManager networkManager;
     private ISecurityManager securityManager;
@@ -84,7 +83,7 @@ public class SensorHub implements ISensorHub
     }
     
     
-    public SensorHub(ISensorHubConfig config, ModuleRegistry registry, EventBus eventBus)
+    public SensorHub(ISensorHubConfig config, ModuleRegistry registry, IEventBus eventBus)
     {
         this.config = config;
         this.eventBus = eventBus;
@@ -161,7 +160,7 @@ public class SensorHub implements ISensorHub
     
     
     @Override
-    public synchronized EventBus getEventBus()
+    public synchronized IEventBus getEventBus()
     {
         return eventBus;
     }

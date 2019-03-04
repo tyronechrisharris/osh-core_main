@@ -23,6 +23,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.event.IEventSourceInfo;
 
 
 /**
@@ -47,10 +48,10 @@ import org.sensorhub.api.common.IEventListener;
  */
 public class BasicEventHandler implements IEventHandler
 {
-    List<WeakReference<IEventListener>> listeners = new ArrayList<WeakReference<IEventListener>>();
-    List<IEventListener> toDelete = new ArrayList<IEventListener>();
-    List<IEventListener> toAdd = new ArrayList<IEventListener>();
-    Deque<Event<?>> eventQueue = new LinkedBlockingDeque<Event<?>>();
+    List<WeakReference<IEventListener>> listeners = new ArrayList<>();
+    List<IEventListener> toDelete = new ArrayList<>();
+    List<IEventListener> toAdd = new ArrayList<>();
+    Deque<Event> eventQueue = new LinkedBlockingDeque<>();
     boolean inPublish = false;
     
     
@@ -80,7 +81,7 @@ public class BasicEventHandler implements IEventHandler
     
     
     @Override
-    public synchronized void publishEvent(Event<?> e)
+    public synchronized void publish(Event e)
     {
         // case of recursive call
         if (inPublish)
@@ -117,7 +118,7 @@ public class BasicEventHandler implements IEventHandler
         commitAdds();
         
         while (!eventQueue.isEmpty())
-            publishEvent(eventQueue.pollFirst());
+            publish(eventQueue.pollFirst());
     }
     
     
@@ -184,5 +185,12 @@ public class BasicEventHandler implements IEventHandler
     public void clearAllListeners()
     {
         listeners.clear();        
+    }
+
+
+    @Override
+    public IEventSourceInfo getEventSourceInfo()
+    {
+        throw new UnsupportedOperationException();
     }
 }

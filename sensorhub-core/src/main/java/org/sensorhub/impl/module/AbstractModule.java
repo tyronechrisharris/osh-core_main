@@ -15,14 +15,17 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.module;
 
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IEventPublisher;
+import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
+import org.sensorhub.impl.common.BasicEventHandler;
+import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.utils.ModuleUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
@@ -40,9 +43,10 @@ import org.vast.util.Asserts;
  */
 public abstract class AbstractModule<ConfigType extends ModuleConfig> implements IModule<ConfigType>
 {
-    protected ISensorHub hub;
+    private ISensorHub hub;
     protected Logger logger;
-    protected IEventPublisher moduleEventHandler;
+    protected IEventHandler eventHandler;
+    protected IEventSourceInfo eventSrcInfo;
     protected ConfigType config;
     protected ModuleState state = ModuleState.LOADED;
     protected ModuleSecurity securityHandler;
@@ -99,14 +103,12 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void setConfiguration(ConfigType config)
     {
-        checkParentHub();
-        
         if (this.config != config)
         {
             this.config = config;
             
-            // get assigned event handler
-            this.moduleEventHandler = getParentHub().getEventBus().getPublisher(config.id);
+            // set event handler
+            this.eventHandler = new BasicEventHandler();
             
             // set default security handler
             this.securityHandler = new ModuleSecurity(this, "all", false);
@@ -128,7 +130,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         try
         {
             setConfiguration(config);
-            moduleEventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.CONFIG_CHANGED));
+            eventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.CONFIG_CHANGED));
         }
         catch (Exception e)
         {
@@ -179,10 +181,10 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 stateLock.notifyAll();
                 getLogger().info("Module {}", newState);
                 
-                if (moduleEventHandler != null)
+                if (eventHandler != null)
                 {
                     ModuleEvent event = new ModuleEvent(this, newState);
-                    moduleEventHandler.publish(event);
+                    eventHandler.publish(event);
                 }
                 
                 // process delayed start request
@@ -289,10 +291,10 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 getLogger().error(msg);
             }
             
-            if (moduleEventHandler != null)
+            if (eventHandler != null)
             {
                 ModuleEvent event = new ModuleEvent(this, this.lastError);               
-                moduleEventHandler.publish(event);
+                eventHandler.publish(event);
             }
         }
     }
@@ -326,10 +328,10 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         this.statusMsg = msg;
         getLogger().info(msg);
         
-        if (moduleEventHandler != null)
+        if (eventHandler != null)
         {
             ModuleEvent event = new ModuleEvent(this, this.statusMsg);               
-            moduleEventHandler.publish(event);
+            eventHandler.publish(event);
         }
     }
     
@@ -352,12 +354,12 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         if (connected)
         {
             reportStatus("Connected to " + remoteServiceName);
-            moduleEventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.CONNECTED));
+            eventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.CONNECTED));
         }
         else
         {
             reportStatus("Disconnected from " + remoteServiceName);
-            moduleEventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.DISCONNECTED));
+            eventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.DISCONNECTED));
         }
     }
     
@@ -541,8 +543,8 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void cleanup() throws SensorHubException
     {
-        if (moduleEventHandler != null)
-            moduleEventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.DELETED));
+        if (eventHandler != null)
+            eventHandler.publish(new ModuleEvent(this, ModuleEvent.Type.DELETED));
     }
 
 
@@ -552,7 +554,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         checkParentHub();        
         synchronized (stateLock)
         {
-            moduleEventHandler.registerListener(listener);
+            eventHandler.registerListener(listener);
             
             // notify current state synchronously while we're locked
             // so the listener can't miss it
@@ -566,13 +568,22 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     public void unregisterListener(IEventListener listener)
     {
         checkParentHub();
-        moduleEventHandler.unregisterListener(listener);
+        eventHandler.unregisterListener(listener);
+    }
+    
+    
+    @Override
+    public IEventSourceInfo getEventSourceInfo()
+    {
+        if (eventSrcInfo == null)
+            eventSrcInfo = new EventSourceInfo(getLocalID());
+        
+        return eventSrcInfo;
     }
     
     
     public Logger getLogger()
     {
-        checkParentHub();
         if (logger == null)
             logger = ModuleUtils.createModuleLogger(this);        
         return logger;

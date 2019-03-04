@@ -35,7 +35,6 @@ import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IEventListener;
-import org.sensorhub.api.common.IEventProducer;
 import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
@@ -64,18 +63,17 @@ import org.slf4j.LoggerFactory;
  * @author Alex Robin
  * @since Sep 2, 2013
  */
-public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProducer, IEventListener
+public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListener
 {
     private static final Logger log = LoggerFactory.getLogger(ModuleRegistry.class);
     private static final String REGISTRY_SHUTDOWN_MSG = "Registry was shut down";
     private static final String TIMEOUT_MSG = " in the requested time frame";
-    public static final String EVENT_PRODUCER_ID = "MODULE_REGISTRY";
+    public static final String EVENT_GROUP_ID = "urn:osh:modules";
     public static final long SHUTDOWN_TIMEOUT_MS = 10000L;
 
     ISensorHub hub;
     IModuleConfigRepository configRepo;
     Map<String, IModule<?>> loadedModules;
-    IEventPublisher eventHandler;
     ExecutorService asyncExec;
     volatile boolean allModulesLoaded = true;
     volatile boolean shutdownCalled;
@@ -86,7 +84,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         this.hub = hub;
         this.configRepo = configRepos;
         this.loadedModules = Collections.synchronizedMap(new LinkedHashMap<String, IModule<?>>());
-        this.eventHandler = hub.getEventBus().getPublisher(EVENT_PRODUCER_ID);
         this.asyncExec = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                                                 10L, TimeUnit.SECONDS,
                                                 new SynchronousQueue<Runnable>(),
@@ -135,6 +132,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             }
             catch (InterruptedException e)
             {
+                Thread.currentThread().interrupt();
             }
         }
     }
@@ -167,12 +165,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     {        
         IModule<?> module = loadModuleAsync(config, null);
         
-        if (config.autoStart)
-        {
-            if (!module.waitForState(ModuleState.STARTED, timeOut))
-                throw new SensorHubException(IModule.CANNOT_START_MSG + MsgUtils.moduleString(module) + TIMEOUT_MSG);
-        }
-        
+        if (config.autoStart && !module.waitForState(ModuleState.STARTED, timeOut))
+            throw new SensorHubException(IModule.CANNOT_START_MSG + MsgUtils.moduleString(module) + TIMEOUT_MSG);
+                
         return module;
     }
     
@@ -187,7 +182,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      * @return loaded module instance (may not yet be started when this method returns)
      * @throws SensorHubException if no module with given ID can be found
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public IModule<?> loadModuleAsync(ModuleConfig config, IEventListener listener) throws SensorHubException
     {
         if (config.id != null && loadedModules.containsKey(config.id))
@@ -202,14 +197,22 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                         
             // instantiate module class
             module = (IModule)loadClass(config.moduleClass);
-            log.debug("Module {} loaded", MsgUtils.moduleString(config));
+            if (log.isDebugEnabled())
+                log.debug("Module {} loaded", MsgUtils.moduleString(config));
             module.setParentHub(hub);
             
             // set config
             module.setConfiguration(config);
             
-            // listen to module lifecycle events
-            module.registerListener(this);
+            // register module on event bus and forward its events to it
+            // events from all modules are published in the same group
+            final IEventPublisher modulePublisher = hub.getEventBus().getPublisher(EVENT_GROUP_ID, config.id);
+            module.registerListener(e -> {
+                if (e instanceof ModuleEvent)
+                    modulePublisher.publish(e);
+            });
+            
+            // also register additional local listener if specified
             if (listener != null)
                 module.registerListener(listener);
             
@@ -217,7 +220,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
             loadedModules.put(config.id, module);
             
             // send event
-            eventHandler.publishEvent(new ModuleEvent(module, Type.LOADED));
+            modulePublisher.publish(new ModuleEvent(module, Type.LOADED));
             
             // also init & start if autostart is set
             if (config.autoStart)
@@ -243,9 +246,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         try
         {
             Class<?> clazz = Class.forName(className);
-            return clazz.newInstance();
+            return clazz.getDeclaredConstructor().newInstance();
         }
-        catch (NoClassDefFoundError | ClassNotFoundException | IllegalAccessException | InstantiationException e)
+        catch (NoClassDefFoundError | ReflectiveOperationException e)
         {
             throw new SensorHubException("Cannot instantiate class " + className, e);
         }
@@ -260,18 +263,17 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      */
     public ModuleConfig createModuleConfig(IModuleProvider provider) throws SensorHubException
     {
-        Class<?> configClass = provider.getModuleConfigClass();
-        
         try
         {
-            ModuleConfig config = (ModuleConfig)configClass.newInstance();
+            Class<?> configClass = provider.getModuleConfigClass();
+            ModuleConfig config = (ModuleConfig)configClass.getDeclaredConstructor().newInstance();
             config.id = UUID.randomUUID().toString();
             config.moduleClass = provider.getModuleClass().getCanonicalName();
             config.name = "New " + provider.getModuleName();
             config.autoStart = false;
             return config;
         }
-        catch (Exception e)
+        catch (NoClassDefFoundError | ReflectiveOperationException e)
         {
             String msg = "Cannot create configuration class for module " + provider.getModuleName();
             log.error(msg, e);
@@ -299,8 +301,12 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     {
         stopModule(moduleID);        
         IModule<?> module = loadedModules.remove(moduleID);
-        eventHandler.publishEvent(new ModuleEvent(module, Type.UNLOADED));
-        log.debug("Module {} unloaded", MsgUtils.moduleString(module));
+        
+        IEventPublisher modulePublisher = hub.getEventBus().getPublisher(moduleID);
+        modulePublisher.publish(new ModuleEvent(module, Type.UNLOADED));
+        
+        if (log.isDebugEnabled())
+            log.debug("Module {} unloaded", MsgUtils.moduleString(module));
     }
     
     
@@ -371,31 +377,26 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         try
         {
             // init module in separate thread
-            asyncExec.submit(new Runnable()
-            {
-                @Override
-                public void run()
+            asyncExec.submit(() -> {
+                try
                 {
-                    try
-                    {
-                        // if forced, try to stop first
-                        if (force)
-                            module.requestStop();
-                    }
-                    catch (Exception e)
-                    {
-                        log.error(IModule.CANNOT_STOP_MSG + MsgUtils.moduleString(module), e);
-                    }
-                    
-                    try
-                    {
-                        module.requestInit(force);
-                    }
-                    catch (Exception e)
-                    {
-                        log.error(IModule.CANNOT_INIT_MSG + MsgUtils.moduleString(module), e);
-                    }
-                }            
+                    // if forced, try to stop first
+                    if (force)
+                        module.requestStop();
+                }
+                catch (Exception e)
+                {
+                    log.error(IModule.CANNOT_STOP_MSG + MsgUtils.moduleString(module), e);
+                }
+                
+                try
+                {
+                    module.requestInit(force);
+                }
+                catch (Exception e)
+                {
+                    log.error(IModule.CANNOT_INIT_MSG + MsgUtils.moduleString(module), e);
+                }          
             });
         }
         catch (RejectedExecutionException e)
@@ -467,29 +468,24 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         try
         {
             // start module in separate thread
-            asyncExec.submit(new Runnable()
-            {
-                @Override
-                public void run()
+            asyncExec.submit(() -> {
+                try
                 {
-                    try
-                    {
-                        if (!module.isInitialized())
-                            module.requestInit(false);
-                    }
-                    catch (Exception e)
-                    {
-                        log.error(IModule.CANNOT_INIT_MSG + MsgUtils.moduleString(module), e);
-                    }
-                    
-                    try
-                    {
-                        module.requestStart();
-                    }
-                    catch (Exception e)
-                    {
-                        log.error(IModule.CANNOT_START_MSG + MsgUtils.moduleString(module), e);
-                    }
+                    if (!module.isInitialized())
+                        module.requestInit(false);
+                }
+                catch (Exception e)
+                {
+                    log.error(IModule.CANNOT_INIT_MSG + MsgUtils.moduleString(module), e);
+                }
+                
+                try
+                {
+                    module.requestStart();
+                }
+                catch (Exception e)
+                {
+                    log.error(IModule.CANNOT_START_MSG + MsgUtils.moduleString(module), e);
                 }            
             });
         }
@@ -562,19 +558,14 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         try
         {
             // stop module in separate thread
-            asyncExec.submit(new Runnable()
-            {
-                @Override
-                public void run()
+            asyncExec.submit(() -> {
+                try
                 {
-                    try
-                    {
-                        module.requestStop();
-                    }
-                    catch (Exception e)
-                    {
-                        log.error(IModule.CANNOT_STOP_MSG + MsgUtils.moduleString(module), e);
-                    }
+                    module.requestStop();
+                }
+                catch (Exception e)
+                {
+                    log.error(IModule.CANNOT_STOP_MSG + MsgUtils.moduleString(module), e);
                 }            
             });
         }
@@ -614,20 +605,15 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         try
         {
             // restart module in separate thread
-            asyncExec.submit(new Runnable()
-            {
-                @Override
-                public void run()
+            asyncExec.submit(() -> {
+                try
                 {
-                    try
-                    {
-                        module.requestStop();
-                        module.requestStart();                        
-                    }
-                    catch (Exception e)
-                    {
-                        log.error("Cannot restart module " + MsgUtils.moduleString(module), e);
-                    }
+                    module.requestStop();
+                    module.requestStart();                        
+                }
+                catch (Exception e)
+                {
+                    log.error("Cannot restart module " + MsgUtils.moduleString(module), e);
                 }            
             });
         }
@@ -657,25 +643,20 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      * @param config new module configuration
      * @throws SensorHubException
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public void updateModuleConfigAsync(final IModule module, final ModuleConfig config) throws SensorHubException
     {
         try
         {
             // stop module in separate thread
-            asyncExec.submit(new Runnable()
-            {
-                @Override
-                public void run()
+            asyncExec.submit(() -> {
+                try
                 {
-                    try
-                    {
-                        module.updateConfig(config);
-                    }
-                    catch (Exception e)
-                    {
-                        log.error(IModule.CANNOT_UPDATE_MSG + MsgUtils.moduleString(module), e);
-                    }
+                    module.updateConfig(config);
+                }
+                catch (Exception e)
+                {
+                    log.error(IModule.CANNOT_UPDATE_MSG + MsgUtils.moduleString(module), e);
                 }            
             });
         }
@@ -714,7 +695,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                 unregisterModule(module);
             }
             
-            log.debug("Module {} deleted", MsgUtils.moduleString(module));
+            if (log.isDebugEnabled())
+                log.debug("Module {} deleted", MsgUtils.moduleString(module));
         }
         catch (Exception e)
         {
@@ -747,7 +729,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         catch (Exception e)
         {
             log.error("Error while saving SensorHub configuration", e);
-            throw e;
         }
     }
     
@@ -788,14 +769,15 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
      * @param moduleType parent class of modules to search for
      * @return list of module instances of the specified type
      */
-    public synchronized <ModuleType> Collection<ModuleType> getLoadedModules(Class<ModuleType> moduleType)
+    @SuppressWarnings("unchecked")
+    public synchronized <T extends IModule<?>> Collection<T> getLoadedModules(Class<T> moduleType)
     {
-        ArrayList<ModuleType> matchingModules = new ArrayList<>();
+        ArrayList<T> matchingModules = new ArrayList<>();
         
         for (IModule<?> module: getLoadedModules())
         {
             if (moduleType.isAssignableFrom(module.getClass()))
-                matchingModules.add((ModuleType)module);
+                matchingModules.add((T)module);
         }
         
         return matchingModules;
@@ -818,10 +800,11 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     }
     
     
-    public <ModuleType> WeakReference<ModuleType> getModuleRef(String moduleID) throws SensorHubException
+    @SuppressWarnings("unchecked")
+    public <T extends IModule<?>> WeakReference<T> getModuleRef(String moduleID) throws SensorHubException
     {
         IModule<?> module = getModuleById(moduleID);
-        return new WeakReference<>((ModuleType)module);
+        return new WeakReference<>((T)module);
     }
     
     
@@ -987,6 +970,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
         }
         catch (InterruptedException e1)
         {
+            Thread.currentThread().interrupt();
         }
         
         // unregister from all modules and warn if some could not stop
@@ -1004,7 +988,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                     firstWarning = false;
                 }
                 
-                log.warn(MsgUtils.moduleString(module));
+                if (log.isWarnEnabled())
+                    log.warn(MsgUtils.moduleString(module));
             }
         } 
         
@@ -1050,22 +1035,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
     }
 
 
-    @Override
-    public void registerListener(IEventListener listener)
-    {
-        eventHandler.registerListener(listener);        
-    }
-
-
-    @Override
-    public void unregisterListener(IEventListener listener)
-    {
-        eventHandler.unregisterListener(listener);        
-    }
-
-
-    @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {        
         if (e instanceof ModuleEvent)
         {
@@ -1114,9 +1084,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventProduce
                 default:
                     break;
             }
-            
-            // forward all lifecycle events from modules loaded by this registry
-            eventHandler.publishEvent(e);
         }
     }
     

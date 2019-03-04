@@ -420,32 +420,29 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
 
 
     @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {
         if (e instanceof DataEvent)
         {
-            if (((DataEvent) e).getType() == DataEvent.Type.NEW_DATA_AVAILABLE)
+            // check foi if filtering on it
+            if (requestedFois != null)
             {
-                // check foi if filtering on it
-                if (requestedFois != null)
-                {
-                    // skip if procedure/foi was not selected
-                    String producerID = ((DataEvent) e).getProcedureID();
-                    String foiID = currentFoiMap.get(producerID);
-                    if (!requestedFois.contains(foiID))
-                        return;
-                }
+                // skip if procedure/foi was not selected
+                String producerID = ((DataEvent) e).getProcedureID();
+                String foiID = currentFoiMap.get(producerID);
+                if (!requestedFois.contains(foiID))
+                    return;
+            }
 
-                // try to add to queue
-                if (!eventQueue.offer((DataEvent) e))
+            // try to add to queue
+            if (!eventQueue.offer((DataEvent) e))
+            {
+                long now = System.currentTimeMillis();
+                if (now - lastQueueErrorTime > 10000)
                 {
-                    long now = System.currentTimeMillis();
-                    if (now - lastQueueErrorTime > 10000)
-                    {
-                        log.warn("Maximum queue size reached while streaming data from {}. "
-                               + "Some records will be discarded. This is often due to insufficient bandwidth", dataSource);
-                        lastQueueErrorTime = now;
-                    }
+                    log.warn("Maximum queue size reached while streaming data from {}. "
+                           + "Some records will be discarded. This is often due to insufficient bandwidth", dataSource);
+                    lastQueueErrorTime = now;
                 }
             }
         }

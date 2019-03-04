@@ -12,8 +12,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.common;
+package org.sensorhub.api.event;
 
+import org.sensorhub.api.common.IEventListener;
 
 /**
  * <p>
@@ -41,4 +42,14 @@ public interface IEventProducer
      * @param listener
      */
     public void unregisterListener(IEventListener listener);
+    
+    
+    /**
+     * Get the descriptor of this event source, including the source ID and 
+     * the group ID it should be attached to. This information is used when
+     * publishing or subscribing to the event bus.
+     * @return the event source descriptor
+     */
+    public IEventSourceInfo getEventSourceInfo();
+    
 }

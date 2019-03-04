@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.event.IEventSourceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +50,7 @@ public class AsyncEventHandler implements IEventHandler
     class ListenerQueue
     {
         IEventListener listener;
-        Queue<Event<?>> eventQueue = new ConcurrentLinkedQueue<>();
+        Queue<Event> eventQueue = new ConcurrentLinkedQueue<>();
         volatile boolean dispatching = false;
         volatile Thread dispatchThread;
         
@@ -61,7 +62,7 @@ public class AsyncEventHandler implements IEventHandler
         synchronized void dispatchNextEvent()
         {
             // dispatch next event from queue
-            final Event<?> e = eventQueue.poll();
+            final Event e = eventQueue.poll();
             if (e != null)
             {
                 dispatching = true;
@@ -81,7 +82,7 @@ public class AsyncEventHandler implements IEventHandler
                                 {
                                     String srcName = e.getSource().getClass().getSimpleName();
                                     String destName = listener.getClass().getSimpleName();
-                                    log.warn("{} Event from {} to {} @ {}, dispatch delay={}, queue size={}", e.getType(), srcName, destName, e.getTimeStamp(), dispatchDelay, eventQueue.size());
+                                    log.warn("{} from {} to {} @ {}, dispatch delay={}, queue size={}", e.getClass().getSimpleName(), srcName, destName, e.getTimeStamp(), dispatchDelay, eventQueue.size());
                                 }                            
                                 
                                 //String srcName = e.getSource().getClass().getSimpleName();
@@ -117,7 +118,7 @@ public class AsyncEventHandler implements IEventHandler
             notifyAll();
         }
         
-        synchronized void pushEvent(final Event<?> e)
+        synchronized void pushEvent(final Event e)
         {
             if (eventQueue.offer(e))
             {            
@@ -171,7 +172,7 @@ public class AsyncEventHandler implements IEventHandler
     
     
     @Override
-    public void publishEvent(final Event<?> e)
+    public void publish(final Event e)
     {
         synchronized (listeners)
         {
@@ -224,5 +225,12 @@ public class AsyncEventHandler implements IEventHandler
                 queue.cancel();
             listeners.clear();
         }
+    }
+
+
+    @Override
+    public IEventSourceInfo getEventSourceInfo()
+    {
+        throw new UnsupportedOperationException();
     }
 }

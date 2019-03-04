@@ -117,8 +117,9 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
                 config.id = UUID.randomUUID().toString();
             
             Class<?> clazz = Class.forName(config.moduleClass);
-            IModule<ModuleConfig> module = (IModule<ModuleConfig>)clazz.newInstance();
-            module.setParentHub(hub);
+            @SuppressWarnings("unchecked")
+            IModule<ModuleConfig> module = (IModule<ModuleConfig>)clazz.getDeclaredConstructor().newInstance();
+            module.setParentHub(getParentHub());
             module.init(config);
             return module;
         }

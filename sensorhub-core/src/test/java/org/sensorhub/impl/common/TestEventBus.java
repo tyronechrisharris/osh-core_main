@@ -15,12 +15,16 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.junit.Test;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
+import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.impl.event.EventBus;
+import org.vast.data.DataBlockInt;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -60,8 +64,8 @@ public class TestEventBus
         String sourceId;
         int numRequestedEvents;
         int numExceptedEvents;
-        Predicate<Event<?>> filter;
-        ArrayList<Event<?>> eventsReceived = new ArrayList<>(); 
+        Predicate<Event> filter;
+        ArrayList<Event> eventsReceived = new ArrayList<>(); 
         
         SubscriberInfo(String sourceId, int numRequestedEvents)
         {
@@ -70,7 +74,7 @@ public class TestEventBus
             this.numExceptedEvents = numRequestedEvents;
         }
         
-        SubscriberInfo(String sourceId, int numRequestedEvents, int numExceptedEvents, Predicate<Event<?>> filter)
+        SubscriberInfo(String sourceId, int numRequestedEvents, int numExceptedEvents, Predicate<Event> filter)
         {
             this.sourceId = sourceId;
             this.numRequestedEvents = numRequestedEvents;
@@ -87,25 +91,28 @@ public class TestEventBus
     
     CountDownLatch createPublishersAndSubscribe(SourceInfo[] sources, SubscriberInfo[] subscribers) throws Exception
     {
-        EventBus bus = new EventBus();
+        IEventBus bus = new EventBus();
         CountDownLatch doneSignal = new CountDownLatch(subscribers.length);
         
         for (SourceInfo src: sources)
         {
             // get a publisher for this source
-            IEventPublisher pub;
             if (src.parentSourceId == null)
-                pub = bus.getPublisher(src.id);
+                bus.getPublisher(src.id);
             else
-                pub = bus.getPublisher(src.parentSourceId, src.id);
+                bus.getPublisher(src.parentSourceId, src.id);
+        }
+        
+        // subscribe
+        for (int i = 0; i < subscribers.length; i++)
+        {
+            final int subId = i;
+            SubscriberInfo sub = subscribers[subId];
             
-            // subscribe
-            for (SubscriberInfo sub: subscribers)
-            {
-                if (!sub.sourceId.equals(src.id))
-                    continue;
-                
-                bus.subscribe(src.id, sub.filter, new Subscriber<Event<?>>() {
+            bus.subscribe()
+                .withSourceID(sub.sourceId)
+                .withFilter(sub.filter)
+                .withSubscriber(new Subscriber<Event>() {
                     @Override
                     public void onComplete()
                     {
@@ -119,36 +126,106 @@ public class TestEventBus
                     }
     
                     @Override
-                    public void onNext(Event<?> e)
+                    public void onNext(Event e)
                     {
-                        synchronized(subscribers) 
-                        {
-                            long now = System.currentTimeMillis();
-                            System.out.println("Received event " + e.getTimeStamp() + " @ " + now);
-                            
-                            if (now - e.getTimeStamp() > 10)
-                                throw new IllegalStateException("Delivery too slow!");
-                            
-                            sub.eventsReceived.add(e);
-                            if (sub.eventsReceived.size() == sub.numExceptedEvents)
-                                doneSignal.countDown();
-                        }
+                        long now = System.currentTimeMillis();
+                        System.out.println(sub.sourceId + " -> sub" + subId + ": " + e.getTimeStamp() + " @ " + now);
+                        
+                        if (now - e.getTimeStamp() > 10)
+                            throw new IllegalStateException("Delivery too slow!");
+                        
+                        sub.eventsReceived.add(e);
+                        if (sub.eventsReceived.size() == sub.numExceptedEvents)
+                            doneSignal.countDown();
                     }
     
                     @Override
                     public void onSubscribe(Subscription subscription)
                     {
-                        System.out.println("Subscribed");
+                        System.out.println("Subscribed " + subId);
                         subscription.request(sub.numRequestedEvents);
                     }            
                 });
+        }
+        
+        int count = 0;
+        boolean done = false;
+        while (!done)
+        {
+            done = true;
+            
+            for (SourceInfo src: sources)
+            {
+                IEventPublisher pub = bus.getPublisher(src.id);
+                
+                DataBlockInt data = new DataBlockInt(1);
+                data.setIntValue(count);
+                pub.publish(new DataEvent(System.currentTimeMillis(), src.id, "test" + count, data));
+                
+                if (count < src.numGeneratedEvents)
+                    done = false;
             }
             
-            for (int i=0; i<src.numGeneratedEvents; i++)
+            count++;
+            Thread.sleep(1);
+        }
+        
+        return doneSignal;
+    }
+    
+    
+    CountDownLatch createListenersAndSubscribe(SourceInfo[] sources, SubscriberInfo[] subscribers) throws Exception
+    {
+        IEventBus bus = new EventBus();
+        CountDownLatch doneSignal = new CountDownLatch(subscribers.length);
+        
+        for (SourceInfo src: sources)
+        {
+            // get a publisher for this source
+            if (src.parentSourceId == null)
+                bus.getPublisher(src.id);
+            else
+                bus.getPublisher(src.parentSourceId, src.id);
+        }
+            
+        // subscribe
+        for (int i = 0; i < subscribers.length; i++)
+        {
+            final int subId = i;
+            SubscriberInfo sub = subscribers[subId];
+            
+            bus.subscribe()
+                .withSourceID(sub.sourceId)
+                .withFilter(sub.filter)
+                .withListener(e -> {
+                    long now = System.currentTimeMillis();
+                    System.out.println(sub.sourceId + " -> sub" + subId + ": " + e.getTimeStamp() + " @ " + now);
+                    sub.eventsReceived.add(e);
+                    if (sub.eventsReceived.size() == sub.numExceptedEvents)
+                        doneSignal.countDown();
+                });
+        }
+        
+        int count = 0;
+        boolean done = false;
+        while (!done)
+        {
+            done = true;
+            
+            for (SourceInfo src: sources)
             {
-                pub.publish(new DataEvent(System.currentTimeMillis(), SOURCES[0], "test" + i, (DataBlock[])null));
-                Thread.sleep(10);
+                IEventPublisher pub = bus.getPublisher(src.id);
+                
+                DataBlockInt data = new DataBlockInt(1);
+                data.setIntValue(count);
+                pub.publish(new DataEvent(System.currentTimeMillis(), src.id, "test" + count, data));
+                
+                if (count < src.numGeneratedEvents)
+                    done = false;
             }
+            
+            count++;
+            Thread.sleep(1);
         }
         
         return doneSignal;
@@ -213,37 +290,65 @@ public class TestEventBus
     
     
     @Test
-    public void testFilterByEventClass() throws Exception
+    public void testSeveralPublisherSeveralSubscribers() throws Exception
+    {
+        SourceInfo[] sources = {
+            new SourceInfo(SOURCES[0], 20),
+            new SourceInfo(SOURCES[1], 50),
+            new SourceInfo(SOURCES[4], 210),
+            new SourceInfo(SOURCES[3], 160)
+        };
+        
+        SubscriberInfo[] subscribers = {
+            new SubscriberInfo(SOURCES[0], 10),
+            new SubscriberInfo(SOURCES[3], 15, 15, e -> ((DataEvent)e).getRecords()[0].getIntValue() % 3 == 0),
+            new SubscriberInfo(SOURCES[4], 150),
+            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((DataEvent)e).getChannelID().matches("test[0-2]"))
+        };
+        
+        CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
+        assertTrue("Timeout before enough events received", doneSignal.await(2, TimeUnit.SECONDS));        
+        for (SubscriberInfo sub: subscribers)
+            assertEquals(sub.numExceptedEvents, sub.eventsReceived.size());
+    }
+    
+    
+    @Test
+    public void testFilterByEventClass() throws InterruptedException
     {
         EventBus bus = new EventBus();
         IEventPublisher pub = bus.getPublisher(SOURCES[0]);
-        CountDownLatch doneSignal = new CountDownLatch(5);
         
-        bus.subscribe(SOURCES[0], DataEvent.class, new Subscriber<DataEvent>() {
-
-            @Override
-            public void onNext(DataEvent item)
-            {
-                System.out.println(item.getClass());
-                doneSignal.countDown();
-            }
-
-            @Override
-            public void onSubscribe(Subscription subscription)
-            {
-                subscription.request(Long.MAX_VALUE);                
-            }
-
-            @Override
-            public void onComplete()
-            {                
-            }
-
-            @Override
-            public void onError(Throwable throwable)
-            {                
-            }            
-        });
+        CountDownLatch doneSignal = new CountDownLatch(5);
+        AtomicInteger count = new AtomicInteger();
+        
+        bus.subscribe(DataEvent.class)
+            .withSourceID(SOURCES[0])
+            .withSubscriber(new Subscriber<DataEvent>() {
+                @Override
+                public void onNext(DataEvent item)
+                {
+                    System.out.println(item.getClass());
+                    count.incrementAndGet();
+                    doneSignal.countDown();
+                }
+    
+                @Override
+                public void onSubscribe(Subscription subscription)
+                {
+                    subscription.request(Long.MAX_VALUE);
+                }
+    
+                @Override
+                public void onComplete()
+                {                
+                }
+    
+                @Override
+                public void onError(Throwable throwable)
+                {                
+                }            
+            });
         
         for (int i =0; i < 10; i++)
         {
@@ -255,5 +360,75 @@ public class TestEventBus
         
         assertTrue("Not enough events received", doneSignal.await(2, TimeUnit.SECONDS));
     }
+    
+    
+    protected long publishAndCheckReceived(EventBus bus, int numGeneratedEvents, String... sources) throws InterruptedException
+    {
+        System.out.println("Publishing " + numGeneratedEvents + " events from " + sources.length + " source(s)");
+        
+        int numExpectedEvents = numGeneratedEvents*sources.length;
+        CountDownLatch doneSignal = new CountDownLatch(numExpectedEvents);
+        AtomicInteger count = new AtomicInteger();
+        
+        bus.subscribe(DataEvent.class)
+            .withSourceID(sources)
+            .withConsumer(e -> {
+                count.incrementAndGet();
+                doneSignal.countDown();
+            });
+        
+        IEventPublisher[] pubs = new IEventPublisher[sources.length];
+        for (int j = 0; j < sources.length; j++)
+            pubs[j] = bus.getPublisher(sources[j]);
+    
+        long sleepTime = 5000;
+        long t0 = System.currentTimeMillis();
+        for (int i = 0; i < numGeneratedEvents; i++)
+        {
+            for (int j = 0; j < sources.length; j++)
+                pubs[j].publish(new DataEvent(System.currentTimeMillis(), sources[j], "channel", (DataBlock[])null));
+            long sleepEnd = System.nanoTime() + sleepTime;
+            while (System.nanoTime() < sleepEnd);
+        }
+        
+        assertTrue("Timeout before enough events received", doneSignal.await(2, TimeUnit.SECONDS));
+        assertEquals("Incorrect number of events received", numExpectedEvents, count.get());
+        return System.currentTimeMillis() - t0 - (sleepTime*numGeneratedEvents/1000000);
+    }
+    
+    
+    @Test
+    public void testListenOneType() throws InterruptedException
+    {
+        EventBus bus = new EventBus();
+        IEventPublisher[] pubs = new IEventPublisher[SOURCES.length];
+        for (int i = 0; i < SOURCES.length; i++)
+            pubs[i] = bus.getPublisher(SOURCES[i]);
+        
+        publishAndCheckReceived(bus, 10, SOURCES[1]);
+        publishAndCheckReceived(bus, 100, SOURCES[0], SOURCES[3]);
+        publishAndCheckReceived(bus, 33, SOURCES[4], SOURCES[1]);
+        publishAndCheckReceived(bus, 25, SOURCES[4], SOURCES[1], SOURCES[2]);
+    }
+    
+    
+    /*@Test
+    public void testThroughput() throws InterruptedException
+    {
+        EventBus bus = new EventBus();
+        int numSources, numEvents;
+        long dt;
+        
+        numSources = 1;
+        IEventPublisher[] pubs = new IEventPublisher[numSources];
+        for (int i = 0; i < numSources; i++)
+            pubs[i] = bus.getPublisher(SOURCES[i]);
+        
+        dt = publishAndCheckReceived(bus, numEvents = 100, SOURCES[0]);
+        System.out.println(numEvents*1000/dt + " events/s");
+        
+        dt = publishAndCheckReceived(bus, numEvents = 1000000, SOURCES[0]);
+        System.out.println(numEvents*1000/dt + " events/s");
+    }*/
 
 }

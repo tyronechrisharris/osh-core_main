@@ -30,6 +30,7 @@ import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.client.IClientModule;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.ProcedureChangedEvent;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IDataProducer;
@@ -37,8 +38,6 @@ import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.sensor.ISensorDataInterface;
-import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.api.sensor.SensorEvent;
 import org.sensorhub.impl.comm.RobustIPConnection;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.RobustConnection;
@@ -145,7 +144,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         // get handle to sensor data source
         try
         {
-            dataSource = (ISensorModule<?>)getParentHub().getModuleRegistry().getModuleById(config.dataSourceID);
+            dataSource = getParentHub().getProcedureRegistry().get(config.dataSourceID);
         }
         catch (Exception e)
         {
@@ -413,7 +412,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     
     
     @Override
-    public void handleEvent(final Event<?> e)
+    public void handleEvent(final Event e)
     {
         // sensor module lifecycle event
         if (e instanceof ModuleEvent)
@@ -436,18 +435,15 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         }
                 
         // sensor description updated
-        else if (e instanceof SensorEvent)
+        else if (e instanceof ProcedureChangedEvent)
         {
-            if (((SensorEvent) e).getType() == SensorEvent.Type.PROCEDURE_CHANGED)
+            try
             {
-                try
-                {
-                    updateSensor(dataSource);
-                }
-                catch (OWSException ex)
-                {
-                    getLogger().error("Error when sending updates sensor description to SOS-T", ex);
-                }
+                updateSensor(dataSource);
+            }
+            catch (OWSException ex)
+            {
+                getLogger().error("Error when sending updates sensor description to SOS-T", ex);
             }
         }
         

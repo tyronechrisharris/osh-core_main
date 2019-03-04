@@ -26,7 +26,7 @@ import org.sensorhub.api.common.ProcedureEvent;
  * @author Alex Robin
  * @since Nov 5, 2010
  */
-public class SensorControlEvent extends ProcedureEvent<CommandStatus.StatusCode>
+public class SensorControlEvent extends ProcedureEvent
 {
 	/**
 	 * Status of the command that triggered this event
@@ -42,7 +42,7 @@ public class SensorControlEvent extends ProcedureEvent<CommandStatus.StatusCode>
      */
     public SensorControlEvent(long timeStamp, ISensorControlInterface controlInterface, CommandStatus status)
     {
-        this(timeStamp, controlInterface.getParentModule().getUniqueIdentifier(), controlInterface, status);
+        this(timeStamp, controlInterface.getParentProducer().getUniqueIdentifier(), controlInterface, status);
     }
     
     
@@ -55,10 +55,9 @@ public class SensorControlEvent extends ProcedureEvent<CommandStatus.StatusCode>
      */
     public SensorControlEvent(long timeStamp, String sensorID, ISensorControlInterface controlInterface, CommandStatus status)
     {
-        this.timeStamp = timeStamp;
+        super(timeStamp, sensorID);
         this.source = controlInterface;
-        this.sourceID = sensorID;
-        this.type = status.status;
+        this.status = status;
     }
     
     

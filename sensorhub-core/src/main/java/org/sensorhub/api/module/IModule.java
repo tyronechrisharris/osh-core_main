@@ -16,8 +16,8 @@ package org.sensorhub.api.module;
 
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IEventListener;
-import org.sensorhub.api.common.IEventProducer;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.IEventProducer;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 
 

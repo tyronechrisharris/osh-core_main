@@ -129,7 +129,7 @@ public class SPSService extends AbstractModule<SPSServiceConfig> implements ISer
     
     
     @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {
         // catch HTTP server lifecycle events
         if (e instanceof ModuleEvent && e.getSource() == HttpServer.getInstance())

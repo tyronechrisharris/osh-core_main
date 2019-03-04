@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.function.BiPredicate;
 import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventPublisher;
 
 
@@ -28,11 +27,11 @@ import org.sensorhub.api.common.IEventPublisher;
  */
 public class PlaceHolderPublisher implements IEventPublisher
 {
-    ArrayList<Subscriber<? super Event<?>>> subscribers = new ArrayList<>();
+    ArrayList<Subscriber<? super Event>> subscribers = new ArrayList<>();
     
     
     @Override
-    public void subscribe(Subscriber<? super Event<?>> subscriber)
+    public void subscribe(Subscriber<? super Event> subscriber)
     {
         subscribers.add(subscriber);      
     }
@@ -40,36 +39,29 @@ public class PlaceHolderPublisher implements IEventPublisher
     
     public void transferTo(IEventPublisher realPublisher)
     {
-        for (Subscriber<? super Event<?>> s: subscribers)
+        for (Subscriber<? super Event> s: subscribers)
             realPublisher.subscribe(s);
     }
 
 
     @Override
-    public void publish(Event<?> e)
+    public void publish(Event e)
     {
         throw new UnsupportedOperationException();
     }
 
 
     @Override
-    public void publish(Event<?> e, BiPredicate<Subscriber<? super Event<?>>, ? super Event<?>> onDrop)
+    public void publish(Event e, BiPredicate<Subscriber<? super Event>, ? super Event> onDrop)
     {
         throw new UnsupportedOperationException();
     }
 
 
     @Override
-    public void registerListener(IEventListener listener)
+    public int getNumberOfSubscribers()
     {
-        throw new UnsupportedOperationException();        
-    }
-
-
-    @Override
-    public void unregisterListener(IEventListener listener)
-    {
-        throw new UnsupportedOperationException();        
+        return subscribers.size();
     }
 
 }

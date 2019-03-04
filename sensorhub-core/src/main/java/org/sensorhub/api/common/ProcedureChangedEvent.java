@@ -8,24 +8,26 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.comm;
-
-import org.sensorhub.api.common.Event;
+package org.sensorhub.api.common;
 
 
 /**
  * <p>
- * Event sent when a device is found as a result of scanning a network or bus
+ * Event sent when a procedure's SensorML description is updated
  * </p>
  *
  * @author Alex Robin
  * @date Mar 2, 2019
  */
-public class DeviceScanEvent extends Event
+public class ProcedureChangedEvent extends ProcedureEvent
 {
-    public IDeviceInfo device;
+    
+    public ProcedureChangedEvent(long timeStamp, String procedureID)
+    {
+        super(timeStamp, procedureID);
+    }
 }

@@ -14,6 +14,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.common;
 
+import java.lang.ref.WeakReference;
 
 /**
  * <p>
@@ -34,9 +35,11 @@ package org.sensorhub.api.common;
  * @since Feb 18, 2019
  * @see IProcedure IProcedure
  */
-public interface IProcedureRegistry extends IEventProducer
+public interface IProcedureRegistry
 {
-
+    public static final String EVENT_SOURCE_ID = "urn:osh:procedurereg";
+    
+    
     /**
      * Registers a procedure with this registry.
      * <p><i>Procedures implemented as modules (typically sensor drivers) are automatically
@@ -60,7 +63,16 @@ public interface IProcedureRegistry extends IEventProducer
      * @param uid procedure unique ID
      * @return procedure with the given unique ID
      */
-    public IProcedure get(String uid);
+    public <T extends IProcedure> T get(String uid);
+    
+    
+    /**
+     * Retrieves the weak reference to a procedure using its unique ID.<br/>
+     * Procedure group members can be retrieved directly using this method.
+     * @param uid procedure unique ID
+     * @return procedure with the given unique ID
+     */
+    public <T extends IProcedure> WeakReference<T> getRef(String uid);
     
     
     /**

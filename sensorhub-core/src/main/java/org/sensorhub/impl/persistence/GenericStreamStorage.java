@@ -37,6 +37,8 @@ import net.opengis.swe.v20.DataEncoding;
 import org.sensorhub.api.common.ProcedureEvent;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.ProcedureAddedEvent;
+import org.sensorhub.api.common.ProcedureChangedEvent;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
@@ -60,7 +62,6 @@ import org.sensorhub.api.persistence.ObsKey;
 import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.impl.module.AbstractModule;
-import org.sensorhub.impl.module.ModuleRegistry;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
@@ -104,9 +105,9 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             storageConfig = (StorageConfig)config.storageConfig.clone();
             storageConfig.id = getLocalID();
             storageConfig.name = getName();
-            Class<?> clazz = (Class<?>)Class.forName(storageConfig.moduleClass);
-            storage = (IRecordStorageModule<StorageConfig>)clazz.newInstance();
-            storage.setParentHub(hub);
+            Class<?> clazz = Class.forName(storageConfig.moduleClass);
+            storage = (IRecordStorageModule<StorageConfig>)clazz.getDeclaredConstructor().newInstance();
+            storage.setParentHub(getParentHub());
             storage.init(storageConfig);
             storage.start();
         }
@@ -131,8 +132,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         }
         
         // retrieve reference to data source
-        ModuleRegistry moduleReg = hub.getModuleRegistry();
-        dataSourceRef = moduleReg.getModuleRef(config.dataSourceID);
+        dataSourceRef = getParentHub().getProcedureRegistry().getRef(config.dataSourceID);
         
         // register to receive data source events
         IDataProducer dataSource = dataSourceRef.get();
@@ -230,16 +230,13 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     protected void ensureProducerInfo(String producerID)
     {
         IDataProducer dataSource = dataSourceRef.get();
-        if (dataSource != null && dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
+        if (dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
         {
             IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getMembers().get(producerID);
             if (producer != null)
             {
                 IBasicStorage dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
-                
-                if (((IMultiSourceStorage<?>)storage).getProducerIDs().contains(producerID))
-                    dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
-                else
+                if (dataStore == null)
                     dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID);
                 
                 connectDataSource(producer, dataStore);
@@ -254,13 +251,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     protected void prepareToReceiveEvents(IStreamingDataInterface output)
     {
         // create time stamp indexer
-        String outputName = output.getName();
-        ScalarIndexer timeStampIndexer = timeStampIndexers.get(outputName);
-        if (timeStampIndexer == null)
-        {
-            timeStampIndexer = SWEHelper.getTimeStampIndexer(output.getRecordDescription());
-            timeStampIndexers.put(outputName, timeStampIndexer);
-        }
+        timeStampIndexers.computeIfAbsent(output.getName(), 
+            k -> SWEHelper.getTimeStampIndexer(output.getRecordDescription()));
         
         // fetch latest record
         DataBlock rec = output.getLatestRecord();
@@ -326,7 +318,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     
     
     @Override
-    public synchronized void handleEvent(Event<?> e)
+    public synchronized void handleEvent(Event e)
     {
         // don't do anything if stop was called
         if (dataSourceRef == null)
@@ -393,9 +385,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                         // store record with proper key
                         ObsKey key = new ObsKey(outputName, producerID, foiID, time);                    
                         storage.storeRecord(key, record);
-                    
-                        if (getLogger().isTraceEnabled())
-                            getLogger().trace("Storing record " + key.timeStamp + " for output " + outputName);
+                        
+                        getLogger().trace("Storing record {} for output {}", key.timeStamp, outputName);
                     }
                 }
             }
@@ -411,9 +402,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                     if (foiEvent.getFoi() != null)
                     {
                         ((IObsStorage) storage).storeFoi(producerID, foiEvent.getFoi());
-                        
-                        if (getLogger().isTraceEnabled())
-                            getLogger().trace("Storing FOI " + foiEvent.getFoiID());
+                        getLogger().trace("Storing FOI {}", foiEvent.getFoiID());
                     }
                 
                     // also remember as current FOI
@@ -423,14 +412,12 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             
             else if (e instanceof ProcedureEvent)
             {
-                ProcedureEvent.Type type = ((ProcedureEvent<ProcedureEvent.Type>) e).getType();
-                
-                if (type == ProcedureEvent.Type.PROCEDURE_ADDED)
+                if (e instanceof ProcedureAddedEvent)
                 {
-                    ensureProducerInfo(((ProcedureEvent<?>)e).getProcedureID());
+                    ensureProducerInfo(((ProcedureAddedEvent)e).getProcedureID());
                 }
                 
-                else if (type == ProcedureEvent.Type.PROCEDURE_CHANGED)
+                else if (e instanceof ProcedureChangedEvent)
                 {
                     // TODO check that description was actually updated?
                     // in the current state, the same description would be added at each restart

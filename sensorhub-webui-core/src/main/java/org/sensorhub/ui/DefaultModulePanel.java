@@ -240,7 +240,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     
     protected IModuleConfigForm getConfigForm(MyBeanItem<ModuleConfig> beanItem)
     {
-        IModuleConfigForm form = getParentModule().generateForm(beanItem.getBean().getClass());
+        IModuleConfigForm form = getParentProducer().generateForm(beanItem.getBean().getClass());
         form.build(GenericConfigForm.MAIN_CONFIG, "General module configuration", beanItem, false);
         return form;
     }
@@ -263,7 +263,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
 
 
     @Override
-    public void handleEvent(final org.sensorhub.api.common.Event<?> e)
+    public void handleEvent(final org.sensorhub.api.common.Event e)
     {
         if (e instanceof ModuleEvent)
         {
@@ -333,9 +333,9 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     }
     
     
-    protected AdminUIModule getParentModule()
+    protected AdminUIModule getParentProducer()
     {
-        return ((AdminUI)UI.getCurrent()).getParentModule();
+        return ((AdminUI)UI.getCurrent()).getParentProducer();
     }
     
     

@@ -16,11 +16,11 @@ package org.sensorhub.api;
 
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.common.IProcedureRegistry;
+import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.persistence.IPersistenceManager;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.sensor.ISensorManager;
-import org.sensorhub.impl.common.EventBus;
 import org.sensorhub.impl.module.ModuleRegistry;
 
 
@@ -39,7 +39,7 @@ public interface ISensorHub
     public ISensorHubConfig getConfig();
 
 
-    public EventBus getEventBus();
+    public IEventBus getEventBus();
 
     
     public ModuleRegistry getModuleRegistry();

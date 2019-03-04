@@ -20,9 +20,6 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventListener;
-import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
@@ -33,12 +30,12 @@ import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.SensorHub;
-import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 
 
 public class TestModuleRegistry
 {
+    SensorHub hub;
     ModuleRegistry registry;
     
     
@@ -46,7 +43,8 @@ public class TestModuleRegistry
     public void setup()
     {
         System.out.println("\n*****************************");
-        registry = new SensorHub().getModuleRegistry(); 
+        hub = new SensorHub();
+        registry = hub.getModuleRegistry(); 
     }
     
     
@@ -208,14 +206,9 @@ public class TestModuleRegistry
         IModule<?> module = registry.loadModule(conf);
         
         long t0 = System.currentTimeMillis();
-        registry.initModuleAsync(conf.id, false, new IEventListener()
-        {
-            @Override
-            public void handleEvent(Event<?> e)
-            {
-                if (((ModuleEvent)e).getNewState() == ModuleState.INITIALIZED)
-                    conf.initEventReceived = true;
-            }            
+        registry.initModuleAsync(conf.id, false, e -> {
+            if (((ModuleEvent)e).getNewState() == ModuleState.INITIALIZED)
+                conf.initEventReceived = true;           
         });
         module.waitForState(ModuleState.INITIALIZED, timeOut);
         long t1 = System.currentTimeMillis();
@@ -265,16 +258,11 @@ public class TestModuleRegistry
         IModule<?> module = registry.loadModule(conf);
         
         long t0 = System.currentTimeMillis();
-        registry.startModuleAsync(conf.id, new IEventListener()
-        {
-            @Override
-            public void handleEvent(Event<?> e)
-            {
-                if (((ModuleEvent)e).getNewState() == ModuleState.INITIALIZED)
-                    conf.initEventReceived = true;
-                else if (((ModuleEvent)e).getNewState() == ModuleState.STARTED)
-                    conf.startEventReceived = true;
-            }            
+        registry.startModuleAsync(conf.id, e -> {
+            if (((ModuleEvent)e).getNewState() == ModuleState.INITIALIZED)
+                conf.initEventReceived = true;
+            else if (((ModuleEvent)e).getNewState() == ModuleState.STARTED)
+                conf.startEventReceived = true;            
         });
         module.waitForState(ModuleState.INITIALIZED, timeOut);
         long t1 = System.currentTimeMillis();
@@ -326,16 +314,11 @@ public class TestModuleRegistry
         IModule<?> module2 = registry.loadModule(conf2);
         
         long t0 = System.currentTimeMillis();
-        registry.startModuleAsync(conf2.id, new IEventListener()
-        {
-            @Override
-            public void handleEvent(Event<?> e)
-            {
-                if (((ModuleEvent)e).getNewState() == ModuleState.INITIALIZED)
-                    conf2.initEventReceived = true;
-                else if (((ModuleEvent)e).getNewState() == ModuleState.STARTED)
-                    conf2.startEventReceived = true;
-            }            
+        registry.startModuleAsync(conf2.id, e -> {
+            if (((ModuleEvent)e).getNewState() == ModuleState.INITIALIZED)
+                conf2.initEventReceived = true;
+            else if (((ModuleEvent)e).getNewState() == ModuleState.STARTED)
+                conf2.startEventReceived = true;
         });
         module2.waitForState(ModuleState.INITIALIZED, timeOut);
         long t1 = System.currentTimeMillis();
@@ -389,16 +372,11 @@ public class TestModuleRegistry
         
         // now restart it
         long t0 = System.currentTimeMillis();
-        registry.stopModuleAsync(conf.id, new IEventListener()
-        {
-            @Override
-            public void handleEvent(Event<?> e)
-            {
-                if (((ModuleEvent)e).getNewState() == ModuleState.STOPPED)
-                    conf.stopEventReceived = true;
-                else if (((ModuleEvent)e).getNewState() == ModuleState.STARTED)
-                    conf.startEventReceived = true;
-            }            
+        registry.stopModuleAsync(conf.id, e -> {
+            if (((ModuleEvent)e).getNewState() == ModuleState.STOPPED)
+                conf.stopEventReceived = true;
+            else if (((ModuleEvent)e).getNewState() == ModuleState.STARTED)
+                conf.startEventReceived = true;         
         });
         module.waitForState(ModuleState.STOPPING, timeOut);
         registry.startModuleAsync(conf.id, null);
@@ -416,15 +394,56 @@ public class TestModuleRegistry
     }
     
     
-    @After
-    public void cleanup()
+    @Test
+    public void testStartModuleAsyncAndCheckGroupEvents() throws Exception
     {
-        try
-        {
-            registry.shutdown(false, false);
-        }
-        catch (SensorHubException e)
-        {
-        }
+        final AsyncModuleConfig conf = new AsyncModuleConfig();
+        conf.moduleClass = AsyncModule.class.getCanonicalName();
+        conf.id = "MOD_ASYNC2";
+        conf.autoStart = false;
+        conf.name = "ModuleAsync2";
+        conf.initDelay = 100;
+        conf.initExecTime = 150;
+        conf.startDelay = 50;
+        conf.startExecTime = 100;
+        long timeOut = 10000;
+        
+        hub.getEventBus().subscribe(ModuleEvent.class)
+            .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
+            .withConsumer(e -> {
+                System.out.println(">> Received " + e.getType() + (e.getNewState() != null ? " -> " + e.getNewState() : ""));
+                if (e.getNewState() == ModuleState.INITIALIZED)
+                    conf.initEventReceived = true;
+                else if (e.getNewState() == ModuleState.STARTED)
+                    conf.startEventReceived = true;
+            });        
+        
+        IModule<?> module = registry.loadModule(conf);
+        
+        long t0 = System.currentTimeMillis();
+        registry.startModuleAsync(module);
+        module.waitForState(ModuleState.INITIALIZED, timeOut);
+        long t1 = System.currentTimeMillis();
+        module.waitForState(ModuleState.STARTED, timeOut);
+        long t2 = System.currentTimeMillis();
+        
+        long expectedDelay = conf.initDelay + conf.initExecTime;
+        long delay = t1 - t0;
+        assertTrue("Init never executed", delay >= expectedDelay);
+        assertTrue("Init timeout reached", delay < timeOut);
+        //assertTrue("No INITIALIZED event received", conf.initEventReceived);
+        
+        expectedDelay = conf.startDelay + conf.startExecTime;
+        delay = t2 - t1;
+        assertTrue("Start never executed", delay >= expectedDelay);
+        assertTrue("Start timeout reached", delay < timeOut);
+        //assertTrue("No STARTED event received", conf.startEventReceived);
+    }
+    
+    
+    @After
+    public void cleanup() throws Exception
+    {
+        registry.shutdown(false, false);
     }
 }

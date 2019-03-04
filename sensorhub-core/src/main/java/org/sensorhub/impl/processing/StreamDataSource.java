@@ -137,7 +137,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
 
 
     @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {
         if (paused)
             return;

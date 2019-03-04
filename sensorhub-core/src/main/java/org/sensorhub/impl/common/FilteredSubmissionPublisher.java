@@ -1,8 +1,18 @@
-/*
- * Written by Doug Lea with assistance from members of JCP JSR-166
- * Expert Group and released to the public domain, as explained at
- * http://creativecommons.org/publicdomain/zero/1.0/
- */
+/***************************** BEGIN LICENSE BLOCK ***************************
+
+The contents of this file are subject to the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one
+at http://mozilla.org/MPL/2.0/.
+
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+for the specific language governing rights and limitations under the License.
+ 
+This class is based on JSR-166 SubmissionPublisher written by Doug Lea with
+assistance from members of JCP JSR-166 Expert Group and released to the public
+domain, as explained at http://creativecommons.org/publicdomain/zero/1.0/
+ 
+******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.common;
 
@@ -15,7 +25,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinPool.ManagedBlocker;
 import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.ForkJoinWorkerThread;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiConsumer;
@@ -24,6 +37,7 @@ import java.util.function.Consumer;
 import static java.util.concurrent.Flow.Publisher;
 import static java.util.concurrent.Flow.Subscriber;
 import static java.util.concurrent.Flow.Subscription;
+
 
 /**
  * A {@link Flow.Publisher} that asynchronously issues submitted
@@ -1385,7 +1399,7 @@ public class FilteredSubmissionPublisher<T> implements Publisher<T>,
          */
         final void awaitSpace(long nanos) {
             if (!isReleasable()) {
-                ForkJoinPool.helpAsyncBlocker(executor, this);
+                // TODO REPLACE THIS OUTSIDE JDK ForkJoinPool.helpAsyncBlocker(executor, this);
                 if (!isReleasable()) {
                     timeout = nanos;
                     try {

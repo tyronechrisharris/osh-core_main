@@ -313,14 +313,14 @@ public class InMemoryBasicStorage extends AbstractModule<InMemoryStorageConfig> 
     @Override
     public void registerListener(IEventListener listener)
     {
-        moduleEventHandler.registerListener(listener);
+        eventHandler.registerListener(listener);
     }
     
 
     @Override
     public void unregisterListener(IEventListener listener)
     {
-        moduleEventHandler.unregisterListener(listener);
+        eventHandler.unregisterListener(listener);
     }
 
 

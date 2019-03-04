@@ -35,6 +35,8 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
+import org.sensorhub.api.event.IEventSourceInfo;
+import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.sensor.IFakeSensorOutput;
@@ -57,6 +59,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
         PhysicalComponent sensor;
         AbstractFeature foi;
         Map<String, IStreamingDataInterface> outputs = new HashMap<>();
+        EventSourceInfo eventSrcInfo;
         
         public FakeDataProducer(int entityIndex)
         {
@@ -84,11 +87,11 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
             
             // create output
             String parentSensorID = FakeSensorNetWithFoi.this.getUniqueIdentifier();
-            IEventPublisher eventHandler = hub.getEventBus().getPublisher(parentSensorID, getUniqueIdentifier());
+            eventSrcInfo = new EventSourceInfo(parentSensorID, getUniqueIdentifier());
             outputs.put(TestSOSService.NAME_OUTPUT1,
-                    new FakeSensorData(this, TestSOSService.NAME_OUTPUT1, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, eventHandler));
+                    new FakeSensorData(this, TestSOSService.NAME_OUTPUT1, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, eventSrcInfo));
             outputs.put(TestSOSService.NAME_OUTPUT2,
-                    new FakeSensorData2(this, TestSOSService.NAME_OUTPUT2, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, null, eventHandler));
+                    new FakeSensorData2(this, TestSOSService.NAME_OUTPUT2, TestSOSService.SAMPLING_PERIOD, TestSOSService.NUM_GEN_SAMPLES, null, eventSrcInfo));
         }        
 
         @Override
@@ -147,6 +150,12 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
         public boolean isEnabled()
         {
             return FakeSensorNetWithFoi.this.isStarted();
+        }
+
+        @Override
+        public IEventSourceInfo getEventSourceInfo()
+        {
+            return eventSrcInfo;
         }            
     };
     

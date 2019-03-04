@@ -27,10 +27,10 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataType;
 import org.sensorhub.api.common.IEventListener;
-import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
+import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
@@ -74,21 +74,17 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     
     public FakeSensorData2(ISensorModule<?> sensor, String name, double samplingPeriod, int maxSampleCount, Map<Integer, Integer> obsFoiMap)
     {
-        super(name, sensor);
+        this(sensor, name, samplingPeriod, maxSampleCount, obsFoiMap, null);
+    }
+    
+    
+    public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, Map<Integer, Integer> obsFoiMap, IEventSourceInfo eventSrcInfo)
+    {
+        super(name, sensor, eventSrcInfo);
         this.name = name;
         this.samplingPeriod = samplingPeriod;
         this.maxSampleCount = maxSampleCount;
         this.obsFoiMap = obsFoiMap;
-        init();
-    }
-    
-    
-    public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, Map<Integer, Integer> obsFoiMap, IEventPublisher eventHandler)
-    {
-        super(name, sensor, eventHandler);
-        this.name = name;
-        this.samplingPeriod = samplingPeriod;
-        this.maxSampleCount = maxSampleCount;
         init();
     }
     
@@ -173,12 +169,12 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
                     {
                         String entityID = FakeSensorNetWithFoi.SENSOR_UID_PREFIX + foiNum;
                         AbstractFeature foi = ((IMultiSourceDataProducer)producer).getMembers().get(entityID).getCurrentFeatureOfInterest();
-                        eventHandler.publishEvent(new FoiEvent(latestRecordTime, getParentProducer(), foi, latestRecordTime/1000.));
+                        eventHandler.publish(new FoiEvent(latestRecordTime, getParentProducer(), foi, latestRecordTime/1000.));
                         System.out.println("Observing FOI #" + foiNum);
                     }
                 }
                 
-                eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, FakeSensorData2.this, latestRecord)); 
+                eventHandler.publish(new SensorDataEvent(latestRecordTime, FakeSensorData2.this, latestRecord)); 
                 System.out.println("Image record #" + sampleCount + " generated @ " + latestRecordTime/1000.);
                 
                 if (sampleCount >= maxSampleCount)

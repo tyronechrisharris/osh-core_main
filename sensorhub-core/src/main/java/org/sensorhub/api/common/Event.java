@@ -22,13 +22,11 @@ package org.sensorhub.api.common;
  * </p>
  *
  * @author Alex Robin
- * @param <EventTypeEnum> Enum of possible event sub-type
  * @since Nov 5, 2010
  */
-public abstract class Event<EventTypeEnum extends Enum<?>>
+public abstract class Event
 {
     protected long timeStamp;
-    protected EventTypeEnum type;
     protected String sourceID;
     protected transient Object source;
         
@@ -39,15 +37,6 @@ public abstract class Event<EventTypeEnum extends Enum<?>>
     public long getTimeStamp()
     {
         return timeStamp;
-    }
-    
-    
-    /**
-     * @return Event sub-type (depending on actual event class)
-     */
-    public EventTypeEnum getType()
-    {
-        return type;
     }
     
     

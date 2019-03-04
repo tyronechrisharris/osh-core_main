@@ -346,7 +346,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     
     
     @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {
         if (disableEvents)
             return;

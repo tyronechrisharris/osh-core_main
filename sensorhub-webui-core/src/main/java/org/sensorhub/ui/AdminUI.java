@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Flow.Subscription;
 import javax.servlet.ServletContext;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.client.ClientConfig;
@@ -38,7 +39,8 @@ import org.sensorhub.api.security.SecurityModuleConfig;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.service.ServiceConfig;
-import org.sensorhub.impl.common.EventBus;
+import org.sensorhub.impl.SensorHub;
+import org.sensorhub.impl.event.EventBus;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorSystem;
 import org.sensorhub.impl.service.HttpServer;
@@ -120,6 +122,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     transient ISensorHub hub;
     transient AdminUIModule adminModule;
     transient ModuleRegistry moduleRegistry;
+    transient Subscription moduleEventsSub;
     transient AdminUISecurity securityHandler;
     transient Map<Class<?>, TreeTable> moduleTables = new HashMap<>();
     transient IModule<?> moduleAddedFromUI;
@@ -276,7 +279,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         selectStackItem(stack);
         
         // register to module registry events
-        hub.getEventBus().registerListener(ModuleRegistry.EVENT_PRODUCER_ID, this);
+        moduleEventsSub = hub.getEventBus().subscribe()
+            .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
+            .withListener(this).join();
     }
     
     
@@ -392,7 +397,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                         {                    
                             logAction(securityHandler.osh_shutdown.getName());
                             
-                            moduleRegistry.unregisterListener(AdminUI.this);
+                            disconnectFromModuleRegistry();
                             
                             Notification notif = new Notification(
                                     FontAwesome.WARNING.getHtml() + "&nbsp; Shutdown Initiated...",
@@ -445,7 +450,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                         {                    
                             logAction(securityHandler.osh_restart.getName());
                             
-                            moduleRegistry.unregisterListener(AdminUI.this);
+                            disconnectFromModuleRegistry();
                             
                             Notification notif = new Notification(
                                     FontAwesome.WARNING.getHtml() + "&nbsp; Restart Initiated...",
@@ -1022,7 +1027,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
 
 
     @Override
-    public void handleEvent(final org.sensorhub.api.common.Event<?> e)
+    public void handleEvent(final org.sensorhub.api.common.Event e)
     {
         if (e instanceof ModuleEvent)
         {
@@ -1152,14 +1157,20 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     {
         logAction(action.getCaption(), module);
     }
+    
+    
+    protected void disconnectFromModuleRegistry()
+    {
+        // unregister from module registry events
+        if (moduleEventsSub != null)
+            moduleEventsSub.cancel();
+    }
 
 
     @Override
     public void detach()
     {
-        // unregister from module registry events
-        hub.getEventBus().unregisterListener(ModuleRegistry.EVENT_PRODUCER_ID, this);
-        
+        disconnectFromModuleRegistry();
         super.detach();
     }
     
@@ -1170,7 +1181,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     }
         
     
-    public AdminUIModule getParentModule()
+    public AdminUIModule getParentProducer()
     {
         return adminModule;
     }

@@ -15,7 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.module;
 
 import org.sensorhub.api.common.Event;
-import org.sensorhub.api.module.ModuleEvent.Type;
 
 
 /**
@@ -26,7 +25,7 @@ import org.sensorhub.api.module.ModuleEvent.Type;
  * @author Alex Robin
  * @since Sep 5, 2013
  */
-public class ModuleEvent extends Event<Type>
+public class ModuleEvent extends Event
 {
     public enum Type
     {
@@ -118,6 +117,7 @@ public class ModuleEvent extends Event<Type>
     }
     
     
+    protected Type type;
     protected ModuleState newState;
     protected Throwable error;
     protected String msg;
@@ -161,6 +161,12 @@ public class ModuleEvent extends Event<Type>
     public IModule<?> getModule()
     {
         return (IModule<?>)source;
+    }
+
+
+    public Type getType()
+    {
+        return type;
     }
     
     

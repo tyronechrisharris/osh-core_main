@@ -50,7 +50,10 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IE
                             
                             if (!config.useWaitLoopForInit)
                             {
-                                getParentHub().getEventBus().registerListener(config.moduleIDNeededForInit, AsyncModule.this);
+                                //getParentHub().getEventBus().registerListener(config.moduleIDNeededForInit, AsyncModule.this);
+                                getParentHub().getEventBus().subscribe()
+                                    .withSourceID(config.moduleIDNeededForInit)
+                                    .withListener(AsyncModule.this);
                                 return null;
                             }
                             else
@@ -115,7 +118,10 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IE
                             
                             if (!config.useWaitLoopForStart)
                             {
-                                getParentHub().getEventBus().registerListener(config.moduleIDNeededForStart, AsyncModule.this);
+                                //getParentHub().getEventBus().registerListener(config.moduleIDNeededForStart, AsyncModule.this);
+                                getParentHub().getEventBus().subscribe()
+                                    .withSourceID(config.moduleIDNeededForStart)
+                                    .withListener(AsyncModule.this);
                                 return null;
                             }
                             else
@@ -215,7 +221,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IE
 
 
     @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {
         if (e instanceof ModuleEvent)
         {

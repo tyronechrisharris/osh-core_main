@@ -581,9 +581,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         // generate custom form for this bean type
         IModuleConfigForm subform;
         if (childBeanItem != null)
-            subform = getParentModule().generateForm(childBeanItem.getBean().getClass());
+            subform = getParentProducer().generateForm(childBeanItem.getBean().getClass());
         else
-            subform = getParentModule().generateForm(beanType);
+            subform = getParentProducer().generateForm(beanType);
         subform.build(propId, prop, true);
         subform.setParentForm(this);
         
@@ -1191,7 +1191,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     protected Tab addTab(TabSheet tabs, final Object itemId, final MyBeanItem<?> beanItem, final int tabIndex)
     {
         // generate subform
-        IModuleConfigForm subform = getParentModule().generateForm(beanItem.getBean().getClass());
+        IModuleConfigForm subform = getParentProducer().generateForm(beanItem.getBean().getClass());
         subform.build(null, null, beanItem, true);
         subform.setParentForm(this);
         subform.setMargin(new MarginInfo(false, false, true, false));
@@ -1288,9 +1288,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
-    protected AdminUIModule getParentModule()
+    protected AdminUIModule getParentProducer()
     {
-        return ((AdminUI)UI.getCurrent()).getParentModule();
+        return ((AdminUI)UI.getCurrent()).getParentProducer();
     }
     
     

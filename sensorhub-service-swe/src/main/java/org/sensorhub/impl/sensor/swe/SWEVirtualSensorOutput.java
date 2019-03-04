@@ -25,7 +25,6 @@ import org.sensorhub.impl.sensor.VarRateSensorOutput;
 
 public class SWEVirtualSensorOutput extends VarRateSensorOutput<SWEVirtualSensor>
 {
-    SWEVirtualSensor parentSensor;
     DataComponent recordStructure;
     DataEncoding recordEncoding;
     
@@ -65,6 +64,6 @@ public class SWEVirtualSensorOutput extends VarRateSensorOutput<SWEVirtualSensor
         // publish new sensor data event
         latestRecord = dataBlock;
         latestRecordTime = now;
-        eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, this, dataBlock));
+        eventHandler.publish(new SensorDataEvent(latestRecordTime, this, dataBlock));
     }
 }

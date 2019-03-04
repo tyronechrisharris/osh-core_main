@@ -19,13 +19,15 @@ package org.sensorhub.api.common;
  * <p>
  * Generic event listener.<br/>
  * Not that this class does not provide flow control methods. If back-pressure
- * is needed, use Java 9 Subscriber instead
+ * is needed, use Java 9 {@link java.util.concurrent.Flow.Subscriber Subscriber}
+ * instead
  * </p>
  *
  * @author Alex Robin
  * @since Nov 5, 2010
  */
+@FunctionalInterface
 public interface IEventListener
 {
-    public void handleEvent(Event<?> e);
+    public void handleEvent(Event e);
 }

@@ -262,7 +262,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
     
     
     @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {
         // catch HTTP server lifecycle events
         if (e instanceof ModuleEvent && e.getSource() == HttpServer.getInstance())

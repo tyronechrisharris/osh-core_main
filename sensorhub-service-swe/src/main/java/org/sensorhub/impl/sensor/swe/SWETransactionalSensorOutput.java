@@ -76,7 +76,7 @@ public class SWETransactionalSensorOutput extends AbstractSensorOutput<SWETransa
         // publish new sensor data event
         latestRecord = dataBlock;
         latestRecordTime = now;
-        eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, this, dataBlock));
+        eventHandler.publish(new SensorDataEvent(latestRecordTime, this, dataBlock));
     }
     
     
@@ -105,7 +105,7 @@ public class SWETransactionalSensorOutput extends AbstractSensorOutput<SWETransa
                 e = new FoiEvent(now, getParentProducer(), foi, now/1000.0);
             }
 
-            eventHandler.publishEvent(e);
+            eventHandler.publish(e);
         }
     }
     

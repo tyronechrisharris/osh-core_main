@@ -19,12 +19,15 @@ import java.util.UUID;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.common.CommandStatus;
 import org.sensorhub.api.common.IEventListener;
-import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.data.ICommandReceiver;
+import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.common.CommandStatus.StatusCode;
+import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.sensor.ISensorControlInterface;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorException;
+import org.sensorhub.impl.common.BasicEventHandler;
+import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.util.DateTime;
 
@@ -45,9 +48,10 @@ public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>>
     protected static final String ERROR_NO_ASYNC = "Asynchronous command processing is not supported by driver ";
     protected static final String ERROR_NO_SCHED = "Command scheduling is not supported by driver ";
     protected static final String ERROR_NO_STATUS_HISTORY = "Status history is not supported by driver ";
-    protected String name;
-    protected SensorType parentSensor;
-    protected IEventPublisher eventHandler;
+    protected final String name;
+    protected final SensorType parentSensor;
+    protected final IEventHandler eventHandler;
+    protected final IEventSourceInfo eventSrcInfo;
     
     
     public AbstractSensorControl(SensorType parentSensor)
@@ -62,13 +66,15 @@ public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>>
         this.parentSensor = parentSensor;
         
         // use event handler of the parent sensor
-        String procedureID = parentSensor.getUniqueIdentifier();
-        eventHandler = parentSensor.getParentHub().getEventBus().getPublisher(procedureID);
+        this.eventHandler = new BasicEventHandler();
+        String groupID = parentSensor.getUniqueIdentifier();
+        String sourceID = parentSensor.getUniqueIdentifier() + "/controls/" + getName();
+        this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
     }
     
     
     @Override
-    public ICommandReceiver getParentModule()
+    public ICommandReceiver getParentProducer()
     {
         return parentSensor;
     }
@@ -179,6 +185,13 @@ public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>>
     public void unregisterListener(IEventListener listener)
     {
         eventHandler.unregisterListener(listener);
+    }
+    
+    
+    @Override
+    public IEventSourceInfo getEventSourceInfo()
+    {
+        return eventSrcInfo;
     }
     
 }

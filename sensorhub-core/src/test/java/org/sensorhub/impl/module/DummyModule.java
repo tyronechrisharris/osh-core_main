@@ -15,14 +15,16 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.module;
 
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
-import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
+import org.sensorhub.impl.common.BasicEventHandler;
 
 
 public class DummyModule implements IModule<ModuleConfig>
@@ -30,7 +32,7 @@ public class DummyModule implements IModule<ModuleConfig>
     ISensorHub hub;
     ModuleConfig config;
     ModuleState state = ModuleState.LOADED;
-    IEventPublisher eventHandler;
+    IEventHandler eventHandler;
 
 
     @Override
@@ -71,7 +73,7 @@ public class DummyModule implements IModule<ModuleConfig>
     public void setConfiguration(ModuleConfig config)
     {
         this.config = config;
-        this.eventHandler = hub.getEventBus().getPublisher(config.id);
+        this.eventHandler = new BasicEventHandler();
     }
 
 
@@ -210,6 +212,16 @@ public class DummyModule implements IModule<ModuleConfig>
     public ISensorHub getParentHub()
     {
         return this.hub;
+    }
+    
+    
+    @Override
+    public IEventSourceInfo getEventSourceInfo()
+    {
+        return new IEventSourceInfo() {
+            public String getGroupID() { return null; }
+            public String getSourceID() { return getLocalID(); }            
+        };
     }
 
 }

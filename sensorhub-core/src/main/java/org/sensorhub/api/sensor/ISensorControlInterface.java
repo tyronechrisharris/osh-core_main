@@ -17,8 +17,8 @@ package org.sensorhub.api.sensor;
 import java.util.List;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.common.CommandStatus;
-import org.sensorhub.api.common.IEventProducer;
 import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.event.IEventProducer;
 import org.vast.util.DateTime;
 
 

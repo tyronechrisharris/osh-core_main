@@ -134,7 +134,7 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
     
     
     @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {
         // we can receive events before producer is even set because we first
         // register only to storage, so just ignore those

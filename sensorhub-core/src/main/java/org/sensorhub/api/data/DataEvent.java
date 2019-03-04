@@ -15,7 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import org.sensorhub.api.common.ProcedureEvent;
-import org.sensorhub.api.data.DataEvent.Type;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -28,25 +27,8 @@ import net.opengis.swe.v20.DataBlock;
  * @author Alex Robin
  * @since Feb 20, 2015
  */
-public class DataEvent extends ProcedureEvent<Type>
+public class DataEvent extends ProcedureEvent
 {
-	/**
-     * Possible event types for a DataEvent
-     */
-    public static enum Type
-    {
-        /**
-         * New data is available from a sensor or process
-         */
-        NEW_DATA_AVAILABLE,
-        
-        /**
-         * For data that has already been sent but needs to be updated.<br/>
-         * (e.g. a model has actualized some of its predicted data)
-         */
-        DATA_UPDATED
-    };
-	
 	
 	/**
      * Name of channel that produced the event
@@ -72,9 +54,7 @@ public class DataEvent extends ProcedureEvent<Type>
      */
     public DataEvent(long timeStamp, String procedureID, String channelID, DataBlock ... records)
     {
-        this.type = Type.NEW_DATA_AVAILABLE;
-        this.timeStamp = timeStamp;
-        this.sourceID = procedureID;
+        super(timeStamp, procedureID);
         this.channelID = channelID;
         this.records = records;
     }
@@ -95,13 +75,6 @@ public class DataEvent extends ProcedureEvent<Type>
 	         records);
 	    this.source = dataInterface;
 	}
-		
-	
-	@Override
-    public Type getType()
-    {
-        return type;
-    }
 	
 	
     @Override

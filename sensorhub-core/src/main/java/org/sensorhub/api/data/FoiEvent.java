@@ -15,30 +15,21 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import org.sensorhub.api.common.ProcedureEvent;
-import org.sensorhub.api.data.FoiEvent.Type;
 import net.opengis.gml.v32.AbstractFeature;
 
 
 /**
  * <p>
- * Type of event generated when a new FOI is being targeted by a sensor or 
- * process. It is immutable and carries feature data by reference.
+ * Event sent when a new FOI is being targeted by a procedure.
+ * It is immutable and carries feature data by reference.
  * </p>
  *
  * @author Alex Robin
  * @since Apr 23, 2015
  */
-public class FoiEvent extends ProcedureEvent<Type>
+public class FoiEvent extends ProcedureEvent
 {
-	/**
-     * Possible event types for a FoiEvent
-     */
-    public enum Type
-    {
-        NEW_FOI,
-        END_FOI
-    };
-    
+	    
     
     /**
 	 * Description of Feature of Interest related to this event (by reference) 
@@ -77,9 +68,7 @@ public class FoiEvent extends ProcedureEvent<Type>
      */
     public FoiEvent(long timeStamp, String procedureID, String foiID, double startTime)
     {
-        this.type = Type.NEW_FOI;
-        this.timeStamp = timeStamp;
-        this.sourceID = procedureID;
+        super(timeStamp, procedureID);
         this.foiID = foiID;
         this.startTime = startTime;
     }

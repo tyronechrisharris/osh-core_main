@@ -36,7 +36,7 @@ public interface IStreamingControlInterface
      * Allows by-reference access to parent module
      * @return parent module instance
      */
-    public ICommandReceiver getParentModule();
+    public ICommandReceiver getParentProducer();
     
     
     /**

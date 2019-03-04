@@ -24,10 +24,13 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.IProcedureRegistry;
-import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.ProcedureEvent;
+import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.data.IStreamingDataInterface;
+import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.FilteredIterator;
 import org.sensorhub.utils.MsgUtils;
@@ -35,8 +38,8 @@ import org.sensorhub.utils.MsgUtils;
 
 /**
  * <p>
- * Default implementation of {@link IProcedureRegistry} maintaining a map of
- * all registered procedures in memory
+ * Default implementation maintaining a map of all registered procedures in
+ * memory and handling registration of the procedures with the event bus.
  * </p>
  *
  * @author Alex Robin
@@ -44,17 +47,17 @@ import org.sensorhub.utils.MsgUtils;
  */
 public class InMemoryProcedureRegistry implements IProcedureRegistry
 {
+    ISensorHub hub;
+    IEventPublisher eventHandler;
     ReadWriteLock lock = new ReentrantReadWriteLock();
-    ModuleRegistry moduleRegistry;
     Map<String, WeakReference<IProcedure>> rootProcedures = new TreeMap<>();
     Map<String, WeakReference<IProcedure>> allProcedures = new TreeMap<>();
-    IEventPublisher eventHandler;
     
     
     public InMemoryProcedureRegistry(ISensorHub hub)
     {
-        this.moduleRegistry = hub.getModuleRegistry();
-        this.eventHandler = hub.getEventBus().getPublisher(SensorHub.PROCEDURE_REGISTRY_ID);
+        this.hub = hub;
+        this.eventHandler = hub.getEventBus().getPublisher(IProcedureRegistry.EVENT_SOURCE_ID);
     }
     
     
@@ -74,9 +77,12 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
             if (proc.getParentGroup() == null)
                 rootProcedures.put(proc.getUniqueIdentifier(), ref);
             
+            // register procedure on event bus and forward its events to it
+            registerWithEventBus(proc);
+            
+            // if group, also register members recursively
             if (proc instanceof IProcedureGroup)
             {
-                // also register members recursively
                 for (IProcedure member: ((IProcedureGroup<?>)proc).getMembers().values())
                     register(member);
             }
@@ -84,6 +90,29 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
         finally
         {
             lock.writeLock().unlock();
+        }
+    }
+    
+    
+    protected void registerWithEventBus(IProcedure proc)
+    {
+        // register the procedure itself
+        IEventSourceInfo eventSrcInfo = proc.getEventSourceInfo();
+        final IEventPublisher eventPublisher = hub.getEventBus().getPublisher(eventSrcInfo);
+        proc.registerListener(e -> {
+            if (e instanceof ProcedureEvent)
+                eventPublisher.publish(e);
+        });
+        
+        // if data producer, register all outputs
+        if (proc instanceof IDataProducer)
+        {
+            for (IStreamingDataInterface output: ((IDataProducer) proc).getOutputs().values())
+            {
+                eventSrcInfo = output.getEventSourceInfo();
+                final IEventPublisher outputPublisher = hub.getEventBus().getPublisher(eventSrcInfo);
+                output.registerListener(outputPublisher::publish);
+            }
         }
     }
 
@@ -117,28 +146,44 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
 
 
     @Override
-    public IProcedure get(String uid)
+    public <T extends IProcedure> T get(String uid)
+    {
+        WeakReference<T> ref = getRef(uid);
+        if (ref == null)
+            return null;
+        return ref.get();
+    }
+
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends IProcedure> WeakReference<T> getRef(String uid)
     {
         lock.readLock().lock();
         
         try
         {
             // look by local ID in the module registry for backward compatibility
+            ModuleRegistry moduleRegistry = hub.getModuleRegistry();
             if (moduleRegistry.isModuleLoaded(uid))
             {
-                IModule<?> module = moduleRegistry.getLoadedModuleById(uid);
+                WeakReference<IModule<?>> moduleRef = moduleRegistry.getModuleRef(uid);
+                IModule<?> module = moduleRef.get();
                 if (!(module instanceof IProcedure))
                     throw new IllegalArgumentException("Module " + MsgUtils.moduleString(module) + " is not a procedure");
-                return (IProcedure)module;
+                return (WeakReference)moduleRef;
             }            
             else
             {
-                IProcedure proc;
-                WeakReference<IProcedure> ref = allProcedures.remove(uid);
-                if (ref == null || (proc = ref.get()) == null)
-                    throw new IllegalArgumentException("Cannot find procedure " + uid); 
-                return proc;
+                WeakReference<IProcedure> ref = allProcedures.get(uid);
+                if (ref == null)
+                    throw new IllegalArgumentException("Cannot find procedure " + uid);
+                return (WeakReference)ref;
             }
+        }
+        catch (SensorHubException e)
+        {
+            throw new IllegalArgumentException(e.getMessage());
         }
         finally
         {
@@ -154,12 +199,12 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
     }
 
 
-    @Override
     @SuppressWarnings("unchecked")
+    @Override
     public <T extends IProcedure> Iterable<T> list(Class<T> procedureType)
     {
         // return a filtered iterable
-        return () -> (Iterator<T>) new FilteredIterator<WeakReference<IProcedure>>(rootProcedures.values().iterator())
+        return () -> (Iterator) new FilteredIterator<WeakReference<IProcedure>>(rootProcedures.values().iterator())
         {
             @Override
             protected boolean accept(WeakReference<IProcedure> ref)
@@ -170,19 +215,5 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
                 return procedureType.isAssignableFrom(proc.getClass());
             }
         };
-    }
-
-
-    @Override
-    public void registerListener(IEventListener listener)
-    {
-        eventHandler.registerListener(listener);        
-    }
-
-
-    @Override
-    public void unregisterListener(IEventListener listener)
-    {
-        eventHandler.unregisterListener(listener);        
     }
 }

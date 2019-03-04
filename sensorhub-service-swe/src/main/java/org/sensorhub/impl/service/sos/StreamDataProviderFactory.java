@@ -288,7 +288,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
 
 
     @Override
-    public void handleEvent(Event<?> e)
+    public void handleEvent(Event e)
     {
         if (disableEvents)
             return;

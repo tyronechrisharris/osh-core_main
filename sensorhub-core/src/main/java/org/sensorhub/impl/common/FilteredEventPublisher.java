@@ -18,7 +18,6 @@ import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventPublisher;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -29,51 +28,35 @@ import org.slf4j.LoggerFactory;
  * @author Alex Robin
  * @date Feb 21, 2019
  */
-public class FilteredEventPublisher extends FilteredAsyncPublisher<Event<?>> implements IEventPublisher
+public class FilteredEventPublisher extends FilteredAsyncPublisher<Event> implements IEventPublisher
 {
-    private static final Logger log = LoggerFactory.getLogger(FilteredEventPublisher.class);
-    
     String sourceID;
     Map<IEventListener, ListenerSubscriber> listeners;
+    Logger log;
     
     
-    public FilteredEventPublisher(String sourceID, Executor executor, int maxBufferCapacity)
+    public FilteredEventPublisher(String sourceID, Executor executor, int maxBufferCapacity, Logger logger)
     {
         super(executor, maxBufferCapacity);
         this.sourceID = sourceID;
         this.listeners = new ConcurrentHashMap<>();
+        this.log = logger;
     }
 
 
     @Override
-    public void publish(Event<?> e)
+    public void publish(Event e)
     {
         this.offer(e, (sub, ev) -> {
-            log.warn("{} dropped by subscriber {}", ev, sub);
+            log.warn("{} from {} dropped by subscriber {}", ev.getClass().getSimpleName(), sourceID, sub);
             return false;
         });
     }
 
 
     @Override
-    public void publish(Event<?> e, BiPredicate<Subscriber<? super Event<?>>, ? super Event<?>> onDrop)
+    public void publish(Event e, BiPredicate<Subscriber<? super Event>, ? super Event> onDrop)
     {
         this.offer(e, onDrop);
-    }
-
-
-    @Override
-    public void registerListener(IEventListener listener)
-    {
-        subscribe(listeners.put(listener, new ListenerSubscriber(sourceID, listener)));
-    }
-
-
-    @Override
-    public void unregisterListener(IEventListener listener)
-    {
-        ListenerSubscriber sub = listeners.get(listener);
-        if (sub != null)
-            sub.cancel();
     }
 }

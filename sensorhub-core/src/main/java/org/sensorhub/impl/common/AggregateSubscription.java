@@ -27,11 +27,11 @@ import org.sensorhub.api.common.Event;
  * @author Alex Robin
  * @date Feb 21, 2019
  */
-public class AggregateSubscription implements Subscription, Subscriber<Event<?>>
+public class AggregateSubscription implements Subscription, Subscriber<Event>
 {
     Collection<Subscription> subscriptions;
-    Subscriber<Event<?>> target;
-    PriorityQueue<Event<?>> queue;
+    Subscriber<Event> target;
+    PriorityQueue<Event> queue;
     AtomicLong numRequestedEvents = new AtomicLong();
     
     
@@ -57,7 +57,7 @@ public class AggregateSubscription implements Subscription, Subscriber<Event<?>>
     
 
     @Override
-    public void onNext(Event<?> e)
+    public void onNext(Event e)
     {
         // add to sorted
         queue.add(e);

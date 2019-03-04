@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
  * @author Alex Robin
  * @date Feb 21, 2019
  */
-public class ListenerSubscriber implements Subscriber<Event<?>>
+public class ListenerSubscriber implements Subscriber<Event>
 {
     private static final Logger log = LoggerFactory.getLogger(ListenerSubscriber.class);
     
@@ -56,7 +56,7 @@ public class ListenerSubscriber implements Subscriber<Event<?>>
     
 
     @Override
-    public void onNext(Event<?> e)
+    public void onNext(Event e)
     {
         if (!canceled)
             listener.handleEvent(e);

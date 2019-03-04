@@ -59,6 +59,7 @@ public class TestGenericStreamStorage
         fakeSensorData = new FakeSensorData(fakeSensor, OUTPUT_NAME, 0.05, 10);
         fakeSensor.setDataInterfaces(fakeSensorData);
         registry.startModule(fakeSensor.getLocalID());
+        fakeSensor.startSendingData(true);
         
         // create test storage
         StreamStorageConfig genericStorageConfig = new StreamStorageConfig();

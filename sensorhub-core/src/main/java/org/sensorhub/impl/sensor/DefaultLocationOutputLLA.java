@@ -61,7 +61,7 @@ public class DefaultLocationOutputLLA extends DefaultLocationOutput
         // update latest record and send event
         latestRecord = dataBlock;
         latestRecordTime = System.currentTimeMillis();
-        eventHandler.publishEvent(new SensorDataEvent(latestRecordTime, this, dataBlock));
+        eventHandler.publish(new SensorDataEvent(latestRecordTime, this, dataBlock));
     }
 
 }

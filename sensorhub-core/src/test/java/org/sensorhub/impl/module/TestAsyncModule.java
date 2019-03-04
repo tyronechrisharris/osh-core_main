@@ -16,8 +16,6 @@ package org.sensorhub.impl.module;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent;
@@ -35,27 +33,22 @@ public class TestAsyncModule
         AsyncModule module = (AsyncModule)new SensorHub().getModuleRegistry().loadModule(config);
         module.setConfiguration(conf);
         
-        module.registerListener(new IEventListener()
-        {
-            @Override
-            public void handleEvent(Event<?> e)
+        module.registerListener(e -> {
+            switch (((ModuleEvent)e).getNewState())
             {
-                switch (((ModuleEvent)e).getNewState())
-                {
-                    case INITIALIZED:
-                        conf.initEventReceived = true;
-                        break;
-                        
-                    case STARTED:
-                        conf.startEventReceived = true;
-                        break;
-                        
-                    case STOPPED:
-                        conf.stopEventReceived = true;
-                        break;
-                        
-                    default:
-                }
+                case INITIALIZED:
+                    conf.initEventReceived = true;
+                    break;
+                    
+                case STARTED:
+                    conf.startEventReceived = true;
+                    break;
+                    
+                case STOPPED:
+                    conf.stopEventReceived = true;
+                    break;
+                    
+                default:
             }            
         });
         
