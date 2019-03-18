@@ -15,6 +15,10 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.common;
 
 import java.lang.ref.WeakReference;
+import org.sensorhub.api.event.IEventSource;
+import org.sensorhub.api.event.IEventSourceInfo;
+import org.sensorhub.impl.event.EventSourceInfo;
+
 
 /**
  * <p>
@@ -35,7 +39,7 @@ import java.lang.ref.WeakReference;
  * @since Feb 18, 2019
  * @see IProcedure IProcedure
  */
-public interface IProcedureRegistry
+public interface IProcedureRegistry extends IEventSource
 {
     public static final String EVENT_SOURCE_ID = "urn:osh:procedurereg";
     
@@ -92,5 +96,11 @@ public interface IProcedureRegistry
      * @return Iterable collection of selected procedures
      */
     public <T extends IProcedure> Iterable<T> list(Class<T> procedureType);
+
+
+    public default IEventSourceInfo getEventSourceInfo()
+    {
+        return new EventSourceInfo(IProcedureRegistry.EVENT_SOURCE_ID);
+    }
     
 }

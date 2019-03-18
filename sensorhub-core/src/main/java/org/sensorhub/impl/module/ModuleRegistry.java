@@ -209,7 +209,10 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             final IEventPublisher modulePublisher = hub.getEventBus().getPublisher(EVENT_GROUP_ID, config.id);
             module.registerListener(e -> {
                 if (e instanceof ModuleEvent)
+                {
+                    handleEvent(e);
                     modulePublisher.publish(e);
+                }
             });
             
             // also register additional local listener if specified

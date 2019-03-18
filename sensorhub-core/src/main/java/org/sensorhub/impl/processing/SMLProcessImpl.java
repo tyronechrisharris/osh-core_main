@@ -113,30 +113,28 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
                 throw new ProcessingException(String.format("Cannot read SensorML description from '%s'", smlPath), e);
             }
             
-            initChain();
+            if (wrapperProcess != null)
+                initChain();
         }
     }
     
     
     protected void initChain() throws SensorHubException
     {
-        if (wrapperProcess != null)
+        // make process executable
+        try
         {
-            // make process executable
-            try
-            {
-                smlUtils.makeProcessExecutable(wrapperProcess, true);
-            }
-            catch (SMLException e)
-            {
-                throw new ProcessingException("Cannot prepare process chain for execution", e);
-            }
-            
-            // advertise process inputs and outputs
-            refreshIOList(wrapperProcess.getInputList(), inputs, false);
-            refreshIOList(wrapperProcess.getParameterList(), parameters, false);
-            refreshIOList(wrapperProcess.getOutputList(), outputs, true);
+            smlUtils.makeProcessExecutable(wrapperProcess, true);
         }
+        catch (SMLException e)
+        {
+            throw new ProcessingException("Cannot prepare process chain for execution", e);
+        }
+        
+        // advertise process inputs and outputs
+        refreshIOList(wrapperProcess.getInputList(), inputs, false);
+        refreshIOList(wrapperProcess.getParameterList(), parameters, false);
+        refreshIOList(wrapperProcess.getOutputList(), outputs, true);
     }
     
     

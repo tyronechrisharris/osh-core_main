@@ -26,7 +26,7 @@ import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.sensor.ISensorControlInterface;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.impl.common.BasicEventHandler;
+import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.util.DateTime;

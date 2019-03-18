@@ -7,7 +7,7 @@
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.common;
+package org.sensorhub.impl.event;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow.Subscriber;

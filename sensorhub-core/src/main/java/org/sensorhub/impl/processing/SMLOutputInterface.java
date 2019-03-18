@@ -24,7 +24,7 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.processing.ProcessingException;
-import org.sensorhub.impl.common.BasicEventHandler;
+import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.vast.process.DataQueue;
 import org.vast.process.ProcessException;

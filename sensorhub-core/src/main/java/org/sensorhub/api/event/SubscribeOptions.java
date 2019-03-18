@@ -15,7 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.event;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -75,7 +74,8 @@ public class SubscribeOptions<E extends Event>
         {
             this(new SubscribeOptions<E>());
             baseEventClass = eventClass;
-            instance.eventTypes.add(eventClass);
+            if (eventClass != Event.class)
+                instance.eventTypes.add(eventClass);
         }
         
         
@@ -87,11 +87,11 @@ public class SubscribeOptions<E extends Event>
         
         public B withSourceID(String... sourceIDs)
         {
-            return withSourceID(Arrays.asList(sourceIDs));
+            return withSourceIDs(Arrays.asList(sourceIDs));
         }
         
         
-        public B withSourceID(Collection<String> sourceIDs)
+        public B withSourceIDs(Iterable<String> sourceIDs)
         {
             for (String id: sourceIDs)
             {
@@ -102,9 +102,15 @@ public class SubscribeOptions<E extends Event>
         }
         
         
-        public B withSource(IEventProducer... sources)
+        public B withSource(IEventSource... sources)
         {
-            for (IEventProducer s: sources)
+            return withSources(Arrays.asList(sources));
+        }
+        
+        
+        public B withSources(Iterable<IEventSource> sources)
+        {
+            for (IEventSource s: sources)
             {
                 Asserts.checkNotNull(s.getEventSourceInfo().getSourceID(), "sourceID");
                 instance.sourceIDs.add(s.getEventSourceInfo().getSourceID());
@@ -113,13 +119,11 @@ public class SubscribeOptions<E extends Event>
         }
         
         
-        public B withEventType(Class<? extends E>... types)
+        public B withEventType(Class<? extends E> type)
         {
-            for (Class<? extends E> t: types)
-            {
-                Asserts.checkArgument(baseEventClass.isAssignableFrom(t), "Event type is not compatible with the base event class of this builder");
-                instance.eventTypes.add(t);
-            }
+            Asserts.checkArgument(baseEventClass.isAssignableFrom(type), "Event type is not compatible with the base event class of this builder");
+            instance.eventTypes.remove(baseEventClass); // remove the base class if we set more specific event types
+            instance.eventTypes.add(type);
             return (B)this;
         }
         

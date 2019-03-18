@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
-import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
@@ -48,27 +47,36 @@ public interface ISubscriptionBuilder<E extends Event>
     
     /**
      * Add one or more sources to the subscription<br/>
-     * The source ID can also contain a trailing wildcard (e.g. "mysource/*")
+     * Source IDs can also contain a trailing wildcard (e.g. "mysource/*")
      * @param sourceIDs collection containing IDs of sources to subscribe to
      * @return this builder for chaining
      */
-    ISubscriptionBuilder<E> withSourceID(Collection<String> sourceIDs);
+    ISubscriptionBuilder<E> withSourceIDs(Iterable<String> sourceIDs);
     
     
     /**
      * Add one or more sources to the subscription.
-     * @param sources
+     * @param sources event producers to subscribe to
      * @return this builder for chaining
      */
-    ISubscriptionBuilder<E> withSource(IEventProducer... sources);
+    ISubscriptionBuilder<E> withSource(IEventSource... sources);
     
     
     /**
-     * Include only events of the specified types
-     * @param types one or more accepted event types/classes
+     * Add one or more sources to the subscription
+     * @param sources collection of event producers to subscribe to
+     * @return this builder for chaining
+     */
+    ISubscriptionBuilder<E> withSources(Iterable<IEventSource> sources);
+    
+    
+    /**
+     * Include only events of the specified type<br/>
+     * This method can be called several times to include more types
+     * @param type the accepted event types/classes
      * @return @return this builder for chaining
      */
-    ISubscriptionBuilder<E> withEventType(@SuppressWarnings("unchecked") Class<? extends E>... types);
+    ISubscriptionBuilder<E> withEventType(Class<? extends E> type);
     
     
     /**
@@ -85,7 +93,49 @@ public interface ISubscriptionBuilder<E extends Event>
      * @param subscriber subscriber that will receive events
      * @return a future that will be notified when the subscription is ready
      */
-    CompletableFuture<Subscription> withSubscriber(Subscriber<? super E> subscriber);
+    CompletableFuture<Subscription> subscribe(Subscriber<? super E> subscriber);
+    
+    
+    /**
+     * Subscribe asynchronously with the specified callbacks and the ability
+     * to control the flow of the subscription (i.e. by applying back pressure)
+     * @param onNext callback invoked every time a new event is available
+     * @return a future that will be notified when the subscription is ready
+     */
+    CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext);
+    
+    
+    /**
+     * Subscribe asynchronously with the specified callbacks and the ability
+     * to control the flow of the subscription (i.e. by applying back pressure)
+     * @param onNext callback invoked every time a new event is available
+     * @param onError callback invoked if an error occurs while delivering 
+     * events to this subscription (e.g. the onNext callback throws an exception)
+     * @return a future that will be notified when the subscription is ready
+     */
+    CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext, Consumer<Throwable> onError);
+    
+    
+    /**
+     * Subscribe asynchronously with the specified callbacks and the ability
+     * to control the flow of the subscription (i.e. by applying back pressure)
+     * @param onNext callback invoked every time a new event is available
+     * @param onError callback invoked if an error occurs while delivering 
+     * events to this subscription (e.g. the onNext callback throws an exception)
+     * @param onComplete callback invoked when the subscription is closed by
+     * the publisher (i.e. no more events will be delivered to this subscription)
+     * @return a future that will be notified when the subscription is ready
+     */
+    CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext, Consumer<Throwable> onError, Runnable onComplete);
+    
+    
+    /**
+     * Subscribe asynchronously with a simple consumer without flow
+     * control (back pressure) capability
+     * @param consumer callback that will receive the events
+     * @return a future that will be notified when the subscription is ready
+     */
+    CompletableFuture<Subscription> consume(Consumer<? super E> consumer);
     
     
     /**
@@ -94,38 +144,5 @@ public interface ISubscriptionBuilder<E extends Event>
      * @param listener listener that will receive the events
      * @return a future that will be notified when the subscription is ready
      */
-    CompletableFuture<Subscription> withListener(IEventListener listener);
-    
-    
-    /**
-     * Subscribe asynchronously with a simple consumer without flow control
-     * (back pressure) capability
-     * @param onNext callback invoked every time a new event is available
-     * @return a future that will be notified when the subscription is ready
-     */
-    CompletableFuture<Subscription> withConsumer(Consumer<? super E> onNext);
-    
-    
-    /**
-     * Subscribe asynchronously with a simple consumer without flow control
-     * (back pressure) capability
-     * @param onNext callback invoked every time a new event is available
-     * @param onError callback invoked if an error occurs while delivering 
-     * events to this subscription (e.g. the onNext callback throws an exception)
-     * @return a future that will be notified when the subscription is ready
-     */
-    CompletableFuture<Subscription> withConsumer(Consumer<? super E> onNext, Consumer<Throwable> onError);
-    
-    
-    /**
-     * Subscribe asynchronously with a simple consumer without flow control
-     * (back pressure) capability
-     * @param onNext callback invoked every time a new event is available
-     * @param onError callback invoked if an error occurs while delivering 
-     * events to this subscription (e.g. the onNext callback throws an exception)
-     * @param onComplete callback invoked when the subscription is closed by
-     * the publisher (i.e. no more events will be delivered to this subscription)
-     * @return a future that will be notified when the subscription is ready
-     */
-    CompletableFuture<Subscription> withConsumer(Consumer<? super E> onNext, Consumer<Throwable> onError, Runnable onComplete);
+    CompletableFuture<Subscription> listen(IEventListener listener);
 }

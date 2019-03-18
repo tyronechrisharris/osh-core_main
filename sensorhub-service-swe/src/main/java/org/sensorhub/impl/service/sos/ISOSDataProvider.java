@@ -46,12 +46,7 @@ public interface ISOSDataProvider
      * Requests provider to generate the next observation from the
      * underlying data, given the current config and filter
      * @return observation instance
-<<<<<<< Upstream, based on master
      * @throws IOException
-=======
-     * @throws IOException 
-     * @throws Exception
->>>>>>> 531e416 Removed SensorHub and AdminUI singletons
      */
     public IObservation getNextObservation() throws IOException;
     
@@ -60,12 +55,7 @@ public interface ISOSDataProvider
      * Requests provider to generate the next CDM record from the
      * underlying data, given the current config and filter
      * @return data block
-<<<<<<< Upstream, based on master
      * @throws IOException
-=======
-     * @throws IOException 
-     * @throws Exception
->>>>>>> 531e416 Removed SensorHub and AdminUI singletons
      */
     public DataBlock getNextResultRecord() throws IOException;
     
@@ -75,10 +65,6 @@ public interface ISOSDataProvider
      * to the current config and filter
      * @return data component
      * @throws IOException 
-<<<<<<< Upstream, based on master
-=======
-     * @throws Exception 
->>>>>>> 531e416 Removed SensorHub and AdminUI singletons
      */
     public DataComponent getResultStructure() throws IOException;
     
@@ -87,11 +73,7 @@ public interface ISOSDataProvider
      * Requests provider to specify the preferred encoding for the
      * underlying data, given the current config and filter
      * @return encoding instance
-     * @throws IOException 
-<<<<<<< Upstream, based on master
-=======
-     * @throws Exception 
->>>>>>> 531e416 Removed SensorHub and AdminUI singletons
+     * @throws IOException
      */
     public DataEncoding getDefaultResultEncoding() throws IOException;
     

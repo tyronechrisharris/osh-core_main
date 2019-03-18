@@ -14,7 +14,7 @@ domain, as explained at http://creativecommons.org/publicdomain/zero/1.0/
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.common;
+package org.sensorhub.impl.event;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;

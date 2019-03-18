@@ -16,6 +16,7 @@ package org.sensorhub.api.event;
 
 import org.sensorhub.api.common.IEventListener;
 
+
 /**
  * <p>
  * Base interface for all objects accepting producing events and accepting
@@ -25,7 +26,7 @@ import org.sensorhub.api.common.IEventListener;
  * @author Alex Robin
  * @since Sep 5, 2013
  */
-public interface IEventProducer
+public interface IEventProducer extends IEventSource
 {
     
     /**
@@ -42,14 +43,5 @@ public interface IEventProducer
      * @param listener
      */
     public void unregisterListener(IEventListener listener);
-    
-    
-    /**
-     * Get the descriptor of this event source, including the source ID and 
-     * the group ID it should be attached to. This information is used when
-     * publishing or subscribing to the event bus.
-     * @return the event source descriptor
-     */
-    public IEventSourceInfo getEventSourceInfo();
     
 }

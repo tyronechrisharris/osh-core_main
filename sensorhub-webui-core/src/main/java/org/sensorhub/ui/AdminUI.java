@@ -279,9 +279,10 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         selectStackItem(stack);
         
         // register to module registry events
-        moduleEventsSub = hub.getEventBus().subscribe()
+        hub.getEventBus().newSubscription()
             .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
-            .withListener(this).join();
+            .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
+            .listen(this).thenAccept(s -> moduleEventsSub = s);
     }
     
     

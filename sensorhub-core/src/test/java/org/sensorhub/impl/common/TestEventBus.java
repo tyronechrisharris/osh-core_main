@@ -109,10 +109,10 @@ public class TestEventBus
             final int subId = i;
             SubscriberInfo sub = subscribers[subId];
             
-            bus.subscribe()
+            bus.newSubscription()
                 .withSourceID(sub.sourceId)
                 .withFilter(sub.filter)
-                .withSubscriber(new Subscriber<Event>() {
+                .subscribe(new Subscriber<Event>() {
                     @Override
                     public void onComplete()
                     {
@@ -194,10 +194,10 @@ public class TestEventBus
             final int subId = i;
             SubscriberInfo sub = subscribers[subId];
             
-            bus.subscribe()
+            bus.newSubscription()
                 .withSourceID(sub.sourceId)
                 .withFilter(sub.filter)
-                .withListener(e -> {
+                .listen(e -> {
                     long now = System.currentTimeMillis();
                     System.out.println(sub.sourceId + " -> sub" + subId + ": " + e.getTimeStamp() + " @ " + now);
                     sub.eventsReceived.add(e);
@@ -322,9 +322,9 @@ public class TestEventBus
         CountDownLatch doneSignal = new CountDownLatch(5);
         AtomicInteger count = new AtomicInteger();
         
-        bus.subscribe(DataEvent.class)
+        bus.newSubscription(DataEvent.class)
             .withSourceID(SOURCES[0])
-            .withSubscriber(new Subscriber<DataEvent>() {
+            .subscribe(new Subscriber<DataEvent>() {
                 @Override
                 public void onNext(DataEvent item)
                 {
@@ -370,9 +370,9 @@ public class TestEventBus
         CountDownLatch doneSignal = new CountDownLatch(numExpectedEvents);
         AtomicInteger count = new AtomicInteger();
         
-        bus.subscribe(DataEvent.class)
+        bus.newSubscription(DataEvent.class)
             .withSourceID(sources)
-            .withConsumer(e -> {
+            .listen(e -> {
                 count.incrementAndGet();
                 doneSignal.countDown();
             });

@@ -77,7 +77,7 @@ public class ProcessingManagerImpl implements IProcessingManager
                 try
                 {
                     ProcessInfo info = provider.getProcessMap().get(uri);
-                    IProcessExec processInstance = info.getImplementationClass().newInstance();
+                    IProcessExec processInstance = info.getImplementationClass().getDeclaredConstructor().newInstance();
                     
                     // assign parent hub
                     if (processInstance instanceof StreamDataSource)
@@ -85,7 +85,7 @@ public class ProcessingManagerImpl implements IProcessingManager
                         
                     return processInstance;
                 }
-                catch (InstantiationException | IllegalAccessException e)
+                catch (ReflectiveOperationException e)
                 {
                     throw new ProcessException("Cannot instantiate process " + uri, e);
                 }

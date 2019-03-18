@@ -22,31 +22,36 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import org.sensorhub.api.common.ProcedureEvent;
+import org.sensorhub.api.common.ProcedureRemovedEvent;
 import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.common.IProcedureRegistry;
 import org.sensorhub.api.common.ProcedureAddedEvent;
 import org.sensorhub.api.common.ProcedureChangedEvent;
+import org.sensorhub.api.common.ProcedureDisabledEvent;
+import org.sensorhub.api.common.ProcedureEnabledEvent;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.module.ModuleEvent;
+import org.sensorhub.api.event.IEventSource;
+import org.sensorhub.api.event.IEventSourceInfo;
+import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.DataKey;
 import org.sensorhub.api.persistence.IBasicStorage;
@@ -62,6 +67,7 @@ import org.sensorhub.api.persistence.ObsKey;
 import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.impl.module.AbstractModule;
+import org.sensorhub.utils.MsgUtils;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
@@ -79,7 +85,8 @@ import org.vast.util.Bbox;
  * @author Alex Robin
  * @since Feb 21, 2015
  */
-public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> implements IRecordStorageModule<StreamStorageConfig>, IObsStorage, IMultiSourceStorage<IObsStorage>, IEventListener
+public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> implements IRecordStorageModule<StreamStorageConfig>,
+    IObsStorage, IMultiSourceStorage<IObsStorage>
 {
     static final String WAITING_STATUS_MSG = "Waiting for data source ";
     
@@ -87,7 +94,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     WeakReference<IDataProducer> dataSourceRef;
     Map<String, ScalarIndexer> timeStampIndexers = new HashMap<>();
     Map<String, String> currentFoiMap = new HashMap<>(); // entity ID -> current FOI ID
-    Set<String> registeredProducers = new HashSet<>();
+    Map<String, Subscription> registeredProducers = new HashMap<>(); // producerId -> Subscription
     long lastCommitTime = Long.MIN_VALUE;
     Timer autoPurgeTimer;
     
@@ -128,7 +135,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 }
             };
             
-            autoPurgeTimer.schedule(task, 0, (long)(config.autoPurgeConfig.purgePeriod*1000)); 
+            autoPurgeTimer.schedule(task, 0, (long)(config.autoPurgeConfig.purgePeriod*1000));
         }
         
         // retrieve reference to data source
@@ -138,37 +145,17 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         IDataProducer dataSource = dataSourceRef.get();
         if (dataSource != null)
         {
-            dataSource.registerListener(this);
-            if (!dataSource.isEnabled())
+            if (dataSource.isEnabled())
+                connectDataSource(dataSource, storage);
+            else
                 reportStatus(WAITING_STATUS_MSG + dataSource.getUniqueIdentifier());
-        }
-        else
-            throw new StorageException("Cannot find datasource " + config.dataSourceID);
-    }
-    
-    
-    /*
-     * Gets the list of selected outputs (i.e. a subset of all data source outputs)
-     */
-    protected Collection<? extends IStreamingDataInterface> getSelectedOutputs(IDataProducer dataSource)
-    {
-        if (config.excludedOutputs == null || config.excludedOutputs.isEmpty())
-        {
-            return dataSource.getOutputs().values();
-        }
-        else
-        {
-            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>();
             
-            for (IStreamingDataInterface outputInterface : dataSource.getOutputs().values())
-            {
-                // skip excluded outputs
-                if (!config.excludedOutputs.contains(outputInterface.getName()))                                    
-                    selectedOutputs.add(outputInterface);
-            }
-            
-            return selectedOutputs;
+            // subscribe to procedure events so we can detect if it's enabled later
+            subscribeToProcedureEvents(dataSource);
         }
+        
+        // get notified if procedure is added later
+        subscribeToProcedureEvents(getParentHub().getProcedureRegistry());
     }
     
     
@@ -206,20 +193,44 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             if (dataStore instanceof IObsStorage)
                 ((IObsStorage)dataStore).storeFoi(producerID, foi);
         }
-    
-        // register to data events
-        for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
-            prepareToReceiveEvents(output);
-    
-        // keep in set
-        registeredProducers.add(producerID);
         
+        // make sure changes are written to storage
+        storage.commit();
+            
+        // register to output data events
+        subscribeToOutputEvents(dataSource);
+                
         // if multisource, call recursively to connect nested producers
         if (dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (String entityID: multiSource.getMembers().keySet())
-                ensureProducerInfo(entityID);
+            for (String nestedProducerID: multiSource.getMembers().keySet())
+                ensureProducerInfo(nestedProducerID);
+        }       
+    }
+    
+    
+    /*
+     * Gets the list of selected outputs (i.e. a subset of all data source outputs)
+     */
+    protected Collection<? extends IStreamingDataInterface> getSelectedOutputs(IDataProducer dataSource)
+    {
+        if (config.excludedOutputs == null || config.excludedOutputs.isEmpty())
+        {
+            return dataSource.getOutputs().values();
+        }
+        else
+        {
+            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>();
+            
+            for (IStreamingDataInterface outputInterface : dataSource.getOutputs().values())
+            {
+                // skip excluded outputs
+                if (!config.excludedOutputs.contains(outputInterface.getName()))
+                    selectedOutputs.add(outputInterface);
+            }
+            
+            return selectedOutputs;
         }
     }
     
@@ -246,33 +257,11 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     
     
     /*
-     * Listen to events and prepare to index time stamps for given stream
-     */
-    protected void prepareToReceiveEvents(IStreamingDataInterface output)
-    {
-        // create time stamp indexer
-        timeStampIndexers.computeIfAbsent(output.getName(), 
-            k -> SWEHelper.getTimeStampIndexer(output.getRecordDescription()));
-        
-        // fetch latest record
-        DataBlock rec = output.getLatestRecord();
-        if (rec != null)
-            this.handleEvent(new DataEvent(System.currentTimeMillis(), output, rec));
-        
-        // register to receive future events
-        output.registerListener(this);
-    }
-    
-    
-    /*
      * Disconnect from data source
      */
     protected void disconnectDataSource(IDataProducer dataSource)
     {
         Asserts.checkNotNull(dataSource, IDataProducer.class);
-        
-        for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
-            output.unregisterListener(this);
         
         // if multisource, disconnects from all nested producers
         if (dataSource instanceof IMultiSourceDataProducer)
@@ -281,6 +270,77 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             for (String entityID: multiSource.getMembers().keySet())
                 disconnectDataSource(multiSource.getMembers().get(entityID));
         }
+        
+        // remove producer and cancel subscription
+        registeredProducers.remove(dataSource.getUniqueIdentifier()).cancel();
+    }
+    
+    
+    protected void subscribeToProcedureEvents(IEventSource eventSource)
+    {     
+        getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
+            .withSource(eventSource)
+            .withEventType(ProcedureAddedEvent.class)
+            .withEventType(ProcedureRemovedEvent.class)
+            .withEventType(ProcedureEnabledEvent.class)
+            .withEventType(ProcedureDisabledEvent.class)
+            .consume(e -> {
+                String procID = e.getProcedureID();
+                IDataProducer dataSource = getParentHub().getProcedureRegistry().get(procID);                
+                if (dataSource.isEnabled())
+                {
+                    if (e instanceof ProcedureAddedEvent || e instanceof ProcedureEnabledEvent)
+                    {
+                        if (procID.equals(config.dataSourceID))
+                        {
+                            connectDataSource(dataSource, storage);
+                            clearStatus();
+                        }
+                        else
+                            ensureProducerInfo(procID);
+                    }
+                    else
+                    {
+                        disconnectDataSource(dataSource);
+                        reportStatus("Disconnected for data source " + MsgUtils.entityString(dataSource));
+                    }
+                }
+            });
+    }
+    
+    
+    protected void subscribeToOutputEvents(IDataProducer producer)
+    {     
+        // get subscription builder
+        ISubscriptionBuilder<ProcedureEvent> subscription = getParentHub().getEventBus()
+            .newSubscription(ProcedureEvent.class)
+            .withSource(producer);
+        
+        for (IStreamingDataInterface output: getSelectedOutputs(producer))
+        {
+            // create time stamp indexer
+            timeStampIndexers.computeIfAbsent(output.getName(),
+                k -> SWEHelper.getTimeStampIndexer(output.getRecordDescription()));
+            
+            // fetch latest record
+            DataBlock rec = output.getLatestRecord();
+            if (rec != null)
+                onNext(new DataEvent(System.currentTimeMillis(), output, rec));
+        
+            // add output to subscription
+            subscription.withSource(output);
+        }
+        
+        // finalize subscription
+        subscription.withEventType(DataEvent.class)
+            .withEventType(FoiEvent.class)
+            .subscribe(this::onNext, e -> {
+                getLogger().error("Error during event dispatch", e);
+            }, () -> {})
+            .thenAccept(subAck -> {
+                subAck.request(100);
+                registeredProducers.put(producer.getUniqueIdentifier(), subAck);
+            });
     }
     
         
@@ -315,47 +375,20 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             storage.cleanup();
         super.cleanup();
     }
-    
-    
+
+
     @Override
-    public synchronized void handleEvent(Event e)
+    public void onSubscribe(Subscription s)
     {
-        // don't do anything if stop was called
-        if (dataSourceRef == null)
-            return;
-        
-        if (e instanceof ModuleEvent)
-        {
-            IModule<?> eventSrc = (IModule<?>)e.getSource();
-            ModuleState state = ((ModuleEvent) e).getNewState();
-            
-            try
-            {
-                // connect to data source only when it's started
-                IDataProducer dataSource = dataSourceRef.get();
-                if (dataSource == eventSrc)
-                {
-                    if (state == ModuleState.STARTED)
-                    {
-                        connectDataSource(dataSource, storage);
-                        storage.commit();
-                        clearStatus();
-                        setState(ModuleState.STARTED);
-                    }
-                    else if (state == ModuleState.STOPPED)
-                    {
-                        disconnectDataSource(dataSource);
-                        reportStatus(WAITING_STATUS_MSG + dataSource.getUniqueIdentifier());
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                getLogger().error("Error while connecting to data source", ex);
-            }
-        }
-        
-        else if (config.processEvents)
+        s.request(100);
+        registeredProducers.put(, s);
+    }
+
+
+    @Override
+    public void onNext(ProcedureEvent e)
+    {
+        if (config.processEvents)
         {
             // new data events
             if (e instanceof DataEvent)
@@ -410,24 +443,21 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 }
             }
             
-            else if (e instanceof ProcedureEvent)
+            else if (e instanceof ProcedureAddedEvent)
             {
-                if (e instanceof ProcedureAddedEvent)
-                {
-                    ensureProducerInfo(((ProcedureAddedEvent)e).getProcedureID());
-                }
+                ensureProducerInfo(((ProcedureAddedEvent)e).getProcedureID());
+            }
+            
+            else if (e instanceof ProcedureChangedEvent)
+            {
+                // TODO check that description was actually updated?
+                // in the current state, the same description would be added at each restart
+                // should we compare contents? if not, on what time tag can we rely on?
+                // AbstractSensorModule implementation of getLastSensorDescriptionUpdate() is
+                // only useful between restarts since it will be resetted to current time at startup...
                 
-                else if (e instanceof ProcedureChangedEvent)
-                {
-                    // TODO check that description was actually updated?
-                    // in the current state, the same description would be added at each restart
-                    // should we compare contents? if not, on what time tag can we rely on?
-                    // AbstractSensorModule implementation of getLastSensorDescriptionUpdate() is
-                    // only useful between restarts since it will be resetted to current time at startup...
-                    
-                    // TODO to manage this issue, first check that no other description is valid at the same time
-                    storage.storeDataSourceDescription(dataSourceRef.get().getCurrentDescription());
-                }
+                // TODO to manage this issue, first check that no other description is valid at the same time
+                storage.storeDataSourceDescription(dataSourceRef.get().getCurrentDescription());
             }
             
             // commit only when necessary
@@ -438,6 +468,19 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 lastCommitTime = now;
             }
         }
+    }
+
+
+    @Override
+    public void onError(Throwable e)
+    {
+        getLogger().error("Lost connection to data source", e);
+    }
+
+
+    @Override
+    public void onComplete()
+    {
     }
     
 
@@ -450,10 +493,10 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         if (!storage.getRecordStores().containsKey(name))
             storage.addRecordStore(name, recordStructure, recommendedEncoding);
         
-        // prepare to receive events
+        /*// prepare to receive events
         IDataProducer dataSource = dataSourceRef.get();
         if (dataSource != null)
-            prepareToReceiveEvents(dataSource.getOutputs().get(name));
+            prepareToReceiveEvents(dataSource.getOutputs().get(name));*/
     }
 
 

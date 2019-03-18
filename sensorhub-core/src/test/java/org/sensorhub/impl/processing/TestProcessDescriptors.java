@@ -14,14 +14,13 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.processing;
 
-import org.sensorhub.impl.processing.AbstractProcessProvider;
 import org.vast.sensorML.test.AffineTransform1D_Process;
 
 
-public class ProcessDescriptors extends AbstractProcessProvider
+public class TestProcessDescriptors extends AbstractProcessProvider
 {
     
-    public ProcessDescriptors()
+    public TestProcessDescriptors()
     {
         addImpl(AffineTransform1D_Process.INFO);
     }

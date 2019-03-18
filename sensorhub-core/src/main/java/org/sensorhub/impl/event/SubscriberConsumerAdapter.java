@@ -22,28 +22,30 @@ public class SubscriberConsumerAdapter<E extends Event> implements Subscriber<E>
     Consumer<? super E> onNext;
     Consumer<Throwable> onError;
     Runnable onComplete;
+    boolean enableFlowControl;
     
     
-    public SubscriberConsumerAdapter(Consumer<? super Subscription> onSubscribe, Consumer<? super E> onNext)
+    public SubscriberConsumerAdapter(Consumer<? super Subscription> onSubscribe, Consumer<? super E> onNext, boolean enableFlowControl)
     {
         Asserts.checkNotNull(onSubscribe, "onSubscribe");
         Asserts.checkNotNull(onNext, "onNext");
         
         this.onSubscribe = onSubscribe;
         this.onNext = onNext;
+        this.enableFlowControl = enableFlowControl;
     }
     
     
-    public SubscriberConsumerAdapter(Consumer<? super Subscription> onSubscribe, Consumer<? super E> onNext, Consumer<Throwable> onError)
+    public SubscriberConsumerAdapter(Consumer<? super Subscription> onSubscribe, Consumer<? super E> onNext, Consumer<Throwable> onError, boolean enableFlowControl)
     {
-        this(onSubscribe, onNext);
+        this(onSubscribe, onNext, enableFlowControl);
         this.onError = onError;
     }
     
     
-    public SubscriberConsumerAdapter(Consumer<? super Subscription> onSubscribe, Consumer<? super E> onNext, Consumer<Throwable> onError, Runnable onComplete)
+    public SubscriberConsumerAdapter(Consumer<? super Subscription> onSubscribe, Consumer<? super E> onNext, Consumer<Throwable> onError, Runnable onComplete, boolean enableFlowControl)
     {
-        this(onSubscribe, onNext, onError);
+        this(onSubscribe, onNext, onError, enableFlowControl);
         this.onComplete = onComplete;
     }
     
@@ -51,7 +53,8 @@ public class SubscriberConsumerAdapter<E extends Event> implements Subscriber<E>
     @Override
     public void onSubscribe(Subscription sub)
     {
-        sub.request(Long.MAX_VALUE);
+        if (!enableFlowControl)
+            sub.request(Long.MAX_VALUE);
         onSubscribe.accept(sub);
     }
     

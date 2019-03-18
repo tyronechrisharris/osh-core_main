@@ -408,9 +408,9 @@ public class TestModuleRegistry
         conf.startExecTime = 100;
         long timeOut = 10000;
         
-        hub.getEventBus().subscribe(ModuleEvent.class)
+        hub.getEventBus().newSubscription(ModuleEvent.class)
             .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
-            .withConsumer(e -> {
+            .consume(e -> {
                 System.out.println(">> Received " + e.getType() + (e.getNewState() != null ? " -> " + e.getNewState() : ""));
                 if (e.getNewState() == ModuleState.INITIALIZED)
                     conf.initEventReceived = true;

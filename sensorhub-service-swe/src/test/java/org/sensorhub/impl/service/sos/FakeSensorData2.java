@@ -53,7 +53,6 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     public static final String URI_OUTPUT1 = "urn:blabla:image";
     static int ARRAY_SIZE = 12000;
     
-    String name;
     DataComponent outputStruct;
     DataEncoding outputEncoding;
     int maxSampleCount;
@@ -81,7 +80,6 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, Map<Integer, Integer> obsFoiMap, IEventSourceInfo eventSrcInfo)
     {
         super(name, sensor, eventSrcInfo);
-        this.name = name;
         this.samplingPeriod = samplingPeriod;
         this.maxSampleCount = maxSampleCount;
         this.obsFoiMap = obsFoiMap;

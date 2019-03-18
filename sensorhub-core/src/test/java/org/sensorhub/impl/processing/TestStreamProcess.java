@@ -85,7 +85,7 @@ public class TestStreamProcess implements IEventListener
         //new SMLUtils(SMLUtils.V2_0).writeProcess(System.out, process.getCurrentDescription(), true);
         for (IStreamingDataInterface output: process.getOutputs().values())
             output.registerListener(this);
-        registry.getModuleById(FAKE_SENSOR1_ID).start();
+        ((FakeSensor)registry.getModuleById(FAKE_SENSOR1_ID)).startSendingData(false);
                 
         long t0 = System.currentTimeMillis();
         synchronized (this) 
@@ -110,6 +110,7 @@ public class TestStreamProcess implements IEventListener
         processCfg.moduleClass = SMLProcessImpl.class.getCanonicalName();
         processCfg.sensorML = smlUrl;
         
+        @SuppressWarnings("unchecked")
         IProcessModule<SMLProcessConfig> process = (IProcessModule<SMLProcessConfig>)registry.loadModule(processCfg);
         process.requestInit(false);
         for (IStreamingDataInterface output: process.getOutputs().values())

@@ -59,11 +59,9 @@ public class TestGenericStreamStorage
         fakeSensorData = new FakeSensorData(fakeSensor, OUTPUT_NAME, 0.05, 10);
         fakeSensor.setDataInterfaces(fakeSensorData);
         registry.startModule(fakeSensor.getLocalID());
-        fakeSensor.startSendingData(true);
-        
+                
         // create test storage
         StreamStorageConfig genericStorageConfig = new StreamStorageConfig();
-        genericStorageConfig.moduleClass = GenericStreamStorage.class.getCanonicalName();
         genericStorageConfig.name = "SensorStorageTest";
         genericStorageConfig.autoStart = true;
         genericStorageConfig.dataSourceID = fakeSensor.getLocalID();
@@ -71,39 +69,24 @@ public class TestGenericStreamStorage
         storageConfig.moduleClass = InMemoryObsStorage.class.getCanonicalName();
         genericStorageConfig.storageConfig = storageConfig;
         storage = (GenericStreamStorage)registry.loadModule(genericStorageConfig);
+        
+        fakeSensor.startSendingData(true);
     }
     
     
     @Test
-    public void testSaveDescription() throws Exception
+    public void testSaveDataAndMetadataFromSource() throws Exception
     {
         while (fakeSensorData.isEnabled())
             Thread.sleep((long)(fakeSensorData.getAverageSamplingPeriod() * 500));
         
-        Thread.sleep(100);
+        // since events are dispatched asynchronously, give some
+        // time for storage to receive and process them
+        Thread.sleep(100); 
+     
         assertTrue("Description should not be null", storage.getLatestDataSourceDescription() != null);
         assertEquals("Incorrect sensor description", fakeSensor.getCurrentDescription(), storage.getLatestDataSourceDescription());
-    }
-    
-    
-    @Test
-    public void testSaveRecords() throws Exception
-    {
-        while (fakeSensorData.isEnabled())
-            Thread.sleep((long)(fakeSensorData.getAverageSamplingPeriod() * 500));
-        
-        Thread.sleep(100);
         assertEquals("Wrong number of records in storage", fakeSensorData.getMaxSampleCount(), storage.getNumRecords(OUTPUT_NAME));
-    }
-    
-    
-    @Test
-    public void testSaveFoi() throws Exception
-    {
-        while (fakeSensorData.isEnabled())
-            Thread.sleep((long)(fakeSensorData.getAverageSamplingPeriod() * 500));
-        
-        Thread.sleep(100);
         
         FoiFilter filter = new FoiFilter();
         assertEquals("Wrong number of FOIs in storage", 1, storage.getNumFois(filter));

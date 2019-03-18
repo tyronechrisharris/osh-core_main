@@ -50,10 +50,8 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     public static final String URI_OUTPUT1_FIELD2 = "urn:blabla:windSpeed";
     public static final String URI_OUTPUT1_FIELD3 = "urn:blabla:pressure";
     
-    String name;
     DataComponent outputStruct;
     DataEncoding outputEncoding;
-    DataBlock latestRecord;
     int maxSampleCount;
     int sampleCount;
     double samplingPeriod; // seconds
@@ -78,7 +76,6 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     public FakeSensorData(IDataProducer sensor, final String name, final double samplingPeriod, final int maxSampleCount, IEventSourceInfo eventSrcInfo)
     {
         super(name, sensor, eventSrcInfo);
-        this.name = name;
         this.samplingPeriod = samplingPeriod;
         this.maxSampleCount = maxSampleCount;
         init();

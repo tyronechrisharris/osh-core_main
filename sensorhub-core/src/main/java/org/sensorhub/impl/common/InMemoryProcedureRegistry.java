@@ -24,13 +24,17 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.IProcedureRegistry;
+import org.sensorhub.api.common.ProcedureAddedEvent;
 import org.sensorhub.api.common.ProcedureEvent;
+import org.sensorhub.api.common.ProcedureRemovedEvent;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventSourceInfo;
+import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.module.IModule;
+import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.FilteredIterator;
 import org.sensorhub.utils.MsgUtils;
@@ -79,6 +83,9 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
             
             // register procedure on event bus and forward its events to it
             registerWithEventBus(proc);
+            
+            // send general procedure added event
+            eventHandler.publish(new ProcedureAddedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier()));
             
             // if group, also register members recursively
             if (proc instanceof IProcedureGroup)
@@ -136,7 +143,9 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
             {
                 for (IProcedure member: ((IProcedureGroup<?>)proc).getMembers().values())
                     unregister(member.getUniqueIdentifier());
-            }
+            }            
+
+            eventHandler.publish(new ProcedureRemovedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier()));
         }
         finally
         {

@@ -68,7 +68,7 @@ public interface IEventBus
      * Create a new subscription for events handled by this event bus
      * @return the builder for the new subscription
      */
-    ISubscriptionBuilder<Event> subscribe();
+    ISubscriptionBuilder<Event> newSubscription();
     
     
     /**
@@ -77,7 +77,7 @@ public interface IEventBus
      * @param eventClass The event class to filter on
      * @return the builder for the new subscription
      */
-    <E extends Event> ISubscriptionBuilder<E> subscribe(Class<E> eventClass);
+    <E extends Event> ISubscriptionBuilder<E> newSubscription(Class<E> eventClass);
     
     
     /**

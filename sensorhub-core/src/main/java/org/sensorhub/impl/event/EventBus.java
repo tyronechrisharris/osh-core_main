@@ -34,10 +34,6 @@ import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.event.SubscribeOptions;
 import org.sensorhub.impl.common.EventThreadFactory;
-import org.sensorhub.impl.common.FilteredEventPublisher;
-import org.sensorhub.impl.common.FilteredEventPublisherWrapper;
-import org.sensorhub.impl.common.FilteredSubscriber;
-import org.sensorhub.impl.common.PlaceHolderPublisher;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,14 +132,14 @@ public class EventBus implements IEventBus
 
 
     @Override
-    public ISubscriptionBuilder<Event> subscribe()
+    public ISubscriptionBuilder<Event> newSubscription()
     {
         return new SubscriptionBuilderImpl<>(Event.class);
     }
 
 
     @Override
-    public <E extends Event> org.sensorhub.api.event.ISubscriptionBuilder<E> subscribe(Class<E> eventClass)
+    public <E extends Event> ISubscriptionBuilder<E> newSubscription(Class<E> eventClass)
     {
         return new SubscriptionBuilderImpl<>(eventClass);
     }
@@ -194,7 +190,7 @@ public class EventBus implements IEventBus
     
     <E extends Event> Predicate<? super E> buildPredicate(SubscribeOptions<E> opts)
     {
-        Predicate<? super E> combinedFilter = null;
+        Predicate<? super E> combinedFilter = opts.getFilter();
         
         // special case for a single event type selected since it's very common 
         if (opts.getEventTypes().size() == 1)
@@ -251,7 +247,7 @@ public class EventBus implements IEventBus
         }
 
         @Override
-        public CompletableFuture<Subscription> withSubscriber(Subscriber<? super E> subscriber)
+        public CompletableFuture<Subscription> subscribe(Subscriber<? super E> subscriber)
         {
             Asserts.checkNotNull(subscriber, Subscriber.class);
             CompletableFuture<Subscription> future = new CompletableFuture<>();
@@ -270,32 +266,40 @@ public class EventBus implements IEventBus
         }
         
         @Override
-        public CompletableFuture<Subscription> withListener(IEventListener listener)
+        public CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext)
+        {
+            CompletableFuture<Subscription> future = new CompletableFuture<>();
+            return subscribe(new SubscriberConsumerAdapter<>(future::complete, onNext, true), future);
+        }
+        
+        @Override
+        public CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext, Consumer<Throwable> onError)
+        {
+            CompletableFuture<Subscription> future = new CompletableFuture<>();
+            return subscribe(new SubscriberConsumerAdapter<>(future::complete, onNext, onError, true), future);
+        }
+        
+        @Override
+        public CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext, Consumer<Throwable> onError, Runnable onComplete)
+        {
+            CompletableFuture<Subscription> future = new CompletableFuture<>();
+            return subscribe(new SubscriberConsumerAdapter<>(future::complete, onNext, onError, onComplete, true), future);
+        }
+        
+        @Override
+        public CompletableFuture<Subscription> consume(Consumer<? super E> consumer)
+        {
+            Asserts.checkNotNull(consumer, Consumer.class);
+            CompletableFuture<Subscription> future = new CompletableFuture<>();
+            return subscribe(new SubscriberConsumerAdapter<>(future::complete, consumer, false), future);
+        }
+        
+        @Override
+        public CompletableFuture<Subscription> listen(IEventListener listener)
         {
             Asserts.checkNotNull(listener, IEventListener.class);
             CompletableFuture<Subscription> future = new CompletableFuture<>();
-            return subscribe(new SubscriberConsumerAdapter<>(future::complete, listener::handleEvent), future);
-        }
-        
-        @Override
-        public CompletableFuture<Subscription> withConsumer(Consumer<? super E> onNext)
-        {
-            CompletableFuture<Subscription> future = new CompletableFuture<>();
-            return subscribe(new SubscriberConsumerAdapter<>(future::complete, onNext), future);
-        }
-        
-        @Override
-        public CompletableFuture<Subscription> withConsumer(Consumer<? super E> onNext, Consumer<Throwable> onError)
-        {
-            CompletableFuture<Subscription> future = new CompletableFuture<>();
-            return subscribe(new SubscriberConsumerAdapter<>(future::complete, onNext, onError), future);
-        }
-        
-        @Override
-        public CompletableFuture<Subscription> withConsumer(Consumer<? super E> onNext, Consumer<Throwable> onError, Runnable onComplete)
-        {
-            CompletableFuture<Subscription> future = new CompletableFuture<>();
-            return subscribe(new SubscriberConsumerAdapter<>(future::complete, onNext, onError, onComplete), future);
+            return subscribe(new SubscriberConsumerAdapter<>(future::complete, listener::handleEvent, false), future);
         }
     }
 }

@@ -22,7 +22,7 @@ import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.impl.common.BasicEventHandler;
+import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
