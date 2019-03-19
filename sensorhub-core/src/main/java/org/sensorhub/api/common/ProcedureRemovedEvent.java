@@ -26,8 +26,13 @@ package org.sensorhub.api.common;
 public class ProcedureRemovedEvent extends ProcedureEvent
 {
     
-    public ProcedureRemovedEvent(long timeStamp, String procedureID)
+    /**
+     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
+     * @param sourceID ID of the event source
+     * @param procedureID ID of deleted procedure
+     */
+    public ProcedureRemovedEvent(long timeStamp, String sourceID, String procedureID)
     {
-        super(timeStamp, procedureID);
-    }    
+        super(timeStamp, sourceID, procedureID);
+    }
 }

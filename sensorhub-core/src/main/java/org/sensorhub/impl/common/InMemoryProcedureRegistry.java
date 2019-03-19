@@ -31,10 +31,8 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventSourceInfo;
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.FilteredIterator;
 import org.sensorhub.utils.MsgUtils;
@@ -85,7 +83,7 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
             registerWithEventBus(proc);
             
             // send general procedure added event
-            eventHandler.publish(new ProcedureAddedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier()));
+            eventHandler.publish(new ProcedureAddedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier(), IProcedureRegistry.EVENT_SOURCE_ID));
             
             // if group, also register members recursively
             if (proc instanceof IProcedureGroup)
@@ -145,7 +143,7 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
                     unregister(member.getUniqueIdentifier());
             }            
 
-            eventHandler.publish(new ProcedureRemovedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier()));
+            eventHandler.publish(new ProcedureRemovedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier(), IProcedureRegistry.EVENT_SOURCE_ID));
         }
         finally
         {
@@ -165,7 +163,7 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
 
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public <T extends IProcedure> WeakReference<T> getRef(String uid)
     {
         lock.readLock().lock();
@@ -187,7 +185,7 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
                 WeakReference<IProcedure> ref = allProcedures.get(uid);
                 if (ref == null)
                     throw new IllegalArgumentException("Cannot find procedure " + uid);
-                return (WeakReference)ref;
+                return (WeakReference<T>)ref;
             }
         }
         catch (SensorHubException e)
@@ -208,7 +206,7 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
     }
 
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <T extends IProcedure> Iterable<T> list(Class<T> procedureType)
     {

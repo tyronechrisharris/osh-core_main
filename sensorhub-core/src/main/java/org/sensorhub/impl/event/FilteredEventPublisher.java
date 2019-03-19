@@ -9,13 +9,10 @@
 
 package org.sensorhub.impl.event;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.function.BiPredicate;
 import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventPublisher;
 import org.slf4j.Logger;
 
@@ -31,7 +28,6 @@ import org.slf4j.Logger;
 public class FilteredEventPublisher extends FilteredAsyncPublisher<Event> implements IEventPublisher
 {
     String sourceID;
-    Map<IEventListener, ListenerSubscriber> listeners;
     Logger log;
     
     
@@ -39,7 +35,6 @@ public class FilteredEventPublisher extends FilteredAsyncPublisher<Event> implem
     {
         super(executor, maxBufferCapacity);
         this.sourceID = sourceID;
-        this.listeners = new ConcurrentHashMap<>();
         this.log = logger;
     }
 

@@ -31,19 +31,6 @@ public class SensorDataEvent extends DataEvent
 {    
 	
     /**
-     * Constructs a data event associated to a specific sensor and output
-     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param sensorID Unique ID of sensor that produced the data records
-     * @param outputName name of the output interface that generated the data
-     * @param records arrays of records that triggered this notification
-     */
-    public SensorDataEvent(long timeStamp, String sensorID, String outputName, DataBlock ... records)
-    {
-        super(timeStamp, sensorID, outputName, records);
-    }
-    
-    
-	/**
 	 * Constructs an event for data produced by the specified sensor output.
 	 * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param dataInterface sensor output interface that produced the associated data

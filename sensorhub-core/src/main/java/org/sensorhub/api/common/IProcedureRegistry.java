@@ -41,7 +41,7 @@ import org.sensorhub.impl.event.EventSourceInfo;
  */
 public interface IProcedureRegistry extends IEventSource
 {
-    public static final String EVENT_SOURCE_ID = "urn:osh:procedurereg";
+    public static final String EVENT_SOURCE_ID = "urn:osh:procedures";
     
     
     /**

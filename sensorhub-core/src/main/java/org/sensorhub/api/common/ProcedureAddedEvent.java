@@ -26,8 +26,13 @@ package org.sensorhub.api.common;
 public class ProcedureAddedEvent extends ProcedureEvent
 {
     
-    public ProcedureAddedEvent(long timeStamp, String procedureID)
+    /**
+     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
+     * @param sourceID ID of the event source
+     * @param procedureID ID of added procedure
+     */
+    public ProcedureAddedEvent(long timeStamp, String sourceID, String procedureID)
     {
-        super(timeStamp, procedureID);
+        super(timeStamp, sourceID, procedureID);
     }
 }

@@ -28,11 +28,14 @@ package org.sensorhub.api.common;
  */
 public abstract class ProcedureEvent extends Event
 {    
+    String procedureID;
     
-    public ProcedureEvent(long timeStamp, String procedureID)
+    
+    public ProcedureEvent(long timeStamp, String sourceID, String procedureID)
     {
         this.timeStamp = timeStamp;
-        this.sourceID = procedureID;
+        this.sourceID = sourceID;
+        this.procedureID = procedureID;
     }
     
     
@@ -45,7 +48,7 @@ public abstract class ProcedureEvent extends Event
      */
     public String getProcedureID()
     {
-        return sourceID;
+        return procedureID;
     }
     
 }

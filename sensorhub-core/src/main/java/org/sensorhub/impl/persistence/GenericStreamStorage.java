@@ -25,10 +25,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow.Subscription;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -37,8 +37,6 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import org.sensorhub.api.common.ProcedureEvent;
 import org.sensorhub.api.common.ProcedureRemovedEvent;
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IProcedureRegistry;
 import org.sensorhub.api.common.ProcedureAddedEvent;
 import org.sensorhub.api.common.ProcedureChangedEvent;
 import org.sensorhub.api.common.ProcedureDisabledEvent;
@@ -50,7 +48,6 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventSource;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.DataKey;
@@ -93,10 +90,12 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     IRecordStorageModule<StorageConfig> storage;
     WeakReference<IDataProducer> dataSourceRef;
     Map<String, ScalarIndexer> timeStampIndexers = new HashMap<>();
-    Map<String, String> currentFoiMap = new HashMap<>(); // entity ID -> current FOI ID
-    Map<String, Subscription> registeredProducers = new HashMap<>(); // producerId -> Subscription
+    Map<String, String> currentFoiMap = new ConcurrentHashMap<>(); // entity ID -> current FOI ID
+    Map<String, Subscription> registeredProducers = new ConcurrentHashMap<>(); // producerId -> Subscription
     long lastCommitTime = Long.MIN_VALUE;
     Timer autoPurgeTimer;
+    Subscription procRegistrySub;
+    boolean processEvents;
     
     
     @Override
@@ -104,6 +103,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     {
         if (config.storageConfig == null)
             throw new StorageException("Underlying storage configuration must be provided");
+        
+        processEvents = config.processEvents;
         
         // instantiate and start underlying storage
         StorageConfig storageConfig = null;
@@ -145,17 +146,59 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         IDataProducer dataSource = dataSourceRef.get();
         if (dataSource != null)
         {
-            if (dataSource.isEnabled())
-                connectDataSource(dataSource, storage);
-            else
-                reportStatus(WAITING_STATUS_MSG + dataSource.getUniqueIdentifier());
+            String uid = dataSource.getUniqueIdentifier();
             
             // subscribe to procedure events so we can detect if it's enabled later
-            subscribeToProcedureEvents(dataSource);
+            subscribeToProcedureEvents(dataSource).thenAccept(s -> registeredProducers.put(uid, s)).join();
+            
+            // connect now if enabled
+            if (dataSource.isEnabled())
+                connectMainDataSource();
+            else
+                reportStatus(WAITING_STATUS_MSG + uid);
         }
         
         // get notified if procedure is added later
-        subscribeToProcedureEvents(getParentHub().getProcedureRegistry());
+        subscribeToProcedureEvents(getParentHub().getProcedureRegistry())
+            .thenAccept(s -> procRegistrySub = s);
+    }
+    
+    
+    /*
+     * Gets the list of selected outputs (i.e. a subset of all data source outputs)
+     */
+    protected Collection<? extends IStreamingDataInterface> getSelectedOutputs(IDataProducer dataSource)
+    {
+        if (config.excludedOutputs == null || config.excludedOutputs.isEmpty())
+        {
+            return dataSource.getOutputs().values();
+        }
+        else
+        {
+            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>();            
+            for (IStreamingDataInterface outputInterface : dataSource.getOutputs().values())
+            {
+                // skip excluded outputs
+                if (!config.excludedOutputs.contains(outputInterface.getName()))
+                    selectedOutputs.add(outputInterface);
+            }
+            
+            return selectedOutputs;
+        }
+    }
+    
+    
+    protected void connectMainDataSource()
+    {
+        IDataProducer dataSource = dataSourceRef.get();
+        if (dataSource != null)
+        {
+            synchronized (dataSource)
+            {                
+                connectDataSource(dataSource, storage);
+                clearStatus();
+            }
+        }
     }
     
     
@@ -196,7 +239,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         
         // make sure changes are written to storage
         storage.commit();
-            
+        
         // register to output data events
         subscribeToOutputEvents(dataSource);
                 
@@ -211,31 +254,6 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     
     
     /*
-     * Gets the list of selected outputs (i.e. a subset of all data source outputs)
-     */
-    protected Collection<? extends IStreamingDataInterface> getSelectedOutputs(IDataProducer dataSource)
-    {
-        if (config.excludedOutputs == null || config.excludedOutputs.isEmpty())
-        {
-            return dataSource.getOutputs().values();
-        }
-        else
-        {
-            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>();
-            
-            for (IStreamingDataInterface outputInterface : dataSource.getOutputs().values())
-            {
-                // skip excluded outputs
-                if (!config.excludedOutputs.contains(outputInterface.getName()))
-                    selectedOutputs.add(outputInterface);
-            }
-            
-            return selectedOutputs;
-        }
-    }
-    
-    
-    /*
      * Ensure producer data store has been initialized
      */
     protected void ensureProducerInfo(String producerID)
@@ -246,11 +264,15 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getMembers().get(producerID);
             if (producer != null)
             {
-                IBasicStorage dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
-                if (dataStore == null)
-                    dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID);
-                
-                connectDataSource(producer, dataStore);
+                synchronized (producer)
+                {
+                    IBasicStorage dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
+                    if (dataStore == null)
+                        dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID);
+                                
+                    if (!registeredProducers.containsKey(producerID))
+                        connectDataSource(producer, dataStore);
+                }
             }
         }
     }
@@ -271,14 +293,16 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 disconnectDataSource(multiSource.getMembers().get(entityID));
         }
         
-        // remove producer and cancel subscription
-        registeredProducers.remove(dataSource.getUniqueIdentifier()).cancel();
+        // remove producer and cancel subscriptions
+        Subscription dataSub = registeredProducers.remove(dataSource.getUniqueIdentifier());
+        if (dataSub != null)
+            dataSub.cancel();
     }
     
     
-    protected void subscribeToProcedureEvents(IEventSource eventSource)
+    protected CompletableFuture<Subscription> subscribeToProcedureEvents(IEventSource eventSource)
     {     
-        getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
+        return getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
             .withSource(eventSource)
             .withEventType(ProcedureAddedEvent.class)
             .withEventType(ProcedureRemovedEvent.class)
@@ -286,16 +310,13 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             .withEventType(ProcedureDisabledEvent.class)
             .consume(e -> {
                 String procID = e.getProcedureID();
-                IDataProducer dataSource = getParentHub().getProcedureRegistry().get(procID);                
+                IDataProducer dataSource = getParentHub().getProcedureRegistry().get(procID); 
                 if (dataSource.isEnabled())
                 {
                     if (e instanceof ProcedureAddedEvent || e instanceof ProcedureEnabledEvent)
                     {
                         if (procID.equals(config.dataSourceID))
-                        {
-                            connectDataSource(dataSource, storage);
-                            clearStatus();
-                        }
+                            connectMainDataSource();
                         else
                             ensureProducerInfo(procID);
                     }
@@ -314,8 +335,11 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         // get subscription builder
         ISubscriptionBuilder<ProcedureEvent> subscription = getParentHub().getEventBus()
             .newSubscription(ProcedureEvent.class)
-            .withSource(producer);
+            .withEventType(DataEvent.class)
+            .withEventType(FoiEvent.class)
+            .withSource(producer); // to get procedure changed events
         
+        // add selected outputs to subscription
         for (IStreamingDataInterface output: getSelectedOutputs(producer))
         {
             // create time stamp indexer
@@ -332,14 +356,13 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         }
         
         // finalize subscription
-        subscription.withEventType(DataEvent.class)
-            .withEventType(FoiEvent.class)
-            .subscribe(this::onNext, e -> {
+        subscription.subscribe(this::onNext, e -> {
                 getLogger().error("Error during event dispatch", e);
             }, () -> {})
             .thenAccept(subAck -> {
-                subAck.request(100);
+                getLogger().debug("Connected to data source {}", producer.getUniqueIdentifier());
                 registeredProducers.put(producer.getUniqueIdentifier(), subAck);
+                subAck.request(Long.MAX_VALUE);
             });
     }
     
@@ -347,15 +370,18 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     @Override
     public synchronized void stop() throws SensorHubException
     {
+        processEvents = false;
+        
         if (dataSourceRef != null)
         {
-            // unregister all listeners
+            // unsubscribe from procedure registry
+            if (procRegistrySub != null)
+                procRegistrySub.cancel();
+            
+            // unsubscribe from all procedure
             IDataProducer dataSource = dataSourceRef.get();
             if (dataSource != null)
-            {
-                dataSource.unregisterListener(this);
                 disconnectDataSource(dataSource);
-            }
             
             dataSourceRef = null;
         }
@@ -375,20 +401,11 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             storage.cleanup();
         super.cleanup();
     }
-
-
-    @Override
-    public void onSubscribe(Subscription s)
-    {
-        s.request(100);
-        registeredProducers.put(, s);
-    }
-
-
-    @Override
+    
+    
     public void onNext(ProcedureEvent e)
     {
-        if (config.processEvents)
+        if (processEvents)
         {
             // new data events
             if (e instanceof DataEvent)
@@ -396,7 +413,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 DataEvent dataEvent = (DataEvent)e;
                 String producerID = dataEvent.getProcedureID();
                 
-                if (producerID != null && registeredProducers.contains(producerID))
+                if (producerID != null && registeredProducers.containsKey(producerID))
                 {
                     // get indexer for looking up time stamp value
                     String outputName = dataEvent.getSource().getName();
@@ -419,7 +436,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                         ObsKey key = new ObsKey(outputName, producerID, foiID, time);                    
                         storage.storeRecord(key, record);
                         
-                        getLogger().trace("Storing record {} for output {}", key.timeStamp, outputName);
+                        getLogger().info("Storing record {} for output {}", key.timeStamp, outputName);
                     }
                 }
             }
@@ -429,7 +446,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 FoiEvent foiEvent = (FoiEvent)e;
                 String producerID = ((FoiEvent) e).getProcedureID();
                 
-                if (producerID != null && registeredProducers.contains(producerID))
+                if (producerID != null && registeredProducers.containsKey(producerID))
                 {
                     // store feature object if specified
                     if (foiEvent.getFoi() != null)
@@ -441,11 +458,6 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                     // also remember as current FOI
                     currentFoiMap.put(producerID, foiEvent.getFoiID());
                 }
-            }
-            
-            else if (e instanceof ProcedureAddedEvent)
-            {
-                ensureProducerInfo(((ProcedureAddedEvent)e).getProcedureID());
             }
             
             else if (e instanceof ProcedureChangedEvent)
@@ -468,19 +480,6 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                 lastCommitTime = now;
             }
         }
-    }
-
-
-    @Override
-    public void onError(Throwable e)
-    {
-        getLogger().error("Lost connection to data source", e);
-    }
-
-
-    @Override
-    public void onComplete()
-    {
     }
     
 

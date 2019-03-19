@@ -30,7 +30,6 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataStream;
-import org.sensorhub.api.common.ProcedureChangedEvent;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
@@ -273,10 +272,8 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
             structureToTaskableParamMap.put(hashObj, paramList.getProperty(i).getName());
         }
         
-        // record update time
-        long unixTime = System.currentTimeMillis();
-        lastUpdatedSensorDescription = unixTime;
-        eventHandler.publish(new ProcedureChangedEvent(unixTime, getUniqueIdentifier()));
+        // send procedure changed event
+        notifyNewDescription(System.currentTimeMillis());
     }
 
 

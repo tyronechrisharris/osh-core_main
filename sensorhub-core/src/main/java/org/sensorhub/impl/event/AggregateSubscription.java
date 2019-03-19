@@ -7,14 +7,17 @@
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.common;
+package org.sensorhub.impl.event;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.PriorityQueue;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.sensorhub.api.common.Event;
+import org.vast.util.Asserts;
 
 
 /**
@@ -25,18 +28,28 @@ import org.sensorhub.api.common.Event;
  * </p>
  *
  * @author Alex Robin
+ * @param <E> Type of events
  * @date Feb 21, 2019
  */
-public class AggregateSubscription implements Subscription, Subscriber<Event>
+public class AggregateSubscription<E extends Event> implements Subscription, Subscriber<E>
 {
+    int numSubscriptions;
+    Subscriber<? super E> subscriber;
     Collection<Subscription> subscriptions;
-    Subscriber<Event> target;
     PriorityQueue<Event> queue;
     AtomicLong numRequestedEvents = new AtomicLong();
+    AtomicInteger numCompleted = new AtomicInteger();
     
     
-    public AggregateSubscription()
+    public AggregateSubscription(Subscriber<? super E> subscriber, int numSubscriptions)
     {
+        Asserts.checkNotNull(subscriber, Subscriber.class);
+        Asserts.checkArgument(numSubscriptions > 0);
+        
+        this.subscriber = subscriber;
+        this.numSubscriptions = numSubscriptions;
+        this.subscriptions = new ArrayList<>(numSubscriptions);
+        
         this.queue = new PriorityQueue<>(10, (e1, e2) ->
             Long.compare(e1.getTimeStamp(), e2.getTimeStamp()));
     }
@@ -45,33 +58,35 @@ public class AggregateSubscription implements Subscription, Subscriber<Event>
     @Override
     public void onComplete()
     {
-       
+        if (numCompleted.incrementAndGet() == numSubscriptions)
+            subscriber.onComplete();
     }
     
 
     @Override
     public void onError(Throwable throwable)
     {
-        target.onError(throwable);
+        subscriber.onError(throwable);
     }
     
 
     @Override
-    public void onNext(Event e)
+    public void onNext(E e)
     {
         // add to sorted
-        queue.add(e);
+        //queue.add(e);
         
-        target.onNext(e);
-        numRequestedEvents.decrementAndGet();
+        subscriber.onNext(e);
+        //numRequestedEvents.decrementAndGet();
     }
     
 
     @Override
-    public void onSubscribe(Subscription subscription)
+    public synchronized void onSubscribe(Subscription subscription)
     {
-        // TODO Auto-generated method stub
-        
+        subscriptions.add(subscription);
+        if (subscriptions.size() == numSubscriptions)
+            subscriber.onSubscribe(this);
     }
     
 
@@ -88,7 +103,7 @@ public class AggregateSubscription implements Subscription, Subscriber<Event>
     {
         for (Subscription sub: subscriptions)
             sub.request(n);
-        numRequestedEvents.addAndGet(n);
+        //numRequestedEvents.addAndGet(n);
     }
 
 }

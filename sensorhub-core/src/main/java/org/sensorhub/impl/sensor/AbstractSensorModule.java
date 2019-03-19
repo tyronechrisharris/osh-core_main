@@ -37,6 +37,7 @@ import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.ProcedureChangedEvent;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.sensor.ISensorControlInterface;
 import org.sensorhub.api.sensor.ISensorDataInterface;
@@ -112,11 +113,6 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     public void init() throws SensorHubException
     {
         super.init();
-        
-        // event handling stuff
-        String groupID = getUniqueIdentifier();
-        String sourceID = getUniqueIdentifier() + "/outputs/" + getName();
-        this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
         
         // reset internal state
         this.uniqueID = null;
@@ -219,6 +215,20 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     public String getUniqueIdentifier()
     {
         return uniqueID;
+    }
+    
+    
+    @Override
+    public IEventSourceInfo getEventSourceInfo()
+    {
+        if (eventSrcInfo == null)
+        {
+            String groupID = getUniqueIdentifier();
+            String sourceID = getUniqueIdentifier() + "/main";
+            eventSrcInfo = new EventSourceInfo(groupID, sourceID);
+        }
+        
+        return eventSrcInfo;
     }
     
 
@@ -431,7 +441,10 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         // send event
         lastUpdatedSensorDescription = updateTime;
-        eventHandler.publish(new ProcedureChangedEvent(updateTime, getUniqueIdentifier()));
+        eventHandler.publish(new ProcedureChangedEvent(
+            updateTime,
+            getEventSourceInfo().getSourceID(),
+            getUniqueIdentifier()));
     }
         
     
@@ -448,17 +461,6 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         allOutputs.putAll(obsOutputs);
         allOutputs.putAll(statusOutputs);
         return Collections.unmodifiableMap(allOutputs);
-    }
-    
-    
-    /**
-     * @deprecated use {@link #getOutputs()} instead
-     * @return read-only map of output names -> data interface objects 
-     */
-    @Deprecated(forRemoval=true)
-    public Map<String, ISensorDataInterface> getAllOutputs()
-    {
-        return getOutputs();
     }
 
 

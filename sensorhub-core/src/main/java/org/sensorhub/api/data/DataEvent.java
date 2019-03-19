@@ -31,12 +31,6 @@ public class DataEvent extends ProcedureEvent
 {
 	
 	/**
-     * Name of channel that produced the event
-     */
-    protected String channelID;
-	
-	
-	/**
 	 * New data that triggered this event.<br/>
 	 * Multiple records can be associated to a single event because with high
 	 * rate producers, it is often not practical to generate an event for
@@ -48,14 +42,13 @@ public class DataEvent extends ProcedureEvent
     /**
      * Constructs a data event associated to a specific procedure and channel
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
+     * @param sourceID Complete ID of event source
      * @param procedureID Unique ID of procedure that produced the data records
-     * @param channelID id/name of the output interface that generated the data
      * @param records arrays of records that triggered this notification
      */
-    public DataEvent(long timeStamp, String procedureID, String channelID, DataBlock ... records)
+    public DataEvent(long timeStamp, String sourceID, String procedureID, DataBlock ... records)
     {
-        super(timeStamp, procedureID);
-        this.channelID = channelID;
+        super(timeStamp, sourceID, procedureID);
         this.records = records;
     }
 	
@@ -70,8 +63,8 @@ public class DataEvent extends ProcedureEvent
 	public DataEvent(long timeStamp, IStreamingDataInterface dataInterface, DataBlock ... records)
 	{
 	    this(timeStamp,
+	         dataInterface.getEventSourceInfo().getSourceID(),
 	         dataInterface.getParentProducer().getUniqueIdentifier(),
-	         dataInterface.getName(),
 	         records);
 	    this.source = dataInterface;
 	}
@@ -81,15 +74,6 @@ public class DataEvent extends ProcedureEvent
     public IStreamingDataInterface getSource()
     {
         return (IStreamingDataInterface)this.source;
-    }
-	   
-	
-    /**
-     * @return Name of channel the event was produced on (e.g. output name)
-     */
-    public String getChannelID()
-    {
-        return channelID;
     }
 
 

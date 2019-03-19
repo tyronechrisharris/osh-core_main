@@ -258,7 +258,7 @@ public class TestEventBus
         };
         
         SubscriberInfo[] subscribers = {
-            new SubscriberInfo(SOURCES[0], 10, 1, e -> ((DataEvent)e).getChannelID().equals("test2"))
+            new SubscriberInfo(SOURCES[0], 10, 1, e -> ((DataEvent)e).getProcedureID().equals("test2"))
         };
         
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
@@ -277,9 +277,9 @@ public class TestEventBus
         
         SubscriberInfo[] subscribers = {
             new SubscriberInfo(SOURCES[0], 10),
-            new SubscriberInfo(SOURCES[0], 15, 1, e -> ((DataEvent)e).getChannelID().equals("test2")),
+            new SubscriberInfo(SOURCES[0], 15, 1, e -> ((DataEvent)e).getProcedureID().equals("test2")),
             new SubscriberInfo(SOURCES[0], 15),
-            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((DataEvent)e).getChannelID().matches("test[0-2]"))
+            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((DataEvent)e).getProcedureID().matches("test[0-2]"))
         };
         
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
@@ -303,7 +303,7 @@ public class TestEventBus
             new SubscriberInfo(SOURCES[0], 10),
             new SubscriberInfo(SOURCES[3], 15, 15, e -> ((DataEvent)e).getRecords()[0].getIntValue() % 3 == 0),
             new SubscriberInfo(SOURCES[4], 150),
-            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((DataEvent)e).getChannelID().matches("test[0-2]"))
+            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((DataEvent)e).getProcedureID().matches("test[0-2]"))
         };
         
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
@@ -355,7 +355,7 @@ public class TestEventBus
             if (i % 2 == 0)
                 pub.publish(new DataEvent(System.currentTimeMillis(), "source", "channel", (DataBlock[])null));
             else
-                pub.publish(new FoiEvent(System.currentTimeMillis(), "source", "foi", 1.0));
+                pub.publish(new FoiEvent(System.currentTimeMillis(), "procedure", "source", "foi", 1.0));
         }
         
         assertTrue("Not enough events received", doneSignal.await(2, TimeUnit.SECONDS));

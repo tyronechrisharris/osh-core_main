@@ -63,12 +63,13 @@ public class FoiEvent extends ProcedureEvent
      * Creates a {@link Type#NEW_FOI} event with only the feature ID
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param procedureID ID of producer that generated the event
+     * @param sourceID Complete ID of event source
      * @param foiID ID of feature of interest
      * @param startTime time at which observation of the FoI started (unix time in seconds, base 1970)
      */
-    public FoiEvent(long timeStamp, String procedureID, String foiID, double startTime)
+    public FoiEvent(long timeStamp, String procedureID, String sourceID, String foiID, double startTime)
     {
-        super(timeStamp, procedureID);
+        super(timeStamp, procedureID, sourceID);
         this.foiID = foiID;
         this.startTime = startTime;
     }
@@ -83,7 +84,11 @@ public class FoiEvent extends ProcedureEvent
 	 */
 	public FoiEvent(long timeStamp, IDataProducer producer, String foiID, double startTime)
 	{
-	    this(timeStamp, producer.getUniqueIdentifier(), foiID, startTime);        
+	    this(timeStamp,
+	        producer.getUniqueIdentifier(),
+	        producer.getEventSourceInfo().getSourceID(),
+	        foiID,
+	        startTime);
         this.source = producer;
 	}
 	
@@ -97,7 +102,11 @@ public class FoiEvent extends ProcedureEvent
      */
 	public FoiEvent(long timeStamp, IDataProducer producer, AbstractFeature foi, double startTime)
     {
-	    this(timeStamp, producer.getUniqueIdentifier(), foi.getUniqueIdentifier(), startTime);        
+	    this(timeStamp,
+	        producer.getUniqueIdentifier(),
+            producer.getEventSourceInfo().getSourceID(),
+	        foi.getUniqueIdentifier(),
+	        startTime);        
         this.source = producer;
         this.foi = foi;
     }

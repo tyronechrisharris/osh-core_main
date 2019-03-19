@@ -89,6 +89,8 @@ public class EventBus implements IEventBus
             if (pub == null || hasPlaceHolder)
             {
                 IEventPublisher newPublisher = supplier.get();
+                log.debug("Creating publisher for {} = {}", sourceID, newPublisher);
+                
                 if (hasPlaceHolder)
                     ((PlaceHolderPublisher)pub).transferTo(newPublisher);
                 return newPublisher;
@@ -116,8 +118,10 @@ public class EventBus implements IEventBus
         Asserts.checkNotNull(sourceID, "sourceID");
         
         IEventPublisher groupPublisher = getPublisher(groupID);
-        return ensurePublisher(sourceID,
-            () -> new FilteredEventPublisherWrapper(groupPublisher, sourceID, e -> sourceID.equals(e.getSourceID())) );
+        return ensurePublisher(sourceID, () -> {
+            log.debug("Publisher group = {}", groupID);
+            return new FilteredEventPublisherWrapper(groupPublisher, sourceID, e -> sourceID.equals(e.getSourceID()));
+        });
     }
     
     
@@ -183,8 +187,10 @@ public class EventBus implements IEventBus
     
     <E extends Event> void subscribeMulti(Set<String> sourceIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
+        AggregateSubscription<E> sub = new AggregateSubscription<>(subscriber, sourceIDs.size());
+        
         for (String sourceID: sourceIDs)
-            subscribe(sourceID, filter, subscriber);
+            subscribe(sourceID, filter, sub);
     }
     
     
@@ -204,11 +210,11 @@ public class EventBus implements IEventBus
         
         else if (!opts.getEventTypes().isEmpty())
         {
-            combinedFilter = (e) -> {
+            combinedFilter = e -> {
                 for (Class<? extends E> c: opts.getEventTypes())
                 {
                     if (c.isAssignableFrom(e.getClass()))
-                        return true;                    
+                        return true;
                 }
                 return false;
             };

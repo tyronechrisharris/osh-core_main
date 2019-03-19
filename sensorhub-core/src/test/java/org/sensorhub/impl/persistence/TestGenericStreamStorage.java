@@ -94,6 +94,13 @@ public class TestGenericStreamStorage
     }
     
     
+    @Test
+    public void testDisconnectFromSource() throws Exception
+    {
+        storage.requestStop();
+    }
+    
+    
     @After
     public void cleanup()
     {
