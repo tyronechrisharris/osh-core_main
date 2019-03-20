@@ -83,13 +83,13 @@ public class EventBus implements IEventBus
      */
     protected IEventPublisher ensurePublisher(final String sourceID, final Supplier<IEventPublisher> supplier)
     {
-        return publishers.compute(sourceID, (id, pub) -> {            
+        return publishers.compute(sourceID, (id, pub) -> {
             // if there is a placeholder, replace by actual publisher
             boolean hasPlaceHolder = pub instanceof PlaceHolderPublisher;
             if (pub == null || hasPlaceHolder)
             {
+                log.debug("Creating publisher for {}", sourceID);
                 IEventPublisher newPublisher = supplier.get();
-                log.debug("Creating publisher for {} = {}", sourceID, newPublisher);
                 
                 if (hasPlaceHolder)
                     ((PlaceHolderPublisher)pub).transferTo(newPublisher);

@@ -204,16 +204,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             // set config
             module.setConfiguration(config);
             
-            // register module on event bus and forward its events to it
-            // events from all modules are published in the same group
-            final IEventPublisher modulePublisher = hub.getEventBus().getPublisher(EVENT_GROUP_ID, config.id);
-            module.registerListener(e -> {
-                if (e instanceof ModuleEvent)
-                {
-                    handleEvent(e);
-                    modulePublisher.publish(e);
-                }
-            });
+            // register to receive module events
+            module.registerListener(this);
             
             // also register additional local listener if specified
             if (listener != null)
@@ -223,7 +215,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             loadedModules.put(config.id, module);
             
             // send event
-            modulePublisher.publish(new ModuleEvent(module, Type.LOADED));
+            handleEvent(new ModuleEvent(module, Type.LOADED));
             
             // also init & start if autostart is set
             if (config.autoStart)
@@ -1087,6 +1079,11 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 default:
                     break;
             }
+            
+            // forward events to event bus
+            // events from all modules are published in the same group
+            IEventPublisher modulePublisher = hub.getEventBus().getPublisher(EVENT_GROUP_ID, e.getSourceID());
+            modulePublisher.publish(e);
         }
     }
     

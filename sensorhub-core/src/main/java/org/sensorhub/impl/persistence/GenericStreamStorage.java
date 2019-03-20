@@ -149,7 +149,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             String uid = dataSource.getUniqueIdentifier();
             
             // subscribe to procedure events so we can detect if it's enabled later
-            subscribeToProcedureEvents(dataSource).thenAccept(s -> registeredProducers.put(uid, s)).join();
+            subscribeToProcedureEvents(dataSource).thenAccept(s -> registeredProducers.put(uid, s));
             
             // connect now if enabled
             if (dataSource.isEnabled())
@@ -337,6 +337,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             .newSubscription(ProcedureEvent.class)
             .withEventType(DataEvent.class)
             .withEventType(FoiEvent.class)
+            .withEventType(ProcedureChangedEvent.class)
             .withSource(producer); // to get procedure changed events
         
         // add selected outputs to subscription
@@ -436,7 +437,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                         ObsKey key = new ObsKey(outputName, producerID, foiID, time);                    
                         storage.storeRecord(key, record);
                         
-                        getLogger().info("Storing record {} for output {}", key.timeStamp, outputName);
+                        getLogger().trace("Storing record {} for output {}", key.timeStamp, outputName);
                     }
                 }
             }

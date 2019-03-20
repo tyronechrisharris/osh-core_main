@@ -15,9 +15,9 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.common;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.sensorhub.api.ISensorHub;
@@ -31,11 +31,15 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventSourceInfo;
+import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.IEventPublisher;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.persistence.FilteredIterator;
 import org.sensorhub.utils.MsgUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.vast.util.Asserts;
 
 
 /**
@@ -49,11 +53,17 @@ import org.sensorhub.utils.MsgUtils;
  */
 public class InMemoryProcedureRegistry implements IProcedureRegistry
 {
+    private static final Logger log = LoggerFactory.getLogger(InMemoryProcedureRegistry.class);
+    
     ISensorHub hub;
     IEventPublisher eventHandler;
     ReadWriteLock lock = new ReentrantReadWriteLock();
-    Map<String, WeakReference<IProcedure>> rootProcedures = new TreeMap<>();
-    Map<String, WeakReference<IProcedure>> allProcedures = new TreeMap<>();
+    Map<String, WeakReference<IProcedure>> rootProcedures = new HashMap<>();
+    Map<String, WeakReference<IProcedure>> allProcedures = new HashMap<>();
+    
+    // we need to keep a strong reference to lambdas used as listeners
+    // or they get garbage collected!!
+    Map<String, IEventListener> eventListeners = new HashMap<>();
     
     
     public InMemoryProcedureRegistry(ISensorHub hub)
@@ -66,7 +76,10 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
     @Override
     public void register(IProcedure proc)
     {
+        Asserts.checkNotNull(proc, IProcedure.class);
+        
         lock.writeLock().lock();
+        log.debug("Registering procedure {}", proc.getUniqueIdentifier());
         
         try
         {
@@ -83,7 +96,7 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
             registerWithEventBus(proc);
             
             // send general procedure added event
-            eventHandler.publish(new ProcedureAddedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier(), IProcedureRegistry.EVENT_SOURCE_ID));
+            eventHandler.publish(new ProcedureAddedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier(), null));
             
             // if group, also register members recursively
             if (proc instanceof IProcedureGroup)
@@ -104,10 +117,16 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
         // register the procedure itself
         IEventSourceInfo eventSrcInfo = proc.getEventSourceInfo();
         final IEventPublisher eventPublisher = hub.getEventBus().getPublisher(eventSrcInfo);
-        proc.registerListener(e -> {
-            if (e instanceof ProcedureEvent)
-                eventPublisher.publish(e);
+        
+        eventListeners.computeIfAbsent(eventSrcInfo.getSourceID(), k -> {
+            IEventListener listener = e -> {
+                if (e instanceof ProcedureEvent)
+                    eventPublisher.publish(e);
+            };
+            proc.registerListener(listener);
+            return listener;
         });
+        
         
         // if data producer, register all outputs
         if (proc instanceof IDataProducer)
@@ -116,7 +135,12 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
             {
                 eventSrcInfo = output.getEventSourceInfo();
                 final IEventPublisher outputPublisher = hub.getEventBus().getPublisher(eventSrcInfo);
-                output.registerListener(outputPublisher::publish);
+                
+                eventListeners.computeIfAbsent(eventSrcInfo.getSourceID(), k -> {
+                    IEventListener listener = outputPublisher::publish;
+                    output.registerListener(listener);
+                    return listener;
+                });
             }
         }
     }
@@ -125,7 +149,10 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
     @Override
     public void unregister(String uid)
     {
+        Asserts.checkNotNull(uid, "uid");
+        
         lock.writeLock().lock();
+        log.debug("Registering procedure {}", uid);
         
         try
         {
@@ -135,6 +162,9 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
             if (ref == null || (proc = ref.get()) == null)
                 throw new IllegalArgumentException("Cannot find procedure " + uid);
             
+            // unregister from event bus
+            unregisterFromEventBus(proc);
+            
             // if entity group, unregister members recursively
             rootProcedures.remove(uid);            
             if (proc instanceof IProcedureGroup)
@@ -143,11 +173,33 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
                     unregister(member.getUniqueIdentifier());
             }            
 
-            eventHandler.publish(new ProcedureRemovedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier(), IProcedureRegistry.EVENT_SOURCE_ID));
+            eventHandler.publish(new ProcedureRemovedEvent(System.currentTimeMillis(), proc.getUniqueIdentifier(), null));
         }
         finally
         {
             lock.writeLock().unlock();
+        }
+    }
+    
+    
+    protected void unregisterFromEventBus(IProcedure proc)
+    {
+        // register the procedure itself
+        IEventSourceInfo eventSrcInfo = proc.getEventSourceInfo();
+        IEventListener listener = eventListeners.remove(eventSrcInfo.getSourceID());
+        if (listener != null)
+            proc.unregisterListener(listener);
+        
+        // if data producer, register all outputs
+        if (proc instanceof IDataProducer)
+        {
+            for (IStreamingDataInterface output: ((IDataProducer) proc).getOutputs().values())
+            {
+                eventSrcInfo = output.getEventSourceInfo();
+                listener = eventListeners.remove(eventSrcInfo.getSourceID());
+                if (listener != null)
+                    output.unregisterListener(listener);
+            }
         }
     }
 
