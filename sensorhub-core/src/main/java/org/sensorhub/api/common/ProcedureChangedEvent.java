@@ -28,11 +28,10 @@ public class ProcedureChangedEvent extends ProcedureEvent
     
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param sourceID ID of the event source
      * @param procedureID ID of changed procedure
      */
-    public ProcedureChangedEvent(long timeStamp, String sourceID, String procedureID)
+    public ProcedureChangedEvent(long timeStamp, String procedureID)
     {
-        super(timeStamp, sourceID, procedureID);
+        super(timeStamp, procedureID);
     }
 }

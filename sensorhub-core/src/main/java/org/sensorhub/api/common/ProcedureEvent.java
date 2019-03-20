@@ -14,6 +14,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.common;
 
+import org.sensorhub.api.event.EventUtils;
+import org.vast.util.Asserts;
+import com.google.common.base.Strings;
 
 /**
  * <p>
@@ -28,13 +31,15 @@ package org.sensorhub.api.common;
  */
 public abstract class ProcedureEvent extends Event
 {    
-    String procedureID;
+    protected String procedureID;
+    protected transient String sourceID;
     
     
-    public ProcedureEvent(long timeStamp, String sourceID, String procedureID)
+    public ProcedureEvent(long timeStamp, String procedureID)
     {
+        Asserts.checkArgument(!Strings.isNullOrEmpty(procedureID), "procedureID must be set");
+        
         this.timeStamp = timeStamp;
-        this.sourceID = sourceID;
         this.procedureID = procedureID;
     }
     
@@ -49,6 +54,15 @@ public abstract class ProcedureEvent extends Event
     public String getProcedureID()
     {
         return procedureID;
+    }
+
+
+    @Override
+    public String getSourceID()
+    {
+        if (sourceID == null)
+            sourceID = EventUtils.getProcedureSourceID(procedureID);
+        return sourceID;
     }
     
 }

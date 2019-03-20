@@ -28,4 +28,11 @@ import org.sensorhub.api.common.Event;
 public class DeviceScanEvent extends Event
 {
     public IDeviceInfo device;
+    
+
+    @Override
+    public String getSourceID()
+    {
+        return device.getAddress();
+    }
 }

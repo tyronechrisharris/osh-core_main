@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.processing;
 
-import org.sensorhub.api.common.Event;
+import org.sensorhub.api.common.ProcedureEvent;
 
 
 /**
@@ -25,7 +25,7 @@ import org.sensorhub.api.common.Event;
  * @author Alex Robin
  * @since Feb 20, 2015
  */
-public class ProcessingEvent extends Event
+public class ProcessingEvent extends ProcedureEvent
 {
 	/**
 	 * Possible event types for a ProcessingEvent
@@ -40,12 +40,6 @@ public class ProcessingEvent extends Event
 	
 	
 	/**
-	 * ID of module that generated the event
-	 */
-	protected String processId;
-	
-	
-	/**
 	 * Type of process event
 	 */
 	protected Type type;
@@ -54,21 +48,14 @@ public class ProcessingEvent extends Event
 	/**
 	 * Sole constructor
 	 * @param timeStamp unix time of event generation
-     * @param processId ID of originating process
+     * @param processID ID of originating process
      * @param type type of event
 	 */
-	public ProcessingEvent(long timeStamp, String processId, Type type)
+	public ProcessingEvent(long timeStamp, String processID, Type type)
 	{
-	    this.processId = processId;
-	    this.timeStamp = timeStamp;
+	    super(timeStamp, processID);
 	    this.type = type;
 	}
-
-
-    public String getProcessId()
-    {
-        return processId;
-    }
 
 
     public Type getType()

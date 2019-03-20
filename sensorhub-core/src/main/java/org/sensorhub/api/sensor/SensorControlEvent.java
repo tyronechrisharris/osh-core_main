@@ -58,9 +58,7 @@ public class SensorControlEvent extends ProcedureEvent
      */
     public SensorControlEvent(long timeStamp, String sensorID, ISensorControlInterface controlInterface, CommandStatus status)
     {
-        super(timeStamp,
-            controlInterface.getEventSourceInfo().getSourceID(),
-            controlInterface.getParentProducer().getUniqueIdentifier());        
+        super(timeStamp, controlInterface.getParentProducer().getUniqueIdentifier());        
         this.source = controlInterface;
         this.status = status;
     }

@@ -116,7 +116,7 @@ public class ModuleEvent extends Event
         STOPPED;
     }
     
-    
+    protected String moduleID;
     protected Type type;
     protected ModuleState newState;
     protected Throwable error;
@@ -126,7 +126,7 @@ public class ModuleEvent extends Event
     public ModuleEvent(IModule<?> module, Type type)
     {
         this.timeStamp = System.currentTimeMillis();
-        this.sourceID = module.getLocalID();
+        this.moduleID = module.getLocalID();
         this.source = module;
         this.type = type;
         
@@ -155,6 +155,13 @@ public class ModuleEvent extends Event
     {
         this(module, Type.STATUS);
         this.msg = msg;
+    }
+
+
+    @Override
+    public String getSourceID()
+    {
+        return moduleID;
     }
     
     

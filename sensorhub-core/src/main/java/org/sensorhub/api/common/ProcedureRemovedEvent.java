@@ -25,14 +25,27 @@ package org.sensorhub.api.common;
  */
 public class ProcedureRemovedEvent extends ProcedureEvent
 {
+    String parentGroupID;
+    
     
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param sourceID ID of the event source
-     * @param procedureID ID of deleted procedure
+     * @param procedureID ID of removed procedure
+     * @param parentGroupID ID of parent procedure group (or null if procedure
+     * is not a member of any group)
      */
-    public ProcedureRemovedEvent(long timeStamp, String sourceID, String procedureID)
+    public ProcedureRemovedEvent(long timeStamp, String procedureID, String parentGroupID)
     {
-        super(timeStamp, sourceID, procedureID);
+        super(timeStamp, procedureID);
+        this.parentGroupID = parentGroupID;
+    }
+    
+    
+    /**
+     * @return ID of parent procedure group
+     */
+    public String getParentGroupID()
+    {
+        return parentGroupID;
     }
 }

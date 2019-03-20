@@ -12,26 +12,43 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.common;
+package org.sensorhub.impl.common;
+
+import org.sensorhub.api.common.Event;
 
 
-/**
- * <p>
- * Event sent when a procedure is enabled
- * </p>
- *
- * @author Alex Robin
- * @date Mar 2, 2019
- */
-public class ProcedureEnabledEvent extends ProcedureEvent
+public class TestEvent extends Event
 {
+    String sourceID;
+    String text;
+    int count;
     
-    /**
-     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureID ID of enabled procedure
-     */
-    public ProcedureEnabledEvent(long timeStamp, String procedureID)
+    
+    public TestEvent(String sourceID, String text, int count)
     {
-        super(timeStamp, procedureID);
+        this.timeStamp = System.currentTimeMillis();
+        this.sourceID = sourceID;
+        this.text = text;
+        this.count = count;
     }
+    
+    
+    @Override
+    public String getSourceID()
+    {
+        return sourceID;
+    }
+    
+    
+    public String getText()
+    {
+        return text;
+    }
+    
+    
+    public int getCount()
+    {
+        return count;
+    }
+
 }

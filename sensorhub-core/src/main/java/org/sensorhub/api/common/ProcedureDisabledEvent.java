@@ -28,11 +28,10 @@ public class ProcedureDisabledEvent extends ProcedureEvent
     
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param sourceID ID of the event source
      * @param procedureID ID of disabled procedure
      */
-    public ProcedureDisabledEvent(long timeStamp, String sourceID, String procedureID)
+    public ProcedureDisabledEvent(long timeStamp, String procedureID)
     {
-        super(timeStamp, sourceID, procedureID);
+        super(timeStamp, procedureID);
     }
 }

@@ -40,16 +40,15 @@ public class StorageEvent extends Event
     };
     
     
+    protected String storageID;
     protected Type type;   
-    
-    String recordType;
+    protected String recordType;
 
 
     public StorageEvent(long timeStamp, IStorageModule<?> source, String recordType, Type type)
     {
         this.timeStamp = timeStamp;
-        //this.producerID = source.getLocalID();
-        //this.channelID = recordType;
+        this.storageID = source.getLocalID();
         this.source = source;
         this.recordType = recordType;
         this.type = type;
@@ -72,5 +71,12 @@ public class StorageEvent extends Event
     public String getRecordType()
     {
         return recordType;
+    }
+
+
+    @Override
+    public String getSourceID()
+    {
+        return storageID;
     }
 }

@@ -20,12 +20,9 @@ import java.util.function.Predicate;
 import org.junit.Test;
 import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventPublisher;
-import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.impl.event.EventBus;
-import org.vast.data.DataBlockInt;
-import net.opengis.swe.v20.DataBlock;
 
 
 public class TestEventBus
@@ -157,10 +154,7 @@ public class TestEventBus
             for (SourceInfo src: sources)
             {
                 IEventPublisher pub = bus.getPublisher(src.id);
-                
-                DataBlockInt data = new DataBlockInt(1);
-                data.setIntValue(count);
-                pub.publish(new DataEvent(System.currentTimeMillis(), src.id, "test" + count, data));
+                pub.publish(new TestEvent(src.id, "test" + count, count));
                 
                 if (count < src.numGeneratedEvents)
                     done = false;
@@ -215,10 +209,7 @@ public class TestEventBus
             for (SourceInfo src: sources)
             {
                 IEventPublisher pub = bus.getPublisher(src.id);
-                
-                DataBlockInt data = new DataBlockInt(1);
-                data.setIntValue(count);
-                pub.publish(new DataEvent(System.currentTimeMillis(), src.id, "test" + count, data));
+                pub.publish(new TestEvent(src.id, "test" + count, count));
                 
                 if (count < src.numGeneratedEvents)
                     done = false;
@@ -258,7 +249,7 @@ public class TestEventBus
         };
         
         SubscriberInfo[] subscribers = {
-            new SubscriberInfo(SOURCES[0], 10, 1, e -> ((DataEvent)e).getProcedureID().equals("test2"))
+            new SubscriberInfo(SOURCES[0], 10, 1, e -> ((TestEvent)e).getText().equals("test2"))
         };
         
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
@@ -277,9 +268,9 @@ public class TestEventBus
         
         SubscriberInfo[] subscribers = {
             new SubscriberInfo(SOURCES[0], 10),
-            new SubscriberInfo(SOURCES[0], 15, 1, e -> ((DataEvent)e).getProcedureID().equals("test2")),
+            new SubscriberInfo(SOURCES[0], 15, 1, e -> ((TestEvent)e).getText().equals("test2")),
             new SubscriberInfo(SOURCES[0], 15),
-            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((DataEvent)e).getProcedureID().matches("test[0-2]"))
+            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((TestEvent)e).getText().matches("test[0-2]"))
         };
         
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
@@ -301,9 +292,9 @@ public class TestEventBus
         
         SubscriberInfo[] subscribers = {
             new SubscriberInfo(SOURCES[0], 10),
-            new SubscriberInfo(SOURCES[3], 15, 15, e -> ((DataEvent)e).getRecords()[0].getIntValue() % 3 == 0),
+            new SubscriberInfo(SOURCES[3], 15, 15, e -> ((TestEvent)e).getCount() % 3 == 0),
             new SubscriberInfo(SOURCES[4], 150),
-            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((DataEvent)e).getProcedureID().matches("test[0-2]"))
+            new SubscriberInfo(SOURCES[0], 5, 3, e -> ((TestEvent)e).getText().matches("test[0-2]"))
         };
         
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
@@ -322,11 +313,11 @@ public class TestEventBus
         CountDownLatch doneSignal = new CountDownLatch(5);
         AtomicInteger count = new AtomicInteger();
         
-        bus.newSubscription(DataEvent.class)
+        bus.newSubscription(TestEvent.class)
             .withSourceID(SOURCES[0])
-            .subscribe(new Subscriber<DataEvent>() {
+            .subscribe(new Subscriber<TestEvent>() {
                 @Override
-                public void onNext(DataEvent item)
+                public void onNext(TestEvent item)
                 {
                     System.out.println(item.getClass());
                     count.incrementAndGet();
@@ -353,9 +344,9 @@ public class TestEventBus
         for (int i =0; i < 10; i++)
         {
             if (i % 2 == 0)
-                pub.publish(new DataEvent(System.currentTimeMillis(), "source", "channel", (DataBlock[])null));
+                pub.publish(new TestEvent("source", "test", 0));
             else
-                pub.publish(new FoiEvent(System.currentTimeMillis(), "procedure", "source", "foi", 1.0));
+                pub.publish(new FoiEvent(System.currentTimeMillis(), "source", "foi", 1.0));
         }
         
         assertTrue("Not enough events received", doneSignal.await(2, TimeUnit.SECONDS));
@@ -370,7 +361,7 @@ public class TestEventBus
         CountDownLatch doneSignal = new CountDownLatch(numExpectedEvents);
         AtomicInteger count = new AtomicInteger();
         
-        bus.newSubscription(DataEvent.class)
+        bus.newSubscription(TestEvent.class)
             .withSourceID(sources)
             .listen(e -> {
                 count.incrementAndGet();
@@ -386,7 +377,7 @@ public class TestEventBus
         for (int i = 0; i < numGeneratedEvents; i++)
         {
             for (int j = 0; j < sources.length; j++)
-                pubs[j].publish(new DataEvent(System.currentTimeMillis(), sources[j], "channel", (DataBlock[])null));
+                pubs[j].publish(new TestEvent(sources[j], "test", 0));
             long sleepEnd = System.nanoTime() + sleepTime;
             while (System.nanoTime() < sleepEnd);
         }

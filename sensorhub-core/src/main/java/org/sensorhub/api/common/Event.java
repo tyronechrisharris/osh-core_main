@@ -27,7 +27,6 @@ package org.sensorhub.api.common;
 public abstract class Event
 {
     protected long timeStamp;
-    protected String sourceID;
     protected transient Object source;
         
     
@@ -44,18 +43,14 @@ public abstract class Event
      * Gets the ID of the source of event.
      * @return ID of the event source
      */
-    public String getSourceID()
-    {
-        return sourceID;
-    }
+    public abstract String getSourceID();
     
     
     /**
      * Gets the source of the event as an object reference.
      * <p><i>Note that this is not guaranteed to be available when using
-     * events in a distributed system. Events that are 
-     * meant to be used in distributed systems </i></p>
-     * @return Source object that generated this event
+     * events in a distributed system.</i></p>
+     * @return Source object that generated this event or null
      */
     public Object getSource()
     {
