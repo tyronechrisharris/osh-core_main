@@ -37,6 +37,7 @@ import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.common.IProcedureGroup;
 import org.sensorhub.api.common.ProcedureChangedEvent;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.sensor.ISensorControlInterface;
@@ -224,7 +225,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         if (eventSrcInfo == null)
         {
             String groupID = getUniqueIdentifier();
-            String sourceID = getUniqueIdentifier() + "/main";
+            String sourceID = EventUtils.getProcedureSourceID(getUniqueIdentifier());
             eventSrcInfo = new EventSourceInfo(groupID, sourceID);
         }
         
@@ -441,10 +442,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         // send event
         lastUpdatedSensorDescription = updateTime;
-        eventHandler.publish(new ProcedureChangedEvent(
-            updateTime,
-            getEventSourceInfo().getSourceID(),
-            getUniqueIdentifier()));
+        eventHandler.publish(new ProcedureChangedEvent(updateTime, getUniqueIdentifier()));
     }
         
     

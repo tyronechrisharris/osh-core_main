@@ -18,6 +18,7 @@ import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.common.IEventHandler;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.ISensorDataInterface;
@@ -104,7 +105,7 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
         if (eventSrcInfo == null)
         {
             String groupID = parentSensor.getUniqueIdentifier();
-            String sourceID = parentSensor.getUniqueIdentifier() + "/outputs/" + getName();
+            String sourceID = EventUtils.getProcedureOutputSourceID(groupID, getName());
             this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
         }
         else

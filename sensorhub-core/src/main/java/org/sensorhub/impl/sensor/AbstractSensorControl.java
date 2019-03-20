@@ -20,6 +20,7 @@ import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.common.CommandStatus;
 import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.data.ICommandReceiver;
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.common.CommandStatus.StatusCode;
 import org.sensorhub.api.common.IEventHandler;
@@ -68,7 +69,7 @@ public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>>
         // use event handler of the parent sensor
         this.eventHandler = new BasicEventHandler();
         String groupID = parentSensor.getUniqueIdentifier();
-        String sourceID = parentSensor.getUniqueIdentifier() + "/controls/" + getName();
+        String sourceID = EventUtils.getProcedureControlSourceID(groupID, getName());
         this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
     }
     
