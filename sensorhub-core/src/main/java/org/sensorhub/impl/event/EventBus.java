@@ -194,6 +194,16 @@ public class EventBus implements IEventBus
     }
     
     
+    <E extends Event> void subscribeMulti(String groupID, Set<String> sourceIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
+    {
+        //  create filter with list of sources
+        Predicate<? super E> groupFilter = e -> sourceIDs.contains(e.getSourceID()) && filter.test(e);
+        
+        // subscribe to entire group with filter
+        subscribe(groupID, groupFilter, subscriber);
+    }
+    
+    
     <E extends Event> Predicate<? super E> buildPredicate(SubscribeOptions<E> opts)
     {
         Predicate<? super E> combinedFilter = opts.getFilter();
@@ -230,6 +240,8 @@ public class EventBus implements IEventBus
         
         if (opts.getSourceIDs().size() == 1)
             subscribe(opts.getSourceIDs().iterator().next(), filter, subscriber);
+        else if (opts.getGroupID() != null)
+            subscribeMulti(opts.getGroupID(), opts.getSourceIDs(), filter, subscriber);
         else
             subscribeMulti(opts.getSourceIDs(), filter, subscriber);
     }

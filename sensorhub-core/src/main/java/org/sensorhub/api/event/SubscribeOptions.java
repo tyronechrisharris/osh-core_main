@@ -16,6 +16,7 @@ package org.sensorhub.api.event;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
@@ -35,15 +36,21 @@ import org.vast.util.BaseBuilder;
  */
 public class SubscribeOptions<E extends Event>
 {
+    String groupID;
     Set<String> sourceIDs = new TreeSet<>();
     Set<Class<? extends E>> eventTypes = new HashSet<>();
     Predicate<? super E> filter;
-    
     
     public Set<String> getSourceIDs()
     {
         return sourceIDs;
     }
+    
+    
+    public String getGroupID()
+    {
+        return groupID;
+    }    
 
 
     public Set<Class<? extends E>> getEventTypes()
@@ -68,6 +75,7 @@ public class SubscribeOptions<E extends Event>
     public static class Builder<B extends Builder<B, E>, E extends Event> extends BaseBuilder<B, SubscribeOptions<E>>
     {
         Class<E> baseEventClass;
+        boolean clearGroupId = false;
         
         
         public Builder(Class<E> eventClass)
@@ -114,7 +122,27 @@ public class SubscribeOptions<E extends Event>
             {
                 Asserts.checkNotNull(s.getEventSourceInfo().getSourceID(), "sourceID");
                 instance.sourceIDs.add(s.getEventSourceInfo().getSourceID());
+                
+                // set/keep group ID only if all sources are in the same group
+                String groupID = s.getEventSourceInfo().getGroupID();
+                if (instance.groupID == null)
+                    instance.groupID = groupID;
+                else if (!Objects.equals(groupID, instance.groupID))
+                    clearGroupId = true;
             }
+            
+            if (clearGroupId)
+                instance.groupID = null;
+            
+            return (B)this;
+        }
+        
+        
+        public B withGroupID(String groupID)
+        {
+            if (instance.groupID != null || clearGroupId)
+                throw new IllegalStateException("A group ID was already inferred from the provided sources");
+            instance.groupID = groupID;
             return (B)this;
         }
         

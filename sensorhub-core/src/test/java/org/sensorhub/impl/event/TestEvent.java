@@ -12,7 +12,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.common;
+package org.sensorhub.impl.event;
 
 import org.sensorhub.api.common.Event;
 

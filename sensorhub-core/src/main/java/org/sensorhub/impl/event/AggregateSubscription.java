@@ -36,9 +36,9 @@ public class AggregateSubscription<E extends Event> implements Subscription, Sub
     int numSubscriptions;
     Subscriber<? super E> subscriber;
     Collection<Subscription> subscriptions;
-    PriorityQueue<Event> queue;
-    AtomicLong numRequestedEvents = new AtomicLong();
     AtomicInteger numCompleted = new AtomicInteger();
+    //PriorityQueue<Event> queue;
+    //AtomicLong numRequestedEvents = new AtomicLong();
     
     
     public AggregateSubscription(Subscriber<? super E> subscriber, int numSubscriptions)
@@ -50,8 +50,8 @@ public class AggregateSubscription<E extends Event> implements Subscription, Sub
         this.numSubscriptions = numSubscriptions;
         this.subscriptions = new ArrayList<>(numSubscriptions);
         
-        this.queue = new PriorityQueue<>(10, (e1, e2) ->
-            Long.compare(e1.getTimeStamp(), e2.getTimeStamp()));
+        //this.queue = new PriorityQueue<>(10, (e1, e2) ->
+        //    Long.compare(e1.getTimeStamp(), e2.getTimeStamp()));
     }
     
     
@@ -67,6 +67,7 @@ public class AggregateSubscription<E extends Event> implements Subscription, Sub
     public void onError(Throwable throwable)
     {
         subscriber.onError(throwable);
+        cancel();
     }
     
 
