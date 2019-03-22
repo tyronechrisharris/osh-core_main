@@ -18,6 +18,7 @@ import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.sensorhub.api.ISensorHub;
@@ -58,8 +59,8 @@ public class InMemoryProcedureRegistry implements IProcedureRegistry
     ISensorHub hub;
     IEventPublisher eventHandler;
     ReadWriteLock lock = new ReentrantReadWriteLock();
-    Map<String, WeakReference<IProcedure>> rootProcedures = new HashMap<>();
-    Map<String, WeakReference<IProcedure>> allProcedures = new HashMap<>();
+    Map<String, WeakReference<IProcedure>> rootProcedures = new TreeMap<>();
+    Map<String, WeakReference<IProcedure>> allProcedures = new TreeMap<>();
     
     // we need to keep a strong reference to lambdas used as listeners
     // or they get garbage collected!!
