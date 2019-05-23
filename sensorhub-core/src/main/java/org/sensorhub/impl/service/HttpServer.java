@@ -72,6 +72,7 @@ import org.vast.util.Asserts;
 public class HttpServer extends AbstractModule<HttpServerConfig>
 {
     private static final String OSH_SERVER_ID = "osh-server";
+    private static final String OSH_HANDLERS = "osh-handlers";
     private static final String OSH_HTTP_CONNECTOR_ID = "osh-http";
     private static final String OSH_HTTPS_CONNECTOR_ID = "osh-https";
     private static final String OSH_STATIC_CONTENT_ID = "osh-static";
@@ -269,6 +270,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                     
                     // assign IDs to existing beans so they can be reconfigured
                     xmlConfig.getIdMap().put(OSH_SERVER_ID, server);
+                    xmlConfig.getIdMap().put(OSH_HANDLERS, handlers);
                     if (http != null)
                         xmlConfig.getIdMap().put(OSH_HTTP_CONNECTOR_ID, http);
                     if (https != null)
