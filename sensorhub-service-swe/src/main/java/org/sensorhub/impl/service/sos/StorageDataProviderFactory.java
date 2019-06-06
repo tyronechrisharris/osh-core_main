@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -245,7 +244,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
         Bbox bbox = ((IObsStorage) storage).getFoisSpatialExtent();
         if (bbox != null && !bbox.isNull())
         {
-            if (caps.getObservedAreas().size() == 0)
+            if (caps.getObservedAreas().isEmpty())
                 caps.getObservedAreas().add(bbox);
             else
                 caps.getObservedAreas().set(0, bbox);
@@ -271,7 +270,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
             DataIterator it = new DataIterator(recordStruct);
             while (it.hasNext())
             {
-                String defUri = (String)it.next().getDefinition();
+                String defUri = it.next().getDefinition();
                 if (defUri != null && !defUri.equals(SWEConstants.DEF_SAMPLING_TIME))
                     observables.add(defUri);
             }
@@ -320,7 +319,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
         if (storage instanceof IObsStorage)
             return ((IObsStorage) storage).getFois(filter);
         
-        return Collections.EMPTY_LIST.iterator();
+        return Collections.emptyIterator();
     }
     
     
@@ -376,15 +375,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws SensorHubException, OWSException
     {
         checkEnabled();
-        
-        try
-        {
-            return new StorageDataProvider(storage, config, filter);
-        }
-        catch (IOException e)
-        {
-            throw new ServiceException("Cannot instantiate storage provider", e);
-        }
+        return new StorageDataProvider(storage, config, filter);
     }
 
 

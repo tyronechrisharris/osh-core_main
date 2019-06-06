@@ -59,7 +59,7 @@ import org.vast.util.TimeExtent;
  * @author Alex Robin <alex.robin@sensiasoftware.com>
  * @since Sep 7, 2013
  */
-public abstract class StreamDataProvider implements ISOSDataProvider, IEventListener
+public class StreamDataProvider implements ISOSDataProvider, IEventListener
 {
     private static final Logger log = LoggerFactory.getLogger(StreamDataProvider.class);
     private static final int DEFAULT_QUEUE_SIZE = 200;

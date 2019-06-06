@@ -24,7 +24,9 @@ import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.IFoiFilter;
 import org.sensorhub.api.persistence.IObsStorage;
 import org.sensorhub.api.service.ServiceException;
+import org.sensorhub.impl.SensorHub;
 import org.sensorhub.utils.MsgUtils;
+import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSOfferingCapabilities;
 import org.vast.util.TimeExtent;
 
@@ -36,26 +38,35 @@ import org.vast.util.TimeExtent;
  * </p>
  *
  * @author Alex Robin <alex.robin@sensiasoftware.com>
- * @param <ProducerType> Type of producer handled by this provider
  * @since Feb 28, 2015
  */
-public class StreamWithStorageProviderFactory<ProducerType extends IDataProducerModule<?>> extends StorageDataProviderFactory
+public class StreamWithStorageProviderFactory extends StorageDataProviderFactory
 {
-    final ProducerType producer;
-    final StreamDataProviderConfig altConfig;
-    final StreamDataProviderFactory<ProducerType> altProvider;
+    final IDataProducerModule<?> producer;
+    final StreamDataProviderConfig streamSourceConfig;
+    final StreamDataProviderFactory altProvider;
     long liveDataTimeOut;
     
     
-    public StreamWithStorageProviderFactory(SOSServlet service, StreamDataProviderConfig config, ProducerType producer) throws SensorHubException
+    public StreamWithStorageProviderFactory(SOSServlet service, StreamDataProviderConfig config) throws SensorHubException
     {
-        super(service, new StorageDataProviderConfig(config));
-        this.producer = producer;
-        this.altConfig = config;
+        super(service, new StorageDataProviderConfig(config));        
+        
+        // get handle to producer object
+        this.producer = (IDataProducerModule<?>)SensorHub.getInstance().getModuleRegistry().getModuleById(config.getProducerID());
+        if (producer.isStarted() && storage.isStarted())
+        {
+            String liveSensorUID = producer.getCurrentDescription().getUniqueIdentifier();
+            String storageSensorUID = storage.getLatestDataSourceDescription().getUniqueIdentifier();
+            if (!liveSensorUID.equals(storageSensorUID))
+                throw new SensorHubException("Storage " + storage.getName() + " doesn't contain data for sensor " + producer.getName());
+        }
+        
+        this.streamSourceConfig = config;
         this.liveDataTimeOut = (long)(config.liveDataTimeout * 1000);
         
         // build alt provider to generate capabilities in case storage is disabled
-        this.altProvider = new StreamDataProviderFactory<ProducerType>(config, producer, "Stream");
+        this.altProvider = new StreamDataProviderFactory(config, producer);
         
         // listen to producer lifecycle events
         disableEvents = true; // disable events on startup
@@ -124,6 +135,29 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
             // if storage does support FOIs, list the current ones
             if (!(storage instanceof IObsStorage))
                 FoiUtils.updateFois(caps, producer, config.maxFois);
+        }
+    }
+
+
+    @Override
+    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws SensorHubException, OWSException
+    {
+        checkEnabled();
+        TimeExtent timeRange = filter.getTimeRange();
+        
+        // if request for streaming data -> connect to stream source
+        if (timeRange.isBeginNow() || timeRange.isBaseAtNow())
+        {
+            if (!producer.isStarted())
+                throw new ServiceException("Data source " + MsgUtils.moduleString(producer) + " is disabled");
+            
+            return new StreamDataProvider(producer, streamSourceConfig, filter);
+        }
+        
+        // else just fetch historical data from storage
+        else
+        {            
+            return super.getNewDataProvider(filter);
         }
     }
 
@@ -219,6 +253,6 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
     @Override
     public StreamDataProviderConfig getConfig()
     {
-        return this.altConfig;
+        return this.streamSourceConfig;
     }
 }

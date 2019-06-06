@@ -50,5 +50,8 @@ public abstract class StreamDataProviderConfig extends SOSProviderConfig
             + "measurements are received (in seconds). Real-time is reactivated as soon as "
             + "new records start being received again")
     public double liveDataTimeout = 10.0;
+    
+    
+    public abstract String getProducerID();
 
 }

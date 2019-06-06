@@ -73,7 +73,7 @@ public class StorageDataProvider implements ISOSDataProvider
     }
     
     
-    public StorageDataProvider(IBasicStorage storage, StorageDataProviderConfig config, final SOSDataFilter filter) throws IOException, SOSException
+    public StorageDataProvider(IBasicStorage storage, StorageDataProviderConfig config, final SOSDataFilter filter) throws SOSException
     {
         this.storage = storage;
         this.dataStoresStates = new ArrayList<>();

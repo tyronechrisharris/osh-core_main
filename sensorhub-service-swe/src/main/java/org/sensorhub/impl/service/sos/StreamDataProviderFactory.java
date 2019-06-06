@@ -33,6 +33,7 @@ import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.IFoiFilter;
 import org.sensorhub.api.service.ServiceException;
+import org.sensorhub.impl.SensorHub;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.data.DataIterator;
 import org.vast.ogc.om.IObservation;
@@ -51,26 +52,33 @@ import org.vast.util.TimeExtent;
  * @param <ProducerType> Type of producer handled by this provider
  * @since Feb 28, 2015
  */
-public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<?>> implements ISOSDataProviderFactory, IEventListener
+public class StreamDataProviderFactory implements ISOSDataProviderFactory, IEventListener
 {
     final SOSServlet service;
     final StreamDataProviderConfig config;
-    final String producerType;
-    final ProducerType producer;
+    final IDataProducerModule<?> producer;
     long liveDataTimeOut;
     long refTimeOut;
     SOSOfferingCapabilities caps;
     boolean disableEvents;
     
     
-    protected StreamDataProviderFactory(SOSServlet service, StreamDataProviderConfig config, ProducerType producer, String producerType) throws SensorHubException
+    public StreamDataProviderFactory(SOSServlet service, StreamDataProviderConfig config) throws SensorHubException
     {
         this.service = service;
-        this.config = config;        
-        this.producerType = producerType;
-        this.producer = producer;
+        this.config = config;
         this.liveDataTimeOut = (long)(config.liveDataTimeout * 1000);
         this.refTimeOut = System.currentTimeMillis(); // initial ref for timeout is SOS startup time
+        
+        // get handle to producer object
+        try
+        {
+            this.producer = (IDataProducerModule<?>)SensorHub.getInstance().getModuleRegistry().getModuleById(config.getProducerID());
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("Producer " + config.getProducerID() + " is not available", e);
+        }
         
         // listen to producer lifecycle events
         disableEvents = true; // disable events on startup
@@ -83,11 +91,10 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
      * Constructor for use as alt provider
      * In this mode, we purposely don't handle events
      */
-    protected StreamDataProviderFactory(StreamDataProviderConfig config, ProducerType producer, String producerType) throws SensorHubException
+    protected StreamDataProviderFactory(StreamDataProviderConfig config, IDataProducerModule<?> producer)
     {
         this.service = null;
-        this.config = config;        
-        this.producerType = producerType;
+        this.config = config;
         this.producer = producer;
     }
     
@@ -208,7 +215,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
 
     protected Set<String> getObservablePropertiesFromProducer() throws SensorHubException
     {
-        HashSet<String> observableUris = new LinkedHashSet<String>();
+        HashSet<String> observableUris = new LinkedHashSet<>();
         
         // scan outputs descriptions
         for (Entry<String, ? extends IStreamingDataInterface> entry: producer.getAllOutputs().entrySet())
@@ -223,7 +230,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
             DataIterator it = new DataIterator(output.getRecordDescription());
             while (it.hasNext())
             {
-                String defUri = (String)it.next().getDefinition();
+                String defUri = it.next().getDefinition();
                 if (defUri != null && !defUri.equals(SWEConstants.DEF_SAMPLING_TIME))
                     observableUris.add(defUri);
             }
@@ -235,7 +242,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
     
     protected Set<String> getObservationTypesFromProducer() throws SensorHubException
     {
-        HashSet<String> obsTypes = new HashSet<String>();
+        HashSet<String> obsTypes = new HashSet<>();
         obsTypes.add(IObservation.OBS_TYPE_GENERIC);
         obsTypes.add(IObservation.OBS_TYPE_SCALAR);
         
@@ -304,7 +311,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
             throw new ServiceException("Offering " + config.offeringID + " is disabled");
                 
         if (!producer.isStarted())
-            throw new ServiceException(producerType + " " + MsgUtils.moduleString(producer) + " is disabled");
+            throw new ServiceException("Data source " + MsgUtils.moduleString(producer) + " is disabled");
     }
 
 
@@ -346,7 +353,8 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducerModule<
     @Override
     public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws OWSException, SensorHubException
     {
-        return null;
+        checkEnabled();
+        return new StreamDataProvider(producer, config, filter);
     }
 
 
