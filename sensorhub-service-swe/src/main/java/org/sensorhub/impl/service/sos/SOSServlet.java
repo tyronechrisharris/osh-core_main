@@ -1053,7 +1053,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             // always keep sampling time and entity ID if present
             DataComponent filteredStruct = dataProvider.getResultStructure().copy();
             request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
-            String entityComponentUri = FoiUtils.findEntityIDComponentURI(filteredStruct);
+            String entityComponentUri = SOSProviderUtils.findEntityIDComponentURI(filteredStruct);
             if (entityComponentUri != null)
                 request.getObservables().add(entityComponentUri);
             filteredStruct.accept(new DataStructFilter(request.getObservables()));
@@ -1168,7 +1168,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // we also do filtering here in case data provider hasn't modified the datablocks
                 // always keep sampling time and entity ID if present
                 request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
-                String entityComponentUri = FoiUtils.findEntityIDComponentURI(resultStructure);
+                String entityComponentUri = SOSProviderUtils.findEntityIDComponentURI(resultStructure);
                 if (entityComponentUri != null)
                     request.getObservables().add(entityComponentUri);
                 // temporary hack to switch btw old and new writer architecture
@@ -1881,7 +1881,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         boolean nowOk = allowedPeriod.isBaseAtNow() || allowedPeriod.isEndNow();
         
         boolean requestOk = false;
-        if (requestTime.isBaseAtNow() && nowOk)
+        if (requestTime.isBaseAtNow()) // always accept request for latest obs
             requestOk = true;
         else if (requestTime.isBeginNow() && nowOk)
         {

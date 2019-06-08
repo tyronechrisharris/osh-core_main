@@ -29,14 +29,23 @@ import org.sensorhub.api.data.IDataProducerModule;
 import org.sensorhub.api.data.IMultiSourceDataInterface;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.persistence.IFoiFilter;
+import org.vast.ogc.def.DefinitionRef;
+import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.gml.GMLUtils;
+import org.vast.ogc.om.IObservation;
+import org.vast.ogc.om.ObservationImpl;
+import org.vast.ogc.om.ProcedureRef;
 import org.vast.ows.sos.SOSOfferingCapabilities;
+import org.vast.swe.SWEConstants;
 import org.vast.util.Bbox;
+import org.vast.util.TimeExtent;
 
 
-public class FoiUtils
+public class SOSProviderUtils
 {
-
+    private SOSProviderUtils() {}
+    
+    
     public static void updateFois(SOSOfferingCapabilities caps, IDataProducerModule<?> producer, int maxFois)
     {
         caps.getRelatedFeatures().clear();
@@ -92,7 +101,7 @@ public class FoiUtils
         else if (producer.getCurrentFeatureOfInterest() != null)
             allFois = Arrays.asList(producer.getCurrentFeatureOfInterest()).iterator();
         else
-            allFois = Collections.EMPTY_LIST.iterator();
+            allFois = Collections.emptyIterator();
         
         // return all features if no filter is used
         if ((filter.getFeatureIDs() == null || filter.getFeatureIDs().isEmpty()) && filter.getRoi() == null)
@@ -119,5 +128,48 @@ public class FoiUtils
         }
         
         return null;
+    }
+    
+    
+    public static IObservation buildObservation(DataComponent result, String foiURI, String procURI)
+    {
+        // get phenomenon time from record 'SamplingTime' if present
+        // otherwise use current time
+        double samplingTime = System.currentTimeMillis() / 1000.;
+        for (int i = 0; i < result.getComponentCount(); i++)
+        {
+            DataComponent comp = result.getComponent(i);
+            if (comp.isSetDefinition())
+            {
+                String def = comp.getDefinition();
+                if (def.equals(SWEConstants.DEF_SAMPLING_TIME))
+                {
+                    samplingTime = comp.getData().getDoubleValue();
+                }
+            }
+        }
+
+        TimeExtent phenTime = new TimeExtent();
+        phenTime.setBaseTime(samplingTime);
+
+        // use same value for resultTime for now
+        TimeExtent resultTime = new TimeExtent();
+        resultTime.setBaseTime(samplingTime);
+
+        // observation property URI
+        String obsPropDef = result.getDefinition();
+        if (obsPropDef == null)
+            obsPropDef = SWEConstants.NIL_UNKNOWN;
+
+        // create observation object        
+        IObservation obs = new ObservationImpl();
+        obs.setFeatureOfInterest(new FeatureRef(foiURI));
+        obs.setObservedProperty(new DefinitionRef(obsPropDef));
+        obs.setProcedure(new ProcedureRef(procURI));
+        obs.setPhenomenonTime(phenTime);
+        obs.setResultTime(resultTime);
+        obs.setResult(result);
+
+        return obs;
     }
 }

@@ -792,7 +792,7 @@ public class TestSOSService
     
     
     @Test
-    public void testGetResultNowDisabledSensor() throws Exception
+    public void testGetResultRealTimeDisabledSensor() throws Exception
     {
         SensorDataProviderConfig provider1 = buildSensorProvider1();
         provider1.liveDataTimeout = 0;
@@ -802,7 +802,7 @@ public class TestSOSService
                 "?service=SOS&version=2.0&request=GetResult"
                 + "&offering=" + URI_OFFERING1
                 + "&observedProperty=" + URI_PROP1
-                + "&temporalfilter=time," + TIMERANGE_NOW).openStream();
+                + "&temporalfilter=time," + TIMERANGE_FUTURE).openStream();
                         
         checkServiceException(is, "phenomenonTime");
     }

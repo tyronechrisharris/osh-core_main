@@ -35,6 +35,13 @@ import org.sensorhub.api.persistence.IStorageModule;
  */
 public abstract class StreamDataProviderConfig extends SOSProviderConfig
 {
+    public enum DataSource
+    {
+        STREAM,
+        STORAGE,
+        AUTO
+    }
+    
     
     @DisplayInfo(desc="Local ID of storage to use as data source for archive requests")
     @FieldType(Type.MODULE_ID)
@@ -50,6 +57,10 @@ public abstract class StreamDataProviderConfig extends SOSProviderConfig
             + "measurements are received (in seconds). Real-time is reactivated as soon as "
             + "new records start being received again")
     public double liveDataTimeout = 10.0;
+    
+    
+    @DisplayInfo(desc="Data source used to obtain latest record values")
+    public DataSource latestRecordSource = DataSource.STREAM;
     
     
     public abstract String getProducerID();

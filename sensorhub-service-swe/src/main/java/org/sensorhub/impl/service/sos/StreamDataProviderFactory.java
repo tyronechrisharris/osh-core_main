@@ -136,7 +136,7 @@ public class StreamDataProviderFactory implements ISOSDataProviderFactory, IEven
             caps.getProcedures().add(producer.getCurrentDescription().getUniqueIdentifier());
             
             // FOI IDs and BBOX
-            FoiUtils.updateFois(caps, producer, config.maxFois);
+            SOSProviderUtils.updateFois(caps, producer, config.maxFois);
             
             // obs types
             Set<String> obsTypes = getObservationTypesFromProducer();
@@ -175,7 +175,7 @@ public class StreamDataProviderFactory implements ISOSDataProviderFactory, IEven
             return;
             
         updateNameAndDescription();
-        FoiUtils.updateFois(caps, producer, config.maxFois);
+        SOSProviderUtils.updateFois(caps, producer, config.maxFois);
         
         // enable real-time requests if streaming data source is enabled
         if (producer.isStarted())
@@ -298,7 +298,7 @@ public class StreamDataProviderFactory implements ISOSDataProviderFactory, IEven
     public Iterator<AbstractFeature> getFoiIterator(final IFoiFilter filter) throws SensorHubException
     {
         checkEnabled();
-        return FoiUtils.getFilteredFoiIterator(producer, filter);
+        return SOSProviderUtils.getFilteredFoiIterator(producer, filter);
     }
     
     

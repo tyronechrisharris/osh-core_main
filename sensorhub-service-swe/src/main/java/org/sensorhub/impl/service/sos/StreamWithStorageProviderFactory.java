@@ -25,6 +25,7 @@ import org.sensorhub.api.persistence.IFoiFilter;
 import org.sensorhub.api.persistence.IObsStorage;
 import org.sensorhub.api.service.ServiceException;
 import org.sensorhub.impl.SensorHub;
+import org.sensorhub.impl.service.sos.StreamDataProviderConfig.DataSource;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSOfferingCapabilities;
@@ -53,7 +54,15 @@ public class StreamWithStorageProviderFactory extends StorageDataProviderFactory
         super(service, new StorageDataProviderConfig(config));        
         
         // get handle to producer object
-        this.producer = (IDataProducerModule<?>)SensorHub.getInstance().getModuleRegistry().getModuleById(config.getProducerID());
+        try
+        {
+            this.producer = (IDataProducerModule<?>)SensorHub.getInstance().getModuleRegistry().getModuleById(config.getProducerID());
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("Producer " + config.getProducerID() + " is not available", e);
+        }
+        
         if (producer.isStarted() && storage.isStarted())
         {
             String liveSensorUID = producer.getCurrentDescription().getUniqueIdentifier();
@@ -86,7 +95,7 @@ public class StreamWithStorageProviderFactory extends StorageDataProviderFactory
             
             // if storage does support FOIs, list the current ones
             if (!(storage instanceof IObsStorage))
-                FoiUtils.updateFois(caps, producer, config.maxFois);
+                SOSProviderUtils.updateFois(caps, producer, config.maxFois);
         }
         else
         {
@@ -134,7 +143,7 @@ public class StreamWithStorageProviderFactory extends StorageDataProviderFactory
             
             // if storage does support FOIs, list the current ones
             if (!(storage instanceof IObsStorage))
-                FoiUtils.updateFois(caps, producer, config.maxFois);
+                SOSProviderUtils.updateFois(caps, producer, config.maxFois);
         }
     }
 
@@ -145,8 +154,9 @@ public class StreamWithStorageProviderFactory extends StorageDataProviderFactory
         checkEnabled();
         TimeExtent timeRange = filter.getTimeRange();
         
-        // if request for streaming data -> connect to stream source
-        if (timeRange.isBeginNow() || timeRange.isBaseAtNow())
+        // if request for streaming data, connect to stream source
+        // or if request for latest records and configured source = STREAM
+        if (timeRange.isBeginNow() || (timeRange.isBaseAtNow() && streamSourceConfig.latestRecordSource == DataSource.STREAM))
         {
             if (!producer.isStarted())
                 throw new ServiceException("Data source " + MsgUtils.moduleString(producer) + " is disabled");
@@ -154,7 +164,15 @@ public class StreamWithStorageProviderFactory extends StorageDataProviderFactory
             return new StreamDataProvider(producer, streamSourceConfig, filter);
         }
         
-        // else just fetch historical data from storage
+        // if request for latest records and configured source = AUTO
+        // in this case, use special provider that tries to get records from stream source
+        // and fall back on storage if not available from stream source
+        else if (timeRange.isBaseAtNow() && streamSourceConfig.latestRecordSource == DataSource.AUTO)
+        {
+            return new StreamWithStorageDataProvider(producer, storage, streamSourceConfig, filter);
+        }
+        
+        // else just fetch historical or latest data from storage
         else
         {            
             return super.getNewDataProvider(filter);
@@ -167,7 +185,7 @@ public class StreamWithStorageProviderFactory extends StorageDataProviderFactory
     {
         Iterator<AbstractFeature> foiIt = super.getFoiIterator(filter);
         if (!foiIt.hasNext())
-            foiIt = FoiUtils.getFilteredFoiIterator(producer, filter);
+            foiIt = SOSProviderUtils.getFilteredFoiIterator(producer, filter);
         return foiIt;
     }
     
