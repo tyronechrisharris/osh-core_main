@@ -63,7 +63,7 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.utils.MsgUtils;
-import org.vast.swe.SWEHelper;
+import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Bbox;
 
@@ -233,7 +233,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         ScalarIndexer timeStampIndexer = timeStampIndexers.get(outputName);
         if (timeStampIndexer == null)
         {
-            timeStampIndexer = SWEHelper.getTimeStampIndexer(output.getRecordDescription());
+            timeStampIndexer = SWEDataUtils.getTimeStampIndexer(output.getRecordDescription());
             timeStampIndexers.put(outputName, timeStampIndexer);
         }
         
