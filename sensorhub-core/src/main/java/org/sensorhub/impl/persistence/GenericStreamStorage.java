@@ -640,10 +640,10 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     
     
     @Override
-    public Iterator<double[]> getRecordsTimeClusters(String recordType)
+    public int[] getEstimatedRecordCounts(String recordType, double[] timeStamps)
     {
         checkStarted();
-        return storage.getRecordsTimeClusters(recordType);
+        return storage.getEstimatedRecordCounts(recordType, timeStamps);
     }
 
 

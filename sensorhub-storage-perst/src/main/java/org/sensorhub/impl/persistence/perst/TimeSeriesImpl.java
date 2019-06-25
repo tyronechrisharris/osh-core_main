@@ -25,6 +25,7 @@ import org.garret.perst.IterableIterator;
 import org.garret.perst.Key;
 import org.garret.perst.Persistent;
 import org.garret.perst.Storage;
+import org.sensorhub.api.persistence.DataFilter;
 import org.sensorhub.api.persistence.DataKey;
 import org.sensorhub.api.persistence.IDataFilter;
 import org.sensorhub.api.persistence.IDataRecord;
@@ -406,56 +407,23 @@ class TimeSeriesImpl extends Persistent implements IRecordStoreInfo
     }
     
     
-    public Iterator<double[]> getRecordsTimeClusters()
+    int[] getEstimatedRecordCounts(double[] timeStamps)
     {
-        final Iterator<Entry<Object, DataBlock>> it;
-        it = getEntryIterator(KEY_DATA_START_ALL_TIME, KEY_DATA_END_ALL_TIME, Index.ASCENT_ORDER, false);
+        int[] bins = new int[timeStamps.length-1];
         
-        return new Iterator<double[]>()
+        for (int i = 0; i < bins.length; i++)
         {
-            double lastTime = Double.NaN;
+            final double[] timeRange = new double[] {timeStamps[i], timeStamps[i+1]};
+            int count = this.getNumMatchingRecords(new DataFilter("") {
+                @Override
+                public double[] getTimeStampRange() {
+                    return timeRange;
+                }                
+            }, 1000);
             
-            @Override
-            public boolean hasNext()
-            {
-                return it.hasNext();
-            }
-
-            @Override
-            public double[] next()
-            {
-                double[] clusterTimeRange = new double[2];
-                clusterTimeRange[0] = lastTime;
+            bins[i] = count;
+        }
                 
-                while (it.hasNext())
-                {
-                    // PERST doesn't load object from disk until getValue() is called so we're good here
-                    double recTime = (double)it.next().getKey();
-                    
-                    if (Double.isNaN(lastTime))
-                    {
-                        clusterTimeRange[0] = recTime;
-                        lastTime = recTime;
-                    }
-                    else
-                    {
-                        double dt = recTime - lastTime;
-                        lastTime = recTime;
-                        if (dt > 60.0)
-                            break;
-                    }
-                    
-                    clusterTimeRange[1] = recTime;
-                }
-                
-                return clusterTimeRange;
-            }
-
-            @Override
-            public void remove()
-            {
-                throw new UnsupportedOperationException();
-            }    
-        };
+        return bins;
     }
 }

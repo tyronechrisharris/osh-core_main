@@ -321,9 +321,9 @@ class BasicStorageRoot extends PersistentResource implements IBasicStorage
     
     
     @Override
-    public Iterator<double[]> getRecordsTimeClusters(String recordType)
+    public int[] getEstimatedRecordCounts(String recordType, double[] timeStamps)
     {
-        return getRecordStore(recordType).getRecordsTimeClusters();
+        return getRecordStore(recordType).getEstimatedRecordCounts(timeStamps);
     }
     
     
