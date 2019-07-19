@@ -51,7 +51,6 @@ import org.sensorhub.ui.data.MyBeanItem;
 import org.sensorhub.ui.data.MyBeanItemContainer;
 import com.vaadin.data.Buffered.SourceException;
 import com.vaadin.data.Property;
-import com.vaadin.data.Validator.InvalidValueException;
 import com.vaadin.data.fieldgroup.FieldGroup;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitEvent;
 import com.vaadin.data.fieldgroup.FieldGroup.CommitException;
@@ -111,14 +110,14 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     private static final String CHANGE_OBJECT_ERROR = "Cannot change object type of ";
     protected static final String MAIN_CONFIG = "General";
     
-    protected transient List<Field<?>> labels = new ArrayList<Field<?>>();
-    protected transient List<Field<?>> textBoxes = new ArrayList<Field<?>>();
-    protected transient List<Field<?>> listBoxes = new ArrayList<Field<?>>();
-    protected transient List<Field<?>> numberBoxes = new ArrayList<Field<?>>();
-    protected transient List<Field<?>> checkBoxes = new ArrayList<Field<?>>();
-    protected transient List<Component> subForms = new ArrayList<Component>();
+    protected transient List<Field<?>> labels = new ArrayList<>();
+    protected transient List<Field<?>> textBoxes = new ArrayList<>();
+    protected transient List<Field<?>> listBoxes = new ArrayList<>();
+    protected transient List<Field<?>> numberBoxes = new ArrayList<>();
+    protected transient List<Field<?>> checkBoxes = new ArrayList<>();
+    protected transient List<Component> subForms = new ArrayList<>();
     
-    protected transient List<IModuleConfigForm> allForms = new ArrayList<IModuleConfigForm>();
+    protected transient List<IModuleConfigForm> allForms = new ArrayList<>();
     protected transient FieldGroup fieldGroup;
     protected transient boolean tabJustRemoved;
     protected transient IModuleConfigForm parentForm;
@@ -279,6 +278,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     protected Field<?> buildAndBindField(String label, String propId, Property<?> prop)
     {
         Field<?> field = fieldGroup.buildAndBind(label, propId);
+        field.addStyleName(UIConstants.STYLE_SMALL);
         field.setInvalidCommitted(true);
         Class<?> propType = prop.getType();
         
@@ -758,7 +758,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         // generate new form (will be empty if bean is null)
         MyBeanItem<Object> newItem = null;
         if (newBean != null)
-            newItem = new MyBeanItem<Object>(newBean, propId + ".");
+            newItem = new MyBeanItem<>(newBean, propId + ".");
         prop.setValue(newItem);                        
         ComponentContainer newForm = buildSubForm(propId, prop);
         newForm.setCaption(null);
@@ -775,7 +775,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     protected void buildListComponent(final String propId, final ContainerProperty prop, final FieldGroup fieldGroup)
     {
         // skip SensorSystem members since they are already shown in the tree
-        Class<?> eltType = ((ContainerProperty)prop).getValue().getBeanType();
+        Class<?> eltType = prop.getValue().getBeanType();
         if (eltType == SensorMember.class || eltType == ProcessMember.class)
             return;
         
@@ -826,7 +826,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         listBox.setWidth(250, Unit.PIXELS);
         listBox.setRows(Math.max(2, Math.min(5, container.size())));
         
-        FieldWrapper<Object> field = new FieldWrapper<Object>(listBox) {
+        return new FieldWrapper<Object>(listBox) {
             @Override
             protected Component initContent()
             {
@@ -891,15 +891,13 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             }
             
             @Override
-            public void commit() throws SourceException, InvalidValueException
+            public void commit()
             {
                 // override commit here because the ListSelect setValue() method
                 // only sets the index of the selected item, and not the list content
                 prop.setValue(container);
             }             
         };
-        
-        return field;
     }
     
     
@@ -1003,7 +1001,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             }
             
             @Override
-            public void commit() throws SourceException, InvalidValueException
+            public void commit()
             {
                 // override commit here because the ListSelect setValue() method
                 // only sets the index of the selected item, and not the list content
@@ -1129,7 +1127,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                                 try
                                 {
                                     // add new item to container
-                                    MyBeanItem<Object> childBeanItem = container.addBean(objectType.newInstance(), ((String)propId) + PROP_SEP);                                                                        
+                                    MyBeanItem<Object> childBeanItem = container.addBean(objectType.newInstance(), propId+PROP_SEP);                                                                        
                                     Tab newTab = addTab(tabs, container.lastItemId(), childBeanItem, selectedTabPos);
                                     tabs.setSelectedTab(newTab);
                                 }
@@ -1198,7 +1196,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         IModuleConfigForm subform = AdminUIModule.getInstance().generateForm(beanItem.getBean().getClass());
         subform.build(null, null, beanItem, true);
         subform.setParentForm(this);
-        ((MarginHandler)subform).setMargin(new MarginInfo(false, false, true, false));
+        subform.setMargin(new MarginInfo(false, false, true, false));
         allForms.add(subform);
         
         // create tab
@@ -1246,7 +1244,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     public Collection<IModuleProvider> getPossibleModuleTypes(String propId, Class<?> configType)
     {
         final ModuleRegistry registry = SensorHub.getInstance().getModuleRegistry();
-        final Collection<IModuleProvider> providers = new ArrayList<IModuleProvider>();
+        final Collection<IModuleProvider> providers = new ArrayList<>();
         for (IModuleProvider provider: registry.getInstalledModuleTypes())
         {
             Class<?> configClass = provider.getModuleConfigClass();
@@ -1261,14 +1259,14 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     @Override
     public Map<String, Class<?>> getPossibleTypes(String propId, BaseProperty<?> prop)
     {
-        return Collections.EMPTY_MAP;
+        return Collections.emptyMap();
     }
     
     
     @Override
     public List<Object> getPossibleValues(String propId)
     {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
     
     

@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import org.sensorhub.ui.api.UIConstants;
 import org.vast.data.DataValue;
 import org.vast.swe.SWEDataTypeUtils;
 import net.opengis.swe.v20.DataArray;
@@ -58,6 +59,7 @@ public class SWECommonForm extends VerticalLayout
             layout.setSpacing(addSpacing);
             
             Label l = new Label();
+            l.addStyleName(UIConstants.STYLE_SMALL);
             l.setContentMode(ContentMode.HTML);
             l.setValue(getCaption(dataComponent, false));
             l.setDescription(getTooltip(dataComponent));
@@ -84,6 +86,7 @@ public class SWECommonForm extends VerticalLayout
             VerticalLayout layout = new VerticalLayout();
             
             Label l = new Label();
+            l.addStyleName(UIConstants.STYLE_SMALL);
             l.setContentMode(ContentMode.HTML);
             l.setValue(getCaption(dataComponent, false));
             l.setDescription(getTooltip(dataComponent));
@@ -104,6 +107,7 @@ public class SWECommonForm extends VerticalLayout
             VerticalLayout layout = new VerticalLayout();
             
             Label l = new Label();
+            l.addStyleName(UIConstants.STYLE_SMALL);
             l.setContentMode(ContentMode.HTML);
             l.setValue(getCaption(dataChoice, false));
             l.setDescription(getTooltip(dataChoice));
@@ -127,6 +131,7 @@ public class SWECommonForm extends VerticalLayout
         else if (dataComponent instanceof SimpleComponent)
         {
             Label l = new Label();
+            l.addStyleName(UIConstants.STYLE_SMALL);
             l.setContentMode(ContentMode.HTML);
             l.setValue(getCaption(dataComponent, showValues));
             l.setDescription(getTooltip(dataComponent));
@@ -193,24 +198,24 @@ public class SWECommonForm extends VerticalLayout
         StringBuilder tooltip = new StringBuilder();
         
         if (dataComponent.getName() != null)
-            tooltip.append("<p><b>Field Name: </b>").append(dataComponent.getName()).append("</p>");
+            tooltip.append("<b>Field Name: </b>").append(dataComponent.getName()).append("<br/>");
         
         if (dataComponent.getDescription() != null)
-            tooltip.append("<p><b>Description: </b>").append(dataComponent.getDescription()).append("</p>");
+            tooltip.append("<b>Description: </b>").append(dataComponent.getDescription()).append("<br/>");
         
         String def = dataComponent.getDefinition();
         if (def != null)
-            tooltip.append("<p><b>Definition: </b><a target='_blank' href='").append(def).append("'/>").append(def).append("</a></p>");
+            tooltip.append("<b>Definition: </b><a target='_blank' href='").append(def).append("'/>").append(def).append("</a><br/>");
         
         if (dataComponent instanceof HasRefFrames)
         {
             String refFrame = ((HasRefFrames) dataComponent).getReferenceFrame();
             if (refFrame != null)
-                tooltip.append("<p><b>Ref Frame: </b><a target='_blank' href='").append(refFrame).append("'/>").append(refFrame).append("</a></p>");
+                tooltip.append("<b>Ref Frame: </b><a target='_blank' href='").append(refFrame).append("'/>").append(refFrame).append("</a><br/>");
             
             String localFrame = ((HasRefFrames) dataComponent).getLocalFrame();
             if (localFrame != null)
-                tooltip.append("<p><b>Local Frame: </b><a target='_blank' href='").append(localFrame).append("'/>").append(localFrame).append("</a></p>");
+                tooltip.append("<b>Local Frame: </b><a target='_blank' href='").append(localFrame).append("'/>").append(localFrame).append("</a><br/>");
         }
         
         if (dataComponent instanceof HasUom)
@@ -229,7 +234,7 @@ public class SWECommonForm extends VerticalLayout
             }  
                 
             if (uom != null)
-                tooltip.append("<p><b>Unit: </b>").append(uom).append("</p>");
+                tooltip.append("<b>Unit: </b>").append(uom).append("<br/>");
         }
         
         return tooltip.toString();
