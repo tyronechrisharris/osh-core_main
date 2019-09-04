@@ -26,6 +26,7 @@ import org.slf4j.Logger;
  * @date Feb 21, 2019
  */
 public class FilteredEventPublisher extends FilteredAsyncPublisher<Event> implements IEventPublisher
+//public class FilteredEventPublisher extends FilteredSubmissionPublisherV10<Event> implements IEventPublisher
 {
     String sourceID;
     Logger log;

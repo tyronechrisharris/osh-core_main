@@ -160,14 +160,9 @@ public class EventBus implements IEventBus
     }
     
     
-    @Override
-    public void shutdown()
-    {
-        if (threadPool != null)
-            threadPool.shutdownNow();
-    }
-    
-    
+    /*
+     * Register one subscriber to a single source
+     */
     synchronized void subscribe(String sourceID, Subscriber<Event> subscriber)
     {
         IEventPublisher publisher = publishers.computeIfAbsent(sourceID, id -> new PlaceHolderPublisher());
@@ -175,6 +170,9 @@ public class EventBus implements IEventBus
     }
     
     
+    /*
+     * Register subscriber to a single source with a filter
+     */
     @SuppressWarnings("unchecked")
     synchronized <E extends Event> void subscribe(String sourceID, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
@@ -185,6 +183,9 @@ public class EventBus implements IEventBus
     }
     
     
+    /*
+     * Register subscriber to multiple sources, with an optional filter
+     */
     <E extends Event> void subscribeMulti(Set<String> sourceIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
         AggregateSubscription<E> sub = new AggregateSubscription<>(subscriber, sourceIDs.size());
@@ -194,6 +195,9 @@ public class EventBus implements IEventBus
     }
     
     
+    /*
+     * Register subscriber to multiple sources in the same group, with an optional filter
+     */
     <E extends Event> void subscribeMulti(String groupID, Set<String> sourceIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
         //  create filter with list of sources
@@ -204,6 +208,9 @@ public class EventBus implements IEventBus
     }
     
     
+    /*
+     * Build the predicate corresponding to subscription options
+     */
     <E extends Event> Predicate<? super E> buildPredicate(SubscribeOptions<E> opts)
     {
         Predicate<? super E> combinedFilter = opts.getFilter();
@@ -234,6 +241,9 @@ public class EventBus implements IEventBus
     }
     
     
+    /*
+     * Register subscriber with the specified subscription options
+     */
     <E extends Event> void subscribe(SubscribeOptions<E> opts, Subscriber<? super E> subscriber)
     {
         Predicate<? super E> filter = buildPredicate(opts);
@@ -247,6 +257,17 @@ public class EventBus implements IEventBus
     }
     
     
+    @Override
+    public void shutdown()
+    {
+        if (threadPool != null)
+            threadPool.shutdownNow();
+    }
+    
+    
+    /*
+     * Extended builder class adding methods to submit the subscription
+     */
     public class SubscriptionBuilderImpl<E extends Event>
         extends SubscribeOptions.Builder<SubscriptionBuilderImpl<E>, E>
         implements ISubscriptionBuilder<E>

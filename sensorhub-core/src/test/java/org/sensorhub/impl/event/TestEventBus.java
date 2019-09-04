@@ -168,7 +168,7 @@ public class TestEventBus
                             eventOk = sub.sourceIds.contains(e.getSourceID());
                         assertTrue("Received event from incorrect source", eventOk);
                         
-                        if (now - e.getTimeStamp() > 10)
+                        if (now - e.getTimeStamp() > 100)
                             throw new IllegalStateException("Delivery too slow!");
                         
                         sub.eventsReceived.add(e);

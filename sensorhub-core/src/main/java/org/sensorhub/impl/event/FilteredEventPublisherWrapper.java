@@ -16,6 +16,16 @@ import org.sensorhub.api.common.Event;
 import org.sensorhub.api.common.IEventPublisher;
 
 
+/**
+ * <p>
+ * Publisher wrapper for filtering events using the provided predicate.<br/>
+ * For instance, this is used to extract events from one or more sources from
+ * a publisher group channel. 
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Mar 22, 2019
+ */
 public class FilteredEventPublisherWrapper implements IEventPublisher
 {
     String sourceID;
@@ -32,9 +42,15 @@ public class FilteredEventPublisherWrapper implements IEventPublisher
 
 
     @Override
+    @SuppressWarnings("unchecked")
     public void subscribe(Subscriber<? super Event> subscriber)
     {
-        wrappedPublisher.subscribe(new FilteredSubscriber<Event>(subscriber, filter));
+        /*if (wrappedPublisher instanceof FilteredSubmissionPublisherV10)
+            ((FilteredSubmissionPublisherV10<Event>)wrappedPublisher).subscribe(subscriber, filter);
+        else if (wrappedPublisher instanceof FilteredSubmissionPublisherV11)
+            ((FilteredSubmissionPublisherV11<Event>)wrappedPublisher).subscribe(subscriber, filter);
+        else*/
+            wrappedPublisher.subscribe(new FilteredSubscriber<Event>(subscriber, filter));
     }
 
 
