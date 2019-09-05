@@ -11,26 +11,11 @@ dependencies {
   compile project(':sensorhub-core')
   compile project(':ogc-services-sos')
   compile project(':ogc-services-sps')
-   
-  compile('org.n52.amused:amused-core:1.0.0') {
-    // excludes are needed here so the generated pom contains them too
-    exclude group: 'xalan', module: 'xalan'
-    exclude group: 'xerces', module: 'xercesImpl'
-  }
-  compile 'org.n52.amused:amused-wsn-impl:1.0.0'
-  compile 'xml-apis:xml-apis:1.4.01'
   compile 'org.eclipse.jetty.websocket:websocket-server:9.4.7.v20170914'
     
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
   testCompile project(':sensorhub-storage-perst')
   testCompile 'commons-io:commons-io:1.3.2'
-    
-  configurations {
-    runtime {
-       exclude module: 'xalan'
-       exclude module: 'xercesImpl'
-    }
-  }
 }
 
 // add info to OSGI manifest
