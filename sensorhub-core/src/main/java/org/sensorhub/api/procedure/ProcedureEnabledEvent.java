@@ -8,31 +8,30 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.common;
-
-import net.opengis.gml.v32.Point;
+package org.sensorhub.api.procedure;
 
 
 /**
  * <p>
- * Interface for all procedures that can be geolocated
+ * Event sent when a procedure is enabled
  * </p>
  *
  * @author Alex Robin
- * @since Jun 12, 2017
+ * @date Mar 2, 2019
  */
-public interface IProcedureWithLocation extends IProcedure
+public class ProcedureEnabledEvent extends ProcedureEvent
 {
-
+    
     /**
-     * Retrieves the current geographic location of the procedure.
-     * <p><i>Note that the entity location can be different from the feature of interest
-     * location/geometry.</i></p>
-     * @return the procedure location as a GML point or null if unknown
+     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
+     * @param procedureID ID of enabled procedure
      */
-    public Point getCurrentLocation();
+    public ProcedureEnabledEvent(long timeStamp, String procedureID)
+    {
+        super(timeStamp, procedureID);
+    }
 }

@@ -12,29 +12,29 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.common;
+package org.sensorhub.api.procedure;
 
 
 /**
  * <p>
- * Event sent when a procedure is removed from the hub or from a procedure group
+ * Event sent when a procedure is added to the hub or to a procedure group
  * </p>
  *
  * @author Alex Robin
  * @date Mar 2, 2019
  */
-public class ProcedureRemovedEvent extends ProcedureEvent
+public class ProcedureAddedEvent extends ProcedureEvent
 {
     String parentGroupID;
     
     
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureID ID of removed procedure
+     * @param procedureID ID of added procedure
      * @param parentGroupID ID of parent procedure group (or null if procedure
      * is not a member of any group)
      */
-    public ProcedureRemovedEvent(long timeStamp, String procedureID, String parentGroupID)
+    public ProcedureAddedEvent(long timeStamp, String procedureID, String parentGroupID)
     {
         super(timeStamp, procedureID);
         this.parentGroupID = parentGroupID;

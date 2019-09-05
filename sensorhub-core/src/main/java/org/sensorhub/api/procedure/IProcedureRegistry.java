@@ -12,7 +12,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.common;
+package org.sensorhub.api.procedure;
 
 import java.lang.ref.WeakReference;
 import org.sensorhub.api.event.IEventSource;

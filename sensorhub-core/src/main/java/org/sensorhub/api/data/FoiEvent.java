@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.data;
 
-import org.sensorhub.api.common.ProcedureEvent;
+import org.sensorhub.api.procedure.ProcedureEvent;
 import net.opengis.gml.v32.AbstractFeature;
 
 

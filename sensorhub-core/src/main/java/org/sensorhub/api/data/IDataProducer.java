@@ -15,7 +15,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import java.util.Map;
-import org.sensorhub.api.common.IProcedure;
+import org.sensorhub.api.procedure.IProcedure;
 import net.opengis.gml.v32.AbstractFeature;
 
 

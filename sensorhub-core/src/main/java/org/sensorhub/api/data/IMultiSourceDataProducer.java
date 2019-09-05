@@ -16,7 +16,7 @@ package org.sensorhub.api.data;
 
 import java.util.Collection;
 import java.util.Map;
-import org.sensorhub.api.common.IProcedureGroup;
+import org.sensorhub.api.procedure.IProcedureGroup;
 import net.opengis.gml.v32.AbstractFeature;
 
 

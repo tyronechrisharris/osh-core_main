@@ -15,9 +15,9 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api;
 
 import org.sensorhub.api.comm.INetworkManager;
-import org.sensorhub.api.common.IProcedureRegistry;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.persistence.IPersistenceManager;
+import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.sensor.ISensorManager;

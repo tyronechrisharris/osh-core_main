@@ -12,25 +12,25 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.common;
+package org.sensorhub.api.procedure;
 
 
 /**
  * <p>
- * Event sent when a procedure is enabled
+ * Event sent when a procedure's SensorML description is updated
  * </p>
  *
  * @author Alex Robin
  * @date Mar 2, 2019
  */
-public class ProcedureEnabledEvent extends ProcedureEvent
+public class ProcedureChangedEvent extends ProcedureEvent
 {
     
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureID ID of enabled procedure
+     * @param procedureID ID of changed procedure
      */
-    public ProcedureEnabledEvent(long timeStamp, String procedureID)
+    public ProcedureChangedEvent(long timeStamp, String procedureID)
     {
         super(timeStamp, procedureID);
     }

@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Predicate;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IProcedureRegistry;
+import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.ISensorManager;
 

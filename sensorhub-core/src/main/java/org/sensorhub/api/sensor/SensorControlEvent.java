@@ -15,7 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.sensor;
 
 import org.sensorhub.api.common.CommandStatus;
-import org.sensorhub.api.common.ProcedureEvent;
+import org.sensorhub.api.procedure.ProcedureEvent;
 
 
 /**

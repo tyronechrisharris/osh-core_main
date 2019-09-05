@@ -14,9 +14,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.utils;
 
-import org.sensorhub.api.common.IProcedure;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.api.procedure.IProcedure;
 
 
 /**

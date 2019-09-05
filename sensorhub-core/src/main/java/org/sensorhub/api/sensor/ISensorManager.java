@@ -16,7 +16,7 @@ package org.sensorhub.api.sensor;
 
 import java.util.Collection;
 import java.util.function.Predicate;
-import org.sensorhub.api.common.IProcedure;
+import org.sensorhub.api.procedure.IProcedure;
 
 
 /**
