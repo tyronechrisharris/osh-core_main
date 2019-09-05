@@ -235,6 +235,22 @@ class MultiEntityStorageRoot extends ObsStorageRoot implements IObsStorage, IMul
         
         return timeRange;
     }
+    
+    
+    @Override
+    public int[] getEstimatedRecordCounts(String recordType, double[] timeStamps)
+    {
+        int [] counts = new int[timeStamps.length-1];
+        
+        for (ObsStorageRoot dataStore: obsStores.values())
+        {
+            int[] producerCounts = dataStore.getEstimatedRecordCounts(recordType, timeStamps);
+            for (int i = 0; i < counts.length; i++)
+                counts[i] += producerCounts[i];
+        }
+        
+        return counts;
+    }
 
 
     @Override

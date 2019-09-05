@@ -127,12 +127,13 @@ public interface IBasicStorage
     
     
     /**
-     * Retrieves time boundaries of data clusters 
-     * (i.e. this allows to detect temporal holes in the data)
+     * Retrieves record counts within bins defined by the given time stamps.
+     * Each bin is defined by two consecutive time stamps.
      * @param recordType name of record type
-     * @return A read-only iterator among time periods delimiting clusters of data
+     * @param timeStamps
+     * @return array of record counts for specified bins (histogram)
      */
-    public Iterator<double[]> getRecordsTimeClusters(String recordType);
+    public int[] getEstimatedRecordCounts(String recordType, double[] timeStamps);
     
     
     /**

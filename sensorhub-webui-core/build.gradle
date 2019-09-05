@@ -21,8 +21,6 @@ dependencies {
   compile 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
   compile 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
   compile 'com.vaadin:vaadin-themes:' + vaadinVersion
-  compile 'org.tltv.gantt:gantt-addon:1.0.4'
-  
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }
 

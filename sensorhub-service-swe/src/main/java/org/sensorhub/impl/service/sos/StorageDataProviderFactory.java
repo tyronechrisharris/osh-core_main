@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -383,15 +382,7 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
     public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws SensorHubException, OWSException
     {
         checkEnabled();
-        
-        try
-        {
-            return new StorageDataProvider(storage, config, filter);
-        }
-        catch (IOException e)
-        {
-            throw new ServiceException("Cannot instantiate storage provider", e);
-        }
+        return new StorageDataProvider(storage, config, filter);
     }
 
 

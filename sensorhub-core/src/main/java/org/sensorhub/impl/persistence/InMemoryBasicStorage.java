@@ -17,7 +17,6 @@ package org.sensorhub.impl.persistence;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -56,8 +55,8 @@ import org.vast.util.NumberUtils;
  */
 public class InMemoryBasicStorage extends AbstractModule<InMemoryStorageConfig> implements IRecordStorageModule<InMemoryStorageConfig>
 {
-    Map<String, TimeSeriesImpl> dataStores = new LinkedHashMap<String, TimeSeriesImpl>();
-    ConcurrentSkipListMap<Double, AbstractProcess> dataSourceDescriptions = new ConcurrentSkipListMap<Double, AbstractProcess>();
+    Map<String, TimeSeriesImpl> dataStores = new LinkedHashMap<>();
+    ConcurrentSkipListMap<Double, AbstractProcess> dataSourceDescriptions = new ConcurrentSkipListMap<>();
     
     
     public InMemoryBasicStorage()
@@ -89,7 +88,7 @@ public class InMemoryBasicStorage extends AbstractModule<InMemoryStorageConfig> 
     @Override
     public List<AbstractProcess> getDataSourceDescriptionHistory(double startTime, double endTime)
     {
-        ArrayList<AbstractProcess> smlList = new ArrayList<AbstractProcess>();
+        ArrayList<AbstractProcess> smlList = new ArrayList<>();
         smlList.addAll(dataSourceDescriptions.subMap(startTime, endTime).values());
         return smlList;
     }
@@ -264,9 +263,9 @@ public class InMemoryBasicStorage extends AbstractModule<InMemoryStorageConfig> 
     
     
     @Override
-    public Iterator<double[]> getRecordsTimeClusters(String recordType)
+    public int[] getEstimatedRecordCounts(String recordType, double[] timeStamps)
     {
-        return Arrays.asList(getRecordsTimeRange(recordType)).iterator();
+        return StorageUtils.computeDefaultRecordCounts(this, recordType, timeStamps);
     }
     
 
@@ -369,7 +368,7 @@ public class InMemoryBasicStorage extends AbstractModule<InMemoryStorageConfig> 
      */
     public class TimeSeriesImpl implements IRecordStoreInfo
     {
-        ConcurrentSkipListMap<Double, DBRecord> recordList = new ConcurrentSkipListMap<Double, DBRecord>();
+        ConcurrentSkipListMap<Double, DBRecord> recordList = new ConcurrentSkipListMap<>();
         DataComponent recordDescription;
         DataEncoding recommendedEncoding;
         

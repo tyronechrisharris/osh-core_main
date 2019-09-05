@@ -23,6 +23,7 @@ import java.util.Set;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import org.sensorhub.api.persistence.DataKey;
 import org.sensorhub.api.persistence.IBasicStorage;
 import org.sensorhub.api.persistence.IDataRecord;
 import org.sensorhub.api.persistence.IMultiSourceStorage;
@@ -31,14 +32,9 @@ import org.sensorhub.api.persistence.IRecordStoreInfo;
 import org.sensorhub.api.persistence.ObsFilter;
 import org.sensorhub.api.persistence.ObsKey;
 import org.vast.data.DataIterator;
-import org.vast.ogc.def.DefinitionRef;
-import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.om.IObservation;
-import org.vast.ogc.om.ObservationImpl;
-import org.vast.ogc.om.ProcedureRef;
 import org.vast.ows.sos.SOSException;
 import org.vast.swe.SWEConstants;
-import org.vast.util.TimeExtent;
 import com.vividsolutions.jts.geom.Polygon;
 
 
@@ -60,6 +56,7 @@ public class StorageDataProvider implements ISOSDataProvider
     List<StorageState> dataStoresStates;
     String foiID;
     String nextProducerID;
+    DataKey lastRecordKey;
     
     // replay stuff 
     double replaySpeedFactor;
@@ -69,13 +66,14 @@ public class StorageDataProvider implements ISOSDataProvider
     
     class StorageState
     {
-        IRecordStoreInfo recordInfo;
+        DataComponent recordStruct;
+        DataEncoding recordEnc;
         Iterator<? extends IDataRecord> recordIterator;
         IDataRecord nextRecord;
     }
     
     
-    public StorageDataProvider(IBasicStorage storage, StorageDataProviderConfig config, final SOSDataFilter filter) throws IOException, SOSException
+    public StorageDataProvider(IBasicStorage storage, StorageDataProviderConfig config, final SOSDataFilter filter) throws SOSException
     {
         this.storage = storage;
         this.dataStoresStates = new ArrayList<>();
@@ -86,10 +84,21 @@ public class StorageDataProvider implements ISOSDataProvider
         final double[] timePeriod;
         if (filter.getTimeRange() != null && !filter.getTimeRange().isNull())
         {
-            timePeriod = new double[] {
-                filter.getTimeRange().getStartTime(),
-                filter.getTimeRange().getStopTime()
-            };
+            // special case if requesting latest records
+            if (filter.getTimeRange().isBaseAtNow())
+            {
+                timePeriod = new double[] {
+                    Double.POSITIVE_INFINITY,
+                    Double.POSITIVE_INFINITY
+                };
+            }
+            else
+            {
+                timePeriod = new double[] {
+                    filter.getTimeRange().getStartTime(),
+                    filter.getTimeRange().getStopTime()
+                };
+            }
             
             this.requestStartTime = timePeriod[0];
         }
@@ -126,7 +135,8 @@ public class StorageDataProvider implements ISOSDataProvider
                         throw new SOSException(SOSException.response_too_big_code, null, null, TOO_MANY_OBS_MSG);
                     
                     StorageState state = new StorageState();
-                    state.recordInfo = recordInfo;
+                    state.recordStruct = recordInfo.getRecordDescription();
+                    state.recordEnc = recordInfo.getRecommendedEncoding();
                     dataStoresStates.add(state);
                     
                     // break for now since currently we support only requesting data from one store at a time
@@ -141,65 +151,24 @@ public class StorageDataProvider implements ISOSDataProvider
     @Override
     public IObservation getNextObservation() throws IOException
     {
-        DataComponent result = getNextComponent();
-        if (result == null)
+        DataBlock rec = getNextResultRecord();
+        if (rec == null)
             return null;
         
-        // get phenomenon time from record 'SamplingTime' if present
-        // otherwise use current time
-        double samplingTime = System.currentTimeMillis()/1000.;
-        for (int i=0; i<result.getComponentCount(); i++)
-        {
-            DataComponent comp = result.getComponent(i);
-            if (comp.isSetDefinition())
-            {
-                String def = comp.getDefinition();
-                if (def.equals(SWEConstants.DEF_SAMPLING_TIME))
-                {
-                    samplingTime = comp.getData().getDoubleValue();
-                }
-            }
-        }
-        
-        TimeExtent phenTime = new TimeExtent();
-        phenTime.setBaseTime(samplingTime);
-        
-        // use same value for resultTime for now
-        TimeExtent resultTime = new TimeExtent();
-        resultTime.setBaseTime(samplingTime);
-        
-        // observation property URI
-        String obsPropDef = result.getDefinition();
-        if (obsPropDef == null)
-            obsPropDef = SWEConstants.NIL_UNKNOWN;
-        
-        // FOI
-        String foiID = this.foiID;
-        if (foiID == null)
-            foiID = SWEConstants.NIL_UNKNOWN;
-        
-        // create observation object
-        IObservation obs = new ObservationImpl();
-        obs.setFeatureOfInterest(new FeatureRef(foiID));
-        obs.setObservedProperty(new DefinitionRef(obsPropDef));
-        obs.setProcedure(new ProcedureRef(storage.getLatestDataSourceDescription().getUniqueIdentifier()));
-        obs.setPhenomenonTime(phenTime);
-        obs.setResultTime(resultTime);
-        obs.setResult(result);
-        
-        return obs;
+        return buildObservation(rec);
     }
     
     
-    private DataComponent getNextComponent() throws IOException
+    protected IObservation buildObservation(DataBlock rec) throws IOException
     {
-        DataBlock data = getNextResultRecord();
-        if (data == null)
-            return null;
+        getResultStructure().setData(rec);
         
-        DataComponent copyComponent = getResultStructure().copy();
-        copyComponent.setData(data);
-        return copyComponent;
+        // FOI
+        String foiID = SWEConstants.NIL_UNKNOWN;
+        if (lastRecordKey instanceof ObsKey)
+            foiID = ((ObsKey)lastRecordKey).foiID;
+                
+        return SOSProviderUtils.buildObservation(getResultStructure(), foiID, storage.getLatestDataSourceDescription().getUniqueIdentifier());
     }
     
 
@@ -239,6 +208,7 @@ public class StorageDataProvider implements ISOSDataProvider
         // get datablock from selected data store 
         StorageState state = dataStoresStates.get(nextStorageIndex);
         IDataRecord nextRec = state.nextRecord;
+        lastRecordKey = nextRec.getKey();
         DataBlock datablk = nextRec.getData();
         nextProducerID = nextRec.getKey().producerID;
         
@@ -262,7 +232,7 @@ public class StorageDataProvider implements ISOSDataProvider
                 try { Thread.sleep(waitTime ); }
                 catch (InterruptedException e) { }
             }
-        }        
+        }
         
         // return record properly filtered according to selected observables
         return datablk;
@@ -274,14 +244,14 @@ public class StorageDataProvider implements ISOSDataProvider
     {
         // TODO generate choice if request includes several outputs
         
-        return dataStoresStates.get(0).recordInfo.getRecordDescription();
+        return dataStoresStates.get(0).recordStruct;
     }
     
 
     @Override
     public DataEncoding getDefaultResultEncoding() throws IOException
     {
-        return dataStoresStates.get(0).recordInfo.getRecommendedEncoding();
+        return dataStoresStates.get(0).recordEnc;
     }
 
 

@@ -262,9 +262,9 @@ public class BasicStorageImpl extends AbstractModule<BasicStorageConfig> impleme
     
     
     @Override
-    public Iterator<double[]> getRecordsTimeClusters(String recordType)
+    public int[] getEstimatedRecordCounts(String recordType, double[] timeStamps)
     {
-        return ((BasicStorageRoot)dbRoot).getRecordsTimeClusters(recordType);
+        return ((BasicStorageRoot)dbRoot).getEstimatedRecordCounts(recordType, timeStamps);
     }
     
     

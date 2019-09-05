@@ -285,6 +285,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     {
         Field<?> field = fieldGroup.buildAndBind(label, propId);
         field.setInvalidCommitted(true);
+        field.addStyleName(UIConstants.STYLE_SMALL);
         Class<?> propType = prop.getType();
         
         // disable edit (read only)
@@ -353,6 +354,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         {
             ((DateField) field).setTimeZone(TimeZone.getTimeZone("UTC"));
             ((DateField) field).setResolution(Resolution.SECOND);
+            ((DateField) field).setDateFormat("yyyy-MM-dd HH:mm:ss '(UTC)'");
+            field.setWidth(250, Unit.PIXELS);
         }
         
         // special fields

@@ -60,10 +60,6 @@ import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.WaitForCondition;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
-import org.sensorhub.impl.service.sos.SOSProviderConfig;
-import org.sensorhub.impl.service.sos.SOSService;
-import org.sensorhub.impl.service.sos.SOSServiceConfig;
-import org.sensorhub.impl.service.sos.SensorDataProviderConfig;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.QuantityImpl;
 import org.vast.data.TextEncodingImpl;
@@ -77,7 +73,6 @@ import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
 import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.InsertResultRequest;
-import org.vast.ows.sos.SOSOfferingCapabilities;
 import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.swe.SWEData;
@@ -117,7 +112,7 @@ public class TestSOSService
     static final String TIMERANGE_NOW = "now";
     
     
-    Map<Integer, Integer> obsFoiMap = new HashMap<Integer, Integer>();
+    Map<Integer, Integer> obsFoiMap = new HashMap<>();
     ModuleRegistry moduleRegistry;
     File dbFile;
     
@@ -329,7 +324,7 @@ public class TestSOSService
         FakeSensor sensor = (FakeSensor)moduleRegistry.getModuleById(sensorID);
         sensor.startSendingData(false);
         return sensor;
-            }
+    }
         
         
     protected FakeSensor startSendingAndWaitForAllRecords(String sensorID) throws Exception
@@ -813,7 +808,7 @@ public class TestSOSService
     
     
     @Test
-    public void testGetResultNowDisabledSensor() throws Exception
+    public void testGetResultRealTimeDisabledSensor() throws Exception
     {
         SensorDataProviderConfig provider1 = buildSensorProvider1(true, false);
         provider1.liveDataTimeout = 0;
@@ -823,7 +818,7 @@ public class TestSOSService
                 "?service=SOS&version=2.0&request=GetResult"
                 + "&offering=" + URI_OFFERING1
                 + "&observedProperty=" + URI_PROP1
-                + "&temporalfilter=time," + TIMERANGE_NOW).openStream();
+                + "&temporalfilter=time," + TIMERANGE_FUTURE).openStream();
                         
         checkServiceException(is, "phenomenonTime");
     }
@@ -864,10 +859,10 @@ public class TestSOSService
     {
         deployService(buildSensorProvider1(), buildSensorProvider2());
         
-        //String[] records = sendGetResult(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE);
-        //checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
+        String[] records = sendGetResult(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE);
+        checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
         
-        String[] records = sendGetResult(URI_OFFERING2, URI_PROP1, TIMERANGE_FUTURE);
+        records = sendGetResult(URI_OFFERING2, URI_PROP1, TIMERANGE_FUTURE);
         checkGetResultResponse(records, NUM_GEN_SAMPLES*FakeSensorNetWithFoi.MAX_FOIS, 4);
     }
     
@@ -876,7 +871,7 @@ public class TestSOSService
     public void testGetResultBeforeDataIsAvailable() throws Exception
     {
         deployService(buildSensorProvider1(true, false));
-        FakeSensor sensor1 = (FakeSensor)getSensorModule(0);
+        FakeSensor sensor1 = getSensorModule(0);
         
         Future<String[]> future = sendGetResultAsync(URI_OFFERING1, URI_PROP1_FIELD1, TIMERANGE_FUTURE, false);
         
@@ -958,7 +953,7 @@ public class TestSOSService
     public void testGetResultWebSocketBeforeDataIsAvailable() throws Exception
     {
         deployService(buildSensorProvider1(true, false));
-        FakeSensor sensor1 = (FakeSensor)getSensorModule(0);
+        FakeSensor sensor1 = getSensorModule(0);
         
         Future<String[]> future = sendGetResultAsync(URI_OFFERING1, URI_PROP1_FIELD1, TIMERANGE_FUTURE, true);
         
@@ -1023,7 +1018,7 @@ public class TestSOSService
                 
         // first get capabilities to know available time range
         SOSServiceCapabilities caps = (SOSServiceCapabilities)new OWSUtils().getCapabilities(HTTP_ENDPOINT, "SOS", "2.0");
-        TimeExtent timePeriod = ((SOSOfferingCapabilities)caps.getLayer(URI_OFFERING1)).getPhenomenonTime();
+        TimeExtent timePeriod = caps.getLayer(URI_OFFERING1).getPhenomenonTime();
         System.out.println("Available time period is " + timePeriod.getIsoString(0));
         
         // then get obs

@@ -30,6 +30,7 @@ import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.IFoiFilter;
 import org.sensorhub.api.service.ServiceException;
+import org.sensorhub.utils.MsgUtils;
 import org.vast.data.DataIterator;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.OWSException;
@@ -44,29 +45,35 @@ import org.vast.util.TimeExtent;
  * </p>
  *
  * @author Alex Robin
- * @param <ProducerType> Type of producer handled by this provider
  * @since Feb 28, 2015
  */
-public class StreamDataProviderFactory<ProducerType extends IDataProducer> implements ISOSDataProviderFactory, IEventListener
+public class StreamDataProviderFactory implements ISOSDataProviderFactory, IEventListener
 {
-    final SOSServlet service;
+    final SOSServlet servlet;
     final StreamDataProviderConfig config;
-    final String producerType;
-    final ProducerType producer;
+    final IDataProducer producer;
     long liveDataTimeOut;
-    long startupTime;
+    long refTimeOut;
     SOSOfferingCapabilities caps;
     boolean disableEvents;
     
     
-    protected StreamDataProviderFactory(SOSServlet service, StreamDataProviderConfig config, ProducerType producer, String producerType) throws SensorHubException
+    protected StreamDataProviderFactory(SOSServlet servlet, StreamDataProviderConfig config) throws ServiceException
     {
-        this.service = service;
-        this.config = config;        
-        this.producerType = producerType;
-        this.producer = producer;
+        this.servlet = servlet;
+        this.config = config;
         this.liveDataTimeOut = (long)(config.liveDataTimeout * 1000);
-        this.startupTime = System.currentTimeMillis();
+        this.refTimeOut = System.currentTimeMillis(); // initial ref for timeout is SOS startup time
+        
+        // get handle to producer object
+        try
+        {
+            this.producer = (IDataProducer)servlet.getParentHub().getModuleRegistry().getModuleById(config.getProducerID());
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("Data source " + config.getProducerID() + " is not available", e);
+        }
         
         // listen to producer lifecycle events
         disableEvents = true; // disable events on startup
@@ -79,11 +86,10 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
      * Constructor for use as alt provider
      * In this mode, we purposely don't handle events
      */
-    protected StreamDataProviderFactory(StreamDataProviderConfig config, ProducerType producer, String producerType) throws SensorHubException
+    protected StreamDataProviderFactory(StreamDataProviderConfig config, IDataProducer producer)
     {
-        this.service = null;
-        this.config = config;        
-        this.producerType = producerType;
+        this.servlet = null;
+        this.config = config;
         this.producer = producer;
     }
     
@@ -123,7 +129,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
             getObsPropertiesAndTypesFromProducer();
             
             // FOI IDs and BBOX
-            FoiUtils.updateFois(caps, producer, config.maxFois);
+            SOSProviderUtils.updateFois(caps, producer, config.maxFois);
             
             return caps;
         }
@@ -158,7 +164,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
             return;
             
         updateNameAndDescription();
-        FoiUtils.updateFois(caps, producer, config.maxFois);
+        SOSProviderUtils.updateFois(caps, producer, config.maxFois);
         
         // enable real-time requests if streaming data source is enabled
         if (producer.isEnabled())
@@ -194,7 +200,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
             
             long lastRecordTime = output.getLatestRecordTime();
             if (lastRecordTime == Long.MIN_VALUE)
-                lastRecordTime = startupTime;
+                lastRecordTime = refTimeOut;
         
             if (now - lastRecordTime < liveDataTimeOut)
                 return true;
@@ -270,7 +276,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
     public Iterator<AbstractFeature> getFoiIterator(final IFoiFilter filter) throws SensorHubException
     {
         checkEnabled();
-        return FoiUtils.getFilteredFoiIterator(producer, filter);
+        return SOSProviderUtils.getFilteredFoiIterator(producer, filter);
     }
     
     
@@ -283,8 +289,7 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
             throw new ServiceException("Offering " + config.offeringID + " is disabled");
                 
         if (!producer.isEnabled())
-            throw new ServiceException(producerType + " '" + producer.getName() + "' is disabled");
-    }
+            throw new ServiceException("Data source '" + MsgUtils.entityString(producer) + "' is disabled");    }
 
 
     @Override
@@ -304,15 +309,15 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
                     if (state == ModuleState.STARTED || state == ModuleState.STOPPING)
                     {
                         if (isEnabled())
-                            service.showProviderCaps(this);
+                            servlet.showProviderCaps(this);
                         else
-                            service.hideProviderCaps(this);
+                            servlet.hideProviderCaps(this);
                     }
                     break;
                 
                 // cleanly remove provider when producer is deleted
                 case DELETED:
-                    service.removeProvider(config.offeringID);
+                    servlet.removeProvider(config.offeringID);
                     break;
                     
                 default:
@@ -325,7 +330,8 @@ public class StreamDataProviderFactory<ProducerType extends IDataProducer> imple
     @Override
     public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws OWSException, SensorHubException
     {
-        return null;
+        checkEnabled();
+        return new StreamDataProvider(producer, config, filter);
     }
 
 

@@ -242,4 +242,12 @@ public abstract class AbstractTestMultiObsStorage<StorageType extends IObsStorag
         super.testGetFoiExtent();
     }
     
+    
+    @Test
+    public void testGetNumMatchingRecordsWithOneFoi() throws Exception
+    {
+        addProducersToStorage();
+        super.testGetNumMatchingRecordsWithOneFoi();
+    }
+    
 }

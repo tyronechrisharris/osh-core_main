@@ -16,6 +16,7 @@ package org.sensorhub.impl.persistence;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -606,5 +607,24 @@ public abstract class AbstractTestObsStorage<StorageType extends IObsStorageModu
         
         // Storage bounding box may be larger than real extent, but not smaller
         assertTrue("Wrong FOI spatial extent", foiExtent.contains(realExtent));
+    }
+    
+    
+    @Test
+    public void testGetNumMatchingRecordsWithOneFoi() throws Exception
+    {
+        DataComponent recordDef = createDs2();
+        List<DataBlock> dataList = addObservationsWithFoiToStorage(recordDef);
+        List<DataBlock> testList = new ArrayList<DataBlock>(dataList.size());
+        
+        for (int foiIndex = 0; foiIndex < FOI_IDS.length-1; foiIndex++)
+        {
+            testList.clear();
+            testList.addAll(dataList);
+            IObsFilter filter = buildFilterByFoiID(recordDef, testList, new int[] {foiIndex});
+            
+            int expectedCount = FOI_STARTS[foiIndex+1] - FOI_STARTS[foiIndex];
+            assertEquals(expectedCount, storage.getNumMatchingRecords(filter, Integer.MAX_VALUE));
+        }
     }
 }

@@ -1174,6 +1174,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // we also do filtering here in case data provider hasn't modified the datablocks
                 // always keep sampling time
                 request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
+
                 // temporary hack to switch btw old and new writer architecture
                 if (writer instanceof AbstractDataWriter)
                     writer = new FilteredWriter((AbstractDataWriter)writer, request.getObservables());
@@ -1884,7 +1885,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         boolean nowOk = allowedPeriod.isBaseAtNow() || allowedPeriod.isEndNow();
         
         boolean requestOk = false;
-        if (requestTime.isBaseAtNow() && nowOk)
+        if (requestTime.isBaseAtNow()) // always accept request for latest obs
             requestOk = true;
         else if (requestTime.isBeginNow() && nowOk)
         {

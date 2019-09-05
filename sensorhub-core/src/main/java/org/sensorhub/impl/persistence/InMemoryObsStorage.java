@@ -51,7 +51,7 @@ public class InMemoryObsStorage extends InMemoryBasicStorage implements IObsStor
         
         for (AbstractFeature f: foisMap.values())
         {
-            if (FilterUtils.isFeatureSelected(filter, f))
+            if (StorageUtils.isFeatureSelected(filter, f))
                 count++;
         }
         
@@ -74,7 +74,7 @@ public class InMemoryObsStorage extends InMemoryBasicStorage implements IObsStor
             @Override
             protected String accept(AbstractFeature f)
             {
-                if (FilterUtils.isFeatureSelected(filter, f))
+                if (StorageUtils.isFeatureSelected(filter, f))
                     return f.getUniqueIdentifier();
                 else
                     return null;
@@ -91,7 +91,7 @@ public class InMemoryObsStorage extends InMemoryBasicStorage implements IObsStor
             @Override
             protected boolean accept(AbstractFeature f)
             {
-                if (FilterUtils.isFeatureSelected(filter, f))
+                if (StorageUtils.isFeatureSelected(filter, f))
                     return true;
                 else
                     return false;

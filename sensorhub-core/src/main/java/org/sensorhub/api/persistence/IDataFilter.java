@@ -39,6 +39,8 @@ public interface IDataFilter
      * Gets filter criteria for selecting data records based on time stamp.<br/>
      * Only records whose time stamp (usually sampling time for sensors) lies within
      * that range will be selected (range is inclusive).<br/>
+     * It both ends of the time range have the value {@link Double#POSITIVE_INFINITY},
+     * the latest record of each selected producer is retrieved.<br/>
      * If range is null, no filtering on time stamp will be applied.
      * @return Desired time stamp range
      */

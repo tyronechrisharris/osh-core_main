@@ -38,11 +38,7 @@ import org.sensorhub.utils.DataStructureHash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.data.DataIterator;
-import org.vast.ogc.def.DefinitionRef;
-import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.om.IObservation;
-import org.vast.ogc.om.ObservationImpl;
-import org.vast.ogc.om.ProcedureRef;
 import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSException;
 import org.vast.swe.SWEConstants;
@@ -58,7 +54,7 @@ import org.vast.util.TimeExtent;
  * @author Alex Robin
  * @since Sep 7, 2013
  */
-public abstract class StreamDataProvider implements ISOSDataProvider, IEventListener
+public class StreamDataProvider implements ISOSDataProvider, IEventListener
 {
     private static final Logger log = LoggerFactory.getLogger(StreamDataProvider.class);
     private static final int DEFAULT_QUEUE_SIZE = 200;
@@ -71,10 +67,11 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     final boolean latestRecordOnly;
         
     boolean isMultiSource = false;
-    DataComponent resultStructure;
+    DataComponent resultStruct;
     DataEncoding resultEncoding;  
     DataStructureHash resultStructureHash;
     long lastQueueErrorTime = Long.MIN_VALUE;
+
     DataEvent lastDataEvent;
     int nextEventRecordIndex = 0;
     Set<String> requestedFois;
@@ -144,7 +141,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
             timeOut = 0L;
         }
         else
-            {
+        {
             stopTime = ((long) filter.getTimeRange().getStopTime()) * 1000L;
             timeOut = (long) (config.liveDataTimeout * 1000);
         }
@@ -172,8 +169,8 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
                     // use the first output found since we only support requesting data from one output at a time
                     // TODO support case of multiple outputs since it is technically possible with GetObservation
                     
-                    resultStructure = output.getRecordDescription();
-                    resultStructureHash = new DataStructureHash(resultStructure);
+                    resultStruct = output.getRecordDescription();
+                    resultStructureHash = new DataStructureHash(resultStruct);
                     resultEncoding = output.getRecommendedEncoding();
                     return output.getName();
                 }
@@ -208,7 +205,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         }
         
         // skip if foi was not requested
-        if (!requestedFois.contains(producer.getCurrentFeatureOfInterest().getUniqueIdentifier()))
+        if (requestedFois != null && !requestedFois.contains(producer.getCurrentFeatureOfInterest().getUniqueIdentifier()))
             return;
 
         // get selected output
@@ -261,38 +258,18 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     @Override
     public IObservation getNextObservation()
     {
-        DataComponent result = getNextComponent();
-        if (result == null)
+        DataBlock rec = getNextResultRecord();
+        if (rec == null)
             return null;
-
-        // get phenomenon time from record 'SamplingTime' if present
-        // otherwise use current time
-        double samplingTime = System.currentTimeMillis() / 1000.;
-        for (int i = 0; i < result.getComponentCount(); i++)
-        {
-            DataComponent comp = result.getComponent(i);
-            if (comp.isSetDefinition())
-            {
-                String def = comp.getDefinition();
-                if (def.equals(SWEConstants.DEF_SAMPLING_TIME))
-                {
-                    samplingTime = comp.getData().getDoubleValue();
-                }
-            }
-        }
-
-        TimeExtent phenTime = new TimeExtent();
-        phenTime.setBaseTime(samplingTime);
-
-        // use same value for resultTime for now
-        TimeExtent resultTime = new TimeExtent();
-        resultTime.setBaseTime(samplingTime);
-
-        // observation property URI
-        String obsPropDef = result.getDefinition();
-        if (obsPropDef == null)
-            obsPropDef = SWEConstants.NIL_UNKNOWN;
-
+        
+        return buildObservation(rec);
+    }
+    
+    
+    protected IObservation buildObservation(DataBlock rec)
+    {
+        resultStruct.setData(rec);
+        
         // FOI
         AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
         if (dataSource instanceof IMultiSourceDataProducer)
@@ -309,28 +286,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
         else
             foiID = SWEConstants.NIL_UNKNOWN;
 
-        // create observation object        
-        IObservation obs = new ObservationImpl();
-        obs.setFeatureOfInterest(new FeatureRef(foiID));
-        obs.setObservedProperty(new DefinitionRef(obsPropDef));
-        obs.setProcedure(new ProcedureRef(dataSource.getCurrentDescription().getUniqueIdentifier()));
-        obs.setPhenomenonTime(phenTime);
-        obs.setResultTime(resultTime);
-        obs.setResult(result);
-
-        return obs;
-    }
-
-
-    private DataComponent getNextComponent()
-    {
-        DataBlock data = getNextResultRecord();
-        if (data == null)
-            return null;
-
-        DataComponent copyComponent = getResultStructure().copy();
-        copyComponent.setData(data);
-        return copyComponent;
+        return SOSProviderUtils.buildObservation(resultStruct, foiID, dataSource.getCurrentDescription().getUniqueIdentifier());
     }
 
 
@@ -407,8 +363,7 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
     @Override
     public DataComponent getResultStructure()
     {
-        // TODO generate choice if request includes several outputs
-        return resultStructure;
+        return resultStruct;
     }
 
 
@@ -508,9 +463,9 @@ public abstract class StreamDataProvider implements ISOSDataProvider, IEventList
 
     @Override
     public String getNextProducerID()
-        {
+    {
         return lastDataEvent.getProcedureID();
-        }
+    }
 
 
     @Override

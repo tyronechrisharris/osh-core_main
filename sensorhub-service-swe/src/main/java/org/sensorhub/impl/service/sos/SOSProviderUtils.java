@@ -21,19 +21,29 @@ import java.util.Iterator;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.gml.v32.Envelope;
+import net.opengis.swe.v20.DataComponent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.persistence.IFoiFilter;
-import org.sensorhub.impl.persistence.FilterUtils;
+import org.sensorhub.impl.persistence.StorageUtils;
 import org.sensorhub.impl.persistence.FilteredIterator;
+import org.vast.ogc.def.DefinitionRef;
+import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.gml.GMLUtils;
+import org.vast.ogc.om.IObservation;
+import org.vast.ogc.om.ObservationImpl;
+import org.vast.ogc.om.ProcedureRef;
 import org.vast.ows.sos.SOSOfferingCapabilities;
+import org.vast.swe.SWEConstants;
 import org.vast.util.Bbox;
+import org.vast.util.TimeExtent;
 
 
-public class FoiUtils
+public class SOSProviderUtils
 {
-
+    private SOSProviderUtils() {}
+    
+    
     public static void updateFois(SOSOfferingCapabilities caps, IDataProducer producer, int maxFois)
     {
         caps.getRelatedFeatures().clear();
@@ -80,6 +90,7 @@ public class FoiUtils
     }
     
     
+    @SuppressWarnings("unchecked")
     public static Iterator<AbstractFeature> getFilteredFoiIterator(IDataProducer producer, final IFoiFilter filter)
     {
         // get all fois from producer
@@ -96,15 +107,58 @@ public class FoiUtils
             return (Iterator<AbstractFeature>)allFois;
         
         return new FilteredIterator<AbstractFeature>((Iterator<AbstractFeature>)allFois)
-    {
+        {
             @Override
             protected boolean accept(AbstractFeature f)
         {        
-                if (FilterUtils.isFeatureSelected(filter, f))
+                if (StorageUtils.isFeatureSelected(filter, f))
                     return true;
                 else
                     return false;
         }
         };
+    }
+    
+    
+    public static IObservation buildObservation(DataComponent result, String foiURI, String procURI)
+    {
+        // get phenomenon time from record 'SamplingTime' if present
+        // otherwise use current time
+        double samplingTime = System.currentTimeMillis() / 1000.;
+        for (int i = 0; i < result.getComponentCount(); i++)
+        {
+            DataComponent comp = result.getComponent(i);
+            if (comp.isSetDefinition())
+            {
+                String def = comp.getDefinition();
+                if (def.equals(SWEConstants.DEF_SAMPLING_TIME))
+                {
+                    samplingTime = comp.getData().getDoubleValue();
+                }
+            }
+        }
+
+        TimeExtent phenTime = new TimeExtent();
+        phenTime.setBaseTime(samplingTime);
+
+        // use same value for resultTime for now
+        TimeExtent resultTime = new TimeExtent();
+        resultTime.setBaseTime(samplingTime);
+
+        // observation property URI
+        String obsPropDef = result.getDefinition();
+        if (obsPropDef == null)
+            obsPropDef = SWEConstants.NIL_UNKNOWN;
+
+        // create observation object        
+        IObservation obs = new ObservationImpl();
+        obs.setFeatureOfInterest(new FeatureRef(foiURI));
+        obs.setObservedProperty(new DefinitionRef(obsPropDef));
+        obs.setProcedure(new ProcedureRef(procURI));
+        obs.setPhenomenonTime(phenTime);
+        obs.setResultTime(resultTime);
+        obs.setResult(result);
+
+        return obs;
     }
 }

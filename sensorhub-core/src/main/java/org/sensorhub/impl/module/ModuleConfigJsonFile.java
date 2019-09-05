@@ -41,6 +41,8 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.internal.Streams;
+import com.google.gson.internal.bind.JsonTreeReader;
+import com.google.gson.internal.bind.JsonTreeWriter;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -93,7 +95,6 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
             
             return new TypeAdapter<R>()
             {
-                @SuppressWarnings("unchecked")
                 @Override
                 public R read(JsonReader in) throws IOException
                 {
@@ -110,6 +111,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
                             
                             try
                             {
+                                @SuppressWarnings("unchecked")
                                 Class<R> runtimeClass = (Class<R>)Class.forName(type);
                                 delegate = gson.getDelegateAdapter(RuntimeTypeAdapterFactory.this, TypeToken.get(runtimeClass));                        
                             }
@@ -118,20 +120,27 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
                                 throw new IllegalStateException("Runtime class specified in JSON is invalid: " + type, e);
                             }
                         }
-                    }
-                    
-                    return delegate.fromJsonTree(jsonElement);
+                    }                    
+
+                    JsonReader jsonReader = new JsonTreeReader(jsonElement);
+                    jsonReader.setLenient(true);
+                    return delegate.read(jsonReader);
                 }
 
-
-                @SuppressWarnings("unchecked")
                 @Override
                 public void write(JsonWriter out, R value) throws IOException
                 {
+                    @SuppressWarnings("unchecked")
                     Class<R> runtimeClass = (Class<R>)value.getClass();
                     String typeName = runtimeClass.getName();
                     TypeAdapter<R> delegate = gson.getDelegateAdapter(RuntimeTypeAdapterFactory.this, TypeToken.get(runtimeClass));
-                    JsonElement jsonElt = delegate.toJsonTree(value);
+                    
+                    //JsonElement jsonElt = delegate.toJsonTree(value); // JsonTreeWriter is not lenient in this case                    
+                    JsonTreeWriter jsonWriter = new JsonTreeWriter();
+                    jsonWriter.setLenient(true);
+                    jsonWriter.setSerializeNulls(false);
+                    delegate.write(jsonWriter, value);
+                    JsonElement jsonElt = jsonWriter.get();
                     
                     if (jsonElt.isJsonObject())
                     {
@@ -164,8 +173,11 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
         
         // init json serializer/deserializer
         final GsonBuilder builder = new GsonBuilder();
+        builder.setLenient();
         builder.setPrettyPrinting();
         builder.disableHtmlEscaping();
+        builder.serializeSpecialFloatingPointValues();
+        builder.setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
         builder.registerTypeAdapterFactory(new RuntimeTypeAdapterFactory<Object>(Object.class, OBJ_CLASS_FIELD));
         
         gson = builder.create();

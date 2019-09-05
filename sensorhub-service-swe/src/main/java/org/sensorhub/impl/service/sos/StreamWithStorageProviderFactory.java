@@ -25,6 +25,8 @@ import org.sensorhub.api.persistence.IFoiFilter;
 import org.sensorhub.api.persistence.IObsStorage;
 import org.sensorhub.api.service.ServiceException;
 import org.sensorhub.utils.MsgUtils;
+import org.sensorhub.impl.service.sos.StreamDataProviderConfig.DataSource;
+import org.vast.ows.OWSException;
 import org.vast.ows.sos.SOSOfferingCapabilities;
 import org.vast.util.TimeExtent;
 
@@ -36,26 +38,42 @@ import org.vast.util.TimeExtent;
  * </p>
  *
  * @author Alex Robin
- * @param <ProducerType> Type of producer handled by this provider
  * @since Feb 28, 2015
  */
-public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer> extends StorageDataProviderFactory
+public class StreamWithStorageProviderFactory extends StorageDataProviderFactory
 {
-    final ProducerType producer;
-    final StreamDataProviderConfig altConfig;
-    final StreamDataProviderFactory<ProducerType> altProvider;
+    final IDataProducer producer;
+    final StreamDataProviderConfig streamSourceConfig;
+    final StreamDataProviderFactory altProvider;
     long liveDataTimeOut;
     
     
-    public StreamWithStorageProviderFactory(SOSServlet servlet, StreamDataProviderConfig config, ProducerType producer) throws SensorHubException
+    public StreamWithStorageProviderFactory(SOSServlet servlet, StreamDataProviderConfig config) throws SensorHubException
     {
         super(servlet, new StorageDataProviderConfig(config));
-        this.producer = producer;
-        this.altConfig = config;
+        this.streamSourceConfig = config;
         this.liveDataTimeOut = (long)(config.liveDataTimeout * 1000);
         
+        // get handle to producer object
+        try
+        {
+            this.producer = (IDataProducer)servlet.getParentHub().getModuleRegistry().getModuleById(config.getProducerID());
+        }
+        catch (Exception e)
+        {
+            throw new ServiceException("Producer " + config.getProducerID() + " is not available", e);
+        }
+        
+        if (producer.isEnabled() && storage.isStarted())
+        {
+            String liveSensorUID = producer.getCurrentDescription().getUniqueIdentifier();
+            String storageSensorUID = storage.getLatestDataSourceDescription().getUniqueIdentifier();
+            if (!liveSensorUID.equals(storageSensorUID))
+                throw new SensorHubException("Storage " + storage.getName() + " doesn't contain data for sensor " + producer.getName());
+        }
+        
         // build alt provider to generate capabilities in case storage is disabled
-        this.altProvider = new StreamDataProviderFactory<>(config, producer, "Stream");
+        this.altProvider = new StreamDataProviderFactory(config, producer);
         
         // listen to producer lifecycle events
         disableEvents = true; // disable events on startup
@@ -75,7 +93,7 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
             
             // if storage does support FOIs, list the current ones
             if (!(storage instanceof IObsStorage))
-                FoiUtils.updateFois(caps, producer, config.maxFois);
+                SOSProviderUtils.updateFois(caps, producer, config.maxFois);
         }
         else
         {
@@ -92,8 +110,12 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
             // enable live by setting end time to now
             TimeExtent timeExtent = capabilities.getPhenomenonTime();
             if (timeExtent.isNull())
+            {
                 timeExtent.setBeginNow(true);
-            timeExtent.setEndNow(true);     
+                timeExtent.setEndNow(true);
+            }
+            else            
+                timeExtent.setEndNow(true);
         }
         
         return capabilities;
@@ -118,7 +140,39 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
             
             // if storage does support FOIs, list the current ones
             if (!(storage instanceof IObsStorage))
-                FoiUtils.updateFois(caps, producer, config.maxFois);
+                SOSProviderUtils.updateFois(caps, producer, config.maxFois);
+        }
+    }
+    
+
+    @Override
+    public ISOSDataProvider getNewDataProvider(SOSDataFilter filter) throws SensorHubException, OWSException
+    {
+        checkEnabled();
+        TimeExtent timeRange = filter.getTimeRange();
+        
+        // if request for streaming data, connect to stream source
+        // or if request for latest records and configured source = STREAM
+        if (timeRange.isBeginNow() || (timeRange.isBaseAtNow() && streamSourceConfig.latestRecordSource == DataSource.STREAM))
+        {
+            if (!producer.isEnabled())
+                throw new ServiceException("Data source " + MsgUtils.entityString(producer) + " is disabled");
+            
+            return new StreamDataProvider(producer, streamSourceConfig, filter);
+        }
+        
+        // if request for latest records and configured source = AUTO
+        // in this case, use special provider that tries to get records from stream source
+        // and fall back on storage if not available from stream source
+        else if (timeRange.isBaseAtNow() && streamSourceConfig.latestRecordSource == DataSource.AUTO)
+        {
+            return new StreamWithStorageDataProvider(producer, storage, streamSourceConfig, filter);
+        }
+        
+        // else just fetch historical or latest data from storage
+        else
+        {            
+            return super.getNewDataProvider(filter);
         }
     }
 
@@ -128,7 +182,7 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
     {
         Iterator<AbstractFeature> foiIt = super.getFoiIterator(filter);
         if (!foiIt.hasNext())
-            foiIt = FoiUtils.getFilteredFoiIterator(producer, filter);
+            foiIt = SOSProviderUtils.getFilteredFoiIterator(producer, filter);
         return foiIt;
     }
     
@@ -200,7 +254,7 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
         
         return false;
     }
-    
+   
     
     @Override
     public void cleanup()
@@ -214,6 +268,6 @@ public class StreamWithStorageProviderFactory<ProducerType extends IDataProducer
     @Override
     public StreamDataProviderConfig getConfig()
     {
-        return this.altConfig;
+        return this.streamSourceConfig;
     }
 }

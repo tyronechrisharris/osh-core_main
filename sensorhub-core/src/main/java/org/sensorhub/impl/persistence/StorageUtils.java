@@ -14,7 +14,9 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.persistence;
 
+import java.util.Arrays;
 import java.util.Collection;
+import org.sensorhub.api.persistence.IBasicStorage;
 import org.sensorhub.api.persistence.IFeatureFilter;
 import com.vividsolutions.jts.geom.Geometry;
 import net.opengis.gml.v32.AbstractFeature;
@@ -22,14 +24,18 @@ import net.opengis.gml.v32.AbstractFeature;
 
 /**
  * <p>
- * Helper methods to filter SWE objects read from database
+ * Helper methods shared by storage implementations
  * </p>
  *
  * @author Alex Robin
  * @since Mar 15, 2017
  */
-public class FilterUtils
+public class StorageUtils
 {
+    private StorageUtils()
+    {        
+    }
+    
     
     public static boolean isFeatureSelected(IFeatureFilter filter, AbstractFeature f)
     {
@@ -50,5 +56,27 @@ public class FilterUtils
         }
         
         return true;        
+    }
+    
+    
+    public static int[] computeDefaultRecordCounts(IBasicStorage storage, String recordType, double[] timeStamps)
+    {
+        int[] bins = new int[timeStamps.length-1];        
+        int totalCount = storage.getNumRecords(recordType);
+        
+        if (totalCount == 0)
+        {
+            Arrays.fill(bins, 0);
+            return bins;
+        }
+        else
+        {
+            double[] timeRange = storage.getRecordsTimeRange(recordType);
+            double totalDt = timeRange[1] - timeRange[0];
+            double reqDt = timeStamps[timeStamps.length-1] - timeStamps[0];            
+            int avgCount = (int)(totalCount * reqDt / totalDt / bins.length);
+            Arrays.fill(bins, avgCount);
+            return bins;
+        }
     }
 }
