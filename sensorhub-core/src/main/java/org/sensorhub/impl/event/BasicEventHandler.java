@@ -20,9 +20,9 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventHandler;
-import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.event.Event;
+import org.sensorhub.api.event.IEventHandler;
+import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 
 

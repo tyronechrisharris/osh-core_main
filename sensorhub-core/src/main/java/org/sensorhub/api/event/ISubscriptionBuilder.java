@@ -19,8 +19,6 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventListener;
 
 
 /**

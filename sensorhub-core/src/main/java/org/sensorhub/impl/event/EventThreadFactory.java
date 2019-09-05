@@ -12,7 +12,7 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.common;
+package org.sensorhub.impl.event;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;

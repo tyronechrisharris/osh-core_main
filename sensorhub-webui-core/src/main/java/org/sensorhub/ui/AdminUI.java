@@ -27,8 +27,8 @@ import javax.servlet.ServletContext;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.client.ClientConfig;
 import org.sensorhub.api.comm.NetworkConfig;
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
@@ -1028,7 +1028,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
 
 
     @Override
-    public void handleEvent(final org.sensorhub.api.common.Event e)
+    public void handleEvent(final org.sensorhub.api.event.Event e)
     {
         if (e instanceof ModuleEvent)
         {

@@ -14,9 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
-import org.sensorhub.api.common.IEventListener;
-
-
 /**
  * <p>
  * Base interface for all objects accepting producing events and accepting

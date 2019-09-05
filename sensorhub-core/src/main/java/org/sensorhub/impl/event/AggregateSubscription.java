@@ -16,7 +16,7 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.sensorhub.api.common.Event;
+import org.sensorhub.api.event.Event;
 import org.vast.util.Asserts;
 
 

@@ -11,8 +11,8 @@ package org.sensorhub.impl.event;
 
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.event.Event;
+import org.sensorhub.api.event.IEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

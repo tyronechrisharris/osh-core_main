@@ -15,9 +15,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import java.util.Iterator;
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventListener;
+import org.sensorhub.api.event.Event;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;

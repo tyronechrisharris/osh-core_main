@@ -34,6 +34,7 @@ public class TabbedConfigForms extends VerticalLayout implements UIConstants
     {
         setSizeUndefined();
         setMargin(false);
+        setSpacing(false);
         setWidth(100.0f, Unit.PERCENTAGE);
         
         Label sectionLabel = new Label("Configuration");

@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.sos;
 
 import java.util.Iterator;
 import net.opengis.gml.v32.AbstractFeature;
-import org.sensorhub.api.common.Event;
+import org.sensorhub.api.event.Event;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.module.ModuleEvent;

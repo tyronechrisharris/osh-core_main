@@ -12,8 +12,8 @@ package org.sensorhub.impl.event;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.function.BiPredicate;
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventPublisher;
+import org.sensorhub.api.event.Event;
+import org.sensorhub.api.event.IEventPublisher;
 import org.slf4j.Logger;
 
 

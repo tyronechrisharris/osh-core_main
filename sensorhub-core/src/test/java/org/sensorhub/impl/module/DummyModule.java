@@ -15,9 +15,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.module;
 
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IEventHandler;
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.IEventHandler;
+import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleStateManager;

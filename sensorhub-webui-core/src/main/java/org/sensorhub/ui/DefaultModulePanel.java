@@ -15,8 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.ui;
 
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
@@ -263,7 +263,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
 
 
     @Override
-    public void handleEvent(final org.sensorhub.api.common.Event e)
+    public void handleEvent(final org.sensorhub.api.event.Event e)
     {
         if (e instanceof ModuleEvent)
         {

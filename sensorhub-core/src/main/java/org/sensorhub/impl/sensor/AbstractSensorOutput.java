@@ -15,10 +15,10 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import net.opengis.swe.v20.DataBlock;
-import org.sensorhub.api.common.IEventHandler;
-import org.sensorhub.api.common.IEventListener;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.event.EventUtils;
+import org.sensorhub.api.event.IEventHandler;
+import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.ISensorDataInterface;

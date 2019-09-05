@@ -20,7 +20,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Predicate;
-import org.sensorhub.api.common.Event;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 

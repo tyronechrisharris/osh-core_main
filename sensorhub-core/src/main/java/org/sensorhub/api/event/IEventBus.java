@@ -14,9 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
-import org.sensorhub.api.common.Event;
-import org.sensorhub.api.common.IEventPublisher;
-
 
 /**
  * <p>

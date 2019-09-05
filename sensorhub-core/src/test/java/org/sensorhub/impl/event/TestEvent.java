@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.event;
 
-import org.sensorhub.api.common.Event;
+import org.sensorhub.api.event.Event;
 
 
 public class TestEvent extends Event

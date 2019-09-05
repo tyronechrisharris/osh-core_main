@@ -12,7 +12,7 @@ package org.sensorhub.impl.event;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.function.Consumer;
-import org.sensorhub.api.common.Event;
+import org.sensorhub.api.event.Event;
 import org.vast.util.Asserts;
 
 

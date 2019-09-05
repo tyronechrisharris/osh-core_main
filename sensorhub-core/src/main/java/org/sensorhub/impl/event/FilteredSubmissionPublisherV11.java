@@ -1126,7 +1126,7 @@ public class FilteredSubmissionPublisherV11<T> implements Publisher<T>,
                         added = true;
                     }
                 } else {
-                    System.out.println("Filtered event from " + ((org.sensorhub.api.common.Event)item).getSourceID());
+                    System.out.println("Filtered event from " + ((org.sensorhub.api.event.Event)item).getSourceID());
                 }
                 
                 if (added) {
