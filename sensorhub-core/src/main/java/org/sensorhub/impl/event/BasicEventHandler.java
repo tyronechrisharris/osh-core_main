@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.event;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
@@ -48,7 +47,7 @@ import org.sensorhub.api.event.IEventSourceInfo;
  */
 public class BasicEventHandler implements IEventHandler
 {
-    List<WeakReference<IEventListener>> listeners = new ArrayList<>();
+    List<IEventListener> listeners = new ArrayList<>();
     List<IEventListener> toDelete = new ArrayList<>();
     List<IEventListener> toAdd = new ArrayList<>();
     Deque<Event> eventQueue = new LinkedBlockingDeque<>();
@@ -58,11 +57,11 @@ public class BasicEventHandler implements IEventHandler
     @Override
     public synchronized void registerListener(IEventListener listener)
     {
-        if (!hasWeakRef(listener))
+        if (!listeners.contains(listener))
         {
             // add directly or through temporary list if publishing
             if (!inPublish)
-                addWeakRef(listener);
+                listeners.add(listener);
             else
                 toAdd.add(listener);
         }
@@ -74,7 +73,7 @@ public class BasicEventHandler implements IEventHandler
     {
         // remove directly or through temporary list if publishing
         if (!inPublish)
-            removeWeakRef(listener);
+            listeners.remove(listener);
         else
             toDelete.add(listener);
     }
@@ -93,14 +92,8 @@ public class BasicEventHandler implements IEventHandler
             try
             {
                 inPublish = true;
-                for (Iterator<WeakReference<IEventListener>> it = listeners.iterator(); it.hasNext(); )
-                {
-                    IEventListener listener = it.next().get();
-                    if (listener != null)
-                        listener.handleEvent(e);
-                    else
-                        it.remove(); // purge cleared references
-                }
+                for (Iterator<IEventListener> it = listeners.iterator(); it.hasNext(); )
+                    it.next().handleEvent(e);
             }
             finally
             {
@@ -125,7 +118,7 @@ public class BasicEventHandler implements IEventHandler
     private final void commitAdds()
     {
         for (IEventListener listener: toAdd)
-            addWeakRef(listener);
+            listeners.add(listener);
         toAdd.clear();
     }
     
@@ -133,51 +126,15 @@ public class BasicEventHandler implements IEventHandler
     private final void commitRemoves()
     {
         for (IEventListener listener: toDelete)
-            removeWeakRef(listener);
+            listeners.remove(listener);
         toDelete.clear();
-    }
-    
-    
-    private final void addWeakRef(IEventListener listener)
-    {
-        listeners.add(new WeakReference<IEventListener>(listener));
-    }
-    
-    
-    private final boolean hasWeakRef(IEventListener listenerToFind)
-    {
-        for (Iterator<WeakReference<IEventListener>> it = listeners.iterator(); it.hasNext(); )
-        {
-            IEventListener listener = it.next().get();
-            if (listener == listenerToFind)
-                return true;
-        }
-        
-        return false;
-    }
-    
-    
-    private final void removeWeakRef(IEventListener listenerToRemove)
-    {
-        for (Iterator<WeakReference<IEventListener>> it = listeners.iterator(); it.hasNext(); )
-        {
-            IEventListener listener = it.next().get();
-            if (listener == null || listener == listenerToRemove)  // also purge cleared references
-                it.remove();
-        }
     }
     
     
     @Override
     public synchronized int getNumListeners()
     {
-        int count = 0;
-        for (WeakReference<IEventListener> listener: listeners)
-        {
-            if (listener.get() != null)
-                count++;
-        }
-        return count;
+        return listeners.size();
     }
 
 
