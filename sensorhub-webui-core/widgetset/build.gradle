@@ -1,11 +1,5 @@
-plugins {
-  //id "fi.jasoft.plugin.vaadin" version "1.1.12"
-  //id 'com.devsoap.plugin.vaadin' version '1.4.1' // for gradle 4.X
-}
-
 description = 'OSH Vaadin WidgetSet'
 
-/** To build w/o vaadin gradle plugin **/
 configurations {
   vaadin {
     extendsFrom compile
@@ -18,10 +12,6 @@ dependencies {
   compile 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
   compile 'com.vaadin:vaadin-themes:' + vaadinVersion
   vaadin 'com.vaadin:vaadin-client-compiler:' + vaadinVersion 
-}
-
-task cleanWidgetset(type: Delete) {
-  delete "$projectDir/src/main/resources/VAADIN/widgetsets"
 }
 
 task compileWidgetset(type: JavaExec) {
@@ -40,36 +30,25 @@ task compileWidgetset(type: JavaExec) {
   }*/
 }
 
-jar.dependsOn compileWidgetset
-
-dependencies {
-  compile 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
-  compile 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
+task compileTheme(type: JavaExec) {
+  main = 'com.vaadin.sass.SassCompiler'
+  classpath sourceSets.main.resources.srcDirs
+  classpath configurations.vaadin
+  jvmArgs '-Xmx64M', '-Xss64M'
+  args "$projectDir/src/main/resources/VAADIN/themes/sensorhub/styles.scss"
+  args "$projectDir/src/main/resources/VAADIN/themes/sensorhub/styles.css"
+  /*doFirst {
+    println commandLine
+  }*/
 }
 
-/*vaadin {  
-  version vaadinVersion
-  
-  vaadinCompile {
-    manageWidgetset false
+task cleanVaadin(type: Delete) {
+  delete fileTree("$projectDir/src/main/resources/VAADIN/themes") {
+      include '**/*.css'
   }
+  delete "$projectDir/src/main/resources/VAADIN/widgetsets"
 }
 
-webAppDirName = 'src/main/resources'
-war {
-  extension 'jar'*/
-//  rootSpec.exclude('**/*.jar')
-/*}
-
-// setup eclipse to fetch resources from bin folder
-eclipse {
-  classpath {
-    defaultOutputDir = file('bin')
-  }
-}
-
-jar.dependsOn war // this is to make sure the jar is built before the distributions are created
-jar.enabled false
-
-vaadinJavadocJar.enabled false
-vaadinSourcesJar.enabled false*/
+processResources.dependsOn compileWidgetset
+processResources.dependsOn compileTheme
+clean.dependsOn cleanVaadin
