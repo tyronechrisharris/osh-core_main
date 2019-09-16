@@ -8,7 +8,7 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -30,8 +30,11 @@ import org.vast.util.Asserts;
  */
 public class ObsKey
 {    
-    protected String procedureID = null;
-    protected String foiID = null;
+    public static final FeatureKey NO_FOI;
+    static { NO_FOI = new FeatureKey(); NO_FOI.internalID = 0; }
+    
+    protected FeatureKey procedureKey = null;
+    protected FeatureKey foiKey = NO_FOI;
     protected Instant phenomenonTime = null;
     protected Instant resultTime = null;
     
@@ -45,22 +48,22 @@ public class ObsKey
 
 
     /**
-     * @return The unique ID of the procedure that produced the observation.<br/>
+     * @return The feature key for the procedure that g the observation.<br/>
      * This field cannot be null.
      */
-    public String getProcedureID()
+    public FeatureKey getProcedureKey()
     {
-        return procedureID;
+        return procedureKey;
     }
 
 
     /**
-     * @return The unique ID of the procedure that produced the observation.<br/>
+     * @return The feature key for the FOI that was observed.<br/>
      * This field cannot be null.
      */
-    public String getFoiID()
+    public FeatureKey getFoiKey()
     {
-        return procedureID;
+        return foiKey;
     }
 
 
@@ -86,7 +89,7 @@ public class ObsKey
      */
     public Instant getResultTime()
     {
-        if (resultTime == null)
+        if (resultTime == null || resultTime == Instant.MIN)
             return phenomenonTime;
         return resultTime;
     }
@@ -96,15 +99,15 @@ public class ObsKey
     public String toString()
     {
         return ObjectUtils.toString(this, true);
-    }    
+    }
     
 
     @Override
     public int hashCode()
     {
         return java.util.Objects.hash(
-                getProcedureID(),
-                getFoiID(),
+                getProcedureKey(),
+                getFoiKey(),
                 getPhenomenonTime(),
                 getResultTime());
     }
@@ -117,50 +120,42 @@ public class ObsKey
             return false;
         
         ObsKey other = (ObsKey)obj;
-        return Objects.equals(getProcedureID(), other.getProcedureID()) &&
-               Objects.equals(getFoiID(), other.getFoiID()) &&
+        return Objects.equals(getProcedureKey(), other.getProcedureKey()) &&
+               Objects.equals(getFoiKey(), other.getFoiKey()) &&
                Objects.equals(getPhenomenonTime(), other.getPhenomenonTime()) &&
                Objects.equals(getResultTime(), other.getResultTime());
     }
     
     
-    public static Builder builder()
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static <T extends Builder> T builder()
     {
-        return new Builder();
-    }
-    
-    
-    public static class Builder extends BaseBuilder<Builder, ObsKey>
-    {
-        public Builder()
-        {
-            super(new ObsKey());
-        }
+        return (T)new Builder(new ObsKey());
     }
     
     
     @SuppressWarnings("unchecked")
-    protected static class BaseBuilder<B extends BaseBuilder<B, T>, T extends ObsKey> implements IBuilder<T>
+    public static class Builder<B extends Builder<B, T>, T extends ObsKey> implements IBuilder<T>
     {
         protected T instance;
 
 
-        protected BaseBuilder(T instance)
+        protected Builder(T instance)
         {
             this.instance = instance;
         }
 
 
-        public B withProcedureID(String procedureID)
+        public B withProcedureKey(FeatureKey procedureKey)
         {
-            instance.procedureID = procedureID;
+            instance.procedureKey = procedureKey;
             return (B)this;
         }
 
 
-        public B withFoiID(String foiID)
+        public B withFoiKey(FeatureKey foiKey)
         {
-            instance.foiID = foiID;
+            instance.foiKey = foiKey;
             return (B)this;
         }
         
@@ -181,7 +176,8 @@ public class ObsKey
         
         public T build()
         {
-            Asserts.checkNotNull(instance.procedureID, "procedureID");
+            Asserts.checkNotNull(instance.procedureKey, "procedureKey");
+            Asserts.checkNotNull(instance.foiKey, "foiKey");
             Asserts.checkNotNull(instance.phenomenonTime, "phenomenonTime");
             
             T newInstance = instance;

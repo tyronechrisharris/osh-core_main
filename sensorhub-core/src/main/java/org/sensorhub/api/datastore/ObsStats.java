@@ -23,39 +23,35 @@ import com.google.common.collect.Range;
 
 /**
  * <p>
- * Immutable object representing a temporal cluster of observations, using 
- * either phenomenon or result time criteria.<br/>
- * A new cluster is created every time a long enough time gap occurs between
- * observations (e.g. sensor was turned off for a while) or when a new FOI
- * is observed.
+ * Immutable object representing statistics for a bucket of observation.</br>
+ * There can be only one procedure and one FOI attached to each bucket.
  * </p>
  *
  * @author Alex Robin
- * @since Apr 5, 2018
+ * @since Sep 13, 2019
  */
-public class ObsCluster
+public class ObsStats
 {    
-    public static final long ALL_PROCEDURES = Long.MAX_VALUE;
-    
     private long procedureID = 0;
     private long foiID = 0;
-    private Range<Instant> phenomenonTimeRange = null;
+    private long obsCount = 0;
     private Range<Instant> resultTimeRange = null;
+    private Range<Instant> phenomenonTimeRange = null;
     private Bbox phenomenonBbox = null;
+    private int[] obsCountsByTime = null;
     
     
     /*
      * this class can only be instantiated using builder
      */
-    ObsCluster()
+    ObsStats()
     {
     }
 
 
     /**
-     * @return The unique ID of the procedure that produced the observations or
-     * the constant {@link #ALL_PROCEDURES} if this cluster represents
-     * observations from all procedures.
+     * @return The unique ID of the procedure that produced the observations 
+     * in this bucket.
      */
     public long getProcedureID()
     {
@@ -64,8 +60,8 @@ public class ObsCluster
 
 
     /**
-     * @return The unique ID of the feature of interest observed during the 
-     * period.
+     * @return The unique ID of the feature of interest targeted by observations
+     * in this bucket.
      */
     public long getFoiID()
     {
@@ -74,16 +70,25 @@ public class ObsCluster
 
 
     /**
-     * @return The range of phenomenon times in this cluster
+     * @return The number of observations in the series.
      */
-    public Range<Instant> getPhenomenonTimeRange()
+    public long getTotalCount()
     {
-        return phenomenonTimeRange;
+        return obsCount;
     }
 
 
     /**
-     * @return The range of result times in this cluster
+     * @return The range of result times in this observation series. There are
+     * 3 main cases:<br/>
+     * <li>The returned range is equal to the phenomenon time range for many
+     * sensors for which sampling and measurement operations are considered
+     * to be simultaneous (most electronic sensors fit into this category).</li>
+     * <li>The returned range is different from the phenomenon time range when
+     * the measured phenomenon happened in the past or is forecasted to happen in
+     * the future.</li>
+     * <li>A time instant is returned if all observation in the series share
+     * the same result time (e.g. model run).</li>
      */
     public Range<Instant> getResultTimeRange()
     {
@@ -92,23 +97,20 @@ public class ObsCluster
 
 
     /**
-     * @return Bounding rectangle of phenomenon locations in this cluster
+     * @return The range of phenomenon times in this series
+     */
+    public Range<Instant> getPhenomenonTimeRange()
+    {
+        return phenomenonTimeRange;
+    }
+
+
+    /**
+     * @return Bounding rectangle of phenomenon locations in this series
      */
     public Bbox getPhenomenonBbox()
     {
         return phenomenonBbox;
-    }
-    
-    
-    public ObsCluster copy()
-    {
-        ObsCluster newPeriod = new ObsCluster();
-        newPeriod.procedureID = this.procedureID;
-        newPeriod.foiID = this.foiID;
-        newPeriod.phenomenonTimeRange = this.phenomenonTimeRange;
-        newPeriod.resultTimeRange = this.resultTimeRange;
-        newPeriod.phenomenonBbox = this.phenomenonBbox.copy();
-        return newPeriod;
     }
 
 
@@ -119,53 +121,53 @@ public class ObsCluster
     }
     
     
-    public static ObsPeriodBuilder builder()
+    public static Builder builder()
     {
-        return new ObsPeriodBuilder();
+        return new Builder();
     }
     
     
-    public static class ObsPeriodBuilder
+    public static class Builder
     {
-        private ObsCluster instance = new ObsCluster();
+        private ObsStats instance = new ObsStats();
 
 
-        public ObsPeriodBuilder withProcedureID(long procedureID)
+        Builder withProcedureID(long procedureID)
         {
             instance.procedureID = procedureID;
             return this;
         }
 
 
-        public ObsPeriodBuilder withFoiID(long foiID)
+        public Builder withFoiID(long foiID)
         {
             instance.foiID = foiID;
             return this;
         }
 
 
-        public ObsPeriodBuilder withPhenomenonTimeRange(Range<Instant> timeRange)
+        public Builder withPhenomenonTimeRange(Range<Instant> timeRange)
         {
             instance.phenomenonTimeRange = timeRange;
             return this;
         }
 
 
-        public ObsPeriodBuilder withResultTimeRange(Range<Instant> timeRange)
+        public Builder withResultTimeRange(Range<Instant> timeRange)
         {
             instance.resultTimeRange = timeRange;
             return this;
         }
 
 
-        public ObsPeriodBuilder withPhenomenonBbox(Bbox bbox)
+        public Builder withPhenomenonBbox(Bbox bbox)
         {
             instance.phenomenonBbox = bbox;
             return this;
         }
         
         
-        public ObsCluster build()
+        public ObsStats build()
         {
             Asserts.checkNotNull(instance.procedureID, "procedureID");
             Asserts.checkState(instance.phenomenonTimeRange != null || instance.resultTimeRange != null, "At least one time range must be set");

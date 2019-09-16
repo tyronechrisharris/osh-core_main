@@ -1,26 +1,32 @@
 /***************************** BEGIN LICENSE BLOCK ***************************
 
- The contents of this file are copyright (C) 2018, Sensia Software LLC
- All Rights Reserved. This software is the property of Sensia Software LLC.
- It cannot be duplicated, used, or distributed without the express written
- consent of Sensia Software LLC.
+The contents of this file are subject to the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one
+at http://mozilla.org/MPL/2.0/.
 
- Contributor(s): 
-    Alexandre Robin "alex.robin@sensiasoft.com"
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+for the specific language governing rights and limitations under the License.
+ 
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.datastore;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
-import org.vast.ogc.gml.TemporalFeature;
+import org.sensorhub.utils.ObjectUtils;
+import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Bbox;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
-import net.opengis.gml.v32.AbstractFeature;
 
 
 /**
@@ -32,13 +38,14 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @date Apr 3, 2018
  */
-public class FeatureFilter implements IQueryFilter, Predicate<AbstractFeature>
+public class FeatureFilter implements IFeatureFilter
 {
-    protected IdFilter featureIDs;
+    protected Set<Long> internalIDs;
+    protected IdFilter featureUIDs;
     protected RangeFilter<Instant> validTime;
     protected SpatialFilter location;
     protected Predicate<FeatureKey> keyPredicate;
-    protected Predicate<AbstractFeature> valuePredicate;
+    protected Predicate<IFeature> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
     
@@ -54,9 +61,15 @@ public class FeatureFilter implements IQueryFilter, Predicate<AbstractFeature>
     }
 
 
-    public IdFilter getFeatureIDs()
+    public Set<Long> getInternalIDs()
     {
-        return featureIDs;
+        return internalIDs;
+    }
+
+
+    public IdFilter getFeatureUIDs()
+    {
+        return featureUIDs;
     }
 
 
@@ -66,7 +79,7 @@ public class FeatureFilter implements IQueryFilter, Predicate<AbstractFeature>
     }
 
 
-    public SpatialFilter getLocation()
+    public SpatialFilter getLocationFilter()
     {
         return location;
     }
@@ -78,7 +91,7 @@ public class FeatureFilter implements IQueryFilter, Predicate<AbstractFeature>
     }
 
 
-    public Predicate<AbstractFeature> getValuePredicate()
+    public Predicate<IFeature> getValuePredicate()
     {
         return valuePredicate;
     }
@@ -92,77 +105,101 @@ public class FeatureFilter implements IQueryFilter, Predicate<AbstractFeature>
 
 
     @Override
-    public boolean test(AbstractFeature f)
+    public boolean test(IFeature f)
     {
-        return (testFeatureIDs(f) &&
+        return (testFeatureUIDs(f) &&
                 testValidTime(f) &&
                 testLocation(f) &&
                 testValuePredicate(f));
     }
     
     
-    public boolean testFeatureIDs(AbstractFeature f)
+    public boolean testFeatureUIDs(IFeature f)
     {
-        return (featureIDs == null ||
-                featureIDs.test(f.getUniqueIdentifier()));
+        return (featureUIDs == null ||
+                featureUIDs.test(f.getUniqueIdentifier()));
     }
     
     
-    public boolean testValidTime(AbstractFeature f)
+    public boolean testValidTime(IFeature f)
     {
         return (validTime == null ||
-                !(f instanceof TemporalFeature) ||
-                validTime.test(((TemporalFeature)f).getValidTime()));
+                !(f instanceof ITemporalFeature) ||
+                ((ITemporalFeature)f).getValidTime() == null ||
+                validTime.test(((ITemporalFeature)f).getValidTime()));
     }
     
     
-    public boolean testLocation(AbstractFeature f)
+    public boolean testLocation(IFeature f)
     {
         return (location == null ||
-                (f.isSetGeometry() && location.test((Geometry)f.getGeometry())));
+                (f instanceof IGeoFeature &&
+                ((IGeoFeature)f).getGeometry() != null && 
+                location.test((Geometry)((IGeoFeature)f).getGeometry())));
     }
     
     
-    public boolean testValuePredicate(AbstractFeature f)
+    public boolean testKeyPredicate(FeatureKey k)
+    {
+        return (keyPredicate == null ||
+                keyPredicate.test(k));
+    }
+    
+    
+    public boolean testValuePredicate(IFeature f)
     {
         return (valuePredicate == null ||
                 valuePredicate.test(f));
     }
-        
-    
-    public static class Builder extends BaseBuilder<Builder, FeatureFilter>
+
+
+    @Override
+    public String toString()
     {
-        public Builder()
-        {
-            super(new FeatureFilter());
-        }
+        return ObjectUtils.toString(this, true);
+    }
+    
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static <T extends Builder> T builder()
+    {
+        return (T)new Builder(new FeatureFilter());
     }
     
     
     @SuppressWarnings("unchecked")
-    protected static class BaseBuilder<B extends BaseBuilder<B, F>, F extends FeatureFilter>
+    public static class Builder<B extends Builder<B, F>, F extends FeatureFilter>
     {
         protected F instance;
 
 
-        protected BaseBuilder(F instance)
+        protected Builder(F instance)
         {
             this.instance = instance;
         }
         
         
-        public B withIds(IdFilter ids)
+        public B withInternalIDs(long... ids)
         {
-            instance.featureIDs = ids;
+            instance.internalIDs = new LinkedHashSet<Long>();
+            for (long id: ids)
+                instance.internalIDs.add(id);
             return (B)this;
         }
         
         
-        public B withIds(String... ids)
+        public B withUniqueIDs(IdFilter uids)
         {
-            instance.featureIDs = new IdFilter();
-            for (String id: ids)
-                instance.featureIDs.getIdList().add(id);
+            instance.featureUIDs = uids;
+            return (B)this;
+        }
+        
+        
+        public B withUniqueIDs(String... uids)
+        {
+            instance.featureUIDs = new IdFilter();
+            for (String uid: uids)
+                instance.featureUIDs.getIdList().add(uid);
             return (B)this;
         }
         
@@ -236,7 +273,7 @@ public class FeatureFilter implements IQueryFilter, Predicate<AbstractFeature>
         }
 
 
-        public B withValuePredicate(Predicate<AbstractFeature> valuePredicate)
+        public B withValuePredicate(Predicate<IFeature> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
             return (B)this;

@@ -1,9 +1,14 @@
 /***************************** BEGIN LICENSE BLOCK ***************************
 
- The contents of this file are copyright (C) 2018, Sensia Software LLC
- All Rights Reserved. This software is the property of Sensia Software LLC.
- It cannot be duplicated, used, or distributed without the express written
- consent of Sensia Software LLC.
+The contents of this file are subject to the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one
+at http://mozilla.org/MPL/2.0/.
+
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+for the specific language governing rights and limitations under the License.
+ 
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -19,7 +24,8 @@ import net.opengis.swe.v20.DataBlock;
 /**
  * <p>
  * Immutable object representing observation data (result, foi ID, sampling
- * geometry, observation parameters) stored in an observation store.
+ * geometry, validity period, observation parameters) stored in an observation
+ * store.
  * </p>
  *
  * @author Alex Robin
@@ -29,8 +35,8 @@ public class ObsData
 {
     private Map<String, Object> parameters = null;
     private Geometry phenomenonLocation = null;
+    //private Range<Instant> validTime = null;
     private DataBlock result;
-    private short version = 0; // version of result structure
     
     
     /*
@@ -69,15 +75,6 @@ public class ObsData
     {
         return result;
     }
-    
-    
-    /**
-     * @return Version of observation result structure
-     */
-    public short getVersion()
-    {
-        return version;
-    }
 
 
     public static ObsBuilder builder()
@@ -110,13 +107,6 @@ public class ObsData
         public ObsBuilder withResult(DataBlock result)
         {
             instance.result = result;
-            return this;
-        }
-
-
-        public ObsBuilder withVersion(short version)
-        {
-            instance.version = version;
             return this;
         }
         

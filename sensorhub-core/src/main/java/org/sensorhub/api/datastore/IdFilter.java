@@ -20,6 +20,13 @@ import java.util.function.Predicate;
 public class IdFilter implements Predicate<String>
 {
     private Set<String> idList = new HashSet<>();
+    //private Range<String> idRange;
+    //private String idPrefix;
+    
+    
+    IdFilter()
+    {        
+    }
     
     
     public Set<String> getIdList()
@@ -32,5 +39,12 @@ public class IdFilter implements Predicate<String>
     public boolean test(String id)
     {
         return idList.contains(id);
+    }
+
+
+    @Override
+    public String toString()
+    {
+        return idList.toString();
     }
 }

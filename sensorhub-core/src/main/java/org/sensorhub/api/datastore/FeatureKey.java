@@ -1,9 +1,14 @@
 /***************************** BEGIN LICENSE BLOCK ***************************
 
- The contents of this file are copyright (C) 2018, Sensia Software LLC
- All Rights Reserved. This software is the property of Sensia Software LLC.
- It cannot be duplicated, used, or distributed without the express written
- consent of Sensia Software LLC.
+The contents of this file are subject to the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one
+at http://mozilla.org/MPL/2.0/.
+
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+for the specific language governing rights and limitations under the License.
+ 
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -17,7 +22,9 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Immutable key object used to index features in storage.
+ * Immutable key object used to index features in storage.<br/>
+ * The key can include an internal ID or a unique ID or both. If both are
+ * set when the key is used for retrieval, only the internal ID is used.
  * </p>
  *
  * @author Alex Robin
@@ -25,8 +32,9 @@ import org.vast.util.Asserts;
  */
 public class FeatureKey
 {    
+    protected long internalID = -1; // 0 is reserved and can never be used as ID
     protected String uniqueID;
-    protected Instant validStartTime = Instant.MIN;
+    protected Instant validStartTime = Instant.MIN; // use Instant.MAX to retrieve latest version
     
     
     /*
@@ -34,6 +42,12 @@ public class FeatureKey
      */
     protected FeatureKey()
     {        
+    }
+
+
+    public long getInternalID()
+    {
+        return internalID;
     }
 
 
@@ -69,6 +83,7 @@ public class FeatureKey
     public int hashCode()
     {
         return java.util.Objects.hash(
+                getInternalID(),
                 getUniqueID(),
                 getValidStartTime());
     }
@@ -81,29 +96,35 @@ public class FeatureKey
             return false;
         
         FeatureKey other = (FeatureKey)obj;
-        return Objects.equals(getUniqueID(), other.getUniqueID()) &&
+        return getInternalID() == other.getInternalID() &&
+               Objects.equals(getUniqueID(), other.getUniqueID()) &&
                Objects.equals(getValidStartTime(), other.getValidStartTime());
     }
     
     
-    public static class Builder extends BaseBuilder<Builder, FeatureKey>
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static <T extends Builder> T builder()
     {
-        public Builder()
-        {
-            super(new FeatureKey());
-        }
+        return (T)new Builder(new FeatureKey());
     }
     
     
     @SuppressWarnings("unchecked")
-    protected abstract static class BaseBuilder<B extends BaseBuilder<B, T>, T extends FeatureKey> implements IBuilder<T>
+    public static class Builder<B extends Builder<B, T>, T extends FeatureKey> implements IBuilder<T>
     {
         protected T instance;
 
 
-        protected BaseBuilder(T instance)
+        protected Builder(T instance)
         {
             this.instance = instance;
+        }
+
+
+        public B withInternalID(long internalID)
+        {
+            instance.internalID = internalID;
+            return (B)this;
         }
 
 
@@ -114,6 +135,10 @@ public class FeatureKey
         }
 
 
+        /**
+         * @param start 
+         * @return builder for chaining
+         */
         public B withValidStartTime(Instant start)
         {
             instance.validStartTime = start;
@@ -123,7 +148,7 @@ public class FeatureKey
         
         public T build()
         {
-            Asserts.checkNotNull(instance.uniqueID, "uniqueID");
+            Asserts.checkArgument(instance.uniqueID != null || instance.internalID > 0, "UniqueID or internalID must be set");
             Asserts.checkNotNull(instance.validStartTime, "validStartTime");
             
             T newInstance = instance;
