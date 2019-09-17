@@ -15,8 +15,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore;
 
 import java.time.Instant;
-import java.util.LinkedHashSet;
+import java.util.Arrays;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
 import org.sensorhub.utils.ObjectUtils;
@@ -114,6 +115,13 @@ public class FeatureFilter implements IFeatureFilter
     }
     
     
+    public boolean testInternalIDs(FeatureKey key)
+    {
+        return (internalIDs == null ||
+                internalIDs.contains(key.internalID));
+    }
+    
+    
     public boolean testFeatureUIDs(IFeature f)
     {
         return (featureUIDs == null ||
@@ -181,7 +189,16 @@ public class FeatureFilter implements IFeatureFilter
         
         public B withInternalIDs(long... ids)
         {
-            instance.internalIDs = new LinkedHashSet<Long>();
+            instance.internalIDs = new TreeSet<Long>();
+            for (long id: ids)
+                instance.internalIDs.add(id);
+            return (B)this;
+        }
+        
+        
+        public B withInternalIDs(Iterable<Long> ids)
+        {
+            instance.internalIDs = new TreeSet<Long>();
             for (long id: ids)
                 instance.internalIDs.add(id);
             return (B)this;
@@ -196,6 +213,12 @@ public class FeatureFilter implements IFeatureFilter
         
         
         public B withUniqueIDs(String... uids)
+        {
+            return withUniqueIDs(Arrays.asList(uids));
+        }
+        
+        
+        public B withUniqueIDs(Iterable<String> uids)
         {
             instance.featureUIDs = new IdFilter();
             for (String uid: uids)

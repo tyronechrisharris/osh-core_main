@@ -12,14 +12,14 @@
 
 package org.sensorhub.api.datastore;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 
 
 public class IdFilter implements Predicate<String>
 {
-    private Set<String> idList = new HashSet<>();
+    private Set<String> idList = new TreeSet<>();
     //private Range<String> idRange;
     //private String idPrefix;
     
