@@ -62,7 +62,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
         
         if (producerUri != null)
         {
-            IDataProducer producer = hub.getProcedureRegistry().get(producerUri);
+            IDataProducer producer = (IDataProducer)hub.getProcedureRegistry().get(producerUri);
             
             // set process info
             ProcessInfo instanceInfo = new ProcessInfo(

@@ -32,9 +32,8 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
-import org.sensorhub.api.procedure.IProcedure;
+import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.IProcedureGroup;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.sensor.FakeSensor;
@@ -95,7 +94,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
         }        
 
         @Override
-        public IProcedureGroup<? extends IProcedure> getParentGroup()
+        public IProcedureGroup<? extends IProcedureWithState> getParentGroup()
         {
             return FakeSensorNetWithFoi.this;
     }
@@ -144,6 +143,12 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
         public String getName()
         {
             return sensor.getName();
+        }
+
+        @Override
+        public String getDescription()
+        {
+            return sensor.getDescription();
         }
 
         @Override

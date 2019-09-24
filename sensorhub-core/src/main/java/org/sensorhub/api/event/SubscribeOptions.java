@@ -71,7 +71,7 @@ public class SubscribeOptions<E extends Event>
     
     
     @SuppressWarnings("unchecked")
-    public static class Builder<B extends Builder<B, E>, E extends Event> extends BaseBuilder<B, SubscribeOptions<E>>
+    public static class Builder<B extends Builder<B, E>, E extends Event> extends BaseBuilder<SubscribeOptions<E>>
     {
         Class<E> baseEventClass;
         boolean clearGroupId = false;

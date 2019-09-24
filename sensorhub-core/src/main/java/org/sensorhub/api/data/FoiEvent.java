@@ -15,6 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import org.sensorhub.api.procedure.ProcedureEvent;
+import org.vast.util.Asserts;
+import com.google.common.base.Strings;
 import net.opengis.gml.v32.AbstractFeature;
 
 
@@ -37,9 +39,9 @@ public class FoiEvent extends ProcedureEvent
 	
 	
 	/**
-	 * ID of feature of interest related to this event
+	 * Unique ID of feature of interest related to this event
 	 */
-	protected String foiID;
+	protected String foiUID;
 	
 	
 	/**
@@ -62,13 +64,17 @@ public class FoiEvent extends ProcedureEvent
      * Creates a {@link Type#NEW_FOI} event with only the feature ID
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param procedureID ID of producer that generated the event
-     * @param foiID ID of feature of interest
+     * @param foiUID ID of feature of interest
      * @param startTime time at which observation of the FoI started (unix time in seconds, base 1970)
      */
-    public FoiEvent(long timeStamp, String procedureID, String foiID, double startTime)
+    public FoiEvent(long timeStamp, String procedureID, String foiUID, double startTime)
     {
         super(timeStamp, procedureID);
-        this.foiID = foiID;
+        
+        Asserts.checkArgument(!Strings.isNullOrEmpty(foiUID), "FOI UID must be set");
+        Asserts.checkArgument(Double.isFinite(startTime), "FOI startTime must be set");
+        
+        this.foiUID = foiUID;
         this.startTime = startTime;
     }
 	
@@ -77,14 +83,14 @@ public class FoiEvent extends ProcedureEvent
 	 * Creates a {@link Type#NEW_FOI} event with only the feature ID
 	 * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param producer producer that generated the event
-	 * @param foiID ID of feature of interest
+	 * @param foiUID ID of feature of interest
      * @param startTime time at which observation of the FoI started (unix time in seconds, base 1970)
 	 */
-	public FoiEvent(long timeStamp, IDataProducer producer, String foiID, double startTime)
+	public FoiEvent(long timeStamp, IDataProducer producer, String foiUID, double startTime)
 	{
 	    this(timeStamp,
 	        producer.getUniqueIdentifier(),
-	        foiID,
+	        foiUID,
 	        startTime);
         this.source = producer;
 	}
@@ -114,9 +120,9 @@ public class FoiEvent extends ProcedureEvent
     }
 
 
-    public String getFoiID()
+    public String getFoiUID()
     {
-        return foiID;
+        return foiUID;
     }
 
 

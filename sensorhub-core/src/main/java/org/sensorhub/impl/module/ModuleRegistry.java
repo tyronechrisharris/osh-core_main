@@ -45,7 +45,7 @@ import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.module.ModuleEvent.Type;
-import org.sensorhub.api.procedure.IProcedure;
+import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.impl.event.EventThreadFactory;
 import org.sensorhub.utils.FileUtils;
 import org.sensorhub.utils.MsgUtils;
@@ -1113,8 +1113,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      */
     protected void registerModule(IModule<?> module)
     {
-        if (module instanceof IProcedure)
-            hub.getProcedureRegistry().register((IProcedure)module);
+        if (module instanceof IProcedureWithState)
+            hub.getProcedureRegistry().register((IProcedureWithState)module);
     }
     
     
@@ -1123,8 +1123,11 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      */
     protected void unregisterModule(IModule<?> module)
     {
-        if (module instanceof IProcedure)
-            hub.getProcedureRegistry().unregister(((IProcedure)module).getUniqueIdentifier());
+        if (module instanceof IProcedureWithState) 
+        {
+            hub.getProcedureRegistry().unregister((IProcedureWithState)module);
+            hub.getProcedureRegistry().remove(((IProcedureWithState)module).getUniqueIdentifier());
+        }
     }
     
     

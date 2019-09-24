@@ -92,6 +92,13 @@ public class DummyModule implements IModule<ModuleConfig>
 
 
     @Override
+    public String getDescription()
+    {
+        return config.description;
+    }
+
+
+    @Override
     public String getLocalID()
     {
         return config.id;

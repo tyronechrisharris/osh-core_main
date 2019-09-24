@@ -11,6 +11,7 @@ package org.sensorhub.utils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.LinkedList;
 
 
 /**
@@ -29,15 +30,31 @@ public class ObjectUtils
     
     public static String toString(Object object, boolean recursive)
     {
+        return toString(object, recursive, false);
+    }
+    
+    
+    public static String toString(Object object, boolean recursive, boolean hideNulls)
+    {
         if (object == null)
             return "null";
 
+        // build class hierarchy so we can list fields of super class first
         Class<?> clazz = object.getClass();
-        StringBuilder sb = new StringBuilder(clazz.getSimpleName()).append(" { ");
-
+        LinkedList<Class<?>> classHierarchy = new LinkedList<>();
         while (clazz != null && !clazz.equals(Object.class))
         {
-            Field[] fields = clazz.getDeclaredFields();
+            classHierarchy.addFirst(clazz);
+            if (!recursive)
+                break;
+            clazz = clazz.getSuperclass();
+        }
+
+        // print all fields starting from the top of the hierarchy
+        StringBuilder sb = new StringBuilder(object.getClass().getSimpleName()).append(" { ");
+        for (Class<?> c: classHierarchy)
+        {
+            Field[] fields = c.getDeclaredFields();
             for (Field f : fields)
             {
                 if (!Modifier.isStatic(f.getModifiers()))
@@ -45,19 +62,19 @@ public class ObjectUtils
                     try
                     {
                         f.setAccessible(true);
-                        sb.append(f.getName()).append(": ").append(f.get(object)).append(", ");
+                        Object val = f.get(object);
+                        if (!hideNulls || val != null)
+                        {
+                            String objString = val == null ? "null" : 
+                                val.getClass().getSimpleName().contains("$$Lambda$") ? "lambda" : val.toString();
+                            sb.append(f.getName()).append(": ").append(objString).append(", ");
+                        }
                     }
                     catch (IllegalAccessException e)
                     {                        
                     }
                 }
             }
-
-            if (!recursive)
-            {
-                break;
-            }
-            clazz = clazz.getSuperclass();
         }
 
         sb.deleteCharAt(sb.lastIndexOf(","));

@@ -37,7 +37,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModuleStateManager;
-import org.sensorhub.api.procedure.IProcedure;
+import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.IProcedureGroup;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.sensor.ISensorControlInterface;
@@ -234,7 +234,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     
 
     @Override
-    public IProcedureGroup<IProcedure> getParentGroup()
+    public IProcedureGroup<IProcedureWithState> getParentGroup()
     {
         return null;
     }

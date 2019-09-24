@@ -19,6 +19,7 @@ import org.sensorhub.api.event.EventUtils;
 import org.vast.util.Asserts;
 import com.google.common.base.Strings;
 
+
 /**
  * <p>
  * Base class for all events that are associated to a particular procedure.<br/>
@@ -32,16 +33,16 @@ import com.google.common.base.Strings;
  */
 public abstract class ProcedureEvent extends Event
 {    
-    protected String procedureID;
+    protected String procedureUID;
     protected transient String sourceID;
     
     
-    public ProcedureEvent(long timeStamp, String procedureID)
+    public ProcedureEvent(long timeStamp, String procedureUID)
     {
-        Asserts.checkArgument(!Strings.isNullOrEmpty(procedureID), "procedureID must be set");
+        Asserts.checkArgument(!Strings.isNullOrEmpty(procedureUID), "procedure UID must be set");
         
         this.timeStamp = timeStamp;
-        this.procedureID = procedureID;
+        this.procedureUID = procedureUID;
     }
     
     
@@ -52,9 +53,9 @@ public abstract class ProcedureEvent extends Event
      * procedure within the group (if the event applies only to that member)
      * @return Unique ID of related procedure
      */
-    public String getProcedureID()
+    public String getProcedureUID()
     {
-        return procedureID;
+        return procedureUID;
     }
 
 
@@ -62,7 +63,7 @@ public abstract class ProcedureEvent extends Event
     public String getSourceID()
     {
         if (sourceID == null)
-            sourceID = EventUtils.getProcedureSourceID(procedureID);
+            sourceID = EventUtils.getProcedureSourceID(procedureUID);
         return sourceID;
     }
     

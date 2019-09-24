@@ -87,7 +87,7 @@ public class StreamWithStorageDataProvider implements ISOSDataProvider
             rec = streamProvider.getNextResultRecord();
             if (rec != null)
             {
-                producersRead.add(streamProvider.lastDataEvent.getProcedureID());
+                producersRead.add(streamProvider.lastDataEvent.getProcedureUID());
                 return rec;
             }
             

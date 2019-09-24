@@ -47,13 +47,13 @@ public class DataEvent extends ProcedureEvent
     /**
      * Constructs a data event associated to a specific procedure and channel
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureID Unique ID of procedure that produced the data records
+     * @param procedureUID Unique ID of procedure that produced the data records
      * @param channelID ID/name of the output interface that generated the data
      * @param records arrays of records that triggered this notification
      */
-    public DataEvent(long timeStamp, String procedureID, String channelID, DataBlock ... records)
+    public DataEvent(long timeStamp, String procedureUID, String channelID, DataBlock ... records)
     {
-        super(timeStamp, procedureID);
+        super(timeStamp, procedureUID);
         
         Asserts.checkArgument(!Strings.isNullOrEmpty(channelID), "channelID must be set");
         Asserts.checkArgument(records != null && records.length > 0, "records must be provided");
@@ -91,7 +91,7 @@ public class DataEvent extends ProcedureEvent
     public String getSourceID()
     {
         if (sourceID == null)
-            sourceID = EventUtils.getProcedureOutputSourceID(procedureID, channelID);
+            sourceID = EventUtils.getProcedureOutputSourceID(procedureUID, channelID);
         return sourceID;
     }
     

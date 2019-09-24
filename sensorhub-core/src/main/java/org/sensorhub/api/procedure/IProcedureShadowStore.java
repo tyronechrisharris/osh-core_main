@@ -8,39 +8,35 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.procedure;
 
-import org.vast.ogc.gml.IGeoFeature;
-import net.opengis.gml.v32.Point;
+import org.sensorhub.api.datastore.FeatureKey;
+import org.sensorhub.api.datastore.IFeatureStore;
 
 
 /**
  * <p>
- * Interface for all procedures that can be geolocated
+ * Data store for storing procedure shadows that include procedure metadata
+ * as well as their latest state.
  * </p>
  *
  * @author Alex Robin
- * @since Jun 12, 2017
+ * @date Sep 10, 2019
  */
-public interface IProcedureWithLocation extends IProcedureWithState, IGeoFeature
+public interface IProcedureShadowStore extends IFeatureStore<FeatureKey, IProcedureWithState>
 {
 
     /**
-     * Retrieves the current geographic location of the procedure.
-     * <p><i>Note that the entity location can be different from the feature of interest
-     * location/geometry.</i></p>
-     * @return the procedure location as a GML point or null if unknown
+     * Helper method to retrieve a procedure by its unique ID
+     * @param uid The procedure UID
+     * @return The procedure shadow or null if none was found with the given UID
      */
-    public Point getCurrentLocation();
-    
-    
-    @Override
-    default Point getGeometry()
+    public default IProcedureWithState get(String uid)
     {
-        return getCurrentLocation();
+        return getLastVersion(uid);
     }
 }

@@ -144,7 +144,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         // get handle to sensor data source
         try
         {
-            dataSource = getParentHub().getProcedureRegistry().get(config.dataSourceID);
+            dataSource = (IDataProducer)getParentHub().getProcedureRegistry().get(config.dataSourceID);
         }
         catch (Exception e)
         {

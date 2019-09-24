@@ -78,6 +78,13 @@ public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
     
     
     /**
+     * Helper method to get the module's description
+     * @return description string
+     */
+    public String getDescription();
+    
+    
+    /**
      * Helper method to get the module's local ID
      * @return id string
      */

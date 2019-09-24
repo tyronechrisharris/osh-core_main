@@ -15,7 +15,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import java.util.Map;
-import org.sensorhub.api.procedure.IProcedure;
+import org.sensorhub.api.procedure.IProcedureWithState;
 import net.opengis.gml.v32.AbstractFeature;
 
 
@@ -27,7 +27,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @since Mar 23, 2017
  */
-public interface IDataProducer extends IProcedure
+public interface IDataProducer extends IProcedureWithState
 {
     
     /**

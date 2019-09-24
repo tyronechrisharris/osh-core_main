@@ -14,7 +14,10 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
+import java.time.Instant;
 import org.sensorhub.api.event.IEventProducer;
+import org.vast.ogc.om.IProcedure;
+import com.google.common.collect.Range;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
@@ -29,26 +32,14 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @since June 9, 2017
  */
-public interface IProcedure extends IEventProducer
+public interface IProcedureWithState extends IProcedure, IEventProducer
 {
         
-    /**
-     * @return procedure name
-     */
-    public String getName();
-    
-    
-    /**
-     * @return procedure globally unique identifier
-     */
-    public String getUniqueIdentifier();
-    
-    
     /**
      * @return the parent procedure group or null if this procedure is not 
      * a member of any group
      */
-    public IProcedureGroup<? extends IProcedure> getParentGroup();
+    public IProcedureGroup<? extends IProcedureWithState> getParentGroup();
     
     
     /**
@@ -73,9 +64,20 @@ public interface IProcedure extends IEventProducer
     
     
     /**
-     * @return true if procedure is enabled, false otherwise (a procedure 
-     * marked as disabled is usually not exposed or used)
+     * Check if the procedure is enabled. A procedure marked as disabled
+     * is not producing live data but historical data may still be available.
+     * @return true if procedure is enabled, false otherwise
      */
     public boolean isEnabled();
+
+
+    @Override
+    default Range<Instant> getValidTime()
+    {
+        if (getCurrentDescription() != null)
+            return getCurrentDescription().getValidTime();
+        else
+            return Range.atLeast(Instant.ofEpochMilli(getLastDescriptionUpdate()));
+    }
 
 }

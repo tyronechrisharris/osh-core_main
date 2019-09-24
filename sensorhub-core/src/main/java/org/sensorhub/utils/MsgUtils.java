@@ -16,7 +16,7 @@ package org.sensorhub.utils;
 
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.api.procedure.IProcedure;
+import org.vast.ogc.om.IProcedure;
 
 
 /**

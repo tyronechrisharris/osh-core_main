@@ -25,20 +25,20 @@ public class EventUtils
     private EventUtils() {}
     
     
-    public static final String getProcedureSourceID(String procedureID)
+    public static final String getProcedureSourceID(String procedureUID)
     {
-        return procedureID + PROCEDURE_MAIN_CHANNEL;
+        return procedureUID + PROCEDURE_MAIN_CHANNEL;
     }
     
     
-    public static final String getProcedureOutputSourceID(String procedureID, String outputName)
+    public static final String getProcedureOutputSourceID(String procedureUID, String outputName)
     {
-        return procedureID + PROCEDURE_OUTPUT_CHANNELS + outputName;
+        return procedureUID + PROCEDURE_OUTPUT_CHANNELS + outputName;
     }
     
     
-    public static final String getProcedureControlSourceID(String procedureID, String outputName)
+    public static final String getProcedureControlSourceID(String procedureUID, String outputName)
     {
-        return procedureID + PROCEDURE_CONTROL_CHANNELS + outputName;
+        return procedureUID + PROCEDURE_CONTROL_CHANNELS + outputName;
     }
 }

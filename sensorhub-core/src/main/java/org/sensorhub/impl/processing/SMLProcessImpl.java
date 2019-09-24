@@ -31,7 +31,7 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.procedure.IProcedure;
+import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.IProcedureGroup;
 import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.processing.ProcessingException;
@@ -286,7 +286,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public IProcedureGroup<IProcedure> getParentGroup()
+    public IProcedureGroup<IProcedureWithState> getParentGroup()
     {
         return null;
     }

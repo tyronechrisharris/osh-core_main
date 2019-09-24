@@ -8,13 +8,14 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.procedure;
 
-import java.lang.ref.WeakReference;
+import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.event.IEventSource;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.impl.event.EventSourceInfo;
@@ -25,7 +26,7 @@ import org.sensorhub.impl.event.EventSourceInfo;
  * There is one procedure registry per sensor hub that is used to keep the list
  * and state of all registered procedures (i.e. sensors, actuators, processes,
  * other data sources) on this hub. It also generates events when procedures are
- * added and removed from the registry, and usually provide ways to persist
+ * added and removed from the registry, and usually provides ways to persist
  * this state across restarts.
  * </p>
  * <p>
@@ -37,70 +38,44 @@ import org.sensorhub.impl.event.EventSourceInfo;
  *
  * @author Alex Robin
  * @since Feb 18, 2019
- * @see IProcedure IProcedure
+ * @see IProcedureWithState IProcedure
  */
-public interface IProcedureRegistry extends IEventSource
+public interface IProcedureRegistry extends IProcedureShadowStore, IEventSource
 {
     public static final String EVENT_SOURCE_ID = "urn:osh:procedures";
     
     
     /**
      * Registers a procedure with this registry.
-     * <p><i>Procedures implemented as modules (typically sensor drivers) are automatically
-     * registered when they are loaded by the module registry but all other
-     * procedure instances must be registered explicitly.</i></p>
-     * @param procedure
+     * This adds the procedure to the underlying data store if not already there
+     * and takes care of forwarding all events to the event bus.
+     * <p><i>Procedures implemented as modules (typically sensor drivers) are 
+     * automatically registered when they are loaded by the module registry
+     * but all other procedure instances must be registered explicitly.</i></p>
+     * @param proc the live procedure instance
+     * @return The key assigned to the new procedure
      */
-    public void register(IProcedure procedure);
+    public FeatureKey register(IProcedureWithState proc);
     
     
     /**
-     * Unregisters the procedure with the given unique ID
-     * @param uid procedure unique ID
+     * Unregisters the procedure with the given unique ID.<br/>
+     * Note that unregistering the procedure doesn't remove it from the
+     * data store but only disconnects the live procedure.
+     * @param proc the live procedure instance
      */
-    public void unregister(String uid);
-    
-    
-    /**
-     * Retrieves a procedure using its unique ID.<br/>
-     * Procedure group members can be retrieved directly using this method.
-     * @param uid procedure unique ID
-     * @return procedure with the given unique ID
-     */
-    public <T extends IProcedure> T get(String uid);
-    
-    
-    /**
-     * Retrieves the weak reference to a procedure using its unique ID.<br/>
-     * Procedure group members can be retrieved directly using this method.
-     * @param uid procedure unique ID
-     * @return procedure with the given unique ID
-     */
-    public <T extends IProcedure> WeakReference<T> getRef(String uid);
-    
-    
-    /**
-     * Checks if registry contains the procedure with the given unique ID
-     * @param uid procedure unique ID
-     * @return true if a procedure with the given ID has been registered,
-     * false otherwise
-     */
-    public boolean contains(String uid);
-    
-    
-    /**
-     * Retrieves all registered procedures of the given type.<br/>
-     * Note that this method only returns top level procedures. Group members can be
-     * retrieved by calling the group getMembers() method.
-     * @param procedureType Type of procedures to return (e.g. ISensor, etc.)
-     * @return Iterable collection of selected procedures
-     */
-    public <T extends IProcedure> Iterable<T> list(Class<T> procedureType);
+    public void unregister(IProcedureWithState proc);
 
 
+    /**
+     * @return the event source information for this registry
+     */
     public default IEventSourceInfo getEventSourceInfo()
     {
         return new EventSourceInfo(IProcedureRegistry.EVENT_SOURCE_ID);
     }
+    
+    
+    public ISensorHub getParentHub();
     
 }

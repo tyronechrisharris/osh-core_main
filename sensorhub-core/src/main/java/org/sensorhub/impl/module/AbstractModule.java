@@ -84,6 +84,13 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     {
         return config.name;
     }
+    
+    
+    @Override
+    public String getDescription()
+    {
+        return config.description;
+    }
 
 
     @Override

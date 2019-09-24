@@ -274,7 +274,7 @@ public class StreamDataProvider implements ISOSDataProvider, IEventListener
         AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
         if (dataSource instanceof IMultiSourceDataProducer)
         {
-            String producerID = lastDataEvent.getProcedureID();
+            String producerID = lastDataEvent.getProcedureUID();
             IDataProducer producer = ((IMultiSourceDataProducer)dataSource).getMembers().get(producerID);
             Asserts.checkNotNull(producer, IDataProducer.class);
             foi = producer.getCurrentFeatureOfInterest();
@@ -383,7 +383,7 @@ public class StreamDataProvider implements ISOSDataProvider, IEventListener
             if (requestedFois != null)
             {
                 // skip if procedure/foi was not selected
-                String producerID = ((DataEvent) e).getProcedureID();
+                String producerID = ((DataEvent) e).getProcedureUID();
                 String foiID = currentFoiMap.get(producerID);
                 if (!requestedFois.contains(foiID))
                     return;
@@ -406,7 +406,7 @@ public class StreamDataProvider implements ISOSDataProvider, IEventListener
         {
             // remember current FOI of each producer
             FoiEvent foiEvent = (FoiEvent) e;
-            String producerID = ((FoiEvent) e).getProcedureID();
+            String producerID = ((FoiEvent) e).getProcedureUID();
             currentFoiMap.put(producerID, foiEvent.getFoiID());
         }
     }
@@ -464,7 +464,7 @@ public class StreamDataProvider implements ISOSDataProvider, IEventListener
     @Override
     public String getNextProducerID()
     {
-        return lastDataEvent.getProcedureID();
+        return lastDataEvent.getProcedureUID();
     }
 
 
