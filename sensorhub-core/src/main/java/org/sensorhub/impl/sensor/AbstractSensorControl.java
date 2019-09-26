@@ -25,7 +25,6 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.common.CommandStatus.StatusCode;
 import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
@@ -41,27 +40,27 @@ import org.vast.util.DateTime;
  * </p>
  *
  * @author Alex Robin
- * @param <SensorType> Type of parent sensor
+ * @param <T> Type of parent procedure
  * @since Nov 22, 2014
  */
-public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>> implements ISensorControlInterface
+public abstract class AbstractSensorControl<T extends ICommandReceiver> implements ISensorControlInterface
 {
     protected static final String ERROR_NO_ASYNC = "Asynchronous command processing is not supported by driver ";
     protected static final String ERROR_NO_SCHED = "Command scheduling is not supported by driver ";
     protected static final String ERROR_NO_STATUS_HISTORY = "Status history is not supported by driver ";
     protected final String name;
-    protected final SensorType parentSensor;
+    protected final T parentSensor;
     protected final IEventHandler eventHandler;
     protected final IEventSourceInfo eventSrcInfo;
     
     
-    public AbstractSensorControl(SensorType parentSensor)
+    public AbstractSensorControl(T parentSensor)
     {
         this(null, parentSensor);
     }
     
     
-    public AbstractSensorControl(String name, SensorType parentSensor)
+    public AbstractSensorControl(String name, T parentSensor)
     {
         this.name = name;
         this.parentSensor = parentSensor;
@@ -136,42 +135,42 @@ public abstract class AbstractSensorControl<SensorType extends ISensorModule<?>>
     @Override
     public CommandStatus sendCommand(DataBlock command) throws SensorException
     {
-        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.moduleClassAndId(parentSensor));
+        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.entityString(parentSensor));
     }
 
 
     @Override
     public CommandStatus sendCommandGroup(List<DataBlock> commands) throws SensorException
     {
-        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.moduleClassAndId(parentSensor));
+        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.entityString(parentSensor));
     }
 
 
     @Override
     public CommandStatus scheduleCommand(DataBlock command, DateTime execTime) throws SensorException
     {
-        throw new SensorException(ERROR_NO_SCHED + MsgUtils.moduleClassAndId(parentSensor));
+        throw new SensorException(ERROR_NO_SCHED + MsgUtils.entityString(parentSensor));
     }
 
 
     @Override
     public CommandStatus scheduleCommandGroup(List<DataBlock> commands, DateTime execTime) throws SensorException
     {
-        throw new SensorException(ERROR_NO_SCHED + MsgUtils.moduleClassAndId(parentSensor));
+        throw new SensorException(ERROR_NO_SCHED + MsgUtils.entityString(parentSensor));
     }
 
 
     @Override
     public CommandStatus cancelCommand(String commandID) throws SensorException
     {
-        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.moduleClassAndId(parentSensor));
+        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.entityString(parentSensor));
     }
 
 
     @Override
     public CommandStatus getCommandStatus(String commandID) throws SensorException
     {
-        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.moduleClassAndId(parentSensor));
+        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.entityString(parentSensor));
     }
 
     

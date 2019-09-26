@@ -22,7 +22,6 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.ISensorDataInterface;
-import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.slf4j.Logger;
@@ -52,7 +51,7 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
     protected long latestRecordTime = Long.MIN_VALUE;
     
     
-    public AbstractSensorOutput(ISensorModule<?> parentSensor)
+    public AbstractSensorOutput(IDataProducer parentSensor)
     {
         this(null, parentSensor);
     }
@@ -67,7 +66,7 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
      * @param parentSensor parent sensor instance
      */
     @SuppressWarnings("unchecked")
-    public AbstractSensorOutput(String name, ISensorModule<?> parentSensor)
+    public AbstractSensorOutput(String name, IDataProducer parentSensor)
     {
         this(name, (T)parentSensor, null);
     }

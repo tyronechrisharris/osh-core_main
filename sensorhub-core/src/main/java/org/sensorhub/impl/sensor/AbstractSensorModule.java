@@ -178,7 +178,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected void addLocationOutput(double updatePeriod)
     {
         // TODO deal with other CRS than 4979
-        locationOutput = new DefaultLocationOutputLLA(this, updatePeriod);
+        locationOutput = new DefaultLocationOutputLLA(this, getLocalFrameID(), updatePeriod);
         addOutput(locationOutput, true);
     }
     

@@ -16,6 +16,7 @@ package org.sensorhub.impl.sensor;
 
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.Vector;
+import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.SensorDataEvent;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.helper.GeoPosHelper;
@@ -33,14 +34,14 @@ import org.vast.swe.helper.GeoPosHelper;
 public class DefaultLocationOutputLLA extends DefaultLocationOutput
 {
     
-    public DefaultLocationOutputLLA(AbstractSensorModule<?> parentSensor, double updatePeriod)
+    public DefaultLocationOutputLLA(ISensor parentSensor, String sensorFrameID, double updatePeriod)
     {
         super(parentSensor, updatePeriod);
         
         GeoPosHelper fac = new GeoPosHelper();
         Vector locVector = fac.newLocationVectorLLA(SWEConstants.DEF_SENSOR_LOC);
         locVector.setName("location");
-        locVector.setLocalFrame('#' + parentSensor.getLocalFrameID());
+        locVector.setLocalFrame('#' + sensorFrameID);
         outputStruct = fac.wrapWithTimeStampUTC(locVector);
         outputStruct.setName(getName());
         outputStruct.setId(AbstractSensorModule.LOCATION_OUTPUT_ID);
