@@ -34,13 +34,6 @@ public interface ISensor extends IProcedureWithLocation, IDataProducer, ICommand
 {
 
     /**
-     * Retrieves most current sensor description.
-     */
-    @Override
-    public AbstractPhysicalProcess getCurrentDescription();
-
-
-    /**
      * Retrieves the list of interface to sensor status outputs
      * @return map of output names -> data interface objects
      */

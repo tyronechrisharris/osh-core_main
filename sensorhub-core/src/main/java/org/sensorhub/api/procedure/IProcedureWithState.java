@@ -34,12 +34,19 @@ import net.opengis.sensorml.v20.AbstractProcess;
  */
 public interface IProcedureWithState extends IProcedure, IEventProducer
 {
-        
+    
     /**
      * @return the parent procedure group or null if this procedure is not 
      * a member of any group
      */
     public IProcedureGroup<? extends IProcedureWithState> getParentGroup();
+    
+    
+    /**
+     * @return the unique ID of the parent procedure group or null if this
+     * procedure is not a member of any group
+     */
+    public String getParentGroupUID();
     
     
     /**

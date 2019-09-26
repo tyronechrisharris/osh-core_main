@@ -241,6 +241,13 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
+    public String getParentGroupUID()
+    {
+        return null;
+    }
+
+
+    @Override
     public AbstractPhysicalProcess getCurrentDescription()
     {
         synchronized (sensorDescLock)
