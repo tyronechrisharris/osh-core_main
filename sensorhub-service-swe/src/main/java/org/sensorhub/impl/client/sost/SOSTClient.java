@@ -37,7 +37,6 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
-import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.impl.comm.RobustIPConnection;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.RobustConnection;
@@ -460,7 +459,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             {
                 String outputName = ((DataEvent)e).getSource().getName();
                 reportError("Too many errors sending '" + outputName + "' data to SOS-T. Stopping Stream.", null);
-                stopStream((ISensorDataInterface)e.getSource(), streamInfo);
+                stopStream((IStreamingDataInterface)e.getSource(), streamInfo);
                 checkDisconnected();                
                 return;
             }

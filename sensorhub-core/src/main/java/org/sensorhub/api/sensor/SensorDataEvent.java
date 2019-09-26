@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.sensor;
 
 import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -49,7 +50,7 @@ public class SensorDataEvent extends DataEvent
      * @param dataInterface sensor output interface that produced the associated data
 	 * @param records arrays of records that triggered this notification
 	 */
-	public SensorDataEvent(long timeStamp, ISensorDataInterface dataInterface, DataBlock ... records)
+	public SensorDataEvent(long timeStamp, IStreamingDataInterface dataInterface, DataBlock ... records)
 	{
 		super(timeStamp, dataInterface, records);
 	}
@@ -70,8 +71,8 @@ public class SensorDataEvent extends DataEvent
 
 
     @Override
-    public ISensorDataInterface getSource()
+    public IStreamingDataInterface getSource()
     {
-        return (ISensorDataInterface)this.source;
+        return (IStreamingDataInterface)this.source;
     }
 }

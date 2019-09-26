@@ -34,14 +34,14 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.IProcedureGroup;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
-import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.PositionConfig.LLALocation;
 import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
@@ -95,9 +95,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected static final String STATE_UNIQUE_ID = "UniqueID";
     protected static final String STATE_LAST_SML_UPDATE = "LastUpdatedSensorDescription";
     
-    private Map<String, ISensorDataInterface> obsOutputs = new LinkedHashMap<>();
-    private Map<String, ISensorDataInterface> statusOutputs = new LinkedHashMap<>();
-    private Map<String, ISensorControlInterface> controlInputs = new LinkedHashMap<>();
+    private Map<String, IStreamingDataInterface> obsOutputs = new LinkedHashMap<>();
+    private Map<String, IStreamingDataInterface> statusOutputs = new LinkedHashMap<>();
+    private Map<String, IStreamingControlInterface> controlInputs = new LinkedHashMap<>();
         
     protected DefaultLocationOutput locationOutput;
     protected AbstractPhysicalProcess sensorDescription = new PhysicalSystemImpl();
@@ -161,7 +161,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      * @param dataInterface interface to add as sensor output
      * @param isStatus set to true when registering a status output
      */
-    protected void addOutput(ISensorDataInterface dataInterface, boolean isStatus)
+    protected void addOutput(IStreamingDataInterface dataInterface, boolean isStatus)
     {
         if (isStatus)
             statusOutputs.put(dataInterface.getName(), dataInterface);
@@ -197,7 +197,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      * Call this method to add each sensor control input
      * @param controlInterface interface to add as sensor control input
      */
-    protected void addControlInput(ISensorControlInterface controlInterface)
+    protected void addControlInput(IStreamingControlInterface controlInterface)
     {
         controlInputs.put(controlInterface.getName(), controlInterface);
     }
@@ -324,7 +324,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             // outputs
             if (sensorDescription.getNumOutputs() == 0)
             {
-                for (Entry<String, ? extends ISensorDataInterface> output: getOutputs().entrySet())
+                for (Entry<String, ? extends IStreamingDataInterface> output: getOutputs().entrySet())
                 {
                     DataComponent outputDesc = output.getValue().getRecordDescription();
                     if (outputDesc == null)
@@ -337,7 +337,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             // control parameters
             if (sensorDescription.getNumParameters() == 0)
             {
-                for (Entry<String, ? extends ISensorControlInterface> param: getCommandInputs().entrySet())
+                for (Entry<String, ? extends IStreamingControlInterface> param: getCommandInputs().entrySet())
                 {
                     DataComponent paramDesc = param.getValue().getCommandDescription();
                     if (paramDesc == null)
@@ -453,9 +453,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public Map<String, ISensorDataInterface> getOutputs()
+    public Map<String, IStreamingDataInterface> getOutputs()
     {
-        Map<String, ISensorDataInterface> allOutputs = new LinkedHashMap<>();  
+        Map<String, IStreamingDataInterface> allOutputs = new LinkedHashMap<>();  
         allOutputs.putAll(obsOutputs);
         allOutputs.putAll(statusOutputs);
         return Collections.unmodifiableMap(allOutputs);
@@ -463,21 +463,21 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public Map<String, ISensorDataInterface> getStatusOutputs()
+    public Map<String, IStreamingDataInterface> getStatusOutputs()
     {
         return Collections.unmodifiableMap(statusOutputs);
     }
 
 
     @Override
-    public Map<String, ISensorDataInterface> getObservationOutputs()
+    public Map<String, IStreamingDataInterface> getObservationOutputs()
     {
         return Collections.unmodifiableMap(obsOutputs);
     }
 
 
     @Override
-    public Map<String, ISensorControlInterface> getCommandInputs()
+    public Map<String, IStreamingControlInterface> getCommandInputs()
     {
         return Collections.unmodifiableMap(controlInputs);
     }

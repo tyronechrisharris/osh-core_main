@@ -16,12 +16,12 @@ package org.sensorhub.impl.sensor;
 
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensor;
-import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.slf4j.Logger;
@@ -39,7 +39,7 @@ import org.vast.util.Asserts;
  * @param <T> Type of parent sensor
  * @since Nov 2, 2014
  */
-public abstract class AbstractSensorOutput<T extends IDataProducer> implements ISensorDataInterface
+public abstract class AbstractSensorOutput<T extends IDataProducer> implements IStreamingDataInterface
 {
     protected static final String ERROR_NO_STORAGE = "Data storage is not supported by driver ";
     protected final T parentSensor;

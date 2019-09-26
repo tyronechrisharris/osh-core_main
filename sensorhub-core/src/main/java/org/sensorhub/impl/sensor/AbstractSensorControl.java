@@ -19,17 +19,14 @@ import java.util.UUID;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.common.CommandStatus;
 import org.sensorhub.api.data.ICommandReceiver;
+import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventHandler;
-import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.common.CommandStatus.StatusCode;
-import org.sensorhub.api.sensor.ISensorControlInterface;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
-import org.sensorhub.utils.MsgUtils;
-import org.vast.util.DateTime;
 
 
 /**
@@ -43,7 +40,7 @@ import org.vast.util.DateTime;
  * @param <T> Type of parent procedure
  * @since Nov 22, 2014
  */
-public abstract class AbstractSensorControl<T extends ICommandReceiver> implements ISensorControlInterface
+public abstract class AbstractSensorControl<T extends ICommandReceiver> implements IStreamingControlInterface
 {
     protected static final String ERROR_NO_ASYNC = "Asynchronous command processing is not supported by driver ";
     protected static final String ERROR_NO_SCHED = "Command scheduling is not supported by driver ";
@@ -115,83 +112,6 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
         }
         
         return groupStatus;
-    }
-
-
-    @Override
-    public boolean isAsyncExecSupported()
-    {
-        return false;
-    }
-
-
-    @Override
-    public boolean isSchedulingSupported()
-    {
-        return false;
-    }
-
-
-    @Override
-    public CommandStatus sendCommand(DataBlock command) throws SensorException
-    {
-        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.entityString(parentSensor));
-    }
-
-
-    @Override
-    public CommandStatus sendCommandGroup(List<DataBlock> commands) throws SensorException
-    {
-        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.entityString(parentSensor));
-    }
-
-
-    @Override
-    public CommandStatus scheduleCommand(DataBlock command, DateTime execTime) throws SensorException
-    {
-        throw new SensorException(ERROR_NO_SCHED + MsgUtils.entityString(parentSensor));
-    }
-
-
-    @Override
-    public CommandStatus scheduleCommandGroup(List<DataBlock> commands, DateTime execTime) throws SensorException
-    {
-        throw new SensorException(ERROR_NO_SCHED + MsgUtils.entityString(parentSensor));
-    }
-
-
-    @Override
-    public CommandStatus cancelCommand(String commandID) throws SensorException
-    {
-        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.entityString(parentSensor));
-    }
-
-
-    @Override
-    public CommandStatus getCommandStatus(String commandID) throws SensorException
-    {
-        throw new SensorException(ERROR_NO_ASYNC + MsgUtils.entityString(parentSensor));
-    }
-
-    
-    @Override
-    public void registerListener(IEventListener listener)
-    {
-        eventHandler.registerListener(listener);
-    }
-
-
-    @Override
-    public void unregisterListener(IEventListener listener)
-    {
-        eventHandler.unregisterListener(listener);
-    }
-    
-    
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        return eventSrcInfo;
     }
     
 }

@@ -31,10 +31,10 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataStream;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorDataInterface;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
 import org.sensorhub.utils.DataStructureHash;
@@ -63,7 +63,6 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         
     Map<DataStructureHash, String> structureToOutputMap = new HashMap<>();
     Map<DataStructureHash, String> structureToTaskableParamMap = new HashMap<>();
-    AbstractFeature currentFoi;
     
     
     public SWETransactionalSensor()
@@ -84,7 +83,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
     @Override
     public AbstractFeature getCurrentFeatureOfInterest()
     {
-        return currentFoi;
+        return foi;
     }
 
 
@@ -131,7 +130,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         }
         else
         {
-            ISensorDataInterface output = getOutputs().get(outputName);
+            IStreamingDataInterface output = getOutputs().get(outputName);
             
             // check that output definition is same as previously registered
             DataStructureHash oldOutputHashObj = new DataStructureHash(output.getRecordDescription(), output.getRecommendedEncoding());
@@ -174,7 +173,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         }
         else
         {
-            ISensorControlInterface controlInput = getCommandInputs().get(paramName);
+            IStreamingControlInterface controlInput = getCommandInputs().get(paramName);
             
             // check that control input definition is same as previously registered
             DataStructureHash oldInputHashObj = new DataStructureHash(controlInput.getCommandDescription(), null);
@@ -197,8 +196,8 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         if (foi != null)
         {
             SWETransactionalSensorOutput output = (SWETransactionalSensorOutput)getOutputs().get(outputName);
-            currentFoi = foi;
-            output.publishNewFeatureOfInterest(currentFoi);
+            this.foi = foi;
+            output.publishNewFeatureOfInterest(foi);
         }
     }    
     
@@ -283,7 +282,7 @@ public class SWETransactionalSensor extends AbstractSensorModule<SWETransactiona
         // TODO use timeout value
         /*long now = System.currentTimeMillis();
         
-        for (ISensorDataInterface output: this.getAllOutputs().values())
+        for (IStreamingDataInterface output: this.getAllOutputs().values())
         {
             double samplingPeriod = output.getAverageSamplingPeriod();
             if (now - output.getLatestRecordTime() < 10*samplingPeriod)

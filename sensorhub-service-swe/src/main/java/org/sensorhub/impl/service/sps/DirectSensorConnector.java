@@ -23,8 +23,8 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.sensor.ISensor;
-import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorDataInterface;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.api.service.ServiceException;
 import org.sensorhub.utils.MsgUtils;
@@ -148,7 +148,7 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
         List<DataComponent> commands = new ArrayList<>();
         
         // process sensor commands descriptions
-        for (Entry<String, ? extends ISensorControlInterface> entry: sensor.getCommandInputs().entrySet())
+        for (Entry<String, ? extends IStreamingControlInterface> entry: sensor.getCommandInputs().entrySet())
         {
             // skip hidden commands
             if (config.hiddenCommands != null && config.hiddenCommands.contains(entry.getKey()))
@@ -166,11 +166,11 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
         List<String> observableUris = new ArrayList<>();
         
         // process outputs descriptions
-        for (Entry<String, ? extends ISensorDataInterface> entry: sensor.getOutputs().entrySet())
+        for (Entry<String, ? extends IStreamingDataInterface> entry: sensor.getOutputs().entrySet())
         {
             // iterate through all SWE components and add all definition URIs as observables
             // this way only composites with URI will get added
-            ISensorDataInterface output = entry.getValue();
+            IStreamingDataInterface output = entry.getValue();
             ScalarIterator it = new ScalarIterator(output.getRecordDescription());
             while (it.hasNext())
             {
@@ -201,7 +201,7 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
     public void sendSubmitData(ITask task, DataBlock data) throws ServiceException
     {
         checkEnabled();
-        ISensorControlInterface cmdInterface;
+        IStreamingControlInterface cmdInterface;
         
         try
         {

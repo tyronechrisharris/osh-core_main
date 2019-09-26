@@ -24,8 +24,8 @@ import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.processing.IProcessModule;
-import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorDataInterface;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorSystemConfig.ProcessMember;
@@ -97,13 +97,13 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
         // aggregate all sensors outputs and control inputs
         for (ISensorModule<?> sensor: sensors.values())
         {
-            for (ISensorDataInterface output: sensor.getObservationOutputs().values())
+            for (IStreamingDataInterface output: sensor.getObservationOutputs().values())
                 this.addOutput(output, false);
             
-            for (ISensorDataInterface output: sensor.getStatusOutputs().values())
+            for (IStreamingDataInterface output: sensor.getStatusOutputs().values())
                 this.addOutput(output, true);
             
-            for (ISensorControlInterface input: sensor.getCommandInputs().values())
+            for (IStreamingControlInterface input: sensor.getCommandInputs().values())
                 this.addControlInput(input);
         }
     }
@@ -156,13 +156,13 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
                 sensor.start();
                 
                 // add sensor outputs and control inputs now in case they didn't exist in init()
-                for (ISensorDataInterface output: sensor.getObservationOutputs().values())
+                for (IStreamingDataInterface output: sensor.getObservationOutputs().values())
                     this.addOutput(output, false);
                 
-                for (ISensorDataInterface output: sensor.getStatusOutputs().values())
+                for (IStreamingDataInterface output: sensor.getStatusOutputs().values())
                     this.addOutput(output, true);
                 
-                for (ISensorControlInterface input: sensor.getCommandInputs().values())
+                for (IStreamingControlInterface input: sensor.getCommandInputs().values())
                     this.addControlInput(input);
             }
             catch (Exception e)

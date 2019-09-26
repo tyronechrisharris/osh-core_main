@@ -17,6 +17,7 @@ package org.sensorhub.api.sensor;
 import java.util.Map;
 import org.sensorhub.api.data.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.procedure.IProcedureWithLocation;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
 
@@ -40,31 +41,17 @@ public interface ISensor extends IProcedureWithLocation, IDataProducer, ICommand
 
 
     /**
-     * Retrieves the list of interfaces to all sensor data outputs
-     */
-    @Override
-    public Map<String, ? extends ISensorDataInterface> getOutputs();
-
-
-    /**
      * Retrieves the list of interface to sensor status outputs
      * @return map of output names -> data interface objects
      */
-    public Map<String, ? extends ISensorDataInterface> getStatusOutputs();
+    public Map<String, ? extends IStreamingDataInterface> getStatusOutputs();
 
 
     /**
      * Retrieves the list of interface to sensor observation outputs
      * @return map of output names -> data interface objects
      */
-    public Map<String, ? extends ISensorDataInterface> getObservationOutputs();
-
-
-    /**
-     * Retrieves the list of interface to sensor command inputs
-     * @return map of input names -> control interface objects
-     */
-    public Map<String, ? extends ISensorControlInterface> getCommandInputs();
+    public Map<String, ? extends IStreamingDataInterface> getObservationOutputs();
 
 
     /**

@@ -22,8 +22,8 @@ import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorDataInterface;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.data.MyBeanItem;
@@ -195,7 +195,7 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
             {
                 oldPanel = obsPanel;
                 obsPanel = newPanel("Observation Outputs");
-                for (ISensorDataInterface output: module.getObservationOutputs().values())
+                for (IStreamingDataInterface output: module.getObservationOutputs().values())
                 {
                     // used cached output component if available
                     DataComponent dataStruct = outputBuffers.get(output.getName());                    
@@ -226,7 +226,7 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
             {
                 oldPanel = statusPanel;
                 statusPanel = newPanel("Status Outputs");
-                for (ISensorDataInterface output: module.getStatusOutputs().values())
+                for (IStreamingDataInterface output: module.getStatusOutputs().values())
                 {
                     // used cached output component if available
                     DataComponent dataStruct = outputBuffers.get(output.getName());                    
@@ -264,7 +264,7 @@ public class SensorAdminPanel extends DefaultModulePanel<ISensorModule<?>> imple
             // command inputs
             oldPanel = commandsPanel;
             commandsPanel = newPanel("Command Inputs");
-            for (ISensorControlInterface input: module.getCommandInputs().values())
+            for (IStreamingControlInterface input: module.getCommandInputs().values())
             {
                 Component sweForm = new SWEControlForm(input);
                 ((Layout)commandsPanel.getContent()).addComponent(sweForm);

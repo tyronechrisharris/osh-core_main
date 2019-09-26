@@ -17,8 +17,8 @@ package org.sensorhub.impl.sensor;
 import net.opengis.sensorml.v20.PhysicalSystem;
 import net.opengis.sensorml.v20.SpatialFrame;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorDataInterface;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
 import org.vast.sensorML.SMLFactory;
@@ -41,16 +41,16 @@ public class FakeSensorWithPos extends FakeSensor
     }
     
     
-    public void setDataInterfaces(ISensorDataInterface... outputs) throws SensorException
+    public void setDataInterfaces(IStreamingDataInterface... outputs) throws SensorException
     {
-        for (ISensorDataInterface o: outputs)
+        for (IStreamingDataInterface o: outputs)
             addOutput(o, false);
     }
     
     
-    public void setControlInterfaces(ISensorControlInterface... inputs) throws SensorException
+    public void setControlInterfaces(IStreamingControlInterface... inputs) throws SensorException
     {
-        for (ISensorControlInterface i: inputs)
+        for (IStreamingControlInterface i: inputs)
             addControlInput(i);
     }
     

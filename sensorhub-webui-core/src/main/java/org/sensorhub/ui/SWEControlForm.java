@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import org.sensorhub.api.sensor.ISensorControlInterface;
+import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.sensor.SensorException;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
@@ -25,10 +25,10 @@ import com.vaadin.ui.Button.ClickListener;
 @SuppressWarnings("serial")
 public class SWEControlForm extends SWEEditForm
 {
-    transient ISensorControlInterface controlInput;
+    transient IStreamingControlInterface controlInput;
     
     
-    public SWEControlForm(final ISensorControlInterface controlInput)
+    public SWEControlForm(final IStreamingControlInterface controlInput)
     {
         super(controlInput.getCommandDescription().copy());
         this.controlInput = controlInput;

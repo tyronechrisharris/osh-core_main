@@ -31,7 +31,7 @@ public interface IDataProducer extends IProcedureWithState
 {
     
     /**
-     * Retrieves the list of data outputs
+     * Retrieves the list of all outputs
      * @return read-only map of output names -> data interface objects
      */
     public Map<String, ? extends IStreamingDataInterface> getOutputs();

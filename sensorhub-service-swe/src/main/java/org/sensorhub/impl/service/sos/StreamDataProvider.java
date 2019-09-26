@@ -407,7 +407,7 @@ public class StreamDataProvider implements ISOSDataProvider, IEventListener
             // remember current FOI of each producer
             FoiEvent foiEvent = (FoiEvent) e;
             String producerID = ((FoiEvent) e).getProcedureUID();
-            currentFoiMap.put(producerID, foiEvent.getFoiID());
+            currentFoiMap.put(producerID, foiEvent.getFoiUID());
         }
     }
 

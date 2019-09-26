@@ -29,8 +29,8 @@ import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.processing.ProcessingException;
-import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorDataInterface;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.impl.processing.SMLProcessConfig;
 import org.sensorhub.impl.processing.SMLProcessImpl;
@@ -371,7 +371,7 @@ public class ProcessAdminPanel extends DefaultModulePanel<IProcessModule<?>> imp
             {
                 oldPanel = outputPanel;
                 outputPanel = newPanel("Outputs");
-                for (ISensorDataInterface output: module.getObservationOutputs().values())
+                for (IStreamingDataInterface output: module.getObservationOutputs().values())
                 {
                     DataComponent dataStruct = output.getRecordDescription().copy();
                     DataBlock latestRecord = output.getLatestRecord();
@@ -401,7 +401,7 @@ public class ProcessAdminPanel extends DefaultModulePanel<IProcessModule<?>> imp
             // command inputs
             oldPanel = commandsPanel;
             commandsPanel = newPanel("Command Inputs");
-            for (ISensorControlInterface input: module.getCommandInputs().values())
+            for (IStreamingControlInterface input: module.getCommandInputs().values())
             {
                 Component sweForm = new SWEControlForm(input);
                 ((Layout)commandsPanel.getContent()).addComponent(sweForm);

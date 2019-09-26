@@ -20,7 +20,7 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import org.sensorhub.api.common.CommandStatus;
 import org.sensorhub.api.common.CommandStatus.StatusCode;
-import org.sensorhub.api.sensor.ISensorControlInterface;
+import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.sensor.AbstractSensorControl;
 import org.vast.data.AllowedTokensImpl;
@@ -35,7 +35,7 @@ import org.vast.data.CategoryImpl;
  * @author Alex Robin
  * @since Jan 29, 2015
  */
-public class FakeSensorControl2 extends AbstractSensorControl<FakeSensor> implements ISensorControlInterface
+public class FakeSensorControl2 extends AbstractSensorControl<FakeSensor> implements IStreamingControlInterface
 {
     String name;
     int counter = 1;

@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.sensor;
 
 import org.sensorhub.api.common.CommandStatus;
+import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.procedure.ProcedureEvent;
 
 
@@ -40,7 +41,7 @@ public class SensorControlEvent extends ProcedureEvent
      * @param controlInterface sensor control interface that generated the event
      * @param status status of command at time the event is generated
      */
-    public SensorControlEvent(long timeStamp, ISensorControlInterface controlInterface, CommandStatus status)
+    public SensorControlEvent(long timeStamp, IStreamingControlInterface controlInterface, CommandStatus status)
     {
         this(timeStamp,
             controlInterface.getParentProducer().getUniqueIdentifier(),
@@ -56,7 +57,7 @@ public class SensorControlEvent extends ProcedureEvent
      * @param controlInterface sensor control interface that generated the event
      * @param status status of command at time the event is generated
      */
-    public SensorControlEvent(long timeStamp, String sensorID, ISensorControlInterface controlInterface, CommandStatus status)
+    public SensorControlEvent(long timeStamp, String sensorID, IStreamingControlInterface controlInterface, CommandStatus status)
     {
         super(timeStamp, controlInterface.getParentProducer().getUniqueIdentifier());        
         this.source = controlInterface;
@@ -84,8 +85,8 @@ public class SensorControlEvent extends ProcedureEvent
     
     
     @Override
-    public ISensorControlInterface getSource()
+    public IStreamingControlInterface getSource()
     {
-        return (ISensorControlInterface)this.source;
+        return (IStreamingControlInterface)this.source;
     }
 }

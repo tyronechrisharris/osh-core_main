@@ -19,8 +19,7 @@ import net.opengis.gml.v32.impl.PointImpl;
 import net.opengis.sensorml.v20.PhysicalSystem;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.sensor.ISensorControlInterface;
-import org.sensorhub.api.sensor.ISensorDataInterface;
+import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.sensor.AbstractSensorModule;
@@ -43,16 +42,16 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
     }
     
     
-    public void setDataInterfaces(ISensorDataInterface... outputs) throws SensorException
+    public void setDataInterfaces(IStreamingDataInterface... outputs) throws SensorException
     {
-        for (ISensorDataInterface o: outputs)
+        for (IStreamingDataInterface o: outputs)
             addOutput(o, false);
     }
     
     
-    public void setControlInterfaces(ISensorControlInterface... inputs) throws SensorException
+    public void setControlInterfaces(IStreamingControlInterface... inputs) throws SensorException
     {
-        for (ISensorControlInterface i: inputs)
+        for (IStreamingControlInterface i: inputs)
             addControlInput(i);
     }
     
@@ -78,7 +77,7 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
     @Override
     public void stop() throws SensorHubException
     {
-        for (ISensorDataInterface o: getObservationOutputs().values())
+        for (IStreamingDataInterface o: getObservationOutputs().values())
             ((IFakeSensorOutput)o).stop();
     }
 
@@ -113,7 +112,7 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
 
     public void startSendingData(boolean waitForListeners)
     {
-        for (ISensorDataInterface o: getObservationOutputs().values())
+        for (IStreamingDataInterface o: getObservationOutputs().values())
         {
             o.getLatestRecord();
             ((IFakeSensorOutput)o).start(waitForListeners);
