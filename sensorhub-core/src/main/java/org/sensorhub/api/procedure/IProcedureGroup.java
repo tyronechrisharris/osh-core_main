@@ -30,7 +30,7 @@ public interface IProcedureGroup<T extends IProcedureWithState> extends IProcedu
 {
     
     /**
-     * @return map of member procedures (procedure UID -> IProcedure object)
+     * @return Map of member procedures (procedure UID -> IProcedure object)
      */
     public Map<String, ? extends T> getMembers();
 }

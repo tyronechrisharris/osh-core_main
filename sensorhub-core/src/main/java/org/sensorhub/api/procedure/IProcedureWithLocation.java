@@ -33,7 +33,7 @@ public interface IProcedureWithLocation extends IProcedureWithState, IGeoFeature
      * Retrieves the current geographic location of the procedure.
      * <p><i>Note that the entity location can be different from the feature of interest
      * location/geometry.</i></p>
-     * @return the procedure location as a GML point or null if unknown
+     * @return The procedure location as a GML point or null if unknown
      */
     public Point getCurrentLocation();
     

@@ -24,15 +24,18 @@ import org.sensorhub.impl.event.EventSourceInfo;
 /**
  * <p>
  * There is one procedure registry per sensor hub that is used to keep the list
- * and state of all registered procedures (i.e. sensors, actuators, processes,
- * other data sources) on this hub. It also generates events when procedures are
+ * and state of all procedures registered on this hub. (i.e. sensors, actuators,
+ * processes, other data sources). It also generates events when procedures are
  * added and removed from the registry, and usually provides ways to persist
- * this state across restarts.
- * </p>
- * <p>
+ * procedure state across restarts.
+ * </p><p>
+ * <i>Note that the procedure registry not only exposes live procedures that are
+ * connected to the hub, but also any procedure whose data is available from
+ * the {@link IHistoricalObsRegistry}.</i>
+ * </p><p>
  * <i>Note that implementations of this interface may not expose the driver/module
  * objects directly. They usually keep a shadow object reflecting the state of
- * the procedure instead; thus clients of this interface should to rely on
+ * the procedure instead; thus clients of this interface should not rely on
  * specific functionality of the module itself (e.g. sensor driver).</i>
  * </p>
  *

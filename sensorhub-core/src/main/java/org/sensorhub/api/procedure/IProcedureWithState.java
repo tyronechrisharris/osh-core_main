@@ -36,14 +36,14 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
 {
     
     /**
-     * @return the parent procedure group or null if this procedure is not 
+     * @return The parent procedure group or null if this procedure is not 
      * a member of any group
      */
     public IProcedureGroup<? extends IProcedureWithState> getParentGroup();
     
     
     /**
-     * @return the unique ID of the parent procedure group or null if this
+     * @return The unique ID of the parent procedure group or null if this
      * procedure is not a member of any group
      */
     public String getParentGroupUID();
@@ -55,8 +55,8 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
      * a valid unique identifier.<br/>
      * In the case of a module generating data from multiple procedures (e.g. 
      * sensor network), this returns the description of the group as a whole.
-     * @return AbstractProcess SensorML description of the procedure or
-     * null if none is available at the time of the call 
+     * @return The SensorML description of the procedure or null if none
+     * is available at the time of the call 
      */
     public AbstractProcess getCurrentDescription();
 
@@ -64,7 +64,7 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
     /**
      * Used to check when the SensorML description was last updated.
      * This is useful to avoid requesting the object when it hasn't changed.
-     * @return date/time of last description update as unix time (millis since 1970)
+     * @return Date/time of last description update as unix time (millis since 1970)
      * or {@link Long#MIN_VALUE} if description was never updated.
      */
     public long getLastDescriptionUpdate();
@@ -73,7 +73,7 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
     /**
      * Check if the procedure is enabled. A procedure marked as disabled
      * is not producing live data but historical data may still be available.
-     * @return true if procedure is enabled, false otherwise
+     * @return True if procedure is enabled, false otherwise
      */
     public boolean isEnabled();
 

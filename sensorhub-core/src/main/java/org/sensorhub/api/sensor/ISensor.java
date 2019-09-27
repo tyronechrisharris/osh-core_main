@@ -19,7 +19,6 @@ import org.sensorhub.api.data.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.procedure.IProcedureWithLocation;
-import net.opengis.sensorml.v20.AbstractPhysicalProcess;
 
 
 /**
