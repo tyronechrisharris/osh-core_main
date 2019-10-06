@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.data;
 
+import java.time.Instant;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.procedure.ProcedureEvent;
 import org.vast.util.Asserts;
@@ -32,24 +33,18 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class DataEvent extends ProcedureEvent
 {
+    protected String foiUID;
+    protected Instant resultTime;
     protected String channelID;
-    
-    
-	/**
-	 * New data that triggered this event.<br/>
-	 * Multiple records can be associated to a single event because with high
-	 * rate producers, it is often not practical to generate an event for
-	 * every single record of measurements.
-	 */
-	protected DataBlock[] records;
+    protected DataBlock[] records;
     
     
     /**
      * Constructs a data event associated to a specific procedure and channel
-     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
+     * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
      * @param procedureUID Unique ID of procedure that produced the data records
      * @param channelID ID/name of the output interface that generated the data
-     * @param records arrays of records that triggered this notification
+     * @param records Array of data records that triggered this event
      */
     public DataEvent(long timeStamp, String procedureUID, String channelID, DataBlock ... records)
     {
@@ -61,23 +56,72 @@ public class DataEvent extends ProcedureEvent
         this.channelID = channelID;
         this.records = records;
     }
-	
-	
-	/**
-	 * Constructs a data event associated to the procedure that is the parent 
-	 * of the given data interface
-	 * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
+    
+    
+    /**
+     * Helper constructor to construct a data event associated to the procedure
+     * that is the parent of the given data interface
+     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param dataInterface stream interface that generated the associated data
-	 * @param records arrays of records that triggered this notification
-	 */
-	public DataEvent(long timeStamp, IStreamingDataInterface dataInterface, DataBlock ... records)
-	{
-	    this(timeStamp,
-	         dataInterface.getParentProducer().getUniqueIdentifier(),
-	         dataInterface.getName(),
-	         records);
+     * @param records Array of records that triggered this event
+     */
+    public DataEvent(long timeStamp, IStreamingDataInterface dataInterface, DataBlock ... records)
+    {
+        this(timeStamp,
+             dataInterface.getParentProducer().getUniqueIdentifier(),
+             dataInterface.getName(),
+             records);
         this.source = dataInterface;
-	}
+    }
+    
+    
+    /**
+     * Constructs a data event associated to a specific procedure, channel and FOI
+     * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
+     * @param procedureUID Unique ID of procedure that produced the data records
+     * @param channelID ID/name of the output interface that generated the data
+     * @param foiUID Unique ID of feature of interest that this data applies to
+     * @param records Array of data records that triggered this event
+     */
+    public DataEvent(long timeStamp, String procedureUID, String channelID, String foiUID, DataBlock ... records)
+    {
+        this(timeStamp, procedureUID, channelID, records);
+        this.foiUID = foiUID;
+    }
+    
+    
+    /**
+     * Constructs a data event associated to a specific procedure and channel,
+     * and tagged by a specific result time.
+     * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
+     * @param procedureUID Unique ID of procedure that produced the data records
+     * @param channelID ID/name of the output interface that generated the data
+     * @param resultTime Time at which the data was generated (e.g. model run time)
+     * @param records Array of data records that triggered this event
+     */
+    public DataEvent(long timeStamp, String procedureUID, String channelID, Instant resultTime, DataBlock ... records)
+    {
+        this(timeStamp, procedureUID, channelID, records);
+        this.resultTime = resultTime;
+    }
+    
+    
+    /**
+     * Constructs a data event associated to a specific procedure, channel and FOI,
+     * and tagged by a specific result time.
+     * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
+     * @param procedureUID Unique ID of procedure that produced the data records
+     * @param channelID ID/name of the output interface that generated the data
+     * @param resultTime Time at which the data was generated (e.g. model run time)
+     * @param foiUID 
+     * @param records Array of data records that triggered this event
+     */
+    public DataEvent(long timeStamp, String procedureUID, String channelID, Instant resultTime, String foiUID, DataBlock ... records)
+    {
+        this(timeStamp, procedureUID, channelID, records);
+        this.resultTime = resultTime;
+        this.foiUID = foiUID;
+    }
 	
 	
     @Override
@@ -103,10 +147,32 @@ public class DataEvent extends ProcedureEvent
     {
         return channelID;
     }
+    
+    
+    /**
+     * @return The time at which the data records were generated by the procedure
+     */
+    public Instant getResultTime()
+    {
+        return resultTime;
+    }
+    
+    
+    /**
+     * @return Unique ID of feature of interest that this data applies to
+     */
+    public String getFoiUID()
+    {
+        return foiUID;
+    }
 
 
     /**
-     * @return list of data records produced
+     * @return List of data records attached to this event.<br/>
+     * Multiple records can be associated to a single event because with high
+     * rate or batch producers (e.g. models), it is often not practical or a
+     * waste of resources to generate an event for every single record of measurements.
+     * Note that all records share the same procedure, foi and result time.
      */
     public DataBlock[] getRecords()
     {
