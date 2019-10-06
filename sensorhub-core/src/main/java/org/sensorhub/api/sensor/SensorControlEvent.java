@@ -29,10 +29,7 @@ import org.sensorhub.api.procedure.ProcedureEvent;
  */
 public class SensorControlEvent extends ProcedureEvent
 {
-	/**
-	 * Status of the command that triggered this event
-	 */
-    protected CommandStatus status;
+	protected CommandStatus status;
 	
 	
 	/**
@@ -63,21 +60,11 @@ public class SensorControlEvent extends ProcedureEvent
         this.source = controlInterface;
         this.status = status;
     }
-    
-    
-    /**
-     * Gets the unique ID of the sensor related to this event.<br/>
-     * For sensor networks, it can be either the ID of the network as a whole 
-     * (if the command was global) or the ID of one of the sensor in the
-     * network (if the command was sent to a particular sensor).
-     * @return the ID of the sensor that this event refers to
-     */
-    public String getSensorID()
-    {
-        return sourceID;
-    }
 	
 
+    /**
+     * @return The command status when this event was generated
+     */
     public CommandStatus getStatus()
     {
         return status;
