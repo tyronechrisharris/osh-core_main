@@ -45,7 +45,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
 {
     private ISensorHub hub;
     protected Logger logger;
-    protected IEventHandler eventHandler;
+    protected IEventHandler eventHandler = new BasicEventHandler();
     protected IEventSourceInfo eventSrcInfo;
     protected ConfigType config;
     protected ModuleState state = ModuleState.LOADED;
@@ -113,9 +113,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         if (this.config != config)
         {
             this.config = config;
-            
-            // set event handler
-            this.eventHandler = new BasicEventHandler();
             
             // set default security handler
             this.securityHandler = new ModuleSecurity(this, "all", false);

@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.sensor;
 
 import java.net.URL;
+import java.util.Date;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.sensor.PositionConfig.LLALocation;
@@ -34,6 +35,10 @@ public class SensorConfig extends ModuleConfig
     
     @DisplayInfo(label="SensorML URL", desc="URL of SensorML file providing the base description of the sensor")
     public String sensorML;
+    
+    
+    @DisplayInfo(desc="Time at which the SensorML description was last updated")
+    public Date lastUpdated = new Date(); 
     
     
     @DisplayInfo(desc="List of hidden sensor interfaces")    

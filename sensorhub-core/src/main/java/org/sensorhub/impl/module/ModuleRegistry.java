@@ -175,7 +175,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     /**
      * Instantiates and loads a module using the given configuration<br/>
      * This method is asynchronous so, when it returns without error, the module is guaranteed
-     * to be loaded but not necessarilly initialized or started. The listener will be notified
+     * to be loaded but not necessarily initialized or started. The listener will be notified
      * when the module's state changes further.
      * @param config Configuration class to use to instantiate the module
      * @param listener Listener to register for receiving the module's events
@@ -362,7 +362,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     
     
     /**
-     * Inits the module asynchronously in a separate thread
+     * Initializes the module asynchronously in a separate thread
      * @param module module instance to initialize
      * @param force set to true to force a reinit, even if module was already initialized
      * @throws SensorHubException
@@ -687,7 +687,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 module.stop();
                 getStateManager(moduleID).cleanup();
                 module.cleanup();
-                unregisterModule(module);
+                
+                if (module instanceof IProcedureWithState)
+                    hub.getProcedureRegistry().unregister((IProcedureWithState)module);
             }
             
             if (log.isDebugEnabled())
@@ -1102,31 +1104,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         catch (SensorHubException e)
         {
             log.error("Cannot load state of module {}", moduleString, e);
-        }        
-        
-        registerModule(module);
-    }
-    
-    
-    /*
-     * Register module with proper managers
-     */
-    protected void registerModule(IModule<?> module)
-    {
-        if (module instanceof IProcedureWithState)
-            hub.getProcedureRegistry().register((IProcedureWithState)module);
-    }
-    
-    
-    /*
-     * Unregister module from managers
-     */
-    protected void unregisterModule(IModule<?> module)
-    {
-        if (module instanceof IProcedureWithState) 
-        {
-            hub.getProcedureRegistry().unregister((IProcedureWithState)module);
-            hub.getProcedureRegistry().remove(((IProcedureWithState)module).getUniqueIdentifier());
         }
     }
     

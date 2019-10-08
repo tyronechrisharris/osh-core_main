@@ -39,9 +39,12 @@ import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModuleStateManager;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.IProcedureGroup;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
+import org.sensorhub.api.procedure.ProcedureDisabledEvent;
+import org.sensorhub.api.procedure.ProcedureEnabledEvent;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.PositionConfig.LLALocation;
 import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
@@ -144,7 +147,11 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         }
         
         // get handler for sensor events
-        //this.eventHandler = getParentHub().getEventBus().getPublisher(getUniqueIdentifier());        
+        //this.eventHandler = getParentHub().getEventBus().getPublisher(getUniqueIdentifier()); 
+        
+        // set last description update time if provided in config
+        if (config.lastUpdated != null)
+            this.lastUpdatedSensorDescription = config.lastUpdated.getTime();
         
         // add location output if a location is provided
         LLALocation loc = config.getLocation();
@@ -547,6 +554,24 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             notifyNewDescription(System.currentTimeMillis());
         }
     }
+    
+    
+    @Override
+    protected void setState(ModuleState newState)
+    {
+        super.setState(newState);
+        
+        if (newState == ModuleState.INITIALIZED)
+        {
+            // register with procedure registry when sensor has successfully initialized
+            getParentHub().getProcedureRegistry().register(this);
+            eventHandler.publish(new ProcedureEnabledEvent(System.currentTimeMillis(), getUniqueIdentifier()));
+        }
+        else if (newState == ModuleState.STOPPED)
+        {
+            eventHandler.publish(new ProcedureDisabledEvent(System.currentTimeMillis(), getUniqueIdentifier()));
+        }
+    }
 
     
     @Override
@@ -562,9 +587,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             this.generateXmlIDFromUUID(uniqueID);
         }
         
-        Long lastUpdateTime = loader.getAsLong(STATE_LAST_SML_UPDATE);
-        if (lastUpdateTime != null)
-            this.lastUpdatedSensorDescription = lastUpdateTime;
+        //Long lastUpdateTime = loader.getAsLong(STATE_LAST_SML_UPDATE);
+        //if (lastUpdateTime != null)
+        //    this.lastUpdatedSensorDescription = lastUpdateTime;
     }
     
     
