@@ -17,7 +17,6 @@ package org.sensorhub.api.datastore;
 import java.time.Instant;
 import java.util.function.Predicate;
 import org.sensorhub.utils.ObjectUtils;
-import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 
 
@@ -233,7 +232,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public Builder withPhenomenonLocation(SpatialFilter filter)
         {
-            checkSpatialFilter();
             instance.phenomenonLocation = filter;
             return this;
         }
@@ -246,7 +244,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public Builder withDataStreams(DataStreamFilter filter)
         {
-            checkDataStreamFilter();
             instance.dataStreams = filter;
             return this;
         }
@@ -259,7 +256,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public Builder withDataStreams(Long... ids)
         {
-            checkDataStreamFilter();
             instance.dataStreams = DataStreamFilter.builder()
                 .withInternalIDs(ids)
                 .build();
@@ -274,7 +270,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public Builder withProcedures(Long... procIDs)
         {
-            checkDataStreamFilter();
             instance.dataStreams = DataStreamFilter.builder()
                 .withProcedures(procIDs)
                 .build();
@@ -290,7 +285,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public Builder withProcedure(long procID, String... outputNames)
         {
-            checkDataStreamFilter();
             instance.dataStreams = DataStreamFilter.builder()
                 .withProcedures(procID)
                 .withOutputNames(outputNames)
@@ -306,7 +300,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public Builder withFois(FoiFilter filter)
         {
-            checkFoiFilter();
             instance.foiFilter = filter;
             return this;
         }
@@ -319,7 +312,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public Builder withFois(Long... foiIDs)
         {
-            checkFoiFilter();
             instance.foiFilter = FoiFilter.builder()
                 .withInternalIDs(foiIDs)
                 .build();
@@ -334,7 +326,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public Builder withFois(String... foiUIDs)
         {
-            checkFoiFilter();
             instance.foiFilter = FoiFilter.builder()
                 .withUniqueIDs(foiUIDs)
                 .build();
@@ -375,24 +366,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         {
             instance.limit = limit;
             return this;
-        }
-        
-        
-        protected void checkSpatialFilter()
-        {
-            Asserts.checkState(instance.phenomenonLocation == null, "spatial filter already configured");
-        }
-        
-        
-        protected void checkDataStreamFilter()
-        {
-            Asserts.checkState(instance.dataStreams == null, "datastream filter already configured");
-        }
-        
-        
-        protected void checkFoiFilter()
-        {
-            Asserts.checkState(instance.foiFilter == null, "foi filter already configured");
         }
     }
 }
