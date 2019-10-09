@@ -10,10 +10,9 @@
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.datastore.FoiFilter;
 import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IObsStore;
-import org.vast.ogc.gml.GenericFeature;
+import net.opengis.gml.v32.AbstractFeature;
 
 
 /**
@@ -25,7 +24,7 @@ import org.vast.ogc.gml.GenericFeature;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<GenericFeature, FoiFilter> implements IFoiStore
+public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature> implements IFoiStore
 {
     MVObsStoreImpl obsStore;
     
@@ -43,7 +42,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<GenericFeature, FoiFi
      */
     public static MVFoiStoreImpl open(MVStore mvStore, String dataStoreName)
     {
-        MVFeatureStoreInfo dataStoreInfo = (MVFeatureStoreInfo)H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
+        MVDataStoreInfo dataStoreInfo = H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
         return (MVFoiStoreImpl)new MVFoiStoreImpl().init(mvStore, dataStoreInfo);
     }
     
@@ -54,7 +53,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<GenericFeature, FoiFi
      * @param dataStoreInfo new data store info
      * @return The new datastore instance 
      */
-    public static MVFoiStoreImpl create(MVStore mvStore, MVFeatureStoreInfo dataStoreInfo)
+    public static MVFoiStoreImpl create(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
     {
         H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         return (MVFoiStoreImpl)new MVFoiStoreImpl().init(mvStore, dataStoreInfo);

@@ -10,11 +10,10 @@
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.datastore.FeatureFilter;
 import net.opengis.gml.v32.AbstractFeature;
 
 
-public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature, FeatureFilter>
+public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature>
 {
 
     protected MVFeatureStoreImpl()
@@ -30,7 +29,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature, 
      */
     public static MVFeatureStoreImpl open(MVStore mvStore, String dataStoreName)
     {
-        MVFeatureStoreInfo dataStoreInfo = (MVFeatureStoreInfo)H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
+        MVDataStoreInfo dataStoreInfo = H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
         return (MVFeatureStoreImpl)new MVFeatureStoreImpl().init(mvStore, dataStoreInfo);
     }
     
@@ -41,7 +40,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature, 
      * @param dataStoreInfo new data store info
      * @return The new datastore instance 
      */
-    public static MVFeatureStoreImpl create(MVStore mvStore, MVFeatureStoreInfo dataStoreInfo)
+    public static MVFeatureStoreImpl create(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
     {
         H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         return (MVFeatureStoreImpl)new MVFeatureStoreImpl().init(mvStore, dataStoreInfo);

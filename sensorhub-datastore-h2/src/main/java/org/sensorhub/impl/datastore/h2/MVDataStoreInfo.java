@@ -10,8 +10,9 @@
 package org.sensorhub.impl.datastore.h2;
 
 import java.time.ZoneOffset;
-import org.sensorhub.api.datastore.IBuilder;
 import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
+
 
 /**
  * <p>
@@ -44,24 +45,19 @@ public class MVDataStoreInfo
     }
     
     
-    public static class Builder extends BaseBuilder<Builder, MVDataStoreInfo>
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static <T extends Builder> T builder()
     {
-        public Builder()
-        {
-            super(new MVDataStoreInfo());
-        }        
+        return (T)new Builder(new MVDataStoreInfo());
     }
     
     
     @SuppressWarnings("unchecked")
-    protected abstract static class BaseBuilder<B extends BaseBuilder<B, T>, T extends MVDataStoreInfo> implements IBuilder<T>
+    public static class Builder<B extends Builder<B, T>, T extends MVDataStoreInfo> extends BaseBuilder<T>
     {
-        protected T instance;
-
-
-        protected BaseBuilder(T instance)
+        protected Builder(T instance)
         {
-            this.instance = instance;
+            super(instance);
         }
 
 
@@ -82,7 +78,7 @@ public class MVDataStoreInfo
         public T build()
         {
             Asserts.checkNotNull(instance.name, "name");
-            return instance;
+            return super.build();
         }
     }
 }

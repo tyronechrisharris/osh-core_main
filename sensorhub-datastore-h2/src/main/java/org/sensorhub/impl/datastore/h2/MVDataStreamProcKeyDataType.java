@@ -15,12 +15,9 @@ Copyright (C) 2012-2018 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.nio.ByteBuffer;
-import java.time.Instant;
-import java.util.Comparator;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
-import org.sensorhub.api.datastore.FeatureKey;
 
 
 /**
@@ -31,43 +28,49 @@ import org.sensorhub.api.datastore.FeatureKey;
  * @author Alex Robin
  * @date Apr 7, 2018
  */
-class MVFeatureKeyDataType implements DataType
+class MVDataStreamProcKeyDataType implements DataType
 {
-    private static final int MIN_MEM_SIZE = 10+14+2;
-    Comparator<Instant> timeCompare = Comparator.nullsFirst(Comparator.naturalOrder());
+    private static final int MIN_MEM_SIZE = 8+8+4;
     
             
     @Override
     public int compare(Object objA, Object objB)
     {
-        FeatureKey a = (FeatureKey)objA;
-        FeatureKey b = (FeatureKey)objB;
+        MVDataStreamProcKey a = (MVDataStreamProcKey)objA;
+        MVDataStreamProcKey b = (MVDataStreamProcKey)objB;
         
-        // first compare internal ID part of the key
-        int idComp = Long.compare(a.getInternalID(), b.getInternalID());
-        if (idComp != 0)
-            return idComp;
+        // first compare procedure internal ID
+        int comp = Long.compare(a.procedureID, b.procedureID);
+        if (comp != 0)
+            return comp;
         
-        // only if IDs are the same, compare valid start time
-        return timeCompare.compare(a.getValidStartTime(), b.getValidStartTime());
+        // only if IDs are the same, compare output name
+        comp = a.outputName.compareTo(b.outputName);
+        if (comp != 0)
+            return comp;
+        
+        // only if output names are the same, compare version number
+        // sort in reverse order so that latest version is always first
+        return -Integer.compare(a.recordVersion, b.recordVersion);
     }
     
 
     @Override
     public int getMemory(Object obj)
     {
-        FeatureKey key = (FeatureKey)obj;
-        return MIN_MEM_SIZE + key.getUniqueID().length();
+        MVDataStreamProcKey key = (MVDataStreamProcKey)obj;
+        return MIN_MEM_SIZE + key.outputName.length();
     }
     
 
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        FeatureKey key = (FeatureKey)obj;
-        wbuf.putVarLong(key.getInternalID());
-        H2Utils.writeInstant(wbuf, key.getValidStartTime());
-        H2Utils.writeAsciiString(wbuf, key.getUniqueID());
+        MVDataStreamProcKey key = (MVDataStreamProcKey)obj;
+        wbuf.putVarLong(key.internalID);
+        wbuf.putVarLong(key.procedureID);
+        H2Utils.writeAsciiString(wbuf, key.outputName);
+        wbuf.putVarInt(key.recordVersion);
     }
     
 
@@ -82,15 +85,11 @@ class MVFeatureKeyDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
-        long internalID = DataUtils.readVarLong(buff); 
-        Instant startTime = H2Utils.readInstant(buff);
-        String uid = H2Utils.readAsciiString(buff);
-        
-        return FeatureKey.builder()
-                .withInternalID(internalID)
-                .withUniqueID(uid)
-                .withValidStartTime(startTime)
-                .build();
+        long internalID = DataUtils.readVarLong(buff);
+        long procID = DataUtils.readVarLong(buff);
+        String outputName = H2Utils.readAsciiString(buff);
+        int version = DataUtils.readVarInt(buff);        
+        return new MVDataStreamProcKey(internalID, procID, outputName, version);
     }
     
 

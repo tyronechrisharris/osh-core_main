@@ -38,9 +38,25 @@ public class H2Utils
     static final String DATASTORES_MAP_NAME = "@datastores";
     static final String GEOM_DIM_ERROR = "Only 2D and 3D geometries are supported";
     
+    public static final Range<Instant> ALL_TIMES_RANGE = Range.closed(Instant.MIN, Instant.MAX);
     public static final RangeFilter<Instant> ALL_TIMES_FILTER = RangeFilter.<Instant>builder()
                                                                     .withRange(Instant.MIN, Instant.MAX)
                                                                     .build();
+    
+    static class Holder<T>
+    {
+        public T value;
+    }
+    
+    
+    static class StoreInfoDataType extends KryoDataType
+    {
+        StoreInfoDataType()
+        {
+            // pre-register known types with Kryo
+            registeredClasses.put(20, MVDataStoreInfo.class);
+        }
+    }
     
     
     public static MVDataStoreInfo getDataStoreInfo(MVStore mvStore, String dataStoreName)
@@ -50,7 +66,7 @@ public class H2Utils
         
         // load datastore info
         Map<String, MVDataStoreInfo> dataStoresMap = mvStore.openMap(DATASTORES_MAP_NAME, new MVMap.Builder<String, MVDataStoreInfo>()
-                .valueType(new KryoDataType()));
+                .valueType(new StoreInfoDataType()));
         return dataStoresMap.get(dataStoreName);
     }
     
@@ -72,7 +88,7 @@ public class H2Utils
         
         Map<String, MVDataStoreInfo> dataStoresMap = mvStore.openMap(DATASTORES_MAP_NAME, 
                 new MVMap.Builder<String, MVDataStoreInfo>()
-                         .valueType(new KryoDataType()));
+                         .valueType(new StoreInfoDataType()));
         
         if (dataStoresMap.containsKey(dataStoreInfo.name))
             throw new IllegalStateException("Data store " + dataStoreInfo.name + " already exists");
@@ -81,15 +97,19 @@ public class H2Utils
     }
     
     
-    public static void writeAsciiString(WriteBuffer wbuf, String s, int len)
+    public static void writeAsciiString(WriteBuffer wbuf, String s)
     {
-        Asserts.checkArgument(len <= s.length());
-            
+        if (s == null)
+        {
+            wbuf.putVarInt(0);
+            return;
+        }
+        
         // write length
-        wbuf.putVarInt(len);
+        wbuf.putVarInt(s.length());
         
         // write ASCII chars (max 255 for ASCII)
-        for (int i = 0; i < len; i++)
+        for (int i = 0; i < s.length(); i++)
         {
             int c = s.charAt(i);
             wbuf.put((byte)c);
@@ -101,6 +121,8 @@ public class H2Utils
     {
         // read length
         int len = DataUtils.readVarInt(buf);
+        if (len == 0)
+            return null;
         
         // read ASCII chars
         char[] chars = new char[len];
@@ -139,7 +161,13 @@ public class H2Utils
     {
         long epochSeconds = DataUtils.readVarLong(buf);
         int nanos = buf.getInt();
-        return Instant.ofEpochSecond(epochSeconds, nanos);
+        
+        if (epochSeconds == Instant.MIN.getEpochSecond() && nanos == 0)
+            return Instant.MIN;
+        else if (epochSeconds == Instant.MAX.getEpochSecond() && nanos == 0)
+            return Instant.MAX;
+        else
+            return Instant.ofEpochSecond(epochSeconds, nanos);
     }
     
     

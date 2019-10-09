@@ -1,9 +1,14 @@
 /***************************** BEGIN LICENSE BLOCK ***************************
 
- The contents of this file are copyright (C) 2018, Sensia Software LLC
- All Rights Reserved. This software is the property of Sensia Software LLC.
- It cannot be duplicated, used, or distributed without the express written
- consent of Sensia Software LLC.
+The contents of this file are subject to the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one
+at http://mozilla.org/MPL/2.0/.
+
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+for the specific language governing rights and limitations under the License.
+ 
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -12,45 +17,55 @@ package org.sensorhub.impl.datastore.h2;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.Spliterator;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IObsStore;
-import org.h2.mvstore.MVMap;
+import org.sensorhub.api.datastore.IProcedureStore;
+import org.h2.mvstore.DataUtils;
+import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
+import org.sensorhub.api.datastore.DataStreamFilter;
+import org.sensorhub.api.datastore.FeatureFilter;
+import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
-import org.sensorhub.api.datastore.IProcedureStore;
+import org.sensorhub.api.datastore.IDataStreamStore;
+import org.sensorhub.api.datastore.IFeatureStore;
 import org.sensorhub.api.datastore.ObsFilter;
 import org.sensorhub.api.datastore.ObsKey;
-import org.sensorhub.api.datastore.ObsCluster;
-import org.sensorhub.api.datastore.ObsClusterFilter;
+import org.sensorhub.api.datastore.ObsStats;
+import org.sensorhub.api.datastore.ObsStatsQuery;
 import org.sensorhub.api.datastore.ObsData;
 import org.sensorhub.api.datastore.RangeFilter;
 import org.sensorhub.impl.datastore.stream.MergeSortSpliterator;
 import org.vast.util.Asserts;
+import com.google.common.base.Strings;
 import com.google.common.collect.Range;
 import net.opengis.swe.v20.DataBlock;
-import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataEncoding;
 
 
 /**
  * <p>
- * Obs Store implementation based on H2 MVStore.<br/>
- * Several obs stores can be contained in the same MVStore instance as long
- * as they have different names.
+ * Implementation of obs store based on H2 MVStore, capable of handling a
+ * single result type.
+ * </p><p>
+ * Note that the store can contain data for several data streams as long as
+ * they share the same result types. Thus no separate metadata is kept for 
+ * individual data streams.
+ * </p><p>
+ * Several instances of this store can be contained in the same MVStore
+ * as long as they have different names.
  * </p>
  *
  * @author Alex Robin
@@ -59,22 +74,25 @@ import net.opengis.swe.v20.DataEncoding;
 public class MVObsStoreImpl implements IObsStore
 {
     private static final String OBS_RECORDS_MAP_NAME = "@obs_records";
-    private static final String OBS_CLUSTERS_MAP_NAME = "@obs_clusters";
-    private static final String FOI_TIMES_MAP_NAME = "@obs_foi_times";
-    static final Instant ALL_TIMES_KEY = Instant.MIN;
-    static final Instant LOWEST_TIME_KEY = Instant.MIN.plusSeconds(1);
-    static final Instant HIGHEST_TIME_KEY = Instant.MAX;
+    private static final String OBS_SERIES_MAP_NAME = "@obs_series";
+    private static final String OBS_SERIES_FOI_MAP_NAME = "@obs_series_foi";
+    //static final Instant LOWEST_TIME_KEY = Instant.MIN.plusSeconds(1);
+    //static final Instant HIGHEST_TIME_KEY = Instant.MAX;
     
-    MVObsStoreInfo dataStoreInfo;
-    MVMap<ObsKey, ObsData> obsRecordsIndex;
-    MVMap<ObsKey, ObsCluster> obsClustersIndex;
-    MVMap<FeatureKey, FoiPeriod> foiTimesIndex;
+    MVStore mvStore;
+    MVDataStoreInfo dataStoreInfo;
+    MVDataStreamStoreImpl dataStreamStore;
+    MVBTreeMap<MVObsKey, ObsData> obsRecordsIndex;
+    MVBTreeMap<MVObsSeriesKey, MVObsSeriesInfo> obsSeriesMainIndex;
+    MVBTreeMap<MVObsSeriesKey, Boolean> obsSeriesByFoiIndex;
+    
     MVFoiStoreImpl foiStore;
     MVProcedureStoreImpl procedureStore;
+    int maxSelectedSeriesOnJoin = 200;
     
     
     private MVObsStoreImpl()
-    {        
+    {
     }
 
 
@@ -82,55 +100,56 @@ public class MVObsStoreImpl implements IObsStore
      * Opens an existing obs store with the specified name
      * @param mvStore MVStore instance containing the required maps
      * @param dataStoreName name of data store to open
-     * @param foiStore associated FOIs data store
      * @param procedureStore associated procedure descriptions data store
+     * @param foiStore associated FOIs data store
      * @return The existing datastore instance 
      */
-    public static MVObsStoreImpl open(MVStore mvStore, String dataStoreName, MVFoiStoreImpl foiStore, MVProcedureStoreImpl procedureStore)
+    public static MVObsStoreImpl open(MVStore mvStore, String dataStoreName, MVProcedureStoreImpl procedureStore, MVFoiStoreImpl foiStore)
     {
-        MVObsStoreInfo dataStoreInfo = (MVObsStoreInfo)H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
-        return new MVObsStoreImpl().init(mvStore, dataStoreInfo, foiStore, procedureStore);
+        MVDataStoreInfo dataStoreInfo = (MVDataStoreInfo)H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
+        return new MVObsStoreImpl().init(mvStore, procedureStore, foiStore, dataStoreInfo);
     }
     
     
     /**
      * Create a new obs store with the provided info
      * @param mvStore MVStore instance where the data store maps will be created
-     * @param dataStoreInfo new data store info
-     * @param foiStore associated FOIs data store
      * @param procedureStore associated procedure descriptions data store
+     * @param foiStore associated FOIs data store
+     * @param dataStoreInfo new data store info
      * @return The new datastore instance 
      */
-    public static MVObsStoreImpl create(MVStore mvStore, MVObsStoreInfo dataStoreInfo, MVFoiStoreImpl foiStore, MVProcedureStoreImpl procedureStore)
+    public static MVObsStoreImpl create(MVStore mvStore, MVProcedureStoreImpl procedureStore, MVFoiStoreImpl foiStore, MVDataStoreInfo dataStoreInfo)
     {
         H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
-        return new MVObsStoreImpl().init(mvStore, dataStoreInfo, foiStore, procedureStore);
+        return new MVObsStoreImpl().init(mvStore, procedureStore, foiStore, dataStoreInfo);
     }
     
     
-    private MVObsStoreImpl init(MVStore mvStore, MVObsStoreInfo dataStoreInfo, MVFoiStoreImpl foiStore, MVProcedureStoreImpl procedureStore)
+    private MVObsStoreImpl init(MVStore mvStore, MVProcedureStoreImpl procedureStore, MVFoiStoreImpl foiStore, MVDataStoreInfo dataStoreInfo)
     {
-        this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVObsStoreInfo.class);
+        this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
+        this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
         this.foiStore = Asserts.checkNotNull(foiStore, IFoiStore.class);
         this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
-        
+        this.dataStreamStore = new MVDataStreamStoreImpl(this, null); 
+                        
         // open observation map
         String mapName = OBS_RECORDS_MAP_NAME + ":" + dataStoreInfo.name;
-        this.obsRecordsIndex = mvStore.openMap(mapName, new MVMap.Builder<ObsKey, ObsData>()
-                .keyType(new ObsKeyDataType())
+        this.obsRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVObsKey, ObsData>()
+                .keyType(new MVObsKeyDataType())
                 .valueType(new ObsDataType()));
         
-        // open observation cluster map
-        mapName = OBS_CLUSTERS_MAP_NAME + ":" + dataStoreInfo.name;
-        this.obsClustersIndex = mvStore.openMap(mapName, new MVMap.Builder<ObsKey, ObsCluster>()
-                .keyType(new ObsKeyDataType())
-                .valueType(new ObsClusterDataType()));
+        // open observation series map
+        mapName = OBS_SERIES_MAP_NAME + ":" + dataStoreInfo.name;
+        this.obsSeriesMainIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVObsSeriesKey, MVObsSeriesInfo>()
+                .keyType(new MVObsSeriesKeyByDataStreamDataType())
+                .valueType(new MVObsSeriesInfoDataType()));
         
-        // open FOI times map
-        mapName = FOI_TIMES_MAP_NAME + ":" + dataStoreInfo.name;
-        this.foiTimesIndex = mvStore.openMap(mapName, new MVMap.Builder<FeatureKey, FoiPeriod>()
-                .keyType(new MVFeatureKeyDataType())
-                .valueType(new FoiPeriodDataType()));
+        mapName = OBS_SERIES_FOI_MAP_NAME + ":" + dataStoreInfo.name;
+        this.obsSeriesByFoiIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVObsSeriesKey, Boolean>()
+                .keyType(new MVObsSeriesKeyByFoiDataType())
+                .valueType(new MVVoidDataType()));
         
         // link all 3 stores together to enable JOIN queries
         foiStore.linkTo(this);
@@ -155,226 +174,185 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
+    public IDataStreamStore getDataStreams()
+    {
+        return dataStreamStore;
+    }
+
+
+    @Override
     public long getNumRecords()
     {
         return obsRecordsIndex.sizeAsLong();
     }
-
-
-    @Override
-    public DataComponent getRecordDescription()
-    {
-        return dataStoreInfo.recordStruct;
-    }
-
-
-    @Override
-    public DataEncoding getRecommendedEncoding()
-    {
-        return dataStoreInfo.recordEncoding;
-    }
     
     
-    /*
-     * Retrieves obs periods (either phenomenon or result time periods),
-     * filtered by procedures and FOIs and grouped by procedure
-     */
-    Stream<ObsCluster> getObsPeriodsGroupedByProcedure(ObsClusterFilter filter, Function<String, Stream<ObsCluster>> clusterStreamSupplier)
+    public Stream<Long> selectDataStreamIDs(DataStreamFilter filter)
     {
-        // if foi JOIN, prefetch selected foi IDs if needed
-        Set<String> foiIDs;
-        if (filter.getFeaturesOfInterest() != null && foiStore != null)
+        if (filter.getInternalIDs() != null &&
+            filter.getObservedProperties() == null)
         {
-            foiIDs = foiStore.selectKeys(filter.getFeaturesOfInterest())
-                             .map(k -> k.getUniqueID())
-                             .collect(Collectors.toSet());
-            
-            if (foiIDs.isEmpty())
-                return Stream.empty();
-            
-            // TODO use FOI->proc index to restrict procedures?
-            
+            // if only internal IDs were specified, no need to search the feature store
+            return filter.getInternalIDs().stream();
         }
         else
-            foiIDs = null;
-        
-        // if procedure JOIN, create stream of selected procedure IDs
-        Stream<String> procIds;
-        if (filter.getProcedures() != null && procedureStore != null)
-            procIds = procedureStore.selectKeys(filter.getProcedures())
-                                      .map(k -> k.getUniqueID());
+        {
+            // otherwise select all datastream keys matching the filter
+            return dataStreamStore.selectKeys(filter);
+        }
+    }
+    
+    
+    public Stream<Long> selectFeatureIDs(IFeatureStore<FeatureKey,?> featureStore, FeatureFilter filter)
+    {
+        if (filter.getInternalIDs() != null &&
+            filter.getLocationFilter() == null)
+        {
+            // if only internal IDs were specified, no need to search the feature store
+            return filter.getInternalIDs().stream();
+        }
         else
-            procIds = Stream.of(ObsCluster.ALL_PROCEDURES);
+        {
+            // otherwise get all feature keys matching the filter from linked feature store
+            // we apply the distinct operation to make sure the same feature is not
+            // listed twice (it can happen when there exists several versions of the 
+            // same feature with different valid times)
+            return featureStore.selectKeys(filter)
+                .map(k -> k.getInternalID())
+                .distinct();
+        }
+    }
+    
+    
+    Stream<MVObsSeriesInfo> getAllObsSeries(RangeFilter<Instant> resultTimeRange)
+    {
+        MVObsSeriesKey first = new MVObsSeriesKey(0, 0, resultTimeRange.getMin());
+        MVObsSeriesKey last = new MVObsSeriesKey(Long.MAX_VALUE, Long.MAX_VALUE, resultTimeRange.getMax());        
+        RangeCursor<MVObsSeriesKey, MVObsSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
         
-        // create flatMap of obs period for all selected procedures
-        Stream<ObsCluster> obsPeriods = procIds.flatMap(clusterStreamSupplier);
+        return cursor.entryStream()
+            .filter(e -> resultTimeRange.test(e.getKey().resultTime))
+            .map(e -> {
+                e.getValue().key = e.getKey();
+                return e.getValue();
+            });
+    }
+    
+    
+    Stream<MVObsSeriesInfo> getObsSeriesByDataStream(long dataStreamID, Range<Instant> resultTimeRange, boolean lastResultOnly)
+    {
+        // special case when last result is requested
+        if (lastResultOnly)
+        {
+            MVObsSeriesKey key = new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
+            MVObsSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
+            if (lastKey.dataStreamID != dataStreamID)
+                return null;
+            resultTimeRange = Range.singleton(lastKey.resultTime);
+        }
+       
+        // scan series for all FOIs of the selected procedure and result times
+        MVObsSeriesKey first = new MVObsSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
+        MVObsSeriesKey last = new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
+        RangeCursor<MVObsSeriesKey, MVObsSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
         
-        // filter with FOIs id specified
-        if (foiIDs != null)
-            return obsPeriods.filter(p -> foiIDs.contains(p.getFoiID())).limit(filter.getLimit());
-        else
-            return obsPeriods.limit(filter.getLimit());
+        return cursor.entryStream()
+            .map(e -> {
+                MVObsSeriesInfo series = e.getValue();
+                series.key = e.getKey();
+                return series;
+            });
     }
     
     
-    ObsKey getFirstObsPeriod(String procedureID, Instant start)
+    Stream<MVObsSeriesInfo> getObsSeriesByFoi(long foiID, Range<Instant> resultTimeRange, boolean lastResultOnly)
     {
-        ObsKey beforeAll = ObsKey.builder()
-                .withProcedureID(procedureID)
-                .withPhenomenonTime(start)
-                .build();
-        return obsClustersIndex.ceilingKey(beforeAll);
-    }
-    
-    
-    ObsKey getLastObsPeriod(String procedureID, Instant end)
-    {
-        ObsKey afterAll = ObsKey.builder()
-                .withProcedureID(procedureID)
-                .withPhenomenonTime(end)
-                .build();
-        return obsClustersIndex.floorKey(afterAll);
-    }
-
-
-    @Override
-    public Range<Instant> getPhenomenonTimeRange()
-    {
-        if (obsClustersIndex.isEmpty())
-            return null;
+        // special case when last result is requested
+        if (lastResultOnly)
+        {
+            MVObsSeriesKey key = new MVObsSeriesKey(Long.MAX_VALUE, foiID, Instant.MAX);
+            MVObsSeriesKey lastKey = obsSeriesByFoiIndex.floorKey(key);
+            if (lastKey.foiID != foiID)
+                return null;
+            resultTimeRange = Range.singleton(lastKey.resultTime);
+        }
+       
+        // scan series for all procedures that produced observations of the selected FOI
+        final Range<Instant> finalResultTimeRange = resultTimeRange;
+        MVObsSeriesKey first = new MVObsSeriesKey(0, foiID, resultTimeRange.lowerEndpoint());
+        MVObsSeriesKey last = new MVObsSeriesKey(Long.MAX_VALUE, foiID, resultTimeRange.upperEndpoint());
+        RangeCursor<MVObsSeriesKey, Boolean> cursor = new RangeCursor<>(obsSeriesByFoiIndex, first, last);
         
-        ObsKey first = getFirstObsPeriod(ObsCluster.ALL_PROCEDURES, LOWEST_TIME_KEY);
-        ObsKey last = getLastObsPeriod(ObsCluster.ALL_PROCEDURES, HIGHEST_TIME_KEY);        
-        return Range.closed(first.getPhenomenonTime(), last.getPhenomenonTime());
-    }
-
-
-    @Override
-    public Duration getPhenomenonTimeStep()
-    {
-        return dataStoreInfo.samplingPeriod;
-    }
-
-
-    @Override
-    public Stream<ObsCluster> getObsClustersByPhenomenonTime(ObsClusterFilter filter)
-    {
-        return getObsPeriodsGroupedByProcedure(filter, procID -> {
-            // restrict to selected phenomenon time period only
-            ObsKey first = getFirstObsPeriod(procID, filter.getTimeRange().getMin());
-            ObsKey last = getLastObsPeriod(procID, filter.getTimeRange().getMax());
-            RangeCursor<ObsKey, ObsCluster> cursor = new RangeCursor<>(obsClustersIndex, first, last);
-            return StreamSupport.stream(cursor.valueIterator(), false);
-        });
+        return cursor.keyStream()
+            .filter(k -> finalResultTimeRange.test(k.resultTime))
+            .map(k -> {
+                MVObsSeriesInfo series = obsSeriesMainIndex.get(k);
+                series.key = k;
+                return series;
+            });
     }
     
     
-    ObsKey getFirstResultPeriod(String procedureID, Instant start)
+    RangeCursor<MVObsKey, ObsData> getObsCursor(long seriesID, Range<Instant> phenomenonTimeRange)
     {
-        ObsKey beforeAll = ObsKey.builder()
-                .withProcedureID(procedureID)
-                .withPhenomenonTime(ALL_TIMES_KEY)
-                .withResultTime(start)
-                .build();
-        return obsClustersIndex.ceilingKey(beforeAll);
-    }
-    
-    
-    ObsKey getLastResultPeriod(String procedureID, Instant end)
-    {
-        ObsKey afterAll = ObsKey.builder()
-                .withProcedureID(procedureID)
-                .withPhenomenonTime(ALL_TIMES_KEY)
-                .withResultTime(end)
-                .build();
-        return obsClustersIndex.floorKey(afterAll);
-    }
-
-
-    @Override
-    public Range<Instant> getResultTimeRange()
-    {
-        if (obsClustersIndex.isEmpty())
-            return null;
-        
-        ObsKey first = getFirstResultPeriod(ObsCluster.ALL_PROCEDURES, LOWEST_TIME_KEY);
-        ObsKey last = getLastResultPeriod(ObsCluster.ALL_PROCEDURES, HIGHEST_TIME_KEY);        
-        return Range.closed(first.getResultTime(), last.getResultTime());
-    }
-
-
-    @Override
-    public Duration getResultTimeStep()
-    {
-        return dataStoreInfo.resultPeriod;
-    }
-
-
-    @Override
-    public Stream<ObsCluster> getObsClustersByResultTime(ObsClusterFilter filter)
-    {
-        return getObsPeriodsGroupedByProcedure(filter, procID -> {
-            // restrict to selected result time period only
-            ObsKey first = getFirstResultPeriod(procID, filter.getTimeRange().getMin());
-            ObsKey last = getLastResultPeriod(procID, filter.getTimeRange().getMax());
-            RangeCursor<ObsKey, ObsCluster> cursor = new RangeCursor<>(obsClustersIndex, first, last);
-            return StreamSupport.stream(cursor.valueIterator(), false);
-        });
-    }
-    
-    
-    RangeCursor<ObsKey, ObsData> getObsCursor(String procedureID, RangeFilter<Instant> phenomenonTime, RangeFilter<Instant> resultTime)
-    {
-        ObsKey first = ObsKey.builder()
-                             .withProcedureID(procedureID)
-                             .withResultTime(resultTime.getMin())
-                             .withPhenomenonTime(phenomenonTime.getMin())
-                             .build();
-        
-        ObsKey last = ObsKey.builder()
-                            .withProcedureID(procedureID)
-                            .withResultTime(resultTime.getMax())
-                            .withPhenomenonTime(phenomenonTime.getMax())
-                            .build();
-        
+        MVObsKey first = new MVObsKey(seriesID, phenomenonTimeRange.lowerEndpoint());
+        MVObsKey last = new MVObsKey(seriesID, phenomenonTimeRange.upperEndpoint());        
         return new RangeCursor<>(obsRecordsIndex, first, last);
     }
     
     
-    RangeCursor<ObsKey, ObsData> getObsCursor(String procedureID, Range<Instant> phenomenonTime, RangeFilter<Instant> resultTime)
+    Stream<Entry<ObsKey, ObsData>> getObsStream(MVObsSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean lastResultOnly)
     {
-        ObsKey first = ObsKey.builder()
-                             .withProcedureID(procedureID)
-                             .withResultTime(resultTime.getMin())
-                             .withPhenomenonTime(phenomenonTime.lowerEndpoint())
-                             .build();
+        // if series is a special case where all obs have resultTime = phenomenonTime
+        if (series.key.resultTime == Instant.MIN)
+        {
+            // if request is for last result only, get the obs with latest phenomenon time
+            if (lastResultOnly)
+            {
+                MVObsKey maxKey = new MVObsKey(series.id, Instant.MAX);      
+                Entry<MVObsKey, ObsData> e = obsRecordsIndex.floorEntry(maxKey);
+                if (e.getKey().seriesID == series.id)
+                    return Stream.of(mapToFullObsEntry(series, e));
+                else
+                    return Stream.empty();
+            }
+            
+            // else further restrict the requested time range using result time filter
+            phenomenonTimeRange = resultTimeRange.intersection(phenomenonTimeRange);
+        }
         
-        ObsKey last = ObsKey.builder()
-                            .withProcedureID(procedureID)
-                            .withResultTime(resultTime.getMax())
-                            .withPhenomenonTime(phenomenonTime.upperEndpoint())
-                            .build();
-        
-        return new RangeCursor<>(obsRecordsIndex, first, last);
+        // scan using a cursor on main obs index
+        // recreating full entries in the process
+        RangeCursor<MVObsKey, ObsData> cursor = getObsCursor(series.id, phenomenonTimeRange);
+        return cursor.entryStream()
+            .map(e -> {
+                return mapToFullObsEntry(series, e);
+            });
     }
     
     
-    RangeCursor<FeatureKey, FoiPeriod> getFoiTimesCursor(String foiID, RangeFilter<Instant> timeRange)
+    Entry<ObsKey, ObsData> mapToFullObsEntry(MVObsSeriesInfo obsSeries, Entry<MVObsKey, ObsData> internalEntry)
     {
-        FeatureKey first = new FeatureKey.Builder()
-                .withUniqueID(foiID)
-                .withValidStartTime(timeRange.getMin())
-                .build();
-        
-        FeatureKey last = new FeatureKey.Builder()
-                .withUniqueID(foiID)
-                .withValidStartTime(timeRange.getMax())
-                .build();
-        
-        // make sure we include first intersected period
-        first = foiTimesIndex.floorKey(first);
-        
-        return new RangeCursor<>(foiTimesIndex, first, last);
+        ObsKey key = mapToFullObsKey(obsSeries, internalEntry.getKey());            
+        return new DataUtils.MapEntry<>(key, internalEntry.getValue());
+    }
+    
+    
+    ObsKey mapToFullObsKey(MVObsSeriesInfo obsSeries, MVObsKey internalKey)
+    {
+        /*return ObsKey.builder()
+            .withPhenomenonTime(internalKey.phenomenonTime)
+            .withResultTime(obsSeries.key.resultTime)
+            .withProcedureKey(FeatureKey.builder()
+                .withInternalID(obsSeries.key.dataStreamID)
+                .withUniqueID(obsSeries.procUID)
+                .build())
+            .withFoiKey(FeatureKey.builder()
+                .withInternalID(obsSeries.key.foiID)
+                .withUniqueID(obsSeries.foiUID)
+                .build())
+            .build();*/
+        return internalKey.setSeriesInfo(obsSeries);
     }
 
 
@@ -394,90 +372,120 @@ public class MVObsStoreImpl implements IObsStore
             resultTimeFilter = filter.getResultTime();
         else
             resultTimeFilter = H2Utils.ALL_TIMES_FILTER;
+        boolean lastResultOnly = resultTimeFilter.getMin() == Instant.MAX && resultTimeFilter.getMax() == Instant.MAX;
         
-        // if procedure JOIN, create Set of selected procedure IDs
-        final Set<String> procIDs;
-        if (filter.getProcedures() != null && procedureStore != null)
+        // handle different cases of JOIN with datastreams and FOIs
+        // prepare stream of matching obs series
+        Stream<MVObsSeriesInfo> obsSeries = null;
+        if (filter.getFoiFilter() == null) // no FOI filter set
         {
-            procIDs = procedureStore.selectKeys(filter.getProcedures())
-                                    .map(k -> k.getUniqueID())
-                                    .collect(Collectors.toSet());
-            
-            if (procIDs.isEmpty())
+            if (filter.getDataStreamFilter() != null)
+            {
+                // stream directly from list of selected datastreams
+                obsSeries = selectDataStreamIDs(filter.getDataStreamFilter())
+                    .flatMap(id -> {
+                        return getObsSeriesByDataStream(id, resultTimeFilter.getRange(), lastResultOnly);
+                    });
+            }
+            else
+            {
+                // if no datastream or FOI selected, scan all series
+                obsSeries = getAllObsSeries(resultTimeFilter);
+            }
+        }
+        else if (filter.getDataStreamFilter() == null) // no datastream filter set
+        {
+            if (filter.getFoiFilter() != null)
+            {
+                // stream directly from list of selected fois
+                obsSeries = selectFeatureIDs(foiStore, filter.getFoiFilter())
+                    .flatMap(id -> {
+                        return getObsSeriesByFoi(id, resultTimeFilter.getRange(), lastResultOnly);
+                    });
+            }
+        }
+        else // both datastream and FOI filters are set
+        {
+            // create set of selected datastreams
+            AtomicInteger counter = new AtomicInteger();
+            Set<Long> dataStreamIDs = selectDataStreamIDs(filter.getDataStreamFilter())
+                .peek(s -> {
+                    // make sure set size cannot go over a threshold
+                    if (counter.incrementAndGet() >= 100*maxSelectedSeriesOnJoin)
+                        throw new IllegalStateException("Too many datastreams selected. Please refine your filter");                    
+                })
+                .collect(Collectors.toSet());
+
+            if (dataStreamIDs.isEmpty())
                 return Stream.empty();
-        }
-        else
-            procIDs = procedureStore.getAllFeatureIDs()
-                                    .collect(Collectors.toSet());
-        
-        // if foi JOIN, prefetch selected foi IDs if needed
-        // and build procedure ID to FOI periods map
-        final Map<String, List<FoiPeriod>> procToFoisMap;
-        if (filter.getFeaturesOfInterest() != null && foiStore != null)
-        {
-            Stream<String> foiIDs = foiStore.selectKeys(filter.getFeaturesOfInterest())
-                                            .map(k -> k.getUniqueID());
             
-            // stream periods for each FOI
-            Stream<FoiPeriod> foiPeriods = foiIDs.flatMap(foiID -> {
-                return StreamSupport.stream(
-                    getFoiTimesCursor(foiID, phenomenonTimeFilter).valueIterator(),
-                    false
-                );
-            });
-            
-            // filter with selected procIDs
-            if (procIDs != null)
-                foiPeriods = foiPeriods.filter(period -> procIDs.contains(period.getProcedureID()));
-            
-            // collect and group by procedure ID
-            procToFoisMap = foiPeriods.collect(
-                    Collectors.<FoiPeriod, String>groupingBy(period -> period.getProcedureID()));
-            
-            if (procToFoisMap.isEmpty())
-                return Stream.empty();
-        }
-        else
-            procToFoisMap = null;
-        
-        // create obs streams for each selected procedure
-        final ArrayList<Spliterator<Entry<ObsKey, ObsData>>> obsIterators;
-        if (procToFoisMap != null)
-        {
-            obsIterators = new ArrayList<>(procToFoisMap.size());
-            procToFoisMap.forEach((procID, foiPeriods) -> {
-                for (FoiPeriod period: foiPeriods) {                    
-                    RangeCursor<ObsKey, ObsData> cursor = getObsCursor(procID, period.getPhenomenonTimeRange(), resultTimeFilter);
-                    obsIterators.add(cursor.entryIterator());
-                }
-            });
-        }
-        else
-        {
-            obsIterators = new ArrayList<>(procIDs.size());
-            procIDs.forEach((procID) -> {
-                RangeCursor<ObsKey, ObsData> cursor = getObsCursor(procID, phenomenonTimeFilter, resultTimeFilter);
-                obsIterators.add(cursor.entryIterator());
-            });
+            // stream from fois and filter on datastream IDs
+            obsSeries = selectFeatureIDs(foiStore, filter.getFoiFilter())
+                .flatMap(id -> {
+                    return getObsSeriesByFoi(id, resultTimeFilter.getRange(), lastResultOnly)
+                        .filter(s -> dataStreamIDs.contains(s.key.dataStreamID));
+                });
         }
         
-        // stream and merge obs from all selected procedures and time periods
+        // create obs streams for each selected series
+        // and keep all spliterators in array list
+        final ArrayList<Spliterator<Entry<ObsKey, ObsData>>> obsIterators = new ArrayList<>(100);
+        obsIterators.add(obsSeries
+            .peek(s -> {
+                // make sure list size cannot go over a threshold
+                if (obsIterators.size() >= maxSelectedSeriesOnJoin)
+                    throw new IllegalStateException("Too many datastreams or features of interest selected. Please refine your filter");
+            })
+            .flatMap(series -> {
+                Stream<Entry<ObsKey, ObsData>> obsStream = getObsStream(series, 
+                    resultTimeFilter.getRange(),
+                    phenomenonTimeFilter.getRange(),
+                    lastResultOnly);
+                return getPostFilteredResultStream(obsStream, filter);
+            })
+            .spliterator());        
+        
+        // TODO group by result time when series with different result times are selected
+        
+        // stream and merge obs from all selected datastreams and time periods
         MergeSortSpliterator<Entry<ObsKey, ObsData>> mergeSortIt = new MergeSortSpliterator<>(obsIterators,
-                (e1, e2) -> e1.getKey().getPhenomenonTime().compareTo(e2.getKey().getPhenomenonTime()));
-                
-        return StreamSupport.stream(mergeSortIt, false);
+                (e1, e2) -> e1.getKey().getPhenomenonTime().compareTo(e2.getKey().getPhenomenonTime()));         
+               
+        // stream output of merge sort iterator + apply limit        
+        return StreamSupport.stream(mergeSortIt, false)
+            .limit(filter.getLimit());
     }
-
-
-    @Override
-    public Stream<ObsData> select(ObsFilter filter)
+    
+    
+    Stream<Entry<ObsKey, ObsData>> getPostFilteredResultStream(Stream<Entry<ObsKey, ObsData>> resultStream, ObsFilter filter)
     {
-        return selectEntries(filter).map(e -> e.getValue());
+        if (filter.getKeyPredicate() != null)
+            resultStream = resultStream.filter(e -> filter.testKeyPredicate(e.getKey()));
+        
+        if (filter.getValuePredicate() != null)
+            resultStream = resultStream.filter(e -> filter.testValuePredicate(e.getValue()));
+        
+        return resultStream;
+    }
+    
+
+    @Override
+    public Stream<DataBlock> selectResults(ObsFilter filter)
+    {
+        return select(filter).map(obs -> obs.getResult());
+    }
+        
+    
+    Range<Instant> getDataStreamResultTimeRange(long dataStreamID)
+    {
+        MVObsSeriesKey firstKey = obsSeriesMainIndex.ceilingKey(new MVObsSeriesKey(dataStreamID, 0, Instant.MIN));
+        MVObsSeriesKey lastKey = obsSeriesMainIndex.floorKey(new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX));
+        return Range.closed(firstKey.resultTime, lastKey.resultTime);
     }
 
 
     @Override
-    public Stream<DataBlock> selectResults(ObsFilter query)
+    public Stream<ObsStats> getStatistics(ObsStatsQuery query)
     {
         // TODO Auto-generated method stub
         return null;
@@ -485,44 +493,67 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
-    public Stream<ObsKey> selectKeys(ObsFilter filter)
-    {
-        return selectEntries(filter).map(e -> e.getKey());
-    }
-
-
-    @Override
-    public Stream<ObsKey> removeEntries(ObsFilter filter)
-    {
-        // TODO optimize this?
-        return selectKeys(filter).peek(k -> remove(k));
-    }
-
-
-    @Override
-    public long countMatchingEntries(ObsFilter filter, long maxCount)
+    public long countMatchingEntries(ObsFilter filter)
     {
         // TODO implement faster method for some special cases
         // i.e. when no predicates are used
         // can make use of H2 index counting feature
         
-        return selectEntries(filter).limit(maxCount).count();
+        return selectEntries(filter).limit(filter.getLimit()).count();
     }
 
 
     @Override
     public void clear()
     {
-        obsRecordsIndex.clear();
-        obsClustersIndex.clear();
-        foiTimesIndex.clear();
+        // synchronize on MVStore to avoid autocommit in the middle of things
+        synchronized (mvStore)
+        {
+            long currentVersion = mvStore.getCurrentVersion();
+            
+            try
+            {
+                obsRecordsIndex.clear();
+                obsSeriesByFoiIndex.clear();
+                obsSeriesMainIndex.clear();
+            }
+            catch (Exception e)
+            {
+                mvStore.rollbackTo(currentVersion);
+                throw e;
+            }
+        }
+    }
+    
+    
+    MVObsSeriesKey getObsSeriesKey(ObsKey key)
+    {
+        return new MVObsSeriesKey(
+            key.getDataStreamID(),
+            key.getFoiID() == null ? 0 : key.getFoiID().getInternalID(),
+            key.getResultTime().equals(key.getPhenomenonTime()) ? Instant.MIN : key.getResultTime());
+    }
+    
+    
+    MVObsKey getMVObsKey(Object keyObj)
+    {
+        Asserts.checkArgument(keyObj instanceof ObsKey, "key must be a ObsKey");
+        ObsKey key = (ObsKey)keyObj;
+        
+        MVObsSeriesKey seriesKey = getObsSeriesKey(key);
+        MVObsSeriesInfo series = obsSeriesMainIndex.get(seriesKey);
+        if (series == null)
+            return null;
+        
+        return new MVObsKey(series.id, key.getPhenomenonTime());
     }
 
 
     @Override
     public boolean containsKey(Object key)
     {
-        return obsRecordsIndex.containsKey(key);
+        MVObsKey obsKey = getMVObsKey(key);
+        return obsKey == null ? false : obsRecordsIndex.containsKey(obsKey);
     }
 
 
@@ -534,16 +565,10 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
-    public Set<Entry<ObsKey, ObsData>> entrySet()
-    {
-        return obsRecordsIndex.entrySet();
-    }
-
-
-    @Override
     public ObsData get(Object key)
     {
-        return obsRecordsIndex.get(key);
+        MVObsKey obsKey = getMVObsKey(key);
+        return obsKey == null ? null : obsRecordsIndex.get(obsKey);
     }
 
 
@@ -555,50 +580,151 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
+    public Set<Entry<ObsKey, ObsData>> entrySet()
+    {
+        return new AbstractSet<>() {        
+            @Override
+            public Iterator<Entry<ObsKey, ObsData>> iterator() {
+                return getAllObsSeries(H2Utils.ALL_TIMES_FILTER)
+                    .flatMap(series -> {
+                        RangeCursor<MVObsKey, ObsData> cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
+                        return cursor.entryStream().map(e -> {
+                            return mapToFullObsEntry(series, e);
+                        });
+                    }).iterator();
+            }
+
+            @Override
+            public int size() {
+                return obsRecordsIndex.size();
+            }
+
+            @Override
+            public boolean contains(Object o) {
+                return MVObsStoreImpl.this.containsKey(o);
+            }
+        };
+    }
+
+
+    @Override
     public Set<ObsKey> keySet()
     {
-        return obsRecordsIndex.keySet();
+        return new AbstractSet<>() {        
+            @Override
+            public Iterator<ObsKey> iterator() {
+                return getAllObsSeries(H2Utils.ALL_TIMES_FILTER)
+                    .flatMap(series -> {
+                        RangeCursor<MVObsKey, ObsData> cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
+                        return cursor.keyStream().map(e -> {
+                            return mapToFullObsKey(series, e);
+                        });
+                    }).iterator();
+            }
+
+            @Override
+            public int size() {
+                return obsRecordsIndex.size();
+            }
+
+            @Override
+            public boolean contains(Object o) {
+                return MVObsStoreImpl.this.containsKey(o);
+            }
+        };
     }
 
 
     @Override
-    public synchronized ObsData put(ObsKey key, ObsData value)
+    public ObsData put(ObsKey key, ObsData value)
     {
-        ObsData oldObs = obsRecordsIndex.put(key, value);
-        updateObsPeriods(key);
-        return oldObs;
+        // synchronize on MVStore to avoid autocommit in the middle of things
+        synchronized (mvStore)
+        {
+            long currentVersion = mvStore.getCurrentVersion();
+            
+            try
+            {
+                MVObsSeriesKey seriesKey = new MVObsSeriesKey(
+                    key.getDataStreamID(),
+                    key.getFoiID() == null ? 0 : key.getFoiID().getInternalID(),
+                    key.getResultTime().equals(key.getPhenomenonTime()) ? Instant.MIN : key.getResultTime());
+                
+                MVObsSeriesInfo series = obsSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
+                    
+                    // if foi UID was not provided, try to get it from linked datastore
+                    String foiUID = null;
+                    if (key.getFoiID() != null && key.getFoiID().getInternalID() > 0)
+                    {
+                        foiUID = key.getFoiID().getUniqueID();
+                        if (foiUID == null)
+                            foiUID = fetchFeatureUID(key.getFoiID().getInternalID(), foiStore);
+                        
+                        Asserts.checkArgument(!Strings.isNullOrEmpty(foiUID),
+                            "Foi UID must be known when inserting a new observation");
+                    }
+                    
+                    // also update the FOI to procedure mapping if needed
+                    if (key.getFoiID() != null)
+                        obsSeriesByFoiIndex.putIfAbsent(seriesKey, Boolean.TRUE);
+                    
+                    return new MVObsSeriesInfo(
+                        obsRecordsIndex.isEmpty() ? 1 : obsRecordsIndex.lastKey().seriesID + 1, foiUID);
+                });        
+                
+                // add to main obs index
+                MVObsKey obsKey = new MVObsKey(series.id, key.getPhenomenonTime());
+                return obsRecordsIndex.put(obsKey, value);
+            }
+            catch (Exception e)
+            {
+                mvStore.rollbackTo(currentVersion);
+                throw e;
+            }
+        }
     }
     
     
-    private void updateObsPeriods(ObsKey key)
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected String fetchFeatureUID(long internalID, IFeatureStore dataStore)
     {
-        // group procedure (=ALL)
-        // - last phenomenon time cluster
-        // - last result time cluster
-        // - spatial clusters
+        if (dataStore == null || internalID <= 0)
+            return null;
         
-        // member procedure
-        // - last phenomenon time cluster
-        // - last result time cluster
+        FeatureKey key = FeatureKey.builder()
+            .withInternalID(internalID)
+            .withLatestValidTime()
+            .build();
         
+        FeatureId id = dataStore.getFeatureID(key);
+        return id != null ? id.getUniqueID() : null;
     }
 
 
     @Override
-    public synchronized void putAll(Map<? extends ObsKey, ? extends ObsData> map)
+    public ObsData remove(Object keyObj)
     {
-        map.forEach((k, v) -> put(k, v));
-    }
-
-
-    @Override
-    public ObsData remove(Object key)
-    {
-        ObsData oldObs = obsRecordsIndex.remove(key);
-        
-        // TODO update other indexes
-        
-        return oldObs;
+        // synchronize on MVStore to avoid autocommit in the middle of things
+        synchronized (mvStore)
+        {
+            long currentVersion = mvStore.getCurrentVersion();
+            
+            try
+            {
+                MVObsKey key = getMVObsKey(keyObj);
+                ObsData oldObs = obsRecordsIndex.remove(key);
+                
+                // don't check and remove empty obs series here since in many cases they will be reused.
+                // it can be done automatically during cleanup/compaction phase or with specific method.
+                
+                return oldObs;
+            }
+            catch (Exception e)
+            {
+                mvStore.rollbackTo(currentVersion);
+                throw e;
+            }
+        }        
     }
 
 
@@ -617,10 +743,10 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
-    public boolean sync()
+    public void commit()
     {
+        obsRecordsIndex.getStore().commit();
         obsRecordsIndex.getStore().sync();
-        return true;
     }
 
 

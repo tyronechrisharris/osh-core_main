@@ -42,6 +42,12 @@ public class RangeCursor<K, V> extends IteratorWrapper<K, K>
     K to;
     
     
+    public RangeCursor(MVMap<K, V> map, K from)
+    {
+        this(map, from, null);
+    }
+    
+    
     public RangeCursor(MVMap<K, V> map, K from, K to)
     {
         super(map.cursor(from));
@@ -58,7 +64,7 @@ public class RangeCursor<K, V> extends IteratorWrapper<K, K>
         if (it.hasNext())
         {
             next = it.next();
-            if (map.getKeyType().compare(next, to) > 0)
+            if (to != null && map.getKeyType().compare(next, to) > 0)
                 next = null;
         }
     }

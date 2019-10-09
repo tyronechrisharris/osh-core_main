@@ -23,7 +23,7 @@ import com.google.common.collect.Range;
  */
 class FoiPeriod
 {
-    private String procedureID = null;
+    private long procedureID = 0;
     private Range<Instant> phenomenonTimeRange = null;
     
     
@@ -36,11 +36,11 @@ class FoiPeriod
     
     
     /**
-     * @return The unique ID of the procedure that produced the observations or
-     * the constant {@link #ALL_PROCEDURES} if this cluster represents
+     * @return The internal ID of the procedure that produced the observations
+     * or the constant {@link #ALL_PROCEDURES} if this cluster represents
      * observations from all procedures.
      */
-    public String getProcedureID()
+    public long getProcedureID()
     {
         return procedureID;
     }

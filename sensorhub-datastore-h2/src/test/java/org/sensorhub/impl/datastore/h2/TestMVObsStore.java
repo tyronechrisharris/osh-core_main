@@ -9,41 +9,54 @@
 
 package org.sensorhub.impl.datastore.h2;
 
+import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.nio.file.Files;
 import java.time.ZoneOffset;
 import org.h2.mvstore.MVStore;
 import org.junit.After;
-import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
+import org.junit.Test;
+import org.sensorhub.impl.datastore.AbstractTestObsStore;
 
 
-public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreImpl>
+public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
 {
-    private static String DB_FILE_PREFIX = "test-mvfeatures-";
+    private static String DB_FILE_PREFIX = "test-mvobs-";
     protected File dbFile;
     protected MVStore mvStore;
+        
     
-    
-    protected MVFeatureStoreImpl initStore(ZoneOffset timeZone) throws Exception
+    protected void initStore(ZoneOffset timeZone) throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
         dbFile.deleteOnExit();
         
         openMVStore();
         
-        MVDataStoreInfo dataStoreInfo = MVDataStoreInfo.builder()
-                .withName(DATASTORE_NAME)
-                .withTimeZone(timeZone)
-                .build();
-                
-        return MVFeatureStoreImpl.create(mvStore, dataStoreInfo);
+        this.procStore = MVProcedureStoreImpl.create(mvStore, MVDataStoreInfo.builder()
+            .withName(PROC_DATASTORE_NAME)
+            .build());
+        
+        this.foiStore = MVFoiStoreImpl.create(mvStore, MVDataStoreInfo.builder()
+            .withName(FOI_DATASTORE_NAME)
+            .build());
+        
+        this.obsStore = MVObsStoreImpl.create(mvStore,
+            (MVProcedureStoreImpl)procStore,
+            (MVFoiStoreImpl)foiStore,
+            MVDataStoreInfo.builder()
+            .withName(OBS_DATASTORE_NAME)
+            .withTimeZone(timeZone)
+            .build());
     }
     
     
     protected void forceReadBackFromStorage()
     {
         openMVStore();
-        featureStore = MVFeatureStoreImpl.open(mvStore, DATASTORE_NAME);
+        this.procStore = MVProcedureStoreImpl.open(mvStore, PROC_DATASTORE_NAME);
+        this.foiStore = MVFoiStoreImpl.open(mvStore, FOI_DATASTORE_NAME);
+        this.obsStore = MVObsStoreImpl.open(mvStore, OBS_DATASTORE_NAME, (MVProcedureStoreImpl)procStore, (MVFoiStoreImpl)foiStore);
     }
     
     
@@ -74,6 +87,16 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
                  .filter(f -> f.getFileName().toString().startsWith(DB_FILE_PREFIX))
                  .forEach(f -> f.toFile().delete());
         }            
+    }
+    
+    
+    @Test
+    public void testGetNumRecordsTwoProcedures() throws Exception
+    {
+        super.testGetNumRecordsTwoProcedures();
+        
+        // check that 2 series were created
+        assertEquals(2, obsStore.obsSeriesMainIndex.size());
     }
 
 }

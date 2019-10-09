@@ -14,42 +14,30 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.time.Instant;
-import org.sensorhub.api.datastore.FeatureId;
-import org.sensorhub.api.datastore.ObsKey;
 import org.sensorhub.utils.ObjectUtils;
-
 
 /**
  * <p>
- * Internal Observation key used to index observations by series ID.<br/>
- * The full ObsKey is reconstructed when the series info is set.
+ * Information about an observation series.<br/>
+ * We also store procedure UID and FOI UID so we can reconstruct observation
+ * keys when scanning observations.
  * </p>
  *
  * @author Alex Robin
  * @date Sep 12, 2019
  */
-class MVObsKey extends ObsKey
+class MVObsSeriesInfo
 {
-    long seriesID;
-    
-    
-    MVObsKey(long seriesID, Instant phenomenonTime)
-    {
-        this.seriesID = seriesID;
-        this.phenomenonTime = phenomenonTime;        
-    }
-    
-    
-    MVObsKey setSeriesInfo(MVObsSeriesInfo series)
-    {
-        this.dataStreamID = series.key.dataStreamID;
-        this.resultTime = series.key.resultTime;
+    transient MVObsSeriesKey key;
+    long id = 0;
+    //String procUID;
+    String foiUID;
         
-        if (series.key.foiID > 0)
-            this.foiID = new FeatureId(series.key.foiID, series.foiUID);
-        
-        return this;  
+    
+    MVObsSeriesInfo(long id, String foiUID)
+    {
+        this.id = id;
+        this.foiUID = foiUID;
     }
 
 

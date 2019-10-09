@@ -9,7 +9,11 @@
 
 package org.h2.mvstore;
 
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.BiPredicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.Page;
@@ -71,9 +75,21 @@ public class MVBTreeMap<K, V> extends MVMap<K, V>
     }
 
 
+    public Entry<K, V> higherEntry(K key)
+    {
+        return getMinMaxEntry(root, key, false, false);
+    }
+
+
     public Entry<K, V> floorEntry(K key)
     {
-        return getMinMaxEntry(root, key, true, false);
+        return getMinMaxEntry(root, key, true, true);
+    }
+
+
+    public Entry<K, V> lowerEntry(K key)
+    {
+        return getMinMaxEntry(root, key, true, true);
     }
     
     
@@ -226,6 +242,13 @@ public class MVBTreeMap<K, V> extends MVMap<K, V>
         Object result = put(c, writeVersion, key, value);
         p.setChild(index, c);
         return result;
+    }
+    
+    
+    public Stream<K> keyStream()
+    {
+        Spliterator<K> it = Spliterators.spliteratorUnknownSize(keySet().iterator(), Spliterator.DISTINCT | Spliterator.ORDERED);
+        return StreamSupport.stream(it, false);
     }
     
 

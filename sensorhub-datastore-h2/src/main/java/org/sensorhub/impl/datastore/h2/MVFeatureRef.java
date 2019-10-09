@@ -10,6 +10,7 @@
 package org.sensorhub.impl.datastore.h2;
 
 import java.time.Instant;
+import org.sensorhub.utils.ObjectUtils;
 import com.google.common.collect.Range;
 
 
@@ -43,6 +44,13 @@ public class MVFeatureRef
     public Range<Instant> getValidityPeriod()
     {
         return validityPeriod;
+    }
+
+
+    @Override
+    public String toString()
+    {
+        return ObjectUtils.toString(this, true);
     }
     
     

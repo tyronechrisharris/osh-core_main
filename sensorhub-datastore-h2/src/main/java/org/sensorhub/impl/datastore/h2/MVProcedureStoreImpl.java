@@ -9,10 +9,12 @@
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.time.ZoneOffset;
 import org.h2.mvstore.MVStore;
+import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IObsStore;
-import org.sensorhub.api.datastore.IProcedureStore;
-import org.sensorhub.api.datastore.ProcedureFilter;
+import org.sensorhub.api.procedure.IProcedureDescriptionStore;
+import net.opengis.gml.v32.TimePeriod;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
@@ -25,7 +27,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess, ProcedureFilter> implements IProcedureStore
+public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess> implements IProcedureDescriptionStore
 {
     MVObsStoreImpl obsStore;
     
@@ -43,7 +45,7 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess
      */
     public static MVProcedureStoreImpl open(MVStore mvStore, String dataStoreName)
     {
-        MVFeatureStoreInfo dataStoreInfo = (MVFeatureStoreInfo)H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
+        MVDataStoreInfo dataStoreInfo = H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
         return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo);
     }
     
@@ -54,18 +56,57 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess
      * @param dataStoreInfo new data store info
      * @return The new datastore instance 
      */
-    public static MVProcedureStoreImpl create(MVStore mvStore, MVFeatureStoreInfo dataStoreInfo)
+    public static MVProcedureStoreImpl create(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
     {
         H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo);
     }
-
-
+    
+    
     @Override
+    public synchronized AbstractProcess put(FeatureKey key, AbstractProcess value)
+    {
+        // synchronize on MVStore to avoid autocommit in the middle of things
+        synchronized (mvStore)
+        {
+            long currentVersion = mvStore.getCurrentVersion();
+                        
+            try
+            {
+                var oldValue = super.put(key, value);
+                
+                // update end of valid time of previous version if any
+                var prevEntry = featuresIndex.lowerEntry(key);
+                if (prevEntry != null && prevEntry.getKey().getInternalID() == key.getInternalID())
+                {
+                    var validTimes = prevEntry.getValue().getValidTimeList();
+                    if (!validTimes.isEmpty())
+                    {
+                        var validTime = validTimes.get(0);
+                        if (validTime instanceof TimePeriod)
+                            ((TimePeriod)validTime).getEndPosition().setDateTimeValue(key.getValidStartTime().atOffset(ZoneOffset.UTC));
+                        featuresIndex.put(prevEntry.getKey(), prevEntry.getValue());
+                    }
+                }
+                
+                return oldValue;
+            }
+            catch (Exception e)
+            {
+                mvStore.rollbackTo(currentVersion);
+                throw e;
+            }
+        }
+    }
+
+
+    /**
+     * Link this store to an observation store to enable JOIN queries
+     * @param obsStore
+     */
     public void linkTo(IObsStore obsStore)
     {
-        this.obsStore = (MVObsStoreImpl)obsStore;        
-    }
-    
+        this.obsStore = (MVObsStoreImpl)obsStore;
+    }    
 
 }
