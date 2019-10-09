@@ -289,7 +289,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         for (IStreamingDataInterface output: selectedOutputs)
         {
             // try to retrieve existing data stream
-            Entry<Long, DataStreamInfo> dsEntry = dataStreamStore.getLastEntry(procUID, output.getName());
+            Entry<Long, DataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procUID, output.getName());
             Long dsID;
             
             if (dsEntry == null)

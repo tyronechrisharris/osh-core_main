@@ -44,9 +44,9 @@ public interface IDataStreamStore extends IDataStore<Long, DataStreamInfo, DataS
      * @param outputName Name of output generating the data stream
      * @return The feature key or null if none was found with this UID
      */
-    public default Long getLastKey(String procUID, String outputName)
+    public default Long getLatestVersionKey(String procUID, String outputName)
     {
-        Entry<Long, DataStreamInfo> e = getLastEntry(procUID, outputName);
+        Entry<Long, DataStreamInfo> e = getLatestVersionEntry(procUID, outputName);
         return e != null ? e.getKey() : null;
     }
     
@@ -58,9 +58,9 @@ public interface IDataStreamStore extends IDataStore<Long, DataStreamInfo, DataS
      * @param outputName Name of output generating the data stream
      * @return The feature representation or null if none was found with this UID
      */
-    public default DataStreamInfo getLastVersion(String procUID, String outputName)
+    public default DataStreamInfo getLatestVersion(String procUID, String outputName)
     {
-        return getLastEntry(procUID, outputName).getValue();
+        return getLatestVersionEntry(procUID, outputName).getValue();
     }
     
     
@@ -71,7 +71,7 @@ public interface IDataStreamStore extends IDataStore<Long, DataStreamInfo, DataS
      * @param outputName Name of output generating the data stream
      * @return The feature entry or null if none was found with this UID
      */
-    public default Entry<Long, DataStreamInfo> getLastEntry(String procUID, String outputName)
+    public default Entry<Long, DataStreamInfo> getLatestVersionEntry(String procUID, String outputName)
     {
         Optional<Entry<Long, DataStreamInfo>> entryOpt = selectEntries(DataStreamFilter.builder()
             .withProcedures(procUID)
