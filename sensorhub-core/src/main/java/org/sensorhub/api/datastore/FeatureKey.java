@@ -18,6 +18,8 @@ import java.time.Instant;
 import java.util.Objects;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
+import com.google.common.base.Strings;
 
 
 /**
@@ -30,10 +32,8 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @since Mar 19, 2018
  */
-public class FeatureKey
+public class FeatureKey extends FeatureId
 {    
-    protected long internalID = -1; // 0 is reserved and can never be used as ID
-    protected String uniqueID;
     protected Instant validStartTime = Instant.MIN; // use Instant.MAX to retrieve latest version
     
     
@@ -42,22 +42,6 @@ public class FeatureKey
      */
     protected FeatureKey()
     {        
-    }
-
-
-    public long getInternalID()
-    {
-        return internalID;
-    }
-
-
-    /**
-     * @return The Unique ID of feature.<br/>
-     * This cannot be null.
-     */
-    public String getUniqueID()
-    {
-        return uniqueID;
     }
 
 
@@ -110,14 +94,11 @@ public class FeatureKey
     
     
     @SuppressWarnings("unchecked")
-    public static class Builder<B extends Builder<B, T>, T extends FeatureKey> implements IBuilder<T>
+    public static class Builder<B extends Builder<B, T>, T extends FeatureKey> extends BaseBuilder<T>
     {
-        protected T instance;
-
-
         protected Builder(T instance)
         {
-            this.instance = instance;
+            super(instance);
         }
 
 
@@ -135,10 +116,6 @@ public class FeatureKey
         }
 
 
-        /**
-         * @param start 
-         * @return builder for chaining
-         */
         public B withValidStartTime(Instant start)
         {
             instance.validStartTime = start;
@@ -146,9 +123,16 @@ public class FeatureKey
         }
         
         
+        public B withLatestValidTime()
+        {
+            instance.validStartTime = Instant.MAX;
+            return (B)this;
+        }
+        
+        
         public T build()
         {
-            Asserts.checkArgument(instance.uniqueID != null || instance.internalID > 0, "UniqueID or internalID must be set");
+            Asserts.checkArgument(!Strings.isNullOrEmpty(instance.uniqueID) || instance.internalID > 0, "uniqueID or internalID must be set");
             Asserts.checkNotNull(instance.validStartTime, "validStartTime");
             
             T newInstance = instance;

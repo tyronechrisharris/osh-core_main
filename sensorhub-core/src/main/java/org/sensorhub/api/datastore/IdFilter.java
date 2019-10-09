@@ -20,7 +20,6 @@ import java.util.function.Predicate;
 public class IdFilter implements Predicate<String>
 {
     private Set<String> idList = new TreeSet<>();
-    //private Range<String> idRange;
     //private String idPrefix;
     
     

@@ -14,6 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 
 /**
  * <p>
@@ -26,10 +29,10 @@ package org.sensorhub.api.datastore;
  */
 public class ProcedureFilter extends FeatureFilter
 {
-    private IdFilter memberOf;
-    private IdFilter observedProperties;
-    private ObsFilter observations;
-    private FoiFilter featuresOfInterest; // shortcut for ObsFilter/FoiFilter
+    private SortedSet<String> parentUIDs;
+    private DataStreamFilter dataStreamFilter;
+    private ObsFilter obsFilter;
+    private FoiFilter foiFilter; // shortcut for ObsFilter/FoiFilter
     
     
     /*
@@ -38,27 +41,27 @@ public class ProcedureFilter extends FeatureFilter
     private ProcedureFilter() {}
     
     
-    public IdFilter getMemberOf()
+    public SortedSet<String> getParentGroups()
     {
-        return memberOf;
+        return parentUIDs;
     }
     
     
-    public IdFilter getObservedProperties()
+    public DataStreamFilter getDataStreamFilter()
     {
-        return observedProperties;
+        return dataStreamFilter;
     }
     
     
     public ObsFilter getObservationsFilter()
     {
-        return observations;
+        return obsFilter;
     }
 
 
-    public FoiFilter getFeaturesOfInterestFilter()
+    public FoiFilter getFoiFilter()
     {
-        return featuresOfInterest;
+        return foiFilter;
     }
     
     
@@ -70,38 +73,74 @@ public class ProcedureFilter extends FeatureFilter
     
     public static class Builder extends FeatureFilter.Builder<Builder, ProcedureFilter>
     {        
-        public Builder()
+        protected Builder()
         {
             super(new ProcedureFilter());
         }
+                
+        
+        /**
+         * Copy all parameters from an existing filter
+         * @param base Existing filter instance
+         * @return This builder for chaining
+         */
+        public Builder from(ProcedureFilter base)
+        {
+            super.from(base);
+            instance.parentUIDs = base.parentUIDs;
+            instance.dataStreamFilter = base.dataStreamFilter;
+            instance.obsFilter = base.obsFilter;
+            instance.foiFilter = base.foiFilter;
+            return this;
+        }
         
         
+        /**
+         * Select only procedures belonging to the specified groups 
+         * @param parentIds IDs of parent groups
+         * @return This builder for chaining
+         */
         public Builder withParentGroups(String... parentIds)
         {
+            instance.parentUIDs = new TreeSet<String>();            
             for (String id: parentIds)
-                instance.memberOf.getIdList().add(id);
+                instance.parentUIDs.add(id);            
             return this;
         }
         
         
-        public Builder withObservedProperties(String... observableIds)
+        /**
+         * Select only procedures with datastreams matching the filter
+         * @param filter Data stream filter
+         * @return This builder for chaining
+         */
+        public Builder withDataStreams(DataStreamFilter filter)
         {
-            for (String id: observableIds)
-                instance.observedProperties.getIdList().add(id);
+            instance.dataStreamFilter = filter;
             return this;
         }
+        
 
-
-        public Builder withObservations(ObsFilter observations)
+        /**
+         * Select only procedures with observations matching the filter
+         * @param filter Observation filter
+         * @return This builder for chaining
+         */
+        public Builder withObservations(ObsFilter filter)
         {
-            instance.observations = observations;
+            instance.obsFilter = filter;
             return this;
         }
+        
 
-
-        public Builder withFeaturesOfInterest(FoiFilter featuresOfInterest)
+        /**
+         * Select only procedures with features of interest matching the filter
+         * @param filter Features of interest filter
+         * @return This builder for chaining
+         */
+        public Builder withFeaturesOfInterest(FoiFilter filter)
         {
-            instance.featuresOfInterest = featuresOfInterest;
+            instance.foiFilter = filter;
             return this;
         }
     }

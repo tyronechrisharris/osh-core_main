@@ -17,6 +17,7 @@ package org.sensorhub.api.datastore;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import org.vast.util.BaseBuilder;
 
 
 public class TextFilter
@@ -30,14 +31,17 @@ public class TextFilter
     }
     
     
-    public static class Builder
+    public static Builder builder()
     {
-        protected TextFilter instance;
+        return new Builder();
+    }
     
     
-        public Builder()
+    public static class Builder extends BaseBuilder<TextFilter>
+    {
+        protected Builder()
         {
-            this.instance = new TextFilter();
+            super(new TextFilter());
         }
         
         
@@ -47,14 +51,6 @@ public class TextFilter
                 instance.keywords = new HashSet<>();
             instance.keywords.addAll(Arrays.asList(keywords));
             return this;
-        }
-    
-    
-        public TextFilter build()
-        {
-            TextFilter newInstance = instance;
-            instance = null; // nullify instance to prevent further changes
-            return newInstance;
         }
     }
 }

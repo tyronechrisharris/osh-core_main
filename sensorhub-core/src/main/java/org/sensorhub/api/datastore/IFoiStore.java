@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
-import org.vast.ogc.gml.GenericFeature;
+import net.opengis.gml.v32.AbstractFeature;
 
 
 /**
@@ -25,7 +25,7 @@ import org.vast.ogc.gml.GenericFeature;
  * @author Alex Robin
  * @date Apr 5, 2018
  */
-public interface IFoiStore extends IFeatureStore<FeatureKey, GenericFeature>
+public interface IFoiStore extends IFeatureStore<FeatureKey, AbstractFeature>
 {
     
     /**

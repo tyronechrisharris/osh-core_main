@@ -16,13 +16,15 @@ package org.sensorhub.api.datastore;
 
 import java.util.stream.Stream;
 import net.opengis.swe.v20.DataBlock;
-import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataEncoding;
 
 
 /**
  * <p>
- * Generic interface for observation stores.<br/>
+ * Generic interface for data stores containing observations.
+ * </p><p>
+ * Observations are organized into data streams. Each data stream contains
+ * observations sharing the same result type (i.e. record structure).
+ * </p><p>
  * Observations retrieved by select methods are sorted by phenomenon time and
  * grouped by result time when several result times are requested.
  * </p>
@@ -34,15 +36,9 @@ public interface IObsStore extends IDataStore<ObsKey, ObsData, ObsFilter>
 {
     
     /**
-     * @return Description of records contained in this data store
+     * @return Interface to manage data streams
      */
-    public DataComponent getRecordDescription();
-    
-            
-    /**
-     * @return Encoding method used for records contained in this data store
-     */
-    public DataEncoding getRecommendedEncoding();
+    IDataStreamStore getDataStreams();
     
     
     /**
@@ -50,7 +46,10 @@ public interface IObsStore extends IDataStore<ObsKey, ObsData, ObsFilter>
      * @param query selection filter (datastore specific)
      * @return Stream of result data blocks
      */
-    public Stream<DataBlock> selectResults(ObsFilter query);
+    public default Stream<DataBlock> selectResults(ObsFilter query)
+    {
+        return select(query).map(o -> o.getResult());
+    }
     
     
     /**
@@ -60,6 +59,6 @@ public interface IObsStore extends IDataStore<ObsKey, ObsData, ObsFilter>
      * observations collected for a combination of procedure, feature of
      * interest, and result time. 
      */
-    public Stream<ObsStats> selectStatistics(ObsStatsFilter query);
+    public Stream<ObsStats> getStatistics(ObsStatsQuery query);
     
 }

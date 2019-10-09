@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.Objects;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
 
 
 /**
@@ -30,11 +31,10 @@ import org.vast.util.Asserts;
  */
 public class ObsKey
 {    
-    public static final FeatureKey NO_FOI;
-    static { NO_FOI = new FeatureKey(); NO_FOI.internalID = 0; }
+    public static final FeatureId NO_FOI = new FeatureId(0);
     
-    protected FeatureKey procedureKey = null;
-    protected FeatureKey foiKey = NO_FOI;
+    protected long dataStreamID = 0;
+    protected FeatureId foiID = NO_FOI;
     protected Instant phenomenonTime = null;
     protected Instant resultTime = null;
     
@@ -48,22 +48,21 @@ public class ObsKey
 
 
     /**
-     * @return The feature key for the procedure that g the observation.<br/>
-     * This field cannot be null.
+     * @return The ID of the data stream that the observation is part of.
      */
-    public FeatureKey getProcedureKey()
+    public long getDataStreamID()
     {
-        return procedureKey;
+        return dataStreamID;
     }
 
 
     /**
-     * @return The feature key for the FOI that was observed.<br/>
+     * @return The feature key for the feature of interest that was observed.<br/>
      * This field cannot be null.
      */
-    public FeatureKey getFoiKey()
+    public FeatureId getFoiID()
     {
-        return foiKey;
+        return foiID;
     }
 
 
@@ -106,10 +105,10 @@ public class ObsKey
     public int hashCode()
     {
         return java.util.Objects.hash(
-                getProcedureKey(),
-                getFoiKey(),
-                getPhenomenonTime(),
-                getResultTime());
+            getDataStreamID(),
+            getFoiID(),
+            getPhenomenonTime(),
+            getResultTime());
     }
     
     
@@ -120,8 +119,8 @@ public class ObsKey
             return false;
         
         ObsKey other = (ObsKey)obj;
-        return Objects.equals(getProcedureKey(), other.getProcedureKey()) &&
-               Objects.equals(getFoiKey(), other.getFoiKey()) &&
+        return Objects.equals(getDataStreamID(), other.getDataStreamID()) &&
+               Objects.equals(getFoiID(), other.getFoiID()) &&
                Objects.equals(getPhenomenonTime(), other.getPhenomenonTime()) &&
                Objects.equals(getResultTime(), other.getResultTime());
     }
@@ -135,27 +134,25 @@ public class ObsKey
     
     
     @SuppressWarnings("unchecked")
-    public static class Builder<B extends Builder<B, T>, T extends ObsKey> implements IBuilder<T>
+    public static class Builder<B extends Builder<B, T>, T extends ObsKey> extends BaseBuilder<T>
     {
-        protected T instance;
-
 
         protected Builder(T instance)
         {
-            this.instance = instance;
+            super(instance);
         }
 
 
-        public B withProcedureKey(FeatureKey procedureKey)
+        public B withDataStream(long id)
         {
-            instance.procedureKey = procedureKey;
+            instance.dataStreamID = id;
             return (B)this;
         }
 
 
-        public B withFoiKey(FeatureKey foiKey)
+        public B withFoi(FeatureId id)
         {
-            instance.foiKey = foiKey;
+            instance.foiID = id;
             return (B)this;
         }
         
@@ -176,13 +173,10 @@ public class ObsKey
         
         public T build()
         {
-            Asserts.checkNotNull(instance.procedureKey, "procedureKey");
-            Asserts.checkNotNull(instance.foiKey, "foiKey");
+            Asserts.checkArgument(instance.dataStreamID > 0, "data stream ID must be > 0");
+            Asserts.checkNotNull(instance.foiID, "foi");
             Asserts.checkNotNull(instance.phenomenonTime, "phenomenonTime");
-            
-            T newInstance = instance;
-            instance = null; // nullify instance to prevent further changes
-            return newInstance;
+            return super.build();
         }
     }
 }

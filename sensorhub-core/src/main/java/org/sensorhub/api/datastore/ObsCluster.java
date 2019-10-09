@@ -17,6 +17,7 @@ package org.sensorhub.api.datastore;
 import java.time.Instant;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
 import org.vast.util.Bbox;
 import com.google.common.collect.Range;
 
@@ -119,46 +120,49 @@ public class ObsCluster
     }
     
     
-    public static ObsPeriodBuilder builder()
+    public static Builder builder()
     {
-        return new ObsPeriodBuilder();
+        return new Builder();
     }
     
     
-    public static class ObsPeriodBuilder
+    public static class Builder extends BaseBuilder<ObsCluster>
     {
-        private ObsCluster instance = new ObsCluster();
+        protected Builder()
+        {
+            super(new ObsCluster());
+        }
 
 
-        public ObsPeriodBuilder withProcedureID(long procedureID)
+        public Builder withProcedureID(long procedureID)
         {
             instance.procedureID = procedureID;
             return this;
         }
 
 
-        public ObsPeriodBuilder withFoiID(long foiID)
+        public Builder withFoiID(long foiID)
         {
             instance.foiID = foiID;
             return this;
         }
 
 
-        public ObsPeriodBuilder withPhenomenonTimeRange(Range<Instant> timeRange)
+        public Builder withPhenomenonTimeRange(Range<Instant> timeRange)
         {
             instance.phenomenonTimeRange = timeRange;
             return this;
         }
 
 
-        public ObsPeriodBuilder withResultTimeRange(Range<Instant> timeRange)
+        public Builder withResultTimeRange(Range<Instant> timeRange)
         {
             instance.resultTimeRange = timeRange;
             return this;
         }
 
 
-        public ObsPeriodBuilder withPhenomenonBbox(Bbox bbox)
+        public Builder withPhenomenonBbox(Bbox bbox)
         {
             instance.phenomenonBbox = bbox;
             return this;
@@ -169,7 +173,7 @@ public class ObsCluster
         {
             Asserts.checkNotNull(instance.procedureID, "procedureID");
             Asserts.checkState(instance.phenomenonTimeRange != null || instance.resultTimeRange != null, "At least one time range must be set");
-            return instance;
+            return super.build();
         }
     }
 }

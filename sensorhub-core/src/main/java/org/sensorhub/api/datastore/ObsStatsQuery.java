@@ -16,6 +16,7 @@ package org.sensorhub.api.datastore;
 
 import java.time.Instant;
 import org.sensorhub.utils.ObjectUtils;
+import org.vast.util.BaseBuilder;
 
 
 /**
@@ -27,28 +28,29 @@ import org.sensorhub.utils.ObjectUtils;
  * @author Alex Robin
  * @date Sep 13, 2019
  */
-public class ObsStatsFilter implements IQueryFilter
+public class ObsStatsQuery implements IQueryFilter
 {
-    private ProcedureFilter procFilter;
+    private DataStreamFilter dataStreamFilter;
     private FoiFilter foiFilter;
     private RangeFilter<Instant> resultTime;
     private int numHistogramBins = 0;
+    private boolean aggregateFois = true;
     private long limit = Long.MAX_VALUE;
     
     
     /*
      * this class can only be instantiated using builder
      */
-    private ObsStatsFilter() {}
+    private ObsStatsQuery() {}
 
 
-    public ProcedureFilter getProcedureFilter()
+    public DataStreamFilter getDataStreamFilter()
     {
-        return procFilter;
+        return dataStreamFilter;
     }
 
 
-    public FoiFilter getFeaturesOfInterestFilter()
+    public FoiFilter getFoiFilter()
     {
         return foiFilter;
     }
@@ -70,7 +72,7 @@ public class ObsStatsFilter implements IQueryFilter
     @Override
     public String toString()
     {
-        return ObjectUtils.toString(this, true);
+        return ObjectUtils.toString(this, true, true);
     }
     
     
@@ -80,19 +82,31 @@ public class ObsStatsFilter implements IQueryFilter
     }
 
 
-    public static class Builder
+    public static class Builder extends BaseBuilder<ObsStatsQuery>
     {
-        private ObsStatsFilter instance = new ObsStatsFilter();
-
-
-        public Builder withProcedures(ProcedureFilter procFilter)
+        protected Builder()
         {
-            instance.procFilter = procFilter;
+            super(new ObsStatsQuery());
+        }
+        
+
+        public Builder withDataStreamFilter(DataStreamFilter dataStreamFilter)
+        {
+            instance.dataStreamFilter = dataStreamFilter;
             return this;
         }
 
 
-        public Builder withFeaturesOfInterest(FoiFilter foiFilter)
+        public Builder withDataStreams(Long... dsIDs)
+        {
+            instance.dataStreamFilter = DataStreamFilter.builder()
+                .withInternalIDs(dsIDs)
+                .build();
+            return this;
+        }
+
+
+        public Builder withFoiFilter(FoiFilter foiFilter)
         {
             instance.foiFilter = foiFilter;
             return this;
@@ -112,12 +126,6 @@ public class ObsStatsFilter implements IQueryFilter
         {
             instance.limit = limit;
             return this;
-        }
-        
-        
-        public ObsStatsFilter build()
-        {
-            return instance;
         }
     }
 }

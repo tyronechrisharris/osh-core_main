@@ -17,12 +17,14 @@ package org.sensorhub.api.datastore;
 import java.time.Instant;
 import java.util.function.Predicate;
 import org.sensorhub.utils.ObjectUtils;
+import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
 
 
 /**
  * <p>
  * Immutable filter object for observations.<br/>
- * There is an implicit AND between all filter parameters
+ * There is an implicit AND between all filter parameters.
  * </p>
  *
  * @author Alex Robin
@@ -30,20 +32,20 @@ import org.sensorhub.utils.ObjectUtils;
  */
 public class ObsFilter implements IQueryFilter, Predicate<ObsData>
 {
-    private RangeFilter<Instant> phenomenonTime;
-    private RangeFilter<Instant> resultTime;
-    private SpatialFilter phenomenonLocation;
-    private ProcedureFilter procFilter;
-    private FoiFilter foiFilter;
-    private Predicate<ObsKey> keyPredicate;
-    private Predicate<ObsData> valuePredicate;
-    private long limit = Long.MAX_VALUE;
+    protected RangeFilter<Instant> phenomenonTime;
+    protected RangeFilter<Instant> resultTime;
+    protected SpatialFilter phenomenonLocation;
+    protected DataStreamFilter dataStreams;
+    protected FoiFilter foiFilter;
+    protected Predicate<ObsKey> keyPredicate;
+    protected Predicate<ObsData> valuePredicate;
+    protected long limit = Long.MAX_VALUE;
     
     
     /*
      * this class can only be instantiated using builder
      */
-    private ObsFilter() {}
+    protected ObsFilter() {}
     
     
     public RangeFilter<Instant> getPhenomenonTime()
@@ -64,13 +66,13 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
     }
 
 
-    public ProcedureFilter getProcedureFilter()
+    public DataStreamFilter getDataStreamFilter()
     {
-        return procFilter;
+        return dataStreams;
     }
 
 
-    public FoiFilter getFeatureOfInterestFilter()
+    public FoiFilter getFoiFilter()
     {
         return foiFilter;
     }
@@ -142,21 +144,48 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
     @Override
     public String toString()
     {
-        return ObjectUtils.toString(this, true);
+        return ObjectUtils.toString(this, true, true);
     }
     
     
+    /*
+     * Builder
+     */
     public static Builder builder()
     {
         return new Builder();
     }
 
 
-    public static class Builder
+    public static class Builder extends BaseBuilder<ObsFilter>
     {
-        private ObsFilter instance = new ObsFilter();
+        protected Builder()
+        {
+            super(new ObsFilter());
+        }
+        
+        
+        public Builder from(ObsFilter base)
+        {
+            instance.phenomenonTime = base.phenomenonTime;
+            instance.resultTime = base.resultTime;
+            instance.phenomenonLocation = base.phenomenonLocation;
+            instance.dataStreams = base.dataStreams;
+            instance.foiFilter = base.foiFilter;
+            instance.keyPredicate = base.keyPredicate;
+            instance.valuePredicate = base.valuePredicate;
+            instance.limit = base.limit;
+            return this;
+        }
 
 
+        /**
+         * Keep only observations whose phenomenon time is within the given period.<br/>
+         * The phenomenon time is the time when the phenomenon being measured happened.
+         * @param begin Beginning of desired period
+         * @param end End of desired period
+         * @return This builder for chaining
+         */
         public Builder withPhenomenonTimeDuring(Instant begin, Instant end)
         {
             instance.phenomenonTime = RangeFilter.<Instant>builder()
@@ -166,6 +195,14 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         }
 
 
+        /**
+         * Keep only observations whose result time is within the given period.<br/>
+         * The result time is the time when the data resulting from the observation
+         * was generated.
+         * @param begin Beginning of desired period
+         * @param end End of desired period
+         * @return This builder for chaining
+         */
         public Builder withResultTimeDuring(Instant begin, Instant end)
         {
             instance.resultTime = RangeFilter.<Instant>builder()
@@ -173,49 +210,116 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
                     .build();
             return this;
         }
-
-
-        public Builder withPhenomenonLocation(SpatialFilter phenomenonLocation)
+        
+        
+        /**
+         * Keep only observation(s) with the latest result time.<br/>
+         * For many sensors, this means only the last observation collected.<br/>
+         * For models, this means observations generated during the latest run.
+         * @return This builder for chaining
+         */
+        public Builder withLatestResult()
         {
-            instance.phenomenonLocation = phenomenonLocation;
+            instance.resultTime = RangeFilter.<Instant>builder()
+                .withSingleValue(Instant.MAX).build();
             return this;
         }
 
 
-        public Builder withProcedures(ProcedureFilter procFilter)
+        /**
+         * Keep only observations whose phenomenon location, if any, matches the spatial filter.
+         * @param filter Spatial filtering options
+         * @return This builder for chaining
+         */
+        public Builder withPhenomenonLocation(SpatialFilter filter)
         {
-            instance.procFilter = procFilter;
+            checkSpatialFilter();
+            instance.phenomenonLocation = filter;
             return this;
         }
 
 
-        public Builder withProcedures(long... procIDs)
+        /**
+         * Keep only observations from data streams matching the filter.
+         * @param filter Filter to select desired data streams
+         * @return This builder for chaining
+         */
+        public Builder withDataStreams(DataStreamFilter filter)
         {
-            instance.procFilter = ProcedureFilter.builder()
-                .withInternalIDs(procIDs)
+            checkDataStreamFilter();
+            instance.dataStreams = filter;
+            return this;
+        }
+
+
+        /**
+         * Keep only observations from specific data streams.
+         * @param ids Internal IDs of one or more data streams
+         * @return This builder for chaining
+         */
+        public Builder withDataStreams(Long... ids)
+        {
+            checkDataStreamFilter();
+            instance.dataStreams = DataStreamFilter.builder()
+                .withInternalIDs(ids)
                 .build();
             return this;
         }
 
 
-        public Builder withProcedures(String... procUIDs)
+        /**
+         * Keep only observations from specific procedures (including all outputs).
+         * @param procIDs Internal IDs of one or more procedures
+         * @return This builder for chaining
+         */
+        public Builder withProcedures(Long... procIDs)
         {
-            instance.procFilter = ProcedureFilter.builder()
-                .withUniqueIDs(procUIDs)
+            checkDataStreamFilter();
+            instance.dataStreams = DataStreamFilter.builder()
+                .withProcedures(procIDs)
                 .build();
             return this;
         }
 
 
-        public Builder withFeaturesOfInterest(FoiFilter foiFilter)
+        /**
+         * Keep only observations produced by certain outputs of a specific procedure
+         * @param procID Internal ID of the procedure
+         * @param outputNames Names of one or more outputs of interest
+         * @return This builder for chaining
+         */
+        public Builder withProcedure(long procID, String... outputNames)
         {
-            instance.foiFilter = foiFilter;
+            checkDataStreamFilter();
+            instance.dataStreams = DataStreamFilter.builder()
+                .withProcedures(procID)
+                .withOutputNames(outputNames)
+                .build();
             return this;
         }
 
 
-        public Builder withFeaturesOfInterest(long... foiIDs)
+        /**
+         * Keep only observations of the selected features of interest
+         * @param filter Filter to select features of interest
+         * @return This builder for chaining
+         */
+        public Builder withFois(FoiFilter filter)
         {
+            checkFoiFilter();
+            instance.foiFilter = filter;
+            return this;
+        }
+
+
+        /**
+         * Keep only observations of the specified features of interests
+         * @param foiIDs Internal IDs of one or more fois
+         * @return This builder for chaining
+         */
+        public Builder withFois(Long... foiIDs)
+        {
+            checkFoiFilter();
             instance.foiFilter = FoiFilter.builder()
                 .withInternalIDs(foiIDs)
                 .build();
@@ -223,8 +327,14 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         }
 
 
-        public Builder withFeaturesOfInterest(String... foiUIDs)
+        /**
+         * Keep only observations of the specified features of interests
+         * @param foiUIDs Unique IDs of one or more fois
+         * @return This builder for chaining
+         */
+        public Builder withFois(String... foiUIDs)
         {
+            checkFoiFilter();
             instance.foiFilter = FoiFilter.builder()
                 .withUniqueIDs(foiUIDs)
                 .build();
@@ -232,6 +342,11 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         }
 
 
+        /**
+         * Keep only the observations whose key matches the predicate
+         * @param keyPredicate The predicate to test the key
+         * @return This builder for chaining
+         */
         public Builder withKeyPredicate(Predicate<ObsKey> keyPredicate)
         {
             instance.keyPredicate = keyPredicate;
@@ -239,6 +354,11 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         }
 
 
+        /**
+         * Keep only the observations whose data matches the predicate
+         * @param valuePredicate The predicate to test the observation data
+         * @return This builder for chaining
+         */
         public Builder withValuePredicate(Predicate<ObsData> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
@@ -246,6 +366,11 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         }
 
 
+        /**
+         * Sets the maximum number of observations to retrieve
+         * @param limit Max observations count
+         * @return This builder for chaining
+         */
         public Builder withLimit(int limit)
         {
             instance.limit = limit;
@@ -253,9 +378,21 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         }
         
         
-        public ObsFilter build()
+        protected void checkSpatialFilter()
         {
-            return instance;
+            Asserts.checkState(instance.phenomenonLocation == null, "spatial filter already configured");
+        }
+        
+        
+        protected void checkDataStreamFilter()
+        {
+            Asserts.checkState(instance.dataStreams == null, "datastream filter already configured");
+        }
+        
+        
+        protected void checkFoiFilter()
+        {
+            Asserts.checkState(instance.foiFilter == null, "foi filter already configured");
         }
     }
 }

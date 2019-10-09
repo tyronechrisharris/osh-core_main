@@ -16,6 +16,7 @@ package org.sensorhub.api.datastore;
 
 import java.util.function.Predicate;
 import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
 import com.google.common.collect.Range;
 
 
@@ -73,9 +74,12 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
     }
     
     
-    public static class Builder<K extends Comparable<?>>
+    public static class Builder<K extends Comparable<?>> extends BaseBuilder<RangeFilter<K>>
     {
-        private RangeFilter<K> instance = new RangeFilter<>();
+        protected Builder()
+        {
+            super(new RangeFilter<>());
+        }
         
         
         public Builder<K> withRange(K min, K max)
@@ -102,7 +106,7 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
         public RangeFilter<K> build()
         {
             Asserts.checkNotNull(instance.range, "range");
-            return instance;
+            return super.build();
         }
     }
 

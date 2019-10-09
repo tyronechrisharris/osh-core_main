@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore;
 
 import java.time.Instant;
+import org.vast.util.BaseBuilder;
 
 
 /**
@@ -84,18 +85,21 @@ public class ObsClusterFilter implements IQueryFilter
     }
     
     
-    public static ObsPeriodFilterBuilder builder()
+    public static Builder builder()
     {
-        return new ObsPeriodFilterBuilder();
+        return new Builder();
     }
 
 
-    public static class ObsPeriodFilterBuilder
+    public static class Builder extends BaseBuilder<ObsClusterFilter>
     {
-        private ObsClusterFilter instance = new ObsClusterFilter();
+        protected Builder()
+        {
+            super(new ObsClusterFilter());
+        }
 
 
-        public ObsPeriodFilterBuilder withTimeRange(Instant begin, Instant end)
+        public Builder withTimeRange(Instant begin, Instant end)
         {
             instance.timeRange = RangeFilter.<Instant>builder()
                     .withRange(begin, end)
@@ -104,37 +108,31 @@ public class ObsClusterFilter implements IQueryFilter
         }
 
 
-        public ObsPeriodFilterBuilder withSpatialFilter(SpatialFilter phenomenonLocation)
+        public Builder withSpatialFilter(SpatialFilter phenomenonLocation)
         {
             instance.phenomenonLocation = phenomenonLocation;
             return this;
         }
 
 
-        public ObsPeriodFilterBuilder withProcedures(ProcedureFilter procedures)
+        public Builder withProcedures(ProcedureFilter procedures)
         {
             instance.procedures = procedures;
             return this;
         }
 
 
-        public ObsPeriodFilterBuilder withFeaturesOfInterest(FoiFilter featuresOfInterest)
+        public Builder withFeaturesOfInterest(FoiFilter featuresOfInterest)
         {
             instance.featuresOfInterest = featuresOfInterest;
             return this;
         }
 
 
-        public ObsPeriodFilterBuilder withLimit(int limit)
+        public Builder withLimit(int limit)
         {
             instance.limit = limit;
             return this;
-        }
-        
-        
-        public ObsClusterFilter build()
-        {
-            return instance;
         }
     }
 }

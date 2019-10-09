@@ -14,31 +14,34 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import java.time.Duration;
 import java.time.Instant;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
 import org.vast.util.Bbox;
 import com.google.common.collect.Range;
 
 
 /**
  * <p>
- * Immutable object representing statistics for a bucket of observation.</br>
- * There can be only one procedure and one FOI attached to each bucket.
+ * Immutable object representing statistics for a bucket of observations.</br>
+ * There can be only one data stream and one FOI attached to each bucket.
  * </p>
  *
  * @author Alex Robin
  * @since Sep 13, 2019
  */
 public class ObsStats
-{    
-    private long procedureID = 0;
-    private long foiID = 0;
-    private long obsCount = 0;
-    private Range<Instant> resultTimeRange = null;
-    private Range<Instant> phenomenonTimeRange = null;
-    private Bbox phenomenonBbox = null;
-    private int[] obsCountsByTime = null;
+{
+    protected long dataStreamID = 0;
+    protected long foiID = 0;
+    protected long obsCount = 0;
+    protected Range<Instant> resultTimeRange = null;
+    protected Duration resultTimePeriod = null; // computed if step is regular
+    protected Range<Instant> phenomenonTimeRange = null;
+    protected Bbox phenomenonBbox = null;
+    protected int[] obsCountsByTime = null;
     
     
     /*
@@ -50,12 +53,12 @@ public class ObsStats
 
 
     /**
-     * @return The unique ID of the procedure that produced the observations 
+     * @return The unique ID of the data stream that contains the observations 
      * in this bucket.
      */
-    public long getProcedureID()
+    public long getDataStreamID()
     {
-        return procedureID;
+        return dataStreamID;
     }
 
 
@@ -92,6 +95,8 @@ public class ObsStats
      */
     public Range<Instant> getResultTimeRange()
     {
+        if (resultTimeRange == null)
+            return phenomenonTimeRange;
         return resultTimeRange;
     }
 
@@ -127,14 +132,17 @@ public class ObsStats
     }
     
     
-    public static class Builder
+    public static class Builder extends BaseBuilder<ObsStats>
     {
-        private ObsStats instance = new ObsStats();
-
-
-        Builder withProcedureID(long procedureID)
+        protected Builder()
         {
-            instance.procedureID = procedureID;
+            super(new ObsStats());
+        }
+
+        
+        Builder withDataStreamID(long dataStreamID)
+        {
+            instance.dataStreamID = dataStreamID;
             return this;
         }
 
@@ -169,9 +177,9 @@ public class ObsStats
         
         public ObsStats build()
         {
-            Asserts.checkNotNull(instance.procedureID, "procedureID");
+            Asserts.checkArgument(instance.dataStreamID > 0, "dataStreamID must be > 0");
             Asserts.checkState(instance.phenomenonTimeRange != null || instance.resultTimeRange != null, "At least one time range must be set");
-            return instance;
+            return super.build();
         }
     }
 }

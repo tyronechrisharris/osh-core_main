@@ -93,12 +93,10 @@ public class SpatialFilter implements Predicate<Geometry>
     }
 
 
-    public static class Builder extends SpatialFilterBuilder<Builder, SpatialFilter>
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static <T extends SpatialFilterBuilder> T builder()
     {
-        public Builder()
-        {
-            super(new SpatialFilter());
-        }
+        return (T)new SpatialFilterBuilder(new SpatialFilter());
     }
     
     
@@ -106,7 +104,7 @@ public class SpatialFilter implements Predicate<Geometry>
     public static class SpatialFilterBuilder<
             B extends SpatialFilterBuilder<B, T>,
             T extends SpatialFilter>
-        extends BaseBuilder<B, T>
+        extends BaseBuilder<T>
     {
         
         protected SpatialFilterBuilder(T instance)

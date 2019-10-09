@@ -20,6 +20,7 @@ import java.io.OutputStream;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.vast.util.Asserts;
 
 
 /**
@@ -35,8 +36,7 @@ import java.util.stream.Stream;
  * <i>Note that certain data store implementations may optimize execution
  * by partitioning, parallelizing or distributing the Stream pipeline
  * operations.</i>
- * </p></p> 
- * TODO: add async methods returning RxJava Flowables instead of Streams
+ * </p>
  * @param <K> Key type
  * @param <V> Value type 
  * @param <Q> Query type
@@ -68,7 +68,10 @@ public interface IDataStore<K, V, Q extends IQueryFilter> extends Map<K, V>
      * @param query selection filter (datastore specific)
      * @return Stream of value objects
      */
-    public Stream<V> select(Q query);
+    public default Stream<V> select(Q query)
+    {
+        return selectEntries(query).map(e -> e.getValue());
+    }
 
 
     /**
@@ -76,7 +79,10 @@ public interface IDataStore<K, V, Q extends IQueryFilter> extends Map<K, V>
      * @param query selection filter (datastore specific)
      * @return Stream of key objects
      */
-    public Stream<K> selectKeys(Q query);
+    public default Stream<K> selectKeys(Q query)
+    {
+        return selectEntries(query).map(e -> e.getKey());
+    }
 
 
     /**
@@ -92,7 +98,10 @@ public interface IDataStore<K, V, Q extends IQueryFilter> extends Map<K, V>
      * @param query selection filter (datastore specific)
      * @return Stream of deleted keys
      */
-    public Stream<K> removeEntries(Q query);
+    public default Stream<K> removeEntries(Q query)
+    {
+        return selectKeys(query).peek(k -> remove(k));
+    }
 
 
     /**
@@ -101,14 +110,17 @@ public interface IDataStore<K, V, Q extends IQueryFilter> extends Map<K, V>
      * @return number of matching entries, or the value of query limit if
      * reached
      */
-    public long countMatchingEntries(Q query);
+    public default long countMatchingEntries(Q query)
+    {
+        return selectEntries(query).count();
+    }
 
 
     /**
-     * Force flushing of cached data with underlying storage medium
-     * @return true if sync was successful
+     * Commit changes to storage
+     * @throws RuntimeException if an error occurred while committing changes
      */
-    public boolean sync();
+    public void commit();
 
 
     /**
@@ -138,5 +150,12 @@ public interface IDataStore<K, V, Q extends IQueryFilter> extends Map<K, V>
      * false if read-only
      */
     public boolean isWriteSupported();
+    
+    
+    public default void putAll(Map<? extends K, ? extends V> map)
+    {
+        Asserts.checkNotNull(map, Map.class);
+        map.forEach((k, v) -> put(k, v));
+    }
 
 }

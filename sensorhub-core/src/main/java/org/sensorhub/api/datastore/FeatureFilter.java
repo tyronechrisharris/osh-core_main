@@ -16,7 +16,8 @@ package org.sensorhub.api.datastore;
 
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Set;
+import java.util.Collection;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
@@ -24,6 +25,8 @@ import org.sensorhub.utils.ObjectUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
+import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
 import org.vast.util.Bbox;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
@@ -33,7 +36,7 @@ import com.vividsolutions.jts.geom.Polygon;
 /**
  * <p>
  * Immutable filter object for generic features.<br/>
- * There is an implicit AND between all filter parameters
+ * There is an implicit AND between all filter parameters.
  * </p>
  *
  * @author Alex Robin
@@ -41,7 +44,7 @@ import com.vividsolutions.jts.geom.Polygon;
  */
 public class FeatureFilter implements IFeatureFilter
 {
-    protected Set<Long> internalIDs;
+    protected SortedSet<Long> internalIDs;
     protected IdFilter featureUIDs;
     protected RangeFilter<Instant> validTime;
     protected SpatialFilter location;
@@ -62,7 +65,7 @@ public class FeatureFilter implements IFeatureFilter
     }
 
 
-    public Set<Long> getInternalIDs()
+    public SortedSet<Long> getInternalIDs()
     {
         return internalIDs;
     }
@@ -164,7 +167,7 @@ public class FeatureFilter implements IFeatureFilter
     @Override
     public String toString()
     {
-        return ObjectUtils.toString(this, true);
+        return ObjectUtils.toString(this, true, true);
     }
     
     
@@ -176,57 +179,90 @@ public class FeatureFilter implements IFeatureFilter
     
     
     @SuppressWarnings("unchecked")
-    public static class Builder<B extends Builder<B, F>, F extends FeatureFilter>
-    {
-        protected F instance;
-
-
+    public static class Builder<B extends Builder<B, F>, F extends FeatureFilter> extends BaseBuilder<F>
+    {        
         protected Builder(F instance)
         {
-            this.instance = instance;
+            super(instance);
         }
         
         
-        public B withInternalIDs(long... ids)
+        /**
+         * Copy all parameters from an existing filter
+         * @param base Existing filter instance
+         * @return This builder for chaining
+         */
+        public B from(FeatureFilter base)
         {
-            instance.internalIDs = new TreeSet<Long>();
-            for (long id: ids)
-                instance.internalIDs.add(id);
+            Asserts.checkNotNull(base, FeatureFilter.class);
+            instance.internalIDs = base.internalIDs;
+            instance.featureUIDs = base.featureUIDs;
+            instance.validTime = base.validTime;
+            instance.location = base.location;
+            instance.keyPredicate = base.keyPredicate;
+            instance.valuePredicate = base.valuePredicate;
+            instance.limit = base.limit;
             return (B)this;
         }
         
         
-        public B withInternalIDs(Iterable<Long> ids)
+        /**
+         * Keep only features with specific internal IDs.
+         * @param ids One or more internal IDs of features to select
+         * @return This builder for chaining
+         */
+        public B withInternalIDs(Long... ids)
         {
-            instance.internalIDs = new TreeSet<Long>();
-            for (long id: ids)
-                instance.internalIDs.add(id);
+            return withInternalIDs(Arrays.asList(ids));
+        }
+        
+        
+        /**
+         * Keep only features with specific internal IDs.
+         * @param ids Collection of internal IDs
+         * @return This builder for chaining
+         */
+        public B withInternalIDs(Collection<Long> ids)
+        {
+            instance.internalIDs = new TreeSet<Long>();            
+            for (Long id: ids)
+                instance.internalIDs.add(id);            
             return (B)this;
         }
         
         
-        public B withUniqueIDs(IdFilter uids)
-        {
-            instance.featureUIDs = uids;
-            return (B)this;
-        }
-        
-        
+        /**
+         * Keep only features with specific unique IDs.
+         * @param uids One or more unique IDs of features to select
+         * @return This builder for chaining
+         */
         public B withUniqueIDs(String... uids)
         {
             return withUniqueIDs(Arrays.asList(uids));
         }
         
         
-        public B withUniqueIDs(Iterable<String> uids)
+        /**
+         * Keep only features with specific unique IDs.
+         * @param uids Collection of unique IDs
+         * @return This builder for chaining
+         */
+        public B withUniqueIDs(Collection<String> uids)
         {
-            instance.featureUIDs = new IdFilter();
+            instance.featureUIDs = new IdFilter();            
             for (String uid: uids)
-                instance.featureUIDs.getIdList().add(uid);
+                instance.featureUIDs.getIdList().add(uid);            
             return (B)this;
         }
         
         
+        /**
+         * Keep only feature representations that are valid at any time during the
+         * specified period.
+         * @param begin Beginning of search period
+         * @param end End of search period
+         * @return This builder for chaining
+         */
         public B withValidTimeDuring(Instant begin, Instant end)
         {
             instance.validTime = RangeFilter.<Instant>builder()
@@ -236,6 +272,11 @@ public class FeatureFilter implements IFeatureFilter
         }
 
 
+        /**
+         * Keep only feature representations that are valid at the specified time.
+         * @param time Time instant of interest (can be set to past or future, and defaults to 'now')
+         * @return This builder for chaining
+         */
         public B validAtTime(Instant time)
         {
             instance.validTime = RangeFilter.<Instant>builder()
@@ -243,8 +284,25 @@ public class FeatureFilter implements IFeatureFilter
                     .build();
             return (B)this;
         }
+        
+        
+        /**
+         * Keep only the latest version of features.
+         * @return This builder for chaining
+         */
+        public B withLatestVersion()
+        {
+            instance.validTime = RangeFilter.<Instant>builder()
+                .withSingleValue(Instant.MAX).build();
+            return (B)this;
+        }
 
 
+        /**
+         * Keep only features whose geometry matches the filter.
+         * @param location Spatial filter (see {@link SpatialFilter})
+         * @return This builder for chaining
+         */
         public B withLocation(SpatialFilter location)
         {
             instance.location = location;
@@ -252,18 +310,28 @@ public class FeatureFilter implements IFeatureFilter
         }
 
 
+        /**
+         * Keep only features whose geometry intersects the given ROI.
+         * @param roi Region of interest expressed as a polygon
+         * @return This builder for chaining
+         */
         public B withLocationIntersecting(Polygon roi)
         {
-            instance.location = new SpatialFilter.Builder()
+            instance.location = SpatialFilter.builder()
                     .withRoi(roi)
                     .build();
             return (B)this;
         }
 
 
+        /**
+         * Keep only features whose geometry is contained within the given region.
+         * @param roi Region of interest expressed as a polygon
+         * @return This builder for chaining
+         */
         public B withLocationWithin(Polygon roi)
         {
-            instance.location = new SpatialFilter.Builder()
+            instance.location = SpatialFilter.builder()
                     .withRoi(roi)
                     .withOperator(SpatialOp.CONTAINS)
                     .build();
@@ -271,24 +339,41 @@ public class FeatureFilter implements IFeatureFilter
         }
 
 
+        /**
+         * Keep only features whose geometry is contained within the given region.
+         * @param bbox Region of interest expressed as a bounding box
+         * @return This builder for chaining
+         */
         public B withLocationWithin(Bbox bbox)
         {
-            instance.location = new SpatialFilter.Builder()
+            instance.location = SpatialFilter.builder()
                     .withBbox(bbox)
                     .build();
             return (B)this;
         }
 
 
+        /**
+         * Keep only features whose geometry is contained within the given region,
+         * expressed as a circle (i.e. a distance from a given point).
+         * @param center Center of the circular region of interest
+         * @param dist Distance from the center = circle radius (in meters)
+         * @return This builder for chaining
+         */
         public B withLocationWithin(Point center, double dist)
         {
-            instance.location = new SpatialFilter.Builder()
+            instance.location = SpatialFilter.builder()
                     .withDistanceToPoint(center, dist)
                     .build();
             return (B)this;
         }
 
 
+        /**
+         * Keep only features whose key matches the predicate.
+         * @param keyPredicate Predicate to apply to the feature key object
+         * @return This builder for chaining
+         */
         public B withKeyPredicate(Predicate<FeatureKey> keyPredicate)
         {
             instance.keyPredicate = keyPredicate;
@@ -296,6 +381,11 @@ public class FeatureFilter implements IFeatureFilter
         }
 
 
+        /**
+         * Keep only features matching the predicate.
+         * @param valuePredicate Predicate to apply to the feature object
+         * @return This builder for chaining
+         */
         public B withValuePredicate(Predicate<IFeature> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
@@ -303,6 +393,11 @@ public class FeatureFilter implements IFeatureFilter
         }
         
         
+        /**
+         * Limit the number of selected features to the given number
+         * @param limit max number of features to retrieve
+         * @return This builder for chaining
+         */
         public B withLimit(int limit)
         {
             instance.limit = limit;
@@ -310,6 +405,7 @@ public class FeatureFilter implements IFeatureFilter
         }
 
 
+        @Override
         public F build()
         {
             F newInstance = instance;

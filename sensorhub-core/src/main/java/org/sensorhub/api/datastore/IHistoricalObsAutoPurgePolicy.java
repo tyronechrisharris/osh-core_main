@@ -14,8 +14,28 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import org.slf4j.Logger;
 
-public interface IBuilder<K>
-{
-    public K build();
+
+/**
+ * <p>
+ * Interface for policies used to automatically purge historical data.<br/>
+ * The criteria used for purging is up to the implementation (e.g. time of
+ * oldest records, total number of records, size of the DB file, etc...)
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Sep 23, 2019
+ */
+public interface IHistoricalObsAutoPurgePolicy
+{    
+        
+    /**
+     * Implementation of this method executes whatever actions are necessary
+     * for this aging policy
+     * @param db
+     * @param log 
+     * @return the number of records removed
+     */
+    public int trimStorage(IHistoricalObsDatabase db, Logger log); 
 }

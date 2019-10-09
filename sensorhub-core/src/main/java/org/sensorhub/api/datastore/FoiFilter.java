@@ -56,23 +56,25 @@ public class FoiFilter extends FeatureFilter
     
     
     public static class Builder extends FeatureFilter.Builder<Builder, FoiFilter>
-    {        
-        public Builder()
+    {    
+        
+        protected Builder()
         {
             super(new FoiFilter());
         }
+        
 
-
-        public Builder withSampledFeatures(FeatureFilter sampledFeatures)
+        @SuppressWarnings("rawtypes")
+        public Builder withSampledFeatures(FeatureFilter.Builder sampledFeatures)
         {
-            instance.sampledFeatures = sampledFeatures;
+            instance.sampledFeatures = sampledFeatures.build();
             return this;
         }
+        
 
-
-        public Builder withObservations(ObsFilter observations)
+        public Builder withObservations(ObsFilter.Builder observations)
         {
-            instance.observations = observations;
+            instance.observations = observations.build();
             return this;
         }
     }

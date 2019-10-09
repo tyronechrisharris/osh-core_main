@@ -41,7 +41,6 @@ import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.event.IEventSource;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.persistence.DataKey;
@@ -57,6 +56,8 @@ import org.sensorhub.api.persistence.IRecordStoreInfo;
 import org.sensorhub.api.persistence.ObsKey;
 import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.persistence.StorageException;
+import org.sensorhub.api.procedure.IProcedureRegistry;
+import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureDisabledEvent;
@@ -92,6 +93,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     Map<String, ScalarIndexer> timeStampIndexers = new HashMap<>();
     Map<String, String> currentFoiMap = new ConcurrentHashMap<>(); // entity ID -> current FOI ID
     Map<String, Subscription> registeredProducers = new ConcurrentHashMap<>(); // producerId -> Subscription
+    String producerUID;
     long lastCommitTime = Long.MIN_VALUE;
     Timer autoPurgeTimer;
     Subscription procRegistrySub;
@@ -140,27 +142,60 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         }
         
         // retrieve reference to data source
-        dataSourceRef = getParentHub().getProcedureRegistry().getRef(config.dataSourceID);
-        
-        // register to receive data source events
-        IDataProducer dataSource = dataSourceRef.get();
+        IDataProducer dataSource = getDataSource(config.dataSourceID);
         if (dataSource != null)
         {
-            String uid = dataSource.getUniqueIdentifier();
-            
-            // subscribe to procedure events so we can detect if it's enabled later
-            subscribeToProcedureEvents(dataSource).thenAccept(s -> registeredProducers.put(uid, s));
+            producerUID = dataSource.getUniqueIdentifier();
             
             // connect now if enabled
             if (dataSource.isEnabled())
-                connectMainDataSource();
+                connectMainDataSource(dataSource);
             else
-                reportStatus(WAITING_STATUS_MSG + uid);
+                reportStatus(WAITING_STATUS_MSG + producerUID);
         }
         
         // get notified if procedure is added later
-        subscribeToProcedureEvents(getParentHub().getProcedureRegistry())
+        subscribeToProcedureRegistryEvents()
             .thenAccept(s -> procRegistrySub = s);
+    }
+    
+    
+    protected IDataProducer getDataSource(String procUID)
+    {
+        IProcedureWithState proc = getParentHub().getProcedureRegistry().get(procUID);
+        if (!(proc instanceof IDataProducer))
+            throw new IllegalStateException("Procedure " + procUID + " is not a data producer");
+        return (IDataProducer)proc;
+    }
+    
+    
+    protected CompletableFuture<Subscription> subscribeToProcedureRegistryEvents()
+    {     
+        return getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
+            .withSourceID(IProcedureRegistry.EVENT_SOURCE_ID)
+            .withEventType(ProcedureAddedEvent.class)
+            .withEventType(ProcedureRemovedEvent.class)
+            .withEventType(ProcedureEnabledEvent.class)
+            .withEventType(ProcedureDisabledEvent.class)
+            .consume(e -> {
+                String procID = e.getProcedureUID();
+                IDataProducer dataSource = getDataSource(procID); 
+                if (dataSource.isEnabled())
+                {
+                    if (e instanceof ProcedureAddedEvent || e instanceof ProcedureEnabledEvent)
+                    {
+                        if (procID.equals(producerUID))
+                            connectMainDataSource(dataSource);
+                        else
+                            ensureProducerInfo(procID);
+                    }
+                    else
+                    {
+                        disconnectDataSource(dataSource);
+                        reportStatus("Disconnected for data source " + MsgUtils.entityString(dataSource));
+                    }
+                }
+            });
     }
     
     
@@ -175,7 +210,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         }
         else
         {
-            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>();            
+            List <IStreamingDataInterface> selectedOutputs = new ArrayList<>();
             for (IStreamingDataInterface outputInterface : dataSource.getOutputs().values())
             {
                 // skip excluded outputs
@@ -188,16 +223,13 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     }
     
     
-    protected void connectMainDataSource()
+    protected void connectMainDataSource(IDataProducer dataSource)
     {
-        IDataProducer dataSource = dataSourceRef.get();
-        if (dataSource != null)
-        {
-            synchronized (dataSource)
-            {                
-                connectDataSource(dataSource, storage);
-                clearStatus();
-            }
+        synchronized (dataSource)
+        {                
+            this.dataSourceRef = new WeakReference<>(dataSource);
+            connectDataSource(dataSource, storage);
+            clearStatus();
         }
     }
     
@@ -221,7 +253,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             dataStore.updateDataSourceDescription(dataSource.getCurrentDescription());
             
         // add record store for each selected output that is not already registered
-        for (IStreamingDataInterface output: getSelectedOutputs(dataSource))
+        var selectedOutputs = getSelectedOutputs(dataSource);
+        for (IStreamingDataInterface output: selectedOutputs)
         {
             if (!dataStore.getRecordStores().containsKey(output.getName()))
                 dataStore.addRecordStore(output.getName(), output.getRecordDescription(), output.getRecommendedEncoding());
@@ -241,7 +274,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         storage.commit();
         
         // register to output data events
-        subscribeToOutputEvents(dataSource);
+        subscribeToProcedureEvents(dataSource, selectedOutputs);
                 
         // if multisource, call recursively to connect nested producers
         if (dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
@@ -300,37 +333,11 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     }
     
     
-    protected CompletableFuture<Subscription> subscribeToProcedureEvents(IEventSource eventSource)
-    {     
-        return getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
-            .withSource(eventSource)
-            .withEventType(ProcedureAddedEvent.class)
-            .withEventType(ProcedureRemovedEvent.class)
-            .withEventType(ProcedureEnabledEvent.class)
-            .withEventType(ProcedureDisabledEvent.class)
-            .consume(e -> {
-                String procID = e.getProcedureID();
-                IDataProducer dataSource = getParentHub().getProcedureRegistry().get(procID); 
-                if (dataSource.isEnabled())
-                {
-                    if (e instanceof ProcedureAddedEvent || e instanceof ProcedureEnabledEvent)
-                    {
-                        if (procID.equals(config.dataSourceID))
-                            connectMainDataSource();
-                        else
-                            ensureProducerInfo(procID);
-                    }
-                    else
-                    {
-                        disconnectDataSource(dataSource);
-                        reportStatus("Disconnected for data source " + MsgUtils.entityString(dataSource));
-                    }
-                }
-            });
-    }
-    
-    
-    protected void subscribeToOutputEvents(IDataProducer producer)
+    /*
+     * Subscribe to data, foi and procedure changed events coming from the
+     * specified producer
+     */
+    protected void subscribeToProcedureEvents(IDataProducer producer, Collection<? extends IStreamingDataInterface> selectedOutputs)
     {     
         // get subscription builder
         ISubscriptionBuilder<ProcedureEvent> subscription = getParentHub().getEventBus()
@@ -341,7 +348,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             .withSource(producer); // to get procedure changed events
         
         // add selected outputs to subscription
-        for (IStreamingDataInterface output: getSelectedOutputs(producer))
+        for (IStreamingDataInterface output: selectedOutputs)
         {
             // create time stamp indexer
             timeStampIndexers.computeIfAbsent(output.getName(),
@@ -412,7 +419,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             if (e instanceof DataEvent)
             {
                 DataEvent dataEvent = (DataEvent)e;
-                String producerID = dataEvent.getProcedureID();
+                String producerID = dataEvent.getProcedureUID();
                 
                 if (producerID != null && registeredProducers.containsKey(producerID))
                 {
@@ -445,7 +452,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             else if (e instanceof FoiEvent && storage instanceof IObsStorage)
             {
                 FoiEvent foiEvent = (FoiEvent)e;
-                String producerID = ((FoiEvent) e).getProcedureID();
+                String producerID = ((FoiEvent) e).getProcedureUID();
                 
                 if (producerID != null && registeredProducers.containsKey(producerID))
                 {
@@ -453,11 +460,11 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                     if (foiEvent.getFoi() != null)
                     {
                         ((IObsStorage) storage).storeFoi(producerID, foiEvent.getFoi());
-                        getLogger().trace("Storing FOI {}", foiEvent.getFoiID());
+                        getLogger().trace("Storing FOI {}", foiEvent.getFoiUID());
                     }
                 
                     // also remember as current FOI
-                    currentFoiMap.put(producerID, foiEvent.getFoiID());
+                    currentFoiMap.put(producerID, foiEvent.getFoiUID());
                 }
             }
             
