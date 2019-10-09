@@ -123,10 +123,31 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
         
         // use public key to lookup database and local key
         var dbInfo = registry.getLocalDbInfo(key);
-        if (dbInfo == null)
-            return null;
-        else
-            return dbInfo.db.getObservationStore().getDataStreams().get(dbInfo.entryID);
+        if (dbInfo != null)
+        {
+            DataStreamInfo dsInfo = dbInfo.db.getObservationStore().getDataStreams().get(dbInfo.entryID);
+            if (dsInfo != null)
+                return toPublicValue(dbInfo.databaseID, dsInfo);
+        }
+        
+        return null;
+    }
+    
+    
+    /*
+     * Convert to public keys on the way out
+     */
+    protected DataStreamInfo toPublicValue(int databaseID, DataStreamInfo dsInfo)
+    {
+        long procPublicID = registry.getPublicID(databaseID, dsInfo.getProcedure().getInternalID());
+        FeatureId publicId = new FeatureId(procPublicID, dsInfo.getProcedure().getUniqueID());
+            
+        return DataStreamInfo.builder()
+            .withProcedure(publicId)
+            .withRecordVersion(dsInfo.getRecordVersion())
+            .withRecordDescription(dsInfo.getRecordDescription())
+            .withRecordEncoding(dsInfo.getRecommendedEncoding())
+            .build();
     }
     
     
@@ -135,16 +156,8 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
      */
     protected Entry<Long, DataStreamInfo> toPublicEntry(int databaseID, Entry<Long, DataStreamInfo> e)
     {
-        long publicID = registry.getPublicID(databaseID, e.getKey());
-        long procPublicID = registry.getPublicID(databaseID, e.getValue().getProcedure().getInternalID());
-        FeatureId publicId = new FeatureId(procPublicID, e.getValue().getProcedure().getUniqueID());
-            
-        return new AbstractMap.SimpleEntry<>(publicID, DataStreamInfo.builder()
-            .withProcedure(publicId)
-            .withRecordVersion(e.getValue().getRecordVersion())
-            .withRecordDescription(e.getValue().getRecordDescription())
-            .withRecordEncoding(e.getValue().getRecommendedEncoding())
-            .build());
+        long publicID = registry.getPublicID(databaseID, e.getKey());            
+        return new AbstractMap.SimpleEntry<>(publicID, toPublicValue(databaseID, e.getValue()));
     }
     
     
