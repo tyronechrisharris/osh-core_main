@@ -293,6 +293,13 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     
     
     @Override
+    public String getParentGroupUID()
+    {
+        return null;
+    }
+
+
+    @Override
     public AbstractFeature getCurrentFeatureOfInterest()
     {
         return null;
