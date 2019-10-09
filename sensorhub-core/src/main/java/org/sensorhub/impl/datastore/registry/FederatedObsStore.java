@@ -242,7 +242,10 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
             }
         }
         
-        return null;
+        if (!obsFilterDispatchMap.isEmpty())
+            return obsFilterDispatchMap;
+        else
+            return null;
     }
 
 
