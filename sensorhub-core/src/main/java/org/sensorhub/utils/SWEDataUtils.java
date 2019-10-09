@@ -14,6 +14,7 @@ Copyright (C) 2012-2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.utils;
 
+import java.time.Instant;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
@@ -94,5 +95,19 @@ public class SWEDataUtils
         if (locVector == null)
             return null;
         return new VectorIndexer(parent, locVector);
+    }
+    
+    
+    /**
+     * Convert a SWE time stamp (julian time in seconds past 1970-01-01) to a Java 8 Instant
+     * @param julianTime The time stamp as a double
+     * @return The instant object (UTC time zone)
+     */
+    public static Instant toInstant(double julianTime)
+    {
+        long epochSeconds = (long)julianTime;
+        // improve rounding error by pre-multiplying by 1000
+        int nanos = (int)((julianTime*1000. - epochSeconds*1000L)*1e6);
+        return Instant.ofEpochSecond(epochSeconds, nanos);
     }
 }
