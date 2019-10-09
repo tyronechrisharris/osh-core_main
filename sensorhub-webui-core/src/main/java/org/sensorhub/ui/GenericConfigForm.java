@@ -230,6 +230,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         listBoxes.add(field);
                     else if (Number.class.isAssignableFrom(propType))
                         numberBoxes.add(field);
+                    else if (field instanceof DateField)
+                        listBoxes.add(field);
                     else if (field instanceof CheckBox)
                         checkBoxes.add(field);
                     else
