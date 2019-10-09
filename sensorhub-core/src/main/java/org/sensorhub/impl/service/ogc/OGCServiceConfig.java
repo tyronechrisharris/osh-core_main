@@ -29,7 +29,7 @@ import org.vast.util.ResponsibleParty;
  */
 public abstract class OGCServiceConfig extends ServiceConfig
 {
-    public class CapabilitiesInfo
+    public static class CapabilitiesInfo
     {
         public String title;
         public String description;
