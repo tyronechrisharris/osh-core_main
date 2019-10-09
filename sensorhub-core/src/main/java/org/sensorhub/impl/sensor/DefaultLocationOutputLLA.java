@@ -17,7 +17,7 @@ package org.sensorhub.impl.sensor;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.Vector;
 import org.sensorhub.api.sensor.ISensor;
-import org.sensorhub.api.sensor.SensorDataEvent;
+import org.sensorhub.api.data.DataEvent;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.helper.GeoPosHelper;
 
@@ -62,7 +62,7 @@ public class DefaultLocationOutputLLA extends DefaultLocationOutput
         // update latest record and send event
         latestRecord = dataBlock;
         latestRecordTime = System.currentTimeMillis();
-        eventHandler.publish(new SensorDataEvent(latestRecordTime, this, dataBlock));
+        eventHandler.publish(new DataEvent(latestRecordTime, this, dataBlock));
     }
 
 }
