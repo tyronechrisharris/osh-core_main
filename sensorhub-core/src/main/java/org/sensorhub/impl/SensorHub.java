@@ -17,24 +17,22 @@ package org.sensorhub.impl;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
+import org.sensorhub.api.datastore.IObsDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.module.IModuleConfigRepository;
-import org.sensorhub.api.persistence.IPersistenceManager;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
-import org.sensorhub.api.sensor.ISensorManager;
 import org.sensorhub.impl.comm.NetworkManagerImpl;
-import org.sensorhub.impl.common.InMemoryProcedureRegistry;
+import org.sensorhub.impl.datastore.registry.FederatedDatabaseRegistry;
 import org.sensorhub.impl.event.EventBus;
 import org.sensorhub.impl.module.InMemoryConfigDb;
 import org.sensorhub.impl.module.ModuleConfigJsonFile;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.persistence.PersistenceManagerImpl;
+import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
 import org.sensorhub.impl.processing.ProcessingManagerImpl;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.impl.security.SecurityManagerImpl;
-import org.sensorhub.impl.sensor.SensorManagerImpl;
 import org.sensorhub.utils.ModuleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,41 +52,42 @@ public class SensorHub implements ISensorHub
     private static final String ERROR_MSG = "Fatal error during sensorhub execution";
     
     private ISensorHubConfig config;
-    private IEventBus eventBus;
     private ModuleRegistry moduleRegistry;
+    private IEventBus eventBus;
+    private IProcedureRegistry procedureRegistry;
+    private IObsDatabaseRegistry databaseRegistry;
     private INetworkManager networkManager;
     private ISecurityManager securityManager;
-    private IProcedureRegistry entityManager;
-    private ISensorManager sensorManager;
-    private IPersistenceManager persistenceManager;
     private IProcessingManager processingManager;
     private volatile boolean stopped;
     
     
     public SensorHub()
     {
-        this.config = new SensorHubConfig();        
-        this.eventBus = new EventBus();
-        this.moduleRegistry = new ModuleRegistry(this, new InMemoryConfigDb());        
+        IModuleConfigRepository configDB = new InMemoryConfigDb();
+        init(new SensorHubConfig(),
+            new ModuleRegistry(this, configDB),
+            new EventBus());
     }
     
     
     public SensorHub(ISensorHubConfig config)
     {
-        this.config = config;
-        this.eventBus = new EventBus();
-                
         IModuleConfigRepository configDB = new ModuleConfigJsonFile(config.getModuleConfigPath(), true);
-        this.moduleRegistry = new ModuleRegistry(this, configDB);        
+        init(config,
+            new ModuleRegistry(this, configDB),
+            new EventBus());
     }
     
     
-    public SensorHub(ISensorHubConfig config, ModuleRegistry registry, IEventBus eventBus)
+    protected void init(ISensorHubConfig config, ModuleRegistry registry, IEventBus eventBus)
     {
         this.config = config;
         this.eventBus = eventBus;
-        this.moduleRegistry = registry;        
-    }
+        this.moduleRegistry = registry;
+        this.databaseRegistry = new FederatedDatabaseRegistry(this);
+        this.procedureRegistry = new DefaultProcedureRegistry(this);
+    }   
     
     
     @Override
@@ -153,16 +152,30 @@ public class SensorHub implements ISensorHub
 
 
     @Override
-    public synchronized ModuleRegistry getModuleRegistry()
+    public ModuleRegistry getModuleRegistry()
     {
         return moduleRegistry;
     }
     
     
     @Override
-    public synchronized IEventBus getEventBus()
+    public IEventBus getEventBus()
     {
         return eventBus;
+    }
+    
+    
+    @Override
+    public IProcedureRegistry getProcedureRegistry()
+    {
+        return procedureRegistry;
+    }
+    
+    
+    @Override
+    public IObsDatabaseRegistry getDatabaseRegistry()
+    {
+        return databaseRegistry;
     }
     
     
@@ -181,33 +194,6 @@ public class SensorHub implements ISensorHub
         if (securityManager == null)
             securityManager = new SecurityManagerImpl(this);
         return securityManager;
-    }
-    
-    
-    @Override
-    public synchronized IPersistenceManager getPersistenceManager()
-    {
-        if (persistenceManager == null)
-            persistenceManager = new PersistenceManagerImpl(this, config.getBaseStoragePath());
-        return persistenceManager;
-    }
-    
-    
-    @Override
-    public synchronized IProcedureRegistry getProcedureRegistry()
-    {
-        if (entityManager == null)
-            entityManager = new InMemoryProcedureRegistry(this);
-        return entityManager;
-    }
-    
-    
-    @Override
-    public synchronized ISensorManager getSensorManager()
-    {
-        if (sensorManager == null)
-            sensorManager = new SensorManagerImpl(this);
-        return sensorManager;
     }
     
     
