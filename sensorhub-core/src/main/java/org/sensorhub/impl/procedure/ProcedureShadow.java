@@ -17,17 +17,15 @@ package org.sensorhub.impl.procedure;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.time.Instant;
-import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.procedure.IProcedureWithState;
-import org.sensorhub.api.procedure.IProcedureGroup;
-import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureEvent;
-import org.sensorhub.api.procedure.ProcedureRemovedEvent;
+import org.sensorhub.api.procedure.IProcedureGroup;
+import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.vast.util.Asserts;
 import com.google.common.collect.Range;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -35,7 +33,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 
 /**
  * <p>
- * Proxy class reflecting the latest state of the attached live procedure.<br/>
+ * Wrapper class reflecting the latest state of the attached live procedure.<br/>
  * This class tries to get data from the live procedure if available
  * and falls back on retrieving info from its own cache (which may be 
  * persistent) otherwise.<br/>
@@ -46,31 +44,30 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Sep 5, 2019
  */
-class ProcedureProxy implements IProcedureWithState, Serializable, IEventListener
+public class ProcedureShadow implements IProcedureWithState, Serializable, IEventListener
 {
     private static final long serialVersionUID = 978629974573336266L;
     public static final String NO_LISTENER_MSG = "Cannot register listener on a proxy class. Use the event bus";
     
-    transient IProcedureRegistry registry;
-    transient WeakReference<IProcedureWithState> ref; // reference to live procedure
-    transient IEventPublisher eventPublisher;
-        
-    IEventSourceInfo eventSrcInfo;
-    long lastDescriptionUpdate = Long.MIN_VALUE;
-    AbstractProcess lastDescription;
-    String parentUID;
+    protected transient DefaultProcedureRegistry registry;
+    protected transient WeakReference<IProcedureWithState> ref; // reference to live procedure
+    protected transient IEventPublisher eventPublisher;
+    
+    protected IEventSourceInfo eventSrcInfo;
+    protected long lastDescriptionUpdate = Long.MIN_VALUE;
+    protected AbstractProcess latestDescription;
+    protected String uniqueID;
+    protected String parentUID;
         
     
     // needed for efficient deserialization
-    protected ProcedureProxy()
+    protected ProcedureShadow()
     {
     }
     
     
-    public ProcedureProxy(IProcedureWithState liveProcedure, IProcedureRegistry registry)
+    public ProcedureShadow(IProcedureWithState liveProcedure, DefaultProcedureRegistry registry)
     {
-        Asserts.checkNotNull(liveProcedure, IProcedureWithState.class);
-        
         setProcedureRegistry(registry);
         connectLiveProcedure(liveProcedure);
     }
@@ -79,7 +76,7 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
     /*
      * Used when deserializing from data store
      */
-    public void setProcedureRegistry(IProcedureRegistry registry)
+    public void setProcedureRegistry(DefaultProcedureRegistry registry)
     {
         Asserts.checkNotNull(registry, IProcedureRegistry.class);
         this.registry = registry;
@@ -88,55 +85,43 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
     
     public void connectLiveProcedure(IProcedureWithState proc)
     {
+        Asserts.checkNotNull(proc, IProcedureWithState.class);
+        
+        this.uniqueID = proc.getUniqueIdentifier();
         this.ref = new WeakReference<>(proc);
+        long lastUpdated = lastDescriptionUpdate;
         captureState();
         
         // listen to all procedure events
         eventSrcInfo = proc.getEventSourceInfo();
         eventPublisher = registry.getParentHub().getEventBus().getPublisher(eventSrcInfo);
         proc.registerListener(this);
-    }
-
-
-    @Override
-    public void handleEvent(Event e)
-    {
-        if (e instanceof ProcedureEvent) // need this check to filter out module events
-        {
-            boolean changed = captureState();
-            
-            // forward procedure events to bus
-            eventPublisher.publish(e);
-            
-            if (e instanceof ProcedureChangedEvent)
-                updateInDatastore(changed);
-            else if (e instanceof ProcedureRemovedEvent)
-                disconnectLiveProcedure((IProcedureWithState)e.getSource());
-        }
+        DefaultProcedureRegistry.log.debug("Procedure {} connected to shadow", uniqueID);
+        
+        // send procedure changed event if description has changed
+        if (lastUpdated < lastDescriptionUpdate)
+            eventPublisher.publish(new ProcedureChangedEvent(System.currentTimeMillis(), uniqueID));
     }
     
     
     public void disconnectLiveProcedure(IProcedureWithState proc)
     {
         proc.unregisterListener(this);
+        captureState();
         ref.clear();
+        DefaultProcedureRegistry.log.debug("Procedure {} disconnected from shadow", uniqueID);
     }
-    
-    
-    protected FeatureKey updateInDatastore(boolean changed)
+
+
+    @Override
+    public void handleEvent(Event e)
     {
-        Asserts.checkNotNull(lastDescription, "lastDescription");
-        
-        // TODO compute and compare description hashes to check if there 
-        // was really an update and manage valid time accordingly
-        
-        return registry.addVersion(this);
-    }
-    
-    
-    protected FeatureKey createInDataStore()
-    {
-        return registry.add(this);
+        if (e instanceof ProcedureEvent)
+        {
+            // forward all procedure events to bus
+            eventPublisher.publish(e);
+            registry.eventPublisher.publish(e);
+        }
     }
     
     
@@ -157,8 +142,8 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
         long previousUpdate = lastDescriptionUpdate;
         
         lastDescriptionUpdate = proc.getLastDescriptionUpdate();
-        lastDescription = proc.getCurrentDescription();
-        parentUID = proc.getParentGroup() != null ? proc.getParentGroup().getUniqueIdentifier() : null;
+        latestDescription = proc.getCurrentDescription();
+        parentUID = proc.getParentGroupUID();
         
         return previousUpdate < lastDescriptionUpdate;
     }
@@ -167,7 +152,7 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
     @Override
     public String getUniqueIdentifier()
     {
-        return getCurrentDescription().getUniqueIdentifier();
+        return uniqueID;
     }
     
     
@@ -189,10 +174,10 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
     public Range<Instant> getValidTime()
     {
         IProcedureWithState proc = ref.get();
-        if (proc != null)
+        if (proc != null && proc.isEnabled())
             return proc.getValidTime();
-        else if (lastDescription != null)
-            return lastDescription.getValidTime();
+        else if (latestDescription != null)
+            return latestDescription.getValidTime();
         else
             return Range.atLeast(Instant.ofEpochMilli(lastDescriptionUpdate));
     }
@@ -209,10 +194,10 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
     public AbstractProcess getCurrentDescription()
     {
         IProcedureWithState proc = ref.get();
-        if (proc != null)
+        if (proc != null && proc.isEnabled())
             return proc.getCurrentDescription();
         else
-            return lastDescription;
+            return latestDescription;
     }
 
 
@@ -220,7 +205,7 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
     public IProcedureGroup<? extends IProcedureWithState> getParentGroup()
     {
         IProcedureWithState proc = ref.get();
-        if (proc != null)
+        if (proc != null && proc.isEnabled())
             return proc.getParentGroup();
         else if (parentUID != null)
             return (IProcedureGroup<?>)registry.get(parentUID);
@@ -230,10 +215,17 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
 
 
     @Override
+    public String getParentGroupUID()
+    {
+        return parentUID;
+    }
+
+
+    @Override
     public long getLastDescriptionUpdate()
     {
         IProcedureWithState proc = ref.get();
-        if (proc != null)
+        if (proc != null && proc.isEnabled())
             return proc.getLastDescriptionUpdate();
         else
             return lastDescriptionUpdate;
@@ -259,5 +251,4 @@ class ProcedureProxy implements IProcedureWithState, Serializable, IEventListene
     public void unregisterListener(IEventListener listener)
     {
     }
-
 }

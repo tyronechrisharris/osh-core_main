@@ -14,19 +14,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import org.sensorhub.api.datastore.FeatureKey;
-import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 
 
-/**
- * <p>
- * Data store for storing procedure shadows that include procedure metadata
- * as well as their latest state.
- * </p>
- *
- * @author Alex Robin
- * @date Sep 10, 2019
- */
-public interface IProcedureShadowStore extends IFeatureStore<FeatureKey, IProcedureWithState>
+public interface IProcedureStateDatabase extends IHistoricalObsDatabase
 {
+
 }

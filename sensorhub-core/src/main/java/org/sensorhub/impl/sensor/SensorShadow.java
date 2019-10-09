@@ -12,24 +12,33 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.procedure;
+package org.sensorhub.impl.sensor;
 
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import org.sensorhub.api.common.CommandStatus;
+import org.sensorhub.api.common.CommandStatus.StatusCode;
 import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.procedure.IProcedureWithState;
-import org.sensorhub.api.procedure.IProcedureRegistry;
+import org.sensorhub.api.sensor.ISensor;
+import org.sensorhub.api.sensor.SensorException;
+import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
+import org.sensorhub.impl.procedure.ProcedureShadow;
 import org.vast.util.Asserts;
 import net.opengis.gml.v32.AbstractFeature;
+import net.opengis.gml.v32.Point;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -37,42 +46,64 @@ import net.opengis.swe.v20.DataEncoding;
 
 /**
  * <p>
- * Proxy class reflecting the latest state of the attached data producer.<br/>
- * @see {@link ProcedureProxy}
+ * Wrapper class reflecting the latest state of the attached sensor.<br/>
+ * @see {@link ProcedureShadow}
  * </p>
  *
  * @author Alex Robin
  * @date Sep 6, 2019
  */
-public class DataProducerProxy extends ProcedureProxy implements IDataProducer
+public class SensorShadow extends ProcedureShadow implements ISensor
 {
     private static final long serialVersionUID = -6315464994380209210L;
     
-    Map<String, OutputProxy> outputs;
-    AbstractFeature currentFoi;
+    protected Map<String, OutputProxy> obsOutputs = new LinkedHashMap<>();
+    protected Map<String, OutputProxy> statusOutputs = new LinkedHashMap<>();
+    protected Map<String, ControlProxy> controlInputs = new LinkedHashMap<>();
+    protected AbstractFeature currentFoi;
 
 
     // needed for deserialization
-    protected DataProducerProxy()
+    protected SensorShadow()
     {
     }
 
 
-    public DataProducerProxy(IDataProducer liveProcedure, IProcedureRegistry registry)
+    public SensorShadow(IDataProducer liveProcedure, DefaultProcedureRegistry registry)
     {
-        super(liveProcedure, registry);
+        setProcedureRegistry(registry);
+        connectLiveProcedure(liveProcedure);
     }
 
 
     @Override
     public void connectLiveProcedure(IProcedureWithState proc)
     {
-        this.outputs = new LinkedHashMap<>();
+        Asserts.checkArgument(proc instanceof IDataProducer);
         super.connectLiveProcedure(proc);
-
-        // forward events from all outputs to event bus
-        for (IStreamingDataInterface output : ((IDataProducer) proc).getOutputs().values())
-            outputs.put(output.getName(), new OutputProxy(output));
+        
+        if (proc instanceof IDataProducer)
+        {
+            if (proc instanceof ISensor)
+            {
+                for (IStreamingDataInterface output : ((ISensor) proc).getObservationOutputs().values())
+                    obsOutputs.put(output.getName(), new OutputProxy(output));
+                
+                for (IStreamingDataInterface output : ((ISensor) proc).getStatusOutputs().values())
+                    statusOutputs.put(output.getName(), new OutputProxy(output));
+            }
+            else
+            {
+                for (IStreamingDataInterface output : ((IDataProducer) proc).getOutputs().values())
+                    obsOutputs.put(output.getName(), new OutputProxy(output));
+            }
+        }
+        
+        if (proc instanceof ICommandReceiver)
+        {
+            for (IStreamingControlInterface input : ((ICommandReceiver) proc).getCommandInputs().values())
+                controlInputs.put(input.getName(), new ControlProxy(input));
+        }            
     }
 
 
@@ -83,7 +114,9 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
         super.disconnectLiveProcedure(proc);
 
         // unregister from output events
-        for (OutputProxy output : outputs.values())
+        for (OutputProxy output : obsOutputs.values())
+            output.disconnect((IDataProducer)proc);
+        for (OutputProxy output : statusOutputs.values())
             output.disconnect((IDataProducer)proc);
     }
 
@@ -91,7 +124,38 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
     @Override
     public Map<String, ? extends IStreamingDataInterface> getOutputs()
     {
-        return Collections.unmodifiableMap(outputs);
+        Map<String, IStreamingDataInterface> allOutputs = new LinkedHashMap<>();  
+        allOutputs.putAll(obsOutputs);
+        allOutputs.putAll(statusOutputs);
+        return Collections.unmodifiableMap(allOutputs);
+    }
+
+
+    @Override
+    public Map<String, ? extends IStreamingDataInterface> getStatusOutputs()
+    {
+        return Collections.unmodifiableMap(statusOutputs);
+    }
+
+
+    @Override
+    public Map<String, ? extends IStreamingDataInterface> getObservationOutputs()
+    {
+        return Collections.unmodifiableMap(obsOutputs);
+    }
+
+
+    @Override
+    public Map<String, ? extends IStreamingControlInterface> getCommandInputs()
+    {
+        return Collections.unmodifiableMap(controlInputs);
+    }
+    
+
+    @Override
+    public Point getCurrentLocation()
+    {
+        return null;
     }
 
 
@@ -104,6 +168,20 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
         else
             return currentFoi;
     }
+
+
+    @Override
+    public boolean isConnected()
+    {
+        IProcedureWithState proc = ref.get();
+        if (proc == null)
+            return false;
+        
+        if (proc instanceof ISensor)
+            return ((ISensor)proc).isConnected();
+        
+        return false;
+    }
     
     
     @Override
@@ -112,7 +190,10 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
         boolean changed = super.captureState(proc);
         
         currentFoi = ((IDataProducer)proc).getCurrentFeatureOfInterest();
-        for (OutputProxy output: outputs.values())
+        
+        for (OutputProxy output: obsOutputs.values())
+            output.captureState();
+        for (OutputProxy output: statusOutputs.values())
             output.captureState();
         
         return changed;
@@ -127,26 +208,25 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
         private static final long serialVersionUID = 835571125683311537L;
         
         transient WeakReference<IStreamingDataInterface> ref;
-        transient IEventPublisher eventPublisher;
-        
-        String name;
+        transient IEventPublisher eventPublisher;        
         IEventSourceInfo eventSrcInfo;
         DataComponent recordDescription;
         DataEncoding recommmendedEncoding;
         DataBlock latestRecord;
-        long latestRecordTime;
+        long latestRecordTime = Long.MIN_VALUE;
         double avgSamplingPeriod = Double.NaN;
 
-
+        OutputProxy()
+        {            
+        }
+        
         OutputProxy(IStreamingDataInterface liveOutput)
         {
             this.ref = new WeakReference<>(liveOutput);
-            this.name = liveOutput.getName();
             this.eventSrcInfo = liveOutput.getEventSourceInfo();
             this.eventPublisher = registry.getParentHub().getEventBus().getPublisher(eventSrcInfo);
             liveOutput.registerListener(this);
-        }
-        
+        }        
         
         void captureState()
         {
@@ -161,27 +241,23 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
             }
         }
 
-
         @Override
         public IEventSourceInfo getEventSourceInfo()
         {
             return eventSrcInfo;
         }
 
-
         @Override
         public IDataProducer getParentProducer()
         {
-            return DataProducerProxy.this;
+            return SensorShadow.this;
         }
-
 
         @Override
         public String getName()
         {
-            return name;
+            return getRecordDescription().getName();
         }
-
 
         @Override
         public boolean isEnabled()
@@ -191,7 +267,6 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
                 return output.isEnabled();
             return false;
         }
-
 
         @Override
         public DataComponent getRecordDescription()
@@ -203,7 +278,6 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
                 return recordDescription;
         }
 
-
         @Override
         public DataEncoding getRecommendedEncoding()
         {
@@ -213,7 +287,6 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
             else
                 return recommmendedEncoding;
         }
-
 
         @Override
         public DataBlock getLatestRecord()
@@ -225,7 +298,6 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
                 return latestRecord;
         }
 
-
         @Override
         public long getLatestRecordTime()
         {
@@ -236,7 +308,6 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
                 return latestRecordTime;
         }
 
-
         @Override
         public double getAverageSamplingPeriod()
         {
@@ -246,7 +317,6 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
             else
                 return avgSamplingPeriod;
         }
-
 
         @Override
         public void handleEvent(Event e)
@@ -259,15 +329,13 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
                 // forward procedure events to bus
                 eventPublisher.publish(e);
             }
-        }
-        
+        }        
         
         void disconnect(IDataProducer liveProcedure)
         {
-            IStreamingDataInterface liveOutput = liveProcedure.getOutputs().get(name);
+            IStreamingDataInterface liveOutput = liveProcedure.getOutputs().get(getName());
             liveOutput.unregisterListener(this);
         }
-
 
         @Override
         public void registerListener(IEventListener listener)
@@ -275,10 +343,76 @@ public class DataProducerProxy extends ProcedureProxy implements IDataProducer
             throw new UnsupportedOperationException(NO_LISTENER_MSG);
         }
 
-
         @Override
         public void unregisterListener(IEventListener listener)
         {
+        }
+    }
+    
+    
+    /*
+     * class to proxy each control input
+     */
+    class ControlProxy implements IStreamingControlInterface, Serializable
+    {
+        private static final long serialVersionUID = 6572968037145053862L;
+
+        transient WeakReference<IStreamingControlInterface> ref;
+        DataComponent commandDescription;
+        DataEncoding recommmendedEncoding;
+        
+        ControlProxy(IStreamingControlInterface liveInput)
+        {
+            this.ref = new WeakReference<>(liveInput);
+        }
+        
+        @Override
+        public ICommandReceiver getParentProducer()
+        {
+            return SensorShadow.this;
+        }
+        
+        @Override
+        public String getName()
+        {
+            return getCommandDescription().getName();
+        }
+        
+        @Override
+        public boolean isEnabled()
+        {
+            IStreamingControlInterface input = ref.get();
+            if (input != null)
+                return input.isEnabled();
+            return false;
+        }
+        
+        @Override
+        public DataComponent getCommandDescription()
+        {
+            IStreamingControlInterface input = ref.get();
+            if (input != null)
+                return input.getCommandDescription();
+            else
+                return commandDescription;
+        }
+        
+        @Override
+        public CommandStatus execCommand(DataBlock command) throws SensorException
+        {
+            IStreamingControlInterface input = ref.get();
+            if (input != null)
+                return input.execCommand(command);
+            return new CommandStatus("NOID", StatusCode.REJECTED);
+        }
+        
+        @Override
+        public CommandStatus execCommandGroup(List<DataBlock> commands) throws SensorException
+        {
+            IStreamingControlInterface input = ref.get();
+            if (input != null)
+                return input.execCommandGroup(commands);
+            return new CommandStatus("NOID", StatusCode.REJECTED);
         }
     }
 

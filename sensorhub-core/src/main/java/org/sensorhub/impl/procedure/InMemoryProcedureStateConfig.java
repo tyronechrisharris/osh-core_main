@@ -12,21 +12,23 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.procedure;
+package org.sensorhub.impl.procedure;
 
-import org.sensorhub.api.datastore.FeatureKey;
-import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.persistence.StorageConfig;
 
 
-/**
- * <p>
- * Data store for storing procedure shadows that include procedure metadata
- * as well as their latest state.
- * </p>
- *
- * @author Alex Robin
- * @date Sep 10, 2019
- */
-public interface IProcedureShadowStore extends IFeatureStore<FeatureKey, IProcedureWithState>
+public class InMemoryProcedureStateConfig extends StorageConfig
 {
+
+    public InMemoryProcedureStateConfig()
+    {
+        this.moduleClass = InMemoryProcedureStateDatabase.class.getCanonicalName();
+    }
+    
+    
+    @Override
+    public void setStorageIdentifier(String name)
+    {
+    }
+
 }

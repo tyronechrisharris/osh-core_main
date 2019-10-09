@@ -561,16 +561,14 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         super.setState(newState);
         
+        // register with procedure registry when sensor has successfully initialized
+        // and send enabled/disabled events
         if (newState == ModuleState.INITIALIZED)
-        {
-            // register with procedure registry when sensor has successfully initialized
             getParentHub().getProcedureRegistry().register(this);
+        else if (newState == ModuleState.STARTED)
             eventHandler.publish(new ProcedureEnabledEvent(System.currentTimeMillis(), getUniqueIdentifier()));
-        }
         else if (newState == ModuleState.STOPPED)
-        {
             eventHandler.publish(new ProcedureDisabledEvent(System.currentTimeMillis(), getUniqueIdentifier()));
-        }
     }
 
     

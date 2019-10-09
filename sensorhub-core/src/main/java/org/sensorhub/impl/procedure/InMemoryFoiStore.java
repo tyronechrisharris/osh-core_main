@@ -12,21 +12,31 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.procedure;
+package org.sensorhub.impl.procedure;
 
-import org.sensorhub.api.datastore.FeatureKey;
-import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.datastore.IFoiStore;
+import org.sensorhub.api.datastore.IObsStore;
+import net.opengis.gml.v32.AbstractFeature;
 
 
 /**
  * <p>
- * Data store for storing procedure shadows that include procedure metadata
- * as well as their latest state.
+ * In-memory implementation of FOI store backed by a {@link java.util.NavigableMap}.
+ * This implementation is only used to store the latest procedure state and thus
+ * doesn't support versioning/history of FOI descriptions.
  * </p>
  *
  * @author Alex Robin
- * @date Sep 10, 2019
+ * @date Sep 28, 2019
  */
-public interface IProcedureShadowStore extends IFeatureStore<FeatureKey, IProcedureWithState>
+public class InMemoryFoiStore extends InMemoryFeatureStore<AbstractFeature> implements IFoiStore
 {
+    IObsStore obsStore;
+    
+
+    @Override
+    public void linkTo(IObsStore obsStore)
+    {
+        this.obsStore = obsStore;
+    }
 }

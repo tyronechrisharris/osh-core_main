@@ -12,21 +12,32 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.procedure;
+package org.sensorhub.impl.sensor;
 
-import org.sensorhub.api.datastore.FeatureKey;
-import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.Required;
 
 
 /**
  * <p>
- * Data store for storing procedure shadows that include procedure metadata
- * as well as their latest state.
+ * Class used in config to define virtual procedure groups.
  * </p>
  *
  * @author Alex Robin
- * @date Sep 10, 2019
+ * @date Sep 26, 2019
  */
-public interface IProcedureShadowStore extends IFeatureStore<FeatureKey, IProcedureWithState>
+public class VirtualProcedureGroupConfig
 {
+    @Required
+    @DisplayInfo(desc="Unique ID of procedure group")
+    public String uid;
+    
+    @DisplayInfo(desc="Name of procedure group")
+    public String name;
+    
+    @DisplayInfo(desc="Description of procedure group")
+    public String description;
+    
+    // security role to map to this group
+    //public String securityRole;
 }
