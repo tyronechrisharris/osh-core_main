@@ -169,6 +169,9 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
      */
     protected FeatureId toPublicID(int databaseID, FeatureId id)
     {
+        if (id == null)
+            return null;
+        
         long publicID = registry.getPublicID(databaseID, id.getInternalID());
         return new FeatureId(publicID, id.getUniqueID());
     }
