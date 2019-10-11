@@ -35,6 +35,7 @@ public class FederatedObsDatabase implements IHistoricalObsDatabase
         
         // also link stores with each other
         procStore.dataStreamStore = obsStore.dataStreamStore;
+        obsStore.dataStreamStore.procStore = procStore;
         obsStore.foiStore = foiStore;
     }
     
