@@ -60,7 +60,8 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     
     ISensorHub hub;
     IEventPublisher eventPublisher;
-    IProcedureStateDatabase db;
+    IProcedureStateDatabase stateDb;
+    IHistoricalObsDatabase historicalDb;
     GenericObsStreamDataStore dbListener;
     ReadWriteLock lock = new ReentrantReadWriteLock();
     
@@ -93,12 +94,14 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             dbListener.setParentHub(hub);
             dbListener.init(dbListenerConfig);
             dbListener.start();
-            db = (IProcedureStateDatabase)dbListener.getDatabase();
+            stateDb = (IProcedureStateDatabase)dbListener.getDatabase();
         }
         catch (Exception e)
         {
             throw new IllegalStateException("Error initializing procedure state database", e);
         }
+        
+        this.historicalDb = hub.getDatabaseRegistry().getFederatedObsDatabase();
     }
     
     
@@ -160,12 +163,12 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     
     protected FeatureKey addToDataStore(ProcedureShadow shadow)
     {
-        FeatureKey existingKey = hub.getDatabaseRegistry().getProcedureStore().getLatestVersionKey(shadow.getUniqueIdentifier());
+        FeatureKey existingKey = historicalDb.getProcedureStore().getLatestVersionKey(shadow.getUniqueIdentifier());
         if (existingKey != null)
             return existingKey;
         
         // if procedure not in DB yet, add to procedure state DB
-        FeatureKey newKey = db.getProcedureStore().add(shadow.getCurrentDescription());
+        FeatureKey newKey = stateDb.getProcedureStore().add(shadow.getCurrentDescription());
         dbListener.getConfiguration().procedureUIDs.add(shadow.getUniqueIdentifier());
         
         return newKey;
@@ -216,7 +219,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
                 shadow.disconnectLiveProcedure(proc);
             
             // remove from state database
-            db.getProcedureStore().remove(uid);
+            stateDb.getProcedureStore().remove(uid);
             
             // publish procedure disabled event
             if (sendEvent)
@@ -274,7 +277,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     @Override
     public IHistoricalObsDatabase getProcedureStateDatabase()
     {
-        return db;
+        return stateDb;
     }
     
     

@@ -33,8 +33,8 @@ import org.sensorhub.api.datastore.ObsFilter;
 import org.sensorhub.api.datastore.ObsKey;
 import org.sensorhub.api.datastore.ObsStats;
 import org.sensorhub.api.datastore.ObsStatsQuery;
-import org.sensorhub.impl.datastore.registry.FederatedDatabaseRegistry.LocalDatabaseInfo;
-import org.sensorhub.impl.datastore.registry.FederatedDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalDatabaseInfo;
+import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 
 
@@ -49,11 +49,12 @@ import org.vast.util.Asserts;
  */
 public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFilter> implements IObsStore
 {
-    FederatedDatabaseRegistry registry;
+    DefaultDatabaseRegistry registry;
     FederatedDataStreamStore dataStreamStore;
+    FederatedFoiStore foiStore;
     
     
-    FederatedObsStore(FederatedDatabaseRegistry registry)
+    FederatedObsStore(DefaultDatabaseRegistry registry)
     {
         this.registry = registry;
         this.dataStreamStore = new FederatedDataStreamStore(registry);
@@ -195,7 +196,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
             dataStreamFilterDispatchMap = dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
         
         if (filter.getFoiFilter() != null)
-            foiFilterDispatchMap = registry.foiStore.getFilterDispatchMap(filter.getFoiFilter());
+            foiFilterDispatchMap = foiStore.getFilterDispatchMap(filter.getFoiFilter());
         
         // merge both maps
         Map<Integer, LocalFilterInfo> obsFilterDispatchMap = new TreeMap<>();

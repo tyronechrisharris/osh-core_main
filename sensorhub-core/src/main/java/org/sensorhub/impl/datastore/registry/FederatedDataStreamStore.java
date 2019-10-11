@@ -27,7 +27,7 @@ import org.sensorhub.api.datastore.DataStreamInfo;
 import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.IDataStreamStore;
 import org.sensorhub.api.datastore.ProcedureFilter;
-import org.sensorhub.impl.datastore.registry.FederatedDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 
 
@@ -42,10 +42,11 @@ import org.vast.util.Asserts;
  */
 public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStreamInfo, DataStreamFilter> implements IDataStreamStore
 {
-    FederatedDatabaseRegistry registry;
+    DefaultDatabaseRegistry registry;
+    FederatedProcedureStore procStore;
     
     
-    FederatedDataStreamStore(FederatedDatabaseRegistry registry)
+    FederatedDataStreamStore(DefaultDatabaseRegistry registry)
     {
         this.registry = registry;
     }
@@ -183,7 +184,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
         else if (filter.getProcedureFilter() != null)
         {
             // delegate to proc store handle procedure filter dispatch map
-            var filterDispatchMap = registry.procStore.getFilterDispatchMap(filter.getProcedureFilter());
+            var filterDispatchMap = procStore.getFilterDispatchMap(filter.getProcedureFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())

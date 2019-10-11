@@ -30,7 +30,7 @@ import org.sensorhub.api.datastore.IFeatureFilter;
 import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IObsStore;
 import org.sensorhub.api.datastore.ProcedureFilter;
-import org.sensorhub.impl.datastore.registry.FederatedDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 import net.opengis.gml.v32.AbstractFeature;
@@ -47,10 +47,10 @@ import net.opengis.gml.v32.AbstractFeature;
  */
 public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFeature, IFeatureFilter> implements IFoiStore
 {
-    FederatedDatabaseRegistry registry;
+    DefaultDatabaseRegistry registry;
     
     
-    FederatedFoiStore(FederatedDatabaseRegistry registry)
+    FederatedFoiStore(DefaultDatabaseRegistry registry)
     {
         this.registry = registry;
     }
@@ -277,6 +277,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     }
     
     
+    @SuppressWarnings("unchecked")
     protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FeatureFilter filter)
     {
         if (filter.getInternalIDs() != null)

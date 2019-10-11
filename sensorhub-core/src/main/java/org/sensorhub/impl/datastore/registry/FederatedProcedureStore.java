@@ -30,7 +30,7 @@ import org.sensorhub.api.datastore.IFeatureFilter;
 import org.sensorhub.api.datastore.IObsStore;
 import org.sensorhub.api.datastore.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureDescriptionStore;
-import org.sensorhub.impl.datastore.registry.FederatedDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -47,10 +47,11 @@ import net.opengis.sensorml.v20.AbstractProcess;
  */
 public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, AbstractProcess, IFeatureFilter> implements IProcedureDescriptionStore
 {
-    FederatedDatabaseRegistry registry;
+    DefaultDatabaseRegistry registry;
+    FederatedDataStreamStore dataStreamStore;
     
     
-    FederatedProcedureStore(FederatedDatabaseRegistry registry)
+    FederatedProcedureStore(DefaultDatabaseRegistry registry)
     {
         this.registry = registry;
     }
@@ -168,6 +169,9 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
      */
     protected FeatureId toPublicID(int databaseID, FeatureId id)
     {
+        if (id == null)
+            return null;
+        
         long publicID = registry.getPublicID(databaseID, id.getInternalID());
         return new FeatureId(publicID, id.getUniqueID());
     }
@@ -278,7 +282,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
         else if (filter.getDataStreamFilter() != null)
         {
             // delegate to datastream store handle datastream filter dispatch map
-            var filterDispatchMap = registry.obsStore.dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
+            var filterDispatchMap = dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())
@@ -297,6 +301,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
     }
     
     
+    @SuppressWarnings("unchecked")
     protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FeatureFilter filter)
     {
         if (filter.getInternalIDs() != null)

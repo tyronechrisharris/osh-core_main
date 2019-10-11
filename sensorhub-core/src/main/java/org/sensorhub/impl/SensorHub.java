@@ -17,14 +17,14 @@ package org.sensorhub.impl;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
-import org.sensorhub.api.datastore.IObsDatabaseRegistry;
+import org.sensorhub.api.datastore.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.comm.NetworkManagerImpl;
-import org.sensorhub.impl.datastore.registry.FederatedDatabaseRegistry;
+import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry;
 import org.sensorhub.impl.event.EventBus;
 import org.sensorhub.impl.module.InMemoryConfigDb;
 import org.sensorhub.impl.module.ModuleConfigJsonFile;
@@ -55,7 +55,7 @@ public class SensorHub implements ISensorHub
     private ModuleRegistry moduleRegistry;
     private IEventBus eventBus;
     private IProcedureRegistry procedureRegistry;
-    private IObsDatabaseRegistry databaseRegistry;
+    private IDatabaseRegistry databaseRegistry;
     private INetworkManager networkManager;
     private ISecurityManager securityManager;
     private IProcessingManager processingManager;
@@ -85,7 +85,7 @@ public class SensorHub implements ISensorHub
         this.config = config;
         this.eventBus = eventBus;
         this.moduleRegistry = registry;
-        this.databaseRegistry = new FederatedDatabaseRegistry(this);
+        this.databaseRegistry = new DefaultDatabaseRegistry(this);
         this.procedureRegistry = new DefaultProcedureRegistry(this);
     }   
     
@@ -173,7 +173,7 @@ public class SensorHub implements ISensorHub
     
     
     @Override
-    public IObsDatabaseRegistry getDatabaseRegistry()
+    public IDatabaseRegistry getDatabaseRegistry()
     {
         return databaseRegistry;
     }

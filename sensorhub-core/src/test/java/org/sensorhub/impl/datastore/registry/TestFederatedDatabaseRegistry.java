@@ -24,7 +24,7 @@ import org.sensorhub.api.datastore.FeatureFilter;
 import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
-import org.sensorhub.api.datastore.IObsDatabaseRegistry;
+import org.sensorhub.api.datastore.IDatabaseRegistry;
 import org.sensorhub.api.datastore.ObsFilter;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.procedure.InMemoryProcedureStateDatabase;
@@ -35,7 +35,9 @@ import net.opengis.sensorml.v20.AbstractProcess;
 
 public class TestFederatedDatabaseRegistry
 {
-    IObsDatabaseRegistry registry;
+    IDatabaseRegistry registry;
+    IHistoricalObsDatabase mainObsDatabase;
+    
     
     @Rule
     public ExpectedException errors = ExpectedException.none();
@@ -46,6 +48,7 @@ public class TestFederatedDatabaseRegistry
     {
         SensorHub hub = new SensorHub();
         this.registry = hub.getDatabaseRegistry();
+        this.mainObsDatabase = registry.getFederatedObsDatabase();
     }
     
     
@@ -72,40 +75,40 @@ public class TestFederatedDatabaseRegistry
         registry.register(Sets.newHashSet("sensor1", "sensor2"), new InMemoryProcedureStateDatabase());
         registry.register(Sets.newHashSet("sensor3", "sensor4"), new InMemoryProcedureStateDatabase((byte)1));
         
-        assertEquals(0, registry.getProcedureStore().getNumFeatures());
-        assertEquals(0, registry.getProcedureStore().getNumRecords());
-        assertEquals(0, registry.getFoiStore().getNumFeatures());
-        assertEquals(0, registry.getFoiStore().getNumRecords());
-        assertEquals(0, registry.getObservationStore().getNumRecords());
-        assertEquals(0, registry.getObservationStore().getDataStreams().getNumRecords());
+        assertEquals(0, mainObsDatabase.getProcedureStore().getNumFeatures());
+        assertEquals(0, mainObsDatabase.getProcedureStore().getNumRecords());
+        assertEquals(0, mainObsDatabase.getFoiStore().getNumFeatures());
+        assertEquals(0, mainObsDatabase.getFoiStore().getNumRecords());
+        assertEquals(0, mainObsDatabase.getObservationStore().getNumRecords());
+        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().getNumRecords());
         
-        assertTrue(registry.getProcedureStore().isEmpty());
-        assertTrue(registry.getFoiStore().isEmpty());
-        assertTrue(registry.getObservationStore().isEmpty());
-        assertTrue(registry.getObservationStore().getDataStreams().isEmpty());
+        assertTrue(mainObsDatabase.getProcedureStore().isEmpty());
+        assertTrue(mainObsDatabase.getFoiStore().isEmpty());
+        assertTrue(mainObsDatabase.getObservationStore().isEmpty());
+        assertTrue(mainObsDatabase.getObservationStore().getDataStreams().isEmpty());
         
-        assertEquals(0, registry.getProcedureStore().keySet().size());
-        assertEquals(0, registry.getFoiStore().keySet().size());
-        assertEquals(0, registry.getObservationStore().keySet().size());
-        assertEquals(0, registry.getObservationStore().getDataStreams().keySet().size());
+        assertEquals(0, mainObsDatabase.getProcedureStore().keySet().size());
+        assertEquals(0, mainObsDatabase.getFoiStore().keySet().size());
+        assertEquals(0, mainObsDatabase.getObservationStore().keySet().size());
+        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().keySet().size());
         
-        assertEquals(0, registry.getProcedureStore().entrySet().size());
-        assertEquals(0, registry.getFoiStore().entrySet().size());
-        assertEquals(0, registry.getObservationStore().entrySet().size());
-        assertEquals(0, registry.getObservationStore().getDataStreams().entrySet().size());
+        assertEquals(0, mainObsDatabase.getProcedureStore().entrySet().size());
+        assertEquals(0, mainObsDatabase.getFoiStore().entrySet().size());
+        assertEquals(0, mainObsDatabase.getObservationStore().entrySet().size());
+        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().entrySet().size());
         
-        assertEquals(0, registry.getProcedureStore().values().size());
-        assertEquals(0, registry.getFoiStore().values().size());
-        assertEquals(0, registry.getObservationStore().values().size());
-        assertEquals(0, registry.getObservationStore().getDataStreams().values().size());
+        assertEquals(0, mainObsDatabase.getProcedureStore().values().size());
+        assertEquals(0, mainObsDatabase.getFoiStore().values().size());
+        assertEquals(0, mainObsDatabase.getObservationStore().values().size());
+        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().values().size());
         
-        assertEquals(0, registry.getProcedureStore().selectEntries(FeatureFilter.builder().build()).count());
-        assertEquals(0, registry.getFoiStore().selectEntries(FeatureFilter.builder().build()).count());
-        assertEquals(0, registry.getObservationStore().selectEntries(ObsFilter.builder().build()).count());
-        assertEquals(0, registry.getObservationStore().getDataStreams().selectEntries(DataStreamFilter.builder().build()).count());
+        assertEquals(0, mainObsDatabase.getProcedureStore().selectEntries(FeatureFilter.builder().build()).count());
+        assertEquals(0, mainObsDatabase.getFoiStore().selectEntries(FeatureFilter.builder().build()).count());
+        assertEquals(0, mainObsDatabase.getObservationStore().selectEntries(ObsFilter.builder().build()).count());
+        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().selectEntries(DataStreamFilter.builder().build()).count());
         
-        assertEquals(0, registry.getProcedureStore().getAllFeatureIDs().count());
-        assertEquals(0, registry.getFoiStore().getAllFeatureIDs().count());
+        assertEquals(0, mainObsDatabase.getProcedureStore().getAllFeatureIDs().count());
+        assertEquals(0, mainObsDatabase.getFoiStore().getAllFeatureIDs().count());
     }
     
     
@@ -125,17 +128,17 @@ public class TestFederatedDatabaseRegistry
         proc3.setUniqueIdentifier("sensor3");
         FeatureKey fk3 = db2.getProcedureStore().add(proc3);
         
-        FeatureId id1 = registry.getProcedureStore().getFeatureID(FeatureKey.builder()
+        FeatureId id1 = mainObsDatabase.getProcedureStore().getFeatureID(FeatureKey.builder()
             .withUniqueID("sensor1")
             .build());
-        assertTrue(fk1.getInternalID()*FederatedDatabaseRegistry.MAX_NUM_DB+db1.getDatabaseID() == id1.getInternalID());
+        assertTrue(fk1.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db1.getDatabaseID() == id1.getInternalID());
         
-        FeatureId id3 = registry.getProcedureStore().getFeatureID(FeatureKey.builder()
+        FeatureId id3 = mainObsDatabase.getProcedureStore().getFeatureID(FeatureKey.builder()
             .withUniqueID("sensor3")
             .build());
-        assertTrue(fk3.getInternalID()*FederatedDatabaseRegistry.MAX_NUM_DB+db2.getDatabaseID() == id3.getInternalID());
+        assertTrue(fk3.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db2.getDatabaseID() == id3.getInternalID());
         
-        assertEquals(2, registry.getProcedureStore().keySet().size());        
+        assertEquals(2, mainObsDatabase.getProcedureStore().keySet().size());        
     }
 
 }
