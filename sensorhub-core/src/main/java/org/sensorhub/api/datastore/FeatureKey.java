@@ -132,7 +132,10 @@ public class FeatureKey extends FeatureId
         
         public T build()
         {
-            Asserts.checkArgument(!Strings.isNullOrEmpty(instance.uniqueID) || instance.internalID > 0, "uniqueID or internalID must be set");
+            boolean hasUniqueID = !Strings.isNullOrEmpty(instance.uniqueID);
+            Asserts.checkArgument(hasUniqueID || instance.internalID != -1, "uniqueID or internalID must be set");
+            if (!hasUniqueID)
+                Asserts.checkArgument(instance.internalID > 0, "internalID must be > 0");
             Asserts.checkNotNull(instance.validStartTime, "validStartTime");
             
             T newInstance = instance;
