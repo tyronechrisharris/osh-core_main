@@ -44,7 +44,7 @@ import com.google.common.collect.Range;
 
 /**
  * <p>
- * Feature Store implementation based on H2 MVStore.<br/>
+ * Feature Store implementation based on H2 MVStore.
  * </p>
  * 
  * @param <V> Value type 
@@ -68,7 +68,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     
     
     protected MVBaseFeatureStoreImpl()
-    {        
+    {
     }
     
     
@@ -221,8 +221,6 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         Instant validStartTime = getValidStartTime(feature);
         if (!validStartTime.isAfter(getLastVersionKey(internalID).getValidStartTime()))
             throw new IllegalArgumentException("Feature validity must start after the previous version");
-        
-        // TODO also update previous feature end valid time
         
         // generate key
         FeatureKey key = FeatureKey.builder()
@@ -672,6 +670,8 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
                         
                 // remove from main index
                 V oldValue = featuresIndex.remove(fk);
+                if (oldValue == null)
+                    return null;
                 
                 // remove entry from ID index if no more feature entries are present
                 long internalID = fk.getInternalID();
@@ -680,15 +680,12 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
                         .build();
                 FeatureKey nextKey = featuresIndex.ceilingKey(firstKey);
                 if (nextKey == null || internalID != nextKey.getInternalID())
-                    idsIndex.remove(fk.getUniqueID());   
+                    idsIndex.remove(oldValue.getUniqueIdentifier());
                 
                 // remove from spatial index
-                if (oldValue != null)
-                {
-                    SpatialKey spatialKey = getSpatialKey(fk, oldValue);
-                    if (spatialKey != null)
-                        spatialIndex.remove(spatialKey);
-                }   
+                SpatialKey spatialKey = getSpatialKey(fk, oldValue);
+                if (spatialKey != null)
+                    spatialIndex.remove(spatialKey);   
                 
                 return oldValue;
             }

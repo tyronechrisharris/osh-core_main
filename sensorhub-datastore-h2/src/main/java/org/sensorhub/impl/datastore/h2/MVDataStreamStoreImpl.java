@@ -40,7 +40,7 @@ import com.google.common.collect.Range;
 
 /**
  * <p>
- * TODO MVDataStreamStore type description
+ * Datastream Store implementation based on H2 MVStore.
  * </p>
  *
  * @author Alex Robin
@@ -119,7 +119,7 @@ class MVDataStreamStoreImpl implements IDataStreamStore
             dsInfo.getProcedure().getInternalID(),
             dsInfo.getOutputName(),
             dsInfo.getRecordVersion());
-        Asserts.checkState(!dataStreamByProcIndex.containsKey(procKey), "Data stream already exists");            
+        Asserts.checkArgument(!dataStreamByProcIndex.containsKey(procKey), "A datastream with the same name already exists");            
         
         // generate key
         Long internalID = idProvider.newInternalID();
@@ -386,6 +386,8 @@ class MVDataStreamStoreImpl implements IDataStreamStore
             {
                 // remove from main index                
                 DataStreamInfo oldValue = dataStreamIndex.remove(key);
+                if (oldValue == null)
+                    return null;
                 
                 // remove entry in secondary index
                 dataStreamByProcIndex.remove(new MVDataStreamProcKey(
