@@ -35,6 +35,7 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.datastore.DataStreamInfo;
+import org.sensorhub.api.datastore.DatabaseConfig;
 import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IDataStreamStore;
@@ -44,7 +45,6 @@ import org.sensorhub.api.datastore.ObsData;
 import org.sensorhub.api.datastore.ObsKey;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.IProcedureWithState;
@@ -111,18 +111,18 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         processEvents = config.processEvents;
         
         // instantiate and start underlying storage
-        StorageConfig storageConfig = null;
+        DatabaseConfig dbConfig = null;
         try
         {
-            storageConfig = (StorageConfig)config.dbConfig.clone();
-            storageConfig.id = getLocalID();
-            storageConfig.name = getName();
-            Class<?> clazz = Class.forName(storageConfig.moduleClass);
+            dbConfig = (DatabaseConfig)config.dbConfig.clone();
+            dbConfig.id = getLocalID();
+            dbConfig.name = getName();
+            Class<?> clazz = Class.forName(dbConfig.moduleClass);
             
             @SuppressWarnings("unchecked")
-            IModule<StorageConfig> dbModule = (IModule<StorageConfig>)clazz.getDeclaredConstructor().newInstance();
+            IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
             dbModule.setParentHub(getParentHub());
-            dbModule.init(storageConfig);
+            dbModule.init(dbConfig);
             dbModule.start();
             
             this.db = (IHistoricalObsDatabase)dbModule;
@@ -132,7 +132,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         }
         catch (Exception e)
         {
-            throw new StorageException("Cannot instantiate underlying storage " + storageConfig.moduleClass, e);
+            throw new StorageException("Cannot instantiate underlying database " + dbConfig.moduleClass, e);
         }
         
         // start auto-purge timer thread if policy is specified and enabled

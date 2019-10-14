@@ -21,11 +21,11 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.datastore.DatabaseConfig;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.IProcedureGroup;
@@ -75,7 +75,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
     
     
-    public DefaultProcedureRegistry(ISensorHub hub, StorageConfig stateDbConfig)
+    public DefaultProcedureRegistry(ISensorHub hub, DatabaseConfig stateDbConfig)
     {
         this.hub = Asserts.checkNotNull(hub, ISensorHub.class);
         this.eventPublisher = hub.getEventBus().getPublisher(IProcedureRegistry.EVENT_SOURCE_ID);
@@ -83,7 +83,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
     
     
-    void initDatabase(StorageConfig stateDbConfig)
+    void initDatabase(DatabaseConfig stateDbConfig)
     {
         try
         {

@@ -8,7 +8,7 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -16,19 +16,18 @@ package org.sensorhub.impl.datastore.h2;
 
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
-import org.sensorhub.api.persistence.StorageConfig;
-import org.sensorhub.utils.FileUtils;
+import org.sensorhub.api.datastore.DatabaseConfig;
 
 
 /**
  * <p>
- * Configuration class for PERST basic storage
+ * Config class for {@link MVFeatureDatabase} module
  * </p>
  *
  * @author Alex Robin
- * @since Sep 7, 2013
+ * @date Oct 11, 2019
  */
-public class MVStorageConfig extends StorageConfig
+public class MVFeatureDatabaseConfig extends DatabaseConfig
 {
     
     @Required
@@ -46,11 +45,4 @@ public class MVStorageConfig extends StorageConfig
         
     @DisplayInfo(desc="Set to compress underlying file storage")
     public boolean useCompression = false;
-
-
-    @Override
-    public void setStorageIdentifier(String name)
-    {
-        storagePath = FileUtils.safeFileName(name) + ".dat";        
-    }
 }

@@ -16,9 +16,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
-import org.sensorhub.api.persistence.StorageConfig;
-import org.sensorhub.utils.FileUtils;
-import com.google.common.base.Strings;
+import org.sensorhub.api.datastore.DatabaseConfig;
 
 
 /**
@@ -29,10 +27,8 @@ import com.google.common.base.Strings;
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class MVHistoricalObsConfig extends StorageConfig
+public class MVHistoricalObsDatabaseConfig extends DatabaseConfig
 {
-    static final String STORAGE_ID_VAR = "${STORAGE_ID}";
-    
     
     @Required
     @DisplayInfo
@@ -58,16 +54,4 @@ public class MVHistoricalObsConfig extends StorageConfig
     
     @DisplayInfo(desc="Set to enable spatial indexing of individual observations sampling locations (when provided)")
     public boolean indexObsLocation = false;
-
-
-    @Override
-    public void setStorageIdentifier(String name)
-    {
-        String fileName = FileUtils.safeFileName(name);
-        
-        if (!Strings.isNullOrEmpty(storagePath) && storagePath.contains(STORAGE_ID_VAR))
-            storagePath = storagePath.replace(STORAGE_ID_VAR, fileName);
-        else
-            storagePath = fileName + ".dat";
-    }
 }

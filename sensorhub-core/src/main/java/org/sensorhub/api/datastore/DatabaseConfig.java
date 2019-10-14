@@ -12,17 +12,20 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.procedure;
+package org.sensorhub.api.datastore;
 
-import org.sensorhub.api.datastore.DatabaseConfig;
+import org.sensorhub.api.module.ModuleConfig;
 
 
-public class InMemoryProcedureStateConfig extends DatabaseConfig
+/**
+ * <p>
+ * BAse config class for all database modules
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Oct 12, 2019
+ */
+public class DatabaseConfig extends ModuleConfig
 {
-
-    public InMemoryProcedureStateConfig()
-    {
-        this.moduleClass = InMemoryProcedureStateDatabase.class.getCanonicalName();
-    }
 
 }

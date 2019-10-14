@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
-import org.sensorhub.api.persistence.StorageConfig;
+import org.sensorhub.api.datastore.DatabaseConfig;
 
 
 /**
@@ -29,12 +29,12 @@ import org.sensorhub.api.persistence.StorageConfig;
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class StreamDataStoreConfig extends StorageConfig
+public class StreamDataStoreConfig extends DatabaseConfig
 {
     
     @Required
     @DisplayInfo(label="Database Config", desc="Configuration of underlying database")
-    public StorageConfig dbConfig;
+    public DatabaseConfig dbConfig;
     
     
     @Required
@@ -61,13 +61,5 @@ public class StreamDataStoreConfig extends StorageConfig
     public StreamDataStoreConfig()
     {
         this.moduleClass = GenericObsStreamDataStore.class.getCanonicalName();
-    }
-
-
-    @Override
-    public void setStorageIdentifier(String name)
-    {
-        if (dbConfig != null)
-            dbConfig.setStorageIdentifier(name);
     }
 }
