@@ -66,17 +66,41 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
     {
         return op;
     }
-    
-    
-    public static <K extends Comparable<?>> Builder<K> builder()
+
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public boolean test(Object val)
     {
-        return new Builder<>();
+        if (val instanceof Range)
+        {
+            Range<K> other = (Range<K>)val;
+            
+            switch (op)
+            {
+                case CONTAINS:
+                    return range.encloses(other);
+                case EQUALS:
+                    return range.equals(other);
+                default:
+                    return range.isConnected(other);
+            }
+        }
+        else
+            return range.contains((K)val);
+    }
+    
+    
+    @Override
+    public String toString()
+    {
+        return String.format("Range %s [%s - %s]", op, range.lowerEndpoint(), range.upperEndpoint()); 
     }
     
     
     public static class Builder<K extends Comparable<?>> extends BaseBuilder<RangeFilter<K>>
     {
-        protected Builder()
+        public Builder()
         {
             super(new RangeFilter<>());
         }
@@ -108,36 +132,6 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
             Asserts.checkNotNull(instance.range, "range");
             return super.build();
         }
-    }
-
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public boolean test(Object val)
-    {
-        if (val instanceof Range)
-        {
-            Range<K> other = (Range<K>)val;
-            
-            switch (op)
-            {
-                case CONTAINS:
-                    return range.encloses(other);
-                case EQUALS:
-                    return range.equals(other);
-                default:
-                    return range.isConnected(other);
-            }
-        }
-        else
-            return range.contains((K)val);
-    }
-    
-    
-    @Override
-    public String toString()
-    {
-        return String.format("Range %s [%s - %s]", op, range.lowerEndpoint(), range.upperEndpoint()); 
     }
     
 }

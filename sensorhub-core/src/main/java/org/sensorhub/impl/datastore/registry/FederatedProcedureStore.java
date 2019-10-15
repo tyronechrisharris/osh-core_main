@@ -270,7 +270,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
             var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
-                filterInfo.filter = ProcedureFilter.builder()
+                filterInfo.filter = ProcedureFilter.Builder
                     .from(filter)
                     .withInternalIDs(filterInfo.internalIds)
                     .build();
@@ -287,7 +287,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
             {
                 for (var filterInfo: filterDispatchMap.values())
                 {
-                    filterInfo.filter = ProcedureFilter.builder()
+                    filterInfo.filter = ProcedureFilter.Builder
                         .from(filter)
                         .withDataStreams((DataStreamFilter)filterInfo.filter)
                         .build();
@@ -301,7 +301,6 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
     }
     
     
-    @SuppressWarnings("unchecked")
     protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FeatureFilter filter)
     {
         if (filter.getInternalIDs() != null)
@@ -309,7 +308,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
             var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());            
             for (var filterInfo: filterDispatchMap.values())
             {
-                filterInfo.filter = FeatureFilter.builder()
+                filterInfo.filter = FeatureFilter.Builder
                     .from(filter)
                     .withInternalIDs(filterInfo.internalIds)
                     .build();

@@ -102,10 +102,10 @@ public class TestFederatedDatabaseRegistry
         assertEquals(0, mainObsDatabase.getObservationStore().values().size());
         assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().values().size());
         
-        assertEquals(0, mainObsDatabase.getProcedureStore().selectEntries(FeatureFilter.builder().build()).count());
-        assertEquals(0, mainObsDatabase.getFoiStore().selectEntries(FeatureFilter.builder().build()).count());
-        assertEquals(0, mainObsDatabase.getObservationStore().selectEntries(ObsFilter.builder().build()).count());
-        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().selectEntries(DataStreamFilter.builder().build()).count());
+        assertEquals(0, mainObsDatabase.getProcedureStore().selectEntries(new FeatureFilter.Builder().build()).count());
+        assertEquals(0, mainObsDatabase.getFoiStore().selectEntries(new FeatureFilter.Builder().build()).count());
+        assertEquals(0, mainObsDatabase.getObservationStore().selectEntries(new ObsFilter.Builder().build()).count());
+        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().selectEntries(new DataStreamFilter.Builder().build()).count());
         
         assertEquals(0, mainObsDatabase.getProcedureStore().getAllFeatureIDs().count());
         assertEquals(0, mainObsDatabase.getFoiStore().getAllFeatureIDs().count());

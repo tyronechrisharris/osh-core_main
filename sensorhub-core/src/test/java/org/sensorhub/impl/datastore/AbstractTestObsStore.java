@@ -264,7 +264,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         forceReadBackFromStorage();
         
         // last version of everything
-        DataStreamFilter filter = DataStreamFilter.builder()
+        DataStreamFilter filter = new DataStreamFilter.Builder()
             .withProcedures(procID.getInternalID())
             .build();
         resultStream = obsStore.getDataStreams().selectEntries(filter);
@@ -497,14 +497,14 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         Map<ObsKey, ObsData> obsBatch2 = addSimpleObsWithoutResultTime(dataStreamID, 104, startTime2, 100, 10000);
         
         // correct procedure ID and all times
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(dataStreamID)
             .build();
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, allObs, filter);
         
         // correct procedure ID and time range containing all
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(dataStreamID)
             .withPhenomenonTimeDuring(startTime1, startTime2.plus(1, ChronoUnit.DAYS))
             .build();
@@ -512,7 +512,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, allObs, filter);
         
         // correct procedure ID and time range containing only batch 1
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(dataStreamID)
             .withPhenomenonTimeDuring(startTime1, startTime1.plus(1, ChronoUnit.DAYS))
             .build();
@@ -521,7 +521,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, obsBatch1, filter);
         
         // correct procedure ID and time range containing only batch 2
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(dataStreamID)
             .withPhenomenonTimeDuring(startTime2, startTime2.plus(1, ChronoUnit.DAYS))
             .build();
@@ -530,14 +530,14 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, obsBatch2, filter);
         
         // incorrect procedure ID
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(12L)
             .build();
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, Collections.emptyMap(), filter);
         
         // incorrect time range
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(dataStreamID)
             .withPhenomenonTimeDuring(startTime1.minus(100, ChronoUnit.DAYS), startTime1.minusMillis(1))
             .build();
@@ -570,7 +570,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         Map<ObsKey, ObsData> proc2Batch3 = addSimpleObsWithoutResultTime(ds2, 104, startProc2Batch3, 50, 24*3600*1000L);
         
         // proc1 and all times
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds1)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -581,7 +581,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, expectedResults, filter);
         
         // proc1, foi46 and all times
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds1)
             .withFois(46L)
             .build();
@@ -589,7 +589,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, proc1Batch2, filter);
         
         // proc1, no foi
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds1)
             .withFois(0L)
             .build();
@@ -597,7 +597,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, proc1Batch3, filter);
         
         // proc2, foi23 and all times
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds2)
             .withFois(23L)
             .build();
@@ -605,7 +605,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, proc2Batch1, filter);
         
         // proc2, foi23 and all times
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds2)
             .withFois(23L)
             .build();
@@ -613,7 +613,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, proc2Batch1, filter);
         
         // proc2, foi104 and time range
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds2)
             .withFois(104L)
             .withPhenomenonTimeDuring(startProc2Batch3, startProc2Batch3.plus(49, ChronoUnit.DAYS))
@@ -623,7 +623,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, proc2Batch3, filter);
         
         // foi23 from all proc
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withFois(23L)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -633,7 +633,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, expectedResults, filter);
         
         // foi23 and 104 from all proc
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withFois(23L, 104L)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -664,7 +664,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         addSimpleObsWithoutResultTime(ds2, 23, startProc2Batch1, 10, 10*24*3600*1000L);
         
         // proc1 and predicate to select NO FOI
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds1)
             .withKeyPredicate(k -> k.getFoiID() == ObsKey.NO_FOI)
             .build();
@@ -672,7 +672,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkSelectedEntries(resultStream, obsBatch1, filter);
         
         // proc1 and predicate to select results < 10
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds1)
             .withValuePredicate(v -> v.getResult().getDoubleValue(0) < 10)
             .build();
@@ -717,14 +717,14 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         Map<ObsKey, ObsData> obsBatch2 = addSimpleObsWithoutResultTime(ds2, 23, startBatch2, 10, 1200);
         
         // datastream 2 by ID
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withDataStreams(ds2)
             .build();
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, obsBatch2, filter);
         
         // datastream 1 & 2 by proc ID
-        filter = ObsFilter.builder()
+        filter = new ObsFilter.Builder()
             .withProcedures(procID.getInternalID())
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -735,8 +735,8 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         
         // datastream 1 by output name
         forceReadBackFromStorage();
-        filter = ObsFilter.builder()
-            .withDataStreams(DataStreamFilter.builder()
+        filter = new ObsFilter.Builder()
+            .withDataStreams(new DataStreamFilter.Builder()
                 .withOutputNames("test1")
                 .build())
             .build();
@@ -873,7 +873,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
                 
         // spatial filter with all features
         Instant date0 = featureStore.keySet().iterator().next().getValidStartTime();
-        FeatureFilter filter = FeatureFilter.builder()
+        FeatureFilter filter = new FeatureFilter.Builder()
                 .withValidTimeDuring(date0, date0.plus(numFeatures+NUM_TIME_ENTRIES_PER_FEATURE*30*24, ChronoUnit.HOURS))
                 .build();
         
@@ -897,7 +897,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         addSamplingPoints2D(0, numFeatures);
         
         // spatial filter with all features
-        FeatureFilter filter = FeatureFilter.builder()
+        FeatureFilter filter = new FeatureFilter.Builder()
                 .withLocationWithin(featureStore.getFeaturesBbox())
                 .build();
         
@@ -914,7 +914,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         addTemporalGeoFeatures(1000, numFeatures2);
           
         // spatial filter with all features
-        filter = FeatureFilter.builder()
+        filter = new FeatureFilter.Builder()
                 .withValidTimeDuring(Instant.MIN, Instant.MAX)
                 .withLocationWithin(featureStore.getFeaturesBbox())
                 .build();

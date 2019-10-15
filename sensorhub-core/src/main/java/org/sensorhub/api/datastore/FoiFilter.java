@@ -26,21 +26,20 @@ package org.sensorhub.api.datastore;
  */
 public class FoiFilter extends FeatureFilter
 {
-    private FeatureFilter sampledFeatures;
-    private ObsFilter observations;
+    protected FeatureFilter sampledFeatures;
+    protected ObsFilter observations;
     
     
     /*
      * this class can only be instantiated using builder
      */
-    private FoiFilter() {}
+    protected FoiFilter() {}
 
 
     public FeatureFilter getSampledFeatures()
     {
         return sampledFeatures;
     }
-
     
     
     public ObsFilter getObservationsFilter()
@@ -49,33 +48,92 @@ public class FoiFilter extends FeatureFilter
     }
     
     
-    public static Builder builder()
+    /*
+     * Builder
+     */
+    public static class Builder extends FoiFilterBuilder<Builder, FoiFilter>
     {
-        return new Builder();
+        public Builder()
+        {
+            this.instance = new FoiFilter();
+        }
+        
+        protected Builder(FoiFilter instance)
+        {
+            this.instance = instance;
+        }
+        
+        public static Builder from(FoiFilter base)
+        {
+            return new Builder(null).copyFrom(base);
+        }
     }
     
     
-    public static class Builder extends FeatureFilter.Builder<Builder, FoiFilter>
+    @SuppressWarnings("unchecked")
+    public static abstract class FoiFilterBuilder<
+            B extends FoiFilterBuilder<B, F>,
+            F extends FoiFilter>
+        extends FeatureFilterBuilder<B, FoiFilter>
     {    
         
-        protected Builder()
+        protected FoiFilterBuilder()
         {
-            super(new FoiFilter());
+        }
+        
+        
+        protected B copyFrom(FoiFilter base)
+        {
+            super.copyFrom(base);
+            instance.sampledFeatures = base.sampledFeatures;
+            instance.observations = base.observations;
+            return (B)this;
         }
         
 
-        @SuppressWarnings("rawtypes")
-        public Builder withSampledFeatures(FeatureFilter.Builder sampledFeatures)
+        /**
+         * Select only FOIs that are sampling the features matching the filter
+         * @param sampledFeatures Sampled features filter
+         * @return This builder for chaining
+         */
+        public B withSampledFeatures(FeatureFilter sampledFeatures)
         {
-            instance.sampledFeatures = sampledFeatures.build();
-            return this;
+            instance.sampledFeatures = sampledFeatures;
+            return (B)this;
         }
         
 
-        public Builder withObservations(ObsFilter.Builder observations)
+        /**
+         * Select only FOIs that are sampling the features matching the filter
+         * @param sampledFeatures Sampled features filter
+         * @return This builder for chaining
+         */
+        public B withSampledFeatures(FeatureFilter.Builder sampledFeatures)
         {
-            instance.observations = observations.build();
-            return this;
+            return withSampledFeatures(sampledFeatures.build());
+        }
+        
+
+        /**
+         * Select only FOIs with observations matching the filter
+         * @param filter Observation filter
+         * @return This builder for chaining
+         */
+        public B withObservations(ObsFilter filter)
+        {
+            instance.observations = filter;
+            return (B)this;
+        }
+        
+
+        /**
+         * Select only FOIs with observations matching the filter
+         * @param filter Observation filter
+         * @return This builder for chaining
+         */
+        public B withObservations(ObsFilter.Builder filter)
+        {
+            return withObservations(filter.build());
         }
     }
 }

@@ -143,11 +143,8 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
         long procPublicID = registry.getPublicID(databaseID, dsInfo.getProcedure().getInternalID());
         FeatureId publicId = new FeatureId(procPublicID, dsInfo.getProcedure().getUniqueID());
             
-        return DataStreamInfo.builder()
+        return DataStreamInfo.builderFrom(dsInfo)
             .withProcedure(publicId)
-            .withRecordVersion(dsInfo.getRecordVersion())
-            .withRecordDescription(dsInfo.getRecordDescription())
-            .withRecordEncoding(dsInfo.getRecommendedEncoding())
             .build();
     }
     
@@ -157,7 +154,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
      */
     protected Entry<Long, DataStreamInfo> toPublicEntry(int databaseID, Entry<Long, DataStreamInfo> e)
     {
-        long publicID = registry.getPublicID(databaseID, e.getKey());            
+        long publicID = registry.getPublicID(databaseID, e.getKey());
         return new AbstractMap.SimpleEntry<>(publicID, toPublicValue(databaseID, e.getValue()));
     }
     
@@ -172,7 +169,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
             var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
-                filterInfo.filter = DataStreamFilter.builder()
+                filterInfo.filter = DataStreamFilter.Builder
                     .from(filter)
                     .withInternalIDs(filterInfo.internalIds)
                     .build();
@@ -189,7 +186,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
             {
                 for (var filterInfo: filterDispatchMap.values())
                 {
-                    filterInfo.filter = DataStreamFilter.builder()
+                    filterInfo.filter = DataStreamFilter.Builder
                         .from(filter)
                         .withProcedures((ProcedureFilter)filterInfo.filter)
                         .build();

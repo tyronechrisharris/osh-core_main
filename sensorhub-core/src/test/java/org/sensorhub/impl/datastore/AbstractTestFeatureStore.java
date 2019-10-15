@@ -549,7 +549,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         ids = new Long[] {3L, 24L};
         Set<String> uids = Arrays.stream(ids).map(i -> UID_PREFIX+"F"+(i-1)).collect(Collectors.toSet());
         timeRange = Range.closed(Instant.MIN, Instant.MAX);
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
             .withInternalIDs(ids)
             .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
             .build());
@@ -569,7 +569,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         // correct UIDs and all times
         uids = Sets.newHashSet(UID_PREFIX+"F10", UID_PREFIX+"F31");
         timeRange = Range.closed(Instant.MIN, Instant.MAX);
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(uids.toArray(new String[0]))
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
@@ -578,7 +578,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         // correct UIDs and time range
         uids = Sets.newHashSet(UID_PREFIX+"F25", UID_PREFIX+"F49");
         timeRange = Range.closed(Instant.parse("2000-04-08T08:59:59Z"), Instant.parse("2000-06-08T07:59:59Z"));
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(uids.toArray(new String[0]))
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
@@ -598,7 +598,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         // correct IDs and all times
         ids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.closed(Instant.MIN, Instant.MAX);
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(ids.toArray(new String[0]))
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
@@ -607,7 +607,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         // correct IDs and time range
         ids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.closed(Instant.parse("2000-04-08T08:59:59Z"), Instant.parse("2000-06-08T07:59:59Z"));
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(ids.toArray(new String[0]))
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
@@ -616,7 +616,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         // correct IDs and future time
         ids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.singleton(Instant.parse("2001-04-08T07:59:59Z"));
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(ids.toArray(new String[0]))
                 .validAtTime(timeRange.lowerEndpoint())
                 .build());
@@ -625,7 +625,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         // mix of correct and wrong IDs
         ids = Sets.newHashSet(UID_PREFIX+"FT300", UID_PREFIX+"FT201");
         timeRange = Range.singleton(Instant.MAX);
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(ids.toArray(new String[0]))
                 .withLatestVersion()
                 .build());
@@ -634,7 +634,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         // only wrong IDs
         ids = Sets.newHashSet(UID_PREFIX+"FT300", UID_PREFIX+"FT301");
         timeRange = Range.singleton(Instant.MAX);
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(ids.toArray(new String[0]))
                 .withLatestVersion()
                 .build());
@@ -686,7 +686,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
             new Coordinate(0, 0)
         });
         timeRange = Range.closed(Instant.MIN, Instant.MAX);        
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
@@ -694,7 +694,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         
         // containing polygon and time range
         timeRange = Range.closed(Instant.parse("2000-02-28T09:59:59Z"), Instant.parse("2000-04-08T10:00:00Z"));
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
@@ -709,7 +709,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
                 new Coordinate(0, 0)
             });
             timeRange = Range.closed(Instant.MIN, Instant.MAX);        
-            resultStream = featureStore.selectEntries(FeatureFilter.builder()
+            resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                     .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
                     .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                     .build());
@@ -717,7 +717,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         
         // smaller polygon and time range
         timeRange = Range.closed(Instant.parse("2000-02-28T09:59:59Z"), Instant.parse("2000-04-08T10:00:00Z"));
-        resultStream = featureStore.selectEntries(FeatureFilter.builder()
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
@@ -849,7 +849,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
                 
         // spatial filter with all features
         Instant date0 = featureStore.keySet().iterator().next().getValidStartTime();
-        FeatureFilter filter = FeatureFilter.builder()
+        FeatureFilter filter = new FeatureFilter.Builder()
                 .withValidTimeDuring(date0, date0.plus(numFeatures+NUM_TIME_ENTRIES_PER_FEATURE*30*24, ChronoUnit.HOURS))
                 .build();
         
@@ -872,7 +872,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         addSamplingPoints2D(0, numFeatures);
         
         // spatial filter with all features
-        FeatureFilter filter = FeatureFilter.builder()
+        FeatureFilter filter = new FeatureFilter.Builder()
                 .withLocationWithin(featureStore.getFeaturesBbox())
                 .build();
         
@@ -889,7 +889,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         addTemporalGeoFeatures(1000, numFeatures2);
           
         // spatial filter with all features
-        filter = FeatureFilter.builder()
+        filter = new FeatureFilter.Builder()
                 .withValidTimeDuring(Instant.MIN, Instant.MAX)
                 .withLocationWithin(featureStore.getFeaturesBbox())
                 .build();
@@ -913,7 +913,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
             selectBbox.setMaxX(selectBbox.getMinX() + 1);
             selectBbox.setMinY(bboxAll.getMinY() + bboxAll.getSizeY()*Math.random());
             selectBbox.setMaxY(selectBbox.getMinY() + 1);
-            filter = FeatureFilter.builder()
+            filter = new FeatureFilter.Builder()
                     .withLocationWithin(selectBbox)
                     .build();
             featureStore.selectEntries(filter).count();

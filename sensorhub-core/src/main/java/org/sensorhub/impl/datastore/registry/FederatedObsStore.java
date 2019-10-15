@@ -206,7 +206,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
             {
                 var dataStreamFilterInfo = entry.getValue();
                                 
-                var builder = ObsFilter.builder()
+                var builder = ObsFilter.Builder
                     .from(filter)
                     .withDataStreams((DataStreamFilter)dataStreamFilterInfo.filter);
                 
@@ -234,8 +234,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
                     var filterInfo = new LocalFilterInfo();
                     filterInfo.databaseID = foiFilterInfo.databaseID;
                     filterInfo.db = foiFilterInfo.db;
-                    filterInfo.filter = ObsFilter.builder()
-                        .from(filter)
+                    filterInfo.filter = ObsFilter.Builder.from(filter)
                         .withFois((FoiFilter)foiFilterInfo.filter)
                         .build();
                     obsFilterDispatchMap.put(entry.getKey(), filterInfo);

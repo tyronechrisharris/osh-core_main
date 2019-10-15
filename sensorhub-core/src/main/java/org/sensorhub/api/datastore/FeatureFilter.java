@@ -59,7 +59,7 @@ public class FeatureFilter implements IFeatureFilter
     protected FeatureFilter()
     {
         // defaults to currently valid version of feature
-        validTime = RangeFilter.<Instant>builder()
+        validTime = new RangeFilter.Builder<Instant>()
                 .withSingleValue(Instant.now())
                 .build();
     }
@@ -171,28 +171,46 @@ public class FeatureFilter implements IFeatureFilter
     }
     
     
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static <T extends Builder> T builder()
+    /*
+     * Builder
+     */
+    public static class Builder extends FeatureFilterBuilder<Builder, FeatureFilter>
     {
-        return (T)new Builder(new FeatureFilter());
+        public Builder()
+        {
+            super(new FeatureFilter());
+        }
+        
+        protected Builder(FeatureFilter instance)
+        {
+            this.instance = instance;
+        }
+        
+        public static Builder from(FeatureFilter base)
+        {
+            return new Builder(null).copyFrom(base);
+        }
     }
     
     
     @SuppressWarnings("unchecked")
-    public static class Builder<B extends Builder<B, F>, F extends FeatureFilter> extends BaseBuilder<F>
+    public static abstract class FeatureFilterBuilder<
+            B extends FeatureFilterBuilder<B, F>,
+            F extends FeatureFilter>
+        extends BaseBuilder<F>
     {        
-        protected Builder(F instance)
+        protected FeatureFilterBuilder()
+        {
+        }
+        
+        
+        protected FeatureFilterBuilder(F instance)
         {
             super(instance);
         }
         
         
-        /**
-         * Copy all parameters from an existing filter
-         * @param base Existing filter instance
-         * @return This builder for chaining
-         */
-        public B from(FeatureFilter base)
+        protected B copyFrom(FeatureFilter base)
         {
             Asserts.checkNotNull(base, FeatureFilter.class);
             instance.internalIDs = base.internalIDs;
@@ -265,7 +283,7 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withValidTimeDuring(Instant begin, Instant end)
         {
-            instance.validTime = RangeFilter.<Instant>builder()
+            instance.validTime = new RangeFilter.Builder<Instant>()
                     .withRange(begin, end)
                     .build();
             return (B)this;
@@ -279,7 +297,7 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B validAtTime(Instant time)
         {
-            instance.validTime = RangeFilter.<Instant>builder()
+            instance.validTime = new RangeFilter.Builder<Instant>()
                     .withSingleValue(time)
                     .build();
             return (B)this;
@@ -292,7 +310,7 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withLatestVersion()
         {
-            instance.validTime = RangeFilter.<Instant>builder()
+            instance.validTime = new RangeFilter.Builder<Instant>()
                 .withSingleValue(Instant.MAX).build();
             return (B)this;
         }
@@ -311,13 +329,24 @@ public class FeatureFilter implements IFeatureFilter
 
 
         /**
+         * Keep only features whose geometry matches the filter.
+         * @param location Spatial filter (see {@link SpatialFilter})
+         * @return This builder for chaining
+         */
+        public B withLocation(SpatialFilter.Builder location)
+        {
+            return withLocation(location.build());
+        }
+
+
+        /**
          * Keep only features whose geometry intersects the given ROI.
          * @param roi Region of interest expressed as a polygon
          * @return This builder for chaining
          */
         public B withLocationIntersecting(Polygon roi)
         {
-            instance.location = SpatialFilter.builder()
+            instance.location = new SpatialFilter.Builder()
                     .withRoi(roi)
                     .build();
             return (B)this;
@@ -331,7 +360,7 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withLocationWithin(Polygon roi)
         {
-            instance.location = SpatialFilter.builder()
+            instance.location = new SpatialFilter.Builder()
                     .withRoi(roi)
                     .withOperator(SpatialOp.CONTAINS)
                     .build();
@@ -346,7 +375,7 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withLocationWithin(Bbox bbox)
         {
-            instance.location = SpatialFilter.builder()
+            instance.location = new SpatialFilter.Builder()
                     .withBbox(bbox)
                     .build();
             return (B)this;
@@ -362,7 +391,7 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withLocationWithin(Point center, double dist)
         {
-            instance.location = SpatialFilter.builder()
+            instance.location = new SpatialFilter.Builder()
                     .withDistanceToPoint(center, dist)
                     .build();
             return (B)this;

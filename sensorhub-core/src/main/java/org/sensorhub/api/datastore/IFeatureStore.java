@@ -93,7 +93,7 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
      */
     public default Entry<K, V> getLatestVersionEntry(String uid)
     {
-        return selectEntries(FeatureFilter.builder()
+        return selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(uid)
                 .build())
             .findFirst()
@@ -120,7 +120,7 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
      */
     public default FeatureKey remove(String uid)
     {
-        FeatureFilter filter = FeatureFilter.builder().withUniqueIDs(uid).build();
+        FeatureFilter filter = new FeatureFilter.Builder().withUniqueIDs(uid).build();
         return removeEntries(filter).reduce((k1, k2) -> k2).orElse(null);
     }
        

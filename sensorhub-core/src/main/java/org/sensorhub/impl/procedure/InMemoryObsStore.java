@@ -49,7 +49,7 @@ import com.google.common.collect.Range;
  */
 public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
 {
-    static final RangeFilter<Instant> ALL_TIMES_FILTER = RangeFilter.<Instant>builder()
+    static final RangeFilter<Instant> ALL_TIMES_FILTER = new RangeFilter.Builder<Instant>()
         .withRange(Instant.MIN, Instant.MAX)
         .build();
     

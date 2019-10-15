@@ -91,21 +91,28 @@ public class SpatialFilter implements Predicate<Geometry>
             buf.append(roi);
         return buf.toString();
     }
-
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static <T extends SpatialFilterBuilder> T builder()
+    
+    
+    public static class Builder extends SpatialFilterBuilder<Builder, SpatialFilter>
     {
-        return (T)new SpatialFilterBuilder(new SpatialFilter());
+        public Builder()
+        {
+            super(new SpatialFilter());
+        }
     }
     
     
     @SuppressWarnings("unchecked")
-    public static class SpatialFilterBuilder<
+    public static abstract class SpatialFilterBuilder<
             B extends SpatialFilterBuilder<B, T>,
             T extends SpatialFilter>
         extends BaseBuilder<T>
     {
+        
+        protected SpatialFilterBuilder()
+        {
+        }
+        
         
         protected SpatialFilterBuilder(T instance)
         {

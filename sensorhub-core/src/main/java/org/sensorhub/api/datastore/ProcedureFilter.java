@@ -29,16 +29,16 @@ import java.util.TreeSet;
  */
 public class ProcedureFilter extends FeatureFilter
 {
-    private SortedSet<String> parentUIDs;
-    private DataStreamFilter dataStreamFilter;
-    private ObsFilter obsFilter;
-    private FoiFilter foiFilter; // shortcut for ObsFilter/FoiFilter
+    protected SortedSet<String> parentUIDs;
+    protected DataStreamFilter dataStreamFilter;
+    protected ObsFilter obsFilter;
+    protected FoiFilter foiFilter; // shortcut for ObsFilter/FoiFilter
     
     
     /*
      * this class can only be instantiated using builder
      */
-    private ProcedureFilter() {}
+    protected ProcedureFilter() {}
     
     
     public SortedSet<String> getParentGroups()
@@ -65,33 +65,48 @@ public class ProcedureFilter extends FeatureFilter
     }
     
     
-    public static Builder builder()
+    /*
+     * Builder
+     */
+    public static class Builder extends ProcedureFilterBuilder<Builder, ProcedureFilter>
     {
-        return new Builder();
+        public Builder()
+        {
+            this.instance = new ProcedureFilter();
+        }
+        
+        protected Builder(ProcedureFilter instance)
+        {
+            this.instance = instance;
+        }
+        
+        public static Builder from(ProcedureFilter base)
+        {
+            return new Builder(null).copyFrom(base);
+        }
     }
     
     
-    public static class Builder extends FeatureFilter.Builder<Builder, ProcedureFilter>
+    @SuppressWarnings("unchecked")
+    public static abstract class ProcedureFilterBuilder<
+            B extends ProcedureFilterBuilder<B, F>,
+            F extends ProcedureFilter>
+        extends FeatureFilterBuilder<B, ProcedureFilter>
     {        
-        protected Builder()
+        
+        protected ProcedureFilterBuilder()
         {
-            super(new ProcedureFilter());
         }
                 
         
-        /**
-         * Copy all parameters from an existing filter
-         * @param base Existing filter instance
-         * @return This builder for chaining
-         */
-        public Builder from(ProcedureFilter base)
+        protected B copyFrom(ProcedureFilter base)
         {
-            super.from(base);
+            super.copyFrom(base);
             instance.parentUIDs = base.parentUIDs;
             instance.dataStreamFilter = base.dataStreamFilter;
             instance.obsFilter = base.obsFilter;
             instance.foiFilter = base.foiFilter;
-            return this;
+            return (B)this;
         }
         
         
@@ -100,12 +115,12 @@ public class ProcedureFilter extends FeatureFilter
          * @param parentIds IDs of parent groups
          * @return This builder for chaining
          */
-        public Builder withParentGroups(String... parentIds)
+        public B withParentGroups(String... parentIds)
         {
             instance.parentUIDs = new TreeSet<String>();            
             for (String id: parentIds)
                 instance.parentUIDs.add(id);            
-            return this;
+            return (B)this;
         }
         
         
@@ -114,10 +129,21 @@ public class ProcedureFilter extends FeatureFilter
          * @param filter Data stream filter
          * @return This builder for chaining
          */
-        public Builder withDataStreams(DataStreamFilter filter)
+        public B withDataStreams(DataStreamFilter filter)
         {
             instance.dataStreamFilter = filter;
-            return this;
+            return (B)this;
+        }
+        
+        
+        /**
+         * Select only procedures with datastreams matching the filter
+         * @param filter Data stream filter
+         * @return This builder for chaining
+         */
+        public B withDataStreams(DataStreamFilter.Builder filter)
+        {
+            return withDataStreams(filter.build());
         }
         
 
@@ -126,10 +152,21 @@ public class ProcedureFilter extends FeatureFilter
          * @param filter Observation filter
          * @return This builder for chaining
          */
-        public Builder withObservations(ObsFilter filter)
+        public B withObservations(ObsFilter filter)
         {
             instance.obsFilter = filter;
-            return this;
+            return (B)this;
+        }
+        
+
+        /**
+         * Select only procedures with observations matching the filter
+         * @param filter Observation filter
+         * @return This builder for chaining
+         */
+        public B withObservations(ObsFilter.Builder filter)
+        {
+            return withObservations(filter.build());
         }
         
 
@@ -138,10 +175,21 @@ public class ProcedureFilter extends FeatureFilter
          * @param filter Features of interest filter
          * @return This builder for chaining
          */
-        public Builder withFeaturesOfInterest(FoiFilter filter)
+        public B withFeaturesOfInterest(FoiFilter filter)
         {
             instance.foiFilter = filter;
-            return this;
+            return (B)this;
+        }
+        
+
+        /**
+         * Select only procedures with features of interest matching the filter
+         * @param filter Features of interest filter
+         * @return This builder for chaining
+         */
+        public B withFeaturesOfInterest(FoiFilter.Builder filter)
+        {
+            return withFeaturesOfInterest(filter.build());
         }
     }
 }

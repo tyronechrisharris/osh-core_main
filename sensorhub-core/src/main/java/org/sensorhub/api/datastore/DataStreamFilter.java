@@ -52,6 +52,12 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
     protected Predicate<DataStreamInfo> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
+    
+    /*
+     * this class can only be instantiated using builder
+     */
+    protected DataStreamFilter() {}
+    
 
     public SortedSet<Long> getInternalIDs()
     {
@@ -165,21 +171,41 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
     }
     
     
-    public static Builder builder()
+    /*
+     * Builder
+     */
+    public static class Builder extends DataStreamFilterBuilder<Builder, DataStreamFilter>
     {
-        return new Builder();
+        public Builder()
+        {
+            this.instance = new DataStreamFilter();
+        }
+        
+        protected Builder(DataStreamFilter instance)
+        {
+            this.instance = instance;
+        }
+        
+        public static Builder from(DataStreamFilter base)
+        {
+            return new Builder(null).copyFrom(base);
+        }
     }
 
 
-    public static class Builder extends BaseBuilder<DataStreamFilter>
+    @SuppressWarnings("unchecked")
+    public static abstract class DataStreamFilterBuilder<
+            B extends DataStreamFilterBuilder<B, T>,
+            T extends DataStreamFilter>
+        extends BaseBuilder<T>
     {
-        protected Builder()
+        
+        protected DataStreamFilterBuilder()
         {
-            super(new DataStreamFilter());
         }
         
         
-        public Builder from(DataStreamFilter other)
+        protected B copyFrom(DataStreamFilter other)
         {
             instance.internalIDs = other.internalIDs;
             instance.procedures = other.procedures;
@@ -189,105 +215,111 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
             instance.observedProperties = other.observedProperties;
             instance.valuePredicate = other.valuePredicate;
             instance.limit = other.limit;
-            return this;
+            return (B)this;
         }
         
         
-        public Builder withInternalIDs(Long... ids)
+        public B withInternalIDs(Long... ids)
         {
             return withInternalIDs(Arrays.asList(ids));
         }
         
         
-        public Builder withInternalIDs(Collection<Long> ids)
+        public B withInternalIDs(Collection<Long> ids)
         {
             instance.internalIDs = new TreeSet<Long>();
             instance.internalIDs.addAll(ids);
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withProcedures(ProcedureFilter procFilter)
+        public B withProcedures(ProcedureFilter filter)
         {
-            instance.procedures = procFilter;
-            return this;
+            instance.procedures = filter;
+            return (B)this;
         }
 
 
-        public Builder withProcedures(Long... procIDs)
+        public B withProcedures(ProcedureFilter.Builder filter)
         {
-            instance.procedures = ProcedureFilter.builder()
+            return withProcedures(filter.build());
+        }
+
+
+        public B withProcedures(Long... procIDs)
+        {
+            instance.procedures = new ProcedureFilter.Builder()
                 .withInternalIDs(procIDs)
                 .build();
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withProcedures(Collection<Long> procIDs)
+        public B withProcedures(Collection<Long> procIDs)
         {
-            instance.procedures = ProcedureFilter.builder()
+            instance.procedures = new ProcedureFilter.Builder()
                 .withInternalIDs(procIDs)
                 .build();
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withProcedures(String... procUIDs)
+        public B withProcedures(String... procUIDs)
         {
-            instance.procedures = ProcedureFilter.builder()
+            instance.procedures = new ProcedureFilter.Builder()
                 .withUniqueIDs(procUIDs)
                 .build();
-            return this;
+            return (B)this;
         }
         
         
-        public Builder withOutputNames(String... names)
+        public B withOutputNames(String... names)
         {
             instance.outputNames = new HashSet<String>();
             for (String name: names)
                 instance.outputNames.add(name);
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withVersion(int version)
+        public B withVersion(int version)
         {
             instance.versions = Range.singleton(version);
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withVersionRange(int minVersion, int maxVersion)
+        public B withVersionRange(int minVersion, int maxVersion)
         {
             instance.versions = Range.closed(minVersion, maxVersion);
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withResultTimeRange(Instant begin, Instant end)
+        public B withResultTimeRange(Instant begin, Instant end)
         {
             instance.resultTimes = Range.closed(begin, end);
-            return this;
+            return (B)this;
         }
         
         
-        public Builder withObservedProperties(String... uris)
+        public B withObservedProperties(String... uris)
         {
             instance.observedProperties = new TreeSet<String>();
             for (String uri: uris)
                 instance.observedProperties.add(uri);
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withValuePredicate(Predicate<DataStreamInfo> valuePredicate)
+        public B withValuePredicate(Predicate<DataStreamInfo> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
-            return this;
+            return (B)this;
         }
         
         
-        public DataStreamFilter build()
+        public T build()
         {
             // make all collections immutable
             if (instance.internalIDs != null)

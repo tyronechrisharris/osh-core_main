@@ -29,7 +29,6 @@ import org.sensorhub.api.datastore.FoiFilter;
 import org.sensorhub.api.datastore.IFeatureFilter;
 import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IObsStore;
-import org.sensorhub.api.datastore.ProcedureFilter;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
@@ -267,7 +266,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
             var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
-                filterInfo.filter = ProcedureFilter.builder()
+                filterInfo.filter = FoiFilter.Builder
                     .from(filter)
                     .withInternalIDs(filterInfo.internalIds)
                     .build();
@@ -280,7 +279,6 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     }
     
     
-    @SuppressWarnings("unchecked")
     protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FeatureFilter filter)
     {
         if (filter.getInternalIDs() != null)
@@ -288,8 +286,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
             var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());            
             for (var filterInfo: filterDispatchMap.values())
             {
-                filterInfo.filter = FeatureFilter.builder()
-                    .from(filter)
+                filterInfo.filter = FeatureFilter.Builder.from(filter)
                     .withInternalIDs(filterInfo.internalIds)
                     .build();
             }

@@ -30,18 +30,18 @@ import org.vast.util.BaseBuilder;
  */
 public class ObsStatsQuery implements IQueryFilter
 {
-    private DataStreamFilter dataStreamFilter;
-    private FoiFilter foiFilter;
-    private RangeFilter<Instant> resultTime;
-    private int numHistogramBins = 0;
-    private boolean aggregateFois = true;
-    private long limit = Long.MAX_VALUE;
+    protected DataStreamFilter dataStreamFilter;
+    protected FoiFilter foiFilter;
+    protected RangeFilter<Instant> resultTime;
+    protected int numHistogramBins = 0;
+    protected boolean aggregateFois = true;
+    protected long limit = Long.MAX_VALUE;
     
     
     /*
      * this class can only be instantiated using builder
      */
-    private ObsStatsQuery() {}
+    protected ObsStatsQuery() {}
 
 
     public DataStreamFilter getDataStreamFilter()
@@ -76,56 +76,97 @@ public class ObsStatsQuery implements IQueryFilter
     }
     
     
-    public static Builder builder()
+    public static class Builder extends ObsStatsQueryBuilder<Builder, ObsStatsQuery>
     {
-        return new Builder();
+        public Builder()
+        {
+            this.instance = new ObsStatsQuery();
+        }
+        
+        protected Builder(ObsStatsQuery instance)
+        {
+            this.instance = instance;
+        }
+        
+        public static Builder from(ObsStatsQuery base)
+        {
+            return new Builder(null).copyFrom(base);
+        }
     }
 
 
-    public static class Builder extends BaseBuilder<ObsStatsQuery>
+    @SuppressWarnings("unchecked")
+    public static class ObsStatsQueryBuilder<
+            B extends ObsStatsQueryBuilder<B, Q>,
+            Q extends ObsStatsQuery>
+        extends BaseBuilder<Q>
     {
-        protected Builder()
+        
+        protected ObsStatsQueryBuilder()
         {
-            super(new ObsStatsQuery());
+        }
+        
+        
+        protected B copyFrom(ObsStatsQuery base)
+        {
+            instance.dataStreamFilter = base.dataStreamFilter;
+            instance.foiFilter = base.foiFilter;
+            instance.resultTime = base.resultTime;
+            instance.numHistogramBins = base.numHistogramBins;
+            instance.aggregateFois = base.aggregateFois;
+            instance.limit = base.limit;
+            return (B)this;
         }
         
 
-        public Builder withDataStreamFilter(DataStreamFilter dataStreamFilter)
+        public B withDataStreams(DataStreamFilter filter)
         {
-            instance.dataStreamFilter = dataStreamFilter;
-            return this;
+            instance.dataStreamFilter = filter;
+            return (B)this;
+        }
+        
+
+        public B withDataStreams(DataStreamFilter.Builder filter)
+        {
+            return withDataStreams(filter.build());
         }
 
 
-        public Builder withDataStreams(Long... dsIDs)
+        public B withDataStreams(Long... dsIDs)
         {
-            instance.dataStreamFilter = DataStreamFilter.builder()
+            instance.dataStreamFilter = new DataStreamFilter.Builder()
                 .withInternalIDs(dsIDs)
                 .build();
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withFoiFilter(FoiFilter foiFilter)
+        public B withFois(FoiFilter filter)
         {
-            instance.foiFilter = foiFilter;
-            return this;
+            instance.foiFilter = filter;
+            return (B)this;
+        }
+
+
+        public B withFois(FoiFilter.Builder filter)
+        {
+            return withFois(filter.build());
         }
         
         
-        public Builder withResultTimeRange(Instant begin, Instant end)
+        public B withResultTimeRange(Instant begin, Instant end)
         {
-            instance.resultTime = RangeFilter.<Instant>builder()
+            instance.resultTime = new RangeFilter.Builder<Instant>()
                     .withRange(begin, end)
                     .build();
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withLimit(int limit)
+        public B withLimit(int limit)
         {
             instance.limit = limit;
-            return this;
+            return (B)this;
         }
     }
 }

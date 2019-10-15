@@ -114,7 +114,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
                     if (key != null)
                     {
                         log.info("Database {} now handles procedure {}. Removing all records from state DB", db, uid);
-                        defaultDB.getObservationStore().getDataStreams().removeEntries(DataStreamFilter.builder()
+                        defaultDB.getObservationStore().getDataStreams().removeEntries(new DataStreamFilter.Builder()
                             .withProcedures(key.getInternalID())
                             .build());
                     }

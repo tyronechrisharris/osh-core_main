@@ -73,7 +73,7 @@ public interface IDataStreamStore extends IDataStore<Long, DataStreamInfo, DataS
      */
     public default Entry<Long, DataStreamInfo> getLatestVersionEntry(String procUID, String outputName)
     {
-        Optional<Entry<Long, DataStreamInfo>> entryOpt = selectEntries(DataStreamFilter.builder()
+        Optional<Entry<Long, DataStreamInfo>> entryOpt = selectEntries(new DataStreamFilter.Builder()
             .withProcedures(procUID)
             .withOutputNames(outputName)
             .build())

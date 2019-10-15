@@ -30,10 +30,10 @@ import net.opengis.swe.v20.DataEncoding;
  */
 public class DataStreamInfo
 {
-    FeatureId procedureID;
-    int recordVersion;
-    DataComponent recordStruct;
-    DataEncoding recordEncoding;
+    protected FeatureId procedureID;
+    protected int recordVersion;
+    protected DataComponent recordStruct;
+    protected DataEncoding recordEncoding;
     
     
     /**
@@ -82,9 +82,26 @@ public class DataStreamInfo
     }
     
     
+    protected DataStreamInfo copy()
+    {
+        var dsInfo = new DataStreamInfo();
+        dsInfo.procedureID = this.procedureID;
+        dsInfo.recordStruct = this.recordStruct;
+        dsInfo.recordEncoding = this.recordEncoding;
+        dsInfo.recordVersion = this.recordVersion;
+        return dsInfo;
+    }
+    
+    
     public static Builder builder()
     {
         return new Builder();
+    }
+    
+    
+    public static Builder builderFrom(DataStreamInfo dsInfo)
+    {
+        return new Builder(dsInfo.copy());
     }
 
     
@@ -93,6 +110,12 @@ public class DataStreamInfo
         protected Builder()
         {
             super(new DataStreamInfo());
+        }
+        
+        
+        protected Builder(DataStreamInfo base)
+        {
+            super(base);
         }
         
         
