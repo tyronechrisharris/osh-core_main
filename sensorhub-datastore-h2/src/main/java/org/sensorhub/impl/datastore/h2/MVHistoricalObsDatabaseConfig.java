@@ -32,7 +32,7 @@ public class MVHistoricalObsDatabaseConfig extends DatabaseConfig
     
     @Required
     @DisplayInfo
-    public byte databaseID = 1;
+    public int databaseID = 1;
     
     
     @Required

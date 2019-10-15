@@ -39,7 +39,7 @@ public class H2Utils
     static final String GEOM_DIM_ERROR = "Only 2D and 3D geometries are supported";
     
     public static final Range<Instant> ALL_TIMES_RANGE = Range.closed(Instant.MIN, Instant.MAX);
-    public static final RangeFilter<Instant> ALL_TIMES_FILTER = RangeFilter.<Instant>builder()
+    public static final RangeFilter<Instant> ALL_TIMES_FILTER = new RangeFilter.Builder<Instant>()
                                                                     .withRange(Instant.MIN, Instant.MAX)
                                                                     .build();
     

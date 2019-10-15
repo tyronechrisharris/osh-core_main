@@ -53,6 +53,6 @@ public class MVHistoricalObsDescriptor extends JarModuleProvider
     @Override
     public Class<? extends ModuleConfig> getModuleConfigClass()
     {
-        return MVHistoricalObsConfig.class;
+        return MVHistoricalObsDatabaseConfig.class;
     }
 }

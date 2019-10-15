@@ -29,7 +29,7 @@ import org.h2.mvstore.type.DataType;
  * @author Alex Robin
  * @date Oct 26, 2018
  */
-class MVVoidDataType implements DataType
+public class MVVoidDataType implements DataType
 {
    
             

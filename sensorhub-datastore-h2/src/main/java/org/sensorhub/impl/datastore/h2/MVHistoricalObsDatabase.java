@@ -35,7 +35,7 @@ import org.sensorhub.utils.FileUtils;
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class MVHistoricalObsDatabase extends AbstractModule<MVHistoricalObsConfig> implements IHistoricalObsDatabase
+public class MVHistoricalObsDatabase extends AbstractModule<MVHistoricalObsDatabaseConfig> implements IHistoricalObsDatabase
 {
     final static String PROCEDURE_STORE_NAME = "proc_store";
     final static String FOI_STORE_NAME = "foi_store";
@@ -56,8 +56,7 @@ public class MVHistoricalObsDatabase extends AbstractModule<MVHistoricalObsConfi
             if (!FileUtils.isSafeFilePath(config.storagePath))
                 throw new StorageException("Storage path contains illegal characters: " + config.storagePath);
             
-            MVStore.Builder builder = new MVStore.Builder()
-                                      .fileName(config.storagePath);
+            MVStore.Builder builder = new MVStore.Builder().fileName(config.storagePath);
             
             if (config.memoryCacheSize > 0)
                 builder = builder.cacheSize(config.memoryCacheSize/1024);
@@ -157,4 +156,9 @@ public class MVHistoricalObsDatabase extends AbstractModule<MVHistoricalObsConfi
             mvStore.commit();        
     }
 
+    
+    public MVStore getMVStore()
+    {
+        return mvStore;
+    }
 }
