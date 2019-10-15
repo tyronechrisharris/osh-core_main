@@ -106,10 +106,12 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         this.idProvider = idProvider;
         if (idProvider == null) // use default if nothing is set
         {
-            long nextInternalID = 1;
-            if (!featuresIndex.isEmpty())
-                nextInternalID = ((FeatureKey)featuresIndex.lastKey()).getInternalID()+1;
-            this.idProvider = new DefaultIdProvider(nextInternalID);
+            this.idProvider = () -> {
+                if (featuresIndex.isEmpty())
+                    return 1;
+                else
+                    return ((FeatureKey)featuresIndex.lastKey()).getInternalID()+1;
+            };
         }
         
         return this;
@@ -344,10 +346,9 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         
         return new RangeCursor<>(featuresIndex, first, last);
     }
-
-
-    @Override
-    public Stream<Entry<FeatureKey, V>> selectEntries(IFeatureFilter filter)
+    
+    
+    protected Stream<Entry<FeatureKey, V>> getIndexedStream(IFeatureFilter filter)
     {
         Stream<Entry<FeatureKey, V>> resultStream = null;
         Stream<Long> internalIdStream = null;
@@ -412,7 +413,17 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
                 .filter(Objects::nonNull)
                 .flatMap(id -> getFeatureCursor(id, timeFilter).entryStream());
         }
-        else if (resultStream == null)
+        
+        return resultStream;
+    }
+
+
+    @Override
+    public Stream<Entry<FeatureKey, V>> selectEntries(IFeatureFilter filter)
+    {
+        var resultStream = getIndexedStream(filter);
+        
+        if (resultStream == null)
         {
             // stream all features
             resultStream = featuresIndex.entrySet().stream();
@@ -421,11 +432,15 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         // add exact time predicate
         if (filter.getValidTime() != null)
         {
-            if (lastVersionOnly) // TODO optimize this case!
+            var timeFilter = filter.getValidTime();
+            if (timeFilter.getMin() == Instant.MAX && timeFilter.getMax() == Instant.MAX)
+            {
+                // TODO optimize this case!
                 resultStream = resultStream.filter(e -> {
                     FeatureKey nextKey = featuresIndex.higherKey(e.getKey());
                     return nextKey == null || nextKey.getInternalID() != e.getKey().getInternalID(); 
                 });
+            }
             else
                 resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
         }

@@ -79,10 +79,12 @@ class MVDataStreamStoreImpl implements IDataStreamStore
         this.idProvider = idProvider;
         if (idProvider == null) // use default if nothing is set
         {
-            long nextInternalID = 1;
-            if (!dataStreamIndex.isEmpty())
-                nextInternalID = dataStreamIndex.lastKey()+1;
-            this.idProvider = new DefaultIdProvider(nextInternalID);
+            this.idProvider = () -> {
+                if (dataStreamIndex.isEmpty())
+                    return 1;
+                else
+                    return dataStreamIndex.lastKey()+1;
+            };
         }
     }
     
@@ -219,7 +221,8 @@ class MVDataStreamStoreImpl implements IDataStreamStore
         if (filter.getInternalIDs() != null)
         {
             resultStream = filter.getInternalIDs().stream()
-                .map(id -> dataStreamIndex.getEntry(id));
+                .map(id -> dataStreamIndex.getEntry(id))
+                .filter(Objects::nonNull);
         }
         
         // if procedure filter is used
@@ -228,15 +231,17 @@ class MVDataStreamStoreImpl implements IDataStreamStore
             // stream directly from list of selected procedures
             resultStream = selectProcedureIDs(filter.getProcedureFilter())
                 .flatMap(id -> getDataStreamIdsByProcedure(id, filter.getOutputNames(), filter.getVersions()))
-                .map(id -> dataStreamIndex.getEntry(id));
+                .map(id -> dataStreamIndex.getEntry(id))
+                .filter(Objects::nonNull);
         }
         
         // else filter data stream only by output name and version
         else
         {
             resultStream = getDataStreamIdsFromAllProcedures(filter.getOutputNames(), filter.getVersions())
-                .map(id -> dataStreamIndex.getEntry(id));
-        }        
+                .map(id -> dataStreamIndex.getEntry(id))
+                .filter(Objects::nonNull);
+        }
         
         // apply post filters
         if (filter.getResultTimes() != null)
@@ -412,7 +417,7 @@ class MVDataStreamStoreImpl implements IDataStreamStore
     protected void removeAllObsAndSeries(Long dataStreamID)
     {
         // first remove all associated observations
-        obsStore.removeEntries(ObsFilter.builder()
+        obsStore.removeEntries(new ObsFilter.Builder()
             .withDataStreams(dataStreamID)
             .build());
         
