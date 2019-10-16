@@ -133,9 +133,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
             if (dbInfo == null)
                 return false;
             else
-                return dbInfo.db.getFoiStore().containsKey(FeatureKey.builder()
-                    .withInternalID(dbInfo.entryID)
-                    .build());
+                return dbInfo.db.getFoiStore().containsKey(new FeatureKey(dbInfo.entryID));
         }
         else
         {
@@ -182,11 +180,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     protected FeatureKey toPublicKey(int databaseID, FeatureKey k)
     {
         long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return FeatureKey.builder()
-            .withInternalID(publicID)
-            .withUniqueID(k.getUniqueID())
-            .withValidStartTime(k.getValidStartTime())
-            .build();
+        return new FeatureKey(publicID, k.getUniqueID(), k.getValidStartTime());
     }
     
     
@@ -210,9 +204,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
             var dbInfo = registry.getLocalDbInfo(key.getInternalID());
             return toPublicID(
                 dbInfo.databaseID, 
-                dbInfo.db.getFoiStore().getFeatureID(FeatureKey.builder()
-                    .withInternalID(dbInfo.entryID)
-                    .build())
+                dbInfo.db.getFoiStore().getFeatureID(new FeatureKey(dbInfo.entryID))
             );
         }
         else
@@ -241,9 +233,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
             if (dbInfo == null)
                 return null;
             else
-                return dbInfo.db.getFoiStore().get(FeatureKey.builder()
-                    .withInternalID(dbInfo.entryID)
-                    .build());
+                return dbInfo.db.getFoiStore().get(new FeatureKey(dbInfo.entryID));
         }
         else
         {

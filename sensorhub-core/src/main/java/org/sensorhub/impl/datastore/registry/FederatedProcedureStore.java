@@ -135,9 +135,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
             if (dbInfo == null)
                 return false;
             else
-                return dbInfo.db.getProcedureStore().containsKey(FeatureKey.builder()
-                    .withInternalID(dbInfo.entryID)
-                    .build());
+                return dbInfo.db.getProcedureStore().containsKey(new FeatureKey(dbInfo.entryID));
         }
         else
         {
@@ -183,11 +181,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
     protected FeatureKey toPublicKey(int databaseID, FeatureKey k)
     {
         long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return FeatureKey.builder()
-            .withInternalID(publicID)
-            .withUniqueID(k.getUniqueID())
-            .withValidStartTime(k.getValidStartTime())
-            .build();
+        return new FeatureKey(publicID, k.getUniqueID(), k.getValidStartTime());
     }
     
     
@@ -214,9 +208,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
             else
                 return toPublicID(
                     dbInfo.databaseID, 
-                    dbInfo.db.getProcedureStore().getFeatureID(FeatureKey.builder()
-                        .withInternalID(dbInfo.entryID)
-                        .build())
+                    dbInfo.db.getProcedureStore().getFeatureID(new FeatureKey(dbInfo.entryID))
                 );
         }
         else
@@ -246,10 +238,8 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
             if (dbInfo == null)
                 return null;
             else
-                return dbInfo.db.getProcedureStore().get(FeatureKey.builder()
-                    .withInternalID(dbInfo.entryID)
-                    .withValidStartTime(key.getValidStartTime())
-                    .build());
+                return dbInfo.db.getProcedureStore().get(
+                    new FeatureKey(dbInfo.entryID, key.getValidStartTime()));
         }
         else
         {

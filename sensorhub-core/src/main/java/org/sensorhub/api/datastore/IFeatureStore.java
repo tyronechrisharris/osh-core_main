@@ -108,8 +108,7 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
      */
     public default boolean contains(String uid)
     {
-        FeatureKey key = FeatureKey.builder().withUniqueID(uid).build();
-        return containsKey(key);
+        return containsKey(new FeatureKey(uid));
     }
     
     

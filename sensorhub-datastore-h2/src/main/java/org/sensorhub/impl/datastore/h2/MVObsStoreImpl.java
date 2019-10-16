@@ -79,16 +79,16 @@ public class MVObsStoreImpl implements IObsStore
     //static final Instant LOWEST_TIME_KEY = Instant.MIN.plusSeconds(1);
     //static final Instant HIGHEST_TIME_KEY = Instant.MAX;
     
-    MVStore mvStore;
-    MVDataStoreInfo dataStoreInfo;
-    MVDataStreamStoreImpl dataStreamStore;
-    MVBTreeMap<MVObsKey, ObsData> obsRecordsIndex;
-    MVBTreeMap<MVObsSeriesKey, MVObsSeriesInfo> obsSeriesMainIndex;
-    MVBTreeMap<MVObsSeriesKey, Boolean> obsSeriesByFoiIndex;
+    protected MVStore mvStore;
+    protected MVDataStoreInfo dataStoreInfo;
+    protected MVDataStreamStoreImpl dataStreamStore;
+    protected MVBTreeMap<MVObsKey, ObsData> obsRecordsIndex;
+    protected MVBTreeMap<MVObsSeriesKey, MVObsSeriesInfo> obsSeriesMainIndex;
+    protected MVBTreeMap<MVObsSeriesKey, Boolean> obsSeriesByFoiIndex;
     
-    MVFoiStoreImpl foiStore;
-    MVProcedureStoreImpl procedureStore;
-    int maxSelectedSeriesOnJoin = 200;
+    protected MVFoiStoreImpl foiStore;
+    protected MVProcedureStoreImpl procedureStore;
+    protected int maxSelectedSeriesOnJoin = 200;
     
     
     private MVObsStoreImpl()
@@ -692,11 +692,7 @@ public class MVObsStoreImpl implements IObsStore
         if (dataStore == null || internalID <= 0)
             return null;
         
-        FeatureKey key = FeatureKey.builder()
-            .withInternalID(internalID)
-            .withLatestValidTime()
-            .build();
-        
+        var key = FeatureKey.latest(internalID);        
         FeatureId id = dataStore.getFeatureID(key);
         return id != null ? id.getUniqueID() : null;
     }

@@ -59,12 +59,12 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     private static final String FEATURE_RECORDS_MAP_NAME = "@feature_records";
     private static final String SPATIAL_INDEX_MAP_NAME = "@feature_spatial";
 
-    MVStore mvStore;
-    MVDataStoreInfo dataStoreInfo;
-    MVBTreeMap<String, Long> idsIndex;
-    MVBTreeMap<FeatureKey, V> featuresIndex;
-    MVRTreeMap<MVFeatureRef> spatialIndex;
-    IdProvider idProvider;
+    protected MVStore mvStore;
+    protected MVDataStoreInfo dataStoreInfo;
+    protected MVBTreeMap<String, Long> idsIndex;
+    protected MVBTreeMap<FeatureKey, V> featuresIndex;
+    protected MVRTreeMap<MVFeatureRef> spatialIndex;
+    protected IdProvider idProvider;
     
     
     protected MVBaseFeatureStoreImpl()
@@ -225,12 +225,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
             throw new IllegalArgumentException("Feature validity must start after the previous version");
         
         // generate key
-        FeatureKey key = FeatureKey.builder()
-            .withInternalID(internalID)
-            .withUniqueID(uid)
-            .withValidStartTime(validStartTime)
-            .build();
-
+        var key = new FeatureKey(internalID, uid, validStartTime);
         V oldValue = putIfAbsent(key, feature);
         Asserts.checkState(oldValue == null, "Duplicate key");
         
@@ -249,11 +244,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         // generate key
         long internalID = idProvider.newInternalID();
         Instant validStartTime = getValidStartTime(feature);
-        return FeatureKey.builder()
-            .withInternalID(internalID)
-            .withUniqueID(uid)
-            .withValidStartTime(validStartTime)
-            .build();
+        return new FeatureKey(internalID, uid, validStartTime);
     }
     
     
@@ -298,24 +289,23 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         Asserts.checkNotNull(uid, "uniqueID");
         
         Long internalID = idsIndex.get(uid);
+        
         if (internalID != null)
             return featuresIndex.getEntry(getLastVersionKey(internalID));
-        return null;
+        else
+            return null;
     }
     
     
     protected FeatureKey getLastVersionKey(long internalID)
     {
-        FeatureKey last = FeatureKey.builder()
-            .withInternalID(internalID)
-            .withValidStartTime(Instant.MAX)
-            .build();
+        var afterLast = new FeatureKey(internalID, Instant.MAX);
+        var lastKey = featuresIndex.floorKey(afterLast);
         
-        FeatureKey before = featuresIndex.floorKey(last);
-        if (before != null && before.getInternalID() == internalID)
-            return before;
-        
-        return null;
+        if (lastKey != null && lastKey.getInternalID() == internalID)
+            return lastKey;
+        else
+            return null;
     }
 
 
@@ -328,15 +318,8 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     
     private RangeCursor<FeatureKey, V> getFeatureCursor(long internalID, RangeFilter<Instant> timeFilter)
     {
-        FeatureKey first = FeatureKey.builder()
-                .withInternalID(internalID)
-                .withValidStartTime(timeFilter.getMin())
-                .build();
-        
-        FeatureKey last = FeatureKey.builder()
-                .withInternalID(internalID)
-                .withValidStartTime(timeFilter.getMax())
-                .build();
+        FeatureKey first = new FeatureKey(internalID, timeFilter.getMin());
+        FeatureKey last = new FeatureKey(internalID, timeFilter.getMax());
         
         // start from first key before selected time range to make sure we include
         // any intersecting feature validity period
@@ -367,10 +350,10 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
             if (filter.getInternalIDs().isRange())
             {
                 var range = filter.getInternalIDs().getRange();
-                RangeCursor<FeatureKey, V> cursor = new RangeCursor<>(
+                var cursor = new RangeCursor<>(
                     featuresIndex,
-                    FeatureKey.builder().withInternalID(range.lowerEndpoint()).build(),
-                    FeatureKey.builder().withInternalID(range.upperEndpoint()).build());
+                    new FeatureKey(range.lowerEndpoint()),
+                    new FeatureKey(range.upperEndpoint()));
                 resultStream = cursor.entryStream();
             }
             else
@@ -383,7 +366,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
             if (filter.getFeatureUIDs().isRange())
             {
                 var range = filter.getFeatureUIDs().getRange();
-                RangeCursor<String, Long> cursor = new RangeCursor<>(
+                var cursor = new RangeCursor<>(
                     idsIndex,
                     range.lowerEndpoint(),
                     range.upperEndpoint());
@@ -416,11 +399,8 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
                         if (validPeriod != null && !lastVersionOnly && !timeFilter.getRange().isConnected(validPeriod))
                             return null;
                         
-                        FeatureKey fk = FeatureKey.builder()
-                                .withInternalID(ref.getInternalID())
-                                .withValidStartTime(validPeriod != null ? validPeriod.lowerEndpoint() : Instant.MIN)
-                                .build();
-                        
+                        var fk = new FeatureKey(ref.getInternalID(),
+                            validPeriod != null ? validPeriod.lowerEndpoint() : Instant.MIN);
                         return featuresIndex.getEntry(fk);
                     })
                     .filter(Objects::nonNull);
@@ -605,10 +585,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
             return getLastVersionKey(internalID);
         
         else if (fk.getInternalID() <= 0)
-            return FeatureKey.builder()
-                .withInternalID(internalID)
-                .withValidStartTime(validTime)
-                .build();
+            return new FeatureKey(internalID, validTime);
         
         return fk;
     }
@@ -708,9 +685,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
                 
                 // remove entry from ID index if no more feature entries are present
                 long internalID = fk.getInternalID();
-                FeatureKey firstKey = FeatureKey.builder()
-                        .withInternalID(internalID)
-                        .build();
+                FeatureKey firstKey = new FeatureKey(internalID);
                 FeatureKey nextKey = featuresIndex.ceilingKey(firstKey);
                 if (nextKey == null || internalID != nextKey.getInternalID())
                     idsIndex.remove(oldValue.getUniqueIdentifier());

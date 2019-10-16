@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.Objects;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
-import org.vast.util.BaseBuilder;
 import com.google.common.base.Strings;
 
 
@@ -37,11 +36,54 @@ public class FeatureKey extends FeatureId
     protected Instant validStartTime = Instant.MIN; // use Instant.MAX to retrieve latest version
     
     
-    /*
-     * this class can only be instantiated using builder
-     */
     protected FeatureKey()
     {        
+    }
+    
+    
+    public FeatureKey(long internalID)
+    {
+        Asserts.checkArgument(internalID > 0);
+        this.internalID = internalID;
+    }
+    
+    
+    public FeatureKey(long internalID, Instant validStartTime)
+    {
+        this(internalID);
+        this.validStartTime = Asserts.checkNotNull(validStartTime);
+    }
+    
+    
+    public FeatureKey(String uniqueID)
+    {
+        Asserts.checkArgument(!Strings.isNullOrEmpty(uniqueID));
+        this.uniqueID = uniqueID;
+    }
+    
+    
+    public FeatureKey(String uniqueID, Instant validStartTime)
+    {
+        this(uniqueID);
+        this.validStartTime = Asserts.checkNotNull(validStartTime);
+    }
+    
+    
+    public FeatureKey(long internalID, String uniqueID, Instant validStartTime)
+    {
+        this(internalID);
+        this.uniqueID = uniqueID;
+        this.validStartTime = Asserts.checkNotNull(validStartTime);
+    }
+    
+    
+    /**
+     * @param internalID
+     * @return A feature key with given internal ID and the latest valid time
+     */
+    public static FeatureKey latest(long internalID)
+    {
+        return new FeatureKey(internalID, Instant.MAX);
     }
 
 
@@ -83,64 +125,5 @@ public class FeatureKey extends FeatureId
         return getInternalID() == other.getInternalID() &&
                Objects.equals(getUniqueID(), other.getUniqueID()) &&
                Objects.equals(getValidStartTime(), other.getValidStartTime());
-    }
-    
-    
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static <T extends Builder> T builder()
-    {
-        return (T)new Builder(new FeatureKey());
-    }
-    
-    
-    @SuppressWarnings("unchecked")
-    public static class Builder<B extends Builder<B, T>, T extends FeatureKey> extends BaseBuilder<T>
-    {
-        protected Builder(T instance)
-        {
-            super(instance);
-        }
-
-
-        public B withInternalID(long internalID)
-        {
-            instance.internalID = internalID;
-            return (B)this;
-        }
-
-
-        public B withUniqueID(String uniqueID)
-        {
-            instance.uniqueID = uniqueID;
-            return (B)this;
-        }
-
-
-        public B withValidStartTime(Instant start)
-        {
-            instance.validStartTime = start;
-            return (B)this;
-        }
-        
-        
-        public B withLatestValidTime()
-        {
-            instance.validStartTime = Instant.MAX;
-            return (B)this;
-        }
-        
-        
-        public T build()
-        {
-            boolean hasUniqueID = !Strings.isNullOrEmpty(instance.uniqueID);
-            Asserts.checkArgument(hasUniqueID || instance.internalID != -1, "uniqueID or internalID must be set");
-            if (!hasUniqueID)
-                Asserts.checkArgument(instance.internalID > 0, "internalID must be > 0");
-            Asserts.checkNotNull(instance.validStartTime, "validStartTime");
-            
-            T newInstance = instance;
-            instance = null; // nullify instance to prevent further changes
-            return newInstance;
-        }
     }
 }

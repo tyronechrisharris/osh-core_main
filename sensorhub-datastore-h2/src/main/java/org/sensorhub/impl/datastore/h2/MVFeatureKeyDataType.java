@@ -83,14 +83,9 @@ class MVFeatureKeyDataType implements DataType
     public Object read(ByteBuffer buff)
     {
         long internalID = DataUtils.readVarLong(buff); 
-        Instant startTime = H2Utils.readInstant(buff);
+        Instant validStartTime = H2Utils.readInstant(buff);
         String uid = H2Utils.readAsciiString(buff);
-        
-        return FeatureKey.builder()
-                .withInternalID(internalID)
-                .withUniqueID(uid)
-                .withValidStartTime(startTime)
-                .build();
+        return new FeatureKey(internalID, uid, validStartTime);
     }
     
 

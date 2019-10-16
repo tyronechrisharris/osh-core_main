@@ -102,15 +102,14 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
     
     protected FeatureKey getKey(AbstractFeature f)
     {
-        Instant startTime = (f instanceof ITemporalFeature) ? 
+        Instant validStartTime = (f instanceof ITemporalFeature) ? 
                 ((ITemporalFeature)f).getValidTime().lowerEndpoint() :
                 Instant.MIN;
         
-        return FeatureKey.builder()
-            .withInternalID(Long.parseLong(f.getId().replaceAll("(F|G|T)*", ""))+1)
-            .withUniqueID(f.getUniqueIdentifier())
-            .withValidStartTime(startTime)
-            .build();
+        return new FeatureKey(
+            Long.parseLong(f.getId().replaceAll("(F|G|T)*", ""))+1,
+            f.getUniqueIdentifier(),
+            validStartTime);
     }
     
     
@@ -779,10 +778,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         for (int i = 0; i < numReads; i++)
         {
             String uid = UID_PREFIX + "F" + i;
-            FeatureKey key = FeatureKey.builder()
-                    .withUniqueID(uid)
-                    .build();            
-            AbstractFeature f = featureStore.get(key);
+            var key = new FeatureKey(uid);            
+            var f = featureStore.get(key);
             assertEquals(uid, f.getUniqueIdentifier());
         }
         double dt = System.currentTimeMillis() - t0;
@@ -796,11 +793,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         for (int i = 0; i < numReads; i++)
         {
             String uid = UID_PREFIX + "F" + (int)(Math.random()*(numFeatures-1));
-            FeatureKey key = FeatureKey.builder()
-                    .withUniqueID(uid)
-                    .build();
-            
-            AbstractFeature f = featureStore.get(key);
+            var key = new FeatureKey(uid);            
+            var f = featureStore.get(key);
             assertEquals(uid, f.getUniqueIdentifier());
         }
         dt = System.currentTimeMillis() - t0;

@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -91,10 +92,7 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
             throw new IllegalArgumentException("Data store already contains a procedure with UID " + uid);
         
         long internalID = map.isEmpty() ? 1 : map.lastKey().getInternalID()+1;
-        return FeatureKey.builder()
-            .withInternalID(internalID)
-            .withUniqueID(uid)
-            .build();
+        return new FeatureKey(internalID, uid, Instant.MIN);
     }
     
     
@@ -174,7 +172,7 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
             {
                 resultStream = query.getInternalIDs().getSet().stream()
                     .map(id -> {
-                        FeatureKey key = FeatureKey.builder().withInternalID(id).build();
+                        FeatureKey key = new FeatureKey(id);
                         T val = map.get(key); 
                         return new AbstractMap.SimpleEntry<>(key, val);
                     });
@@ -183,8 +181,8 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
             {
                 var idRange = query.getInternalIDs().getRange();
                 resultStream = map.subMap(
-                    FeatureKey.builder().withInternalID(idRange.lowerEndpoint()).build(),
-                    FeatureKey.builder().withInternalID(idRange.upperEndpoint()).build())
+                    new FeatureKey(idRange.lowerEndpoint()),
+                    new FeatureKey(idRange.upperEndpoint()))
                 .entrySet().stream();
             }
             
