@@ -206,10 +206,11 @@ public class MVObsStoreImpl implements IObsStore
     public Stream<Long> selectFeatureIDs(IFeatureStore<FeatureKey,?> featureStore, FeatureFilter filter)
     {
         if (filter.getInternalIDs() != null &&
+            filter.getInternalIDs().isSet() &&
             filter.getLocationFilter() == null)
         {
             // if only internal IDs were specified, no need to search the feature store
-            return filter.getInternalIDs().stream();
+            return filter.getInternalIDs().getSet().stream();
         }
         else
         {

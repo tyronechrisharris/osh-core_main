@@ -161,8 +161,8 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     {
         return map.size();
     }
-
-
+    
+    
     @Override
     public Stream<Entry<FeatureKey, T>> selectEntries(IFeatureFilter query)
     {
@@ -170,12 +170,25 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
         
         if (query.getInternalIDs() != null)
         {
-            resultStream = query.getInternalIDs().stream()
-                .map(id -> {
-                    FeatureKey key = FeatureKey.builder().withInternalID(id).build();
-                    T val = map.get(key); 
-                    return new AbstractMap.SimpleEntry<>(key, val);
-                });
+            if (query.getInternalIDs().isSet())
+            {
+                resultStream = query.getInternalIDs().getSet().stream()
+                    .map(id -> {
+                        FeatureKey key = FeatureKey.builder().withInternalID(id).build();
+                        T val = map.get(key); 
+                        return new AbstractMap.SimpleEntry<>(key, val);
+                    });
+            }
+            else
+            {
+                var idRange = query.getInternalIDs().getRange();
+                resultStream = map.subMap(
+                    FeatureKey.builder().withInternalID(idRange.lowerEndpoint()).build(),
+                    FeatureKey.builder().withInternalID(idRange.upperEndpoint()).build())
+                .entrySet().stream();
+            }
+            
+            
         }
         else
             resultStream = map.entrySet().stream();

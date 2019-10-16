@@ -364,22 +364,42 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         // if filtering by internal IDs, use these IDs directly
         if (filter.getInternalIDs() != null)
         {
-            internalIdStream = filter.getInternalIDs().stream();
+            if (filter.getInternalIDs().isRange())
+            {
+                var range = filter.getInternalIDs().getRange();
+                RangeCursor<FeatureKey, V> cursor = new RangeCursor<>(
+                    featuresIndex,
+                    FeatureKey.builder().withInternalID(range.lowerEndpoint()).build(),
+                    FeatureKey.builder().withInternalID(range.upperEndpoint()).build());
+                resultStream = cursor.entryStream();
+            }
+            else
+                internalIdStream = filter.getInternalIDs().getSet().stream();
         }
         
         // if filtering by UID, use idsIndex as primary
         else if (filter.getFeatureUIDs() != null)
         {
-            Set<String> ids = filter.getFeatureUIDs().getIdList();
-            
-            // concatenate streams for each selected feature UID
-            internalIdStream = ids.stream()
-                    .map(uid -> {
-                        Long internalID = idsIndex.get(uid);
-                        if (internalID == null)
-                            return null; // return null if uid is not found 
-                        return internalID;
-                    });
+            if (filter.getFeatureUIDs().isRange())
+            {
+                var range = filter.getFeatureUIDs().getRange();
+                RangeCursor<String, Long> cursor = new RangeCursor<>(
+                    idsIndex,
+                    range.lowerEndpoint(),
+                    range.upperEndpoint());
+                internalIdStream = cursor.valueStream(); 
+            }
+            else
+            {
+                // concatenate streams for each selected feature UID
+                internalIdStream = filter.getFeatureUIDs().getSet().stream()
+                        .map(uid -> {
+                            Long internalID = idsIndex.get(uid);
+                            if (internalID == null)
+                                return null; // return null if uid is not found 
+                            return internalID;
+                        });
+            }
         }
         
         // if spatial filter is used, use spatialIndex as primary
@@ -423,11 +443,9 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     {
         var resultStream = getIndexedStream(filter);
         
+        // if no suitable index was found, just stream all features
         if (resultStream == null)
-        {
-            // stream all features
             resultStream = featuresIndex.entrySet().stream();
-        }
         
         // add exact time predicate
         if (filter.getValidTime() != null)

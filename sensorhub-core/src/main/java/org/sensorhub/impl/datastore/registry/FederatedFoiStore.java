@@ -261,9 +261,9 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     
     protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FoiFilter filter)
     {
-        if (filter.getInternalIDs() != null)
+        if (filter.getInternalIDs() != null && filter.getInternalIDs().isSet())
         {
-            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());
+            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs().getSet());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = FoiFilter.Builder
@@ -281,9 +281,9 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     
     protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FeatureFilter filter)
     {
-        if (filter.getInternalIDs() != null)
+        if (filter.getInternalIDs() != null && filter.getInternalIDs().isSet())
         {
-            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());            
+            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs().getSet());            
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = FeatureFilter.Builder.from(filter)

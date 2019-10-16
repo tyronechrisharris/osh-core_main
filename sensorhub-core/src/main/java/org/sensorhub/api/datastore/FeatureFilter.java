@@ -17,8 +17,6 @@ package org.sensorhub.api.datastore;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
 import org.sensorhub.utils.ObjectUtils;
@@ -44,8 +42,8 @@ import com.vividsolutions.jts.geom.Polygon;
  */
 public class FeatureFilter implements IFeatureFilter
 {
-    protected SortedSet<Long> internalIDs;
-    protected IdFilter featureUIDs;
+    protected RangeOrSet<Long> internalIDs;
+    protected RangeOrSet<String> featureUIDs;
     protected RangeFilter<Instant> validTime;
     protected SpatialFilter location;
     protected Predicate<FeatureKey> keyPredicate;
@@ -65,13 +63,13 @@ public class FeatureFilter implements IFeatureFilter
     }
 
 
-    public SortedSet<Long> getInternalIDs()
+    public RangeOrSet<Long> getInternalIDs()
     {
         return internalIDs;
     }
 
 
-    public IdFilter getFeatureUIDs()
+    public RangeOrSet<String> getFeatureUIDs()
     {
         return featureUIDs;
     }
@@ -121,7 +119,7 @@ public class FeatureFilter implements IFeatureFilter
     public boolean testInternalIDs(FeatureKey key)
     {
         return (internalIDs == null ||
-                internalIDs.contains(key.internalID));
+                internalIDs.test(key.internalID));
     }
     
     
@@ -242,9 +240,20 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withInternalIDs(Collection<Long> ids)
         {
-            instance.internalIDs = new TreeSet<Long>();            
-            for (Long id: ids)
-                instance.internalIDs.add(id);            
+            instance.internalIDs = RangeOrSet.from(ids);
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep only features with internal IDs within the given range.
+         * @param startId 
+         * @param stopId 
+         * @return This builder for chaining
+         */
+        public B withInternalIDRange(Long startId, Long stopId)
+        {
+            instance.internalIDs = RangeOrSet.from(startId, stopId);
             return (B)this;
         }
         
@@ -267,9 +276,21 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withUniqueIDs(Collection<String> uids)
         {
-            instance.featureUIDs = new IdFilter();            
-            for (String uid: uids)
-                instance.featureUIDs.getIdList().add(uid);            
+            instance.featureUIDs = RangeOrSet.from(uids);            
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep only features with unique IDs starting with given prefix.
+         * @param prefix UID prefix
+         * @return This builder for chaining
+         */
+        public B withUniqueIDPrefix(String prefix)
+        {
+            String begin = prefix + Character.toString((char)0);
+            String end = prefix + Character.toString((char)Integer.MAX_VALUE);
+            instance.featureUIDs = RangeOrSet.from(begin, end);            
             return (B)this;
         }
         
