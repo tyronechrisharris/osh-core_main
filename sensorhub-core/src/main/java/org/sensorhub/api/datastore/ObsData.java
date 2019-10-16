@@ -34,17 +34,20 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class ObsData
 {
-    private Map<String, Object> parameters = null;
-    private Geometry phenomenonLocation = null;
-    //private Range<Instant> validTime = null;
-    private DataBlock result;
+    protected Map<String, Object> parameters = null;
+    protected Geometry phenomenonLocation = null;
+    //protected Range<Instant> validTime = null;
+    protected DataBlock result;
     
     
-    /*
-     * this class can only be instantiated using builder
-     */
-    ObsData()
+    protected ObsData()
     {        
+    }
+    
+    
+    public ObsData(DataBlock result)
+    {
+        this.result = result;
     }
     
     
@@ -76,46 +79,72 @@ public class ObsData
     {
         return result;
     }
-
-
-    public static ObsBuilder builder()
+    
+    
+    /*
+     * Builder
+     */
+    public static class Builder extends ObsDataBuilder<Builder, ObsData>
     {
-        return new ObsBuilder();
+        public Builder()
+        {
+            this.instance = new ObsData();
+        }
+        
+        protected Builder(ObsData instance)
+        {
+            this.instance = instance;
+        }
+        
+        public static Builder from(ObsData base)
+        {
+            return new Builder(null).copyFrom(base);
+        }
     }
     
     
-    public static class ObsBuilder extends BaseBuilder<ObsData>
-    {        
-        protected ObsBuilder()
+    @SuppressWarnings("unchecked")
+    public static abstract class ObsDataBuilder<B extends ObsDataBuilder<B, T>, T extends ObsData>
+        extends BaseBuilder<T>
+    {       
+        protected ObsDataBuilder()
         {
-            super(new ObsData());
+        }
+        
+        
+        protected B copyFrom(ObsData base)
+        {
+            instance.parameters = base.parameters;
+            instance.phenomenonLocation = base.phenomenonLocation;
+            instance.result = base.result;
+            return (B)this;
         }
 
 
-        public ObsBuilder withParameter(String key, Object value)
+        public B withParameter(String key, Object value)
         {
             if (instance.parameters == null)
                 instance.parameters = new HashMap<>();
             instance.parameters.put(key, value);
-            return this;
+            return (B)this;
         }
 
 
-        public ObsBuilder withPhenomenonLocation(Geometry phenomenonLocation)
+        public B withPhenomenonLocation(Geometry phenomenonLocation)
         {
             instance.phenomenonLocation = phenomenonLocation;
-            return this;
+            return (B)this;
         }
 
 
-        public ObsBuilder withResult(DataBlock result)
+        public B withResult(DataBlock result)
         {
             instance.result = result;
-            return this;
+            return (B)this;
         }
         
         
-        public ObsData build()
+        public T build()
         {
             Asserts.checkNotNull(instance.result, "result");
             return super.build();

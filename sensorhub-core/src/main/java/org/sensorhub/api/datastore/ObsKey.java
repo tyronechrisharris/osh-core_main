@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.Objects;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
-import org.vast.util.BaseBuilder;
 
 
 /**
@@ -39,11 +38,30 @@ public class ObsKey
     protected Instant resultTime = null;
     
     
-    /*
-     * this class can only be instantiated using builder
-     */
     protected ObsKey()
     {
+    }
+    
+    
+    public ObsKey(long dataStreamID, Instant phenomenonTime)
+    {
+        Asserts.checkArgument(dataStreamID > 0, "data stream ID must be > 0");
+        this.dataStreamID = dataStreamID;
+        this.phenomenonTime = Asserts.checkNotNull(phenomenonTime, "phenomenonTime");
+    }
+    
+    
+    public ObsKey(long dataStreamID, FeatureId foiID, Instant phenomenonTime)
+    {
+        this(dataStreamID, phenomenonTime);
+        this.foiID = Asserts.checkNotNull(foiID, FeatureId.class);
+    }
+    
+    
+    public ObsKey(long dataStreamID, FeatureId foiID, Instant phenomenonTime, Instant resultTime)
+    {
+        this(dataStreamID, foiID, phenomenonTime);
+        this.resultTime = resultTime;
     }
 
 
@@ -123,60 +141,5 @@ public class ObsKey
                Objects.equals(getFoiID(), other.getFoiID()) &&
                Objects.equals(getPhenomenonTime(), other.getPhenomenonTime()) &&
                Objects.equals(getResultTime(), other.getResultTime());
-    }
-    
-    
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static <T extends Builder> T builder()
-    {
-        return (T)new Builder(new ObsKey());
-    }
-    
-    
-    @SuppressWarnings("unchecked")
-    public static class Builder<B extends Builder<B, T>, T extends ObsKey> extends BaseBuilder<T>
-    {
-
-        protected Builder(T instance)
-        {
-            super(instance);
-        }
-
-
-        public B withDataStream(long id)
-        {
-            instance.dataStreamID = id;
-            return (B)this;
-        }
-
-
-        public B withFoi(FeatureId id)
-        {
-            instance.foiID = id;
-            return (B)this;
-        }
-        
-
-        public B withPhenomenonTime(Instant phenomenonTime)
-        {
-            instance.phenomenonTime = phenomenonTime;
-            return (B)this;
-        }
-
-
-        public B withResultTime(Instant resultTime)
-        {
-            instance.resultTime = resultTime;
-            return (B)this;
-        }
-        
-        
-        public T build()
-        {
-            Asserts.checkArgument(instance.dataStreamID > 0, "data stream ID must be > 0");
-            Asserts.checkNotNull(instance.foiID, "foi");
-            Asserts.checkNotNull(instance.phenomenonTime, "phenomenonTime");
-            return super.build();
-        }
     }
 }

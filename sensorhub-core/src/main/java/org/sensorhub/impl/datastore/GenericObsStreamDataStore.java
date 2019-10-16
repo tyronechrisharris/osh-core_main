@@ -491,17 +491,12 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                             time = e.getTimeStamp() / 1000.;
                     
                         // store record with proper key
-                        ObsKey obsKey = ObsKey.builder()
-                            .withDataStream(dsInfo.dataStreamID)
-                            .withFoi(procInfo.currentFoi)
-                            .withPhenomenonTime(SWEDataUtils.toInstant(time))
-                            .build();
+                        ObsKey obsKey = new ObsKey(
+                            dsInfo.dataStreamID,
+                            procInfo.currentFoi,
+                            SWEDataUtils.toInstant(time));
                         
-                        ObsData obs = ObsData.builder()
-                            .withResult(record)
-                            .build();
-                        
-                        db.getObservationStore().put(obsKey, obs);                        
+                        db.getObservationStore().put(obsKey, new ObsData(record));                        
                         getLogger().trace("Storing observation with key {}", obsKey);
                     }
                 }

@@ -130,19 +130,13 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         
         for (int i = 0; i < numObs; i++)
         {
-            ObsKey key = ObsKey.builder()
-                .withPhenomenonTime(startTime.plusMillis(timeStepMillis*i))
-                .withDataStream(dsID)
-                .withFoi(foi)
-                .build();
+            ObsKey key = new ObsKey(dsID, foi, startTime.plusMillis(timeStepMillis*i));
             
             DataBlockDouble data = new DataBlockDouble(5);
             for (int s=0; s<5; s++)
                 data.setDoubleValue(s, i+s);
-            ObsData obs = ObsData.builder()
-                .withResult(data)
-                .build();
             
+            ObsData obs = new ObsData(data);
             addObservation(key, obs);
             addedObs.put(key, obs);
         }
@@ -344,17 +338,11 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         testGetNumRecordsOneProcedure();
         
         // wrong procedure
-        ObsKey key = ObsKey.builder()
-            .withDataStream(11)
-            .withPhenomenonTime(Instant.now())
-            .build();
+        ObsKey key = new ObsKey(11, Instant.now());
         assertNull(obsStore.get(key));
         
         // wrong time instant
-        key = ObsKey.builder()
-            .withDataStream(10)
-            .withPhenomenonTime(Instant.now())
-            .build();
+        key = new ObsKey(10, Instant.now());
         assertNull(obsStore.get(key));
     }
     

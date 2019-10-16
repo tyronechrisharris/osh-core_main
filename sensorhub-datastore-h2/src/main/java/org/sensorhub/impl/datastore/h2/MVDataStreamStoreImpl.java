@@ -46,19 +46,19 @@ import com.google.common.collect.Range;
  * @author Alex Robin
  * @date Sep 19, 2019
  */
-class MVDataStreamStoreImpl implements IDataStreamStore
+public class MVDataStreamStoreImpl implements IDataStreamStore
 {
     private static final String DATASTREAM_MAP_NAME = "@dstreams";
     private static final String DATASTREAM_PROC_MAP_NAME = "@dstreams_proc";
     
-    MVStore mvStore;
-    MVObsStoreImpl obsStore;
-    MVBTreeMap<Long, DataStreamInfo> dataStreamIndex;
-    MVBTreeMap<MVDataStreamProcKey, Boolean> dataStreamByProcIndex;
-    IdProvider idProvider;
+    protected MVStore mvStore;
+    protected MVObsStoreImpl obsStore;
+    protected MVBTreeMap<Long, DataStreamInfo> dataStreamIndex;
+    protected MVBTreeMap<MVDataStreamProcKey, Boolean> dataStreamByProcIndex;
+    protected IdProvider idProvider;
     
     
-    MVDataStreamStoreImpl(MVObsStoreImpl obsStore, IdProvider idProvider)
+    public MVDataStreamStoreImpl(MVObsStoreImpl obsStore, IdProvider idProvider)
     {
         this.obsStore = Asserts.checkNotNull(obsStore, MVObsStoreImpl.class);
         this.mvStore = Asserts.checkNotNull(obsStore.mvStore, MVStore.class);

@@ -98,15 +98,8 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     
     Stream<Entry<ObsKey, ObsData>> getObsByDataStream(long dataStreamID, Range<Instant> phenomenonTimeRange)
     {
-        ObsKey fromKey = ObsKey.builder()
-            .withDataStream(dataStreamID)
-            .withFoi(new FeatureId(0))
-            .build();
-        
-        ObsKey toKey = ObsKey.builder()
-            .withDataStream(dataStreamID)
-            .withFoi(new FeatureId(Long.MAX_VALUE))
-            .build();
+        ObsKey fromKey = new ObsKey(dataStreamID, new FeatureId(0), null);        
+        ObsKey toKey = new ObsKey(dataStreamID, new FeatureId(Long.MAX_VALUE), null);
             
         return map.subMap(fromKey, toKey).entrySet().stream()
             .filter(e -> phenomenonTimeRange.contains(e.getKey().getPhenomenonTime()));
