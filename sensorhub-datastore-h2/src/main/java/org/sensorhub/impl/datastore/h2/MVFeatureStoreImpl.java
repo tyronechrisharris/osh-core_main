@@ -30,7 +30,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature>
     public static MVFeatureStoreImpl open(MVStore mvStore, String dataStoreName)
     {
         MVDataStoreInfo dataStoreInfo = H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
-        return (MVFeatureStoreImpl)new MVFeatureStoreImpl().init(mvStore, dataStoreInfo);
+        return (MVFeatureStoreImpl)new MVFeatureStoreImpl().init(mvStore, dataStoreInfo, null);
     }
     
     
@@ -43,7 +43,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature>
     public static MVFeatureStoreImpl create(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
     {
         H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
-        return (MVFeatureStoreImpl)new MVFeatureStoreImpl().init(mvStore, dataStoreInfo);
+        return (MVFeatureStoreImpl)new MVFeatureStoreImpl().init(mvStore, dataStoreInfo, null);
     }
     
 

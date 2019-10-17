@@ -72,12 +72,6 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     }
     
     
-    protected MVBaseFeatureStoreImpl<V> init(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
-    {
-        return init(mvStore, dataStoreInfo, null);
-    }
-    
-    
     protected MVBaseFeatureStoreImpl<V> init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider idProvider)
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);

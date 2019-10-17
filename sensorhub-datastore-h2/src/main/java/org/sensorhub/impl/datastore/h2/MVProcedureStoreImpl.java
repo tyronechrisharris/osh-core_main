@@ -46,7 +46,7 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess
     public static MVProcedureStoreImpl open(MVStore mvStore, String dataStoreName)
     {
         MVDataStoreInfo dataStoreInfo = H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
-        return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo);
+        return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo, null);
     }
     
     
@@ -59,7 +59,7 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess
     public static MVProcedureStoreImpl create(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
     {
         H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
-        return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo);
+        return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo, null);
     }
     
     
