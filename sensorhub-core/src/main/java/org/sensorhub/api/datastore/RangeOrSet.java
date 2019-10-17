@@ -72,18 +72,7 @@ public class RangeOrSet<T extends Comparable<T>> implements Predicate<T>
             union.set.add(val);
         return union;
     }
-
-
-    @Override
-    public boolean test(T t)
-    {
-        if (isRange())
-            return range.test(t);
-        else if (isSet())
-            return set.contains(t);
-        return false;
-    }
-        
+    
     
     public boolean isRange()
     {
@@ -106,6 +95,26 @@ public class RangeOrSet<T extends Comparable<T>> implements Predicate<T>
     public SortedSet<T> getSet()
     {
         return set;
+    }
+
+
+    @Override
+    public boolean test(T t)
+    {
+        if (isRange())
+            return range.test(t);
+        else if (isSet())
+            return set.contains(t);
+        return false;
+    }
+    
+    
+    @Override
+    public String toString()
+    {
+        StringBuilder buf = new StringBuilder();
+        buf.append(isSet() ? getSet() : getRange());
+        return buf.toString();
     }
     
 }

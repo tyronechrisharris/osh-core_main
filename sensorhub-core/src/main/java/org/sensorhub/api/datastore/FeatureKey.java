@@ -23,7 +23,7 @@ import com.google.common.base.Strings;
 
 /**
  * <p>
- * Immutable key object used to index features in storage.<br/>
+ * Immutable key object used to index features in data stores.<br/>
  * The key can include an internal ID or a unique ID or both. If both are
  * set when the key is used for retrieval, only the internal ID is used.
  * </p>
@@ -33,7 +33,10 @@ import com.google.common.base.Strings;
  */
 public class FeatureKey extends FeatureId
 {    
-    protected Instant validStartTime = Instant.MIN; // use Instant.MAX to retrieve latest version
+    public final static Instant TIMELESS = Instant.MIN;
+    public final static Instant LATEST = Instant.MAX;
+    
+    protected Instant validStartTime = TIMELESS;
     
     
     protected FeatureKey()
@@ -41,6 +44,35 @@ public class FeatureKey extends FeatureId
     }
     
     
+    /**
+     * Creates an insertion key for a timeless feature
+     * @param internalID Feature internal ID
+     * @param uniqueID Feature unique ID
+     */
+    public FeatureKey(long internalID, String uniqueID)
+    {
+        this(internalID);
+        this.uniqueID = uniqueID;
+    }
+    
+    
+    /**
+     * Creates an insertion key for a feature with a limited time validity
+     * @param internalID Feature internal ID
+     * @param uniqueID Feature unique ID
+     * @param validStartTime Start of feature validity period
+     */
+    public FeatureKey(long internalID, String uniqueID, Instant validStartTime)
+    {
+        this(internalID, uniqueID);
+        this.validStartTime = Asserts.checkNotNull(validStartTime);
+    }
+    
+    
+    /**
+     * Creates a retrieval key for a timeless feature
+     * @param internalID Internal ID of desired feature
+     */
     public FeatureKey(long internalID)
     {
         Asserts.checkArgument(internalID > 0);
@@ -48,13 +80,10 @@ public class FeatureKey extends FeatureId
     }
     
     
-    public FeatureKey(long internalID, Instant validStartTime)
-    {
-        this(internalID);
-        this.validStartTime = Asserts.checkNotNull(validStartTime);
-    }
-    
-    
+    /**
+     * Creates a retrieval key for a timeless feature
+     * @param uniqueID Unique ID of desired feature
+     */
     public FeatureKey(String uniqueID)
     {
         Asserts.checkArgument(!Strings.isNullOrEmpty(uniqueID));
@@ -62,6 +91,23 @@ public class FeatureKey extends FeatureId
     }
     
     
+    /**
+     * Creates a retrieval key for the version of a feature valid at a specific time
+     * @param internalID Internal ID of desired feature
+     * @param validStartTime Start of feature version validity period
+     */
+    public FeatureKey(long internalID, Instant validStartTime)
+    {
+        this(internalID);
+        this.validStartTime = Asserts.checkNotNull(validStartTime);
+    }
+    
+    
+    /**
+     * Creates a retrieval key for the version of a feature valid at a specific time
+     * @param uniqueID Unique ID of desired feature
+     * @param validStartTime Start of feature version validity period
+     */
     public FeatureKey(String uniqueID, Instant validStartTime)
     {
         this(uniqueID);
@@ -69,28 +115,32 @@ public class FeatureKey extends FeatureId
     }
     
     
-    public FeatureKey(long internalID, String uniqueID, Instant validStartTime)
-    {
-        this(internalID);
-        this.uniqueID = uniqueID;
-        this.validStartTime = Asserts.checkNotNull(validStartTime);
-    }
-    
-    
     /**
-     * @param internalID
-     * @return A feature key with given internal ID and the latest valid time
+     * Creates a retrieval key for the latest version of a feature
+     * @param internalID Feature internal ID
+     * @return The feature key object
      */
     public static FeatureKey latest(long internalID)
     {
         return new FeatureKey(internalID, Instant.MAX);
     }
+    
+    
+    /**
+     * Creates a retrieval key for the latest version of a feature
+     * @param uniqueID Unique ID of desired feature
+     * @return The feature key object
+     */
+    public static FeatureKey latest(String uniqueID)
+    {
+        return new FeatureKey(uniqueID, Instant.MAX);
+    }
 
 
     /**
-     * @return The time range of validity of the feature description.<br/>
-     * The time range must end with {@link Double.POSITIVE_INFINITY} if the end of validity is not yet known.<br/>
-     * If null, the feature will always be returned by queries containing a temporal filter 
+     * @return The start of validity of the feature description.<br/>
+     * If null or equal to {@link TIMELESS}, the feature will always be returned
+     * by queries containing a temporal filter 
      */    
     public Instant getValidStartTime()
     {

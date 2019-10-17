@@ -179,14 +179,9 @@ public class FeatureFilter implements IFeatureFilter
             super(new FeatureFilter());
         }
         
-        protected Builder(FeatureFilter instance)
-        {
-            this.instance = instance;
-        }
-        
         public static Builder from(FeatureFilter base)
         {
-            return new Builder(null).copyFrom(base);
+            return new Builder().copyFrom(base);
         }
     }
     
@@ -333,6 +328,19 @@ public class FeatureFilter implements IFeatureFilter
         {
             instance.validTime = new RangeFilter.Builder<Instant>()
                 .withSingleValue(Instant.MAX).build();
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep all versions of each selected feature.
+         * @return This builder for chaining
+         */
+        public B withAllVersions()
+        {
+            instance.validTime = new RangeFilter.Builder<Instant>()
+                .withRange(Instant.MIN, Instant.MAX)
+                .build();
             return (B)this;
         }
 

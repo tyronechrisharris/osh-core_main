@@ -295,7 +295,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             if (dsEntry == null)
             {
                 // create new data stream
-                DataStreamInfo dsInfo = DataStreamInfo.builder()
+                DataStreamInfo dsInfo = new DataStreamInfo.Builder()
                     .withProcedure(procKey)
                     .withRecordDescription(output.getRecordDescription())
                     .withRecordEncoding(output.getRecommendedEncoding())
@@ -310,7 +310,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                 if (hasOutputChanged(dsInfo.getRecordDescription(), output.getRecordDescription()))
                 {
                     // version existing data stream
-                    dsInfo = DataStreamInfo.builder()
+                    dsInfo = new DataStreamInfo.Builder()
                         .withProcedure(procKey)
                         .withRecordDescription(output.getRecordDescription())
                         .withRecordEncoding(output.getRecommendedEncoding())

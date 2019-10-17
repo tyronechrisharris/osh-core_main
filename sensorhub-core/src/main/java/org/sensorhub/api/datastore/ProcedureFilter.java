@@ -75,14 +75,9 @@ public class ProcedureFilter extends FeatureFilter
             this.instance = new ProcedureFilter();
         }
         
-        protected Builder(ProcedureFilter instance)
-        {
-            this.instance = instance;
-        }
-        
         public static Builder from(ProcedureFilter base)
         {
-            return new Builder(null).copyFrom(base);
+            return new Builder().copyFrom(base);
         }
     }
     

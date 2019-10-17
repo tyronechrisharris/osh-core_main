@@ -249,7 +249,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         
         // return default value for features with no time stamps
         // -> this means they are always valid
-        return Instant.MIN;
+        return FeatureKey.TIMELESS;
     }
 
 

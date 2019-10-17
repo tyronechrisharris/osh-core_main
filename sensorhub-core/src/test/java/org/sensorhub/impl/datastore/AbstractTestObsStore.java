@@ -86,7 +86,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     
     protected Long addDataStream(FeatureId procID, DataComponent recordStruct, int version)
     {
-        DataStreamInfo dsInfo = DataStreamInfo.builder()
+        DataStreamInfo dsInfo = new DataStreamInfo.Builder()
             .withProcedure(procID)
             .withRecordDescription(recordStruct)
             .withRecordEncoding(new TextEncodingImpl())

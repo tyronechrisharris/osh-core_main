@@ -83,14 +83,9 @@ public class ObsStatsQuery implements IQueryFilter
             this.instance = new ObsStatsQuery();
         }
         
-        protected Builder(ObsStatsQuery instance)
-        {
-            this.instance = instance;
-        }
-        
         public static Builder from(ObsStatsQuery base)
         {
-            return new Builder(null).copyFrom(base);
+            return new Builder().copyFrom(base);
         }
     }
 

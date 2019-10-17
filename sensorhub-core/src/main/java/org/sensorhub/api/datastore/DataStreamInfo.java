@@ -82,86 +82,85 @@ public class DataStreamInfo
     }
     
     
-    protected DataStreamInfo copy()
+    /*
+     * Builder
+     */
+    public static class Builder extends DataStreamInfoBuilder<Builder, DataStreamInfo>
     {
-        var dsInfo = new DataStreamInfo();
-        dsInfo.procedureID = this.procedureID;
-        dsInfo.recordStruct = this.recordStruct;
-        dsInfo.recordEncoding = this.recordEncoding;
-        dsInfo.recordVersion = this.recordVersion;
-        return dsInfo;
-    }
-    
-    
-    public static Builder builder()
-    {
-        return new Builder();
-    }
-    
-    
-    public static Builder builderFrom(DataStreamInfo dsInfo)
-    {
-        return new Builder(dsInfo.copy());
-    }
-
-    
-    public static class Builder extends BaseBuilder<DataStreamInfo>
-    {
-        protected Builder()
+        public Builder()
         {
-            super(new DataStreamInfo());
+            this.instance = new DataStreamInfo();
+        }
+        
+        public static Builder from(DataStreamInfo base)
+        {
+            return new Builder().copyFrom(base);
+        }
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    public static abstract class DataStreamInfoBuilder<B extends DataStreamInfoBuilder<B, T>, T extends DataStreamInfo>
+        extends BaseBuilder<T>
+    {
+        protected DataStreamInfoBuilder()
+        {
         }
         
         
-        protected Builder(DataStreamInfo base)
+        protected B copyFrom(DataStreamInfo base)
         {
-            super(base);
+            instance.procedureID = base.procedureID;
+            instance.recordStruct = base.recordStruct;
+            instance.recordEncoding = base.recordEncoding;
+            instance.recordVersion = base.recordVersion;
+            return (B)this;
         }
         
         
-        public Builder withProcedure(FeatureId procID)
+        public B withProcedure(FeatureId procID)
         {
             instance.procedureID = procID;
-            return this;
+            return (B)this;
         }
         
         
-        public Builder withProcedure(long internalID)
+        public B withProcedure(long internalID)
         {
             instance.procedureID = new FeatureId(internalID);
-            return this;
+            return (B)this;
         }
         
         
-        public Builder withProcedure(String uid)
+        public B withProcedure(String uid)
         {
             instance.procedureID = new FeatureId(0, uid);
-            return this;
+            return (B)this;
         }
         
         
-        public Builder withRecordVersion(int version)
+        public B withRecordVersion(int version)
         {
             instance.recordVersion = version;
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withRecordDescription(DataComponent recordStruct)
+        public B withRecordDescription(DataComponent recordStruct)
         {
             instance.recordStruct = recordStruct;
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withRecordEncoding(DataEncoding recordEncoding)
+        public B withRecordEncoding(DataEncoding recordEncoding)
         {
             instance.recordEncoding = recordEncoding;
-            return this;
+            return (B)this;
         }
         
         
-        public DataStreamInfo build()
+        public T build()
         {
             Asserts.checkNotNull(instance.procedureID, "procedureID");
             Asserts.checkArgument(instance.procedureID.internalID > 0, "procedure internalID must be > 0");

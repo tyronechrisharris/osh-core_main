@@ -31,15 +31,9 @@ public class TextFilter
     }
     
     
-    public static Builder builder()
-    {
-        return new Builder();
-    }
-    
-    
     public static class Builder extends BaseBuilder<TextFilter>
     {
-        protected Builder()
+        public Builder()
         {
             super(new TextFilter());
         }

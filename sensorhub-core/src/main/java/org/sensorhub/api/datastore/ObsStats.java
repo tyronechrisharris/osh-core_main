@@ -38,7 +38,7 @@ public class ObsStats
     protected long foiID = 0;
     protected long obsCount = 0;
     protected Range<Instant> resultTimeRange = null;
-    protected Duration resultTimePeriod = null; // computed if step is regular
+    protected Duration resultPeriod = null; // computed if step is regular
     protected Range<Instant> phenomenonTimeRange = null;
     protected Bbox phenomenonBbox = null;
     protected int[] obsCountsByTime = null;
@@ -126,56 +126,84 @@ public class ObsStats
     }
     
     
-    public static Builder builder()
+    /*
+     * Builder
+     */
+    public static class Builder extends ObsStatsBuilder<Builder, ObsStats>
     {
-        return new Builder();
+        public Builder()
+        {
+            this.instance = new ObsStats();
+        }
+        
+        public static Builder from(ObsStats base)
+        {
+            return new Builder().copyFrom(base);
+        }
     }
     
     
-    public static class Builder extends BaseBuilder<ObsStats>
-    {
-        protected Builder()
+    @SuppressWarnings("unchecked")
+    public static abstract class ObsStatsBuilder<
+            B extends ObsStatsBuilder<B, T>,
+            T extends ObsStats>
+        extends BaseBuilder<T>
+    {       
+        protected ObsStatsBuilder()
         {
-            super(new ObsStats());
+        }
+        
+        
+        protected B copyFrom(ObsStats base)
+        {
+            instance.dataStreamID = base.dataStreamID;
+            instance.foiID = base.foiID;
+            instance.obsCount = base.obsCount;
+            instance.resultTimeRange = base.resultTimeRange;
+            instance.resultPeriod = base.resultPeriod; // computed if step is regular
+            instance.phenomenonTimeRange = base.phenomenonTimeRange;
+            instance.phenomenonBbox = base.phenomenonBbox;
+            instance.obsCountsByTime = base.obsCountsByTime;
+            return (B)this;
         }
 
         
-        Builder withDataStreamID(long dataStreamID)
+        public B withDataStreamID(long dataStreamID)
         {
             instance.dataStreamID = dataStreamID;
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withFoiID(long foiID)
+        public B withFoiID(long foiID)
         {
             instance.foiID = foiID;
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withPhenomenonTimeRange(Range<Instant> timeRange)
+        public B withPhenomenonTimeRange(Range<Instant> timeRange)
         {
             instance.phenomenonTimeRange = timeRange;
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withResultTimeRange(Range<Instant> timeRange)
+        public B withResultTimeRange(Range<Instant> timeRange)
         {
             instance.resultTimeRange = timeRange;
-            return this;
+            return (B)this;
         }
 
 
-        public Builder withPhenomenonBbox(Bbox bbox)
+        public B withPhenomenonBbox(Bbox bbox)
         {
             instance.phenomenonBbox = bbox;
-            return this;
+            return (B)this;
         }
         
         
-        public ObsStats build()
+        public T build()
         {
             Asserts.checkArgument(instance.dataStreamID > 0, "dataStreamID must be > 0");
             Asserts.checkState(instance.phenomenonTimeRange != null || instance.resultTimeRange != null, "At least one time range must be set");

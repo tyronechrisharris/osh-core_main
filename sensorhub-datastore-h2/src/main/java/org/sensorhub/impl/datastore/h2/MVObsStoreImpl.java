@@ -692,7 +692,7 @@ public class MVObsStoreImpl implements IObsStore
         if (dataStore == null || internalID <= 0)
             return null;
         
-        var key = FeatureKey.latest(internalID);        
+        var key = new FeatureKey(internalID);
         FeatureId id = dataStore.getFeatureID(key);
         return id != null ? id.getUniqueID() : null;
     }

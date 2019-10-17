@@ -157,14 +157,9 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
             this.instance = new ObsFilter();
         }
         
-        protected Builder(ObsFilter instance)
-        {
-            this.instance = instance;
-        }
-        
         public static Builder from(ObsFilter base)
         {
-            return new Builder(null).copyFrom(base);
+            return new Builder().copyFrom(base);
         }
     }
 

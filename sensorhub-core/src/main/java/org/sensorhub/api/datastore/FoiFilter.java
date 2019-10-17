@@ -58,14 +58,9 @@ public class FoiFilter extends FeatureFilter
             this.instance = new FoiFilter();
         }
         
-        protected Builder(FoiFilter instance)
-        {
-            this.instance = instance;
-        }
-        
         public static Builder from(FoiFilter base)
         {
-            return new Builder(null).copyFrom(base);
+            return new Builder().copyFrom(base);
         }
     }
     

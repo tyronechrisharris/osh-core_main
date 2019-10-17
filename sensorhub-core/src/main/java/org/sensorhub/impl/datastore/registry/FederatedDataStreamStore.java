@@ -143,7 +143,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
         long procPublicID = registry.getPublicID(databaseID, dsInfo.getProcedure().getInternalID());
         FeatureId publicId = new FeatureId(procPublicID, dsInfo.getProcedure().getUniqueID());
             
-        return DataStreamInfo.builderFrom(dsInfo)
+        return DataStreamInfo.Builder.from(dsInfo)
             .withProcedure(publicId)
             .build();
     }

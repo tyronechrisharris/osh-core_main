@@ -181,14 +181,9 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
             this.instance = new DataStreamFilter();
         }
         
-        protected Builder(DataStreamFilter instance)
-        {
-            this.instance = instance;
-        }
-        
         public static Builder from(DataStreamFilter base)
         {
-            return new Builder(null).copyFrom(base);
+            return new Builder().copyFrom(base);
         }
     }
 
@@ -292,6 +287,13 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
         public B withVersionRange(int minVersion, int maxVersion)
         {
             instance.versions = Range.closed(minVersion, maxVersion);
+            return (B)this;
+        }
+
+
+        public B withAllVersions()
+        {
+            instance.versions = Range.closed(0, Integer.MAX_VALUE);
             return (B)this;
         }
 

@@ -16,6 +16,7 @@ package org.sensorhub.api.datastore;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import com.vividsolutions.jts.geom.Geometry;
@@ -79,6 +80,13 @@ public class ObsData
     {
         return result;
     }
+
+
+    @Override
+    public String toString()
+    {
+        return ObjectUtils.toString(this, true);
+    }
     
     
     /*
@@ -91,20 +99,17 @@ public class ObsData
             this.instance = new ObsData();
         }
         
-        protected Builder(ObsData instance)
-        {
-            this.instance = instance;
-        }
-        
         public static Builder from(ObsData base)
         {
-            return new Builder(null).copyFrom(base);
+            return new Builder().copyFrom(base);
         }
     }
     
     
     @SuppressWarnings("unchecked")
-    public static abstract class ObsDataBuilder<B extends ObsDataBuilder<B, T>, T extends ObsData>
+    public static abstract class ObsDataBuilder<
+            B extends ObsDataBuilder<B, T>,
+            T extends ObsData>
         extends BaseBuilder<T>
     {       
         protected ObsDataBuilder()
