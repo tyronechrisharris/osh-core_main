@@ -10,6 +10,8 @@ dependencies {
   compile 'com.vaadin:vaadin-shared:' + vaadinVersion
   compile 'com.vaadin:vaadin-server:' + vaadinVersion
   compile 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
+  compile 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
+  compile 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
   compile 'com.vaadin:vaadin-themes:' + vaadinVersion
   vaadin 'com.vaadin:vaadin-client-compiler:' + vaadinVersion 
 }
