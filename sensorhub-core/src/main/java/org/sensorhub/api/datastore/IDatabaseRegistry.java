@@ -48,19 +48,46 @@ public interface IDatabaseRegistry
      * database instances using this method.</p>
      * <p>Note that the database is not required to contain data for the specified
      * procedure at the time of the call.</p>
-     * @param procedureUIDs Unique IDs of procedures to associate with the database
+     * @param procedureUID Unique ID of procedure to associate with the database
      * @param db A database instance
      */
-    void register(Collection<String> procedureUIDs, IHistoricalObsDatabase db);
+    void register(String procedureUID, IHistoricalObsDatabase db);
     
     
     /**
-     * Unregisters procedure to observation database mapping.
+     * Helper method to register several procedure -> database mappings at once.
+     * @see {@link #register(String, IHistoricalObsDatabase)}.
+     * @param procedureUIDs Unique IDs of procedures to associate with the database
+     * @param db The database instance
+     */
+    default void register(Collection<String> procedureUIDs, IHistoricalObsDatabase db)
+    {
+        for (String uid: procedureUIDs)
+            register(uid, db);
+    }
+    
+    
+    /**
+     * Unregisters a procedure to observation database mapping.
+     * @param procedureUID Unique ID of procedures previously associated with 
+     * the specified database
+     * @param db A database instance
+     */
+    void unregister(String procedureUID, IHistoricalObsDatabase db);
+    
+    
+    /**
+     * Helper method to unregister several procedure -> database mappings at once.
+     * @see {@link #unregister(String, IHistoricalObsDatabase)}.
      * @param procedureUIDs Unique IDs of procedures previously associated with 
      * the specified database
      * @param db A database instance
      */
-    void unregister(Collection<String> procedureUIDs, IHistoricalObsDatabase db);
+    default void unregister(Collection<String> procedureUIDs, IHistoricalObsDatabase db)
+    {
+        for (String uid: procedureUIDs)
+            unregister(uid, db);
+    }
     
     
     /**
@@ -105,4 +132,12 @@ public interface IDatabaseRegistry
      * @return The entry ID used internally by the database
      */
     long getLocalID(int databaseID, long publicID);
+    
+    
+    /**
+     * Extract the database ID from a public ID
+     * @param publicID Public ID of entry
+     * @return The database ID
+     */
+    int getDatabaseID(long publicID);
 }

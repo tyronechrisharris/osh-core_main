@@ -17,6 +17,19 @@ package org.sensorhub.api.procedure;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 
 
+/**
+ * <p>
+ * Interface for databases maintaining the latest state of procedures.
+ * </p><p>
+ * Although this extends the {@link IHistoricalObsDatabase} interface,
+ * implementations are not required to maintain full history, but should rather
+ * focus on efficiently maintaining solely the latest state of registered
+ * procedures and their outputs.
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Oct 19, 2019
+ */
 public interface IProcedureStateDatabase extends IHistoricalObsDatabase
 {
 

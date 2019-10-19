@@ -83,41 +83,62 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
+    public synchronized void register(String procedureUID, IHistoricalObsDatabase db)
+    {
+        int databaseID = registerDatabase(db);
+        registerMapping(procedureUID, databaseID);
+    }
+
+
+    @Override
     public synchronized void register(Collection<String> procedureUIDs, IHistoricalObsDatabase db)
     {
-        Asserts.checkArgument(db.getDatabaseID() < MAX_NUM_DB, "Database ID must be less than " + MAX_NUM_DB);
-        
-        // add to Id->DB instance map only if not already present
-        obsDatabases.putIfAbsent(db.getDatabaseID(), db);
-        
+        int databaseID = registerDatabase(db);
         for (String uid: procedureUIDs)
+            registerMapping(uid, databaseID);
+    }
+    
+    
+    protected int registerDatabase(IHistoricalObsDatabase db)
+    {
+        int databaseID = db.getDatabaseID();
+        Asserts.checkArgument(databaseID < MAX_NUM_DB, "Database ID must be less than " + MAX_NUM_DB);
+        
+        // add to Id->DB instance map only if not already present        
+        obsDatabases.putIfAbsent(databaseID, db);
+        return databaseID;
+    }
+    
+    
+    protected void registerMapping(String uid, int databaseID)
+    {
+        Asserts.checkNotNull(uid, "procedureUID");
+        
+        if (uid.endsWith("*"))
+            uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
+        
+        // only insert mapping if not already registered by another database
+        // or if registered in state database only (ID 0)
+        final var finalUid = uid;
+        obsDatabaseIDs.compute(uid, (k, v) -> {
+            if (v == null || v == 0 || v == databaseID)
+                return databaseID;
+            throw new IllegalStateException("Procedure " + finalUid + " is already handled by another database");
+        });
+        
+        // remove all entries from default state DB (DB 0) since it's now handled by another DB
+        if (databaseID != 0)
         {
-            if (uid.endsWith("*"))
-                uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
-            
-            // only insert mapping if not already registered by another database
-            // or if registered in state database only (ID 0)
-            final var finalUid = uid;
-            obsDatabaseIDs.compute(uid, (k, v) -> {
-                if (v == null || v == 0 || v == db.getDatabaseID())
-                    return db.getDatabaseID();
-                throw new IllegalStateException("Procedure " + finalUid + " is already part of another database");
-            });
-            
-            // remove all entries from default state DB (DB 0) since it's now handled by another DB
-            if (db.getDatabaseID() != 0)
+            IHistoricalObsDatabase defaultDB = obsDatabases.get(0);
+            if (defaultDB != null)
             {
-                IHistoricalObsDatabase defaultDB = obsDatabases.get(0);
-                if (defaultDB != null)
+                FeatureKey key = defaultDB.getProcedureStore().remove(uid);
+                if (key != null)
                 {
-                    FeatureKey key = defaultDB.getProcedureStore().remove(uid);
-                    if (key != null)
-                    {
-                        log.info("Database {} now handles procedure {}. Removing all records from state DB", db, uid);
-                        defaultDB.getObservationStore().getDataStreams().removeEntries(new DataStreamFilter.Builder()
-                            .withProcedures(key.getInternalID())
-                            .build());
-                    }
+                    log.info("Database #{} now handles procedure {}. Removing all records from state DB", databaseID, uid);
+                    defaultDB.getObservationStore().getDataStreams().removeEntries(new DataStreamFilter.Builder()
+                        .withProcedures(key.getInternalID())
+                        .build());
                 }
             }
         }
@@ -161,6 +182,13 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     }
     
     
+    @Override
+    public int getDatabaseID(long publicID)
+    {
+        return (int)(publicID % MAX_NUM_DB);
+    }
+    
+    
     /*
      * Get map with an entry for each DB ID extracted from public IDs
      */
@@ -182,10 +210,14 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public synchronized void unregister(Collection<String> procedureUIDs, IHistoricalObsDatabase db)
+    public synchronized void unregister(String uid, IHistoricalObsDatabase db)
     {
-        for (String uid: procedureUIDs)
-            obsDatabaseIDs.remove(uid);
+        Asserts.checkNotNull(uid, "procedureUID");
+        
+        if (uid.endsWith("*"))
+            uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
+        
+        obsDatabaseIDs.remove(uid);
     }
 
 
