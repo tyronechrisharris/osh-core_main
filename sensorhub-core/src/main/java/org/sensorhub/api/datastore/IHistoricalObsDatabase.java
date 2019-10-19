@@ -26,16 +26,9 @@ import org.sensorhub.api.procedure.IProcedureDescriptionStore;
  * @author Alex Robin
  * @date Sep 17, 2019
  */
-public interface IHistoricalObsDatabase
+public interface IHistoricalObsDatabase extends IDatabase
 {
 
-    /**
-     * @return The internal ID of the database. All database instances attached
-     * to the same hub must have different IDs.
-     */
-    int getDatabaseID();
-    
-    
     /**
      * @return Data store containing history of procedure descriptions
      */
@@ -55,12 +48,5 @@ public interface IHistoricalObsDatabase
      * all registered procedures
      */
     IFoiStore getFoiStore();
-    
-    
-    /**
-     * Commit changes to the database.<br/>
-     * Note that this is equivalent to calling commit on each data store separately
-     */
-    void commit();
     
 }

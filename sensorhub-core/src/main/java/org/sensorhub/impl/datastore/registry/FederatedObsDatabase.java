@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.registry;
 
+import java.util.concurrent.Callable;
 import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 import org.sensorhub.api.datastore.IObsStore;
@@ -63,6 +64,13 @@ public class FederatedObsDatabase implements IHistoricalObsDatabase
 
     @Override
     public void commit()
+    {
+        throw new UnsupportedOperationException(ReadOnlyDataStore.READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public <T> T executeTransaction(Callable<T> transaction) throws Exception
     {
         throw new UnsupportedOperationException(ReadOnlyDataStore.READ_ONLY_ERROR_MSG);
     }

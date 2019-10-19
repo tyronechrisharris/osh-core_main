@@ -25,7 +25,7 @@ import org.vast.ogc.gml.IFeature;
  * @param <T> Type of features available from this database
  * @date Oct 11, 2019
  */
-public interface IFeatureDatabase<T extends IFeature>
+public interface IFeatureDatabase<T extends IFeature> extends IDatabase
 {
 
     /**
@@ -33,10 +33,4 @@ public interface IFeatureDatabase<T extends IFeature>
      */
     IFeatureStore<FeatureKey, T> getFeatureStore();
     
-    
-    /**
-     * Commit changes to the database.<br/>
-     * Note that this is equivalent to calling commit on each data store separately
-     */
-    void commit();
 }

@@ -14,6 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.module.ModuleConfig;
 
 
@@ -27,5 +29,8 @@ import org.sensorhub.api.module.ModuleConfig;
  */
 public class DatabaseConfig extends ModuleConfig
 {
-
+    @Required
+    @DisplayInfo(desc="Numerical identifier of the database. Each database "
+        + "must have a unique ID on the sensor hub")
+    public int databaseID = 1;
 }

@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import java.util.concurrent.Callable;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IObsStore;
@@ -80,6 +81,12 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<StorageConfig
     public int getDatabaseID()
     {
         return databaseID;
+    }
+    
+    
+    public <T> T executeTransaction(Callable<T> transaction) throws Exception
+    {
+        throw new UnsupportedOperationException();
     }
 
 

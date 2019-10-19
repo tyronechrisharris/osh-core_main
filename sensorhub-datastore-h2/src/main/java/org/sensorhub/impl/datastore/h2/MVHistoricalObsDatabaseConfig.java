@@ -31,11 +31,6 @@ public class MVHistoricalObsDatabaseConfig extends DatabaseConfig
 {
     
     @Required
-    @DisplayInfo
-    public int databaseID = 1;
-    
-    
-    @Required
     @DisplayInfo(desc="Path to database file")
     public String storagePath;
     

@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.datastore.IFeatureDatabase;
@@ -90,6 +91,13 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
             mvStore = null;
         }
     }
+
+
+    @Override
+    public int getDatabaseID()
+    {
+        return config.databaseID;
+    }
     
 
     @Override
@@ -104,6 +112,26 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
     {
         if (mvStore != null)
             mvStore.commit();        
+    }
+    
+    
+    @Override
+    public <T> T executeTransaction(Callable<T> transaction) throws Exception
+    {
+        synchronized (mvStore)
+        {
+            long currentVersion = mvStore.getCurrentVersion();
+            
+            try
+            {
+                return transaction.call();
+            }
+            catch (Exception e)
+            {
+                mvStore.rollbackTo(currentVersion);
+                throw e;
+            }
+        }
     }
 
     
