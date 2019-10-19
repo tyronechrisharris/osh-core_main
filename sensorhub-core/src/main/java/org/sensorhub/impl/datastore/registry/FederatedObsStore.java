@@ -169,7 +169,9 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
     protected ObsKey toPublicKey(int databaseID, ObsKey k)
     {
         long dataStreamID = registry.getPublicID(databaseID, k.getDataStreamID());
-        FeatureId foiID = new FeatureId(
+        
+        long internalFoiID = k.getFoiID().getInternalID();
+        FeatureId foiID = internalFoiID == 0 ? ObsKey.NO_FOI : new FeatureId(
             registry.getPublicID(databaseID, k.getFoiID().getInternalID()),
             k.getFoiID().getUniqueID());
         
