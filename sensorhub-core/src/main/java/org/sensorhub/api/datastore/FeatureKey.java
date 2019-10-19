@@ -75,7 +75,7 @@ public class FeatureKey extends FeatureId
      */
     public FeatureKey(long internalID)
     {
-        Asserts.checkArgument(internalID > 0);
+        Asserts.checkArgument(internalID > 0, "internalID must be > 0");
         this.internalID = internalID;
     }
     
@@ -86,7 +86,7 @@ public class FeatureKey extends FeatureId
      */
     public FeatureKey(String uniqueID)
     {
-        Asserts.checkArgument(!Strings.isNullOrEmpty(uniqueID));
+        Asserts.checkArgument(!Strings.isNullOrEmpty(uniqueID), "uniqueID cannot be null or empty");
         this.uniqueID = uniqueID;
     }
     
