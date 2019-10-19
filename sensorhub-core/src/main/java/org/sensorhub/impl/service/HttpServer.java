@@ -153,9 +153,12 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 sslContextFactory.setKeyStorePassword(config.keyStorePassword);
                 sslContextFactory.setKeyManagerPassword(config.keyStorePassword);
                 sslContextFactory.setCertAlias(CERT_ALIAS);
-                sslContextFactory.setTrustStorePath(new File(config.trustStorePath).getAbsolutePath());
-                sslContextFactory.setTrustStorePassword(config.keyStorePassword);
-                sslContextFactory.setWantClientAuth(true);
+                if (config.authMethod == AuthMethod.CERT)
+                {
+                    sslContextFactory.setTrustStorePath(new File(config.trustStorePath).getAbsolutePath());
+                    sslContextFactory.setTrustStorePassword(config.keyStorePassword);
+                    sslContextFactory.setWantClientAuth(true);
+                }
                 HttpConfiguration httpsConfig = new HttpConfiguration(httpConfig);
                 httpsConfig.addCustomizer(new SecureRequestCustomizer());
                 https = new ServerConnector(server, 
