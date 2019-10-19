@@ -199,6 +199,9 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         for (long publicID: publicIDs)
         {
             LocalDatabaseInfo dbInfo = getLocalDbInfo(publicID);
+            if (dbInfo == null)
+                continue;
+                
             LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseID, k -> new LocalFilterInfo());
             filterInfo.db = dbInfo.db;
             filterInfo.databaseID = dbInfo.databaseID;
