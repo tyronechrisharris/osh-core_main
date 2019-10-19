@@ -150,6 +150,9 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             autoPurgeTimer.schedule(task, 0, (long)(config.autoPurgeConfig.purgePeriod*1000));
         }
         
+        // pre-register database for all procedures configured with it
+        getParentHub().getDatabaseRegistry().register(config.procedureUIDs, db);
+        
         // make sure we get notified if procedures are added later
         subscribeToProcedureRegistryEvents()
             .thenAccept(s -> {
@@ -205,7 +208,8 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         String parentUid = dataSource.getParentGroupUID();
         
         // check if UID or parent UID was configured
-        if (config.procedureUIDs.contains(uid) || config.procedureUIDs.contains(parentUid))
+        if (config.procedureUIDs.contains(uid) ||
+            (parentUid != null && config.procedureUIDs.contains(parentUid)))
             addProcedure(dataSource);
     }
     
@@ -445,7 +449,10 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         
         // unsubscribe from procedure registry
         if (procRegistrySub != null)
+        {
             procRegistrySub.cancel();
+            procRegistrySub = null;
+        }
             
         // unsubscribe from all procedure events
         for (ProducerInfo procInfo: registeredProducers.values())
@@ -453,8 +460,11 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         registeredProducers.clear();
         
         if (autoPurgeTimer != null)
+        {
             autoPurgeTimer.cancel();
-
+            autoPurgeTimer = null;
+        }
+        
         if (db != null && db instanceof IModule<?>)
             ((IModule<?>)db).stop();
     }
