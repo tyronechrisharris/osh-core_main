@@ -42,9 +42,11 @@ import com.vividsolutions.jts.geom.Polygon;
  */
 public class FeatureFilter implements IFeatureFilter
 {
+    protected static final Instant LATEST_VERSION = Instant.MAX;
+        
     protected RangeOrSet<Long> internalIDs;
     protected RangeOrSet<String> featureUIDs;
-    protected RangeFilter<Instant> validTime;
+    protected TemporalFilter validTime;
     protected SpatialFilter location;
     protected Predicate<FeatureKey> keyPredicate;
     protected Predicate<IFeature> valuePredicate;
@@ -57,9 +59,9 @@ public class FeatureFilter implements IFeatureFilter
     protected FeatureFilter()
     {
         // defaults to currently valid version of feature
-        validTime = new RangeFilter.Builder<Instant>()
-                .withSingleValue(Instant.now())
-                .build();
+        validTime = new TemporalFilter.Builder()
+            .withCurrentTime()
+            .build();
     }
 
 
@@ -75,7 +77,7 @@ public class FeatureFilter implements IFeatureFilter
     }
 
 
-    public RangeFilter<Instant> getValidTime()
+    public TemporalFilter getValidTime()
     {
         return validTime;
     }
@@ -299,7 +301,7 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withValidTimeDuring(Instant begin, Instant end)
         {
-            instance.validTime = new RangeFilter.Builder<Instant>()
+            instance.validTime = new TemporalFilter.Builder()
                     .withRange(begin, end)
                     .build();
             return (B)this;
@@ -308,14 +310,27 @@ public class FeatureFilter implements IFeatureFilter
 
         /**
          * Keep only feature representations that are valid at the specified time.
-         * @param time Time instant of interest (can be set to past or future, and defaults to 'now')
+         * @param time Time instant of interest (can be set to past or future)
          * @return This builder for chaining
          */
         public B validAtTime(Instant time)
         {
-            instance.validTime = new RangeFilter.Builder<Instant>()
+            instance.validTime = new TemporalFilter.Builder()
                     .withSingleValue(time)
                     .build();
+            return (B)this;
+        }
+
+
+        /**
+         * Keep only feature representations that are valid at the current time.
+         * @return This builder for chaining
+         */
+        public B validNow()
+        {
+            instance.validTime = new TemporalFilter.Builder()
+                .withCurrentTime()
+                .build();
             return (B)this;
         }
         
@@ -326,8 +341,9 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withLatestVersion()
         {
-            instance.validTime = new RangeFilter.Builder<Instant>()
-                .withSingleValue(Instant.MAX).build();
+            instance.validTime = new TemporalFilter.Builder()
+                .withLatestTime()
+                .build();
             return (B)this;
         }
         
@@ -338,7 +354,7 @@ public class FeatureFilter implements IFeatureFilter
          */
         public B withAllVersions()
         {
-            instance.validTime = new RangeFilter.Builder<Instant>()
+            instance.validTime = new TemporalFilter.Builder()
                 .withRange(Instant.MIN, Instant.MAX)
                 .build();
             return (B)this;

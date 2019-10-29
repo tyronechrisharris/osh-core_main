@@ -22,8 +22,7 @@ import com.google.common.collect.Range;
 
 /**
  * <p>
- * Filter for numerical ranges.<br/>
- * 
+ * Filter for ranges of values.
  * </p>
  *
  * @author Alex Robin
@@ -32,8 +31,8 @@ import com.google.common.collect.Range;
  */
 public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
 {    
-    private Range<K> range;
-    private RangeOp op = RangeOp.INTERSECTS;
+    protected Range<K> range;
+    protected RangeOp op = RangeOp.INTERSECTS;
     
     
     public enum RangeOp
@@ -65,6 +64,12 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
     public RangeOp getOperator()
     {
         return op;
+    }
+    
+    
+    public boolean isSingleValue()
+    {
+        return range.lowerEndpoint().equals(range.upperEndpoint());
     }
 
 
@@ -98,36 +103,60 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
     }
     
     
-    public static class Builder<K extends Comparable<?>> extends BaseBuilder<RangeFilter<K>>
+    /*
+     * Builder
+     */
+    public static class Builder<T extends Comparable<T>> extends RangeFilterBuilder<Builder<T>, RangeFilter<T>, T>
     {
+        @SuppressWarnings({ "rawtypes", "unchecked" })
         public Builder()
         {
-            super(new RangeFilter<>());
+            super(new RangeFilter());
+        }
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    public static abstract class RangeFilterBuilder<
+            B extends RangeFilterBuilder<B, F, T>,
+            F extends RangeFilter<T>,
+            T extends Comparable<T>>
+        extends BaseBuilder<F>
+    {        
+        protected RangeFilterBuilder()
+        {
         }
         
         
-        public Builder<K> withRange(K min, K max)
+        protected RangeFilterBuilder(F instance)
+        {
+            super(instance);
+        }
+        
+        
+        public B withRange(T min, T max)
         {
             instance.range = Range.closed(min,  max);
-            return this;
+            return (B)this;
         }
         
         
-        public Builder<K> withSingleValue(K val)
+        public B withSingleValue(T val)
         {
             instance.range = Range.singleton(val);
-            return this;
+            return (B)this;
         }
         
         
-        public Builder<K> withOperator(RangeOp op)
+        public B withOperator(RangeOp op)
         {
             instance.op = op;
-            return this;
+            return (B)this;
         }
         
         
-        public RangeFilter<K> build()
+        @Override
+        public F build()
         {
             Asserts.checkNotNull(instance.range, "range");
             return super.build();

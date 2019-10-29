@@ -331,12 +331,9 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         Stream<Long> internalIdStream = null;
         
         // get time filter
-        final RangeFilter<Instant> timeFilter;
-        if (filter.getValidTime() != null)
-            timeFilter = filter.getValidTime();
-        else
-            timeFilter = H2Utils.ALL_TIMES_FILTER;
-        boolean lastVersionOnly = timeFilter.getMin() == Instant.MAX && timeFilter.getMax() == Instant.MAX;
+        var timeFilter = filter.getValidTime() != null ?
+            filter.getValidTime() : H2Utils.ALL_TIMES_FILTER;
+        boolean latestVersionOnly = timeFilter.isLatestTime();
         
         // if filtering by internal IDs, use these IDs directly
         if (filter.getInternalIDs() != null)
@@ -390,11 +387,12 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
                         
                         // filter on time here to avoid unnecessary lookups in featuresIndex
                         Range<Instant> validPeriod = ref.getValidityPeriod();
-                        if (validPeriod != null && !lastVersionOnly && !timeFilter.getRange().isConnected(validPeriod))
+                        if (validPeriod != null && !latestVersionOnly && !timeFilter.test(validPeriod))
                             return null;
                         
                         var fk = new FeatureKey(ref.getInternalID(),
                             validPeriod != null ? validPeriod.lowerEndpoint() : Instant.MIN);
+                        
                         return featuresIndex.getEntry(fk);
                     })
                     .filter(Objects::nonNull);
@@ -423,14 +421,13 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
         
         // add exact time predicate
         if (filter.getValidTime() != null)
-        {
-            var timeFilter = filter.getValidTime();
-            if (timeFilter.getMin() == Instant.MAX && timeFilter.getMax() == Instant.MAX)
+        {            
+            if (filter.getValidTime().isLatestTime())
             {
                 // TODO optimize this case!
                 resultStream = resultStream.filter(e -> {
                     FeatureKey nextKey = featuresIndex.higherKey(e.getKey());
-                    return nextKey == null || nextKey.getInternalID() != e.getKey().getInternalID(); 
+                    return nextKey == null || nextKey.getInternalID() != e.getKey().getInternalID();
                 });
             }
             else

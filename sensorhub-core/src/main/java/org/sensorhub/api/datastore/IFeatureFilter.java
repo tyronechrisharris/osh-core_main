@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
-import java.time.Instant;
 import java.util.function.Predicate;
 import org.vast.ogc.gml.IFeature;
 
@@ -36,7 +35,7 @@ public interface IFeatureFilter extends IQueryFilter, Predicate<IFeature>
     public RangeOrSet<String> getFeatureUIDs();
 
 
-    public RangeFilter<Instant> getValidTime();
+    public TemporalFilter getValidTime();
 
 
     public SpatialFilter getLocationFilter();

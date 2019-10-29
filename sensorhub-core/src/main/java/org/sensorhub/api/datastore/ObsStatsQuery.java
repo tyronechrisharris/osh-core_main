@@ -32,7 +32,7 @@ public class ObsStatsQuery implements IQueryFilter
 {
     protected DataStreamFilter dataStreamFilter;
     protected FoiFilter foiFilter;
-    protected RangeFilter<Instant> resultTime;
+    protected TemporalFilter resultTime;
     protected int numHistogramBins = 0;
     protected boolean aggregateFois = true;
     protected long limit = Long.MAX_VALUE;
@@ -56,7 +56,7 @@ public class ObsStatsQuery implements IQueryFilter
     }
 
 
-    public RangeFilter<Instant> getResultTime()
+    public TemporalFilter getResultTime()
     {
         return resultTime;
     }
@@ -151,7 +151,7 @@ public class ObsStatsQuery implements IQueryFilter
         
         public B withResultTimeRange(Instant begin, Instant end)
         {
-            instance.resultTime = new RangeFilter.Builder<Instant>()
+            instance.resultTime = new TemporalFilter.Builder()
                     .withRange(begin, end)
                     .build();
             return (B)this;

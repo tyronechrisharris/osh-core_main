@@ -22,7 +22,7 @@ import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.rtree.SpatialKey;
-import org.sensorhub.api.datastore.RangeFilter;
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.vast.util.Asserts;
 import com.google.common.collect.Range;
 import com.vividsolutions.jts.geom.Envelope;
@@ -39,7 +39,7 @@ public class H2Utils
     static final String GEOM_DIM_ERROR = "Only 2D and 3D geometries are supported";
     
     public static final Range<Instant> ALL_TIMES_RANGE = Range.closed(Instant.MIN, Instant.MAX);
-    public static final RangeFilter<Instant> ALL_TIMES_FILTER = new RangeFilter.Builder<Instant>()
+    public static final TemporalFilter ALL_TIMES_FILTER = new TemporalFilter.Builder()
                                                                     .withRange(Instant.MIN, Instant.MAX)
                                                                     .build();
     

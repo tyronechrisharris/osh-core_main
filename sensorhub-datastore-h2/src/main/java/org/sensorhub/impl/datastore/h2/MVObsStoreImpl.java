@@ -361,19 +361,13 @@ public class MVObsStoreImpl implements IObsStore
     public Stream<Entry<ObsKey, ObsData>> selectEntries(ObsFilter filter)
     {        
         // get phenomenon time filter
-        final RangeFilter<Instant> phenomenonTimeFilter;
-        if (filter.getPhenomenonTime() != null)
-            phenomenonTimeFilter = filter.getPhenomenonTime();
-        else
-            phenomenonTimeFilter = H2Utils.ALL_TIMES_FILTER;
+        var phenomenonTimeFilter = filter.getPhenomenonTime() != null ?
+            filter.getPhenomenonTime() : H2Utils.ALL_TIMES_FILTER;
         
         // get result time filter
-        final RangeFilter<Instant> resultTimeFilter;
-        if (filter.getResultTime() != null)
-            resultTimeFilter = filter.getResultTime();
-        else
-            resultTimeFilter = H2Utils.ALL_TIMES_FILTER;
-        boolean lastResultOnly = resultTimeFilter.getMin() == Instant.MAX && resultTimeFilter.getMax() == Instant.MAX;
+        var resultTimeFilter = filter.getResultTime() != null ?
+            filter.getResultTime() : H2Utils.ALL_TIMES_FILTER;
+        boolean latestResultOnly = resultTimeFilter.isLatestTime();
         
         // handle different cases of JOIN with datastreams and FOIs
         // prepare stream of matching obs series
@@ -385,7 +379,7 @@ public class MVObsStoreImpl implements IObsStore
                 // stream directly from list of selected datastreams
                 obsSeries = selectDataStreamIDs(filter.getDataStreamFilter())
                     .flatMap(id -> {
-                        return getObsSeriesByDataStream(id, resultTimeFilter.getRange(), lastResultOnly);
+                        return getObsSeriesByDataStream(id, resultTimeFilter.getRange(), latestResultOnly);
                     });
             }
             else
@@ -401,7 +395,7 @@ public class MVObsStoreImpl implements IObsStore
                 // stream directly from list of selected fois
                 obsSeries = selectFeatureIDs(foiStore, filter.getFoiFilter())
                     .flatMap(id -> {
-                        return getObsSeriesByFoi(id, resultTimeFilter.getRange(), lastResultOnly);
+                        return getObsSeriesByFoi(id, resultTimeFilter.getRange(), latestResultOnly);
                     });
             }
         }
@@ -423,7 +417,7 @@ public class MVObsStoreImpl implements IObsStore
             // stream from fois and filter on datastream IDs
             obsSeries = selectFeatureIDs(foiStore, filter.getFoiFilter())
                 .flatMap(id -> {
-                    return getObsSeriesByFoi(id, resultTimeFilter.getRange(), lastResultOnly)
+                    return getObsSeriesByFoi(id, resultTimeFilter.getRange(), latestResultOnly)
                         .filter(s -> dataStreamIDs.contains(s.key.dataStreamID));
                 });
         }
@@ -441,7 +435,7 @@ public class MVObsStoreImpl implements IObsStore
                 Stream<Entry<ObsKey, ObsData>> obsStream = getObsStream(series, 
                     resultTimeFilter.getRange(),
                     phenomenonTimeFilter.getRange(),
-                    lastResultOnly);
+                    latestResultOnly);
                 return getPostFilteredResultStream(obsStream, filter);
             })
             .spliterator());        

@@ -95,6 +95,7 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
     {
         return selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(uid)
+                .withLatestVersion()
                 .build())
             .findFirst()
             .orElse(null);            

@@ -31,8 +31,8 @@ import org.vast.util.BaseBuilder;
  */
 public class ObsFilter implements IQueryFilter, Predicate<ObsData>
 {
-    protected RangeFilter<Instant> phenomenonTime;
-    protected RangeFilter<Instant> resultTime;
+    protected TemporalFilter phenomenonTime;
+    protected TemporalFilter resultTime;
     protected SpatialFilter phenomenonLocation;
     protected DataStreamFilter dataStreams;
     protected FoiFilter foiFilter;
@@ -47,13 +47,13 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
     protected ObsFilter() {}
     
     
-    public RangeFilter<Instant> getPhenomenonTime()
+    public TemporalFilter getPhenomenonTime()
     {
         return phenomenonTime;
     }
 
 
-    public RangeFilter<Instant> getResultTime()
+    public TemporalFilter getResultTime()
     {
         return resultTime;
     }
@@ -199,7 +199,7 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public B withPhenomenonTimeDuring(Instant begin, Instant end)
         {
-            instance.phenomenonTime = new RangeFilter.Builder<Instant>()
+            instance.phenomenonTime = new TemporalFilter.Builder()
                 .withRange(begin, end)
                 .build();
             return (B)this;
@@ -216,7 +216,7 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public B withResultTimeDuring(Instant begin, Instant end)
         {
-            instance.resultTime = new RangeFilter.Builder<Instant>()
+            instance.resultTime = new TemporalFilter.Builder()
                     .withRange(begin, end)
                     .build();
             return (B)this;
@@ -231,8 +231,8 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          */
         public B withLatestResult()
         {
-            instance.resultTime = new RangeFilter.Builder<Instant>()
-                .withSingleValue(Instant.MAX).build();
+            instance.resultTime = new TemporalFilter.Builder()
+                .withLatestTime().build();
             return (B)this;
         }
 
