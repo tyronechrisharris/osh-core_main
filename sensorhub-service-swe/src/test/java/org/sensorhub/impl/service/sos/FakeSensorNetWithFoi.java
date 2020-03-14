@@ -97,7 +97,13 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
         public IProcedureGroup<? extends IProcedureWithState> getParentGroup()
         {
             return FakeSensorNetWithFoi.this;
-    }
+        }
+
+        @Override
+        public String getParentGroupUID()
+        {
+            return FakeSensorNetWithFoi.this.getUniqueIdentifier();
+        }
     
         @Override
         public String getUniqueIdentifier()
@@ -161,7 +167,7 @@ public class FakeSensorNetWithFoi extends FakeSensor implements IMultiSourceData
         public IEventSourceInfo getEventSourceInfo()
         {
             return eventSrcInfo;
-        }            
+        }          
     };
     
     
