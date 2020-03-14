@@ -32,7 +32,7 @@ import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.api.sensor.SensorDataEvent;
+import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.impl.sensor.AbstractSensorOutput;
 import org.sensorhub.impl.sensor.IFakeSensorOutput;
 import org.vast.data.BinaryComponentImpl;
@@ -172,7 +172,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
                     }
                 }
                 
-                eventHandler.publish(new SensorDataEvent(latestRecordTime, FakeSensorData2.this, latestRecord)); 
+                eventHandler.publish(new DataEvent(latestRecordTime, FakeSensorData2.this, latestRecord)); 
                 System.out.println("Image record #" + sampleCount + " generated @ " + latestRecordTime/1000.);
                 
                 if (sampleCount >= maxSampleCount)

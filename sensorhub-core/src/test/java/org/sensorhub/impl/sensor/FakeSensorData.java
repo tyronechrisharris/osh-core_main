@@ -25,7 +25,7 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.api.sensor.SensorDataEvent;
+import org.sensorhub.api.data.DataEvent;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.DataRecordImpl;
 import org.vast.data.QuantityImpl;
@@ -150,7 +150,7 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
                 
                 latestRecord = data;
                 latestRecordTime = System.currentTimeMillis();
-                eventHandler.publish(new SensorDataEvent(latestRecordTime, FakeSensorData.this, data));                        
+                eventHandler.publish(new DataEvent(latestRecordTime, FakeSensorData.this, data));                        
             }                
         };
         

@@ -19,7 +19,7 @@ import net.opengis.swe.v20.ByteEncoding;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
-import org.sensorhub.api.sensor.SensorDataEvent;
+import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.impl.sensor.VarRateSensorOutput;
 
 
@@ -64,6 +64,6 @@ public class SWEVirtualSensorOutput extends VarRateSensorOutput<SWEVirtualSensor
         // publish new sensor data event
         latestRecord = dataBlock;
         latestRecordTime = now;
-        eventHandler.publish(new SensorDataEvent(latestRecordTime, this, dataBlock));
+        eventHandler.publish(new DataEvent(latestRecordTime, this, dataBlock));
     }
 }
