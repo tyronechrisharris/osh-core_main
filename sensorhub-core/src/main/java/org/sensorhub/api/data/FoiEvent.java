@@ -63,13 +63,13 @@ public class FoiEvent extends ProcedureEvent
     /**
      * Creates a {@link Type#NEW_FOI} event with only the feature ID
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureID ID of producer that generated the event
-     * @param foiUID ID of feature of interest
+     * @param procedureUID Unique ID of producer that generated the event
+     * @param foiUID Unique ID of feature of interest
      * @param startTime time at which observation of the FoI started (unix time in seconds, base 1970)
      */
-    public FoiEvent(long timeStamp, String procedureID, String foiUID, double startTime)
+    public FoiEvent(long timeStamp, String procedureUID, String foiUID, double startTime)
     {
-        super(timeStamp, procedureID);
+        super(timeStamp, procedureUID);
         
         Asserts.checkArgument(!Strings.isNullOrEmpty(foiUID), "FOI UID must be set");
         Asserts.checkArgument(Double.isFinite(startTime), "FOI startTime must be set");
@@ -83,7 +83,7 @@ public class FoiEvent extends ProcedureEvent
 	 * Creates a {@link Type#NEW_FOI} event with only the feature ID
 	 * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param producer producer that generated the event
-	 * @param foiUID ID of feature of interest
+	 * @param foiUID Unique ID of feature of interest
      * @param startTime time at which observation of the FoI started (unix time in seconds, base 1970)
 	 */
 	public FoiEvent(long timeStamp, IDataProducer producer, String foiUID, double startTime)
