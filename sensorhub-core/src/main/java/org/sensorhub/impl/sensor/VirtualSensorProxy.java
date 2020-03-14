@@ -23,6 +23,7 @@ import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.utils.DataStructureHash;
+import org.vast.data.TextEncodingImpl;
 import org.vast.ogc.gml.FeatureRef;
 import org.vast.util.Asserts;
 import net.opengis.gml.v32.AbstractFeature;
@@ -58,12 +59,22 @@ public class VirtualSensorProxy extends SensorShadow
         this.latestDescription = Asserts.checkNotNull(desc, AbstractProcess.class);
         this.lastDescriptionUpdate = System.currentTimeMillis();
         this.ref = new WeakReference<>(null);
+        this.uniqueID = Asserts.checkNotNull(desc.getUniqueIdentifier(), "uniqueID");
         this.parentUID = parentUID;
         
         // create event source
-        String groupID = Asserts.checkNotNull(getUniqueIdentifier(), "uniqueID");
+        String groupID = uniqueID;
         String sourceID = EventUtils.getProcedureSourceID(groupID);
         this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
+        
+        // create outputs from description
+        for (var output: desc.getOutputList())
+        {
+            DataComponent recordStruct = (DataComponent)output;
+            DataEncoding encoding = new TextEncodingImpl();
+            VirtualOutputProxy newOutput = new VirtualOutputProxy(recordStruct, encoding);
+            obsOutputs.put(recordStruct.getName(), newOutput);
+        }
     }
     
     
@@ -103,7 +114,7 @@ public class VirtualSensorProxy extends SensorShadow
     {
         Asserts.checkNotNull(recordStruct, DataComponent.class);
         Asserts.checkNotNull(encoding, DataEncoding.class);
-        boolean outputChanged = true;        
+        boolean outputChanged = true;
         
         // if output already exists, check that it has really changed
         String outputName = recordStruct.getName();
@@ -166,6 +177,7 @@ public class VirtualSensorProxy extends SensorShadow
     public void publishNewRecord(String outputName, DataBlock... dataBlks)
     {
         VirtualOutputProxy output = (VirtualOutputProxy)getOutputs().get(outputName);
+        Asserts.checkArgument(output != null, "No output with name {}", outputName);
         output.publishNewRecord(dataBlks);
     }
     
