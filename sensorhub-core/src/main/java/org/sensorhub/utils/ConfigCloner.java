@@ -16,7 +16,9 @@ package org.sensorhub.utils;
 
 import java.util.Date;
 import java.util.Map;
+import org.sensorhub.impl.security.PermissionSetting;
 import com.rits.cloning.Cloner;
+import com.rits.cloning.FastClonerCustomCollection;
 import com.rits.cloning.IDeepCloner;
 import com.rits.cloning.IFastCloner;
 
@@ -33,10 +35,21 @@ public class ConfigCloner extends Cloner
     }
     
     
+    static class FastClonerPermissionSetting extends FastClonerCustomCollection<PermissionSetting>
+    {
+        @Override
+        public PermissionSetting getInstance(PermissionSetting o)
+        {
+            return new PermissionSetting();
+        }        
+    }
+    
+    
     public ConfigCloner()
     {
         super();
         this.registerFastCloner(Date.class, new FastClonerDate());
+        this.registerFastCloner(PermissionSetting.class, new FastClonerPermissionSetting());
     }
     
     
