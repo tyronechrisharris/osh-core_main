@@ -87,6 +87,7 @@ import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
+import org.sensorhub.impl.service.swe.OfferingUtils;
 import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
 import org.slf4j.Logger;
@@ -578,7 +579,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 providerConfig.enabled = true;
                 providerConfig.storageID = ((SensorDataProviderConfig)provider.getConfig()).storageID;
                 providerConfig.offeringID = offeringID;
-                config.dataProviders.replaceOrAdd(providerConfig);
+                OfferingUtils.replaceOrAddOfferingConfig(config.dataProviders, providerConfig);
                 
                 // instantiate and register provider
                 provider = providerConfig.getFactory(this);
@@ -1443,7 +1444,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             providerConfig.storageID = (storageModule != null) ? storageModule.getLocalID() : null;
             providerConfig.offeringID = offeringID;
             providerConfig.liveDataTimeout = 600;
-            config.dataProviders.replaceOrAdd(providerConfig);
+            OfferingUtils.replaceOrAddOfferingConfig(config.dataProviders, providerConfig);
             
             // instantiate and register provider
             try
@@ -1472,7 +1473,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             consumerConfig.offeringID = offeringID;
             consumerConfig.sensorID = sensorUID;
             consumerConfig.storageID = (storageModule != null) ? storageModule.getLocalID() : null;
-            config.dataConsumers.replaceOrAdd(consumerConfig);
+            OfferingUtils.replaceOrAddOfferingConfig(config.dataConsumers, consumerConfig);
             
             // instantiate and register consumer
             try

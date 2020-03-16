@@ -49,6 +49,7 @@ import org.sensorhub.impl.sensor.swe.ITaskingCallback;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.sps.Task;
+import org.sensorhub.impl.service.swe.OfferingUtils;
 import org.sensorhub.impl.service.swe.Template;
 import org.sensorhub.impl.service.swe.TransactionUtils;
 import org.slf4j.Logger;
@@ -947,7 +948,7 @@ public class SPSServlet extends OWSServlet
                 connectorConfig.enabled = true;
                 connectorConfig.sensorID = sensorUID;
                 connectorConfig.offeringID = offeringID;
-                config.connectors.replaceOrAdd(connectorConfig);
+                OfferingUtils.replaceOrAddOfferingConfig(config.connectors, connectorConfig);
                 
                 // instantiate and register connector
                 connector = connectorConfig.getConnector(this);

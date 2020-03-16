@@ -8,30 +8,37 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.service.swe;
 
-import java.util.ArrayList;
+import java.util.List;
 import org.vast.util.Asserts;
 
 
-public class OfferingList<T extends OfferingConfig> extends ArrayList<T>
-{        
-    private static final long serialVersionUID = 3446250829299706031L;
+/**
+ * <p>
+ * Uility methods to update offerings
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Mar 16, 2020
+ */
+public class OfferingUtils
+{
 
-    
-    public void replaceOrAdd(T newConfig)
+    public static <T extends OfferingConfig> void replaceOrAddOfferingConfig(List<T> configList, T newConfig)
     {
         Asserts.checkNotNull(newConfig.offeringID);
         
         // find config with same uri
         int index = -1;
-        for (int i = 0; i < size(); i++)
+        for (int i = 0; i < configList.size(); i++)
         {
-            if (newConfig.offeringID.equals(get(i).offeringID))
+            String existingOfferingID = configList.get(i).offeringID;
+            if (newConfig.offeringID.equals(existingOfferingID))
             {
                 index = i;
                 break;
@@ -40,8 +47,8 @@ public class OfferingList<T extends OfferingConfig> extends ArrayList<T>
         
         // replace by new config
         if (index >= 0)
-            set(index, newConfig);
+            configList.set(index, newConfig);
         else
-            add(newConfig);
+            configList.add(newConfig);
     }
 }
