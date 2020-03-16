@@ -15,8 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.module;
 
 import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.utils.ConfigCloner;
 import com.google.gson.annotations.SerializedName;
-import com.rits.cloning.Cloner;
 
 
 /**
@@ -61,6 +61,6 @@ public class ModuleConfig implements Cloneable
     @Override
     public ModuleConfig clone()
     {
-        return new Cloner().deepClone(this);
+        return new ConfigCloner().deepClone(this);
     }
 }
