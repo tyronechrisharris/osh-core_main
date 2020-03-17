@@ -105,7 +105,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
             registry.getLocalID(key.getFoiID().getInternalID()),
             key.getFoiID().getUniqueID());
         
-        return new ObsKey(dbInfo.entryID, foiID, key.getPhenomenonTime(), key.getResultTime());
+        return new ObsKey(dbInfo.entryID, foiID, key.getResultTime(), key.getPhenomenonTime());
     }
 
 
@@ -175,7 +175,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
             registry.getPublicID(databaseID, k.getFoiID().getInternalID()),
             k.getFoiID().getUniqueID());
         
-        return new ObsKey(dataStreamID, foiID, k.getPhenomenonTime(), k.getResultTime());
+        return new ObsKey(dataStreamID, foiID, k.getResultTime(), k.getPhenomenonTime());
     }
     
     

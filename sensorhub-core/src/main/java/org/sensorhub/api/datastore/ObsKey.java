@@ -34,8 +34,8 @@ public class ObsKey
     
     protected long dataStreamID = 0;
     protected FeatureId foiID = NO_FOI;
-    protected Instant phenomenonTime = null;
     protected Instant resultTime = null;
+    protected Instant phenomenonTime = null;
     
     
     protected ObsKey()
@@ -58,7 +58,7 @@ public class ObsKey
     }
     
     
-    public ObsKey(long dataStreamID, FeatureId foiID, Instant phenomenonTime, Instant resultTime)
+    public ObsKey(long dataStreamID, FeatureId foiID, Instant resultTime, Instant phenomenonTime)
     {
         this(dataStreamID, foiID, phenomenonTime);
         this.resultTime = resultTime;
