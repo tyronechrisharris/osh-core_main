@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import java.math.BigInteger;
 import java.util.Collection;
 
 
@@ -123,6 +124,7 @@ public interface IDatabaseRegistry
      * @return The public ID exposed by the registry
      */
     long getPublicID(int databaseID, long dbLocalID);
+    BigInteger getPublicID(int databaseID, BigInteger dbLocalID);
     
     
     /**
@@ -132,6 +134,7 @@ public interface IDatabaseRegistry
      * @return The entry ID used internally by the database
      */
     long getLocalID(int databaseID, long publicID);
+    BigInteger getLocalID(int databaseID, BigInteger publicID);
     
     
     /**

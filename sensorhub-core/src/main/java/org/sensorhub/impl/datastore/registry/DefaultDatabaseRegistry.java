@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.registry;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -169,6 +170,13 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     }
     
     
+    @Override
+    public BigInteger getLocalID(int databaseID, BigInteger publicID)
+    {
+        return publicID.divide(BigInteger.valueOf(MAX_NUM_DB));
+    }
+    
+    
     protected long getLocalID(long publicID)
     {
         return publicID / MAX_NUM_DB;
@@ -179,6 +187,14 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public long getPublicID(int databaseID, long entryID)
     {
         return entryID * MAX_NUM_DB + (long)databaseID;
+    }
+    
+    
+    @Override
+    public BigInteger getPublicID(int databaseID, BigInteger entryID)
+    {
+        return entryID.multiply(BigInteger.valueOf(MAX_NUM_DB))
+            .add(BigInteger.valueOf(databaseID));
     }
     
     
