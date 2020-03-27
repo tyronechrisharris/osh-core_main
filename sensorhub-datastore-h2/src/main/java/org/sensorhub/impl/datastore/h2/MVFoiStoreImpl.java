@@ -9,9 +9,19 @@
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.h2.mvstore.MVStore;
+import org.sensorhub.api.datastore.FeatureFilter;
+import org.sensorhub.api.datastore.FeatureKey;
+import org.sensorhub.api.datastore.FoiFilter;
+import org.sensorhub.api.datastore.IFeatureFilter;
 import org.sensorhub.api.datastore.IFoiStore;
+import org.sensorhub.api.datastore.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.IObsStore;
+import org.sensorhub.api.datastore.IObsStore.ObsField;
+import org.sensorhub.api.datastore.ObsFilter;
 import net.opengis.gml.v32.AbstractFeature;
 
 
@@ -24,7 +34,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature> implements IFoiStore
+public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature, FoiField> implements IFoiStore
 {
     MVObsStoreImpl obsStore;
     
@@ -57,6 +67,26 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature> impl
     {
         H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         return (MVFoiStoreImpl)new MVFoiStoreImpl().init(mvStore, dataStoreInfo, null);
+    }
+    
+    
+    @Override
+    protected Stream<Entry<FeatureKey, AbstractFeature>> getIndexedStream(IFeatureFilter filter)
+    {
+        if (filter instanceof FoiFilter && ((FoiFilter)filter).getObservationFilter() != null)
+        {
+            // handle case observation filter
+            ObsFilter obsFilter = ((FoiFilter)filter).getObservationFilter();
+            Set<Long> foiKeys = obsStore.select(obsFilter, ObsField.FOI_ID)
+                .map(obs -> obs.getFoiID().getInternalID())
+                .collect(Collectors.toSet());
+            
+            return super.getIndexedStream(FeatureFilter.Builder.from(filter)
+                .withInternalIDs(foiKeys)
+                .build());
+        }
+        else
+            return super.getIndexedStream(filter);
     }
 
 

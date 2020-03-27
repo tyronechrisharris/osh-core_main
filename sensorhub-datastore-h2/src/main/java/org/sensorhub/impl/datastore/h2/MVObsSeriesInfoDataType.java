@@ -30,7 +30,9 @@ import org.h2.mvstore.type.DataType;
  */
 public class MVObsSeriesInfoDataType implements DataType
 {
-
+    private static final int MEM_SIZE = 8; // long ID
+    
+    
     @Override
     public int compare(Object a, Object b)
     {
@@ -42,11 +44,7 @@ public class MVObsSeriesInfoDataType implements DataType
     @Override
     public int getMemory(Object obj)
     {
-        MVObsSeriesInfo info = (MVObsSeriesInfo)obj;
-        int memSize = 8 + 2;// + 2*info.procUID.length();
-        if (info.foiUID != null)
-            memSize += 2*info.foiUID.length();
-        return memSize;
+        return MEM_SIZE;
     }
 
 
@@ -55,8 +53,6 @@ public class MVObsSeriesInfoDataType implements DataType
     {
         MVObsSeriesInfo info = (MVObsSeriesInfo)obj;
         wbuf.putVarLong(info.id);
-        //H2Utils.writeAsciiString(wbuf, info.procUID);
-        H2Utils.writeAsciiString(wbuf, info.foiUID);
     }
 
 
@@ -72,9 +68,7 @@ public class MVObsSeriesInfoDataType implements DataType
     public Object read(ByteBuffer buff)
     {
         long id = DataUtils.readVarLong(buff);
-        //String procUID = H2Utils.readAsciiString(buff);
-        String foiUID = H2Utils.readAsciiString(buff);
-        return new MVObsSeriesInfo(id, foiUID);
+        return new MVObsSeriesInfo(id);
     }
 
 

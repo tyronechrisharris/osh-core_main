@@ -10,10 +10,11 @@
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVStore;
+import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 import net.opengis.gml.v32.AbstractFeature;
 
 
-public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature>
+public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature, FeatureField>
 {
 
     protected MVFeatureStoreImpl()

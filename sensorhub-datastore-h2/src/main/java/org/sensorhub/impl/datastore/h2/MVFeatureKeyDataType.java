@@ -33,7 +33,7 @@ import org.sensorhub.api.datastore.FeatureKey;
  */
 class MVFeatureKeyDataType implements DataType
 {
-    private static final int MIN_MEM_SIZE = 10+14+2;
+    private static final int MEM_SIZE = 10+14+2;
     Comparator<Instant> timeCompare = Comparator.nullsFirst(Comparator.naturalOrder());
     
             
@@ -56,8 +56,7 @@ class MVFeatureKeyDataType implements DataType
     @Override
     public int getMemory(Object obj)
     {
-        FeatureKey key = (FeatureKey)obj;
-        return MIN_MEM_SIZE + key.getUniqueID().length();
+        return MEM_SIZE;
     }
     
 
@@ -67,7 +66,6 @@ class MVFeatureKeyDataType implements DataType
         FeatureKey key = (FeatureKey)obj;
         wbuf.putVarLong(key.getInternalID());
         H2Utils.writeInstant(wbuf, key.getValidStartTime());
-        H2Utils.writeAsciiString(wbuf, key.getUniqueID());
     }
     
 
@@ -84,8 +82,7 @@ class MVFeatureKeyDataType implements DataType
     {
         long internalID = DataUtils.readVarLong(buff); 
         Instant validStartTime = H2Utils.readInstant(buff);
-        String uid = H2Utils.readAsciiString(buff);
-        return new FeatureKey(internalID, uid, validStartTime);
+        return new FeatureKey(internalID, validStartTime);
     }
     
 

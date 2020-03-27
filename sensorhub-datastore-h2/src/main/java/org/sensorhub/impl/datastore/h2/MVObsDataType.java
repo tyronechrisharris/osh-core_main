@@ -45,9 +45,9 @@ import net.opengis.gml.v32.impl.JTSCoordinatesDoubleArray;
  * @author Alex Robin
  * @date Apr 7, 2018
  */
-class ObsDataType extends KryoDataType
+class MVObsDataType extends KryoDataType
 {
-    ObsDataType()
+    MVObsDataType()
     {
         // pre-register known types with Kryo
         registeredClasses.put(20, ObsData.class);

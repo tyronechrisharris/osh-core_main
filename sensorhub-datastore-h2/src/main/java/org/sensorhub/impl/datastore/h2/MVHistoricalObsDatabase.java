@@ -21,7 +21,7 @@ import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 import org.sensorhub.api.datastore.IObsStore;
 import org.sensorhub.api.persistence.StorageException;
-import org.sensorhub.api.procedure.IProcedureDescriptionStore;
+import org.sensorhub.api.procedure.IProcedureDescStore;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
 
@@ -130,7 +130,7 @@ public class MVHistoricalObsDatabase extends AbstractModule<MVHistoricalObsDatab
 
 
     @Override
-    public IProcedureDescriptionStore getProcedureStore()
+    public IProcedureDescStore getProcedureStore()
     {
         return procStore;
     }

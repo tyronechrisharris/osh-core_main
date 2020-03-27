@@ -30,14 +30,11 @@ class MVObsSeriesInfo
 {
     transient MVObsSeriesKey key;
     long id = 0;
-    //String procUID;
-    String foiUID;
         
     
-    MVObsSeriesInfo(long id, String foiUID)
+    MVObsSeriesInfo(long id)
     {
         this.id = id;
-        this.foiUID = foiUID;
     }
 
 

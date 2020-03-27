@@ -28,17 +28,16 @@ import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.rtree.MVRTreeMap;
 import org.h2.mvstore.rtree.SpatialKey;
 import org.h2.mvstore.rtree.MVRTreeMap.RTreeCursor;
-import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IFeatureFilter;
 import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 import org.sensorhub.api.datastore.RangeFilter;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
-import com.google.common.base.Strings;
 import com.google.common.collect.Range;
 
 
@@ -47,13 +46,13 @@ import com.google.common.collect.Range;
  * Feature Store implementation based on H2 MVStore.
  * </p>
  * 
- * @param <V> Value type 
- * @param <F> Filter type
+ * @param <V> Feature Type 
+ * @param <VF> Feature Field Type
  * 
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore<FeatureKey, V>
+public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField> implements IFeatureStore<V, VF>
 {
     private static final String FEATURE_IDS_MAP_NAME = "@feature_ids";
     private static final String FEATURE_RECORDS_MAP_NAME = "@feature_records";
@@ -72,7 +71,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     }
     
     
-    protected MVBaseFeatureStoreImpl<V> init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider idProvider)
+    protected MVBaseFeatureStoreImpl<V, VF> init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider idProvider)
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
@@ -138,39 +137,6 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     {
         return idsIndex.sizeAsLong();
     }
-    
-    
-    @Override
-    public FeatureId getFeatureID(FeatureKey key)
-    {
-        if (!Strings.isNullOrEmpty(key.getUniqueID()))
-        {
-            Long internalID = idsIndex.get(key.getUniqueID());
-            if (internalID == null)
-                return null;
-            else
-                return new FeatureId(internalID, key.getUniqueID());
-        }
-        
-        if (key.getInternalID() > 0)
-        {
-            FeatureKey lastKey = getLastVersionKey(key.getInternalID());
-            if (lastKey == null)
-                return null;
-            else
-                return new FeatureId(key.getInternalID(), lastKey.getUniqueID());
-        }
-        
-        return null;
-    }
-    
-    
-    @Override
-    public Stream<FeatureId> getAllFeatureIDs()
-    {
-        return idsIndex.entrySet().stream()
-            .map(e -> new FeatureId(e.getValue(), e.getKey()));
-    }
 
 
     @Override
@@ -219,7 +185,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
             throw new IllegalArgumentException("Feature validity must start after the previous version");
         
         // generate key
-        var key = new FeatureKey(internalID, uid, validStartTime);
+        var key = new FeatureKey(internalID, validStartTime);
         V oldValue = putIfAbsent(key, feature);
         Asserts.checkState(oldValue == null, "Duplicate key");
         
@@ -227,18 +193,17 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     }
     
     
-    @Override
-    public FeatureKey generateKey(V feature)
+    protected FeatureKey generateKey(V feature)
     {
         String uid = feature.getUniqueIdentifier();
         Asserts.checkNotNull(uid, "uniqueID");
         if (idsIndex.containsKey(uid))
-            throw new IllegalArgumentException("Feature with UID " + uid + " already exists");
+            throw new IllegalArgumentException("Data store already contains a procedure with UID " + uid);
         
         // generate key
         long internalID = idProvider.newInternalID();
         Instant validStartTime = getValidStartTime(feature);
-        return new FeatureKey(internalID, uid, validStartTime);
+        return new FeatureKey(internalID, validStartTime);
     }
     
     
@@ -411,7 +376,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
 
 
     @Override
-    public Stream<Entry<FeatureKey, V>> selectEntries(IFeatureFilter filter)
+    public Stream<Entry<FeatureKey, V>> selectEntries(IFeatureFilter filter, Set<VF> fields)
     {
         var resultStream = getIndexedStream(filter);
         
@@ -529,7 +494,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     @Override
     public boolean containsKey(Object key)
     {
-        FeatureKey fk = ensureKeyWithInternalId(key);
+        FeatureKey fk = ensureFeatureKey(key);
         return fk != null ? featuresIndex.containsKey(fk) : false;
     }
 
@@ -551,34 +516,15 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     @Override
     public V get(Object key)
     {
-        FeatureKey fk = ensureKeyWithInternalId(key);
+        FeatureKey fk = ensureFeatureKey(key);
         return fk != null ? featuresIndex.get(fk) : null;
     }
     
     
-    protected FeatureKey ensureKeyWithInternalId(Object key)
+    protected FeatureKey ensureFeatureKey(Object key)
     {
         Asserts.checkArgument(key instanceof FeatureKey, "key must be a FeatureKey");
-        FeatureKey fk = (FeatureKey)key;
-        Instant validTime = fk.getValidStartTime();
-        Long internalID = fk.getInternalID();
-        
-        // get internal ID if it was missing
-        if (internalID <= 0 && !Strings.isNullOrEmpty(fk.getUniqueID()))
-        {
-            internalID = idsIndex.get(fk.getUniqueID());
-            if (internalID == null)
-                return null;
-        }
-        
-        // handle case of last valid time
-        if (Instant.MAX.equals(validTime))
-            return getLastVersionKey(internalID);
-        
-        else if (fk.getInternalID() <= 0)
-            return new FeatureKey(internalID, validTime);
-        
-        return fk;
+        return (FeatureKey)key;
     }
 
 
@@ -611,11 +557,10 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
 
 
     @Override
-    public synchronized V put(FeatureKey key, V value)
+    public synchronized V put(FeatureKey key, V f)
     {
-        Asserts.checkArgument(!Strings.isNullOrEmpty(key.getUniqueID()) && 
-            key.getUniqueID() == value.getUniqueIdentifier(), "Unique ID must be set on insert");
-        Asserts.checkArgument(key.getValidStartTime() != Instant.MAX, "Incorrect valid time"); // Instant.MAX is reserved for querying last version
+        // Instant.MAX is reserved for querying last version
+        Asserts.checkArgument(key.getValidStartTime() != Instant.MAX, "Incorrect valid time");
         
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -625,18 +570,18 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
             try
             {
                 // add to main features index
-                V oldValue = featuresIndex.put(key, value);
+                V oldValue = featuresIndex.put(key, f);
                 
                 // add to UID index 
-                idsIndex.putIfAbsent(key.getUniqueID(), key.getInternalID());
+                idsIndex.putIfAbsent(f.getUniqueIdentifier(), key.getInternalID());
                 
                 // if feature has geom, add to spatial index
-                SpatialKey spatialKey = getSpatialKey(key, value);
+                SpatialKey spatialKey = getSpatialKey(key, f);
                 if (spatialKey != null)
                 {
                     Range<Instant> validPeriod = null;
-                    if (value instanceof ITemporalFeature)
-                        validPeriod = ((ITemporalFeature) value).getValidTime();
+                    if (f instanceof ITemporalFeature)
+                        validPeriod = ((ITemporalFeature) f).getValidTime();
                     
                     MVFeatureRef ref = new MVFeatureRef.Builder()
                             .withInternalID(key.getInternalID())
@@ -660,6 +605,8 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
     @Override
     public synchronized V remove(Object key)
     {
+        FeatureKey fk = ensureFeatureKey(key);
+        
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
         {
@@ -667,8 +614,6 @@ public class MVBaseFeatureStoreImpl<V extends IFeature> implements IFeatureStore
             
             try
             {
-                FeatureKey fk = ensureKeyWithInternalId(key);
-                        
                 // remove from main index
                 V oldValue = featuresIndex.remove(fk);
                 if (oldValue == null)

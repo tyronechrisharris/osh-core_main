@@ -13,7 +13,8 @@ import java.time.ZoneOffset;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IObsStore;
-import org.sensorhub.api.procedure.IProcedureDescriptionStore;
+import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureDescStore.ProcedureField;
 import net.opengis.gml.v32.TimePeriod;
 import net.opengis.sensorml.v20.AbstractProcess;
 
@@ -27,7 +28,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess> implements IProcedureDescriptionStore
+public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess, ProcedureField> implements IProcedureDescStore
 {
     MVObsStoreImpl obsStore;
     

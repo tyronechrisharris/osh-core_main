@@ -15,8 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.time.Instant;
-import org.sensorhub.api.datastore.FeatureId;
-import org.sensorhub.api.datastore.ObsKey;
 import org.sensorhub.utils.ObjectUtils;
 
 
@@ -29,9 +27,10 @@ import org.sensorhub.utils.ObjectUtils;
  * @author Alex Robin
  * @date Sep 12, 2019
  */
-class MVObsKey extends ObsKey
+class MVObsKey
 {
-    long seriesID;
+    protected long seriesID;
+    protected Instant phenomenonTime = null;
     
     
     MVObsKey(long seriesID, Instant phenomenonTime)
@@ -39,17 +38,17 @@ class MVObsKey extends ObsKey
         this.seriesID = seriesID;
         this.phenomenonTime = phenomenonTime;        
     }
-    
-    
-    MVObsKey setSeriesInfo(MVObsSeriesInfo series)
+
+
+    public long getSeriesID()
     {
-        this.dataStreamID = series.key.dataStreamID;
-        this.resultTime = series.key.resultTime;
-        
-        if (series.key.foiID > 0)
-            this.foiID = new FeatureId(series.key.foiID, series.foiUID);
-        
-        return this;  
+        return seriesID;
+    }
+
+
+    public Instant getPhenomenonTime()
+    {
+        return phenomenonTime;
     }
 
 

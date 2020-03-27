@@ -22,6 +22,7 @@ import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
@@ -29,12 +30,13 @@ import org.h2.mvstore.MVVarLongDataType;
 import org.h2.mvstore.RangeCursor;
 import org.sensorhub.api.datastore.DataStreamFilter;
 import org.sensorhub.api.datastore.DataStreamInfo;
+import org.sensorhub.api.datastore.IDataStreamInfo;
 import org.sensorhub.api.datastore.IDataStreamStore;
+import org.sensorhub.api.datastore.IObsStore.ObsField;
 import org.sensorhub.api.datastore.ObsFilter;
 import org.sensorhub.api.datastore.ProcedureFilter;
 import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
 import org.vast.util.Asserts;
-import com.google.common.base.Strings;
 import com.google.common.collect.Range;
 
 
@@ -53,7 +55,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     
     protected MVStore mvStore;
     protected MVObsStoreImpl obsStore;
-    protected MVBTreeMap<Long, DataStreamInfo> dataStreamIndex;
+    protected MVBTreeMap<Long, IDataStreamInfo> dataStreamIndex;
     protected MVBTreeMap<MVDataStreamProcKey, Boolean> dataStreamByProcIndex;
     protected IdProvider idProvider;
     
@@ -65,7 +67,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                         
         // open observation map
         String mapName = DATASTREAM_MAP_NAME + ":" + obsStore.getDatastoreName();
-        this.dataStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<Long, DataStreamInfo>()
+        this.dataStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<Long, IDataStreamInfo>()
                 .keyType(new MVVarLongDataType())
                 .valueType(new MVDataStreamInfoDataType()));
         
@@ -111,7 +113,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     
     
     @Override
-    public synchronized Long add(DataStreamInfo dsInfo)
+    public synchronized Long add(IDataStreamInfo dsInfo)
     {
         Asserts.checkNotNull(dsInfo, DataStreamInfo.class);
         Asserts.checkNotNull(dsInfo.getProcedure(), "procedureID");
@@ -127,7 +129,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         Long internalID = idProvider.newInternalID();
         
         // add to store
-        DataStreamInfo oldValue = put(internalID, dsInfo);
+        IDataStreamInfo oldValue = put(internalID, dsInfo);
         Asserts.checkState(oldValue == null, "Duplicate key");
             
         return internalID;
@@ -214,9 +216,9 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     
     
     @Override
-    public Stream<Entry<Long, DataStreamInfo>> selectEntries(DataStreamFilter filter)
+    public Stream<Entry<Long, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
     {
-        Stream<Entry<Long, DataStreamInfo>> resultStream;
+        Stream<Entry<Long, IDataStreamInfo>> resultStream;
         
         // if filtering by internal IDs, use these IDs directly
         if (filter.getInternalIDs() != null)
@@ -232,6 +234,19 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             // stream directly from list of selected procedures
             resultStream = selectProcedureIDs(filter.getProcedureFilter())
                 .flatMap(id -> getDataStreamIdsByProcedure(id, filter.getOutputNames(), filter.getVersions()))
+                .map(id -> dataStreamIndex.getEntry(id))
+                .filter(Objects::nonNull);
+        }
+        
+        // if observation filter is used
+        else if (filter.getObservationFilter() != null)
+        {
+            // get all data stream IDs referenced by observations matching the filter
+            var dsIds = obsStore.select(filter.getObservationFilter(), ObsField.DATASTREAM_ID)
+                .map(obs -> obs.getDataStreamID())
+                .collect(Collectors.toSet());
+            
+            resultStream = dsIds.stream()
                 .map(id -> dataStreamIndex.getEntry(id))
                 .filter(Objects::nonNull);
         }
@@ -305,14 +320,14 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
 
     @Override
-    public Set<Entry<Long, DataStreamInfo>> entrySet()
+    public Set<Entry<Long, IDataStreamInfo>> entrySet()
     {
         return dataStreamIndex.entrySet();
     }
 
 
     @Override
-    public DataStreamInfo get(Object key)
+    public IDataStreamInfo get(Object key)
     {
         return dataStreamIndex.get(key);
     }
@@ -333,7 +348,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
 
     @Override
-    public synchronized DataStreamInfo put(Long key, DataStreamInfo value)
+    public synchronized IDataStreamInfo put(Long key, IDataStreamInfo value)
     {
         Asserts.checkNotNull(key, "key");
         Asserts.checkNotNull(value, DataStreamInfo.class);
@@ -347,18 +362,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             
             try
             {
-                // if procedure UID was not provided, try to get it from linked procedure store
-                String procUID = value.getProcedure().getUniqueID();
-                if (procUID == null)
-                {
-                    procUID = obsStore.fetchFeatureUID(value.getProcedure().getInternalID(), obsStore.procedureStore);
-                    Asserts.checkArgument(!Strings.isNullOrEmpty(procUID),
-                        "Procedure UID must be known when inserting a new data stream");
-                    value.getProcedure().setUniqueID(procUID);
-                }
-            
                 // add to index
-                DataStreamInfo oldValue = dataStreamIndex.put(key, value);
+                IDataStreamInfo oldValue = dataStreamIndex.put(key, value);
                 
                 // add to secondary index
                 MVDataStreamProcKey procKey = new MVDataStreamProcKey(key,
@@ -379,7 +384,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
 
     @Override
-    public synchronized DataStreamInfo remove(Object key)
+    public synchronized IDataStreamInfo remove(Object key)
     {
         Asserts.checkArgument(key instanceof Long);
         
@@ -391,7 +396,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             try
             {
                 // remove from main index                
-                DataStreamInfo oldValue = dataStreamIndex.remove(key);
+                IDataStreamInfo oldValue = dataStreamIndex.remove(key);
                 if (oldValue == null)
                     return null;
                 
@@ -443,7 +448,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
 
     @Override
-    public Collection<DataStreamInfo> values()
+    public Collection<IDataStreamInfo> values()
     {
         return dataStreamIndex.values();
     }
