@@ -28,7 +28,9 @@ import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.FoiFilter;
 import org.sensorhub.api.datastore.IFeatureFilter;
 import org.sensorhub.api.datastore.IFoiStore;
+import org.sensorhub.api.datastore.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.IObsStore;
+import org.sensorhub.api.datastore.ObsFilter;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
@@ -44,14 +46,16 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFeature, IFeatureFilter> implements IFoiStore
+public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFeature, FoiField, IFeatureFilter> implements IFoiStore
 {
     DefaultDatabaseRegistry registry;
+    FederatedObsDatabase db;
     
     
-    FederatedFoiStore(DefaultDatabaseRegistry registry)
+    FederatedFoiStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
     {
         this.registry = registry;
+        this.db = db;
     }
 
 
@@ -93,14 +97,6 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     public boolean isEmpty()
     {
         return getNumRecords() == 0;
-    }
-
-
-    @Override
-    public Stream<FeatureId> getAllFeatureIDs()
-    {
-        return registry.obsDatabases.values().stream()
-            .flatMap(db -> db.getFoiStore().getAllFeatureIDs());
     }
 
 
@@ -180,7 +176,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     protected FeatureKey toPublicKey(int databaseID, FeatureKey k)
     {
         long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return new FeatureKey(publicID, k.getUniqueID(), k.getValidStartTime());
+        return new FeatureKey(publicID, k.getValidStartTime());
     }
     
     
@@ -192,32 +188,6 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
         return new AbstractMap.SimpleEntry<>(
             toPublicKey(databaseID, e.getKey()),
             e.getValue());
-    }
-
-
-    @Override
-    public FeatureId getFeatureID(FeatureKey key)
-    {
-        if (key.getInternalID() > 0)
-        {
-            // lookup in selected database
-            var dbInfo = registry.getLocalDbInfo(key.getInternalID());
-            return toPublicID(
-                dbInfo.databaseID, 
-                dbInfo.db.getFoiStore().getFeatureID(new FeatureKey(dbInfo.entryID))
-            );
-        }
-        else
-        {
-            for (var db: registry.obsDatabases.values())
-            {
-                FeatureId fid = db.getFoiStore().getFeatureID(key);
-                if (fid != null)
-                    return toPublicID(db.getDatabaseID(), fid);
-            }
-            
-            return null;
-        }
     }
 
 
@@ -265,6 +235,24 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
             return filterDispatchMap;
         }
         
+        else if (filter.getObservationFilter() != null)
+        {
+            // delegate to proc store handle procedure filter dispatch map
+            var filterDispatchMap = db.obsStore.getFilterDispatchMap(filter.getObservationFilter());
+            if (filterDispatchMap != null)
+            {
+                for (var filterInfo: filterDispatchMap.values())
+                {
+                    filterInfo.filter = FoiFilter.Builder
+                        .from(filter)
+                        .withObservations((ObsFilter)filterInfo.filter)
+                        .build();
+                }
+            }
+            
+            return filterDispatchMap;
+        }
+        
         return null;
     }
     
@@ -298,7 +286,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
 
 
     @Override
-    public Stream<Entry<FeatureKey, AbstractFeature>> selectEntries(IFeatureFilter filter)
+    public Stream<Entry<FeatureKey, AbstractFeature>> selectEntries(IFeatureFilter filter, Set<FoiField> fields)
     {
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -309,7 +297,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
                     int dbID = v.databaseID;
-                    return v.db.getFoiStore().selectEntries((FeatureFilter)v.filter)
+                    return v.db.getFoiStore().selectEntries((FeatureFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -318,7 +306,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
             return registry.obsDatabases.values().stream()
                 .flatMap(db -> {
                     int dbID = db.getDatabaseID();
-                    return db.getFoiStore().selectEntries(filter)
+                    return db.getFoiStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -408,13 +396,6 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
 
     @Override
     public FeatureKey addVersion(AbstractFeature feature)
-    {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
-    }
-    
-    
-    @Override
-    public FeatureKey generateKey(AbstractFeature feature)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

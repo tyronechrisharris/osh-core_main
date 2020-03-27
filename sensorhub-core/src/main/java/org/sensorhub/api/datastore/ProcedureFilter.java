@@ -31,7 +31,6 @@ public class ProcedureFilter extends FeatureFilter
 {
     protected SortedSet<String> parentUIDs;
     protected DataStreamFilter dataStreamFilter;
-    protected ObsFilter obsFilter;
     protected FoiFilter foiFilter; // shortcut for ObsFilter/FoiFilter
     
     
@@ -50,12 +49,6 @@ public class ProcedureFilter extends FeatureFilter
     public DataStreamFilter getDataStreamFilter()
     {
         return dataStreamFilter;
-    }
-    
-    
-    public ObsFilter getObservationsFilter()
-    {
-        return obsFilter;
     }
 
 
@@ -82,6 +75,23 @@ public class ProcedureFilter extends FeatureFilter
     }
     
     
+    /*
+     * Nested builder for use within another builder
+     */
+    public static abstract class NestedBuilder<B> extends ProcedureFilterBuilder<NestedBuilder<B>, ProcedureFilter>
+    {
+        B parent;
+        
+        public NestedBuilder(B parent)
+        {
+            this.parent = parent;
+            this.instance = new ProcedureFilter();
+        }
+                
+        public abstract B done();
+    }
+    
+    
     @SuppressWarnings("unchecked")
     public static abstract class ProcedureFilterBuilder<
             B extends ProcedureFilterBuilder<B, F>,
@@ -99,7 +109,6 @@ public class ProcedureFilter extends FeatureFilter
             super.copyFrom(base);
             instance.parentUIDs = base.parentUIDs;
             instance.dataStreamFilter = base.dataStreamFilter;
-            instance.obsFilter = base.obsFilter;
             instance.foiFilter = base.foiFilter;
             return (B)this;
         }
@@ -117,10 +126,27 @@ public class ProcedureFilter extends FeatureFilter
                 instance.parentUIDs.add(id);            
             return (B)this;
         }
+
+        
+        /**
+         * Keep only procedures from data streams matching the filter.
+         * @return The {@link DataStreamFilter} builder for chaining
+         */
+        public DataStreamFilter.NestedBuilder<B> withDataStreams()
+        {
+            return new DataStreamFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ProcedureFilterBuilder.this.instance.dataStreamFilter = build();
+                    return (B)ProcedureFilterBuilder.this;
+                }                
+            };
+        }
         
         
         /**
-         * Select only procedures with datastreams matching the filter
+         * Select only procedures with data streams matching the filter
          * @param filter Data stream filter
          * @return This builder for chaining
          */
@@ -129,39 +155,22 @@ public class ProcedureFilter extends FeatureFilter
             instance.dataStreamFilter = filter;
             return (B)this;
         }
-        
-        
-        /**
-         * Select only procedures with datastreams matching the filter
-         * @param filter Data stream filter
-         * @return This builder for chaining
-         */
-        public B withDataStreams(DataStreamFilter.Builder filter)
-        {
-            return withDataStreams(filter.build());
-        }
-        
 
-        /**
-         * Select only procedures with observations matching the filter
-         * @param filter Observation filter
-         * @return This builder for chaining
-         */
-        public B withObservations(ObsFilter filter)
-        {
-            instance.obsFilter = filter;
-            return (B)this;
-        }
         
-
         /**
-         * Select only procedures with observations matching the filter
-         * @param filter Observation filter
-         * @return This builder for chaining
+         * Keep only procedures with features of interest matching the filter.
+         * @return The {@link FoiFilter} builder for chaining
          */
-        public B withObservations(ObsFilter.Builder filter)
+        public FoiFilter.NestedBuilder<B> withFois()
         {
-            return withObservations(filter.build());
+            return new FoiFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ProcedureFilterBuilder.this.instance.foiFilter = build();
+                    return (B)ProcedureFilterBuilder.this;
+                }                
+            };
         }
         
 
@@ -174,17 +183,6 @@ public class ProcedureFilter extends FeatureFilter
         {
             instance.foiFilter = filter;
             return (B)this;
-        }
-        
-
-        /**
-         * Select only procedures with features of interest matching the filter
-         * @param filter Features of interest filter
-         * @return This builder for chaining
-         */
-        public B withFeaturesOfInterest(FoiFilter.Builder filter)
-        {
-            return withFeaturesOfInterest(filter.build());
         }
     }
 }

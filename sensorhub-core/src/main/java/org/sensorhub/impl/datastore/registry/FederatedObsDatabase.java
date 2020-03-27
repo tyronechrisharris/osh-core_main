@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
 import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 import org.sensorhub.api.datastore.IObsStore;
-import org.sensorhub.api.procedure.IProcedureDescriptionStore;
+import org.sensorhub.api.procedure.IProcedureDescStore;
 
 
 public class FederatedObsDatabase implements IHistoricalObsDatabase
@@ -30,19 +30,14 @@ public class FederatedObsDatabase implements IHistoricalObsDatabase
 
     public FederatedObsDatabase(DefaultDatabaseRegistry registry)
     {
-        this.procStore = new FederatedProcedureStore(registry);
-        this.foiStore = new FederatedFoiStore(registry);
-        this.obsStore = new FederatedObsStore(registry);
-        
-        // also link stores with each other
-        procStore.dataStreamStore = obsStore.dataStreamStore;
-        obsStore.dataStreamStore.procStore = procStore;
-        obsStore.foiStore = foiStore;
+        this.procStore = new FederatedProcedureStore(registry, this);
+        this.foiStore = new FederatedFoiStore(registry, this);
+        this.obsStore = new FederatedObsStore(registry, this);
     }
     
     
     @Override
-    public IProcedureDescriptionStore getProcedureStore()
+    public IProcedureDescStore getProcedureStore()
     {
         return procStore;
     }

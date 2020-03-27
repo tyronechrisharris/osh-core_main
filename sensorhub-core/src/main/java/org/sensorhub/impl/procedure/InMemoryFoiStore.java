@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.procedure;
 
 import org.sensorhub.api.datastore.IFoiStore;
+import org.sensorhub.api.datastore.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.IObsStore;
 import net.opengis.gml.v32.AbstractFeature;
 
@@ -29,7 +30,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryFoiStore extends InMemoryFeatureStore<AbstractFeature> implements IFoiStore
+public class InMemoryFoiStore extends InMemoryFeatureStore<AbstractFeature, FoiField> implements IFoiStore
 {
     IObsStore obsStore;
     

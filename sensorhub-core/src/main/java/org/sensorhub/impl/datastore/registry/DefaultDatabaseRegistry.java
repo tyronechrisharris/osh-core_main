@@ -21,8 +21,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.datastore.DataStreamFilter;
 import org.sensorhub.api.datastore.FeatureKey;
@@ -48,6 +48,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 {
     static final Logger log = LoggerFactory.getLogger(DefaultDatabaseRegistry.class);
     static final int MAX_NUM_DB = 100;
+    static final BigInteger MAX_NUM_DB_BIGINT = BigInteger.valueOf(MAX_NUM_DB);
     static final String END_PREFIX_CHAR = "\n";
     
     ISensorHub hub;
@@ -61,6 +62,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         IHistoricalObsDatabase db;
         int databaseID;
         long entryID;
+        BigInteger bigEntryID;
     }
     
     
@@ -69,6 +71,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         IHistoricalObsDatabase db;
         int databaseID;
         Set<Long> internalIds = new TreeSet<>();
+        Set<BigInteger> bigInternalIds = new TreeSet<>();
         IQueryFilter filter;
     }
     
@@ -77,8 +80,8 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public DefaultDatabaseRegistry(ISensorHub hub)
     {
         this.hub = hub;
-        this.obsDatabaseIDs = new TreeMap<>();
-        this.obsDatabases = new TreeMap<>();
+        this.obsDatabaseIDs = new ConcurrentSkipListMap<>();
+        this.obsDatabases = new ConcurrentSkipListMap<>();
         this.globalObsDatabase = new FederatedObsDatabase(this);
     }
 
@@ -146,40 +149,17 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     }
     
     
-    /*
-     * Convert from the public ID to the local database ID
-     */
-    protected LocalDatabaseInfo getLocalDbInfo(long publicID)
-    {
-        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
-        dbInfo.databaseID = (int)(publicID % MAX_NUM_DB);
-        dbInfo.db = obsDatabases.get(dbInfo.databaseID);
-        dbInfo.entryID = getLocalID(publicID);
-        
-        if (dbInfo.db == null)
-            return null;
-        
-        return dbInfo;
-    }
-    
-    
     @Override
     public long getLocalID(int databaseID, long publicID)
     {
-        return getLocalID(publicID);
+        return publicID / MAX_NUM_DB;
     }
     
     
     @Override
     public BigInteger getLocalID(int databaseID, BigInteger publicID)
     {
-        return publicID.divide(BigInteger.valueOf(MAX_NUM_DB));
-    }
-    
-    
-    protected long getLocalID(long publicID)
-    {
-        return publicID / MAX_NUM_DB;
+        return publicID.divide(MAX_NUM_DB_BIGINT);
     }
     
     
@@ -193,7 +173,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     @Override
     public BigInteger getPublicID(int databaseID, BigInteger entryID)
     {
-        return entryID.multiply(BigInteger.valueOf(MAX_NUM_DB))
+        return entryID.multiply(MAX_NUM_DB_BIGINT)
             .add(BigInteger.valueOf(databaseID));
     }
     
@@ -202,6 +182,40 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public int getDatabaseID(long publicID)
     {
         return (int)(publicID % MAX_NUM_DB);
+    }
+    
+    
+    /*
+     * Convert from the public ID to the local database ID
+     */
+    protected LocalDatabaseInfo getLocalDbInfo(long publicID)
+    {
+        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
+        dbInfo.databaseID = (int)(publicID % MAX_NUM_DB);
+        dbInfo.db = obsDatabases.get(dbInfo.databaseID);
+        dbInfo.entryID = getLocalID(dbInfo.databaseID, publicID);
+        
+        if (dbInfo.db == null)
+            return null;
+        
+        return dbInfo;
+    }
+    
+    
+    /*
+     * Convert from the public ID to the local database ID
+     */
+    protected LocalDatabaseInfo getLocalDbInfo(BigInteger publicID)
+    {
+        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
+        dbInfo.databaseID = publicID.mod(MAX_NUM_DB_BIGINT).intValue();
+        dbInfo.db = obsDatabases.get(dbInfo.databaseID);
+        dbInfo.bigEntryID = getLocalID(dbInfo.databaseID, publicID);
+        
+        if (dbInfo.db == null)
+            return null;
+        
+        return dbInfo;
     }
     
     
@@ -222,6 +236,26 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
             filterInfo.db = dbInfo.db;
             filterInfo.databaseID = dbInfo.databaseID;
             filterInfo.internalIds.add(dbInfo.entryID);
+        }
+        
+        return map;
+    }
+    
+    
+    protected Map<Integer, LocalFilterInfo> getFilterDispatchMapBigInt(Set<BigInteger> publicIDs)
+    {
+        Map<Integer, LocalFilterInfo> map = new LinkedHashMap<>();
+        
+        for (BigInteger publicID: publicIDs)
+        {
+            LocalDatabaseInfo dbInfo = getLocalDbInfo(publicID);
+            if (dbInfo == null)
+                continue;
+                
+            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseID, k -> new LocalFilterInfo());
+            filterInfo.db = dbInfo.db;
+            filterInfo.databaseID = dbInfo.databaseID;
+            filterInfo.bigInternalIds.add(dbInfo.bigEntryID);
         }
         
         return map;

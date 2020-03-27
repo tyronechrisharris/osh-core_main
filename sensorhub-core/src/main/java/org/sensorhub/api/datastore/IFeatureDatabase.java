@@ -14,7 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 import org.vast.ogc.gml.IFeature;
+
 
 /**
  * <p>
@@ -23,14 +25,15 @@ import org.vast.ogc.gml.IFeature;
  *
  * @author Alex Robin
  * @param <T> Type of features available from this database
+ * @param <VF> Type of feature field
  * @date Oct 11, 2019
  */
-public interface IFeatureDatabase<T extends IFeature> extends IDatabase
+public interface IFeatureDatabase<T extends IFeature, VF extends FeatureField> extends IDatabase
 {
 
     /**
      * @return The data store containing the feature data
      */
-    IFeatureStore<FeatureKey, T> getFeatureStore();
+    IFeatureStore<T, VF> getFeatureStore();
     
 }

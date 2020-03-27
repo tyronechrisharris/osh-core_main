@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
-import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,10 +22,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
-import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IFeatureFilter;
 import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
@@ -39,17 +38,23 @@ import org.vast.util.Bbox;
  * This implementation is only used to store the latest procedure state and thus
  * doesn't support versioning/history of feature descriptions.
  * </p>
+ * 
+ * @param <T> Feature type
+ * @param <VF> Feature field Type
  *
  * @author Alex Robin
- * @param <T> Type of feature object
  * @date Sep 28, 2019
  */
-public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore implements IFeatureStore<FeatureKey, T>
+public class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField> extends InMemoryDataStore implements IFeatureStore<T, VF>
 {
     ConcurrentNavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
     ConcurrentNavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
     
     
+    /*
+     * Use custom comparator so we only keep the latest version of the feature
+     * i.e. don't use the time stamp part of the key when indexing
+     */
     static class InternalIdComparator implements Comparator<FeatureKey>
     {
         @Override
@@ -83,16 +88,15 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     }
     
     
-    @Override
-    public FeatureKey generateKey(T feature)
+    protected FeatureKey generateKey(T feature)
     {
         String uid = feature.getUniqueIdentifier();
-        Asserts.checkNotNull(uid, "UniqueID");
+        Asserts.checkNotNull(uid, "uniqueID");        
         if (uidMap.containsKey(uid))
             throw new IllegalArgumentException("Data store already contains a procedure with UID " + uid);
         
         long internalID = map.isEmpty() ? 1 : map.lastKey().getInternalID()+1;
-        return new FeatureKey(internalID, uid, Instant.MIN);
+        return new FeatureKey(internalID, FeatureKey.TIMELESS);
     }
     
     
@@ -109,6 +113,7 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     @Override
     public FeatureKey getLatestVersionKey(String uid)
     {
+        Asserts.checkNotNull(uid, "uniqueID");
         return uidMap.get(uid);
     }
 
@@ -117,33 +122,6 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     public long getNumFeatures()
     {
         return uidMap.size();
-    }
-
-
-    @Override
-    public FeatureId getFeatureID(FeatureKey key)
-    {
-        if (key.getUniqueID() != null)
-        {
-            FeatureKey storedKey = uidMap.get(key.getUniqueID());
-            return storedKey == null ? null : new FeatureId(storedKey.getInternalID(), storedKey.getUniqueID());
-        }
-        
-        if (key.getInternalID() > 0)
-        {
-            FeatureKey storedKey = map.ceilingKey(key);
-            return storedKey == null || storedKey.getInternalID() != key.getInternalID() ? null : new FeatureId(storedKey.getInternalID(), storedKey.getUniqueID());
-        }
-        
-        return null;
-    }
-
-
-    @Override
-    public Stream<FeatureId> getAllFeatureIDs()
-    {
-        return uidMap.values().stream()
-            .map(k -> new FeatureId(k.getInternalID(), k.getUniqueID()));
     }
 
 
@@ -162,7 +140,7 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     
     
     @Override
-    public Stream<Entry<FeatureKey, T>> selectEntries(IFeatureFilter query)
+    public Stream<Entry<FeatureKey, T>> selectEntries(IFeatureFilter query, Set<VF> fields)
     {
         Stream<Entry<FeatureKey, T>> resultStream;
         
@@ -207,7 +185,7 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     @Override
     public boolean containsKey(Object key)
     {
-        FeatureKey fk = ensureKeyWithInternalId(key);
+        FeatureKey fk = ensureFeatureKey(key);
         return map.containsKey(fk);
     }
 
@@ -228,7 +206,7 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     @Override
     public T get(Object key)
     {
-        FeatureKey fk = ensureKeyWithInternalId(key);                
+        FeatureKey fk = ensureFeatureKey(key);                
         return map.get(fk);
     }
 
@@ -252,11 +230,11 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     {
         Asserts.checkNotNull(key, FeatureKey.class);
         Asserts.checkNotNull(val, IProcedure.class);
+        Asserts.checkNotNull(val.getUniqueIdentifier(), "uniqueID");
         
-        FeatureKey fk = ensureKeyWithInternalId(key);
+        FeatureKey fk = ensureFeatureKey(key);
         T old = map.put(fk, val);
-        if (key.getUniqueID() != null)
-            uidMap.put(key.getUniqueID(), fk);
+        uidMap.put(val.getUniqueIdentifier(), fk);
         
         return old;
     }
@@ -265,7 +243,7 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     @Override
     public T remove(Object key)
     {
-        FeatureKey fk = ensureKeyWithInternalId(key);
+        FeatureKey fk = ensureFeatureKey(key);
         T proc = map.remove(fk);
         if (proc != null)
             uidMap.remove(proc.getUniqueIdentifier());
@@ -273,21 +251,10 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
     }
     
     
-    protected FeatureKey ensureKeyWithInternalId(Object key)
+    protected FeatureKey ensureFeatureKey(Object key)
     {
-        Asserts.checkArgument(key instanceof FeatureKey);
-        FeatureKey fk = (FeatureKey)key;
-        
-        if (fk.getInternalID() <= 0 && fk.getUniqueID() != null)
-        {
-            FeatureKey fullKey = uidMap.get(fk.getUniqueID());
-            if (fullKey == null)
-                return fk;
-            
-            return fullKey;
-        }
-        
-        return fk;
+        Asserts.checkArgument(key instanceof FeatureKey, "key must be a FeatureKey");
+        return (FeatureKey)key;
     }
 
 
@@ -307,7 +274,7 @@ public class InMemoryFeatureStore<T extends IFeature> extends InMemoryDataStore 
 
     public boolean remove(Object key, Object val)
     {
-        FeatureKey fk = ensureKeyWithInternalId(key);
+        FeatureKey fk = ensureFeatureKey(key);
         return map.remove(fk, val);
     }
 }

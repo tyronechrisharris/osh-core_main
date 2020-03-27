@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.Objects;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
+import com.google.common.base.Strings;
 
 
 /**
@@ -30,23 +31,46 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @since Mar 19, 2018
  */
-public class FeatureKey implements Comparable<FeatureKey>
+public class FeatureKey extends FeatureId
 {    
     public final static Instant TIMELESS = Instant.MIN;
     public final static Instant LATEST = Instant.MAX;
     
-    protected long internalID = -1; // 0 is reserved and can never be used as ID
     protected Instant validStartTime = TIMELESS;
     
     
-    /* for deserialization only */
     protected FeatureKey()
     {        
     }
     
     
     /**
-     * Creates a key for a timeless feature
+     * Creates an insertion key for a timeless feature
+     * @param internalID Feature internal ID
+     * @param uniqueID Feature unique ID
+     */
+    public FeatureKey(long internalID, String uniqueID)
+    {
+        this(internalID);
+        this.uniqueID = uniqueID;
+    }
+    
+    
+    /**
+     * Creates an insertion key for a feature with a limited time validity
+     * @param internalID Feature internal ID
+     * @param uniqueID Feature unique ID
+     * @param validStartTime Start of feature validity period
+     */
+    public FeatureKey(long internalID, String uniqueID, Instant validStartTime)
+    {
+        this(internalID, uniqueID);
+        this.validStartTime = Asserts.checkNotNull(validStartTime);
+    }
+    
+    
+    /**
+     * Creates a retrieval key for a timeless feature
      * @param internalID Internal ID of desired feature
      */
     public FeatureKey(long internalID)
@@ -57,7 +81,18 @@ public class FeatureKey implements Comparable<FeatureKey>
     
     
     /**
-     * Creates a key for the version of a feature valid at a specific time
+     * Creates a retrieval key for a timeless feature
+     * @param uniqueID Unique ID of desired feature
+     */
+    public FeatureKey(String uniqueID)
+    {
+        Asserts.checkArgument(!Strings.isNullOrEmpty(uniqueID), "uniqueID cannot be null or empty");
+        this.uniqueID = uniqueID;
+    }
+    
+    
+    /**
+     * Creates a retrieval key for the version of a feature valid at a specific time
      * @param internalID Internal ID of desired feature
      * @param validStartTime Start of feature version validity period
      */
@@ -69,7 +104,19 @@ public class FeatureKey implements Comparable<FeatureKey>
     
     
     /**
-     * Creates a key for the latest version of a feature
+     * Creates a retrieval key for the version of a feature valid at a specific time
+     * @param uniqueID Unique ID of desired feature
+     * @param validStartTime Start of feature version validity period
+     */
+    public FeatureKey(String uniqueID, Instant validStartTime)
+    {
+        this(uniqueID);
+        this.validStartTime = Asserts.checkNotNull(validStartTime);
+    }
+    
+    
+    /**
+     * Creates a retrieval key for the latest version of a feature
      * @param internalID Feature internal ID
      * @return The feature key object
      */
@@ -77,14 +124,16 @@ public class FeatureKey implements Comparable<FeatureKey>
     {
         return new FeatureKey(internalID, Instant.MAX);
     }
-
-
+    
+    
     /**
-     * @return The feature internal ID
+     * Creates a retrieval key for the latest version of a feature
+     * @param uniqueID Unique ID of desired feature
+     * @return The feature key object
      */
-    public long getInternalID()
+    public static FeatureKey latest(String uniqueID)
     {
-        return internalID;
+        return new FeatureKey(uniqueID, Instant.MAX);
     }
 
 
@@ -111,6 +160,7 @@ public class FeatureKey implements Comparable<FeatureKey>
     {
         return java.util.Objects.hash(
                 getInternalID(),
+                getUniqueID(),
                 getValidStartTime());
     }
     
@@ -123,17 +173,7 @@ public class FeatureKey implements Comparable<FeatureKey>
         
         FeatureKey other = (FeatureKey)obj;
         return getInternalID() == other.getInternalID() &&
+               Objects.equals(getUniqueID(), other.getUniqueID()) &&
                Objects.equals(getValidStartTime(), other.getValidStartTime());
-    }
-
-
-    @Override
-    public int compareTo(FeatureKey o)
-    {
-        int res = Long.compare(internalID, o.getInternalID());
-        if (res != 0)
-            return res;
-        
-        return validStartTime.compareTo(o.getValidStartTime());
     }
 }

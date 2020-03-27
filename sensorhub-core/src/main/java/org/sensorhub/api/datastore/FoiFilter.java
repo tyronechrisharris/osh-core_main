@@ -27,7 +27,7 @@ package org.sensorhub.api.datastore;
 public class FoiFilter extends FeatureFilter
 {
     protected FeatureFilter sampledFeatures;
-    protected ObsFilter observations;
+    protected ObsFilter obsFilter;
     
     
     /*
@@ -42,9 +42,9 @@ public class FoiFilter extends FeatureFilter
     }
     
     
-    public ObsFilter getObservationsFilter()
+    public ObsFilter getObservationFilter()
     {
-        return observations;
+        return obsFilter;
     }
     
     
@@ -65,6 +65,23 @@ public class FoiFilter extends FeatureFilter
     }
     
     
+    /*
+     * Nested builder for use within another builder
+     */
+    public static abstract class NestedBuilder<B> extends FoiFilterBuilder<NestedBuilder<B>, FoiFilter>
+    {
+        B parent;
+        
+        public NestedBuilder(B parent)
+        {
+            this.parent = parent;
+            this.instance = new FoiFilter();
+        }
+                
+        public abstract B done();
+    }
+    
+    
     @SuppressWarnings("unchecked")
     public static abstract class FoiFilterBuilder<
             B extends FoiFilterBuilder<B, F>,
@@ -81,7 +98,7 @@ public class FoiFilter extends FeatureFilter
         {
             super.copyFrom(base);
             instance.sampledFeatures = base.sampledFeatures;
-            instance.observations = base.observations;
+            instance.obsFilter = base.obsFilter;
             return (B)this;
         }
         
@@ -107,6 +124,23 @@ public class FoiFilter extends FeatureFilter
         {
             return withSampledFeatures(sampledFeatures.build());
         }
+
+        
+        /**
+         * Select only FOIs with observations matching the filter
+         * @return The {@link ObsFilter} builder for chaining
+         */
+        public ObsFilter.NestedBuilder<B> withObservations()
+        {
+            return new ObsFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    FoiFilterBuilder.this.instance.obsFilter = build();
+                    return (B)FoiFilterBuilder.this;
+                }                
+            };
+        }
         
 
         /**
@@ -116,19 +150,8 @@ public class FoiFilter extends FeatureFilter
          */
         public B withObservations(ObsFilter filter)
         {
-            instance.observations = filter;
+            instance.obsFilter = filter;
             return (B)this;
-        }
-        
-
-        /**
-         * Select only FOIs with observations matching the filter
-         * @param filter Observation filter
-         * @return This builder for chaining
-         */
-        public B withObservations(ObsFilter.Builder filter)
-        {
-            return withObservations(filter.build());
         }
     }
 }

@@ -20,11 +20,24 @@ import java.io.OutputStream;
 import java.time.ZoneOffset;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
+import org.sensorhub.api.datastore.ValueField;
 
 
-abstract class ReadOnlyDataStore<K, V, Q extends IQueryFilter> implements IDataStore<K, V, Q>
+/**
+ * <p>
+ * Helper class for read-only datastores
+ * </p>
+ * @param <K> Key type
+ * @param <V> Value type  
+ * @param <VF> Value field type
+ * @param <Q> Query type
+ *
+ * @author Alex Robin
+ * @date Mar 23, 2020
+ */
+abstract class ReadOnlyDataStore<K, V, VF extends ValueField, Q extends IQueryFilter> implements IDataStore<K, V, VF, Q>
 {
-    static final String READ_ONLY_ERROR_MSG = "The database registry is read-only";
+    static final String READ_ONLY_ERROR_MSG = "This datastore is read-only";
     
     
     public ZoneOffset getTimeZone()

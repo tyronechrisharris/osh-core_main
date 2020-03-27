@@ -29,7 +29,8 @@ import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IFeatureFilter;
 import org.sensorhub.api.datastore.IObsStore;
 import org.sensorhub.api.datastore.ProcedureFilter;
-import org.sensorhub.api.procedure.IProcedureDescriptionStore;
+import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureDescStore.ProcedureField;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
@@ -45,15 +46,16 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, AbstractProcess, IFeatureFilter> implements IProcedureDescriptionStore
+public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, AbstractProcess, ProcedureField, IFeatureFilter> implements IProcedureDescStore
 {
     DefaultDatabaseRegistry registry;
-    FederatedDataStreamStore dataStreamStore;
+    FederatedObsDatabase db;
     
     
-    FederatedProcedureStore(DefaultDatabaseRegistry registry)
+    FederatedProcedureStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
     {
         this.registry = registry;
+        this.db = db;
     }
 
 
@@ -99,14 +101,6 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
 
 
     @Override
-    public Stream<FeatureId> getAllFeatureIDs()
-    {
-        return registry.obsDatabases.values().stream()
-            .flatMap(db -> db.getProcedureStore().getAllFeatureIDs());
-    }
-
-
-    @Override
     public Bbox getFeaturesBbox()
     {
         Bbox bbox = new Bbox();
@@ -128,24 +122,12 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
     {
         FeatureKey key = ensureFeatureKey(obj);
         
-        if (key.getInternalID() > 0)
-        {
-            // use public key to lookup database and local key
-            var dbInfo = registry.getLocalDbInfo(key.getInternalID());
-            if (dbInfo == null)
-                return false;
-            else
-                return dbInfo.db.getProcedureStore().containsKey(new FeatureKey(dbInfo.entryID));
-        }
+        // use public key to lookup database and local key
+        var dbInfo = registry.getLocalDbInfo(key.getInternalID());
+        if (dbInfo == null)
+            return false;
         else
-        {
-            // lookup database using procedure UID
-            var db = registry.getDatabase(key.getUniqueID());
-            if (db == null)
-                return false;
-            else
-                return db.getProcedureStore().containsKey(key);
-        }
+            return dbInfo.db.getProcedureStore().containsKey(new FeatureKey(dbInfo.entryID));
     }
 
 
@@ -181,7 +163,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
     protected FeatureKey toPublicKey(int databaseID, FeatureKey k)
     {
         long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return new FeatureKey(publicID, k.getUniqueID(), k.getValidStartTime());
+        return new FeatureKey(publicID, k.getValidStartTime());
     }
     
     
@@ -197,59 +179,17 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
 
 
     @Override
-    public FeatureId getFeatureID(FeatureKey key)
-    {
-        if (key.getInternalID() > 0)
-        {
-            // use public key to lookup database and local key
-            var dbInfo = registry.getLocalDbInfo(key.getInternalID());
-            if (dbInfo == null)
-                return null;
-            else
-                return toPublicID(
-                    dbInfo.databaseID, 
-                    dbInfo.db.getProcedureStore().getFeatureID(new FeatureKey(dbInfo.entryID))
-                );
-        }
-        else
-        {
-            // lookup database using procedure UID
-            var db = registry.getDatabase(key.getUniqueID());
-            if (db == null)
-                return null;
-            else
-                return toPublicID(
-                    db.getDatabaseID(),
-                    db.getProcedureStore().getFeatureID(key)
-                );
-        }
-    }
-
-
-    @Override
     public AbstractProcess get(Object obj)
     {
         FeatureKey key = ensureFeatureKey(obj);
         
-        if (key.getInternalID() > 0)
-        {
-            // use public key to lookup database and local key
-            var dbInfo = registry.getLocalDbInfo(key.getInternalID());
-            if (dbInfo == null)
-                return null;
-            else
-                return dbInfo.db.getProcedureStore().get(
-                    new FeatureKey(dbInfo.entryID, key.getValidStartTime()));
-        }
+        // use public key to lookup database and local key
+        var dbInfo = registry.getLocalDbInfo(key.getInternalID());
+        if (dbInfo == null)
+            return null;
         else
-        {
-            // lookup database using procedure UID
-            var db = registry.getDatabase(key.getUniqueID());
-            if (db == null)
-                return null;
-            else
-                return db.getProcedureStore().get(key);
-        }
+            return dbInfo.db.getProcedureStore().get(
+                new FeatureKey(dbInfo.entryID, key.getValidStartTime()));
     }
     
     
@@ -272,7 +212,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
         else if (filter.getDataStreamFilter() != null)
         {
             // delegate to datastream store handle datastream filter dispatch map
-            var filterDispatchMap = dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
+            var filterDispatchMap = db.obsStore.dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())
@@ -321,7 +261,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
 
 
     @Override
-    public Stream<Entry<FeatureKey, AbstractProcess>> selectEntries(IFeatureFilter filter)
+    public Stream<Entry<FeatureKey, AbstractProcess>> selectEntries(IFeatureFilter filter, Set<ProcedureField> fields)
     {
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -332,16 +272,17 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
                     int dbID = v.databaseID;
-                    return v.db.getProcedureStore().selectEntries((FeatureFilter)v.filter)
+                    return v.db.getProcedureStore().selectEntries((FeatureFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
         else
         {
+            // otherwise scan all DBs
             return registry.obsDatabases.values().stream()
                 .flatMap(db -> {
                     int dbID = db.getDatabaseID();
-                    return db.getProcedureStore().selectEntries(filter)
+                    return db.getProcedureStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -431,13 +372,6 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
 
     @Override
     public FeatureKey addVersion(AbstractProcess feature)
-    {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
-    }
-    
-    
-    @Override
-    public FeatureKey generateKey(AbstractProcess feature)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

@@ -21,7 +21,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.sensorhub.api.datastore.DataStreamFilter;
 import org.sensorhub.api.datastore.FeatureFilter;
-import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 import org.sensorhub.api.datastore.IDatabaseRegistry;
@@ -106,9 +105,6 @@ public class TestFederatedDatabaseRegistry
         assertEquals(0, mainObsDatabase.getFoiStore().selectEntries(new FeatureFilter.Builder().build()).count());
         assertEquals(0, mainObsDatabase.getObservationStore().selectEntries(new ObsFilter.Builder().build()).count());
         assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().selectEntries(new DataStreamFilter.Builder().build()).count());
-        
-        assertEquals(0, mainObsDatabase.getProcedureStore().getAllFeatureIDs().count());
-        assertEquals(0, mainObsDatabase.getFoiStore().getAllFeatureIDs().count());
     }
     
     
@@ -128,10 +124,10 @@ public class TestFederatedDatabaseRegistry
         proc3.setUniqueIdentifier("sensor3");
         FeatureKey fk3 = db2.getProcedureStore().add(proc3);
         
-        FeatureId id1 = mainObsDatabase.getProcedureStore().getFeatureID(new FeatureKey("sensor1"));
+        FeatureKey id1 = mainObsDatabase.getProcedureStore().getLatestVersionKey("sensor1");
         assertTrue(fk1.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db1.getDatabaseID() == id1.getInternalID());
         
-        FeatureId id3 = mainObsDatabase.getProcedureStore().getFeatureID(new FeatureKey("sensor3"));
+        FeatureKey id3 = mainObsDatabase.getProcedureStore().getLatestVersionKey("sensor3");
         assertTrue(fk3.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db2.getDatabaseID() == id3.getInternalID());
         
         assertEquals(2, mainObsDatabase.getProcedureStore().keySet().size());        

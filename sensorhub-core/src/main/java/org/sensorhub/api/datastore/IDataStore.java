@@ -19,8 +19,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.vast.util.Asserts;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -38,12 +40,13 @@ import org.vast.util.Asserts;
  * operations.</i>
  * </p>
  * @param <K> Key type
- * @param <V> Value type 
+ * @param <V> Value type  
+ * @param <VF> Value field type
  * @param <Q> Query type
  **/
-public interface IDataStore<K, V, Q extends IQueryFilter> extends Map<K, V>
-{
-
+public interface IDataStore<K, V, VF extends ValueField, Q extends IQueryFilter> extends Map<K, V>
+{        
+    
     /**
      * @return Data store name
      */
@@ -64,13 +67,67 @@ public interface IDataStore<K, V, Q extends IQueryFilter> extends Map<K, V>
 
 
     /**
-     * Select all entries matching the query and return values only
+     * Select all entries matching the query and return full entries
+     * @param query selection filter (datastore specific)
+     * @return Stream of matching entries (i.e. key/value pairs)
+     */
+    public default Stream<Entry<K, V>> selectEntries(Q query)
+    {
+        return selectEntries(query, (Set<VF>)null);
+    }
+    
+    
+    /**
+     * Select all entries matching the query and include selected fields only
+     * @param query selection filter (datastore specific)
+     * @param fields List of value fields to read from datastore (or null to select all fields)
+     * @return Stream of value objects. Caller should not try to access fields of 
+     * value objects that were not included in the {@code fields} parameter.
+     */
+    public Stream<Entry<K, V>> selectEntries(Q query, Set<VF> fields);
+    
+    
+    /**
+     * @see {@link #select(IQueryFilter, Set)}
+     */
+    @SuppressWarnings({ "unchecked", "javadoc" })
+    public default Stream<Entry<K, V>> selectEntries(Q query, VF... fields)
+    {
+        return selectEntries(query, Sets.newHashSet(fields));
+    }
+
+
+    /**
+     * Select all values matching the query
      * @param query selection filter (datastore specific)
      * @return Stream of value objects
      */
     public default Stream<V> select(Q query)
     {
         return selectEntries(query).map(e -> e.getValue());
+    }
+    
+    
+    /**
+     * Select all values matching the query and include selected fields only
+     * @param query selection filter (datastore specific)
+     * @param fields List of value fields to read from datastore
+     * @return Stream of value objects. Values returned by get methods
+     * corresponding to omitted fields may be invalid.
+     */
+    public default Stream<V> select(Q query, Set<VF> fields)
+    {
+        return selectEntries(query, fields).map(e -> e.getValue());
+    }
+    
+    
+    /**
+     * @see {@link #select(IQueryFilter, Set)}
+     */
+    @SuppressWarnings({ "unchecked", "javadoc" })
+    public default Stream<V> select(Q query, VF... fields)
+    {
+        return select(query, Sets.newHashSet(fields));
     }
 
 
@@ -83,14 +140,6 @@ public interface IDataStore<K, V, Q extends IQueryFilter> extends Map<K, V>
     {
         return selectEntries(query).map(e -> e.getKey());
     }
-
-
-    /**
-     * Select all entries matching the query and return full entries
-     * @param query selection filter (datastore specific)
-     * @return Stream of matching entries (i.e. key/value pairs)
-     */
-    public Stream<Entry<K, V>> selectEntries(Q query);
 
 
     /**

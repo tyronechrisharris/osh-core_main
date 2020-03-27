@@ -22,7 +22,9 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Immutable key object used to index observations in storage.
+ * Immutable key object used to index observations in storage.<br/>
+ * When the key is used for retrieval, the internalID is used if provided,
+ * otherwise all other parameters are used.
  * </p>
  *
  * @author Alex Robin
@@ -30,10 +32,8 @@ import org.vast.util.Asserts;
  */
 public class ObsKey
 {    
-    public static final FeatureId NO_FOI = new FeatureId(0);
-    
     protected long dataStreamID = 0;
-    protected FeatureId foiID = NO_FOI;
+    protected FeatureId foiID = IObsData.NO_FOI;
     protected Instant resultTime = null;
     protected Instant phenomenonTime = null;
     

@@ -15,7 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.procedure;
 
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.datastore.FeatureId;
+import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 import org.sensorhub.api.event.IEventSource;
 import org.sensorhub.api.event.IEventSourceInfo;
@@ -56,7 +56,7 @@ public interface IProcedureRegistry extends IEventSource
      * @param proc The live procedure instance
      * @return The key assigned to the new procedure
      */
-    public FeatureId register(IProcedureWithState proc);
+    public FeatureKey register(IProcedureWithState proc);
     
     
     /**

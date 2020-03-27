@@ -14,29 +14,35 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
-import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
-import org.vast.ogc.om.IProcedure;
+import java.time.Instant;
+import com.vividsolutions.jts.geom.Geometry;
+import net.opengis.swe.v20.DataBlock;
 
 
-/**
- * <p>
- * Generic interface for all procedure description stores
- * </p>
- *
- * @param <T> Procedure Type
- * @param <VF> Procedure Field Type
- * 
- * @author Alex Robin
- * @date Mar 19, 2018
- */
-public interface IProcedureStore<T extends IProcedure, VF extends FeatureField> extends IFeatureStore<T, VF>
+public interface IObsDataBuilder
 {
-    
-    
-    /**
-     * Link this store to an observation store to enable JOIN queries
-     * @param obsStore
-     */
-    public void linkTo(IObsStore obsStore);
 
+    public IObsDataBuilder withDataStreamID(long dataStreamID);
+    
+    
+    public IObsDataBuilder withFoiID(long foiID);
+    
+    
+    public IObsDataBuilder withPhenomenonTime(Instant phenomenonTime);
+    
+    
+    public IObsDataBuilder withResultTime(Instant resultTime);
+    
+    
+    public IObsDataBuilder withParameter(String key, Object value);
+    
+    
+    public IObsDataBuilder withPhenomenonLocation(Geometry phenomenonLocation);
+    
+    
+    public IObsDataBuilder withResult(DataBlock result);
+    
+    
+    public IObsData build();
+    
 }

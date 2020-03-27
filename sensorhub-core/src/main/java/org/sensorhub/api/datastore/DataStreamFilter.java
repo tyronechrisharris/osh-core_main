@@ -39,17 +39,18 @@ import net.opengis.swe.v20.DataComponent;
  * @author Alex Robin
  * @date Sep 17, 2019
  */
-public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
+public class DataStreamFilter implements IQueryFilter, Predicate<IDataStreamInfo>
 {
     public static final Range<Integer> LAST_VERSION = Range.singleton(Integer.MAX_VALUE);
     
     protected SortedSet<Long> internalIDs;
-    protected ProcedureFilter procedures;
+    protected ProcedureFilter procFilter;
+    protected ObsFilter obsFilter;
     protected Set<String> outputNames;
     protected Range<Integer> versions = LAST_VERSION;
     protected Range<Instant> resultTimes;
     protected Set<String> observedProperties;
-    protected Predicate<DataStreamInfo> valuePredicate;
+    protected Predicate<IDataStreamInfo> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
     
@@ -67,7 +68,13 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
 
     public ProcedureFilter getProcedureFilter()
     {
-        return procedures;
+        return procFilter;
+    }
+    
+    
+    public ObsFilter getObservationFilter()
+    {
+        return obsFilter;
     }
 
 
@@ -95,7 +102,7 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
     }
 
 
-    public Predicate<DataStreamInfo> getValuePredicate()
+    public Predicate<IDataStreamInfo> getValuePredicate()
     {
         return valuePredicate;
     }
@@ -108,21 +115,21 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
     }
     
     
-    public boolean testOutputName(DataStreamInfo ds)
+    public boolean testOutputName(IDataStreamInfo ds)
     {
         return (outputNames == null ||
             outputNames.contains(ds.getOutputName()));
     }
     
     
-    public boolean testVersion(DataStreamInfo ds)
+    public boolean testVersion(IDataStreamInfo ds)
     {
         return (versions == null ||
             versions.contains(ds.getRecordVersion()));
     }
     
     
-    public boolean testObservedProperty(DataStreamInfo ds)
+    public boolean testObservedProperty(IDataStreamInfo ds)
     {
         if (observedProperties == null)
             return true;
@@ -147,7 +154,7 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
     }
     
     
-    public boolean testValuePredicate(DataStreamInfo v)
+    public boolean testValuePredicate(IDataStreamInfo v)
     {
         return (valuePredicate == null ||
                 valuePredicate.test(v));
@@ -155,7 +162,7 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
 
 
     @Override
-    public boolean test(DataStreamInfo ds)
+    public boolean test(IDataStreamInfo ds)
     {
         return (testOutputName(ds) &&
             testVersion(ds) &&
@@ -186,6 +193,23 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
             return new Builder().copyFrom(base);
         }
     }
+    
+    
+    /*
+     * Nested builder for use within another builder
+     */
+    public static abstract class NestedBuilder<B> extends DataStreamFilterBuilder<NestedBuilder<B>, DataStreamFilter>
+    {
+        B parent;
+        
+        public NestedBuilder(B parent)
+        {
+            this.parent = parent;
+            this.instance = new DataStreamFilter();
+        }
+                
+        public abstract B done();
+    }
 
 
     @SuppressWarnings("unchecked")
@@ -203,7 +227,8 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
         protected B copyFrom(DataStreamFilter other)
         {
             instance.internalIDs = other.internalIDs;
-            instance.procedures = other.procedures;
+            instance.procFilter = other.procFilter;
+            instance.obsFilter = other.obsFilter;
             instance.outputNames = other.outputNames;
             instance.versions = other.versions;
             instance.resultTimes = other.resultTimes;
@@ -227,23 +252,30 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
             return (B)this;
         }
 
-
-        public B withProcedures(ProcedureFilter filter)
+        
+        public ProcedureFilter.NestedBuilder<B> withProcedures()
         {
-            instance.procedures = filter;
-            return (B)this;
+            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    DataStreamFilterBuilder.this.instance.procFilter = build();
+                    return (B)DataStreamFilterBuilder.this;
+                }                
+            };
         }
 
 
-        public B withProcedures(ProcedureFilter.Builder filter)
+        public B withProcedures(ProcedureFilter filter)
         {
-            return withProcedures(filter.build());
+            instance.procFilter = filter;
+            return (B)this;
         }
 
 
         public B withProcedures(Long... procIDs)
         {
-            instance.procedures = new ProcedureFilter.Builder()
+            instance.procFilter = new ProcedureFilter.Builder()
                 .withInternalIDs(procIDs)
                 .build();
             return (B)this;
@@ -252,7 +284,7 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
 
         public B withProcedures(Collection<Long> procIDs)
         {
-            instance.procedures = new ProcedureFilter.Builder()
+            instance.procFilter = new ProcedureFilter.Builder()
                 .withInternalIDs(procIDs)
                 .build();
             return (B)this;
@@ -261,9 +293,29 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
 
         public B withProcedures(String... procUIDs)
         {
-            instance.procedures = new ProcedureFilter.Builder()
+            instance.procFilter = new ProcedureFilter.Builder()
                 .withUniqueIDs(procUIDs)
                 .build();
+            return (B)this;
+        }
+
+        
+        public ObsFilter.NestedBuilder<B> withObservations()
+        {
+            return new ObsFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    DataStreamFilterBuilder.this.instance.obsFilter = build();
+                    return (B)DataStreamFilterBuilder.this;
+                }                
+            };
+        }
+        
+
+        public B withObservations(ObsFilter filter)
+        {
+            instance.obsFilter = filter;
             return (B)this;
         }
         
@@ -314,7 +366,7 @@ public class DataStreamFilter implements IQueryFilter, Predicate<DataStreamInfo>
         }
 
 
-        public B withValuePredicate(Predicate<DataStreamInfo> valuePredicate)
+        public B withValuePredicate(Predicate<IDataStreamInfo> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
             return (B)this;

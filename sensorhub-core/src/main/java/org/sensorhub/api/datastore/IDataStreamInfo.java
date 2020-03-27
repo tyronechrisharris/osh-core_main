@@ -14,39 +14,49 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
-import org.sensorhub.api.procedure.IProcedureDescStore;
+import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataEncoding;
 
 
 /**
  * <p>
- * Main interface for accessing historical observations and corresponding
- * procedure descriptions history.
+ * Interface for IDataStreamStore value objects
  * </p>
  *
  * @author Alex Robin
- * @date Sep 17, 2019
+ * @date Mar 23, 2020
  */
-public interface IHistoricalObsDatabase extends IDatabase
+public interface IDataStreamInfo
 {
+    
+    /**
+     * @return The identifier of the procedure that generated this data stream
+     */
+    FeatureId getProcedure();
+
 
     /**
-     * @return Data store containing history of procedure descriptions
+     * @return The name of the procedure output that is/was the source of
+     * this data stream
      */
-    IProcedureDescStore getProcedureStore();
-    
-    
-    
+    String getOutputName();
+
+
     /**
-     * @return Data store containing historical observations generated
-     * from registered procedures
+     * @return The version of the output record schema used in this data stream
      */
-    IObsStore getObservationStore();
-    
-    
+    int getRecordVersion();
+
+
     /**
-     * @return Data store containing features of interest observed by
-     * all registered procedures
+     * @return The data stream record structure
      */
-    IFoiStore getFoiStore();
-    
+    DataComponent getRecordDescription();
+
+
+    /**
+     * @return The recommended encoding for the data stream
+     */
+    DataEncoding getRecordEncoding();
+
 }

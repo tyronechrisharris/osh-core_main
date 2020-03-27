@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.registry;
 
+import java.math.BigInteger;
 import java.util.AbstractCollection;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -27,13 +28,13 @@ import org.sensorhub.api.datastore.DataStreamFilter;
 import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FoiFilter;
 import org.sensorhub.api.datastore.IDataStreamStore;
+import org.sensorhub.api.datastore.IObsData;
 import org.sensorhub.api.datastore.IObsStore;
+import org.sensorhub.api.datastore.IObsStore.ObsField;
 import org.sensorhub.api.datastore.ObsData;
 import org.sensorhub.api.datastore.ObsFilter;
-import org.sensorhub.api.datastore.ObsKey;
 import org.sensorhub.api.datastore.ObsStats;
 import org.sensorhub.api.datastore.ObsStatsQuery;
-import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalDatabaseInfo;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 
@@ -47,17 +48,18 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFilter> implements IObsStore
+public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, ObsField, ObsFilter> implements IObsStore
 {
     DefaultDatabaseRegistry registry;
     FederatedDataStreamStore dataStreamStore;
-    FederatedFoiStore foiStore;
+    FederatedObsDatabase db;
     
     
-    FederatedObsStore(DefaultDatabaseRegistry registry)
+    FederatedObsStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
     {
         this.registry = registry;
-        this.dataStreamStore = new FederatedDataStreamStore(registry);
+        this.db = db;
+        this.dataStreamStore = new FederatedDataStreamStore(registry, db);
     }
 
 
@@ -92,35 +94,88 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
     }
     
     
-    protected ObsKey ensureObsKey(Object obj)
+    protected BigInteger ensureObsKey(Object obj)
     {
-        Asserts.checkArgument(obj instanceof ObsKey, "must be an ObsKey");
-        return (ObsKey)obj;
+        Asserts.checkArgument(obj instanceof BigInteger, "Key must be a BigInteger");
+        return (BigInteger)obj;
     }
     
     
-    protected ObsKey toLocalObsKey(LocalDatabaseInfo dbInfo, ObsKey key)
+    /*
+     * Convert to local keys on the way in
+     */
+    protected BigInteger toLocalKey(int databaseID, BigInteger key)
     {
-        FeatureId foiID = new FeatureId(
-            registry.getLocalID(key.getFoiID().getInternalID()),
-            key.getFoiID().getUniqueID());
+        return registry.getLocalID(databaseID, key);
+    }
+    
+    
+    /*
+     * Convert to public keys on the way out
+     */
+    protected BigInteger toPublicKey(int databaseID, BigInteger k)
+    {
+        return registry.getPublicID(databaseID, k);
+    }
+    
+    
+    /*
+     * Convert to public values on the way out
+     */
+    protected IObsData toPublicValue(int databaseID, IObsData obs)
+    {
+        long dsPublicId = registry.getPublicID(databaseID, obs.getDataStreamID());
         
-        return new ObsKey(dbInfo.entryID, foiID, key.getResultTime(), key.getPhenomenonTime());
+        long foiPublicId = registry.getPublicID(databaseID, obs.getFoiID().getInternalID());
+        FeatureId publicFoi = obs.hasFoi() ?
+            IObsData.NO_FOI :
+            new FeatureId(foiPublicId, obs.getFoiID().getUniqueID());
+                
+        /*return ObsData.Builder.from(obs)
+            .withDataStream(dsPublicId)
+            .withFoi(publicFoi)
+            .build();*/
+            
+        // wrap original observation to return correct public IDs
+        return new ObsDelegate(obs) {
+            @Override
+            public long getDataStreamID()
+            {
+                return dsPublicId;
+            }
+
+            @Override
+            public FeatureId getFoiID()
+            {
+                return publicFoi;
+            }            
+        };
+    }
+    
+    
+    /*
+     * Convert to public entries on the way out
+     */
+    protected Entry<BigInteger, IObsData> toPublicEntry(int databaseID, Entry<BigInteger, IObsData> e)
+    {
+        return new AbstractMap.SimpleEntry<>(
+            toPublicKey(databaseID, e.getKey()),
+            toPublicValue(databaseID, e.getValue()));
     }
 
 
     @Override
     public boolean containsKey(Object obj)
     {
-        ObsKey key = ensureObsKey(obj);
+        BigInteger key = ensureObsKey(obj);
         
         // use datastream public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key.getDataStreamID());
+        var dbInfo = registry.getLocalDbInfo(key);
         if (dbInfo == null)
             return false;
         else
             return dbInfo.db.getObservationStore().containsKey(
-                toLocalObsKey(dbInfo, key));
+                toLocalKey(dbInfo.databaseID, key));
     }
 
 
@@ -138,44 +193,17 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
 
 
     @Override
-    public ObsData get(Object obj)
+    public IObsData get(Object obj)
     {
-        ObsKey key = ensureObsKey(obj);
+        BigInteger key = ensureObsKey(obj);
         
         // use datastream public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key.getDataStreamID());
+        var dbInfo = registry.getLocalDbInfo(key);
         if (dbInfo == null)
             return null;
-        else
-            return dbInfo.db.getObservationStore().get(
-                toLocalObsKey(dbInfo, key));
-    }
-    
-    
-    /*
-     * Convert to public entries on the way out
-     */
-    protected Entry<ObsKey, ObsData> toPublicEntry(int databaseID, Entry<ObsKey, ObsData> e)
-    {
-        return new AbstractMap.SimpleEntry<>(
-            toPublicKey(databaseID, e.getKey()),
-            e.getValue());
-    }
-    
-    
-    /*
-     * Convert to public keys on the way out
-     */
-    protected ObsKey toPublicKey(int databaseID, ObsKey k)
-    {
-        long dataStreamID = registry.getPublicID(databaseID, k.getDataStreamID());
         
-        long internalFoiID = k.getFoiID().getInternalID();
-        FeatureId foiID = internalFoiID == 0 ? ObsKey.NO_FOI : new FeatureId(
-            registry.getPublicID(databaseID, k.getFoiID().getInternalID()),
-            k.getFoiID().getUniqueID());
-        
-        return new ObsKey(dataStreamID, foiID, k.getResultTime(), k.getPhenomenonTime());
+        IObsData obs = dbInfo.db.getObservationStore().get(toLocalKey(dbInfo.databaseID, key));
+        return toPublicValue(dbInfo.databaseID, obs);
     }
     
     
@@ -183,12 +211,27 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
     {
         Map<Integer, LocalFilterInfo> dataStreamFilterDispatchMap = null, foiFilterDispatchMap = null;
         
-        // get dispatch map for datastreams and fois
+        // use internal IDs if present
+        if (filter.getInternalIDs() != null)
+        {
+            var filterDispatchMap = registry.getFilterDispatchMapBigInt(filter.getInternalIDs());
+            for (var filterInfo: filterDispatchMap.values())
+            {
+                filterInfo.filter = ObsFilter.Builder
+                    .from(filter)
+                    .withInternalIDs(filterInfo.bigInternalIds)
+                    .build();
+            }
+            
+            return filterDispatchMap;
+        }
+        
+        // otherwise get dispatch map for datastreams and fois
         if (filter.getDataStreamFilter() != null)
             dataStreamFilterDispatchMap = dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
         
         if (filter.getFoiFilter() != null)
-            foiFilterDispatchMap = foiStore.getFilterDispatchMap(filter.getFoiFilter());
+            foiFilterDispatchMap = db.foiStore.getFilterDispatchMap(filter.getFoiFilter());
         
         // merge both maps
         Map<Integer, LocalFilterInfo> obsFilterDispatchMap = new TreeMap<>();
@@ -242,7 +285,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
 
 
     @Override
-    public Stream<Entry<ObsKey, ObsData>> selectEntries(ObsFilter filter)
+    public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
     {
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -253,7 +296,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
                     int dbID = v.databaseID;
-                    return v.db.getObservationStore().selectEntries((ObsFilter)v.filter)
+                    return v.db.getObservationStore().selectEntries((ObsFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -262,7 +305,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
             return registry.obsDatabases.values().stream()
                 .flatMap(db -> {
                     int dbID = db.getDatabaseID();
-                    return db.getObservationStore().selectEntries(filter)
+                    return db.getObservationStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -270,12 +313,12 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
 
 
     @Override
-    public Set<Entry<ObsKey, ObsData>> entrySet()
+    public Set<Entry<BigInteger, IObsData>> entrySet()
     {
         return new AbstractSet<>()
         {
             @Override
-            public Iterator<Entry<ObsKey, ObsData>> iterator()
+            public Iterator<Entry<BigInteger, IObsData>> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> {
@@ -296,12 +339,12 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
 
 
     @Override
-    public Set<ObsKey> keySet()
+    public Set<BigInteger> keySet()
     {
         return new AbstractSet<>()
         {
             @Override
-            public Iterator<ObsKey> iterator()
+            public Iterator<BigInteger> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> {
@@ -322,12 +365,12 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
 
 
     @Override
-    public Collection<ObsData> values()
+    public Collection<IObsData> values()
     {
         return new AbstractCollection<>()
         {
             @Override
-            public Iterator<ObsData> iterator()
+            public Iterator<IObsData> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> db.getObservationStore().values().stream())
@@ -347,6 +390,13 @@ public class FederatedObsStore extends ReadOnlyDataStore<ObsKey, ObsData, ObsFil
     public IDataStreamStore getDataStreams()
     {
         return dataStreamStore;
+    }
+    
+    
+    @Override
+    public BigInteger add(IObsData obs)
+    {
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
 
 

@@ -14,11 +14,25 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
+import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 import org.sensorhub.api.datastore.IProcedureStore;
+import org.sensorhub.api.procedure.IProcedureDescStore.ProcedureField;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
-public interface IProcedureDescriptionStore extends IProcedureStore<AbstractProcess>
+public interface IProcedureDescStore extends IProcedureStore<AbstractProcess, ProcedureField>
 {
 
+    public static class ProcedureField extends FeatureField
+    {
+        public static final ProcedureField GENERAL_METADATA = new ProcedureField("metadata");
+        public static final ProcedureField HISTORY = new ProcedureField("history");
+        public static final ProcedureField MEMBERS = new ProcedureField("members");
+        
+        public ProcedureField(String name)
+        {
+            super(name);
+        }
+    }
+    
 }

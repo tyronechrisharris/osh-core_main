@@ -15,7 +15,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.procedure;
 
 import org.sensorhub.api.datastore.IObsStore;
-import org.sensorhub.api.procedure.IProcedureDescriptionStore;
+import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureDescStore.ProcedureField;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
@@ -29,7 +30,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryProcedureStore extends InMemoryFeatureStore<AbstractProcess> implements IProcedureDescriptionStore
+public class InMemoryProcedureStore extends InMemoryFeatureStore<AbstractProcess, ProcedureField> implements IProcedureDescStore
 {
     IObsStore obsStore;
     

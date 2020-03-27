@@ -14,7 +14,12 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import java.math.BigInteger;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
@@ -29,15 +34,16 @@ import org.vast.util.BaseBuilder;
  * @author Alex Robin
  * @date Jan 16, 2018
  */
-public class ObsFilter implements IQueryFilter, Predicate<ObsData>
+public class ObsFilter implements IQueryFilter, Predicate<IObsData>
 {
+    protected SortedSet<BigInteger> internalIDs;
     protected TemporalFilter phenomenonTime;
     protected TemporalFilter resultTime;
     protected SpatialFilter phenomenonLocation;
     protected DataStreamFilter dataStreams;
     protected FoiFilter foiFilter;
-    protected Predicate<ObsKey> keyPredicate;
-    protected Predicate<ObsData> valuePredicate;
+    protected Predicate<BigInteger> keyPredicate;
+    protected Predicate<IObsData> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
     
@@ -45,6 +51,12 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
      * this class can only be instantiated using builder
      */
     protected ObsFilter() {}
+
+
+    public SortedSet<BigInteger> getInternalIDs()
+    {
+        return internalIDs;
+    }
     
     
     public TemporalFilter getPhenomenonTime()
@@ -77,13 +89,13 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
     }
 
 
-    public Predicate<ObsKey> getKeyPredicate()
+    public Predicate<BigInteger> getKeyPredicate()
     {
         return keyPredicate;
     }
 
 
-    public Predicate<ObsData> getValuePredicate()
+    public Predicate<IObsData> getValuePredicate()
     {
         return valuePredicate;
     }
@@ -96,21 +108,21 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
     }
     
     
-    public boolean testPhenomenonTime(ObsKey k)
+    public boolean testPhenomenonTime(IObsData v)
     {
         return (phenomenonTime == null ||
-                phenomenonTime.test(k.getPhenomenonTime()));
+                phenomenonTime.test(v.getPhenomenonTime()));
     }
     
     
-    public boolean testResultTime(ObsKey k)
+    public boolean testResultTime(IObsData v)
     {
         return (resultTime == null ||
-                resultTime.test(k.getResultTime()));
+                resultTime.test(v.getResultTime()));
     }
     
     
-    public boolean testPhenomenonLocation(ObsData v)
+    public boolean testPhenomenonLocation(IObsData v)
     {
         return (phenomenonLocation == null || 
                 (v.getPhenomenonLocation() != null &&
@@ -118,14 +130,14 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
     }
     
     
-    public boolean testKeyPredicate(ObsKey k)
+    public boolean testKeyPredicate(BigInteger k)
     {
         return (keyPredicate == null ||
                 keyPredicate.test(k));
     }
     
     
-    public boolean testValuePredicate(ObsData v)
+    public boolean testValuePredicate(IObsData v)
     {
         return (valuePredicate == null ||
                 valuePredicate.test(v));
@@ -133,7 +145,7 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
 
 
     @Override
-    public boolean test(ObsData obs)
+    public boolean test(IObsData obs)
     {
         return (testPhenomenonLocation(obs) &&
                 testValuePredicate(obs));
@@ -162,6 +174,23 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
             return new Builder().copyFrom(base);
         }
     }
+    
+    
+    /*
+     * Nested builder for use within another builder
+     */
+    public static abstract class NestedBuilder<B> extends ObsFilterBuilder<NestedBuilder<B>, ObsFilter>
+    {
+        B parent;
+        
+        public NestedBuilder(B parent)
+        {
+            this.parent = parent;
+            this.instance = new ObsFilter();
+        }
+                
+        public abstract B done();
+    }
 
 
     @SuppressWarnings("unchecked")
@@ -178,6 +207,7 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         
         protected B copyFrom(ObsFilter base)
         {
+            instance.internalIDs = base.internalIDs;
             instance.phenomenonTime = base.phenomenonTime;
             instance.resultTime = base.resultTime;
             instance.phenomenonLocation = base.phenomenonLocation;
@@ -186,6 +216,30 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
             instance.keyPredicate = base.keyPredicate;
             instance.valuePredicate = base.valuePredicate;
             instance.limit = base.limit;
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep only observations with specific internal IDs.
+         * @param ids One or more internal IDs to select
+         * @return This builder for chaining
+         */
+        public B withInternalIDs(BigInteger... ids)
+        {
+            return withInternalIDs(Arrays.asList(ids));
+        }
+        
+        
+        /**
+         * Keep only observations with specific internal IDs.
+         * @param ids Collection of internal IDs
+         * @return This builder for chaining
+         */
+        public B withInternalIDs(Collection<BigInteger> ids)
+        {
+            instance.internalIDs = new TreeSet<BigInteger>();
+            instance.internalIDs.addAll(ids);
             return (B)this;
         }
 
@@ -259,6 +313,23 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
             return withPhenomenonLocation(filter.build());
         }
 
+        
+        /**
+         * Keep only observations from data streams matching the filter.
+         * @return The {@link DataStreamFilter} builder for chaining
+         */
+        public DataStreamFilter.NestedBuilder<B> withDataStreams()
+        {
+            return new DataStreamFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ObsFilterBuilder.this.instance.dataStreams = build();
+                    return (B)ObsFilterBuilder.this;
+                }                
+            };
+        }
+
 
         /**
          * Keep only observations from data streams matching the filter.
@@ -269,17 +340,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         {
             instance.dataStreams = filter;
             return (B)this;
-        }
-
-
-        /**
-         * Keep only observations from data streams matching the filter.
-         * @param filter Filter to select desired data streams
-         * @return This builder for chaining
-         */
-        public B withDataStreams(DataStreamFilter.Builder filter)
-        {
-            return withDataStreams(filter.build());
         }
 
 
@@ -326,9 +386,26 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
             return (B)this;
         }
 
+        
+        /**
+         * Keep only observations of features of interest matching the filter.
+         * @return The {@link FoiFilter} builder for chaining
+         */
+        public FoiFilter.NestedBuilder<B> withFois()
+        {
+            return new FoiFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ObsFilterBuilder.this.instance.foiFilter = build();
+                    return (B)ObsFilterBuilder.this;
+                }                
+            };
+        }
+
 
         /**
-         * Keep only observations of the selected features of interest
+         * Keep only observations of features of interest matching the filter.
          * @param filter Filter to select features of interest
          * @return This builder for chaining
          */
@@ -336,17 +413,6 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
         {
             instance.foiFilter = filter;
             return (B)this;
-        }
-
-
-        /**
-         * Keep only observations of the selected features of interest
-         * @param filter Filter to select features of interest
-         * @return This builder for chaining
-         */
-        public B withFois(FoiFilter.Builder filter)
-        {
-            return withFois(filter.build());
         }
 
 
@@ -383,7 +449,7 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          * @param keyPredicate The predicate to test the key
          * @return This builder for chaining
          */
-        public B withKeyPredicate(Predicate<ObsKey> keyPredicate)
+        public B withKeyPredicate(Predicate<BigInteger> keyPredicate)
         {
             instance.keyPredicate = keyPredicate;
             return (B)this;
@@ -395,7 +461,7 @@ public class ObsFilter implements IQueryFilter, Predicate<ObsData>
          * @param valuePredicate The predicate to test the observation data
          * @return This builder for chaining
          */
-        public B withValuePredicate(Predicate<ObsData> valuePredicate)
+        public B withValuePredicate(Predicate<IObsData> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
             return (B)this;

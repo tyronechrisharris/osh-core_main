@@ -14,8 +14,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import java.math.BigInteger;
 import java.util.stream.Stream;
 import net.opengis.swe.v20.DataBlock;
+import org.sensorhub.api.datastore.IObsStore.ObsField;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -32,13 +35,37 @@ import net.opengis.swe.v20.DataBlock;
  * @author Alex Robin
  * @date Mar 19, 2018
  */
-public interface IObsStore extends IDataStore<ObsKey, ObsData, ObsFilter>
+public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, ObsFilter>
 {
+    public static class ObsField extends ValueField
+    {
+        public static final ObsField DATASTREAM_ID = new ObsField("dataStreamID");
+        public static final ObsField FOI_ID = new ObsField("foiID");
+        public static final ObsField PHENOMENON_TIME = new ObsField("phenomenonTime");
+        public static final ObsField RESULT_TIME  = new ObsField("resultTime");
+        public static final ObsField PHENOMENON_LOCATION = new ObsField("phenomenonLocation");
+        public static final ObsField PARAMETERS = new ObsField("parameters");
+        public static final ObsField RESULT = new ObsField("result");
+        
+        public ObsField(String name)
+        {
+            super(name);
+        }
+    }
+    
     
     /**
      * @return Interface to manage data streams
      */
     IDataStreamStore getDataStreams();
+    
+    
+    /**
+     * Add an observation to the datastore
+     * @param obs
+     * @return The auto-generated ID
+     */
+    public BigInteger add(IObsData obs);
     
     
     /**
@@ -48,7 +75,8 @@ public interface IObsStore extends IDataStore<ObsKey, ObsData, ObsFilter>
      */
     public default Stream<DataBlock> selectResults(ObsFilter query)
     {
-        return select(query).map(o -> o.getResult());
+        return select(query, Sets.newHashSet(ObsField.RESULT))
+            .map(o -> o.getResult());
     }
     
     

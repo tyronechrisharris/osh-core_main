@@ -37,9 +37,9 @@ import net.opengis.gml.v32.impl.GMLFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.datastore.FeatureFilter;
-import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 import org.vast.ogc.gml.GMLUtils;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.GenericTemporalFeatureImpl;
@@ -62,11 +62,12 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * @param <StoreType> type of datastore under test
  * @since Apr 14, 2018
  */
-public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<FeatureKey, AbstractFeature>>
+public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<AbstractFeature, FeatureField>>
 {
-    protected static String DATASTORE_NAME = "test-features";
-    static String UID_PREFIX = "urn:domain:features:";
-    static int NUM_TIME_ENTRIES_PER_FEATURE = 5;
+    protected String DATASTORE_NAME = "test-features";
+    protected String UID_PREFIX = "urn:domain:features:";
+    protected int NUM_TIME_ENTRIES_PER_FEATURE = 5;
+    protected OffsetDateTime FIRST_VERSION_TIME = OffsetDateTime.parse("2000-01-01T00:00:00Z");
         
     protected StoreType featureStore;
     GMLFactory gmlFac = new GMLFactory(true);
@@ -108,7 +109,6 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         
         return new FeatureKey(
             Long.parseLong(f.getId().replaceAll("(F|G|T)*", ""))+1,
-            f.getUniqueIdentifier(),
             validStartTime);
     }
     
@@ -130,7 +130,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         }            
         
         //System.out.println(key);
-        allFeatures.put(key, f);        
+        allFeatures.put(key, f);
     }
     
     
@@ -187,7 +187,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
             for (int j = 0; j < NUM_TIME_ENTRIES_PER_FEATURE; j++)
             {
                 GenericTemporalFeatureImpl f = new GenericTemporalFeatureImpl(fType);
-                OffsetDateTime beginTime = OffsetDateTime.parse("2000-01-01T00:00:00Z").plus(j*30, ChronoUnit.DAYS).plus(i, ChronoUnit.HOURS);
+                OffsetDateTime beginTime = FIRST_VERSION_TIME.plus(j*30, ChronoUnit.DAYS).plus(i, ChronoUnit.HOURS);
                 OffsetDateTime endTime = beginTime.plus(30, ChronoUnit.DAYS);
                 f.setValidTimePeriod(beginTime, endTime);
                 setCommonFeatureProperties(f, i);
@@ -207,7 +207,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
             for (int j = 0; j < NUM_TIME_ENTRIES_PER_FEATURE; j++)
             {
                 GenericTemporalFeatureImpl f = new GenericTemporalFeatureImpl(fType);
-                OffsetDateTime beginTime = OffsetDateTime.parse("2000-01-01T00:00:00Z").plus(j*30, ChronoUnit.DAYS).plus(i, ChronoUnit.HOURS);
+                OffsetDateTime beginTime = FIRST_VERSION_TIME.plus(j*30, ChronoUnit.DAYS).plus(i, ChronoUnit.HOURS);
                 OffsetDateTime endTime = beginTime.plus(30, ChronoUnit.DAYS);
                 f.setValidTimePeriod(beginTime, endTime);
                 LinearRing ring = gmlFac.newLinearRing();
@@ -285,33 +285,6 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         numFeatures = 40;
         addTemporalFeatures(2000, numFeatures);
         assertEquals(totalFeatures += numFeatures, featureStore.getNumFeatures());
-    }
-    
-    
-    private void checkFeatureIDs(Stream<FeatureId> featureIds)
-    {
-        Set<FeatureId> datastoreIds = featureIds.collect(Collectors.toSet());
-        Set<FeatureId> expectedIds = allFeatures.keySet().stream()
-            .map(k -> new FeatureId(k.getInternalID(), k.getUniqueID()))
-            .collect(Collectors.toSet());
-        assertEquals(expectedIds.size(), datastoreIds.size());
-        expectedIds.forEach(uid -> assertTrue(datastoreIds.contains(uid)));
-    }
-    
-    
-    @Test
-    public void testPutAndGetFeatureIDs() throws Exception
-    {
-        addNonGeoFeatures(1, 40);
-        checkFeatureIDs(featureStore.getAllFeatureIDs());
-        forceReadBackFromStorage();
-        
-        addGeoFeaturesPoint2D(100, 25);
-        checkFeatureIDs(featureStore.getAllFeatureIDs());
-        
-        addTemporalFeatures(2000, 100);
-        forceReadBackFromStorage();
-        checkFeatureIDs(featureStore.getAllFeatureIDs());
     }
     
     
@@ -516,7 +489,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
                 .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
         resultMap.forEach((k, v) -> {
-            if (!expectedIds.contains(k.getUniqueID()) ||
+            if (!expectedIds.contains(v.getUniqueIdentifier()) ||
                 (v instanceof ITemporalFeature) && !lastVersion && !timeRange.isConnected(((ITemporalFeature)v).getValidTime()))
                 fail("Result contains unexpected feature: " + k);
         });
@@ -524,7 +497,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         if (!lastVersion)
         {
             allFeatures.entrySet().stream()
-                .filter(e -> expectedIds.contains(e.getKey().getUniqueID()))
+                .filter(e -> expectedIds.contains(e.getValue().getUniqueIdentifier()))
                 .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
                              timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime()))
                 .forEach(e -> {
@@ -778,7 +751,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         for (int i = 0; i < numReads; i++)
         {
             String uid = UID_PREFIX + "F" + i;
-            var key = new FeatureKey(uid);            
+            var key = new FeatureKey(i+1);            
             var f = featureStore.get(key);
             assertEquals(uid, f.getUniqueIdentifier());
         }
@@ -792,8 +765,9 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<F
         t0 = System.currentTimeMillis();
         for (int i = 0; i < numReads; i++)
         {
-            String uid = UID_PREFIX + "F" + (int)(Math.random()*(numFeatures-1));
-            var key = new FeatureKey(uid);            
+            int id = (int)(Math.random()*(numFeatures-1));
+            String uid = UID_PREFIX + "F" + id;
+            var key = new FeatureKey(id+1);            
             var f = featureStore.get(key);
             assertEquals(uid, f.getUniqueIdentifier());
         }

@@ -30,6 +30,8 @@ import org.vast.util.Asserts;
  */
 public class FeatureId
 {
+    public static FeatureId NULL_FEATURE = new FeatureId(0L);
+    
     protected long internalID = -1; // 0 is reserved and can never be used as ID
     protected String uniqueID;
     
@@ -39,7 +41,7 @@ public class FeatureId
     }
     
     
-    public FeatureId(long internalID)
+    private FeatureId(long internalID)
     {
         this.internalID = internalID;
     }
@@ -48,7 +50,7 @@ public class FeatureId
     public FeatureId(long internalID, String uid)
     {
         this(internalID);
-        this.uniqueID = uid;
+        this.uniqueID = Asserts.checkNotNull(uid, "uid");
     }
 
 

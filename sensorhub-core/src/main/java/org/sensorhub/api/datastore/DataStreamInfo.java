@@ -28,7 +28,7 @@ import net.opengis.swe.v20.DataEncoding;
  * @author Alex Robin
  * @date Sep 19, 2019
  */
-public class DataStreamInfo
+public class DataStreamInfo implements IDataStreamInfo
 {
     protected FeatureId procedureID;
     protected int recordVersion;
@@ -36,47 +36,36 @@ public class DataStreamInfo
     protected DataEncoding recordEncoding;
     
     
-    /**
-     * @return The identifier of the procedure that generated this data stream
-     */
+    @Override
     public FeatureId getProcedure()
     {
         return procedureID;
     }
 
 
-    /**
-     * @return The name of the procedure output that is/was the source of
-     * this data stream
-     */
+    @Override
     public String getOutputName()
     {
         return recordStruct.getName();
     }
 
 
-    /**
-     * @return The version of the output record schema used in this data stream
-     */
+    @Override
     public int getRecordVersion()
     {
         return recordVersion;
     }
 
 
-    /**
-     * @return The data stream record structure
-     */
+    @Override
     public DataComponent getRecordDescription()
     {
         return recordStruct;
     }
 
 
-    /**
-     * @return The recommended encoding for the data stream
-     */
-    public DataEncoding getRecommendedEncoding()
+    @Override
+    public DataEncoding getRecordEncoding()
     {
         return recordEncoding;
     }
@@ -92,7 +81,7 @@ public class DataStreamInfo
             this.instance = new DataStreamInfo();
         }
         
-        public static Builder from(DataStreamInfo base)
+        public static Builder from(IDataStreamInfo base)
         {
             return new Builder().copyFrom(base);
         }
@@ -108,12 +97,12 @@ public class DataStreamInfo
         }
         
         
-        protected B copyFrom(DataStreamInfo base)
+        protected B copyFrom(IDataStreamInfo base)
         {
-            instance.procedureID = base.procedureID;
-            instance.recordStruct = base.recordStruct;
-            instance.recordEncoding = base.recordEncoding;
-            instance.recordVersion = base.recordVersion;
+            instance.procedureID = base.getProcedure();
+            instance.recordStruct = base.getRecordDescription();
+            instance.recordEncoding = base.getRecordEncoding();
+            instance.recordVersion = base.getRecordVersion();
             return (B)this;
         }
         
@@ -121,20 +110,6 @@ public class DataStreamInfo
         public B withProcedure(FeatureId procID)
         {
             instance.procedureID = procID;
-            return (B)this;
-        }
-        
-        
-        public B withProcedure(long internalID)
-        {
-            instance.procedureID = new FeatureId(internalID);
-            return (B)this;
-        }
-        
-        
-        public B withProcedure(String uid)
-        {
-            instance.procedureID = new FeatureId(0, uid);
             return (B)this;
         }
         

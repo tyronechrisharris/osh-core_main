@@ -14,36 +14,50 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
-import net.opengis.gml.v32.AbstractFeature;
-import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
-import org.sensorhub.api.datastore.IFoiStore.FoiField;
+import com.google.common.base.Objects;
 
 
 /**
  * <p>
- * Generic interface for all feature of interest stores
+ * Base class for all datastore value fields.<br/>
+ * Value fields can be used to select what fields should be included in value
+ * objects returned by a datastore select methods.
  * </p>
  *
  * @author Alex Robin
- * @date Apr 5, 2018
+ * @date Mar 23, 2020
  */
-public interface IFoiStore extends IFeatureStore<AbstractFeature, FoiField>
+public class ValueField
 {
-    
-    public static class FoiField extends FeatureField
-    {
-        public static final FoiField SAMPLING_FEATURE = new FoiField("samplingFeature");
+    String name;
         
-        public FoiField(String name)
-        {
-            super(name);
-        }
+    
+    public ValueField(String name)
+    {
+        this.name = name;
     }
+
+
+    @Override
+    public int hashCode()
+    {
+        return name.hashCode();
+    }
+
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (!(obj instanceof ValueField))
+            return false;
+        return Objects.equal(name, ((ValueField)obj).name);
+    }
+
+
+    @Override
+    public String toString()
+    {
+        return name;
+    }    
     
-    
-    /**
-     * Link this store to an observation store to enable JOIN queries
-     * @param obsStore
-     */
-    public void linkTo(IObsStore obsStore);
 }

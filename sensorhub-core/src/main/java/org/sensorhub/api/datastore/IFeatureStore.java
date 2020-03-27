@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
-import java.util.stream.Stream;
+import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Bbox;
 
@@ -24,21 +24,37 @@ import org.vast.util.Bbox;
  * Generic interface for all feature stores
  * </p>
  * @param <K> Key type
- * @param <V> Value type 
+ * @param <V> Value type
+ * @param <VF> Value field type
  * @param <F> Filter type
  *
  * @author Alex Robin
  * @date Mar 19, 2018
  */
-public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends IDataStore<K, V, IFeatureFilter>
+public interface IFeatureStore<V extends IFeature, VF extends FeatureField> extends IDataStore<FeatureKey, V, VF, IFeatureFilter>
 {
+    
+    public static class FeatureField extends ValueField
+    {
+        public static final FeatureField UID = new FeatureField("UID");
+        public static final FeatureField NAME = new FeatureField("name");
+        public static final FeatureField DESCRIPTION = new FeatureField("description");
+        public static final FeatureField GEOMETRY = new FeatureField("geometry");
+        public static final FeatureField VALID_TIME = new FeatureField("validTime");
+        
+        public FeatureField(String name)
+        {
+            super(name);
+        }
+    }
+    
     
     /**
      * Add a new feature and generate a new unique key for it
      * @param feature The feature object to be stored
      * @return The key associated with the new feature
      */
-    public K add(V feature);
+    public FeatureKey add(V feature);
     
     
     /**
@@ -46,42 +62,40 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
      * @param feature The feature object to be stored
      * @return The key associated with the new feature
      */
-    public K addVersion(V feature);
-    
-    
-    /**
-     * Generate a unique key for the specified feature.<br/>
-     * Client is responsible for synchronizing on the store to make sure the key
-     * is not used by a concurrent call to one of the insertion methods.
-     * @param feature
-     * @return The unique feature key, including the internal ID
-     */
-    public K generateKey(V feature);
+    public FeatureKey addVersion(V feature);
     
     
     /**
      * Helper method to retrieve the full key corresponding to the latest version
      * of the feature with the given unique ID
      * @param uid The feature unique ID
-     * @return The feature key or null if none was found with this UID
+     * @return The feature key or null if no feature with the given ID was found
      */
-    public default K getLatestVersionKey(String uid)
+    public default FeatureKey getLatestVersionKey(String uid)
     {
-        Entry<K, V> e = getLatestVersionEntry(uid);
-        return e != null ? e.getKey() : null;
+        return selectKeys(new FeatureFilter.Builder()
+                .withUniqueIDs(uid)
+                .withLatestVersion()
+                .build())
+            .findFirst()
+            .orElse(null);
     }
     
     
     /**
-     * Helper method to retrieve the latest version of the feature with the given
-     * unique ID
-     * @param uid The feature unique ID
-     * @return The feature representation or null if none was found with this UID
+     * Helper method to retrieve the full key corresponding to the latest version
+     * of the feature with the given internal ID
+     * @param internalID The feature internal ID
+     * @return The feature key or null if no feature with the given ID was found
      */
-    public default V getLatestVersion(String uid)
+    public default FeatureKey getLatestVersionKey(long internalID)
     {
-        Entry<K, V> e = getLatestVersionEntry(uid);
-        return e != null ? e.getValue() : null;
+        return selectKeys(new FeatureFilter.Builder()
+                .withInternalIDs(internalID)
+                .withLatestVersion()
+                .build())
+            .findFirst()
+            .orElse(null);
     }
     
     
@@ -89,9 +103,9 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
      * Helper method to retrieve the entry corresponding to the latest version
      * of the feature with the given unique ID
      * @param uid The feature unique ID
-     * @return The feature entry or null if none was found with this UID
+     * @return The feature entry or null if no feature with the given ID was found
      */
-    public default Entry<K, V> getLatestVersionEntry(String uid)
+    public default Entry<FeatureKey, V> getLatestVersionEntry(String uid)
     {
         return selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(uid)
@@ -99,6 +113,51 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
                 .build())
             .findFirst()
             .orElse(null);            
+    }
+    
+    
+    /**
+     * Helper method to retrieve the entry corresponding to the latest version
+     * of the feature with the given internal ID
+     * @param internalID The feature internal ID
+     * @return The feature entry or null if no feature with the given ID was found
+     */
+    public default Entry<FeatureKey, V> getLatestVersionEntry(long internalID)
+    {
+        return selectEntries(new FeatureFilter.Builder()
+                .withInternalIDs(internalID)
+                .withLatestVersion()
+                .build())
+            .findFirst()
+            .orElse(null);            
+    }
+    
+    
+    /**
+     * Helper method to retrieve the latest version of the feature with the given
+     * unique ID
+     * @param uid The feature unique ID
+     * @return The feature representation or null if no feature with the
+     * given ID was found
+     */
+    public default V getLatestVersion(String uid)
+    {
+        Entry<FeatureKey, V> e = getLatestVersionEntry(uid);
+        return e != null ? e.getValue() : null;
+    }
+    
+    
+    /**
+     * Helper method to retrieve the latest version of the feature with the given
+     * internal ID
+     * @param internalID The feature internal ID
+     * @return The feature representation or null if no feature with the
+     * given ID was found
+     */
+    public default V getLatestVersion(long internalID)
+    {
+        Entry<FeatureKey, V> e = getLatestVersionEntry(internalID);
+        return e != null ? e.getValue() : null;
     }
 
 
@@ -109,7 +168,7 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
      */
     public default boolean contains(String uid)
     {
-        return containsKey(new FeatureKey(uid));
+        return getLatestVersionKey(uid) != null;
     }
     
     
@@ -132,20 +191,6 @@ public interface IFeatureStore<K extends FeatureKey, V extends IFeature> extends
      * method will count the feature only once.
      */
     public long getNumFeatures();
-    
-    
-    /**
-     * Gets the full feature ID from either the internal ID or the unique ID
-     * @param key A key with only one of the two IDs set
-     * @return A feature ID object or null if no feature found for the given key
-     */
-    public FeatureId getFeatureID(K key);
-    
-    
-    /**
-     * @return IDs of all features contained in this data store
-     */
-    public Stream<FeatureId> getAllFeatureIDs();
 
 
     /**

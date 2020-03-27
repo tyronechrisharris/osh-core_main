@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.utils.ObjectUtils;
@@ -33,8 +34,12 @@ import net.opengis.swe.v20.DataBlock;
  * @author Alex Robin
  * @date Apr 3, 2018
  */
-public class ObsData
+public class ObsData implements IObsData
 {
+    protected long dataStreamID = 0;
+    protected FeatureId foiID = IObsData.NO_FOI;
+    protected Instant resultTime = null;
+    protected Instant phenomenonTime = null;
     protected Map<String, Object> parameters = null;
     protected Geometry phenomenonLocation = null;
     //protected Range<Instant> validTime = null;
@@ -45,10 +50,34 @@ public class ObsData
     {        
     }
     
-    
-    public ObsData(DataBlock result)
+
+    @Override
+    public long getDataStreamID()
     {
-        this.result = result;
+        return dataStreamID;
+    }
+
+
+    @Override
+    public FeatureId getFoiID()
+    {
+        return foiID;
+    }
+
+
+    @Override
+    public Instant getPhenomenonTime()
+    {
+        return phenomenonTime;
+    }
+
+
+    @Override
+    public Instant getResultTime()
+    {
+        if (resultTime == null || resultTime == Instant.MIN)
+            return phenomenonTime;
+        return resultTime;
     }
     
     
@@ -99,7 +128,7 @@ public class ObsData
             this.instance = new ObsData();
         }
         
-        public static Builder from(ObsData base)
+        public static Builder from(IObsData base)
         {
             return new Builder().copyFrom(base);
         }
@@ -117,11 +146,43 @@ public class ObsData
         }
         
         
-        protected B copyFrom(ObsData base)
+        protected B copyFrom(IObsData base)
         {
-            instance.parameters = base.parameters;
-            instance.phenomenonLocation = base.phenomenonLocation;
-            instance.result = base.result;
+            instance.dataStreamID = base.getDataStreamID();
+            instance.foiID = base.getFoiID();
+            instance.resultTime = base.getResultTime();
+            instance.phenomenonTime = base.getPhenomenonTime();
+            instance.phenomenonLocation = base.getPhenomenonLocation();
+            instance.parameters = base.getParameters();
+            instance.result = base.getResult();
+            return (B)this;
+        }
+
+
+        public B withDataStream(long id)
+        {
+            instance.dataStreamID = id;
+            return (B)this;
+        }
+
+
+        public B withFoi(FeatureId id)
+        {
+            instance.foiID = id;
+            return (B)this;
+        }
+        
+
+        public B withPhenomenonTime(Instant phenomenonTime)
+        {
+            instance.phenomenonTime = phenomenonTime;
+            return (B)this;
+        }
+
+
+        public B withResultTime(Instant resultTime)
+        {
+            instance.resultTime = resultTime;
             return (B)this;
         }
 

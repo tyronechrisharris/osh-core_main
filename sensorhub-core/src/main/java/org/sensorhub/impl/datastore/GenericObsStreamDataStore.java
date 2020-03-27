@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,11 +39,12 @@ import org.sensorhub.api.datastore.DataStreamInfo;
 import org.sensorhub.api.datastore.DatabaseConfig;
 import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
+import org.sensorhub.api.datastore.IDataStreamInfo;
 import org.sensorhub.api.datastore.IDataStreamStore;
 import org.sensorhub.api.datastore.IHistoricalObsAutoPurgePolicy;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
+import org.sensorhub.api.datastore.IObsData;
 import org.sensorhub.api.datastore.ObsData;
-import org.sensorhub.api.datastore.ObsKey;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.persistence.StorageException;
@@ -91,7 +93,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
     {
         Map<String, DataStreamCachedInfo> dataStreams = new HashMap<>();
         Subscription eventSub;
-        FeatureId currentFoi = ObsKey.NO_FOI;
+        FeatureId currentFoi = IObsData.NO_FOI;
     }
     
     
@@ -293,14 +295,14 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         for (IStreamingDataInterface output: selectedOutputs)
         {
             // try to retrieve existing data stream
-            Entry<Long, DataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procUID, output.getName());
+            Entry<Long, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procUID, output.getName());
             Long dsID;
             
             if (dsEntry == null)
             {
                 // create new data stream
                 DataStreamInfo dsInfo = new DataStreamInfo.Builder()
-                    .withProcedure(procKey)
+                    .withProcedure(new FeatureId(procKey.getInternalID(), procUID))
                     .withRecordDescription(output.getRecordDescription())
                     .withRecordEncoding(output.getRecommendedEncoding())
                     .build();
@@ -309,13 +311,13 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             else
             {
                 dsID = dsEntry.getKey();
-                DataStreamInfo dsInfo = dsEntry.getValue();
+                IDataStreamInfo dsInfo = dsEntry.getValue();
                 
                 if (hasOutputChanged(dsInfo.getRecordDescription(), output.getRecordDescription()))
                 {
                     // version existing data stream
                     dsInfo = new DataStreamInfo.Builder()
-                        .withProcedure(procKey)
+                        .withProcedure(new FeatureId(procKey.getInternalID(), procUID))
                         .withRecordDescription(output.getRecordDescription())
                         .withRecordEncoding(output.getRecommendedEncoding())
                         .withRecordVersion(dsInfo.getRecordVersion()+1)
@@ -339,7 +341,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             FeatureKey fk = db.getFoiStore().getLatestVersionKey(foi.getUniqueIdentifier());
             if (fk == null)
                 fk = db.getFoiStore().addVersion(foi);
-            producerInfo.currentFoi = fk;
+            producerInfo.currentFoi = new FeatureId(fk.getInternalID(), foi.getUniqueIdentifier());
         }
         
         // make sure changes are written to storage
@@ -501,13 +503,15 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                             time = e.getTimeStamp() / 1000.;
                     
                         // store record with proper key
-                        ObsKey obsKey = new ObsKey(
-                            dsInfo.dataStreamID,
-                            procInfo.currentFoi,
-                            SWEDataUtils.toInstant(time));
+                        ObsData obs = new ObsData.Builder()
+                            .withDataStream(dsInfo.dataStreamID)
+                            .withFoi(procInfo.currentFoi)
+                            .withPhenomenonTime(SWEDataUtils.toInstant(time))
+                            .withResult(record)
+                            .build();
                         
-                        db.getObservationStore().put(obsKey, new ObsData(record));                        
-                        getLogger().trace("Storing observation with key {}", obsKey);
+                        BigInteger key = db.getObservationStore().add(obs);                        
+                        getLogger().trace("Storing observation with key {}", key);
                     }
                 }
             }
@@ -532,7 +536,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                     }
                 
                     // also remember as current FOI
-                    procInfo.currentFoi = fk;
+                    procInfo.currentFoi = new FeatureId(fk.getInternalID(), foiEvent.getFoiUID());
                 }
             }
             

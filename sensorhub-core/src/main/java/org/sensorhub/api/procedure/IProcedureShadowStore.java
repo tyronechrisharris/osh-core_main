@@ -14,8 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 
 
 /**
@@ -27,6 +27,6 @@ import org.sensorhub.api.datastore.IFeatureStore;
  * @author Alex Robin
  * @date Sep 10, 2019
  */
-public interface IProcedureShadowStore extends IFeatureStore<FeatureKey, IProcedureWithState>
+public interface IProcedureShadowStore extends IFeatureStore<IProcedureWithState, FeatureField>
 {
 }

@@ -118,10 +118,10 @@ public class FeatureFilter implements IFeatureFilter
     }
     
     
-    public boolean testInternalIDs(FeatureKey key)
+    public boolean testInternalIDs(long internalID)
     {
         return (internalIDs == null ||
-                internalIDs.test(key.internalID));
+                internalIDs.test(internalID));
     }
     
     
@@ -181,7 +181,7 @@ public class FeatureFilter implements IFeatureFilter
             super(new FeatureFilter());
         }
         
-        public static Builder from(FeatureFilter base)
+        public static Builder from(IFeatureFilter base)
         {
             return new Builder().copyFrom(base);
         }
@@ -205,16 +205,16 @@ public class FeatureFilter implements IFeatureFilter
         }
         
         
-        protected B copyFrom(FeatureFilter base)
+        protected B copyFrom(IFeatureFilter base)
         {
             Asserts.checkNotNull(base, FeatureFilter.class);
-            instance.internalIDs = base.internalIDs;
-            instance.featureUIDs = base.featureUIDs;
-            instance.validTime = base.validTime;
-            instance.location = base.location;
-            instance.keyPredicate = base.keyPredicate;
-            instance.valuePredicate = base.valuePredicate;
-            instance.limit = base.limit;
+            instance.internalIDs = base.getInternalIDs();
+            instance.featureUIDs = base.getFeatureUIDs();
+            instance.validTime = base.getValidTime();
+            instance.location = base.getLocationFilter();
+            instance.keyPredicate = base.getKeyPredicate();
+            instance.valuePredicate = base.getValuePredicate();
+            instance.limit = base.getLimit();
             return (B)this;
         }
         

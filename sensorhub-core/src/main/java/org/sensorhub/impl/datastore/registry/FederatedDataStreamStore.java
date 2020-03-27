@@ -25,7 +25,10 @@ import java.util.stream.Stream;
 import org.sensorhub.api.datastore.DataStreamFilter;
 import org.sensorhub.api.datastore.DataStreamInfo;
 import org.sensorhub.api.datastore.FeatureId;
+import org.sensorhub.api.datastore.IDataStreamInfo;
 import org.sensorhub.api.datastore.IDataStreamStore;
+import org.sensorhub.api.datastore.IDataStreamStore.DataStreamInfoField;
+import org.sensorhub.api.datastore.ObsFilter;
 import org.sensorhub.api.datastore.ProcedureFilter;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
@@ -40,15 +43,16 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStreamInfo, DataStreamFilter> implements IDataStreamStore
+public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {
     DefaultDatabaseRegistry registry;
-    FederatedProcedureStore procStore;
+    FederatedObsDatabase db;    
     
     
-    FederatedDataStreamStore(DefaultDatabaseRegistry registry)
+    FederatedDataStreamStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
     {
         this.registry = registry;
+        this.db = db;
     }
 
 
@@ -118,7 +122,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
 
 
     @Override
-    public DataStreamInfo get(Object obj)
+    public IDataStreamInfo get(Object obj)
     {
         Long key = ensureDataStreamKey(obj);
         
@@ -126,7 +130,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
         var dbInfo = registry.getLocalDbInfo(key);
         if (dbInfo != null)
         {
-            DataStreamInfo dsInfo = dbInfo.db.getObservationStore().getDataStreams().get(dbInfo.entryID);
+            IDataStreamInfo dsInfo = dbInfo.db.getObservationStore().getDataStreams().get(dbInfo.entryID);
             if (dsInfo != null)
                 return toPublicValue(dbInfo.databaseID, dsInfo);
         }
@@ -136,9 +140,9 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
     
     
     /*
-     * Convert to public keys on the way out
+     * Convert to public values on the way out
      */
-    protected DataStreamInfo toPublicValue(int databaseID, DataStreamInfo dsInfo)
+    protected IDataStreamInfo toPublicValue(int databaseID, IDataStreamInfo dsInfo)
     {
         long procPublicID = registry.getPublicID(databaseID, dsInfo.getProcedure().getInternalID());
         FeatureId publicId = new FeatureId(procPublicID, dsInfo.getProcedure().getUniqueID());
@@ -150,9 +154,9 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
     
     
     /*
-     * Convert entry keys to public keys on the way out
+     * Convert to public entries on the way out
      */
-    protected Entry<Long, DataStreamInfo> toPublicEntry(int databaseID, Entry<Long, DataStreamInfo> e)
+    protected Entry<Long, IDataStreamInfo> toPublicEntry(int databaseID, Entry<Long, IDataStreamInfo> e)
     {
         long publicID = registry.getPublicID(databaseID, e.getKey());
         return new AbstractMap.SimpleEntry<>(publicID, toPublicValue(databaseID, e.getValue()));
@@ -181,7 +185,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
         else if (filter.getProcedureFilter() != null)
         {
             // delegate to proc store handle procedure filter dispatch map
-            var filterDispatchMap = procStore.getFilterDispatchMap(filter.getProcedureFilter());
+            var filterDispatchMap = db.procStore.getFilterDispatchMap(filter.getProcedureFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())
@@ -196,12 +200,30 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
             return filterDispatchMap;
         }
         
+        else if (filter.getObservationFilter() != null)
+        {
+            // delegate to proc store handle procedure filter dispatch map
+            var filterDispatchMap = db.obsStore.getFilterDispatchMap(filter.getObservationFilter());
+            if (filterDispatchMap != null)
+            {
+                for (var filterInfo: filterDispatchMap.values())
+                {
+                    filterInfo.filter = DataStreamFilter.Builder
+                        .from(filter)
+                        .withObservations((ObsFilter)filterInfo.filter)
+                        .build();
+                }
+            }
+            
+            return filterDispatchMap;
+        }
+        
         return null;
     }
-
-
+    
+    
     @Override
-    public Stream<Entry<Long, DataStreamInfo>> selectEntries(DataStreamFilter filter)
+    public Stream<Entry<Long, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
     {
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -212,7 +234,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
                     int dbID = v.databaseID;
-                    return v.db.getObservationStore().getDataStreams().selectEntries((DataStreamFilter)v.filter)
+                    return v.db.getObservationStore().getDataStreams().selectEntries((DataStreamFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -221,7 +243,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
             return registry.obsDatabases.values().stream()
                 .flatMap(db -> {
                     int dbID = db.getDatabaseID();
-                    return db.getObservationStore().getDataStreams().selectEntries(filter)
+                    return db.getObservationStore().getDataStreams().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -229,12 +251,12 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
 
 
     @Override
-    public Set<Entry<Long, DataStreamInfo>> entrySet()
+    public Set<Entry<Long, IDataStreamInfo>> entrySet()
     {
         return new AbstractSet<>()
         {
             @Override
-            public Iterator<Entry<Long, DataStreamInfo>> iterator()
+            public Iterator<Entry<Long, IDataStreamInfo>> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> {
@@ -278,12 +300,12 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
 
 
     @Override
-    public Collection<DataStreamInfo> values()
+    public Collection<IDataStreamInfo> values()
     {
         return new AbstractCollection<>()
         {
             @Override
-            public Iterator<DataStreamInfo> iterator()
+            public Iterator<IDataStreamInfo> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> db.getObservationStore().getDataStreams().values().stream())
@@ -300,7 +322,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, DataStream
 
 
     @Override
-    public Long add(DataStreamInfo dsInfo)
+    public Long add(IDataStreamInfo dsInfo)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
