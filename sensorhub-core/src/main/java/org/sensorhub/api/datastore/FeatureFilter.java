@@ -355,7 +355,7 @@ public class FeatureFilter implements IFeatureFilter
         public B withAllVersions()
         {
             instance.validTime = new TemporalFilter.Builder()
-                .withRange(Instant.MIN, Instant.MAX)
+                .withAllTimes()
                 .build();
             return (B)this;
         }

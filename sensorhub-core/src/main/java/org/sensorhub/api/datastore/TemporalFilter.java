@@ -46,6 +46,12 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    public boolean isAllTimes()
+    {
+        return getMin() == Instant.MIN && getMax() == Instant.MAX;
+    }
+    
+    
     /*
      * Builder
      */
@@ -89,6 +95,13 @@ public class TemporalFilter extends RangeFilter<Instant>
             instance.latestTime = true;
             instance.currentTime = false;
             instance.range = Range.singleton(Instant.MAX);
+            return (B)this;
+        }
+        
+        
+        public B withAllTimes()
+        {
+            withRange(Instant.MIN, Instant.MAX);
             return (B)this;
         }
     }
