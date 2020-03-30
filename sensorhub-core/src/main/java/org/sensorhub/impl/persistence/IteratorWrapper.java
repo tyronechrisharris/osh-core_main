@@ -87,8 +87,5 @@ public abstract class IteratorWrapper<IN, OUT> implements Iterator<OUT>
     }
     
     
-    protected OUT process(IN elt)
-    {
-        return (OUT)elt;
-    }
+    protected abstract OUT process(IN elt);
 }

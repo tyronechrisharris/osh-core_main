@@ -145,4 +145,11 @@ public class RangeCursor<K, V> extends IteratorWrapper<K, K>
         return StreamSupport.stream(entryIterator(), false);
     }
 
+
+    @Override
+    protected K process(K elt)
+    {
+        return elt;
+    }
+
 }

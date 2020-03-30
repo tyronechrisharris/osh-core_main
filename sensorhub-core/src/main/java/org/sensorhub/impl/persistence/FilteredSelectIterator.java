@@ -23,17 +23,20 @@ import java.util.NoSuchElementException;
  * Helper class to write iterators that filter elements returned by another
  * iterator on-the-fly
  * </p>
+ * 
+ * @param <IN> Input Element Type
+ * @param <OUT> Output Element Type
  *
  * @author Alex Robin
  * @since Mar 15, 2017
  */
-public abstract class FilteredSelectIterator<InputE, E> implements Iterator<E>
+public abstract class FilteredSelectIterator<IN, OUT> implements Iterator<OUT>
 {
-    E next;
-    Iterator<InputE> it;
+    OUT next;
+    Iterator<IN> it;
     
     
-    public FilteredSelectIterator(Iterator<InputE> it)
+    public FilteredSelectIterator(Iterator<IN> it)
     {
         this.it = it;
         preloadNext();
@@ -48,7 +51,7 @@ public abstract class FilteredSelectIterator<InputE, E> implements Iterator<E>
     
 
     @Override
-    public E next()
+    public OUT next()
     {
         if (!hasNext())
             throw new NoSuchElementException();
@@ -60,16 +63,16 @@ public abstract class FilteredSelectIterator<InputE, E> implements Iterator<E>
      * Preload next element (filter is applied)
      * @return the current element (i.e. the one that should be returned by next())
      */
-    protected E preloadNext()
+    protected OUT preloadNext()
     {
-        E current = next;        
+        OUT current = next;        
         next = null;
         
         // loop until we find the next acceptable item
         // or end of iteration
         while (next == null && it.hasNext())
         {
-            InputE elt = it.next();
+            IN elt = it.next();
             next = accept(elt);
         }
         
@@ -77,6 +80,6 @@ public abstract class FilteredSelectIterator<InputE, E> implements Iterator<E>
     }
     
     
-    protected abstract E accept(InputE elt);
+    protected abstract OUT accept(IN elt);
 
 }
