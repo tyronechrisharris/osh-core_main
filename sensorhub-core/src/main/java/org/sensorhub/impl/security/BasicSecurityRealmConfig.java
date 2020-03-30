@@ -78,19 +78,19 @@ public class BasicSecurityRealmConfig extends SecurityModuleConfig
         @Override
         public Map<String, Object> getAttributes()
         {
-            return Collections.EMPTY_MAP;
+            return Collections.emptyMap();
         }
         
         @Override
         public Collection<IPermissionPath> getAllowList()
         {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
         
         @Override
         public Collection<IPermissionPath> getDenyList()
         {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
     }
     
