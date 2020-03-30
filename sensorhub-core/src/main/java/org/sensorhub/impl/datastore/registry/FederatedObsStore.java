@@ -31,7 +31,6 @@ import org.sensorhub.api.datastore.IDataStreamStore;
 import org.sensorhub.api.datastore.IObsData;
 import org.sensorhub.api.datastore.IObsStore;
 import org.sensorhub.api.datastore.IObsStore.ObsField;
-import org.sensorhub.api.datastore.ObsData;
 import org.sensorhub.api.datastore.ObsFilter;
 import org.sensorhub.api.datastore.ObsStats;
 import org.sensorhub.api.datastore.ObsStatsQuery;
@@ -203,6 +202,9 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
             return null;
         
         IObsData obs = dbInfo.db.getObservationStore().get(toLocalKey(dbInfo.databaseID, key));
+        if (obs == null)
+            return null;
+        
         return toPublicValue(dbInfo.databaseID, obs);
     }
     
