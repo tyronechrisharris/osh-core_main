@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
@@ -34,6 +33,8 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.datastore.IDataStore;
+import org.sensorhub.api.datastore.IDatabase;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.module.IModule;
@@ -99,8 +100,77 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     {
         allModulesLoaded = false;
                 
-        List<ModuleConfig> moduleConfs = configRepo.getAllModulesConfigurations();
-        for (ModuleConfig config: moduleConfs)
+        var allModuleConfs = configRepo.getAllModulesConfigurations();
+        
+        // separate datastore/database modules from other modules
+        ArrayList<ModuleConfig> dataStoreConfs = new ArrayList<>();
+        ArrayList<ModuleConfig> otherModuleConfs = new ArrayList<>();
+        for (ModuleConfig config: allModuleConfs)
+        {
+            try
+            {
+                if (isDataStoreModule(config) && config.autoStart)
+                    dataStoreConfs.add(config);
+                else
+                    otherModuleConfs.add(config);
+            }
+            catch (SensorHubException e)
+            {
+                // log error and continue loading other modules
+                log.error(IModule.CANNOT_LOAD_MSG, e);
+            }
+        }
+        
+        // First load all datastore modules to ensure they are registered with database
+        // registry and ready to record data before any other module start producing data.
+        // This is necessary to avoid missing data if it is published to the bus before
+        // datastores are ready.
+        log.info("Loading datastore connectors");
+        for (ModuleConfig config: dataStoreConfs)
+        {
+            try
+            {
+                loadModuleAsync(config.clone(), null);
+            }
+            catch (Exception e)
+            {
+                // log error and continue loading other modules
+                log.error(IModule.CANNOT_LOAD_MSG, e);
+            }
+        }
+        
+        // wait for all datastores to be started
+        synchronized (loadedModules)
+        {
+            boolean allStarted = false;
+            
+            try
+            {
+                while (!allStarted)
+                {
+                    allStarted = true;                    
+                    for (IModule<?> module: loadedModules.values())
+                    {
+                        if (!module.isStarted())
+                        {
+                            allStarted = false;
+                            break;
+                        }
+                    }
+                    
+                    if (!allStarted)
+                        loadedModules.wait(20000);
+                }
+            }
+            catch (InterruptedException e)
+            {
+                throw new IllegalStateException("Could not start all datastores", e);
+            }
+        }
+        
+        // then load all other modules
+        log.info("All datastores ready. Loading all other modules");
+        for (ModuleConfig config: otherModuleConfs)
         {
             try
             {
@@ -117,6 +187,21 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         {
             this.allModulesLoaded = true;
             loadedModules.notifyAll();
+        }
+    }
+    
+    
+    protected boolean isDataStoreModule(ModuleConfig config) throws SensorHubException
+    {
+        try
+        {
+            Class<?> moduleClazz = Class.forName(config.moduleClass);
+            return IDatabase.class.isAssignableFrom(moduleClazz) ||
+                   IDataStore.class.isAssignableFrom(moduleClazz);
+        }
+        catch (Exception e)
+        {
+            throw new SensorHubException(IModule.CANNOT_LOAD_MSG  + MsgUtils.moduleString(config), e);
         }
     }
     
@@ -1059,6 +1144,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                             
                         case STARTED:
                             log.info("Module {} started", moduleString);
+                            // notify that a new module started
+                            synchronized (loadedModules) { loadedModules.notify(); }
                             break;
                             
                         case STOPPING:
