@@ -198,7 +198,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
         String uid = feature.getUniqueIdentifier();
         Asserts.checkNotNull(uid, "uniqueID");
         if (idsIndex.containsKey(uid))
-            throw new IllegalArgumentException("Data store already contains a procedure with UID " + uid);
+            throw new IllegalArgumentException("Datastore already contains feature with UID " + uid);
         
         // generate key
         long internalID = idProvider.newInternalID();
