@@ -259,6 +259,35 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
             return (B)this;
         }
 
+        
+        /**
+         * Keep only observations whose phenomenon time matches the temporal filter.
+         * @return The {@link TemporalFilter} builder for chaining
+         */
+        public TemporalFilter.NestedBuilder<B> withPhenomenonTime()
+        {
+            return new TemporalFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ObsFilterBuilder.this.instance.phenomenonTime = build();
+                    return (B)ObsFilterBuilder.this;
+                }                
+            };
+        }
+
+
+        /**
+         * Keep only observations whose phenomenon time matches the spatial filter.
+         * @param filter Temporal filtering options
+         * @return This builder for chaining
+         */
+        public B withPhenomenonTime(TemporalFilter filter)
+        {
+            instance.phenomenonTime = filter;
+            return (B)this;
+        }
+
 
         /**
          * Keep only observations whose result time is within the given period.<br/>
@@ -290,6 +319,23 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
             return (B)this;
         }
 
+        
+        /**
+         * Keep only observations whose phenomenon location, if any, matches the spatial filter.
+         * @return The {@link SpatialFilter} builder for chaining
+         */
+        public SpatialFilter.NestedBuilder<B> withPhenomenonLocation()
+        {
+            return new SpatialFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ObsFilterBuilder.this.instance.phenomenonLocation = build();
+                    return (B)ObsFilterBuilder.this;
+                }                
+            };
+        }
+
 
         /**
          * Keep only observations whose phenomenon location, if any, matches the spatial filter.
@@ -301,18 +347,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
             instance.phenomenonLocation = filter;
             return (B)this;
         }
-
-
-        /**
-         * Keep only observations whose phenomenon location, if any, matches the spatial filter.
-         * @param filter Spatial filtering options
-         * @return This builder for chaining
-         */
-        public B withPhenomenonLocation(SpatialFilter.Builder filter)
-        {
-            return withPhenomenonLocation(filter.build());
-        }
-
+        
         
         /**
          * Keep only observations from data streams matching the filter.
@@ -354,6 +389,25 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
                 .withInternalIDs(ids)
                 .build();
             return (B)this;
+        }
+        
+        
+        /**
+         * Keep only observations from procedures matching the filter.
+         * @return The {@link ProcedureFilter} builder for chaining
+         */
+        public ProcedureFilter.NestedBuilder<B> withProcedures()
+        {
+            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ObsFilterBuilder.this.instance.dataStreams = new DataStreamFilter.Builder()
+                        .withProcedures(build())
+                        .build();
+                    return (B)ObsFilterBuilder.this;
+                }                
+            };
         }
 
 

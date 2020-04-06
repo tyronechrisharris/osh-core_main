@@ -64,6 +64,23 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    /*
+     * Nested builder for use within another builder
+     */
+    public static abstract class NestedBuilder<B> extends TimeFilterBuilder<NestedBuilder<B>, TemporalFilter>
+    {
+        B parent;
+        
+        public NestedBuilder(B parent)
+        {
+            this.parent = parent;
+            this.instance = new TemporalFilter();
+        }
+                
+        public abstract B done();
+    }
+    
+    
     @SuppressWarnings("unchecked")
     public static abstract class TimeFilterBuilder<
             B extends TimeFilterBuilder<B, F>,

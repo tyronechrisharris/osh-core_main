@@ -360,6 +360,23 @@ public class FeatureFilter implements IFeatureFilter
             return (B)this;
         }
 
+        
+        /**
+         * Keep only features whose geometry matches the filter.
+         * @return The {@link SpatialFilter} builder for chaining
+         */
+        public SpatialFilter.NestedBuilder<B> withLocation()
+        {
+            return new SpatialFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    FeatureFilterBuilder.this.instance.location = build();
+                    return (B)FeatureFilterBuilder.this;
+                }                
+            };
+        }
+
 
         /**
          * Keep only features whose geometry matches the filter.
@@ -370,17 +387,6 @@ public class FeatureFilter implements IFeatureFilter
         {
             instance.location = location;
             return (B)this;
-        }
-
-
-        /**
-         * Keep only features whose geometry matches the filter.
-         * @param location Spatial filter (see {@link SpatialFilter})
-         * @return This builder for chaining
-         */
-        public B withLocation(SpatialFilter.Builder location)
-        {
-            return withLocation(location.build());
         }
 
 

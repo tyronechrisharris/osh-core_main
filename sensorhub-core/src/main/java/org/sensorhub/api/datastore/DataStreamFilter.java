@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -322,7 +321,16 @@ public class DataStreamFilter implements IQueryFilter, Predicate<IDataStreamInfo
         
         public B withOutputNames(String... names)
         {
-            instance.outputNames = new HashSet<String>();
+            instance.outputNames = new TreeSet<String>();
+            for (String name: names)
+                instance.outputNames.add(name);
+            return (B)this;
+        }
+        
+        
+        public B withOutputNames(Collection<String> names)
+        {
+            instance.outputNames = new TreeSet<String>();
             for (String name: names)
                 instance.outputNames.add(name);
             return (B)this;
@@ -358,6 +366,15 @@ public class DataStreamFilter implements IQueryFilter, Predicate<IDataStreamInfo
         
         
         public B withObservedProperties(String... uris)
+        {
+            instance.observedProperties = new TreeSet<String>();
+            for (String uri: uris)
+                instance.observedProperties.add(uri);
+            return (B)this;
+        }
+        
+        
+        public B withObservedProperties(Collection<String> uris)
         {
             instance.observedProperties = new TreeSet<String>();
             for (String uri: uris)
