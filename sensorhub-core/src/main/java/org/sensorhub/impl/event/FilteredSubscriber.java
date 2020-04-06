@@ -24,36 +24,22 @@ import java.util.function.Predicate;
  * Wraps an existing subscriber and further filters items before they are
  * delivered to its {@link Subscriber#onNext(Object) onNext()} method
  * </p>
+ * 
+ * @param <T> the subscribed item type
  *
  * @author Alex Robin
- * @param <T> the subscribed item type 
  * @date Feb 22, 2019
  */
-public class FilteredSubscriber<T> implements Subscriber<T>
+public class FilteredSubscriber<T> extends DelegatingSubscriber<T>
 {
-    Subscriber<? super T> wrappedSubscriber;
     Predicate<? super T> filter;
     Subscription subscription;
     
     
-    public FilteredSubscriber(Subscriber<? super T> wrappedSubscriber, Predicate<? super T> filter)
+    public FilteredSubscriber(Subscriber<? super T> subscriber, Predicate<? super T> filter)
     {
-        this.wrappedSubscriber = wrappedSubscriber;
+        super(subscriber);
         this.filter = filter;
-    }
-
-
-    @Override
-    public void onComplete()
-    {
-        wrappedSubscriber.onComplete();
-    }
-
-
-    @Override
-    public void onError(Throwable throwable)
-    {
-        wrappedSubscriber.onError(throwable);
     }
 
 
@@ -61,7 +47,7 @@ public class FilteredSubscriber<T> implements Subscriber<T>
     public void onNext(T item)
     {
         if (filter.test(item))
-            wrappedSubscriber.onNext(item);
+            subscriber.onNext(item);
         else
             subscription.request(1);
     }
@@ -71,6 +57,6 @@ public class FilteredSubscriber<T> implements Subscriber<T>
     public void onSubscribe(Subscription subscription)
     {
         this.subscription = subscription;
-        wrappedSubscriber.onSubscribe(subscription);
+        subscriber.onSubscribe(subscription);
     }
 }
