@@ -24,6 +24,7 @@ import net.opengis.swe.v20.Vector;
 import org.junit.Test;
 import org.sensorhub.impl.SensorHub;
 import org.vast.ogc.gml.GMLUtils;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEConstants;
 
@@ -40,8 +41,8 @@ public class TestSensorPosition
     
     protected void checkFoiLocation(FakeSensorWithPos sensor) throws Exception
     {
-        AbstractFeature f = sensor.getCurrentFeatureOfInterest();
-        new GMLUtils(GMLUtils.V3_2).writeFeature(System.out, f, true);
+        IGeoFeature f = sensor.getCurrentFeatureOfInterest();
+        new GMLUtils(GMLUtils.V3_2).writeFeature(System.out, (AbstractFeature)f, true);
         System.out.println('\n');
         
         assertTrue("FoI must be a point", f.getGeometry() instanceof Point);
