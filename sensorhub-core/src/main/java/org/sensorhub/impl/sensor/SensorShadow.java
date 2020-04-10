@@ -36,8 +36,8 @@ import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
 import org.sensorhub.impl.procedure.ProcedureShadow;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
-import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.Point;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
@@ -60,7 +60,7 @@ public class SensorShadow extends ProcedureShadow implements ISensor
     protected Map<String, OutputProxy> obsOutputs = new LinkedHashMap<>();
     protected Map<String, OutputProxy> statusOutputs = new LinkedHashMap<>();
     protected Map<String, ControlProxy> controlInputs = new LinkedHashMap<>();
-    protected AbstractFeature currentFoi;
+    protected IGeoFeature currentFoi;
 
 
     // needed for deserialization
@@ -160,7 +160,7 @@ public class SensorShadow extends ProcedureShadow implements ISensor
 
 
     @Override
-    public AbstractFeature getCurrentFeatureOfInterest()
+    public IGeoFeature getCurrentFeatureOfInterest()
     {
         IProcedureWithState proc = ref.get();
         if (proc != null)

@@ -17,7 +17,7 @@ package org.sensorhub.api.data;
 import java.util.Collection;
 import java.util.Map;
 import org.sensorhub.api.procedure.IProcedureGroup;
-import net.opengis.gml.v32.AbstractFeature;
+import org.vast.ogc.gml.IGeoFeature;
 
 
 /**
@@ -41,7 +41,7 @@ public interface IMultiSourceDataProducer extends IDataProducer, IProcedureGroup
      * is generating data
      * @return Read-only map of FOI unique IDs -> feature objects
      */
-    public Map<String, ? extends AbstractFeature> getFeaturesOfInterest();
+    public Map<String, ? extends IGeoFeature> getFeaturesOfInterest();
     
     
     /**

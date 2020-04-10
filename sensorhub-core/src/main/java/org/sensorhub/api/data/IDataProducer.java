@@ -16,7 +16,7 @@ package org.sensorhub.api.data;
 
 import java.util.Map;
 import org.sensorhub.api.procedure.IProcedureWithState;
-import net.opengis.gml.v32.AbstractFeature;
+import org.vast.ogc.gml.IGeoFeature;
 
 
 /**
@@ -42,6 +42,6 @@ public interface IDataProducer extends IProcedureWithState
      * currently generating data.
      * @return Feature object
      */
-    public AbstractFeature getCurrentFeatureOfInterest();
+    public IGeoFeature getCurrentFeatureOfInterest();
     
 }

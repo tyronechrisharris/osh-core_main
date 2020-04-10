@@ -22,7 +22,7 @@ import org.sensorhub.api.datastore.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.IObsStore;
 import org.sensorhub.api.datastore.IObsStore.ObsField;
 import org.sensorhub.api.datastore.ObsFilter;
-import net.opengis.gml.v32.AbstractFeature;
+import org.vast.ogc.gml.IGeoFeature;
 
 
 /**
@@ -34,7 +34,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature, FoiField> implements IFoiStore
+public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField> implements IFoiStore
 {
     MVObsStoreImpl obsStore;
     
@@ -71,7 +71,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature, FoiF
     
     
     @Override
-    protected Stream<Entry<FeatureKey, AbstractFeature>> getIndexedStream(IFeatureFilter filter)
+    protected Stream<Entry<FeatureKey, IGeoFeature>> getIndexedStream(IFeatureFilter filter)
     {
         if (filter instanceof FoiFilter && ((FoiFilter)filter).getObservationFilter() != null)
         {

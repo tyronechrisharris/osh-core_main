@@ -66,6 +66,7 @@ import org.sensorhub.api.procedure.ProcedureEvent;
 import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
@@ -262,12 +263,12 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         
         // init current FOI
         String producerID = dataSource.getUniqueIdentifier();
-        AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
+        IGeoFeature foi = dataSource.getCurrentFeatureOfInterest();
         if (foi != null)
         {
             currentFoiMap.put(producerID, foi.getUniqueIdentifier());
             if (dataStore instanceof IObsStorage)
-                ((IObsStorage)dataStore).storeFoi(producerID, foi);
+                ((IObsStorage)dataStore).storeFoi(producerID, (AbstractFeature)foi);
         }
         
         // make sure changes are written to storage
@@ -459,7 +460,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                     // store feature object if specified
                     if (foiEvent.getFoi() != null)
                     {
-                        ((IObsStorage) storage).storeFoi(producerID, foiEvent.getFoi());
+                        ((IObsStorage) storage).storeFoi(producerID, (AbstractFeature)foiEvent.getFoi());
                         getLogger().trace("Storing FOI {}", foiEvent.getFoiUID());
                     }
                 

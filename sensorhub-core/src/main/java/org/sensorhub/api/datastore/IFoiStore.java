@@ -14,9 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
-import net.opengis.gml.v32.AbstractFeature;
 import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
 import org.sensorhub.api.datastore.IFoiStore.FoiField;
+import org.vast.ogc.gml.IGeoFeature;
 
 
 /**
@@ -27,7 +27,7 @@ import org.sensorhub.api.datastore.IFoiStore.FoiField;
  * @author Alex Robin
  * @date Apr 5, 2018
  */
-public interface IFoiStore extends IFeatureStore<AbstractFeature, FoiField>
+public interface IFoiStore extends IFeatureStore<IGeoFeature, FoiField>
 {
     
     public static class FoiField extends FeatureField

@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 import net.opengis.OgcProperty;
-import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.TimeIndeterminateValue;
 import net.opengis.gml.v32.TimePosition;
@@ -53,6 +52,7 @@ import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.om.SamplingPoint;
 import org.vast.sensorML.PhysicalSystemImpl;
 import org.vast.sensorML.SMLUtils;
@@ -110,7 +110,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected String xmlID;
     protected String uniqueID;
     protected boolean randomUniqueID;
-    protected AbstractFeature foi = null;
+    protected IGeoFeature foi = null;
             
     
     @Override
@@ -500,7 +500,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     
     
     @Override
-    public AbstractFeature getCurrentFeatureOfInterest()
+    public IGeoFeature getCurrentFeatureOfInterest()
     {
         // add default feature of interest if location is set in config
         LLALocation loc = config.getLocation();

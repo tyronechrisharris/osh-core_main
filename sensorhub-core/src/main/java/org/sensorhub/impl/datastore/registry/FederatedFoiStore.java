@@ -32,9 +32,9 @@ import org.sensorhub.api.datastore.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.IObsStore;
 import org.sensorhub.api.datastore.ObsFilter;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
-import net.opengis.gml.v32.AbstractFeature;
 
 
 /**
@@ -46,7 +46,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFeature, FoiField, IFeatureFilter> implements IFoiStore
+public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature, FoiField, IFeatureFilter> implements IFoiStore
 {
     DefaultDatabaseRegistry registry;
     FederatedObsDatabase db;
@@ -183,7 +183,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     /*
      * Convert to public entries on the way out
      */
-    protected Entry<FeatureKey, AbstractFeature> toPublicEntry(int databaseID, Entry<FeatureKey, AbstractFeature> e)
+    protected Entry<FeatureKey, IGeoFeature> toPublicEntry(int databaseID, Entry<FeatureKey, IGeoFeature> e)
     {
         return new AbstractMap.SimpleEntry<>(
             toPublicKey(databaseID, e.getKey()),
@@ -192,7 +192,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
 
 
     @Override
-    public AbstractFeature get(Object obj)
+    public IGeoFeature get(Object obj)
     {
         FeatureKey key = ensureFeatureKey(obj);
         
@@ -209,7 +209,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
         {
             for (var db: registry.obsDatabases.values())
             {
-                AbstractFeature f = db.getFoiStore().get(key);
+                IGeoFeature f = db.getFoiStore().get(key);
                 if (f != null)
                     return f;
             }
@@ -286,7 +286,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
 
 
     @Override
-    public Stream<Entry<FeatureKey, AbstractFeature>> selectEntries(IFeatureFilter filter, Set<FoiField> fields)
+    public Stream<Entry<FeatureKey, IGeoFeature>> selectEntries(IFeatureFilter filter, Set<FoiField> fields)
     {
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -314,12 +314,12 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
 
 
     @Override
-    public Set<Entry<FeatureKey, AbstractFeature>> entrySet()
+    public Set<Entry<FeatureKey, IGeoFeature>> entrySet()
     {
         return new AbstractSet<>()
         {
             @Override
-            public Iterator<Entry<FeatureKey, AbstractFeature>> iterator()
+            public Iterator<Entry<FeatureKey, IGeoFeature>> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> {
@@ -366,12 +366,12 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
 
 
     @Override
-    public Collection<AbstractFeature> values()
+    public Collection<IGeoFeature> values()
     {
         return new AbstractCollection<>()
         {
             @Override
-            public Iterator<AbstractFeature> iterator()
+            public Iterator<IGeoFeature> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> db.getFoiStore().values().stream())
@@ -388,14 +388,14 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, AbstractFea
     
     
     @Override
-    public FeatureKey add(AbstractFeature feature)
+    public FeatureKey add(IGeoFeature feature)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
 
 
     @Override
-    public FeatureKey addVersion(AbstractFeature feature)
+    public FeatureKey addVersion(IGeoFeature feature)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

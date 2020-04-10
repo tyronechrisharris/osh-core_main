@@ -26,7 +26,6 @@ import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow.Subscription;
-import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import org.sensorhub.api.common.SensorHubException;
@@ -59,6 +58,7 @@ import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
 import org.sensorhub.utils.SWEDataUtils;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
@@ -334,7 +334,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         }
         
         // init current FOI
-        AbstractFeature foi = dataSource.getCurrentFeatureOfInterest();
+        IGeoFeature foi = dataSource.getCurrentFeatureOfInterest();
         if (foi != null)
         {
             // TODO support versioning but check that fois are really different            
