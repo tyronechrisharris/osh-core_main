@@ -10,6 +10,7 @@
 package org.sensorhub.impl.event;
 
 import static org.junit.Assert.*;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -404,7 +405,7 @@ public class TestEventBus
             if (i % 2 == 0)
                 pub.publish(new TestEvent("source", "test", 0));
             else
-                pub.publish(new FoiEvent(System.currentTimeMillis(), "source", "foi", 1.0));
+                pub.publish(new FoiEvent(System.currentTimeMillis(), "source", "foi", Instant.now()));
         }
         
         assertTrue("Not enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
@@ -421,7 +422,7 @@ public class TestEventBus
         
         bus.newSubscription(TestEvent.class)
             .withSourceID(sources)
-            .listen(e -> {
+            .consume(e -> {
                 count.incrementAndGet();
                 doneSignal.countDown();
             });

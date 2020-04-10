@@ -135,12 +135,4 @@ public interface ISubscriptionBuilder<E extends Event>
      */
     CompletableFuture<Subscription> consume(Consumer<? super E> consumer);
     
-    
-    /**
-     * Subscribe asynchronously with a simple event listener without flow
-     * control (back pressure) capability
-     * @param listener listener that will receive the events
-     * @return a future that will be notified when the subscription is ready
-     */
-    CompletableFuture<Subscription> listen(IEventListener listener);
 }

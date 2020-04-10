@@ -29,7 +29,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.event.SubscribeOptions;
@@ -330,14 +329,6 @@ public class EventBus implements IEventBus
             Asserts.checkNotNull(consumer, Consumer.class);
             CompletableFuture<Subscription> future = new CompletableFuture<>();
             return subscribe(new SubscriberConsumerAdapter<>(future::complete, consumer, false), future);
-        }
-        
-        @Override
-        public CompletableFuture<Subscription> listen(IEventListener listener)
-        {
-            Asserts.checkNotNull(listener, IEventListener.class);
-            CompletableFuture<Subscription> future = new CompletableFuture<>();
-            return subscribe(new SubscriberConsumerAdapter<>(future::complete, listener::handleEvent, false), future);
         }
     }
 }

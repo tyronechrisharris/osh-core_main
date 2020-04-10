@@ -19,7 +19,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
@@ -27,7 +26,7 @@ import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
 
 
-public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IEventListener
+public class AsyncModule extends AbstractModule<AsyncModuleConfig>
 {
     ExecutorService exec = Executors.newSingleThreadExecutor();
     
@@ -53,7 +52,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IE
                                 //getParentHub().getEventBus().registerListener(config.moduleIDNeededForInit, AsyncModule.this);
                                 getParentHub().getEventBus().newSubscription()
                                     .withSourceID(config.moduleIDNeededForInit)
-                                    .listen(AsyncModule.this);
+                                    .consume(AsyncModule.this::handleEvent);
                                 return null;
                             }
                             else
@@ -121,7 +120,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IE
                                 //getParentHub().getEventBus().registerListener(config.moduleIDNeededForStart, AsyncModule.this);
                                 getParentHub().getEventBus().newSubscription()
                                     .withSourceID(config.moduleIDNeededForStart)
-                                    .listen(AsyncModule.this);
+                                    .consume(AsyncModule.this::handleEvent);
                                 return null;
                             }
                             else
@@ -220,7 +219,6 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig> implements IE
     }
 
 
-    @Override
     public void handleEvent(Event e)
     {
         if (e instanceof ModuleEvent)
