@@ -69,13 +69,8 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     
     public ISensorHub getParentHub()
     {
+        Asserts.checkNotNull(hub, "Parent sensor hub hasn't been set");
         return this.hub;
-    }
-    
-    
-    protected void checkParentHub()
-    {
-        Asserts.checkState(hub != null, "Parent sensor hub hasn't been set");
     }
     
     
@@ -555,7 +550,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void registerListener(IEventListener listener)
     {
-        checkParentHub();        
         synchronized (stateLock)
         {
             eventHandler.registerListener(listener);
@@ -571,7 +565,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void unregisterListener(IEventListener listener)
     {
-        checkParentHub();
         eventHandler.unregisterListener(listener);
     }
     
