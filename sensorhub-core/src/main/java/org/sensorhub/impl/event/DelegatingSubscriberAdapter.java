@@ -16,6 +16,7 @@ package org.sensorhub.impl.event;
 
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import org.vast.util.Asserts;
 
 
 /**
@@ -40,7 +41,7 @@ public abstract class DelegatingSubscriberAdapter<IN, OUT> implements Subscriber
     
     public DelegatingSubscriberAdapter(Subscriber<? super OUT> subscriber)
     {
-        this.subscriber = subscriber;
+        this.subscriber = Asserts.checkNotNull(subscriber, Subscriber.class);
     }
     
     

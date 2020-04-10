@@ -8,37 +8,47 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.event;
 
-import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
+import org.vast.util.Asserts;
 
 
 /**
  * <p>
- * Base class for all delegating subscribers, useful to simplify implementation
- * of various types of subscribers.
+ * Base class for all delegating subscription, useful to simplify implementation
+ * of various types of subscriptions.
  * </p>
- * 
- * @param <T> The subscribed item type
  *
  * @author Alex Robin
- * @date Apr 5, 2020
+ * @date Apr 10, 2020
  */
-public class DelegatingSubscriber<T> extends DelegatingSubscriberAdapter<T, T>
+public class DelegatingSubscription implements Subscription
 {
+    Subscription sub;
+    
+    
+    public DelegatingSubscription(Subscription sub)
+    {
+        this.sub = Asserts.checkNotNull(sub, Subscription.class);
+    }
+    
+    
+    @Override
+    public void request(long n)
+    {
+        sub.request(n);
+    }
 
-    public DelegatingSubscriber(Subscriber<? super T> subscriber)
+
+    @Override
+    public void cancel()
     {
-        super(subscriber);
+        sub.cancel();
     }
-    
-    
-    public void onNext(T item)
-    {
-        subscriber.onNext(item);
-    }
+
 }
