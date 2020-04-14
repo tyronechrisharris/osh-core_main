@@ -1,0 +1,4 @@
+[submodule "lib-ogc"]
+	path = lib-ogc
+	url = https://github.com/sensiasoft/lib-ogc.git
+	branch = master
