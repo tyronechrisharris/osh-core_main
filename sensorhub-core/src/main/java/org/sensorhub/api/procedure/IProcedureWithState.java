@@ -17,7 +17,8 @@ package org.sensorhub.api.procedure;
 import java.time.Instant;
 import org.sensorhub.api.event.IEventProducer;
 import org.vast.ogc.om.IProcedure;
-import com.google.common.collect.Range;
+import org.vast.util.ITimeExtent;
+import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
@@ -79,12 +80,12 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
 
 
     @Override
-    default Range<Instant> getValidTime()
+    default ITimeExtent getValidTime()
     {
         if (getCurrentDescription() != null)
             return getCurrentDescription().getValidTime();
         else
-            return Range.atLeast(Instant.ofEpochMilli(getLastDescriptionUpdate()));
+            return TimeExtent.beginAt(Instant.ofEpochMilli(getLastDescriptionUpdate()));
     }
 
 }

@@ -210,7 +210,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
     protected Instant getValidStartTime(V feature)
     {
         if (feature instanceof ITemporalFeature && ((ITemporalFeature)feature).getValidTime() != null)
-            return ((ITemporalFeature)feature).getValidTime().lowerEndpoint();
+            return ((ITemporalFeature)feature).getValidTime().begin();
         
         // return default value for features with no time stamps
         // -> this means they are always valid
@@ -581,7 +581,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
                 {
                     Range<Instant> validPeriod = null;
                     if (f instanceof ITemporalFeature)
-                        validPeriod = ((ITemporalFeature) f).getValidTime();
+                        validPeriod = ((ITemporalFeature) f).getValidTime().asRange();
                     
                     MVFeatureRef ref = new MVFeatureRef.Builder()
                             .withInternalID(key.getInternalID())
