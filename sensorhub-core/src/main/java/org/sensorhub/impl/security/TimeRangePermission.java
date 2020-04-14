@@ -29,7 +29,7 @@ import org.vast.util.TimeExtent;
  */
 public class TimeRangePermission extends AbstractPermission implements IParameterizedPermission<TimeExtent>
 {
-    TimeExtent timeExtent = new TimeExtent();
+    TimeExtent timeExtent;
     
     
     protected TimeRangePermission(AbstractPermission parent)
@@ -70,6 +70,7 @@ public class TimeRangePermission extends AbstractPermission implements IParamete
     
 
     @Override
+    @SuppressWarnings("unchecked")
     public IParameterizedPermission<TimeExtent> clone()
     {
         try

@@ -104,7 +104,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     protected FeatureKey getKey(AbstractFeature f)
     {
         Instant validStartTime = (f instanceof ITemporalFeature) ? 
-                ((ITemporalFeature)f).getValidTime().lowerEndpoint() :
+                ((ITemporalFeature)f).getValidTime().begin() :
                 Instant.MIN;
         
         return new FeatureKey(
@@ -490,7 +490,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
         
         resultMap.forEach((k, v) -> {
             if (!expectedIds.contains(v.getUniqueIdentifier()) ||
-                (v instanceof ITemporalFeature) && !lastVersion && !timeRange.isConnected(((ITemporalFeature)v).getValidTime()))
+                (v instanceof ITemporalFeature) && !lastVersion && !timeRange.isConnected(((ITemporalFeature)v).getValidTime().asRange()))
                 fail("Result contains unexpected feature: " + k);
         });
         
@@ -499,7 +499,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
             allFeatures.entrySet().stream()
                 .filter(e -> expectedIds.contains(e.getValue().getUniqueIdentifier()))
                 .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
-                             timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime()))
+                             timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
                 .forEach(e -> {
                     if (!resultMap.containsKey(e.getKey()))
                         fail("Result is missing feature: " + e.getKey());
@@ -624,14 +624,14 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
         
         resultMap.forEach((k, v) -> {
             if (!v.isSetGeometry() || !((Geometry)v.getGeometry()).intersects(roi) ||
-                (v instanceof ITemporalFeature) && !timeRange.isConnected(((ITemporalFeature)v).getValidTime()))
+                (v instanceof ITemporalFeature) && !timeRange.isConnected(((ITemporalFeature)v).getValidTime().asRange()))
                 fail("Result contains unexpected feature: " + k + ", geom=" + v.getGeometry());
         });
         
         allFeatures.entrySet().stream()
             .filter(e -> e.getValue().isSetGeometry() && ((Geometry)e.getValue().getGeometry()).intersects(roi))
             .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
-                         timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime()))
+                         timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
             .forEach(e -> {
                 if (!resultMap.containsKey(e.getKey()))
                     fail("Result is missing feature: " + e.getKey());

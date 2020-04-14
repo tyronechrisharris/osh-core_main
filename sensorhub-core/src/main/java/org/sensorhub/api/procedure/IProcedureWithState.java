@@ -17,7 +17,6 @@ package org.sensorhub.api.procedure;
 import java.time.Instant;
 import org.sensorhub.api.event.IEventProducer;
 import org.vast.ogc.om.IProcedure;
-import org.vast.util.ITimeExtent;
 import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 
@@ -80,7 +79,7 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
 
 
     @Override
-    default ITimeExtent getValidTime()
+    default TimeExtent getValidTime()
     {
         if (getCurrentDescription() != null)
             return getCurrentDescription().getValidTime();

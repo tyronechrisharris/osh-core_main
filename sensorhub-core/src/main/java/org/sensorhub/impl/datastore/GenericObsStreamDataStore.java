@@ -284,7 +284,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         // otherwise update to the latest sensor description in case we were down during the last update
         else if (dataSource.getLastDescriptionUpdate() != Long.MIN_VALUE)
         {
-            Instant validStartTime = dataSource.getCurrentDescription().getValidTime().lowerEndpoint();
+            Instant validStartTime = dataSource.getCurrentDescription().getValidTime().begin();
             if (procKey.getValidStartTime().isBefore(validStartTime))
                 procKey = db.getProcedureStore().addVersion(dataSource.getCurrentDescription());
         }

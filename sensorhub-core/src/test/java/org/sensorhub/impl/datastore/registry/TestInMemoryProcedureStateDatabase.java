@@ -104,7 +104,7 @@ public class TestInMemoryProcedureStateDatabase
         {
             var proc = (ITemporalFeature)db.getFoiStore().get(key);
             OffsetDateTime expectedTime = FIRST_VERSION_TIME.plus((NUM_TIME_ENTRIES_PER_FEATURE-1)*30, ChronoUnit.DAYS).plus(key.getInternalID()-1, ChronoUnit.HOURS);
-            assertEquals(expectedTime.toInstant(), proc.getValidTime().lowerEndpoint());
+            assertEquals(expectedTime.toInstant(), proc.getValidTime().begin());
         }
     }
     

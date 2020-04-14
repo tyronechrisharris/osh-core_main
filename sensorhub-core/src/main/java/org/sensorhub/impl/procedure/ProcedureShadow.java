@@ -17,6 +17,8 @@ package org.sensorhub.impl.procedure;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.time.Instant;
+import java.util.Map;
+import javax.xml.namespace.QName;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
@@ -27,7 +29,7 @@ import org.sensorhub.api.procedure.ProcedureEvent;
 import org.sensorhub.api.procedure.IProcedureGroup;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.vast.util.Asserts;
-import com.google.common.collect.Range;
+import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
@@ -171,7 +173,14 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
 
 
     @Override
-    public Range<Instant> getValidTime()
+    public Map<QName, Object> getProperties()
+    {
+        return getCurrentDescription().getProperties();
+    }
+
+
+    @Override
+    public TimeExtent getValidTime()
     {
         IProcedureWithState proc = ref.get();
         if (proc != null && proc.isEnabled())
@@ -179,7 +188,7 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
         else if (latestDescription != null)
             return latestDescription.getValidTime();
         else
-            return Range.atLeast(Instant.ofEpochMilli(lastDescriptionUpdate));
+            return TimeExtent.beginAt(Instant.ofEpochMilli(lastDescriptionUpdate));
     }
 
 

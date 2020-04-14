@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import javax.xml.namespace.QName;
 import net.opengis.OgcPropertyList;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -316,5 +317,12 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     @Override
     public void cleanup()
     {
+    }
+
+
+    @Override
+    public Map<QName, Object> getProperties()
+    {
+        return wrapperProcess.getProperties();
     }
 }
