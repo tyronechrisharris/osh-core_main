@@ -7,15 +7,14 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.sensor;
 
 import net.opengis.swe.v20.DataBlock;
-import net.opengis.swe.v20.Vector;
 import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.data.DataEvent;
 import org.vast.swe.SWEConstants;
@@ -33,21 +32,26 @@ import org.vast.swe.helper.GeoPosHelper;
  */
 public class DefaultLocationOutputLLA extends DefaultLocationOutput
 {
-    
+
     public DefaultLocationOutputLLA(ISensor parentSensor, String sensorFrameID, double updatePeriod)
     {
         super(parentSensor, updatePeriod);
-        
+
         GeoPosHelper fac = new GeoPosHelper();
-        Vector locVector = fac.newLocationVectorLLA(SWEConstants.DEF_SENSOR_LOC);
-        locVector.setName("location");
-        locVector.setLocalFrame('#' + sensorFrameID);
-        outputStruct = fac.wrapWithTimeStampUTC(locVector);
+
+        outputStruct = fac.createDataRecord()
+            .addSamplingTimeIsoUTC("time")
+            .addField("location", fac.createVector()
+                .from(fac.newLocationVectorLLA(SWEConstants.DEF_SENSOR_LOC))
+                .localFrame('#' + sensorFrameID)
+                .build())
+            .build();
+
         outputStruct.setName(getName());
         outputStruct.setId(AbstractSensorModule.LOCATION_OUTPUT_ID);
         outputEncoding = fac.newTextEncoding();
     }
-    
+
 
     @Override
     protected void updateLocation(double time, double x, double y, double z)
@@ -58,7 +62,7 @@ public class DefaultLocationOutputLLA extends DefaultLocationOutput
         dataBlock.setDoubleValue(1, y);
         dataBlock.setDoubleValue(2, x);
         dataBlock.setDoubleValue(3, z);
-        
+
         // update latest record and send event
         latestRecord = dataBlock;
         latestRecordTime = System.currentTimeMillis();
