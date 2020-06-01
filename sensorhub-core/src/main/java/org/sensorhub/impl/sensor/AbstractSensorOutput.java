@@ -51,12 +51,6 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
     protected long latestRecordTime = Long.MIN_VALUE;
     
     
-    public AbstractSensorOutput(IDataProducer parentSensor)
-    {
-        this(null, parentSensor);
-    }
-    
-    
     /**
      * Constructs a new sensor output with the given name and attached to the
      * provided sensor module.<br/>
@@ -96,7 +90,7 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
      */
     public AbstractSensorOutput(String name, T parentSensor, IEventSourceInfo eventSrcInfo, Logger log)
     {
-        this.name = name;
+        this.name = Asserts.checkNotNull(name, "name");
         this.parentSensor = Asserts.checkNotNull(parentSensor, ISensor.class);
         
         // setup event handling stuff

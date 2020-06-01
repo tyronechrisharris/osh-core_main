@@ -36,15 +36,8 @@ public abstract class DefaultLocationOutput extends AbstractSensorOutput<ISensor
 
     public DefaultLocationOutput(ISensor parentSensor, double updatePeriod)
     {
-        super(parentSensor);
+        super(AbstractSensorModule.LOCATION_OUTPUT_NAME, parentSensor);
         this.updatePeriod = updatePeriod;
-    }
-
-
-    @Override
-    public String getName()
-    {
-        return AbstractSensorModule.LOCATION_OUTPUT_NAME;
     }
 
 
