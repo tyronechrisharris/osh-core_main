@@ -32,6 +32,7 @@ import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.event.SubscribeOptions;
+import org.sensorhub.utils.NamedThreadFactory;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +69,7 @@ public class EventBus implements IEventBus
         threadPool = new ThreadPoolExecutor(0, 100,
                                             10L, TimeUnit.SECONDS,
                                             new SynchronousQueue<Runnable>(),
-                                            new EventThreadFactory("EventBus"));
+                                            new NamedThreadFactory("EventBus"));
     }
     
     
