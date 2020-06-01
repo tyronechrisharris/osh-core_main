@@ -22,9 +22,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.datastore.DataStreamFilter;
 import org.sensorhub.api.datastore.DataStreamInfo;
-import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.IDataStreamInfo;
 import org.sensorhub.api.datastore.IDataStreamStore;
 import org.sensorhub.api.datastore.IDataStreamStore.DataStreamInfoField;
@@ -144,9 +144,9 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
      */
     protected IDataStreamInfo toPublicValue(int databaseID, IDataStreamInfo dsInfo)
     {
-        long procPublicID = registry.getPublicID(databaseID, dsInfo.getProcedure().getInternalID());
-        FeatureId publicId = new FeatureId(procPublicID, dsInfo.getProcedure().getUniqueID());
-            
+        long procPublicID = registry.getPublicID(databaseID, dsInfo.getProcedureID().getInternalID());
+        ProcedureId publicId = new ProcedureId(procPublicID, dsInfo.getProcedureID().getUniqueID());
+
         return DataStreamInfo.Builder.from(dsInfo)
             .withProcedure(publicId)
             .build();
@@ -294,7 +294,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
             public int size()
             {
                 return FederatedDataStreamStore.this.size();
-            }        
+            }
         };
     }
 
@@ -316,7 +316,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
             public int size()
             {
                 return FederatedDataStreamStore.this.size();
-            }        
+            }
         };
     }
 

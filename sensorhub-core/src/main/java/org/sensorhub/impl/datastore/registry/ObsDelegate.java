@@ -16,7 +16,7 @@ package org.sensorhub.impl.datastore.registry;
 
 import java.time.Instant;
 import java.util.Map;
-import org.sensorhub.api.datastore.FeatureId;
+import org.sensorhub.api.common.FeatureId;
 import org.sensorhub.api.datastore.IObsData;
 import com.vividsolutions.jts.geom.Geometry;
 import net.opengis.swe.v20.DataBlock;
