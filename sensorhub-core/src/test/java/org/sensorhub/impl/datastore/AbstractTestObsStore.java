@@ -45,6 +45,7 @@ import org.sensorhub.api.procedure.IProcedureDescStore;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
 import org.vast.sensorML.SMLBuilders;
+import org.vast.sensorML.SMLHelper;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEUtils;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -675,7 +676,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         for (int i = 0 ; i < uidSuffixes.length; i++)
         {
-            AbstractProcess p = SMLBuilders.newPhysicalComponent()
+            AbstractProcess p = new SMLHelper().createPhysicalComponent()
                 .uniqueID(PROC_UID_PREFIX+uidSuffixes[i])
                 .build();
             p.setName("Procedure " + (char)(uidSuffixes[i]+65));
