@@ -23,11 +23,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow.Subscription;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
+import org.sensorhub.api.common.FeatureId;
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
@@ -36,17 +39,19 @@ import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.datastore.DataStreamInfo;
 import org.sensorhub.api.datastore.DatabaseConfig;
-import org.sensorhub.api.datastore.FeatureId;
 import org.sensorhub.api.datastore.FeatureKey;
 import org.sensorhub.api.datastore.IDataStreamInfo;
 import org.sensorhub.api.datastore.IDataStreamStore;
+import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IHistoricalObsAutoPurgePolicy;
 import org.sensorhub.api.datastore.IHistoricalObsDatabase;
 import org.sensorhub.api.datastore.IObsData;
+import org.sensorhub.api.datastore.IObsStore;
 import org.sensorhub.api.datastore.ObsData;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.persistence.StorageException;
+import org.sensorhub.api.procedure.IProcedureDescStore;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
@@ -77,12 +82,12 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @since Sep 23, 2019
  */
-public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreConfig>
+public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreConfig> implements IHistoricalObsDatabase
 {
     static final String WAITING_STATUS_MSG = "Waiting for data source {}";
-    
+
     IHistoricalObsDatabase db;
-    Map<String, ProducerInfo> registeredProducers = new ConcurrentHashMap<>(); // key = procedure UID
+    Map<ProcedureId, ProducerInfo> registeredProducers = new ConcurrentHashMap<>();
     long lastCommitTime = Long.MIN_VALUE;
     Timer autoPurgeTimer;
     Subscription procRegistrySub;
@@ -173,26 +178,26 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
     }
     
     
-    protected IDataProducer getDataSource(String procOrModuleID)
+    protected IDataProducer getDataSource(String procUID)
     {
-        IProcedureWithState proc = getParentHub().getProcedureRegistry().get(procOrModuleID);
+        IProcedureWithState proc = getParentHub().getProcedureRegistry().get(procUID);
         if (proc == null || !(proc instanceof IDataProducer))
             return null;
         return (IDataProducer)proc;
     }
     
-    
+
     protected synchronized void addProcedure(IDataProducer dataSource)
     {
-        String uid = dataSource.getUniqueIdentifier();
-        if (dataSource.isEnabled() && !registeredProducers.containsKey(uid))
+        ProcedureId procId = dataSource.getProcedureID();
+        if (dataSource.isEnabled() && !registeredProducers.containsKey(procId))
         {
             connectDataSource(dataSource);
             getLogger().info("Connected to data source " + MsgUtils.entityString(dataSource));
-            getParentHub().getDatabaseRegistry().register(Arrays.asList(uid), db);
+            getParentHub().getDatabaseRegistry().register(Arrays.asList(procId.getUniqueID()), db);
         }
     }
-    
+
     
     protected synchronized void removeProcedure(IDataProducer dataSource)
     {
@@ -207,8 +212,8 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
     protected void maybeAddProcedure(IDataProducer dataSource)
     {
         String uid = dataSource.getUniqueIdentifier();
-        String parentUid = dataSource.getParentGroupUID();
-        
+        String parentUid = dataSource.getParentGroupID().getUniqueID();
+
         // check if UID or parent UID was configured
         if (config.procedureUIDs.contains(uid) ||
             (parentUid != null && config.procedureUIDs.contains(parentUid)))
@@ -225,7 +230,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             .withEventType(ProcedureEnabledEvent.class)
             .withEventType(ProcedureDisabledEvent.class)
             .consume(e -> {
-                String procID = e.getProcedureUID();
+                String procID = e.getProcedureID().getUniqueID();
                 IDataProducer dataSource = getDataSource(procID);
                 if (e instanceof ProcedureAddedEvent || e instanceof ProcedureEnabledEvent)
                     maybeAddProcedure(dataSource);
@@ -267,12 +272,13 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
     protected void connectDataSource(final IDataProducer dataSource)
     {
         Asserts.checkNotNull(dataSource, IDataProducer.class);
-        Asserts.checkNotNull(dataSource.getUniqueIdentifier(), "uniqueID");
-        
-        String procUID = dataSource.getUniqueIdentifier();
-        ProducerInfo producerInfo = registeredProducers.computeIfAbsent(procUID, k -> new ProducerInfo());
+        Asserts.checkNotNull(dataSource.getProcedureID(), ProcedureId.class);
+
+        ProcedureId procId = dataSource.getProcedureID();
+        String procUID = procId.getUniqueID();
+        ProducerInfo producerInfo = registeredProducers.computeIfAbsent(procId, k -> new ProducerInfo());
         FeatureKey procKey = db.getProcedureStore().getLatestVersionKey(procUID);
-        
+
         // need to make sure we add things if they are missing in storage
         
         // store data source description if none was found
@@ -302,7 +308,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             {
                 // create new data stream
                 DataStreamInfo dsInfo = new DataStreamInfo.Builder()
-                    .withProcedure(new FeatureId(procKey.getInternalID(), procUID))
+                    .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
                     .withRecordDescription(output.getRecordDescription())
                     .withRecordEncoding(output.getRecommendedEncoding())
                     .build();
@@ -317,7 +323,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                 {
                     // version existing data stream
                     dsInfo = new DataStreamInfo.Builder()
-                        .withProcedure(new FeatureId(procKey.getInternalID(), procUID))
+                        .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
                         .withRecordDescription(output.getRecordDescription())
                         .withRecordEncoding(output.getRecommendedEncoding())
                         .withRecordVersion(dsInfo.getRecordVersion()+1)
@@ -362,9 +368,9 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         if (dataSource instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (String nestedProducerID: multiSource.getMembers().keySet())
+            for (ProcedureId nestedProducerID: multiSource.getMembers().keySet())
                 ensureProducerInfo(nestedProducerID);
-        }       
+        }
     }
     
     
@@ -378,9 +384,9 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
     /*
      * Ensure producer metadata has been initialized
      */
-    protected void ensureProducerInfo(String producerID)    
+    protected void ensureProducerInfo(ProcedureId producerID)
     {
-        IDataProducer dataSource = getDataSource(producerID);
+        IDataProducer dataSource = getDataSource(producerID.getUniqueID());
         if (dataSource != null)
             connectDataSource(dataSource);
     }
@@ -397,12 +403,12 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         if (dataSource instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (String entityID: multiSource.getMembers().keySet())
-                disconnectDataSource(multiSource.getMembers().get(entityID));
+            for (ProcedureId procID: multiSource.getMembers().keySet())
+                disconnectDataSource(multiSource.getMembers().get(procID));
         }
-        
+
         // remove producer and cancel subscriptions
-        ProducerInfo procInfo = registeredProducers.remove(dataSource.getUniqueIdentifier());
+        ProducerInfo procInfo = registeredProducers.remove(dataSource.getProcedureID());
         if (procInfo != null)
             procInfo.eventSub.cancel();
     }
@@ -480,14 +486,14 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             if (e instanceof DataEvent)
             {
                 DataEvent dataEvent = (DataEvent)e;
-                String producerID = dataEvent.getProcedureUID();
-                                
-                if (producerID != null)
+                ProcedureId procId = dataEvent.getProcedureID();
+
+                if (procId != null)
                 {
-                    ProducerInfo procInfo = registeredProducers.get(producerID);
+                    ProducerInfo procInfo = registeredProducers.get(procId);
                     if (procInfo == null)
                         return;
-                    
+
                     // look up data stream cached info
                     String outputName = dataEvent.getChannelID();
                     DataStreamCachedInfo dsInfo = procInfo.dataStreams.get(outputName);
@@ -519,14 +525,14 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             else if (e instanceof FoiEvent)
             {
                 FoiEvent foiEvent = (FoiEvent)e;
-                String producerID = foiEvent.getProcedureUID();
-                
-                if (producerID != null)
+                ProcedureId procId = foiEvent.getProcedureID();
+
+                if (procId != null)
                 {
-                    ProducerInfo procInfo = registeredProducers.get(producerID);
+                    ProducerInfo procInfo = registeredProducers.get(procId);
                     if (procInfo == null)
                         return;
-                    
+
                     // store feature object if specified
                     FeatureKey fk = db.getFoiStore().getLatestVersionKey(foiEvent.getFoiUID());
                     if (foiEvent.getFoi() != null && fk == null)
@@ -547,11 +553,11 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                 // should we compare contents? if not, on what time tag can we rely on?
                 // AbstractSensorModule implementation of getLastSensorDescriptionUpdate() is
                 // only useful between restarts since it will be resetted to current time at startup...
-                
+
                 // TODO to manage this issue, first check that no other description is valid at the same time
                 //storage.storeDataSourceDescription(dataSourceRef.get().getCurrentDescription());
-                String producerID = ((ProcedureChangedEvent)e).getProcedureUID();
-                IDataProducer producer = getDataSource(producerID);
+                String procUID = ((ProcedureChangedEvent)e).getProcedureID().getUniqueID();
+                IDataProducer producer = getDataSource(procUID);
                 if (producer != null)
                     db.getProcedureStore().addVersion(producer.getCurrentDescription());
             }
@@ -565,10 +571,46 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             }
         }
     }
-    
-    
-    public IHistoricalObsDatabase getDatabase()
+
+
+    @Override
+    public int getDatabaseID()
     {
-        return db;
+        return db.getDatabaseID();
+    }
+
+
+    @Override
+    public <T> T executeTransaction(Callable<T> transaction) throws Exception
+    {
+        return db.executeTransaction(transaction);
+    }
+
+
+    @Override
+    public void commit()
+    {
+        db.commit();
+    }
+
+
+    @Override
+    public IProcedureDescStore getProcedureStore()
+    {
+        return db.getProcedureStore();
+    }
+
+
+    @Override
+    public IObsStore getObservationStore()
+    {
+        return db.getObservationStore();
+    }
+
+
+    @Override
+    public IFoiStore getFoiStore()
+    {
+        return db.getFoiStore();
     }
 }
