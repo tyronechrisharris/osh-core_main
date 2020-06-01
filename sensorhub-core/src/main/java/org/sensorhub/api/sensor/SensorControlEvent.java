@@ -7,9 +7,9 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.sensor;
@@ -30,8 +30,8 @@ import org.sensorhub.api.procedure.ProcedureEvent;
 public class SensorControlEvent extends ProcedureEvent
 {
 	protected CommandStatus status;
-	
-	
+
+
 	/**
      * Constructs the event for an individual sensor
      * @param timeStamp unix time of event generation
@@ -40,27 +40,11 @@ public class SensorControlEvent extends ProcedureEvent
      */
     public SensorControlEvent(long timeStamp, IStreamingControlInterface controlInterface, CommandStatus status)
     {
-        this(timeStamp,
-            controlInterface.getParentProducer().getUniqueIdentifier(),
-            controlInterface,
-            status);
-    }
-    
-    
-    /**
-     * Constructs the event for a sensor that is part of a network
-     * @param timeStamp unix time of event generation
-     * @param sensorID Unique ID of individual sensor in the network
-     * @param controlInterface sensor control interface that generated the event
-     * @param status status of command at time the event is generated
-     */
-    public SensorControlEvent(long timeStamp, String sensorID, IStreamingControlInterface controlInterface, CommandStatus status)
-    {
-        super(timeStamp, controlInterface.getParentProducer().getUniqueIdentifier());        
+        super(timeStamp, controlInterface.getParentProducer().getProcedureID());
         this.source = controlInterface;
         this.status = status;
     }
-	
+
 
     /**
      * @return The command status when this event was generated
@@ -69,8 +53,8 @@ public class SensorControlEvent extends ProcedureEvent
     {
         return status;
     }
-    
-    
+
+
     @Override
     public IStreamingControlInterface getSource()
     {

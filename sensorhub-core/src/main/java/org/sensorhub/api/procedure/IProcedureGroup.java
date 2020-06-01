@@ -7,14 +7,15 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.procedure;
 
 import java.util.Map;
+import org.sensorhub.api.common.ProcedureId;
 
 
 /**
@@ -28,9 +29,9 @@ import java.util.Map;
  */
 public interface IProcedureGroup<T extends IProcedureWithState> extends IProcedureWithState
 {
-    
+
     /**
-     * @return Map of member procedures (procedure UID -> IProcedure object)
+     * @return Map of member procedures (ID -> IProcedure object)
      */
-    public Map<String, ? extends T> getMembers();
+    public Map<ProcedureId, ? extends T> getMembers();
 }

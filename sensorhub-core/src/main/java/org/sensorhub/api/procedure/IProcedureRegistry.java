@@ -7,16 +7,15 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.procedure;
 
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.datastore.FeatureKey;
-import org.sensorhub.api.datastore.IHistoricalObsDatabase;
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.event.IEventSource;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.impl.event.EventSourceInfo;
@@ -44,21 +43,18 @@ public interface IProcedureRegistry extends IEventSource
 {
     public static final String EVENT_SOURCE_ID = "urn:osh:procedures";
     public static final IEventSourceInfo EVENT_SOURCE_INFO = new EventSourceInfo(IProcedureRegistry.EVENT_SOURCE_ID);
-    
-    
+
+
     /**
      * Registers a procedure with this registry.
      * This adds the procedure to the underlying data store if not already there
      * and takes care of forwarding all events to the event bus.
-     * <p><i>Procedures implemented as modules (typically sensor drivers) are 
-     * automatically registered when they are loaded by the module registry
-     * but all other procedure instances must be registered explicitly.</i></p>
      * @param proc The live procedure instance
-     * @return The key assigned to the new procedure
+     * @return The ID assigned to the new procedure
      */
-    public FeatureKey register(IProcedureWithState proc);
-    
-    
+    public ProcedureId register(IProcedureWithState proc);
+
+
     /**
      * Unregisters the procedure with the given unique ID.<br/>
      * Note that unregistering the procedure doesn't remove it from the
@@ -66,35 +62,37 @@ public interface IProcedureRegistry extends IEventSource
      * @param proc The live procedure instance
      */
     public void unregister(IProcedureWithState proc);
-    
-    
+
+
+    /**
+     * Retrieves the shadow object for the procedure with the given ID
+     * @param procID The procedure ID
+     * @return The procedure shadow
+     */
+    public IProcedureWithState get(ProcedureId procID);
+
+
     /**
      * Retrieves the shadow object for the procedure with the given unique ID
      * @param uid The procedure UID
      * @return The procedure shadow
      */
     public IProcedureWithState get(String uid);
-    
-    
-    /**
-     * @return The data store containing the latest state of all procedures
-     * previously registered on this hub.
-     */
-    public IHistoricalObsDatabase getProcedureStateDatabase();
 
 
     /**
      * @return The event source information for this registry
      */
+    @Override
     public default IEventSourceInfo getEventSourceInfo()
     {
         return EVENT_SOURCE_INFO;
     }
-    
-    
+
+
     /**
      * @return The sensor hub this registry is attached to
      */
     public ISensorHub getParentHub();
-    
+
 }

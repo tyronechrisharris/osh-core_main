@@ -7,9 +7,9 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.sensor;
@@ -32,6 +32,7 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
@@ -82,7 +83,7 @@ import org.vast.swe.helper.GeoPosHelper;
  * </p>
  *
  * @author Alex Robin
- * @param <ConfigType> 
+ * @param <ConfigType>
  * @since Oct 30, 2014
  */
 public abstract class AbstractSensorModule<ConfigType extends SensorConfig> extends AbstractModule<ConfigType> implements ISensorModule<ConfigType>
@@ -93,31 +94,32 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected static final String ERROR_NO_UPDATE = "Sensor Description update is not supported by driver ";
     protected static final String ERROR_NO_HISTORY = "History of sensor description is not supported by driver ";
     protected static final String ERROR_NO_ENTITIES = "Multiple entities are not supported by driver ";
-    
+
     protected static final String UUID_URI_PREFIX = "urn:uuid:";
     protected static final String STATE_UNIQUE_ID = "UniqueID";
     protected static final String STATE_LAST_SML_UPDATE = "LastUpdatedSensorDescription";
-    
+
     private Map<String, IStreamingDataInterface> obsOutputs = new LinkedHashMap<>();
     private Map<String, IStreamingDataInterface> statusOutputs = new LinkedHashMap<>();
     private Map<String, IStreamingControlInterface> controlInputs = new LinkedHashMap<>();
-        
+
     protected DefaultLocationOutput locationOutput;
     protected AbstractPhysicalProcess sensorDescription = new PhysicalSystemImpl();
     protected long lastUpdatedSensorDescription = Long.MIN_VALUE;
     protected Object sensorDescLock = new Object();
-    
+
     protected String xmlID;
     protected String uniqueID;
     protected boolean randomUniqueID;
     protected IGeoFeature foi = null;
-            
-    
+    protected ProcedureId procId;
+
+
     @Override
     public void init() throws SensorHubException
     {
         super.init();
-        
+
         // reset internal state
         this.uniqueID = null;
         this.xmlID = null;
@@ -127,8 +129,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         removeAllOutputs();
         removeAllControlInputs();
     }
-    
-    
+
+
     @Override
     protected void postInit()
     {
@@ -139,27 +141,27 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         {
             String uuid = UUID.randomUUID().toString();
             this.uniqueID = UUID_URI_PREFIX + uuid;
-        
+
             if (this.xmlID == null)
                 generateXmlIDFromUUID(uuid);
-            
+
             this.randomUniqueID = true;
         }
-        
+
         // get handler for sensor events
-        //this.eventHandler = getParentHub().getEventBus().getPublisher(getUniqueIdentifier()); 
-        
+        //this.eventHandler = getParentHub().getEventBus().getPublisher(getUniqueIdentifier());
+
         // set last description update time if provided in config
         if (config.lastUpdated != null)
             this.lastUpdatedSensorDescription = config.lastUpdated.getTime();
-        
+
         // add location output if a location is provided
         LLALocation loc = config.getLocation();
         if (loc != null && locationOutput == null)
         {
             addLocationOutput(Double.NaN);
             locationOutput.updateLocation(System.currentTimeMillis()/1000., loc.lon, loc.lat, loc.alt);
-        } 
+        }
     }
 
 
@@ -175,8 +177,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         else
             obsOutputs.put(dataInterface.getName(), dataInterface);
     }
-    
-    
+
+
     /**
      * Helper method to add a location output so that all sensors can update their location
      * in a consistent manner.
@@ -188,8 +190,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         locationOutput = new DefaultLocationOutputLLA(this, getLocalFrameID(), updatePeriod);
         addOutput(locationOutput, true);
     }
-    
-    
+
+
     /**
      * Removes all outputs previously added to this sensor
      */
@@ -198,8 +200,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         statusOutputs.clear();
         obsOutputs.clear();
     }
-    
-    
+
+
     /**
      * Call this method to add each sensor control input
      * @param controlInterface interface to add as sensor control input
@@ -208,8 +210,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         controlInputs.put(controlInterface.getName(), controlInterface);
     }
-    
-    
+
+
     /**
      * Removes all control inputs previously added to this sensor
      */
@@ -217,15 +219,22 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         controlInputs.clear();
     }
-    
-    
+
+
     @Override
     public String getUniqueIdentifier()
     {
         return uniqueID;
     }
-    
-    
+
+
+    @Override
+    public ProcedureId getProcedureID()
+    {
+        return procId;
+    }
+
+
     @Override
     public IEventSourceInfo getEventSourceInfo()
     {
@@ -235,10 +244,10 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             String sourceID = EventUtils.getProcedureSourceID(getUniqueIdentifier());
             eventSrcInfo = new EventSourceInfo(groupID, sourceID);
         }
-        
+
         return eventSrcInfo;
     }
-    
+
 
     @Override
     public IProcedureGroup<IProcedureWithState> getParentGroup()
@@ -248,7 +257,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public String getParentGroupUID()
+    public ProcedureId getParentGroupID()
     {
         return null;
     }
@@ -261,25 +270,25 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         {
             if (sensorDescription == null || !sensorDescription.isSetIdentifier())
                 updateSensorDescription();
-        
+
             return sensorDescription;
         }
     }
-    
-    
+
+
     @Override
     public long getLastDescriptionUpdate()
     {
         return lastUpdatedSensorDescription;
     }
-    
-    
+
+
     /**
      * This method should be called whenever the sensor description needs to be regenerated.<br/>
      * This default implementation reads the base description from the SensorML file if provided
      * and then appends the unique sensor identifier, time validity and the description of all
      * registered outputs and control inputs. This will also update the lastUpdatedSensorDescription
-     * time stamp and send a SENSOR_CHANGED event when 
+     * time stamp and send a SENSOR_CHANGED event when
      * @throws SensorException
      */
     protected void updateSensorDescription()
@@ -306,27 +315,27 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             {
                 sensorDescription = new PhysicalSystemImpl();
             }
-            
+
             //////////////////////////////////////////////////////////////
             // add stuffs if not already defined in static SensorML doc //
             //////////////////////////////////////////////////////////////
             if (lastUpdatedSensorDescription == Long.MIN_VALUE)
                 lastUpdatedSensorDescription = System.currentTimeMillis();
             double newValidityTime = lastUpdatedSensorDescription / 1000.;
-            
+
             // default IDs
             String gmlId = sensorDescription.getId();
             if (gmlId == null || gmlId.length() == 0)
                 sensorDescription.setId(xmlID);
             if (!sensorDescription.isSetIdentifier())
                 sensorDescription.setUniqueIdentifier(uniqueID);
-            
+
             // name & description
             if (sensorDescription.getName() == null && config.name != null)
                 sensorDescription.setName(config.name);
             if (sensorDescription.getDescription() == null && config.description != null)
                 sensorDescription.setDescription(config.description);
-            
+
             // time validity
             if (sensorDescription.getNumValidTimes() == 0)
             {
@@ -336,7 +345,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 end.setIndeterminatePosition(TimeIndeterminateValue.NOW);
                 sensorDescription.addValidTimeAsTimePeriod(fac.newTimePeriod(begin, end));
             }
-            
+
             // outputs
             if (sensorDescription.getNumOutputs() == 0)
             {
@@ -349,7 +358,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                     sensorDescription.addOutput(output.getKey(), outputDesc);
                 }
             }
-            
+
             // control parameters
             if (sensorDescription.getNumParameters() == 0)
             {
@@ -363,13 +372,13 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                     sensorDescription.addParameter(param.getKey(), paramDesc);
                 }
             }
-            
+
             // sensor position
             String localFrameRef = '#' + getLocalFrameID();
             GeoPosHelper fac = new GeoPosHelper();
             Vector locVector = null;
             Vector orientVector = null;
-            
+
             // get static location from config if available
             LLALocation loc = config.getLocation();
             if (loc != null)
@@ -378,11 +387,11 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 if (sensorDescription.getNumPositions() > 0)
                 {
                     Object smlLoc = sensorDescription.getPositionList().get(0);
-                    if (smlLoc instanceof Point) 
+                    if (smlLoc instanceof Point)
                     {
                         Point gmlLoc = (Point)smlLoc;
                         double[] pos;
-                        
+
                         if (Double.isNaN(loc.alt))
                         {
                             gmlLoc.setSrsName(SWEHelper.getEpsgUri(4326));
@@ -394,13 +403,13 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                             pos = new double[3];
                             pos[2] = loc.alt;
                         }
-                                        
+
                         pos[0] = loc.lat;
                         pos[1] = loc.lon;
                         gmlLoc.setPos(pos);
                     }
                 }
-                
+
                 // else include location as a SWE vector
                 else
                 {
@@ -412,7 +421,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                     locVector.setLocalFrame(localFrameRef);
                 }
             }
-            
+
             // get static orientation from config if available
             EulerOrientation orient = config.getOrientation();
             if (orient != null)
@@ -424,7 +433,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 orientVector.getComponent(2).getData().setDoubleValue(orient.roll);
                 orientVector.setLocalFrame(localFrameRef);
             }
-            
+
             if (locVector != null || orientVector != null)
             {
                 if (orientVector == null) // only location
@@ -433,13 +442,14 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                     sensorDescription.addPositionAsVector(orientVector);
                 else // both
                 {
-                    DataRecord pos = fac.newDataRecord(2);
-                    pos.addField("location", locVector);
-                    pos.addField("orientation", orientVector);
+                    DataRecord pos = fac.createDataRecord()
+                        .addField("location", locVector)
+                        .addField("orientation", orientVector)
+                        .build();
                     sensorDescription.addPositionAsDataRecord(pos);
                 }
             }
-            
+
             // else reference location output if any
             else if (locationOutput != null)
             {
@@ -452,16 +462,16 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             }
         }
     }
-    
-    
+
+
     protected void notifyNewDescription(long updateTime)
     {
         // send event
         lastUpdatedSensorDescription = updateTime;
-        eventHandler.publish(new ProcedureChangedEvent(updateTime, getUniqueIdentifier()));
+        eventHandler.publish(new ProcedureChangedEvent(updateTime, procId));
     }
-        
-    
+
+
     protected String getLocalFrameID()
     {
         return "REF_FRAME_" + xmlID;
@@ -469,9 +479,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public Map<String, IStreamingDataInterface> getOutputs()
+    public Map<String, ? extends IStreamingDataInterface> getOutputs()
     {
-        Map<String, IStreamingDataInterface> allOutputs = new LinkedHashMap<>();  
+        Map<String, IStreamingDataInterface> allOutputs = new LinkedHashMap<>();
         allOutputs.putAll(obsOutputs);
         allOutputs.putAll(statusOutputs);
         return Collections.unmodifiableMap(allOutputs);
@@ -479,14 +489,14 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public Map<String, IStreamingDataInterface> getStatusOutputs()
+    public Map<String, ? extends IStreamingDataInterface> getStatusOutputs()
     {
         return Collections.unmodifiableMap(statusOutputs);
     }
 
 
     @Override
-    public Map<String, IStreamingDataInterface> getObservationOutputs()
+    public Map<String, ? extends IStreamingDataInterface> getObservationOutputs()
     {
         return Collections.unmodifiableMap(obsOutputs);
     }
@@ -497,15 +507,15 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         return Collections.unmodifiableMap(controlInputs);
     }
-    
-    
+
+
     @Override
     public IGeoFeature getCurrentFeatureOfInterest()
     {
         // add default feature of interest if location is set in config
         LLALocation loc = config.getLocation();
         if (foi == null && loc != null)
-        {            
+        {
             SamplingPoint sf = new SamplingPoint();
             sf.setId("FOI_" + xmlID);
             sf.setUniqueIdentifier(uniqueID + "-foi");
@@ -520,25 +530,26 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             sf.setShape(point);
             this.foi = sf;
         }
-        
+
         return foi;
     }
-    
-    
+
+
+    @Override
     public Point getCurrentLocation()
     {
         if (locationOutput == null)
             return null;
-        
+
         DataBlock loc = locationOutput.getLatestRecord();
         if (loc == null)
             return null;
-        
+
         Point point = new GMLFactory().newPoint();
         point.setSrsName(SWEConstants.REF_FRAME_4979);
         point.setSrsDimension(3);
         point.setPos(new double[] {loc.getDoubleValue(0), loc.getDoubleValue(1), loc.getDoubleValue(2)});
-        
+
         return point;
     }
 
@@ -554,29 +565,29 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             notifyNewDescription(System.currentTimeMillis());
         }
     }
-    
-    
+
+
     @Override
     protected void setState(ModuleState newState)
     {
         super.setState(newState);
-        
+
         // register with procedure registry when sensor has successfully initialized
         // and send enabled/disabled events
         if (newState == ModuleState.INITIALIZED)
-            getParentHub().getProcedureRegistry().register(this);
+            procId = getParentHub().getProcedureRegistry().register(this);
         else if (newState == ModuleState.STARTED)
-            eventHandler.publish(new ProcedureEnabledEvent(System.currentTimeMillis(), getUniqueIdentifier()));
+            eventHandler.publish(new ProcedureEnabledEvent(System.currentTimeMillis(), procId));
         else if (newState == ModuleState.STOPPED)
-            eventHandler.publish(new ProcedureDisabledEvent(System.currentTimeMillis(), getUniqueIdentifier()));
+            eventHandler.publish(new ProcedureDisabledEvent(System.currentTimeMillis(), procId));
     }
 
-    
+
     @Override
     public void loadState(IModuleStateManager loader) throws SensorHubException
     {
         super.loadState(loader);
-        
+
         // set unique ID to the one previously saved
         String uniqueID = loader.getAsString(STATE_UNIQUE_ID);
         if (uniqueID != null && randomUniqueID)
@@ -584,34 +595,34 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             this.uniqueID = uniqueID;
             this.generateXmlIDFromUUID(uniqueID);
         }
-        
+
         //Long lastUpdateTime = loader.getAsLong(STATE_LAST_SML_UPDATE);
         //if (lastUpdateTime != null)
         //    this.lastUpdatedSensorDescription = lastUpdateTime;
     }
-    
-    
+
+
     @Override
     public void saveState(IModuleStateManager saver) throws SensorHubException
     {
         super.saveState(saver);
-        
+
         // save unique ID if it was automatically generated as UUID
         if (uniqueID != null && randomUniqueID)
             saver.put(STATE_UNIQUE_ID, this.uniqueID);
-        
+
         saver.put(STATE_LAST_SML_UPDATE, this.lastUpdatedSensorDescription);
         saver.flush();
     }
-    
-    
+
+
     @Override
     public boolean isEnabled()
     {
         return isStarted();
     }
-    
-    
+
+
     protected String getDefaultIdSuffix()
     {
         String localID = getLocalID();
@@ -619,8 +630,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         String idSuffix = localID.substring(0, endIndex);
         return idSuffix.replaceAll(" ", "");
     }
-    
-    
+
+
     /**
      * Generates the sensor unique ID by concatenating a prefix and suffix.<br/>
      * If no suffix is provided, the first 8 characters of the local ID are used
@@ -634,11 +645,11 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             suffix = getDefaultIdSuffix();
         else
             suffix.replaceAll(" ", ""); // remove spaces
-        
+
         this.uniqueID = prefix + suffix;
     }
-    
-    
+
+
     /**
      * Generates the sensor XML ID by concatenating a prefix and suffix.<br/>
      * If no suffix is provided, the first 8 characters of the local ID are used
@@ -650,12 +661,12 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         if (suffix == null)
             suffix = getDefaultIdSuffix();
-        
+
         suffix.replaceAll("[^a-zA-Z0-9_\\-]", "_");
         this.xmlID = prefix + suffix.toUpperCase();
     }
-    
-    
+
+
     protected void generateXmlIDFromUUID(String uuid)
     {
         int endIndex = Math.min(8, uuid.length());

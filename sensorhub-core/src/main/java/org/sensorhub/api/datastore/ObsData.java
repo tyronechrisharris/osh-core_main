@@ -17,6 +17,7 @@ package org.sensorhub.api.datastore;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import org.sensorhub.api.common.FeatureId;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;

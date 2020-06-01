@@ -7,14 +7,15 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.data;
 
 import java.time.Instant;
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.procedure.ProcedureEvent;
 import org.vast.util.Asserts;
@@ -37,27 +38,27 @@ public class DataEvent extends ProcedureEvent
     protected Instant resultTime;
     protected String channelID;
     protected DataBlock[] records;
-    
-    
+
+
     /**
      * Constructs a data event associated to a specific procedure and channel
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureUID Unique ID of procedure that produced the data records
+     * @param procedureID ID of procedure that produced the data records
      * @param channelID ID/name of the output interface that generated the data
      * @param records Array of data records that triggered this event
      */
-    public DataEvent(long timeStamp, String procedureUID, String channelID, DataBlock ... records)
+    public DataEvent(long timeStamp, ProcedureId procedureID, String channelID, DataBlock ... records)
     {
-        super(timeStamp, procedureUID);
-        
+        super(timeStamp, procedureID);
+
         Asserts.checkArgument(!Strings.isNullOrEmpty(channelID), "channelID must be set");
         Asserts.checkArgument(records != null && records.length > 0, "records must be provided");
-        
+
         this.channelID = channelID;
         this.records = records;
     }
-    
-    
+
+
     /**
      * Helper constructor to construct a data event associated to the procedure
      * that is the parent of the given data interface
@@ -68,62 +69,62 @@ public class DataEvent extends ProcedureEvent
     public DataEvent(long timeStamp, IStreamingDataInterface dataInterface, DataBlock ... records)
     {
         this(timeStamp,
-             dataInterface.getParentProducer().getUniqueIdentifier(),
+             dataInterface.getParentProducer().getProcedureID(),
              dataInterface.getName(),
              records);
         this.source = dataInterface;
     }
-    
-    
+
+
     /**
      * Constructs a data event associated to a specific procedure, channel and FOI
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureUID Unique ID of procedure that produced the data records
+     * @param procedureID ID of procedure that produced the data records
      * @param channelID ID/name of the output interface that generated the data
      * @param foiUID Unique ID of feature of interest that this data applies to
      * @param records Array of data records that triggered this event
      */
-    public DataEvent(long timeStamp, String procedureUID, String channelID, String foiUID, DataBlock ... records)
+    public DataEvent(long timeStamp, ProcedureId procedureID, String channelID, String foiUID, DataBlock ... records)
     {
-        this(timeStamp, procedureUID, channelID, records);
+        this(timeStamp, procedureID, channelID, records);
         this.foiUID = foiUID;
     }
-    
-    
+
+
     /**
      * Constructs a data event associated to a specific procedure and channel,
      * and tagged by a specific result time.
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureUID Unique ID of procedure that produced the data records
+     * @param procedureID ID of procedure that produced the data records
      * @param channelID ID/name of the output interface that generated the data
      * @param resultTime Time at which the data was generated (e.g. model run time)
      * @param records Array of data records that triggered this event
      */
-    public DataEvent(long timeStamp, String procedureUID, String channelID, Instant resultTime, DataBlock ... records)
+    public DataEvent(long timeStamp, ProcedureId procedureID, String channelID, Instant resultTime, DataBlock ... records)
     {
-        this(timeStamp, procedureUID, channelID, records);
+        this(timeStamp, procedureID, channelID, records);
         this.resultTime = resultTime;
     }
-    
-    
+
+
     /**
      * Constructs a data event associated to a specific procedure, channel and FOI,
      * and tagged by a specific result time.
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureUID Unique ID of procedure that produced the data records
+     * @param procedureID ID of procedure that produced the data records
      * @param channelID ID/name of the output interface that generated the data
      * @param resultTime Time at which the data was generated (e.g. model run time)
-     * @param foiUID 
+     * @param foiUID Unique ID of feature of interest that this data applies to
      * @param records Array of data records that triggered this event
      */
-    public DataEvent(long timeStamp, String procedureUID, String channelID, Instant resultTime, String foiUID, DataBlock ... records)
+    public DataEvent(long timeStamp, ProcedureId procedureID, String channelID, Instant resultTime, String foiUID, DataBlock ... records)
     {
-        this(timeStamp, procedureUID, channelID, records);
+        this(timeStamp, procedureID, channelID, records);
         this.resultTime = resultTime;
         this.foiUID = foiUID;
     }
-	
-	
+
+
     @Override
     public IStreamingDataInterface getSource()
     {
@@ -135,11 +136,11 @@ public class DataEvent extends ProcedureEvent
     public String getSourceID()
     {
         if (sourceID == null)
-            sourceID = EventUtils.getProcedureOutputSourceID(procedureUID, channelID);
+            sourceID = EventUtils.getProcedureOutputSourceID(procedureID.getUniqueID(), channelID);
         return sourceID;
     }
-    
-    
+
+
     /**
      * @return Name of channel the event was produced on (e.g. output name)
      */
@@ -147,8 +148,8 @@ public class DataEvent extends ProcedureEvent
     {
         return channelID;
     }
-    
-    
+
+
     /**
      * @return The time at which the data records were generated by the procedure
      */
@@ -156,8 +157,8 @@ public class DataEvent extends ProcedureEvent
     {
         return resultTime;
     }
-    
-    
+
+
     /**
      * @return Unique ID of feature of interest that this data applies to
      */

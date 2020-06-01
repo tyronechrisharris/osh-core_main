@@ -35,6 +35,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
@@ -179,8 +180,8 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             .withEventType(ProcedureEnabledEvent.class)
             .withEventType(ProcedureDisabledEvent.class)
             .consume(e -> {
-                String procID = e.getProcedureUID();
-                IDataProducer dataSource = getDataSource(procID); 
+                ProcedureId procID = e.getProcedureID();
+                IDataProducer dataSource = getDataSource(procID.getUniqueID()); 
                 if (dataSource.isEnabled())
                 {
                     if (e instanceof ProcedureAddedEvent || e instanceof ProcedureEnabledEvent)
@@ -281,7 +282,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         if (dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (String nestedProducerID: multiSource.getMembers().keySet())
+            for (ProcedureId nestedProducerID: multiSource.getMembers().keySet())
                 ensureProducerInfo(nestedProducerID);
         }       
     }
@@ -290,7 +291,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     /*
      * Ensure producer data store has been initialized
      */
-    protected void ensureProducerInfo(String producerID)
+    protected void ensureProducerInfo(ProcedureId producerID)
     {
         IDataProducer dataSource = dataSourceRef.get();
         if (dataSource instanceof IMultiSourceDataProducer && storage instanceof IMultiSourceStorage)
@@ -300,9 +301,9 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             {
                 synchronized (producer)
                 {
-                    IBasicStorage dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID);
+                    IBasicStorage dataStore = ((IMultiSourceStorage<?>)storage).getDataStore(producerID.getUniqueID());
                     if (dataStore == null)
-                        dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID);
+                        dataStore = ((IMultiSourceStorage<?>)storage).addDataStore(producerID.getUniqueID());
                                 
                     if (!registeredProducers.containsKey(producerID))
                         connectDataSource(producer, dataStore);
@@ -323,7 +324,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
         if (dataSource instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (String entityID: multiSource.getMembers().keySet())
+            for (ProcedureId entityID: multiSource.getMembers().keySet())
                 disconnectDataSource(multiSource.getMembers().get(entityID));
         }
         
@@ -420,7 +421,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             if (e instanceof DataEvent)
             {
                 DataEvent dataEvent = (DataEvent)e;
-                String producerID = dataEvent.getProcedureUID();
+                ProcedureId producerID = dataEvent.getProcedureID();
                 
                 if (producerID != null && registeredProducers.containsKey(producerID))
                 {
@@ -442,7 +443,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
                             time = e.getTimeStamp() / 1000.;
                     
                         // store record with proper key
-                        ObsKey key = new ObsKey(outputName, producerID, foiID, time);                    
+                        ObsKey key = new ObsKey(outputName, producerID.getUniqueID(), foiID, time);                    
                         storage.storeRecord(key, record);
                         
                         getLogger().trace("Storing record {} for output {}", key.timeStamp, outputName);
@@ -453,19 +454,19 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             else if (e instanceof FoiEvent && storage instanceof IObsStorage)
             {
                 FoiEvent foiEvent = (FoiEvent)e;
-                String producerID = ((FoiEvent) e).getProcedureUID();
+                ProcedureId producerID = ((FoiEvent) e).getProcedureID();
                 
                 if (producerID != null && registeredProducers.containsKey(producerID))
                 {
                     // store feature object if specified
                     if (foiEvent.getFoi() != null)
                     {
-                        ((IObsStorage) storage).storeFoi(producerID, (AbstractFeature)foiEvent.getFoi());
+                        ((IObsStorage) storage).storeFoi(producerID.getUniqueID(), (AbstractFeature)foiEvent.getFoi());
                         getLogger().trace("Storing FOI {}", foiEvent.getFoiUID());
                     }
                 
                     // also remember as current FOI
-                    currentFoiMap.put(producerID, foiEvent.getFoiUID());
+                    currentFoiMap.put(producerID.getUniqueID(), foiEvent.getFoiUID());
                 }
             }
             

@@ -7,13 +7,14 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.processing;
 
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.procedure.ProcedureEvent;
 
 
@@ -37,23 +38,23 @@ public class ProcessingEvent extends ProcedureEvent
 		PROCESSING_ENDED,
 		PARAMS_CHANGED
 	};
-	
-	
+
+
 	/**
 	 * Type of process event
 	 */
 	protected Type type;
-	
-	
+
+
 	/**
 	 * Sole constructor
 	 * @param timeStamp unix time of event generation
-     * @param processID ID of originating process
+     * @param processId ID of originating process
      * @param type type of event
 	 */
-	public ProcessingEvent(long timeStamp, String processID, Type type)
+	public ProcessingEvent(long timeStamp, ProcedureId processId, Type type)
 	{
-	    super(timeStamp, processID);
+	    super(timeStamp, processId);
 	    this.type = type;
 	}
 

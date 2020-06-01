@@ -7,9 +7,9 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUObsData WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.procedure;
@@ -41,8 +41,8 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
 {
     ConcurrentNavigableMap<Long, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
     InMemoryObsStore obsStore;
-    
-    
+
+
     public InMemoryDataStreamStore(InMemoryObsStore obsStore)
     {
         this.obsStore = obsStore;
@@ -53,7 +53,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
     public synchronized Long add(IDataStreamInfo dsInfo)
     {
         Asserts.checkNotNull(dsInfo, DataStreamInfo.class);
-        
+
         Long nextId = map.lastKey()+1;
         map.put(nextId, dsInfo);
         return nextId;
@@ -71,7 +71,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
     public Stream<Entry<Long, IDataStreamInfo>> selectEntries(DataStreamFilter query, Set<DataStreamInfoField> fields)
     {
         Stream<Entry<Long, IDataStreamInfo>> resultStream;
-                
+
         if (query.getInternalIDs() != null)
         {
             resultStream = query.getInternalIDs().stream()
@@ -82,17 +82,18 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
         }
         else
             resultStream = map.entrySet().stream();
-        
+
         // also filter on selected procedures
         if (query.getProcedureFilter() != null)
         {
             Set<Long> selectedProcedures = obsStore.procStore.selectKeys(query.getProcedureFilter())
                 .map(k -> k.getInternalID())
                 .collect(Collectors.toSet());
-            
-            resultStream = resultStream.filter(e -> selectedProcedures.contains(e.getValue().getProcedure().getInternalID()));
+
+            resultStream = resultStream.filter(e ->
+                selectedProcedures.contains(e.getValue().getProcedureID().getInternalID()));
         }
-        
+
         // filter with predicate and apply limit
         return resultStream
             .filter(e -> query.test(e.getValue()))
@@ -121,6 +122,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
     }
 
 
+    @Override
     public Set<Entry<Long, IDataStreamInfo>> entrySet()
     {
         return map.entrySet();
@@ -169,6 +171,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
     }
 
 
+    @Override
     public boolean remove(Object key, Object val)
     {
         return map.remove(key, val);

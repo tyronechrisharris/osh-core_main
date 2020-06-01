@@ -7,13 +7,14 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.datastore;
 
+import org.sensorhub.api.common.ProcedureId;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import net.opengis.swe.v20.DataComponent;
@@ -30,14 +31,14 @@ import net.opengis.swe.v20.DataEncoding;
  */
 public class DataStreamInfo implements IDataStreamInfo
 {
-    protected FeatureId procedureID;
+    protected ProcedureId procedureID;
     protected int recordVersion;
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
-    
-    
+
+
     @Override
-    public FeatureId getProcedure()
+    public ProcedureId getProcedureID()
     {
         return procedureID;
     }
@@ -69,8 +70,8 @@ public class DataStreamInfo implements IDataStreamInfo
     {
         return recordEncoding;
     }
-    
-    
+
+
     /*
      * Builder
      */
@@ -80,14 +81,14 @@ public class DataStreamInfo implements IDataStreamInfo
         {
             this.instance = new DataStreamInfo();
         }
-        
+
         public static Builder from(IDataStreamInfo base)
         {
             return new Builder().copyFrom(base);
         }
     }
-    
-    
+
+
     @SuppressWarnings("unchecked")
     public static abstract class DataStreamInfoBuilder<B extends DataStreamInfoBuilder<B, T>, T extends DataStreamInfo>
         extends BaseBuilder<T>
@@ -95,25 +96,25 @@ public class DataStreamInfo implements IDataStreamInfo
         protected DataStreamInfoBuilder()
         {
         }
-        
-        
+
+
         protected B copyFrom(IDataStreamInfo base)
         {
-            instance.procedureID = base.getProcedure();
+            instance.procedureID = base.getProcedureID();
             instance.recordStruct = base.getRecordDescription();
             instance.recordEncoding = base.getRecordEncoding();
             instance.recordVersion = base.getRecordVersion();
             return (B)this;
         }
-        
-        
-        public B withProcedure(FeatureId procID)
+
+
+        public B withProcedure(ProcedureId procID)
         {
             instance.procedureID = procID;
             return (B)this;
         }
-        
-        
+
+
         public B withRecordVersion(int version)
         {
             instance.recordVersion = version;
@@ -133,12 +134,13 @@ public class DataStreamInfo implements IDataStreamInfo
             instance.recordEncoding = recordEncoding;
             return (B)this;
         }
-        
-        
+
+
+        @Override
         public T build()
         {
             Asserts.checkNotNull(instance.procedureID, "procedureID");
-            Asserts.checkArgument(instance.procedureID.internalID > 0, "procedure internalID must be > 0");
+            Asserts.checkArgument(instance.procedureID.getInternalID() > 0, "procedure internalID must be > 0");
             //Asserts.checkArgument(!Strings.isNullOrEmpty(instance.procedureID.uniqueID), "procedure UID must be set");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");
             Asserts.checkNotNull(instance.getOutputName(), "outputName/recordName");

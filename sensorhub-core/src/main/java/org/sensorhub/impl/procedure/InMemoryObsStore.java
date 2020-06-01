@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.sensorhub.api.datastore.FeatureId;
+import org.sensorhub.api.common.FeatureId;
 import org.sensorhub.api.datastore.IDataStreamStore;
 import org.sensorhub.api.datastore.IFoiStore;
 import org.sensorhub.api.datastore.IObsData;

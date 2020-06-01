@@ -7,15 +7,16 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.datastore;
 
 import java.time.Instant;
 import java.util.Objects;
+import org.sensorhub.api.common.FeatureId;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 
@@ -31,33 +32,33 @@ import org.vast.util.Asserts;
  * @since Mar 19, 2018
  */
 public class ObsKey
-{    
+{
     protected long dataStreamID = 0;
     protected FeatureId foiID = IObsData.NO_FOI;
     protected Instant resultTime = null;
     protected Instant phenomenonTime = null;
-    
-    
+
+
     protected ObsKey()
     {
     }
-    
-    
+
+
     public ObsKey(long dataStreamID, Instant phenomenonTime)
     {
         Asserts.checkArgument(dataStreamID > 0, "data stream ID must be > 0");
         this.dataStreamID = dataStreamID;
         this.phenomenonTime = Asserts.checkNotNull(phenomenonTime, "phenomenonTime");
     }
-    
-    
+
+
     public ObsKey(long dataStreamID, FeatureId foiID, Instant phenomenonTime)
     {
         this(dataStreamID, phenomenonTime);
         this.foiID = Asserts.checkNotNull(foiID, FeatureId.class);
     }
-    
-    
+
+
     public ObsKey(long dataStreamID, FeatureId foiID, Instant resultTime, Instant phenomenonTime)
     {
         this(dataStreamID, foiID, phenomenonTime);
@@ -117,7 +118,7 @@ public class ObsKey
     {
         return ObjectUtils.toString(this, true);
     }
-    
+
 
     @Override
     public int hashCode()
@@ -128,14 +129,14 @@ public class ObsKey
             getPhenomenonTime(),
             getResultTime());
     }
-    
-    
+
+
     @Override
     public boolean equals(Object obj)
     {
         if (obj == null || !(obj instanceof ObsKey))
             return false;
-        
+
         ObsKey other = (ObsKey)obj;
         return Objects.equals(getDataStreamID(), other.getDataStreamID()) &&
                Objects.equals(getFoiID(), other.getFoiID()) &&

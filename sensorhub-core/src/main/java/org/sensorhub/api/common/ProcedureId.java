@@ -12,27 +12,23 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.procedure;
+package org.sensorhub.api.common;
 
-import org.sensorhub.api.common.ProcedureId;
 
 /**
  * <p>
- * Event sent when a procedure's SensorML description is updated
+ * Immutable data class containing both internal ID and globally unique ID
+ * (URI) of a procedure.
  * </p>
  *
  * @author Alex Robin
- * @date Mar 2, 2019
+ * @date May 1, 2020
  */
-public class ProcedureChangedEvent extends ProcedureEvent
+public class ProcedureId extends FeatureId
 {
 
-    /**
-     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureId ID of changed procedure
-     */
-    public ProcedureChangedEvent(long timeStamp, ProcedureId procedureId)
+    public ProcedureId(long internalID, String uid)
     {
-        super(timeStamp, procedureId);
+        super(internalID, uid);
     }
 }

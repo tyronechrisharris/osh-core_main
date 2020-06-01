@@ -7,9 +7,9 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.procedure;
@@ -19,6 +19,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.datastore.DatabaseConfig;
@@ -30,7 +31,6 @@ import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.IProcedureGroup;
 import org.sensorhub.api.procedure.IProcedureRegistry;
-import org.sensorhub.api.procedure.IProcedureStateDatabase;
 import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.impl.datastore.GenericObsStreamDataStore;
 import org.sensorhub.impl.datastore.StreamDataStoreConfig;
@@ -57,78 +57,81 @@ import org.vast.util.Asserts;
 public class DefaultProcedureRegistry implements IProcedureRegistry
 {
     static final Logger log = LoggerFactory.getLogger(DefaultProcedureRegistry.class);
-    
+
     ISensorHub hub;
     IEventPublisher eventPublisher;
-    IProcedureStateDatabase stateDb;
+    GenericObsStreamDataStore stateDb;
     IHistoricalObsDatabase historicalDb;
     GenericObsStreamDataStore dbListener;
     ReadWriteLock lock = new ReentrantReadWriteLock();
-    
+
     // map to cache and pin proxies in memory so they don't get GC
     Map<String, ProcedureShadow> procedureShadows = new TreeMap<>();
-    
-    
+
+
     public DefaultProcedureRegistry(ISensorHub hub)
     {
         this(hub, new InMemoryProcedureStateConfig());
     }
-    
-    
+
+
     public DefaultProcedureRegistry(ISensorHub hub, DatabaseConfig stateDbConfig)
     {
         this.hub = Asserts.checkNotNull(hub, ISensorHub.class);
         this.eventPublisher = hub.getEventBus().getPublisher(IProcedureRegistry.EVENT_SOURCE_ID);
-        initDatabase(stateDbConfig);        
+        initDatabase(stateDbConfig);
     }
-    
-    
+
+
     void initDatabase(DatabaseConfig stateDbConfig)
     {
         try
         {
             StreamDataStoreConfig dbListenerConfig = new StreamDataStoreConfig();
             dbListenerConfig.dbConfig = stateDbConfig;
-            
-            dbListener = new GenericObsStreamDataStore();
-            dbListener.setParentHub(hub);
-            dbListener.init(dbListenerConfig);
-            dbListener.start();
-            stateDb = (IProcedureStateDatabase)dbListener.getDatabase();
+
+            stateDb = new GenericObsStreamDataStore();
+            stateDb.setParentHub(hub);
+            stateDb.init(dbListenerConfig);
+            stateDb.start();
         }
         catch (Exception e)
         {
             throw new IllegalStateException("Error initializing procedure state database", e);
         }
-        
+
         this.historicalDb = hub.getDatabaseRegistry().getFederatedObsDatabase();
     }
-    
-    
+
+
     @Override
-    public FeatureKey register(IProcedureWithState proc)
+    public ProcedureId register(IProcedureWithState proc)
     {
         return register(proc, true);
     }
 
-        
-    protected FeatureKey register(IProcedureWithState proc, boolean sendEvent)
+
+    protected ProcedureId register(IProcedureWithState proc, boolean sendEvent)
     {
         Asserts.checkNotNull(proc, IProcedureWithState.class);
-        
+
         lock.writeLock().lock();
         String uid = proc.getUniqueIdentifier();
         log.debug("Registering procedure {}", uid);
-        
+
         try
         {
+            // save in data store if needed
+            FeatureKey key = addToDataStore(proc);
+            ProcedureId procId = new ProcedureId(key.getInternalID(), uid);
+
             // create shadow or simply reconnect to it
             ProcedureShadow shadow = procedureShadows.get(uid);
             boolean isNew = (shadow == null);
             if (isNew)
             {
-                shadow = createProxy(proc);                
-                procedureShadows.put(uid, shadow);                
+                shadow = createProxy(proc);
+                procedureShadows.put(uid, shadow);
             }
             else
             {
@@ -137,44 +140,41 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
                     throw new IllegalArgumentException("A procedure with ID " + uid + " is already registered");
                 shadow.connectLiveProcedure(proc);
             }
-            
-            // save in data store if needed
-            FeatureKey key = addToDataStore(shadow);
-                        
+
             // if group, also register members recursively
             if (proc instanceof IProcedureGroup)
             {
                 for (IProcedureWithState member: ((IProcedureGroup<?>)proc).getMembers().values())
                     register(member, false);
             }
-            
+
             // publish procedure enabled event
             if (sendEvent && isNew)
-                eventPublisher.publish(new ProcedureAddedEvent(System.currentTimeMillis(), uid, shadow.getParentGroupUID()));
-            
-            return key;
+                eventPublisher.publish(new ProcedureAddedEvent(System.currentTimeMillis(), procId, shadow.getParentGroupID()));
+
+            return procId;
         }
         finally
         {
             lock.writeLock().unlock();
         }
     }
-    
-    
-    protected FeatureKey addToDataStore(ProcedureShadow shadow)
+
+
+    protected FeatureKey addToDataStore(IProcedureWithState proc)
     {
-        FeatureKey existingKey = historicalDb.getProcedureStore().getLatestVersionKey(shadow.getUniqueIdentifier());
+        FeatureKey existingKey = historicalDb.getProcedureStore().getLatestVersionKey(proc.getUniqueIdentifier());
         if (existingKey != null)
             return existingKey;
-        
+
         // if procedure not in DB yet, add to procedure state DB
-        FeatureKey newKey = stateDb.getProcedureStore().add(shadow.getCurrentDescription());
-        dbListener.getConfiguration().procedureUIDs.add(shadow.getUniqueIdentifier());
-        
+        FeatureKey newKey = stateDb.getProcedureStore().add(proc.getCurrentDescription());
+        dbListener.getConfiguration().procedureUIDs.add(proc.getUniqueIdentifier());
+
         return newKey;
     }
-    
-    
+
+
     protected ProcedureShadow createProxy(IProcedureWithState proc)
     {
         if (proc instanceof ProcedureShadow)
@@ -187,23 +187,23 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         else
             return new ProcedureShadow(proc, this);
     }
-    
-    
+
+
     @Override
     public void unregister(IProcedureWithState proc)
     {
         unregister(proc, true);
     }
-    
-    
+
+
     protected void unregister(IProcedureWithState proc, boolean sendEvent)
     {
         Asserts.checkNotNull(proc, IProcedureWithState.class);
-        
+
         lock.writeLock().lock();
         String uid = proc.getUniqueIdentifier();
         log.debug("Unregistering procedure {}", uid);
-        
+
         try
         {
             // if entity group, unregister members recursively
@@ -212,18 +212,18 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
                 for (IProcedureWithState member: ((IProcedureGroup<?>)proc).getMembers().values())
                     unregister(member, false);
             }
-            
+
             // remove from shadow map
             ProcedureShadow shadow = procedureShadows.remove(uid);
             if (shadow != null)
                 shadow.disconnectLiveProcedure(proc);
-            
+
             // remove from state database
             stateDb.getProcedureStore().remove(uid);
-            
+
             // publish procedure disabled event
             if (sendEvent)
-                eventPublisher.publish(new ProcedureRemovedEvent(System.currentTimeMillis(), uid, shadow.getParentGroupUID()));
+                eventPublisher.publish(new ProcedureRemovedEvent(System.currentTimeMillis(), shadow.getProcedureID(), shadow.getParentGroupID()));
         }
         finally
         {
@@ -233,10 +233,17 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
 
     @Override
+    public IProcedureWithState get(ProcedureId procID)
+    {
+        return get(procID.getUniqueID());
+    }
+
+
+    @Override
     public IProcedureWithState get(String uid)
     {
         lock.readLock().lock();
-        
+
         try
         {
             // look by local ID in the module registry for backward compatibility
@@ -248,7 +255,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
                     throw new IllegalArgumentException("Module " + MsgUtils.moduleString(module) + " is not a procedure");
                 return get (((IProcedureWithState)module).getUniqueIdentifier());
             }
-            
+
             return procedureShadows.get(uid);
             /*else
             {
@@ -259,7 +266,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
                     proc.setProcedureRegistry(this);
                     return proc;
                 });
-                
+
                 return proxy;
             }*/
         }
@@ -274,13 +281,6 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
 
 
-    @Override
-    public IHistoricalObsDatabase getProcedureStateDatabase()
-    {
-        return stateDb;
-    }
-    
-    
     @Override
     public ISensorHub getParentHub()
     {

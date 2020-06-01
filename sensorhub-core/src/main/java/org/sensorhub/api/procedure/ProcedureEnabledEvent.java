@@ -7,13 +7,14 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.procedure;
 
+import org.sensorhub.api.common.ProcedureId;
 
 /**
  * <p>
@@ -25,13 +26,13 @@ package org.sensorhub.api.procedure;
  */
 public class ProcedureEnabledEvent extends ProcedureEvent
 {
-    
+
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureID ID of enabled procedure
+     * @param procedureId ID of enabled procedure
      */
-    public ProcedureEnabledEvent(long timeStamp, String procedureID)
+    public ProcedureEnabledEvent(long timeStamp, ProcedureId procedureId)
     {
-        super(timeStamp, procedureID);
+        super(timeStamp, procedureId);
     }
 }

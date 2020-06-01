@@ -7,13 +7,14 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.procedure;
 
+import org.sensorhub.api.common.ProcedureId;
 
 /**
  * <p>
@@ -25,27 +26,27 @@ package org.sensorhub.api.procedure;
  */
 public class ProcedureRemovedEvent extends ProcedureEvent
 {
-    String parentGroupID;
-    
-    
+    ProcedureId parentGroupId;
+
+
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureID ID of removed procedure
-     * @param parentGroupID ID of parent procedure group (or null if procedure
+     * @param procId ID of removed procedure
+     * @param parentGroupId ID of parent procedure group (or null if procedure
      * is not a member of any group)
      */
-    public ProcedureRemovedEvent(long timeStamp, String procedureID, String parentGroupID)
+    public ProcedureRemovedEvent(long timeStamp, ProcedureId procId, ProcedureId parentGroupId)
     {
-        super(timeStamp, procedureID);
-        this.parentGroupID = parentGroupID;
+        super(timeStamp, procId);
+        this.parentGroupId = parentGroupId;
     }
-    
-    
+
+
     /**
      * @return ID of parent procedure group
      */
-    public String getParentGroupID()
+    public ProcedureId getParentGroupId()
     {
-        return parentGroupID;
+        return parentGroupId;
     }
 }

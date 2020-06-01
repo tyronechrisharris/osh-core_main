@@ -7,14 +7,15 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.procedure;
 
 import java.time.Instant;
+import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.event.IEventProducer;
 import org.vast.ogc.om.IProcedure;
 import org.vast.util.TimeExtent;
@@ -34,29 +35,35 @@ import net.opengis.sensorml.v20.AbstractProcess;
  */
 public interface IProcedureWithState extends IProcedure, IEventProducer
 {
-    
+
     /**
-     * @return The parent procedure group or null if this procedure is not 
+     * @return The ID object assigned to this procedure
+     */
+    public ProcedureId getProcedureID();
+
+
+    /**
+     * @return The ID object of the parent procedure group or null if this
+     * procedure is not a member of any group
+     */
+    public ProcedureId getParentGroupID();
+
+
+    /**
+     * @return The parent procedure group or null if this procedure is not
      * a member of any group
      */
     public IProcedureGroup<? extends IProcedureWithState> getParentGroup();
-    
-    
-    /**
-     * @return The unique ID of the parent procedure group or null if this
-     * procedure is not a member of any group
-     */
-    public String getParentGroupUID();
-    
-    
+
+
     /**
      * Retrieves most current SensorML description of the procedure.
      * All implementations must return an instance of AbstractProcess with
      * a valid unique identifier.<br/>
-     * In the case of a module generating data from multiple procedures (e.g. 
+     * In the case of a module generating data from multiple procedures (e.g.
      * sensor network), this returns the description of the group as a whole.
      * @return The SensorML description of the procedure or null if none
-     * is available at the time of the call 
+     * is available at the time of the call
      */
     public AbstractProcess getCurrentDescription();
 
@@ -68,8 +75,8 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
      * or {@link Long#MIN_VALUE} if description was never updated.
      */
     public long getLastDescriptionUpdate();
-    
-    
+
+
     /**
      * Check if the procedure is enabled. A procedure marked as disabled
      * is not producing live data but historical data may still be available.
