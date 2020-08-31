@@ -48,6 +48,7 @@ import org.sensorhub.api.persistence.DataKey;
 import org.sensorhub.api.persistence.IBasicStorage;
 import org.sensorhub.api.persistence.IFoiFilter;
 import org.sensorhub.api.persistence.IMultiSourceStorage;
+import org.sensorhub.api.persistence.IObsFilter;
 import org.sensorhub.api.persistence.IObsStorage;
 import org.sensorhub.api.persistence.IRecordStorageModule;
 import org.sensorhub.api.persistence.IDataFilter;
@@ -55,6 +56,7 @@ import org.sensorhub.api.persistence.IDataRecord;
 import org.sensorhub.api.persistence.IStorageModule;
 import org.sensorhub.api.persistence.IRecordStoreInfo;
 import org.sensorhub.api.persistence.ObsKey;
+import org.sensorhub.api.persistence.ObsPeriod;
 import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureRegistry;
@@ -746,6 +748,18 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
             return ((IObsStorage) storage).getFois(filter);
         
         return Collections.emptyIterator();
+    }
+
+
+    @Override
+    public Iterator<ObsPeriod> getFoiTimeRanges(IObsFilter filter)
+    {
+        checkStarted();
+        
+        if (storage instanceof IObsStorage)
+            return ((IObsStorage) storage).getFoiTimeRanges(filter);
+        
+        return Collections.<ObsPeriod>emptyList().iterator();
     }
 
 
