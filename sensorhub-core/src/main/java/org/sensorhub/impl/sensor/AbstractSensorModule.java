@@ -28,6 +28,7 @@ import net.opengis.gml.v32.TimeIndeterminateValue;
 import net.opengis.gml.v32.TimePosition;
 import net.opengis.gml.v32.impl.GMLFactory;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
+import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
@@ -104,7 +105,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     private Map<String, IStreamingControlInterface> controlInputs = new LinkedHashMap<>();
 
     protected DefaultLocationOutput locationOutput;
-    protected AbstractPhysicalProcess sensorDescription = new PhysicalSystemImpl();
+    protected AbstractProcess sensorDescription = new PhysicalSystemImpl();
     protected long lastUpdatedSensorDescription = Long.MIN_VALUE;
     protected Object sensorDescLock = new Object();
 
@@ -264,7 +265,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public AbstractPhysicalProcess getCurrentDescription()
+    public AbstractProcess getCurrentDescription()
     {
         synchronized (sensorDescLock)
         {
@@ -379,87 +380,92 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             Vector locVector = null;
             Vector orientVector = null;
 
-            // get static location from config if available
-            LLALocation loc = config.getLocation();
-            if (loc != null)
+            if (sensorDescription instanceof AbstractPhysicalProcess)
             {
-                // update GML location if point template was provided
-                if (sensorDescription.getNumPositions() > 0)
-                {
-                    Object smlLoc = sensorDescription.getPositionList().get(0);
-                    if (smlLoc instanceof Point)
-                    {
-                        Point gmlLoc = (Point)smlLoc;
-                        double[] pos;
+                AbstractPhysicalProcess sensorDescWithPos = (AbstractPhysicalProcess)sensorDescription;
+                
+	            // get static location from config if available
+	            LLALocation loc = config.getLocation();
+	            if (loc != null)
+	            {
+	                // update GML location if point template was provided
+	                if (sensorDescWithPos.getNumPositions() > 0)
+	                {
+                        Object smlLoc = sensorDescWithPos.getPositionList().get(0);
+	                    if (smlLoc instanceof Point)
+	                    {
+	                        Point gmlLoc = (Point)smlLoc;
+	                        double[] pos;
+	
+	                        if (Double.isNaN(loc.alt))
+	                        {
+	                            gmlLoc.setSrsName(SWEHelper.getEpsgUri(4326));
+	                            pos = new double[2];
+	                        }
+	                        else
+	                        {
+	                            gmlLoc.setSrsName(SWEHelper.getEpsgUri(4979));
+	                            pos = new double[3];
+	                            pos[2] = loc.alt;
+	                        }
+	
+	                        pos[0] = loc.lat;
+	                        pos[1] = loc.lon;
+	                        gmlLoc.setPos(pos);
+	                    }
+	                }
 
-                        if (Double.isNaN(loc.alt))
-                        {
-                            gmlLoc.setSrsName(SWEHelper.getEpsgUri(4326));
-                            pos = new double[2];
-                        }
-                        else
-                        {
-                            gmlLoc.setSrsName(SWEHelper.getEpsgUri(4979));
-                            pos = new double[3];
-                            pos[2] = loc.alt;
-                        }
+	                // else include location as a SWE vector
+	                else
+	                {
+	                    locVector = fac.newLocationVectorLLA(SWEConstants.DEF_SENSOR_LOC);
+	                    locVector.assignNewDataBlock();
+	                    locVector.getComponent(0).getData().setDoubleValue(loc.lat);
+	                    locVector.getComponent(1).getData().setDoubleValue(loc.lon);
+	                    locVector.getComponent(2).getData().setDoubleValue(loc.alt);
+	                    locVector.setLocalFrame(localFrameRef);
+	                }
+	            }
 
-                        pos[0] = loc.lat;
-                        pos[1] = loc.lon;
-                        gmlLoc.setPos(pos);
-                    }
-                }
-
-                // else include location as a SWE vector
-                else
-                {
-                    locVector = fac.newLocationVectorLLA(SWEConstants.DEF_SENSOR_LOC);
-                    locVector.assignNewDataBlock();
-                    locVector.getComponent(0).getData().setDoubleValue(loc.lat);
-                    locVector.getComponent(1).getData().setDoubleValue(loc.lon);
-                    locVector.getComponent(2).getData().setDoubleValue(loc.alt);
-                    locVector.setLocalFrame(localFrameRef);
-                }
-            }
-
-            // get static orientation from config if available
-            EulerOrientation orient = config.getOrientation();
-            if (orient != null)
-            {
-                orientVector = fac.newEulerOrientationNED(SWEConstants.DEF_SENSOR_ORIENT);
-                orientVector.assignNewDataBlock();
-                orientVector.getComponent(0).getData().setDoubleValue(orient.heading);
-                orientVector.getComponent(1).getData().setDoubleValue(orient.pitch);
-                orientVector.getComponent(2).getData().setDoubleValue(orient.roll);
-                orientVector.setLocalFrame(localFrameRef);
-            }
-
-            if (locVector != null || orientVector != null)
-            {
-                if (orientVector == null) // only location
-                    sensorDescription.addPositionAsVector(locVector);
-                else if (locVector == null) // only orientation
-                    sensorDescription.addPositionAsVector(orientVector);
-                else // both
-                {
-                    DataRecord pos = fac.createDataRecord()
-                        .addField("location", locVector)
-                        .addField("orientation", orientVector)
-                        .build();
-                    sensorDescription.addPositionAsDataRecord(pos);
-                }
-            }
-
-            // else reference location output if any
-            else if (locationOutput != null)
-            {
-                // if update rate is high, set sensorML location as link to output
-                if (locationOutput.getAverageSamplingPeriod() < 3600.)
-                {
-                    OgcProperty<?> linkProp = SWEHelper.newLinkProperty("#" + LOCATION_OUTPUT_ID);
-                    sensorDescription.getPositionList().add(linkProp);
-                }
-            }
+	            // get static orientation from config if available
+	            EulerOrientation orient = config.getOrientation();
+	            if (orient != null)
+	            {
+	                orientVector = fac.newEulerOrientationNED(SWEConstants.DEF_SENSOR_ORIENT);
+	                orientVector.assignNewDataBlock();
+	                orientVector.getComponent(0).getData().setDoubleValue(orient.heading);
+	                orientVector.getComponent(1).getData().setDoubleValue(orient.pitch);
+	                orientVector.getComponent(2).getData().setDoubleValue(orient.roll);
+	                orientVector.setLocalFrame(localFrameRef);
+	            }
+	
+	            if (locVector != null || orientVector != null)
+	            {
+	                if (orientVector == null) // only location
+	                        sensorDescWithPos.addPositionAsVector(locVector);
+	                else if (locVector == null) // only orientation
+	                        sensorDescWithPos.addPositionAsVector(orientVector);
+	                else // both
+	                {
+	                    DataRecord pos = fac.createDataRecord()
+	                        .addField("location", locVector)
+	                        .addField("orientation", orientVector)
+	                        .build();
+	                    sensorDescWithPos.addPositionAsDataRecord(pos);
+	                }
+	            }
+	
+	            // else reference location output if any
+	            else if (locationOutput != null)
+	            {
+	                // if update rate is high, set sensorML location as link to output
+	                if (locationOutput.getAverageSamplingPeriod() < 3600.)
+	                {
+	                    OgcProperty<?> linkProp = SWEHelper.newLinkProperty("#" + LOCATION_OUTPUT_ID);
+	                    sensorDescWithPos.getPositionList().add(linkProp);
+	                }
+	            }
+	        }
         }
     }
 

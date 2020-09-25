@@ -87,7 +87,7 @@ public class TestSensorPosition
         checkFoiLocation(sensor);
         
         // check SensorML position
-        AbstractPhysicalProcess sensorDesc = sensor.getCurrentDescription();
+        AbstractPhysicalProcess sensorDesc = (AbstractPhysicalProcess)sensor.getCurrentDescription();
         new SMLUtils(SMLUtils.V2_0).writeProcess(System.out, sensorDesc, true);
         System.out.println('\n');
         
@@ -111,7 +111,7 @@ public class TestSensorPosition
         assertNull("FoI must be null", sensor.getCurrentFeatureOfInterest());
         
         // check SensorML position
-        AbstractPhysicalProcess sensorDesc = sensor.getCurrentDescription();
+        AbstractPhysicalProcess sensorDesc = (AbstractPhysicalProcess)sensor.getCurrentDescription();
         new SMLUtils(SMLUtils.V2_0).writeProcess(System.out, sensorDesc, true);
         System.out.println('\n');
         
@@ -136,7 +136,7 @@ public class TestSensorPosition
         checkFoiLocation(sensor);
         
         // check SensorML position
-        AbstractPhysicalProcess sensorDesc = sensor.getCurrentDescription();
+        AbstractPhysicalProcess sensorDesc = (AbstractPhysicalProcess)sensor.getCurrentDescription();
         new SMLUtils(SMLUtils.V2_0).writeProcess(System.out, sensorDesc, true);
         System.out.println('\n');
         
