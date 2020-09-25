@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.processing;
 
-import org.sensorhub.api.module.IModule;
+import org.sensorhub.api.data.IDataProducerModule;
 
 
 /**
@@ -31,7 +31,7 @@ import org.sensorhub.api.module.IModule;
  * @param <ConfigType> Type of configuration class
  * @since Feb 20, 2015
  */
-public interface IProcessModule<ConfigType extends ProcessConfig> extends IModule<ConfigType>, IDataProcess
+public interface IProcessModule<ConfigType extends ProcessConfig> extends IDataProducerModule<ConfigType>, IDataProcess
 {   
     
     

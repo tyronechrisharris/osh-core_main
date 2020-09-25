@@ -71,20 +71,11 @@ import com.vaadin.ui.VerticalLayout;
  * @since 1.0
  */
 @SuppressWarnings("serial")
-public class ProcessAdminPanel extends DefaultModulePanel<IProcessModule<?>> implements IModuleAdminPanel<IProcessModule<?>>
+public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
 {
-    Panel outputPanel, commandsPanel, processFlowPanel;
+    Panel processFlowPanel;
     ProcessFlowDiagram diagram;
     SMLProcessConfig config;
-    
-    
-    static class Spacing extends Label
-    {
-        public Spacing()
-        {
-            setHeight(0, Unit.PIXELS);
-        }
-    }
     
     
     @Override
@@ -97,112 +88,6 @@ public class ProcessAdminPanel extends DefaultModulePanel<IProcessModule<?>> imp
             addProcessFlowEditor((SMLProcessImpl)module);
             this.config = (SMLProcessConfig)beanItem.getBean();
         }
-        /*// sensor info panel
-        if (module.isInitialized())
-        {
-            Label sectionLabel = new Label("Sensor Info");
-            sectionLabel.addStyleName(STYLE_H3);
-            sectionLabel.addStyleName(STYLE_COLORED);
-            addComponent(sectionLabel);
-            addComponent(new Label("<b>Unique ID:</b> " + module.getUniqueIdentifier(), ContentMode.HTML));
-            AbstractFeature foi = module.getCurrentFeatureOfInterest();
-            if (foi != null)
-                addComponent(new Label("<b>FOI ID:</b> " + foi.getUniqueIdentifier(), ContentMode.HTML));
-        
-            // inputs section
-            if (!module.getCommandInputs().isEmpty())
-            {
-                // title
-                addComponent(new Spacing());
-                HorizontalLayout titleBar = new HorizontalLayout();
-                titleBar.setSpacing(true);
-                sectionLabel = new Label("Inputs");
-                sectionLabel.addStyleName(STYLE_H3);
-                sectionLabel.addStyleName(STYLE_COLORED);
-                titleBar.addComponent(sectionLabel);
-                titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
-                titleBar.setHeight(31.0f, Unit.PIXELS);
-                addComponent(titleBar);
-                
-                // control panels
-                buildControlInputsPanels(module);
-            }
-            
-            // outputs section
-            if (!module.getAllOutputs().isEmpty())
-            {
-                // title
-                addComponent(new Spacing());
-                HorizontalLayout titleBar = new HorizontalLayout();
-                titleBar.setSpacing(true);
-                sectionLabel = new Label("Outputs");
-                sectionLabel.addStyleName(STYLE_H3);
-                sectionLabel.addStyleName(STYLE_COLORED);
-                titleBar.addComponent(sectionLabel);
-                titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
-                
-                // refresh button
-                final Timer timer = new Timer();
-                final Button refreshButton = new Button("Refresh");
-                refreshButton.setDescription("Toggle auto-refresh data once per second");
-                refreshButton.setIcon(REFRESH_ICON);
-                refreshButton.addStyleName(STYLE_SMALL);
-                refreshButton.addStyleName(STYLE_QUIET);
-                refreshButton.setData(false);
-                titleBar.addComponent(refreshButton);
-                titleBar.setComponentAlignment(refreshButton, Alignment.MIDDLE_LEFT);
-                addComponent(titleBar);
-                
-                refreshButton.addClickListener(new ClickListener() {
-                    transient TimerTask autoRefreshTask;                    
-                    @Override
-                    public void buttonClick(ClickEvent event)
-                    {
-                        // toggle button state
-                        boolean state = !(boolean)refreshButton.getData();
-                        refreshButton.setData(state);
-                        
-                        if (state)
-                        {
-                            autoRefreshTask = new TimerTask()
-                            {
-                                @Override
-                                public void run()
-                                {
-                                    final UI ui = ProcessAdminPanel.this.getUI();
-                                    
-                                    if (ui != null)
-                                    {
-                                        ui.access(new Runnable() {
-                                            @Override
-                                            public void run()
-                                            {
-                                                rebuildOutputsPanels(module);
-                                                ui.push();
-                                            }
-                                        });
-                                    }
-                                    else
-                                        cancel(); // if panel was detached
-                                }
-                            };
-                            timer.schedule(autoRefreshTask, 0L, 1000L);                    
-                            refreshButton.setIcon(FontAwesome.TIMES);
-                            refreshButton.setCaption("Stop");
-                        }
-                        else
-                        {
-                            autoRefreshTask.cancel();
-                            refreshButton.setIcon(REFRESH_ICON);
-                            refreshButton.setCaption("Refresh");
-                        }
-                    }
-                });               
-                        
-                // output panels
-                rebuildOutputsPanels(module);
-            }
-        }*/
     }
         
         
@@ -357,73 +242,5 @@ public class ProcessAdminPanel extends DefaultModulePanel<IProcessModule<?>> imp
         ProcessFlowDiagram oldDiagram = diagram;
         diagram = new ProcessFlowDiagram(((SMLProcessImpl)module).getProcessChain());
         replaceComponent(oldDiagram, diagram);
-    }
-    
-        
-    protected void rebuildOutputsPanels(ISensorModule<?> module)
-    {
-        if (module != null)
-        {
-            Panel oldPanel;
-            
-            // measurement outputs
-            if (!module.getObservationOutputs().isEmpty())
-            {
-                oldPanel = outputPanel;
-                outputPanel = newPanel("Outputs");
-                for (IStreamingDataInterface output: module.getObservationOutputs().values())
-                {
-                    DataComponent dataStruct = output.getRecordDescription().copy();
-                    DataBlock latestRecord = output.getLatestRecord();
-                    if (latestRecord != null)
-                        dataStruct.setData(latestRecord);
-                    
-                    // data structure
-                    Component sweForm = new SWECommonForm(dataStruct);
-                    ((Layout)outputPanel.getContent()).addComponent(sweForm);
-                }  
-                
-                if (oldPanel != null)
-                    replaceComponent(oldPanel, outputPanel);
-                else
-                    addComponent(outputPanel);
-            }
-        }
-    }
-    
-    
-    protected void buildControlInputsPanels(ISensorModule<?> module)
-    {
-        if (module != null)
-        {
-            Panel oldPanel;
-            
-            // command inputs
-            oldPanel = commandsPanel;
-            commandsPanel = newPanel("Command Inputs");
-            for (IStreamingControlInterface input: module.getCommandInputs().values())
-            {
-                Component sweForm = new SWEControlForm(input);
-                ((Layout)commandsPanel.getContent()).addComponent(sweForm);
-            }           
-
-            if (oldPanel != null)
-                replaceComponent(oldPanel, commandsPanel);
-            else
-                addComponent(commandsPanel);
-        }
-    }
-    
-    
-    protected Panel newPanel(String title)
-    {
-        Panel panel = new Panel(title);
-        VerticalLayout layout = new VerticalLayout();
-        layout.setSizeFull();
-        layout.setMargin(true);
-        layout.setSpacing(true);
-        layout.setDefaultComponentAlignment(Alignment.TOP_LEFT);
-        panel.setContent(layout);
-        return panel;
     }
 }
