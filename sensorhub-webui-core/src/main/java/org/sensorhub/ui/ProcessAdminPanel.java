@@ -43,6 +43,7 @@ import org.sensorhub.ui.ProcessSelectionPopup.ProcessSelectionCallback;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.data.MyBeanItem;
 import org.sensorhub.utils.FileUtils;
+import org.vast.data.DataRecordImpl;
 import org.vast.process.ProcessInfo;
 import org.vast.sensorML.AggregateProcessImpl;
 import org.vast.sensorML.SMLHelper;
@@ -73,7 +74,7 @@ import com.vaadin.ui.VerticalLayout;
 @SuppressWarnings("serial")
 public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
 {
-    Panel processFlowPanel;
+    Panel commandsPanel, processFlowPanel;
     ProcessFlowDiagram diagram;
     SMLProcessConfig config;
     
@@ -83,10 +84,58 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
     {
         super.build(beanItem, module);
         
+        // control params section
+        if (!module.getParameters().isEmpty())
+        {
+            // title
+            addComponent(new Spacing());
+            HorizontalLayout titleBar = new HorizontalLayout();
+            titleBar.setSpacing(true);
+            Label sectionLabel = new Label("Processing Parameters");
+            sectionLabel.addStyleName(STYLE_H3);
+            sectionLabel.addStyleName(STYLE_COLORED);
+            titleBar.addComponent(sectionLabel);
+            titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
+            titleBar.setHeight(31.0f, Unit.PIXELS);
+            addComponent(titleBar);
+
+            // control panels
+            buildParamInputsPanels(module);
+        }
+        
+        // process flow section
         if (module instanceof SMLProcessImpl)
         {
             addProcessFlowEditor((SMLProcessImpl)module);
             this.config = (SMLProcessConfig)beanItem.getBean();
+        }
+    }
+    
+    
+    protected void buildParamInputsPanels(IProcessModule<?> module)
+    {
+        if (module != null)
+        {
+            Panel oldPanel;
+
+            // command inputs
+            oldPanel = commandsPanel;
+            commandsPanel = newPanel(null);
+
+            // wrap all parameters into a single datarecord so we can submit them together
+            DataRecordImpl params = new DataRecordImpl();
+            params.setName("Parameters");
+            for (DataComponent param: module.getParameters().values())
+                params.addComponent(param.getName(), param);
+            params.combineDataBlocks();
+
+            Component sweForm = new SWEControlForm(params);
+            ((Layout)commandsPanel.getContent()).addComponent(sweForm);
+
+            if (oldPanel != null)
+                replaceComponent(oldPanel, commandsPanel);
+            else
+                addComponent(commandsPanel);
         }
     }
         

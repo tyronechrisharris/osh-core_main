@@ -20,12 +20,14 @@ import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
+import net.opengis.swe.v20.DataComponent;
 
 
 @SuppressWarnings("serial")
 public class SWEControlForm extends SWEEditForm
 {
     transient IStreamingControlInterface controlInput;
+    transient DataComponent controlSink;
     
     
     public SWEControlForm(final IStreamingControlInterface controlInput)
@@ -33,6 +35,16 @@ public class SWEControlForm extends SWEEditForm
         super(controlInput.getCommandDescription().copy());
         this.controlInput = controlInput;
         this.component.assignNewDataBlock();
+        buildForm();
+    }
+    
+    
+    public SWEControlForm(final DataComponent params)
+    {
+        super(params.copy());
+        this.addSpacing = true;
+        this.controlSink = params;
+        this.component.setData(params.getData());
         buildForm();
     }
     
@@ -54,7 +66,10 @@ public class SWEControlForm extends SWEEditForm
             {
                 try
                 {
-                    controlInput.execCommand(component.getData());
+                    if (controlInput != null)
+                        controlInput.execCommand(component.getData());
+                    else
+                        controlSink.setData(component.getData());
                 }
                 catch (SensorException e)
                 {
