@@ -24,7 +24,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.client.IClientModule;
@@ -43,6 +42,7 @@ import org.sensorhub.impl.module.RobustConnection;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.cdm.common.DataStreamWriter;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.ObservationImpl;
 import org.vast.ows.GetCapabilitiesRequest;
@@ -147,7 +147,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         }
         catch (Exception e)
         {
-            throw new ClientException("Cannot find sensor with local ID " + config.dataSourceID, e);
+            throw new ClientException("Cannot find data source with local ID " + config.dataSourceID, e);
         }
         
         // create connection handler
@@ -236,13 +236,12 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         {   
             // register sensor
             registerSensor(dataSource);
-            getLogger().info("Sensor {} registered with SOS", MsgUtils.entityString(dataSource));
+            getLogger().info("Data source {} registered with SOS", MsgUtils.entityString(dataSource));
         }
         catch (Exception e)
         {
-            throw new ClientException("Error while registering sensor with remote SOS", e);
-        }
-        
+            throw new ClientException("Error while registering data source with remote SOS", e);
+        }        
         
         // register all stream templates
         for (IStreamingDataInterface o: dataSource.getOutputs().values())
@@ -377,7 +376,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         ObservationImpl obsTemplate = new ObservationImpl();
         
         // set FOI if known
-        AbstractFeature foi = output.getParentProducer().getCurrentFeatureOfInterest();
+        IGeoFeature foi = output.getParentProducer().getCurrentFeatureOfInterest();
         if (foi != null)
             obsTemplate.setFeatureOfInterest(foi);
         req.setObservationTemplate(obsTemplate);
