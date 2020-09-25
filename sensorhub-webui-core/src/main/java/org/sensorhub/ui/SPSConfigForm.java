@@ -96,6 +96,7 @@ public class SPSConfigForm extends GenericConfigForm
             try
             {
                 classList.put("Sensor Connector", Class.forName(SPS_PACKAGE + "SensorConnectorConfig"));               
+                classList.put("Stream Process Connector", Class.forName(SPS_PACKAGE + "StreamProcessConnectorConfig"));             
             }
             catch (ClassNotFoundException e)
             {
