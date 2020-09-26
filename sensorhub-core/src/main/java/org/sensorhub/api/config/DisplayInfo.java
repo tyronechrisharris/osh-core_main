@@ -97,6 +97,11 @@ public @interface DisplayInfo
             MODULE_ID,
             
             /**
+             * Reference to a registered procedure using its unique ID.<br/>
+             */
+            PROCEDURE_UID,
+            
+            /**
              * Local address (e.g. address of local network interface).<br/>
              * You can restrict the address type using {@link AddressType}
              */
