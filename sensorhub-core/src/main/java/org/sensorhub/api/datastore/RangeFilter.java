@@ -29,7 +29,7 @@ import com.google.common.collect.Range;
  * @date Apr 4, 2018
  * @param <K> Type of range bounds
  */
-public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
+public class RangeFilter<K extends Comparable<?>> implements Predicate<K>
 {    
     protected Range<K> range;
     protected RangeOp op = RangeOp.INTERSECTS;
@@ -71,28 +71,26 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<Object>
     {
         return range.lowerEndpoint().equals(range.upperEndpoint());
     }
-
-
+    
+    
     @Override
-    @SuppressWarnings("unchecked")
-    public boolean test(Object val)
+    public boolean test(K val)
     {
-        if (val instanceof Range)
+        return range.contains(val);
+    }
+
+
+    public boolean test(Range<K> other)
+    {
+        switch (op)
         {
-            Range<K> other = (Range<K>)val;
-            
-            switch (op)
-            {
-                case CONTAINS:
-                    return range.encloses(other);
-                case EQUALS:
-                    return range.equals(other);
-                default:
-                    return range.isConnected(other);
-            }
+            case CONTAINS:
+                return range.encloses(other);
+            case EQUALS:
+                return range.equals(other);
+            default:
+                return range.isConnected(other);
         }
-        else
-            return range.contains((K)val);
     }
     
     

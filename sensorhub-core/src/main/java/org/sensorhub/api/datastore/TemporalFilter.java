@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore;
 
 import java.time.Instant;
+import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
 
 
@@ -49,6 +50,16 @@ public class TemporalFilter extends RangeFilter<Instant>
     public boolean isAllTimes()
     {
         return getMin() == Instant.MIN && getMax() == Instant.MAX;
+    }
+    
+    
+    public boolean test(TimeExtent te)
+    {
+        if (latestTime || currentTime && te.endsNow())
+            return true;
+        
+        return getMin().compareTo(te.end()) <= 0 &&
+               getMax().compareTo(te.begin()) >= 0;
     }
     
     
