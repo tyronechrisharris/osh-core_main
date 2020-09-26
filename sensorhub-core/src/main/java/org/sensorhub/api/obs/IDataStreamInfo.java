@@ -14,9 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
-import java.time.Instant;
 import org.sensorhub.api.procedure.ProcedureId;
-import com.google.common.collect.Range;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -61,19 +59,5 @@ public interface IDataStreamInfo
      * @return The recommended encoding for the data stream
      */
     DataEncoding getRecordEncoding();
-
-
-    /**
-     * @return The range of phenomenon times of all observations that are part
-     * of this data stream
-     */
-    Range<Instant> getPhenomenonTimeRange();
-
-
-    /**
-     * @return The range of result times of all observations that are part
-     * of this data stream
-     */
-    Range<Instant> getResultTimeRange();
 
 }
