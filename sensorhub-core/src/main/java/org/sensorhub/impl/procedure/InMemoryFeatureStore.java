@@ -146,25 +146,12 @@ public class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField> e
         
         if (query.getInternalIDs() != null)
         {
-            if (query.getInternalIDs().isSet())
-            {
-                resultStream = query.getInternalIDs().getSet().stream()
-                    .map(id -> {
-                        FeatureKey key = new FeatureKey(id);
-                        T val = map.get(key); 
-                        return new AbstractMap.SimpleEntry<>(key, val);
-                    });
-            }
-            else
-            {
-                var idRange = query.getInternalIDs().getRange();
-                resultStream = map.subMap(
-                    new FeatureKey(idRange.lowerEndpoint()),
-                    new FeatureKey(idRange.upperEndpoint()))
-                .entrySet().stream();
-            }
-            
-            
+            resultStream = query.getInternalIDs().stream()
+                .map(id -> {
+                    FeatureKey key = new FeatureKey(id);
+                    T val = map.get(key); 
+                    return new AbstractMap.SimpleEntry<>(key, val);
+                });
         }
         else
             resultStream = map.entrySet().stream();

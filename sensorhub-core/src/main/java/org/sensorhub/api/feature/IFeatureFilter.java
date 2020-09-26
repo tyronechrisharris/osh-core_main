@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.feature;
 
+import java.util.Set;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.RangeOrSet;
@@ -33,7 +34,7 @@ import org.vast.ogc.gml.IFeature;
 public interface IFeatureFilter extends IQueryFilter, Predicate<IFeature>
 {
     
-    public RangeOrSet<Long> getInternalIDs();
+    public Set<Long> getInternalIDs();
     
     
     public RangeOrSet<String> getFeatureUIDs();

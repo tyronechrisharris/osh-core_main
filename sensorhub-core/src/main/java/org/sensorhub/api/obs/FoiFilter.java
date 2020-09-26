@@ -56,7 +56,7 @@ public class FoiFilter extends FeatureFilter
     {
         public Builder()
         {
-            this.instance = new FoiFilter();
+            super(new FoiFilter());
         }
         
         public static Builder from(FoiFilter base)
@@ -75,8 +75,8 @@ public class FoiFilter extends FeatureFilter
         
         public NestedBuilder(B parent)
         {
+            super(new FoiFilter());
             this.parent = parent;
-            this.instance = new FoiFilter();
         }
                 
         public abstract B done();
@@ -90,8 +90,9 @@ public class FoiFilter extends FeatureFilter
         extends FeatureFilterBuilder<B, FoiFilter>
     {    
         
-        protected FoiFilterBuilder()
+        protected FoiFilterBuilder(F instance)
         {
+            super(instance);
         }
         
         

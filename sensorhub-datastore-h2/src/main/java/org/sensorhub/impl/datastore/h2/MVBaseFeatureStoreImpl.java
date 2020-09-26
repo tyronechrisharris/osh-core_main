@@ -303,17 +303,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
         // if filtering by internal IDs, use these IDs directly
         if (filter.getInternalIDs() != null)
         {
-            if (filter.getInternalIDs().isRange())
-            {
-                var range = filter.getInternalIDs().getRange();
-                var cursor = new RangeCursor<>(
-                    featuresIndex,
-                    new FeatureKey(range.lowerEndpoint()),
-                    new FeatureKey(range.upperEndpoint()));
-                resultStream = cursor.entryStream();
-            }
-            else
-                internalIdStream = filter.getInternalIDs().getSet().stream();
+            internalIdStream = filter.getInternalIDs().stream();
         }
         
         // if filtering by UID, use idsIndex as primary

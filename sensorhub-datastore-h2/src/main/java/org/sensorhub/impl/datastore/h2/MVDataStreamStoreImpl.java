@@ -139,11 +139,10 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     public Stream<Long> selectProcedureIDs(ProcedureFilter filter)
     {
         if (filter.getInternalIDs() != null &&
-            filter.getInternalIDs().isSet() &&
             filter.getLocationFilter() == null )
         {
             // if only internal IDs were specified, no need to search the feature store
-            return filter.getInternalIDs().getSet().stream();
+            return filter.getInternalIDs().stream();
         }
         else
         {

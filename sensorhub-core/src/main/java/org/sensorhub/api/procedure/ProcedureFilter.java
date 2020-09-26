@@ -68,7 +68,7 @@ public class ProcedureFilter extends FeatureFilter
     {
         public Builder()
         {
-            this.instance = new ProcedureFilter();
+            super(new ProcedureFilter());
         }
         
         public static Builder from(ProcedureFilter base)
@@ -87,8 +87,8 @@ public class ProcedureFilter extends FeatureFilter
         
         public NestedBuilder(B parent)
         {
+            super(new ProcedureFilter());
             this.parent = parent;
-            this.instance = new ProcedureFilter();
         }
                 
         public abstract B done();
@@ -102,8 +102,9 @@ public class ProcedureFilter extends FeatureFilter
         extends FeatureFilterBuilder<B, ProcedureFilter>
     {        
         
-        protected ProcedureFilterBuilder()
+        protected ProcedureFilterBuilder(F instance)
         {
+            super(instance);
         }
                 
         

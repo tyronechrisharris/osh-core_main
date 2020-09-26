@@ -22,12 +22,12 @@ import org.sensorhub.api.datastore.RangeOrSet;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
 import org.sensorhub.api.datastore.TemporalFilter;
+import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
-import org.vast.util.BaseBuilder;
 import org.vast.util.Bbox;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
@@ -43,16 +43,14 @@ import com.vividsolutions.jts.geom.Polygon;
  * @author Alex Robin
  * @date Apr 3, 2018
  */
-public class FeatureFilter implements IFeatureFilter
+public class FeatureFilter extends ResourceFilter<IFeature> implements IFeatureFilter
 {
     protected static final Instant LATEST_VERSION = Instant.MAX;
         
-    protected RangeOrSet<Long> internalIDs;
     protected RangeOrSet<String> featureUIDs;
     protected TemporalFilter validTime;
     protected SpatialFilter location;
     protected Predicate<FeatureKey> keyPredicate;
-    protected Predicate<IFeature> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
     
@@ -65,12 +63,6 @@ public class FeatureFilter implements IFeatureFilter
         validTime = new TemporalFilter.Builder()
             .withCurrentTime()
             .build();
-    }
-
-
-    public RangeOrSet<Long> getInternalIDs()
-    {
-        return internalIDs;
     }
 
 
@@ -98,12 +90,6 @@ public class FeatureFilter implements IFeatureFilter
     }
 
 
-    public Predicate<IFeature> getValuePredicate()
-    {
-        return valuePredicate;
-    }
-
-
     @Override
     public long getLimit()
     {
@@ -114,17 +100,10 @@ public class FeatureFilter implements IFeatureFilter
     @Override
     public boolean test(IFeature f)
     {
-        return (testFeatureUIDs(f) &&
+        return (super.test(f) &&
+                testFeatureUIDs(f) &&
                 testValidTime(f) &&
-                testLocation(f) &&
-                testValuePredicate(f));
-    }
-    
-    
-    public boolean testInternalIDs(long internalID)
-    {
-        return (internalIDs == null ||
-                internalIDs.test(internalID));
+                testLocation(f));
     }
     
     
@@ -158,13 +137,6 @@ public class FeatureFilter implements IFeatureFilter
         return (keyPredicate == null ||
                 keyPredicate.test(k));
     }
-    
-    
-    public boolean testValuePredicate(IFeature f)
-    {
-        return (valuePredicate == null ||
-                valuePredicate.test(f));
-    }
 
 
     @Override
@@ -195,12 +167,8 @@ public class FeatureFilter implements IFeatureFilter
     public static abstract class FeatureFilterBuilder<
             B extends FeatureFilterBuilder<B, F>,
             F extends FeatureFilter>
-        extends BaseBuilder<F>
+        extends ResourceFilterBuilder<B, IFeature, F>
     {        
-        protected FeatureFilterBuilder()
-        {
-        }
-        
         
         protected FeatureFilterBuilder(F instance)
         {
@@ -218,42 +186,6 @@ public class FeatureFilter implements IFeatureFilter
             instance.keyPredicate = base.getKeyPredicate();
             instance.valuePredicate = base.getValuePredicate();
             instance.limit = base.getLimit();
-            return (B)this;
-        }
-        
-        
-        /**
-         * Keep only features with specific internal IDs.
-         * @param ids One or more internal IDs of features to select
-         * @return This builder for chaining
-         */
-        public B withInternalIDs(Long... ids)
-        {
-            return withInternalIDs(Arrays.asList(ids));
-        }
-        
-        
-        /**
-         * Keep only features with specific internal IDs.
-         * @param ids Collection of internal IDs
-         * @return This builder for chaining
-         */
-        public B withInternalIDs(Collection<Long> ids)
-        {
-            instance.internalIDs = RangeOrSet.from(ids);
-            return (B)this;
-        }
-        
-        
-        /**
-         * Keep only features with internal IDs within the given range.
-         * @param startId 
-         * @param stopId 
-         * @return This builder for chaining
-         */
-        public B withInternalIDRange(Long startId, Long stopId)
-        {
-            instance.internalIDs = RangeOrSet.from(startId, stopId);
             return (B)this;
         }
         
@@ -460,18 +392,6 @@ public class FeatureFilter implements IFeatureFilter
         public B withKeyPredicate(Predicate<FeatureKey> keyPredicate)
         {
             instance.keyPredicate = keyPredicate;
-            return (B)this;
-        }
-
-
-        /**
-         * Keep only features matching the predicate.
-         * @param valuePredicate Predicate to apply to the feature object
-         * @return This builder for chaining
-         */
-        public B withValuePredicate(Predicate<IFeature> valuePredicate)
-        {
-            instance.valuePredicate = valuePredicate;
             return (B)this;
         }
         
