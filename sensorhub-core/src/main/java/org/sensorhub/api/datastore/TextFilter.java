@@ -20,6 +20,14 @@ import java.util.Set;
 import org.vast.util.BaseBuilder;
 
 
+/**
+ * <p>
+ * TODO TextFilter type description
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Sep 26, 2020
+ */
 public class TextFilter
 {
     private Set<String> keywords = new HashSet<>();
@@ -31,20 +39,58 @@ public class TextFilter
     }
     
     
-    public static class Builder extends BaseBuilder<TextFilter>
+    /*
+     * Builder
+     */
+    public static class Builder extends TextFilterBuilder<Builder, TextFilter>
     {
         public Builder()
         {
             super(new TextFilter());
         }
+    }
+    
+    
+    /*
+     * Nested builder for use within another builder
+     */
+    public static abstract class NestedBuilder<B> extends TextFilterBuilder<NestedBuilder<B>, TextFilter>
+    {
+        B parent;
+        
+        public NestedBuilder(B parent)
+        {
+            this.parent = parent;
+            this.instance = new TextFilter();
+        }
+                
+        public abstract B done();
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    public static abstract class TextFilterBuilder<
+            B extends TextFilterBuilder<B, F>,
+            F extends TextFilter> extends BaseBuilder<TextFilter>
+    {
+        public TextFilterBuilder()
+        {
+            super(new TextFilter());
+        }
         
         
-        public Builder withKeywords(String... keywords)
+        protected TextFilterBuilder(F instance)
+        {
+            super(instance);
+        }
+        
+        
+        public B withKeywords(String... keywords)
         {
             if (instance.keywords == null)
                 instance.keywords = new HashSet<>();
             instance.keywords.addAll(Arrays.asList(keywords));
-            return this;
+            return (B)this;
         }
     }
 }

@@ -16,6 +16,7 @@ package org.sensorhub.api.datastore;
 
 import java.math.BigInteger;
 import java.util.Collection;
+import org.sensorhub.api.obs.IHistoricalObsDatabase;
 
 
 /**

@@ -15,7 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.procedure;
 
 import java.time.Instant;
-import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.event.IEventProducer;
 import org.vast.ogc.om.IProcedure;
 import org.vast.util.TimeExtent;

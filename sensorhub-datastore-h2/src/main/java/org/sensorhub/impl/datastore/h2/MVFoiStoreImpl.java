@@ -13,15 +13,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.datastore.FeatureFilter;
-import org.sensorhub.api.datastore.FeatureKey;
-import org.sensorhub.api.datastore.FoiFilter;
-import org.sensorhub.api.datastore.IFeatureFilter;
-import org.sensorhub.api.datastore.IFoiStore;
-import org.sensorhub.api.datastore.IFoiStore.FoiField;
-import org.sensorhub.api.datastore.IObsStore;
-import org.sensorhub.api.datastore.IObsStore.ObsField;
-import org.sensorhub.api.datastore.ObsFilter;
+import org.sensorhub.api.feature.FeatureFilter;
+import org.sensorhub.api.feature.FeatureKey;
+import org.sensorhub.api.feature.IFeatureFilter;
+import org.sensorhub.api.obs.FoiFilter;
+import org.sensorhub.api.obs.IFoiStore;
+import org.sensorhub.api.obs.IObsStore;
+import org.sensorhub.api.obs.ObsFilter;
+import org.sensorhub.api.obs.IFoiStore.FoiField;
+import org.sensorhub.api.obs.IObsStore.ObsField;
 import org.vast.ogc.gml.IGeoFeature;
 
 

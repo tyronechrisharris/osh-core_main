@@ -10,7 +10,7 @@
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.datastore.IFeatureStore.FeatureField;
+import org.sensorhub.api.feature.IFeatureStore.FeatureField;
 import net.opengis.gml.v32.AbstractFeature;
 
 

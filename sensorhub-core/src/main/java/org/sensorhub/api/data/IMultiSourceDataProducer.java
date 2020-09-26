@@ -16,8 +16,8 @@ package org.sensorhub.api.data;
 
 import java.util.Collection;
 import java.util.Map;
-import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.procedure.IProcedureGroup;
+import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.ogc.gml.IGeoFeature;
 
 

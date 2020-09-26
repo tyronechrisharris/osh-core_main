@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
-import org.sensorhub.api.datastore.IObsStore;
+import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.procedure.IProcedureDescStore;
 import org.sensorhub.api.procedure.IProcedureDescStore.ProcedureField;
 import net.opengis.sensorml.v20.AbstractProcess;

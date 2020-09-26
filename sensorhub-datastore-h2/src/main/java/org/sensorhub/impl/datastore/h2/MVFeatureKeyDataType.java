@@ -20,7 +20,7 @@ import java.util.Comparator;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
-import org.sensorhub.api.datastore.FeatureKey;
+import org.sensorhub.api.feature.FeatureKey;
 
 
 /**

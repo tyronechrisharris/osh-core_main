@@ -11,8 +11,8 @@ package org.sensorhub.impl.datastore.h2;
 
 import java.time.ZoneOffset;
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.datastore.FeatureKey;
-import org.sensorhub.api.datastore.IObsStore;
+import org.sensorhub.api.feature.FeatureKey;
+import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.procedure.IProcedureDescStore;
 import org.sensorhub.api.procedure.IProcedureDescStore.ProcedureField;
 import net.opengis.gml.v32.TimePeriod;

@@ -23,10 +23,10 @@ import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.event.Event;
-import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.event.IEventPublisher;
+import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.impl.event.EventBus;
 import com.google.common.collect.Sets;
 

@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import org.sensorhub.api.datastore.IHistoricalObsDatabase;
+import org.sensorhub.api.obs.IHistoricalObsDatabase;
 
 
 /**

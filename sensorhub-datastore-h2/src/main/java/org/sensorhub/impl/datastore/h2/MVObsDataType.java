@@ -11,7 +11,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import java.util.HashMap;
 import java.util.Map.Entry;
-import org.sensorhub.api.datastore.ObsData;
+import org.sensorhub.api.obs.ObsData;
 import org.vast.data.AbstractDataBlock;
 import org.vast.data.DataBlockBoolean;
 import org.vast.data.DataBlockByte;

@@ -20,7 +20,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import org.junit.Before;
 import org.junit.Test;
-import org.sensorhub.api.datastore.IFeatureStore;
+import org.sensorhub.api.feature.IFeatureStore;
 import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
 import org.sensorhub.impl.procedure.InMemoryProcedureStateDatabase;
 import org.vast.ogc.gml.ITemporalFeature;

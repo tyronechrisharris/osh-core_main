@@ -14,8 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import org.sensorhub.api.common.ProcedureId;
-
 /**
  * <p>
  * Event sent when a procedure is added to the hub or to a procedure group

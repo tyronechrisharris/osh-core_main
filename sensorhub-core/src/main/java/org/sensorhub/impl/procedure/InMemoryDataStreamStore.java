@@ -22,10 +22,10 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.sensorhub.api.datastore.DataStreamFilter;
-import org.sensorhub.api.datastore.DataStreamInfo;
-import org.sensorhub.api.datastore.IDataStreamInfo;
-import org.sensorhub.api.datastore.IDataStreamStore;
+import org.sensorhub.api.obs.DataStreamFilter;
+import org.sensorhub.api.obs.DataStreamInfo;
+import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.obs.IDataStreamStore;
 import org.vast.util.Asserts;
 
 

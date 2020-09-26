@@ -15,7 +15,6 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.procedure;
 
 import java.util.Map;
-import org.sensorhub.api.common.ProcedureId;
 
 
 /**

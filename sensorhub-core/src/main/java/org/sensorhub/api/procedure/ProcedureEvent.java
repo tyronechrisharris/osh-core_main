@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import org.sensorhub.api.common.ProcedureId;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
 import org.vast.util.Asserts;
