@@ -16,7 +16,7 @@ package org.sensorhub.api.datastore;
 
 import java.math.BigInteger;
 import java.util.Collection;
-import org.sensorhub.api.obs.IHistoricalObsDatabase;
+import org.sensorhub.api.obs.IObsDatabase;
 
 
 /**
@@ -62,16 +62,16 @@ public interface IDatabaseRegistry
      * @param procedureUID Unique ID of procedure to associate with the database
      * @param db A database instance
      */
-    void register(String procedureUID, IHistoricalObsDatabase db);
+    void register(String procedureUID, IObsDatabase db);
 
 
     /**
      * Helper method to register several procedure -> database mappings at once.
-     * @see {@link #register(String, IHistoricalObsDatabase)}.
+     * @see {@link #register(String, IObsDatabase)}.
      * @param procedureUIDs Unique IDs of procedures to associate with the database
      * @param db The database instance
      */
-    default void register(Collection<String> procedureUIDs, IHistoricalObsDatabase db)
+    default void register(Collection<String> procedureUIDs, IObsDatabase db)
     {
         for (String uid: procedureUIDs)
             register(uid, db);
@@ -84,17 +84,17 @@ public interface IDatabaseRegistry
      * the specified database
      * @param db A database instance
      */
-    void unregister(String procedureUID, IHistoricalObsDatabase db);
+    void unregister(String procedureUID, IObsDatabase db);
 
 
     /**
      * Helper method to unregister several procedure -> database mappings at once.
-     * @see {@link #unregister(String, IHistoricalObsDatabase)}.
+     * @see {@link #unregister(String, IObsDatabase)}.
      * @param procedureUIDs Unique IDs of procedures previously associated with
      * the specified database
      * @param db A database instance
      */
-    default void unregister(Collection<String> procedureUIDs, IHistoricalObsDatabase db)
+    default void unregister(Collection<String> procedureUIDs, IObsDatabase db)
     {
         for (String uid: procedureUIDs)
             unregister(uid, db);
@@ -117,14 +117,14 @@ public interface IDatabaseRegistry
      * @return The database instance or null if none has been registered
      * for the specified procedure
      */
-    IHistoricalObsDatabase getDatabase(String procedureUID);
+    IObsDatabase getDatabase(String procedureUID);
 
 
     /**
      * @return This hub's federated observation database.<br/>
      * See class description for more information about the federated DB
      */
-    IHistoricalObsDatabase getFederatedObsDatabase();
+    IObsDatabase getFederatedObsDatabase();
 
 
     /**

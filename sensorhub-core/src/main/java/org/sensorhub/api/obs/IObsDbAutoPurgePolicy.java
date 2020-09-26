@@ -27,7 +27,7 @@ import org.slf4j.Logger;
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public interface IHistoricalObsAutoPurgePolicy
+public interface IObsDbAutoPurgePolicy
 {    
         
     /**
@@ -37,5 +37,5 @@ public interface IHistoricalObsAutoPurgePolicy
      * @param log 
      * @return the number of records removed
      */
-    public int trimStorage(IHistoricalObsDatabase db, Logger log); 
+    public int trimStorage(IObsDatabase db, Logger log); 
 }

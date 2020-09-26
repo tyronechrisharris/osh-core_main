@@ -25,7 +25,7 @@ import org.sensorhub.api.datastore.DatabaseConfig;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.obs.IHistoricalObsDatabase;
+import org.sensorhub.api.obs.IObsDatabase;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureId;
@@ -61,7 +61,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     ISensorHub hub;
     IEventPublisher eventPublisher;
     GenericObsStreamDataStore stateDb;
-    IHistoricalObsDatabase historicalDb;
+    IObsDatabase historicalDb;
     GenericObsStreamDataStore dbListener;
     ReadWriteLock lock = new ReentrantReadWriteLock();
 

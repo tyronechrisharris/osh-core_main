@@ -15,7 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.obs;
 
 import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.obs.IHistoricalObsAutoPurgePolicy;
+import org.sensorhub.api.obs.IObsDbAutoPurgePolicy;
 
 
 /**
@@ -34,7 +34,7 @@ public class MaxAgeAutoPurgeConfig extends HistoricalObsAutoPurgeConfig
     
     
     @Override
-    public IHistoricalObsAutoPurgePolicy getPolicy()
+    public IObsDbAutoPurgePolicy getPolicy()
     {
         return new MaxAgeAutoPurgePolicy(this);
     }

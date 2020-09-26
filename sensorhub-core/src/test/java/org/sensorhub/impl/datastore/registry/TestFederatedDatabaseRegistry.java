@@ -23,7 +23,7 @@ import org.sensorhub.api.datastore.IDatabaseRegistry;
 import org.sensorhub.api.feature.FeatureFilter;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.obs.DataStreamFilter;
-import org.sensorhub.api.obs.IHistoricalObsDatabase;
+import org.sensorhub.api.obs.IObsDatabase;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.procedure.InMemoryProcedureStateDatabase;
@@ -35,7 +35,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public class TestFederatedDatabaseRegistry
 {
     IDatabaseRegistry registry;
-    IHistoricalObsDatabase mainObsDatabase;
+    IObsDatabase mainObsDatabase;
     
     
     @Rule
@@ -111,8 +111,8 @@ public class TestFederatedDatabaseRegistry
     @Test
     public void testPublicKeys()
     {
-        IHistoricalObsDatabase db1 = new InMemoryProcedureStateDatabase((byte)1);
-        IHistoricalObsDatabase db2 = new InMemoryProcedureStateDatabase((byte)2);
+        IObsDatabase db1 = new InMemoryProcedureStateDatabase((byte)1);
+        IObsDatabase db2 = new InMemoryProcedureStateDatabase((byte)2);
         registry.register(Sets.newHashSet("sensor1", "sensor2"), db1);
         registry.register(Sets.newHashSet("sensor3", "sensor4"), db2);
         

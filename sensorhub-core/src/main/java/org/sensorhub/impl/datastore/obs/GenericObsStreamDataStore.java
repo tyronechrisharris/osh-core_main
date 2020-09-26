@@ -44,8 +44,8 @@ import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IFoiStore;
-import org.sensorhub.api.obs.IHistoricalObsAutoPurgePolicy;
-import org.sensorhub.api.obs.IHistoricalObsDatabase;
+import org.sensorhub.api.obs.IObsDbAutoPurgePolicy;
+import org.sensorhub.api.obs.IObsDatabase;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsData;
@@ -71,7 +71,7 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Generic wrapper/adapter enabling any {@link IHistoricalObsDatabase}
+ * Generic wrapper/adapter enabling any {@link IObsDatabase}
  * implementation to store data coming from data events (e.g. sensor data,
  * processed data, etc.).
  * </p><p>
@@ -82,11 +82,11 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @since Sep 23, 2019
  */
-public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreConfig> implements IHistoricalObsDatabase
+public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreConfig> implements IObsDatabase
 {
     static final String WAITING_STATUS_MSG = "Waiting for data source {}";
 
-    IHistoricalObsDatabase db;
+    IObsDatabase db;
     Map<ProcedureId, ProducerInfo> registeredProducers = new ConcurrentHashMap<>();
     long lastCommitTime = Long.MIN_VALUE;
     Timer autoPurgeTimer;
@@ -132,7 +132,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             dbModule.init(dbConfig);
             dbModule.start();
             
-            this.db = (IHistoricalObsDatabase)dbModule;
+            this.db = (IObsDatabase)dbModule;
             Asserts.checkNotNull(db.getProcedureStore());
             Asserts.checkNotNull(db.getFoiStore());
             Asserts.checkNotNull(db.getObservationStore());
@@ -145,7 +145,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         // start auto-purge timer thread if policy is specified and enabled
         if (config.autoPurgeConfig != null && config.autoPurgeConfig.enabled)
         {
-            final IHistoricalObsAutoPurgePolicy policy = config.autoPurgeConfig.getPolicy();
+            final IObsDbAutoPurgePolicy policy = config.autoPurgeConfig.getPolicy();
             autoPurgeTimer = new Timer();
             TimerTask task = new TimerTask() {
                 public void run()

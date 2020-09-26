@@ -21,13 +21,13 @@ import org.sensorhub.impl.module.JarModuleProvider;
 
 /**
  * <p>
- * Descriptor class for {@link MVHistoricalObsDatabase} module.
+ * Descriptor class for {@link MVObsDatabase} module.
  * </p>
  *
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class MVHistoricalObsDescriptor extends JarModuleProvider
+public class MVObsDatabaseDescriptor extends JarModuleProvider
 {
     @Override
     public String getModuleName()
@@ -46,13 +46,13 @@ public class MVHistoricalObsDescriptor extends JarModuleProvider
     @Override
     public Class<? extends IModule<?>> getModuleClass()
     {
-        return MVHistoricalObsDatabase.class;
+        return MVObsDatabase.class;
     }
     
 
     @Override
     public Class<? extends ModuleConfig> getModuleConfigClass()
     {
-        return MVHistoricalObsDatabaseConfig.class;
+        return MVObsDatabaseConfig.class;
     }
 }

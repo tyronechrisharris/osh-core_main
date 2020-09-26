@@ -21,13 +21,13 @@ import org.sensorhub.api.datastore.DatabaseConfig;
 
 /**
  * <p>
- * Config class for {@link MVHistoricalObsDatabase} module
+ * Config class for {@link MVObsDatabase} module
  * </p>
  *
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class MVHistoricalObsDatabaseConfig extends DatabaseConfig
+public class MVObsDatabaseConfig extends DatabaseConfig
 {
     
     @Required

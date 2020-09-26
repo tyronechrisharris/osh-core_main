@@ -20,14 +20,14 @@ import org.sensorhub.api.procedure.IProcedureDescStore;
 
 /**
  * <p>
- * Main interface for accessing historical observations and corresponding
- * procedure descriptions history.
+ * Main interface for accessing historical observations, the description of
+ * procedures that generated them, and sampling features.
  * </p>
  *
  * @author Alex Robin
  * @date Sep 17, 2019
  */
-public interface IHistoricalObsDatabase extends IDatabase
+public interface IObsDatabase extends IDatabase
 {
 
     /**
@@ -36,18 +36,17 @@ public interface IHistoricalObsDatabase extends IDatabase
     IProcedureDescStore getProcedureStore();
     
     
+    /**
+     * @return Data store containing features of interest observed by
+     * all registered procedures
+     */
+    IFoiStore getFoiStore();    
+    
     
     /**
      * @return Data store containing historical observations generated
      * from registered procedures
      */
     IObsStore getObservationStore();
-    
-    
-    /**
-     * @return Data store containing features of interest observed by
-     * all registered procedures
-     */
-    IFoiStore getFoiStore();
     
 }
