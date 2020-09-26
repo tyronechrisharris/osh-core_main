@@ -18,7 +18,9 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListMap;
 import net.opengis.gml.v32.AbstractFeature;
 import org.sensorhub.api.persistence.IFoiFilter;
+import org.sensorhub.api.persistence.IObsFilter;
 import org.sensorhub.api.persistence.IObsStorageModule;
+import org.sensorhub.api.persistence.ObsPeriod;
 import org.vast.ogc.gml.GMLUtils;
 import org.vast.util.Bbox;
 
@@ -109,5 +111,13 @@ public class InMemoryObsStorage extends InMemoryBasicStorage implements IObsStor
             Bbox foiBbox = GMLUtils.envelopeToBbox(foi.getGeometry().getGeomEnvelope());
             bbox.add(foiBbox);
         }
+    }
+
+
+    @Override
+    public Iterator<ObsPeriod> getFoiTimeRanges(IObsFilter filter)
+    {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
