@@ -33,4 +33,14 @@ public class ProcedureChangedEvent extends ProcedureEvent
     {
         super(timeStamp, procedureId);
     }
+    
+    
+    /**
+     * Helper constructor that sets the timestamp to current system time
+     */
+    @SuppressWarnings("javadoc")
+    public ProcedureChangedEvent(ProcedureId procedureId)
+    {
+        super(procedureId);
+    }
 }

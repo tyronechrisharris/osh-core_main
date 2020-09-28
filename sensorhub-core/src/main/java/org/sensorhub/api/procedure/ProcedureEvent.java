@@ -36,10 +36,16 @@ public abstract class ProcedureEvent extends Event
     protected transient String sourceID;
 
 
-    public ProcedureEvent(long timeStamp, ProcedureId procedureIdD)
+    public ProcedureEvent(long timeStamp, ProcedureId procedureId)
     {
         this.timeStamp = timeStamp;
-        this.procedureID = Asserts.checkNotNull(procedureID, ProcedureId.class);
+        this.procedureID = Asserts.checkNotNull(procedureId, ProcedureId.class);
+    }
+    
+    
+    public ProcedureEvent(ProcedureId procedureId)
+    {
+        this(System.currentTimeMillis(), procedureId);
     }
 
 

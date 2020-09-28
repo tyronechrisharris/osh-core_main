@@ -38,6 +38,17 @@ public class ProcedureAddedEvent extends ProcedureEvent
         super(timeStamp, procedureId);
         this.parentGroupId = parentGroupId;
     }
+    
+    
+    /**
+     * Helper constructor that sets the timestamp to current system time
+     */
+    @SuppressWarnings("javadoc")
+    public ProcedureAddedEvent(ProcedureId procedureId, ProcedureId parentGroupId)
+    {
+        super(procedureId);
+        this.parentGroupId = parentGroupId;
+    }
 
 
     /**

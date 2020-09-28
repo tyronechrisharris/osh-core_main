@@ -38,6 +38,17 @@ public class ProcedureRemovedEvent extends ProcedureEvent
         super(timeStamp, procId);
         this.parentGroupId = parentGroupId;
     }
+    
+    
+    /**
+     * Helper constructor that sets the timestamp to current system time
+     */
+    @SuppressWarnings("javadoc")
+    public ProcedureRemovedEvent(ProcedureId procedureId, ProcedureId parentGroupId)
+    {
+        super(procedureId);
+        this.parentGroupId = parentGroupId;
+    }
 
 
     /**
