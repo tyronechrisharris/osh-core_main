@@ -16,6 +16,7 @@ package org.sensorhub.impl.procedure;
 
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.WeakHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.sensorhub.api.ISensorHub;
@@ -25,11 +26,12 @@ import org.sensorhub.api.datastore.DatabaseConfig;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.obs.IObsDatabase;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.procedure.IProcedureGroup;
+import org.sensorhub.api.procedure.IProcedureObsDatabase;
+import org.sensorhub.api.procedure.IProcedureProxy;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.impl.datastore.obs.GenericObsStreamDataStore;
@@ -39,6 +41,7 @@ import org.sensorhub.impl.sensor.SensorShadow;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
 
 
@@ -60,8 +63,8 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
     ISensorHub hub;
     IEventPublisher eventPublisher;
-    GenericObsStreamDataStore stateDb;
-    IObsDatabase historicalDb;
+    GenericObsStreamDataStore procStateDb;
+    IProcedureObsDatabase historicalDb;
     GenericObsStreamDataStore dbListener;
     ReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -90,10 +93,10 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             StreamDataStoreConfig dbListenerConfig = new StreamDataStoreConfig();
             dbListenerConfig.dbConfig = stateDbConfig;
 
-            stateDb = new GenericObsStreamDataStore();
-            stateDb.setParentHub(hub);
-            stateDb.init(dbListenerConfig);
-            stateDb.start();
+            procStateDb = new GenericObsStreamDataStore();
+            procStateDb.setParentHub(hub);
+            procStateDb.init(dbListenerConfig);
+            procStateDb.start();
         }
         catch (Exception e)
         {
@@ -168,7 +171,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             return existingKey;
 
         // if procedure not in DB yet, add to procedure state DB
-        FeatureKey newKey = stateDb.getProcedureStore().add(proc.getCurrentDescription());
+        FeatureKey newKey = procStateDb.getProcedureStore().add(proc.getCurrentDescription());
         dbListener.getConfiguration().procedureUIDs.add(proc.getUniqueIdentifier());
 
         return newKey;
@@ -219,7 +222,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
                 shadow.disconnectLiveProcedure(proc);
 
             // remove from state database
-            stateDb.getProcedureStore().remove(uid);
+            procStateDb.getProcedureStore().remove(uid);
 
             // publish procedure disabled event
             if (sendEvent)

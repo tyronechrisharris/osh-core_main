@@ -18,17 +18,17 @@ import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.obs.IFoiStore;
-import org.sensorhub.api.obs.IObsDatabase;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
 
 
 /**
  * <p>
- * Implementation of the {@link IObsDatabase} interface backed by
+ * Implementation of the {@link IProcedureObsDatabase} interface backed by
  * a single H2 MVStore that contains all maps necessary to store observations,
  * features of interest and procedure history.
  * </p>
@@ -36,7 +36,7 @@ import org.sensorhub.utils.FileUtils;
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implements IObsDatabase
+public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implements IProcedureObsDatabase
 {
     final static String PROCEDURE_STORE_NAME = "proc_store";
     final static String FOI_STORE_NAME = "foi_store";

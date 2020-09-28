@@ -14,14 +14,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import org.sensorhub.api.obs.IObsDatabase;
-
-
 /**
  * <p>
  * Interface for databases maintaining the latest state of procedures.
  * </p><p>
- * Although this extends the {@link IObsDatabase} interface,
+ * Although this extends the {@link IProcedureObsDatabase} interface,
  * implementations are not required to maintain full history, but should rather
  * focus on efficiently maintaining solely the latest state of registered
  * procedures and their outputs.
@@ -30,7 +27,7 @@ import org.sensorhub.api.obs.IObsDatabase;
  * @author Alex Robin
  * @date Oct 19, 2019
  */
-public interface IProcedureStateDatabase extends IObsDatabase
+public interface IProcedureStateDatabase extends IProcedureObsDatabase
 {
 
 }

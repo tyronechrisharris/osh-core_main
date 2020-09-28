@@ -16,12 +16,12 @@ package org.sensorhub.impl.datastore.registry;
 
 import java.util.concurrent.Callable;
 import org.sensorhub.api.obs.IFoiStore;
-import org.sensorhub.api.obs.IObsDatabase;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureObsDatabase;
 
 
-public class FederatedObsDatabase implements IObsDatabase
+public class FederatedObsDatabase implements IProcedureObsDatabase
 {
     FederatedProcedureStore procStore;
     FederatedFoiStore foiStore;

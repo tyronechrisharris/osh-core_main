@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
+import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.slf4j.Logger;
 
 
@@ -37,5 +38,5 @@ public interface IObsDbAutoPurgePolicy
      * @param log 
      * @return the number of records removed
      */
-    public int trimStorage(IObsDatabase db, Logger log); 
+    public int trimStorage(IProcedureObsDatabase db, Logger log); 
 }

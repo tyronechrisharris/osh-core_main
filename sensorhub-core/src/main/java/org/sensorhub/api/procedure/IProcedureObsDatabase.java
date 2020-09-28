@@ -12,10 +12,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.obs;
+package org.sensorhub.api.procedure;
 
 import org.sensorhub.api.datastore.IDatabase;
-import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.obs.IFoiStore;
+import org.sensorhub.api.obs.IObsStore;
 
 
 /**
@@ -27,7 +28,7 @@ import org.sensorhub.api.procedure.IProcedureDescStore;
  * @author Alex Robin
  * @date Sep 17, 2019
  */
-public interface IObsDatabase extends IDatabase
+public interface IProcedureObsDatabase extends IDatabase
 {
 
     /**

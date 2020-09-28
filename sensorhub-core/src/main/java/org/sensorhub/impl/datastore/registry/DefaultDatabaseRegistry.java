@@ -28,7 +28,7 @@ import org.sensorhub.api.datastore.IDatabaseRegistry;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.obs.DataStreamFilter;
-import org.sensorhub.api.obs.IObsDatabase;
+import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -53,13 +53,13 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     
     ISensorHub hub;
     NavigableMap<String, Integer> obsDatabaseIDs;
-    Map<Integer, IObsDatabase> obsDatabases;
+    Map<Integer, IProcedureObsDatabase> obsDatabases;
     FederatedObsDatabase globalObsDatabase;
     
     
     static class LocalDatabaseInfo
     {
-        IObsDatabase db;
+        IProcedureObsDatabase db;
         int databaseID;
         long entryID;
         BigInteger bigEntryID;
@@ -68,7 +68,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     
     static class LocalFilterInfo
     {
-        IObsDatabase db;
+        IProcedureObsDatabase db;
         int databaseID;
         Set<Long> internalIds = new TreeSet<>();
         Set<BigInteger> bigInternalIds = new TreeSet<>();
@@ -87,7 +87,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public synchronized void register(String procedureUID, IObsDatabase db)
+    public synchronized void register(String procedureUID, IProcedureObsDatabase db)
     {
         int databaseID = registerDatabase(db);
         registerMapping(procedureUID, databaseID);
@@ -95,7 +95,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public synchronized void register(Collection<String> procedureUIDs, IObsDatabase db)
+    public synchronized void register(Collection<String> procedureUIDs, IProcedureObsDatabase db)
     {
         int databaseID = registerDatabase(db);
         for (String uid: procedureUIDs)
@@ -103,7 +103,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     }
     
     
-    protected int registerDatabase(IObsDatabase db)
+    protected int registerDatabase(IProcedureObsDatabase db)
     {
         int databaseID = db.getDatabaseID();
         Asserts.checkArgument(databaseID < MAX_NUM_DB, "Database ID must be less than " + MAX_NUM_DB);
@@ -133,7 +133,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         // remove all entries from default state DB (DB 0) since it's now handled by another DB
         if (databaseID != 0)
         {
-            IObsDatabase defaultDB = obsDatabases.get(0);
+            IProcedureObsDatabase defaultDB = obsDatabases.get(0);
             if (defaultDB != null)
             {
                 FeatureKey key = defaultDB.getProcedureStore().remove(uid);
@@ -263,7 +263,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public synchronized void unregister(String uid, IObsDatabase db)
+    public synchronized void unregister(String uid, IProcedureObsDatabase db)
     {
         Asserts.checkNotNull(uid, "procedureUID");
         
@@ -275,7 +275,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public IObsDatabase getDatabase(String procUID)
+    public IProcedureObsDatabase getDatabase(String procUID)
     {
         //Byte dbID = obsDatabaseIDs.get(procedureUID);
         Entry<String, Integer> e = obsDatabaseIDs.floorEntry(procUID);
@@ -311,7 +311,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public IObsDatabase getFederatedObsDatabase()
+    public IProcedureObsDatabase getFederatedObsDatabase()
     {
         return globalObsDatabase;
     }

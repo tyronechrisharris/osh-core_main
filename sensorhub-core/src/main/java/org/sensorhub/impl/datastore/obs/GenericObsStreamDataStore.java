@@ -45,12 +45,12 @@ import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsDbAutoPurgePolicy;
-import org.sensorhub.api.obs.IObsDatabase;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
@@ -71,7 +71,7 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Generic wrapper/adapter enabling any {@link IObsDatabase}
+ * Generic wrapper/adapter enabling any {@link IProcedureObsDatabase}
  * implementation to store data coming from data events (e.g. sensor data,
  * processed data, etc.).
  * </p><p>
@@ -82,11 +82,11 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @since Sep 23, 2019
  */
-public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreConfig> implements IObsDatabase
+public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreConfig> implements IProcedureObsDatabase
 {
     static final String WAITING_STATUS_MSG = "Waiting for data source {}";
 
-    IObsDatabase db;
+    IProcedureObsDatabase db;
     Map<ProcedureId, ProducerInfo> registeredProducers = new ConcurrentHashMap<>();
     long lastCommitTime = Long.MIN_VALUE;
     Timer autoPurgeTimer;
@@ -132,7 +132,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             dbModule.init(dbConfig);
             dbModule.start();
             
-            this.db = (IObsDatabase)dbModule;
+            this.db = (IProcedureObsDatabase)dbModule;
             Asserts.checkNotNull(db.getProcedureStore());
             Asserts.checkNotNull(db.getFoiStore());
             Asserts.checkNotNull(db.getObservationStore());
