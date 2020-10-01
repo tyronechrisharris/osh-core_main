@@ -32,6 +32,7 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.procedure.IProcedureWithState;
+import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.sensor.ISensor;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
@@ -63,16 +64,9 @@ public class SensorShadow extends ProcedureShadow implements ISensor
     protected IGeoFeature currentFoi;
 
 
-    // needed for deserialization
-    protected SensorShadow()
+    public SensorShadow(ProcedureId procId, IDataProducer liveProcedure, DefaultProcedureRegistry registry)
     {
-    }
-
-
-    public SensorShadow(IDataProducer liveProcedure, DefaultProcedureRegistry registry)
-    {
-        setProcedureRegistry(registry);
-        connectLiveProcedure(liveProcedure);
+        super(procId, liveProcedure, registry);
     }
 
 
@@ -80,7 +74,6 @@ public class SensorShadow extends ProcedureShadow implements ISensor
     public void connectLiveProcedure(IProcedureWithState proc)
     {
         Asserts.checkArgument(proc instanceof IDataProducer);
-        super.connectLiveProcedure(proc);
         
         if (proc instanceof IDataProducer)
         {
@@ -103,7 +96,9 @@ public class SensorShadow extends ProcedureShadow implements ISensor
         {
             for (IStreamingControlInterface input : ((ICommandReceiver) proc).getCommandInputs().values())
                 controlInputs.put(input.getName(), new ControlProxy(input));
-        }            
+        }
+        
+        super.connectLiveProcedure(proc);          
     }
 
 

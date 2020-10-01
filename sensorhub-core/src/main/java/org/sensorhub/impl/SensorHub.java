@@ -30,6 +30,7 @@ import org.sensorhub.impl.module.InMemoryConfigDb;
 import org.sensorhub.impl.module.ModuleConfigJsonFile;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
+import org.sensorhub.impl.procedure.InMemoryProcedureStateDbConfig;
 import org.sensorhub.impl.processing.ProcessingManagerImpl;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.impl.security.SecurityManagerImpl;
@@ -86,7 +87,7 @@ public class SensorHub implements ISensorHub
         this.eventBus = eventBus;
         this.moduleRegistry = registry;
         this.databaseRegistry = new DefaultDatabaseRegistry(this);
-        this.procedureRegistry = new DefaultProcedureRegistry(this);
+        this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
     }   
     
     

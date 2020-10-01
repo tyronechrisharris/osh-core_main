@@ -63,16 +63,10 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
     protected ProcedureId parentGroupId;
 
 
-    // needed for efficient deserialization
-    protected ProcedureShadow()
+    public ProcedureShadow(ProcedureId procId, IProcedureWithState liveProcedure, DefaultProcedureRegistry registry)
     {
-    }
-
-
-    public ProcedureShadow(IProcedureWithState liveProcedure, DefaultProcedureRegistry registry)
-    {
+        this.procedureId = Asserts.checkNotNull(procId);
         setProcedureRegistry(registry);
-        connectLiveProcedure(liveProcedure);
     }
 
 
@@ -81,8 +75,7 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
      */
     public void setProcedureRegistry(DefaultProcedureRegistry registry)
     {
-        Asserts.checkNotNull(registry, IProcedureRegistry.class);
-        this.registry = registry;
+        this.registry = Asserts.checkNotNull(registry, IProcedureRegistry.class);
     }
 
 
@@ -90,7 +83,6 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
     {
         Asserts.checkNotNull(proc, IProcedureWithState.class);
 
-        this.procedureId = proc.getProcedureID();
         this.ref = new WeakReference<>(proc);
         long lastUpdated = lastDescriptionUpdate;
         captureState();
@@ -225,7 +217,7 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
         if (proc != null && proc.isEnabled())
             return proc.getParentGroup();
         else if (parentGroupId != null)
-            return (IProcedureGroup<?>)registry.get(parentGroupId);
+            return (IProcedureGroup<?>)registry.getProcedureShadow(parentGroupId.getUniqueID());
         else
             return null;
     }

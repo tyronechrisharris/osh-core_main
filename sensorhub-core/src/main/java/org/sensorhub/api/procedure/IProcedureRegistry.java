@@ -31,7 +31,7 @@ import org.sensorhub.impl.event.EventSourceInfo;
  * <i>Note that implementations of this interface may not expose the driver/module
  * objects directly. They usually keep a shadow object reflecting the state of
  * the procedure instead; thus clients of this interface should not rely on
- * specific functionality of the module itself (e.g. sensor driver).</i>
+ * specific functionality of the driver module itself (e.g. sensor driver).</i>
  * </p>
  *
  * @author Alex Robin
@@ -45,9 +45,9 @@ public interface IProcedureRegistry extends IEventSource
 
 
     /**
-     * Registers a procedure with this registry.
-     * This adds the procedure to the underlying data store if not already there
-     * and takes care of forwarding all events to the event bus.
+     * Registers a procedure driver (e.g. sensor driver) with this registry.
+     * This method creates an internal proxy instance which takes care of 
+     * forwarding all events to the event bus.
      * @param proc The live procedure instance
      * @return The ID assigned to the new procedure
      */
@@ -61,23 +61,41 @@ public interface IProcedureRegistry extends IEventSource
      * @param proc The live procedure instance
      */
     public void unregister(IProcedureWithState proc);
-
-
+    
+    
     /**
-     * Retrieves the shadow object for the procedure with the given ID
-     * @param procID The procedure ID
+     * Completely remove the procedure and all data associated to it in the 
+     * procedure state database (note that it won't remove any data stored
+     * in any other database)
+     * @param procUID The unique ID of the procedure to delete
+     */
+    public void remove(String procUID);
+    
+    
+    /**
+     * Retrieves a shadow object for the procedure with the given ID.
+     * @param uid The procedure unique ID
      * @return The procedure shadow
      */
-    public IProcedureWithState get(ProcedureId procID);
-
-
+    public IProcedureWithState getProcedureShadow(String uid);
+    
+    
     /**
-     * Retrieves the shadow object for the procedure with the given unique ID
-     * @param uid The procedure UID
-     * @return The procedure shadow
+     * Retrieves the full ID object of a registered procedure, knowing its unique ID
+     * @param uid The unique ID of the procedure
+     * @return the ProcedureId object
      */
-    public IProcedureWithState get(String uid);
-
+    public ProcedureId getProcedureId(String uid);
+    
+    
+    /**
+     * @return The database containing the latest state of procedures registered
+     * on this hub when they are not associated to a historical database.
+     * Note that information contained in this database is also accessible as
+     * read-only through the federated hub database.
+     */
+    public IProcedureStateDatabase getProcedureStateDatabase();
+    
 
     /**
      * @return The event source information for this registry
