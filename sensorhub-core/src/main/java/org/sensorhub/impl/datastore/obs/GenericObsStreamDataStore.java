@@ -52,6 +52,7 @@ import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureDescStore;
 import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
@@ -133,9 +134,9 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             dbModule.start();
             
             this.db = (IProcedureObsDatabase)dbModule;
-            Asserts.checkNotNull(db.getProcedureStore());
-            Asserts.checkNotNull(db.getFoiStore());
-            Asserts.checkNotNull(db.getObservationStore());
+            Asserts.checkNotNull(db.getProcedureStore(), IProcedureStore.class);
+            Asserts.checkNotNull(db.getFoiStore(), IFoiStore.class);
+            Asserts.checkNotNull(db.getObservationStore(), IObsStore.class);
         }
         catch (Exception e)
         {
@@ -168,19 +169,23 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                 procRegistrySub = s;
         
                 // load data sources that are already enabled
-                for (String id: config.procedureUIDs)
+                for (String uid: config.procedureUIDs)
                 {
-                    IDataProducer dataSource = getDataSource(id);
-                    if (dataSource != null)
-                        addProcedure(dataSource);
+                    ProcedureId procId = getParentHub().getProcedureRegistry().getProcedureId(uid);
+                    if (procId != null)
+                    {
+                        IDataProducer dataSource = getDataSource(procId);
+                        if (dataSource != null)
+                            addProcedure(dataSource);
+                    }
                 }
             });
     }
     
     
-    protected IDataProducer getDataSource(String procUID)
+    protected IDataProducer getDataSource(ProcedureId procID)
     {
-        IProcedureWithState proc = getParentHub().getProcedureRegistry().get(procUID);
+        IProcedureWithState proc = getParentHub().getProcedureRegistry().getProcedureShadow(procID.getUniqueID());
         if (proc == null || !(proc instanceof IDataProducer))
             return null;
         return (IDataProducer)proc;
@@ -212,11 +217,11 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
     protected void maybeAddProcedure(IDataProducer dataSource)
     {
         String uid = dataSource.getUniqueIdentifier();
-        String parentUid = dataSource.getParentGroupID().getUniqueID();
+        ProcedureId parentGroupId = dataSource.getParentGroupID();
 
         // check if UID or parent UID was configured
         if (config.procedureUIDs.contains(uid) ||
-            (parentUid != null && config.procedureUIDs.contains(parentUid)))
+            (parentGroupId != null && config.procedureUIDs.contains(parentGroupId.getUniqueID())))
             addProcedure(dataSource);
     }
     
@@ -230,8 +235,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
             .withEventType(ProcedureEnabledEvent.class)
             .withEventType(ProcedureDisabledEvent.class)
             .consume(e -> {
-                String procID = e.getProcedureID().getUniqueID();
-                IDataProducer dataSource = getDataSource(procID);
+                IDataProducer dataSource = getDataSource(e.getProcedureID());
                 if (e instanceof ProcedureAddedEvent || e instanceof ProcedureEnabledEvent)
                     maybeAddProcedure(dataSource);
                 else
@@ -386,7 +390,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
      */
     protected void ensureProducerInfo(ProcedureId producerID)
     {
-        IDataProducer dataSource = getDataSource(producerID.getUniqueID());
+        IDataProducer dataSource = getDataSource(producerID);
         if (dataSource != null)
             connectDataSource(dataSource);
     }
@@ -556,8 +560,8 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
 
                 // TODO to manage this issue, first check that no other description is valid at the same time
                 //storage.storeDataSourceDescription(dataSourceRef.get().getCurrentDescription());
-                String procUID = ((ProcedureChangedEvent)e).getProcedureID().getUniqueID();
-                IDataProducer producer = getDataSource(procUID);
+                ProcedureId procID = ((ProcedureChangedEvent)e).getProcedureID();
+                IDataProducer producer = getDataSource(procID);
                 if (producer != null)
                     db.getProcedureStore().addVersion(producer.getCurrentDescription());
             }

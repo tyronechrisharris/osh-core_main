@@ -166,7 +166,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     
     protected IDataProducer getDataSource(String procUID)
     {
-        IProcedureWithState proc = getParentHub().getProcedureRegistry().get(procUID);
+        IProcedureWithState proc = getParentHub().getProcedureRegistry().getProcedureShadow(procUID);
         if (!(proc instanceof IDataProducer))
             throw new IllegalStateException("Procedure " + procUID + " is not a data producer");
         return (IDataProducer)proc;
