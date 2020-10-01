@@ -23,6 +23,8 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -47,6 +49,8 @@ import org.sensorhub.api.event.IEventSourceInfo;
  */
 public class BasicEventHandler implements IEventHandler
 {
+    static final Logger log = LoggerFactory.getLogger(BasicEventHandler.class);
+    
     List<IEventListener> listeners = new ArrayList<>();
     List<IEventListener> toDelete = new ArrayList<>();
     List<IEventListener> toAdd = new ArrayList<>();
@@ -93,7 +97,20 @@ public class BasicEventHandler implements IEventHandler
             {
                 inPublish = true;
                 for (Iterator<IEventListener> it = listeners.iterator(); it.hasNext(); )
-                    it.next().handleEvent(e);
+                {
+                    IEventListener listener = it.next();
+                    
+                    try
+                    {
+                        listener.handleEvent(e);
+                    }
+                    catch (Throwable ex)
+                    {
+                        String srcName = e.getSource().getClass().getSimpleName();
+                        String destName = listener.getClass().getSimpleName();
+                        log.error("Uncaught exception while dispatching event from {} to {}", srcName, destName, ex);
+                    }                    
+                }
             }
             finally
             {

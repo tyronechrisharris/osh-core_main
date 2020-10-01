@@ -18,11 +18,15 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.function.Consumer;
 import org.sensorhub.api.event.Event;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
 
 
 public class SubscriberConsumerAdapter<E extends Event> implements Subscriber<E>
 {       
+    private static final Logger log = LoggerFactory.getLogger(SubscriberConsumerAdapter.class);
+    
     Consumer<? super Subscription> onSubscribe;
     Consumer<? super E> onNext;
     Consumer<Throwable> onError;
@@ -76,6 +80,8 @@ public class SubscriberConsumerAdapter<E extends Event> implements Subscriber<E>
     {
         if (onError != null)
             onError.accept(e);
+        else
+            log.error("Uncaught exception during registration or event dispatch", e);
     }
     
     

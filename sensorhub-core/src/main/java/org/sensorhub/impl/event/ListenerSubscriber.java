@@ -34,15 +34,13 @@ public class ListenerSubscriber implements Subscriber<Event>
 {
     private static final Logger log = LoggerFactory.getLogger(ListenerSubscriber.class);
     
-    String sourceID;
     IEventListener listener;
     Subscription subscription;
     boolean canceled;
     
     
-    public ListenerSubscriber(String sourceID, IEventListener listener)
+    public ListenerSubscriber(IEventListener listener)
     {
-        this.sourceID = sourceID;
         this.listener = listener;
     }
     
@@ -54,9 +52,9 @@ public class ListenerSubscriber implements Subscriber<Event>
     
 
     @Override
-    public void onError(Throwable ex)
+    public void onError(Throwable e)
     {
-        log.error("Error while registering listener for {}", sourceID, ex);
+        log.error("Uncaught exception during registration or event dispatch", e);
     }
     
 
