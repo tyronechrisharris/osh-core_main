@@ -148,21 +148,23 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
             this.randomUniqueID = true;
         }
-
-        // get handler for sensor events
-        //this.eventHandler = getParentHub().getEventBus().getPublisher(getUniqueIdentifier());
-
+        
         // set last description update time if provided in config
         if (config.lastUpdated != null)
             this.lastUpdatedSensorDescription = config.lastUpdated.getTime();
 
         // add location output if a location is provided
         LLALocation loc = config.getLocation();
-        if (loc != null && locationOutput == null)
-        {
+        boolean addLocationOutput = loc != null && locationOutput == null;
+        if (addLocationOutput)
             addLocationOutput(Double.NaN);
+        
+        // register sensor with registry
+        procId = getParentHub().getProcedureRegistry().register(this);
+        
+        // send new location event
+        if (addLocationOutput)
             locationOutput.updateLocation(System.currentTimeMillis()/1000., loc.lon, loc.lat, loc.alt);
-        }
     }
 
 
@@ -578,14 +580,11 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         super.setState(newState);
 
-        // register with procedure registry when sensor has successfully initialized
-        // and send enabled/disabled events
-        if (newState == ModuleState.INITIALIZED)
-            procId = getParentHub().getProcedureRegistry().register(this);
-        else if (newState == ModuleState.STARTED)
-            eventHandler.publish(new ProcedureEnabledEvent(System.currentTimeMillis(), procId));
-        else if (newState == ModuleState.STOPPED)
-            eventHandler.publish(new ProcedureDisabledEvent(System.currentTimeMillis(), procId));
+        // send procedure enabled/disabled events
+        if (newState == ModuleState.STARTED && procId != null)
+            eventHandler.publish(new ProcedureEnabledEvent(procId));
+        else if (newState == ModuleState.STOPPED && procId != null)
+            eventHandler.publish(new ProcedureDisabledEvent(procId));
     }
 
 

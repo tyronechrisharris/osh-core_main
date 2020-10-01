@@ -376,6 +376,8 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 return false;
             
             // otherwise actually init the module
+            clearError();
+            clearStatus();
             setState(ModuleState.INITIALIZING);            
             return true;
         }
