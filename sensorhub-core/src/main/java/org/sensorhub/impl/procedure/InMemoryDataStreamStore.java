@@ -54,7 +54,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
     {
         Asserts.checkNotNull(dsInfo, DataStreamInfo.class);
 
-        Long nextId = map.lastKey()+1;
+        Long nextId = map.isEmpty() ? 1 : map.lastKey()+1;
         map.put(nextId, dsInfo);
         return nextId;
     }

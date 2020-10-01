@@ -17,10 +17,10 @@ package org.sensorhub.impl.procedure;
 import org.sensorhub.api.datastore.DatabaseConfig;
 
 
-public class InMemoryProcedureStateConfig extends DatabaseConfig
+public class InMemoryProcedureStateDbConfig extends DatabaseConfig
 {
 
-    public InMemoryProcedureStateConfig()
+    public InMemoryProcedureStateDbConfig()
     {
         this.moduleClass = InMemoryProcedureStateDatabase.class.getCanonicalName();
     }

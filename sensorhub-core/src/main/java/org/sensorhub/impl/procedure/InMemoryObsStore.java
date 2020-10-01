@@ -115,7 +115,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     
     Stream<Entry<BigInteger, IObsData>> getObsByDataStream(long dataStreamID, Range<Instant> phenomenonTimeRange)
     {
-        ObsKey fromKey = new ObsKey(dataStreamID, new FeatureId(0, ""));        
+        ObsKey fromKey = new ObsKey(dataStreamID, FeatureId.NULL_FEATURE);        
         ObsKey toKey = new ObsKey(dataStreamID, new FeatureId(Long.MAX_VALUE, ""));
             
         return map.subMap(fromKey, toKey).entrySet().stream()
