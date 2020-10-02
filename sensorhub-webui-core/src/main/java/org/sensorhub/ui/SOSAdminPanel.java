@@ -17,6 +17,7 @@ package org.sensorhub.ui;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.service.sos.SOSService;
 import org.sensorhub.ui.api.IModuleAdminPanel;
+import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.MyBeanItem;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.SOSOfferingCapabilities;
@@ -24,6 +25,7 @@ import org.vast.ows.sos.SOSServiceCapabilities;
 import com.vaadin.v7.data.Property;
 import com.vaadin.server.ExternalResource;
 import com.vaadin.shared.ui.ContentMode;
+import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Link;
@@ -50,16 +52,23 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
     
     static class LinkItem extends HorizontalLayout
     {
-        public LinkItem(String label, String linkText, String href)
+        public LinkItem(String title, String linkText, String href)
         {
             setSpacing(true);
-            addComponent(new Label(label + ":"));
-            addComponent(new Link(linkText, new ExternalResource(href), LINK_TARGET, 0, 0, null));
+            setMargin(false);
+            
+            Label label = new Label(title + ":");
+            label.addStyleName(UIConstants.STYLE_SMALL);
+            addComponent(label);
+            
+            addLinkItem(linkText, href);
         }
         
         public void addLinkItem(String linkText, String href)
         {
-            addComponent(new Link(linkText, new ExternalResource(href), LINK_TARGET, 0, 0, null));
+            Link link = new Link(linkText, new ExternalResource(href), LINK_TARGET, 0, 0, null);
+            link.addStyleName(UIConstants.STYLE_SMALL);
+            addComponent(link);
         }
     }    
     
@@ -84,27 +93,36 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
         
         if (module.isStarted() && caps != null && baseUrl != null)
         {
+            ComponentContainer parent = (ComponentContainer)configTabs.getTab(0).getComponent();
+            
             // section label
             Label sectionLabel = new Label("Test Links");
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
-            addComponent(sectionLabel);
+            parent.addComponent(sectionLabel);
 
             // link to capabilities
             baseUrl += "?service=SOS&version=2.0&request=";
             String href = baseUrl + "GetCapabilities";
             Link link = new Link("Service Capabilities", new ExternalResource(href), LINK_TARGET, 0, 0, null);
             link.setWidthUndefined();
-            addComponent(link);
+            parent.addComponent(link);
+            
+            // spacer
+            Label spacer = new Label("");
+            spacer.setStyleName(STYLE_SPACER);
+            spacer.setHeight(10, Unit.PIXELS);
+            parent.addComponent(spacer);
             
             // offering links in tabs
             TabSheet linkTabs = new TabSheet();
-            addComponent(linkTabs);
+            parent.addComponent(linkTabs);
                         
             for (SOSOfferingCapabilities offering: caps.getLayers())
             {
                 VerticalLayout tabLayout = new VerticalLayout();
                 tabLayout.setMargin(true);
+                tabLayout.setSpacing(false);
                 Tab tab = linkTabs.addTab(tabLayout, offering.getTitle());
                 tab.setDescription(offering.getDescription());
                 LinkItem linkItem;
@@ -126,7 +144,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                 for (String obs: offering.getObservableProperties())
                 {                
                     // spacer
-                    Label spacer = new Label();
+                    spacer = new Label();
                     spacer.setStyleName(STYLE_SPACER);
                     spacer.setHeight(10, Unit.PIXELS);
                     tabLayout.addComponent(spacer);
