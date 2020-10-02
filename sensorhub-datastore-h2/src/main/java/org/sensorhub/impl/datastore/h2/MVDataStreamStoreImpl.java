@@ -190,7 +190,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
         if (versionRange != null)
         {
-            if (DataStreamFilter.LAST_VERSION.equals(versionRange))
+            if (DataStreamFilter.LATEST_VERSION.equals(versionRange))
             {
                 Holder<MVDataStreamProcKey> lastKey = new Holder<>();
                 keyStream = keyStream.map(k -> {

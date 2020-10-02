@@ -24,8 +24,6 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.procedure.ProcedureFilter;
-import org.sensorhub.api.procedure.ProcedureFilter.Builder;
-import org.sensorhub.api.procedure.ProcedureFilter.NestedBuilder;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
 import com.google.common.collect.Range;
@@ -44,13 +42,13 @@ import net.opengis.swe.v20.DataComponent;
  */
 public class DataStreamFilter implements IQueryFilter, Predicate<IDataStreamInfo>
 {
-    public static final Range<Integer> LAST_VERSION = Range.singleton(Integer.MAX_VALUE);
+    public static final Range<Integer> LATEST_VERSION = Range.singleton(Integer.MAX_VALUE);
     
     protected SortedSet<Long> internalIDs;
     protected ProcedureFilter procFilter;
     protected ObsFilter obsFilter;
     protected Set<String> outputNames;
-    protected Range<Integer> versions = LAST_VERSION;
+    protected Range<Integer> versions = LATEST_VERSION;
     protected Range<Instant> resultTimes;
     protected Set<String> observedProperties;
     protected Predicate<IDataStreamInfo> valuePredicate;
@@ -127,7 +125,7 @@ public class DataStreamFilter implements IQueryFilter, Predicate<IDataStreamInfo
     
     public boolean testVersion(IDataStreamInfo ds)
     {
-        return (versions == null ||
+        return (versions == null || versions.equals(LATEST_VERSION) ||
             versions.contains(ds.getRecordVersion()));
     }
     
