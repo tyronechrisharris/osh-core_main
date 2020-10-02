@@ -14,7 +14,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
+import java.time.Instant;
+import java.util.Map;
 import org.sensorhub.api.procedure.ProcedureId;
+import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -59,5 +62,34 @@ public interface IDataStreamInfo
      * @return The recommended encoding for the data stream
      */
     DataEncoding getRecordEncoding();
+    
+    
+    /**
+     * @return The range of phenomenon times of observations that are part
+     * of this datastream.
+     */
+    TimeExtent getPhenomenonTimeRange();
+    
+    
+    /**
+     * @return The range of result times of observations that are part
+     * of this datastream.
+     */
+    TimeExtent getResultTimeRange();
+    
+    
+    /**
+     * @return True if this datastream contains observations acquired for a discrete
+     * number of result times (e.g. model runs, test campaigns, etc.) 
+     */
+    boolean hasDiscreteResultTimes();
+    
+    
+    /**
+     * @return A map of discrete result times to the phenomenon time range of all
+     * observations whose result was produced at each result time, or an empty map if
+     * {@link #hasDiscreteResultTimes()} returns true.
+     */
+    Map<Instant, TimeExtent> getDiscreteResultTimes();
 
 }

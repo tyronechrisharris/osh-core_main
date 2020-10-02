@@ -14,9 +14,13 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Map;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
+import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -147,5 +151,33 @@ public class DataStreamInfo implements IDataStreamInfo
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");
             return super.build();
         }
+    }
+
+
+    @Override
+    public TimeExtent getPhenomenonTimeRange()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public TimeExtent getResultTimeRange()
+    {
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public boolean hasDiscreteResultTimes()
+    {
+        return false;
+    }
+
+
+    @Override
+    public Map<Instant, TimeExtent> getDiscreteResultTimes()
+    {
+        return Collections.emptyMap();
     }
 }
