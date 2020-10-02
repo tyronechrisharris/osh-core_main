@@ -15,7 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -49,6 +48,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.ServletMapping;
+import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.xml.XmlConfiguration;
@@ -58,6 +58,7 @@ import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServerConfig.AuthMethod;
 import org.vast.util.Asserts;
+import com.google.common.base.Strings;
 
 
 /**
@@ -148,7 +149,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 Asserts.checkNotNull(config.trustStorePath, "The trust store path must be set when HTTPS is used");
                 Asserts.checkNotNull(config.keyStorePassword, "The keystore password must be set when HTTPS is used");
                 
-                SslContextFactory sslContextFactory = new SslContextFactory();
+                SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
                 sslContextFactory.setKeyStorePath(new File(config.keyStorePath).getAbsolutePath());
                 sslContextFactory.setKeyStorePassword(config.keyStorePassword);
                 sslContextFactory.setKeyManagerPassword(config.keyStorePassword);
@@ -267,8 +268,8 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
             {
                 try
                 {
-                    FileInputStream is = new FileInputStream(config.xmlConfigFile);
-                    XmlConfiguration xmlConfig = new XmlConfiguration(is);
+                    Resource configFile = Resource.newResource(new File(config.xmlConfigFile));
+                    XmlConfiguration xmlConfig = new XmlConfiguration(configFile);
                     
                     // assign IDs to existing beans so they can be reconfigured
                     xmlConfig.getIdMap().put(OSH_SERVER_ID, server);
@@ -423,6 +424,29 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     {
         server = null;
         instance = null;
+    }
+    
+    
+    public String getServletsBaseUrl()
+    {
+        String baseUrl = "";
+        if (!Strings.isNullOrEmpty(config.proxyBaseUrl))
+            baseUrl = config.proxyBaseUrl;
+        else if (config.httpPort > 0)
+            baseUrl = "http://localhost" + (config.httpPort != 80 ? ":" + config.httpPort : "");
+        else if (config.httpsPort > 0)
+            baseUrl = "https://localhost" + (config.httpsPort != 443 ? ":" + config.httpsPort : "");
+        
+        if (config.servletsRootUrl != null)
+            baseUrl = appendToUrlPath(baseUrl, config.servletsRootUrl);
+        
+        return appendToUrlPath(baseUrl, "");
+    }
+    
+    
+    public String appendToUrlPath(String url, String nextPart)
+    {
+        return url + (url.endsWith("/") || nextPart.startsWith("/") ? nextPart : "/" + nextPart);
     }
     
     

@@ -18,7 +18,6 @@ import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.service.HttpServer;
-import com.google.common.base.Strings;
 
 
 /**
@@ -39,10 +38,8 @@ public class ServiceConfig extends ModuleConfig
     
     public String getPublicEndpoint()
     {
-        String proxyUrl = HttpServer.getInstance().getConfiguration().proxyBaseUrl;
-        if (!Strings.isNullOrEmpty(proxyUrl))
-            return proxyUrl + endPoint;
-        else
-            return endPoint;
+        return HttpServer.getInstance().appendToUrlPath(
+            HttpServer.getInstance().getServletsBaseUrl(),
+            endPoint);
     }
 }
