@@ -23,13 +23,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.obs.DataStreamFilter;
-import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 
@@ -46,7 +46,25 @@ import org.vast.util.Asserts;
 public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {
     DefaultDatabaseRegistry registry;
-    FederatedObsDatabase db;    
+    FederatedObsDatabase db;
+    
+    
+    class DataStreamInfoWithPublicId extends DataStreamInfoWrapper
+    {
+        ProcedureId publicProcId;        
+        
+        DataStreamInfoWithPublicId(ProcedureId publicProcId, IDataStreamInfo dsInfo)
+        {
+            super(dsInfo);
+            this.publicProcId = publicProcId;
+        }        
+        
+        @Override
+        public ProcedureId getProcedureID()
+        {
+            return publicProcId;
+        }
+    }
     
     
     FederatedDataStreamStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
@@ -146,10 +164,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
     {
         long procPublicID = registry.getPublicID(databaseID, dsInfo.getProcedureID().getInternalID());
         ProcedureId publicId = new ProcedureId(procPublicID, dsInfo.getProcedureID().getUniqueID());
-
-        return DataStreamInfo.Builder.from(dsInfo)
-            .withProcedure(publicId)
-            .build();
+        return new DataStreamInfoWithPublicId(publicId, dsInfo);
     }
     
     
