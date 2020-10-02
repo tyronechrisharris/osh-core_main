@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.procedure;
 
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
@@ -23,15 +24,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.RangeFilter;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsData;
@@ -40,6 +38,7 @@ import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.api.obs.ObsStatsQuery;
 import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.vast.util.Asserts;
 import com.google.common.collect.Range;
 
 
@@ -59,7 +58,6 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         .withRange(Instant.MIN, Instant.MAX)
         .build();
     
-    ConcurrentMap<BigInteger, IObsData> idMap = new ConcurrentHashMap<>();
     ConcurrentNavigableMap<ObsKey, IObsData> map = new ConcurrentSkipListMap<>(new ObsKeyComparator());
     InMemoryDataStreamStore dsStore;
     IProcedureDescStore procStore;
@@ -69,16 +67,16 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     
     private static class ObsKey
     {    
-        BigInteger obsID;
         long dataStreamID = 0;
-        FeatureId foiID = IObsData.NO_FOI;
+        long foiID = 0;
         //Instant resultTime = null;
         Instant phenomenonTime = null;
         
-        ObsKey(long dataStreamID, FeatureId foiID)
+        ObsKey(long dataStreamID, long foiID, Instant phenomenonTime)
         {
             this.dataStreamID = dataStreamID;
             this.foiID = foiID;
+            this.phenomenonTime = phenomenonTime;
         }
     }
     
@@ -94,7 +92,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
                 return comp;
             
             // then compare foi IDs
-            comp = Long.compare(k1.foiID.getInternalID(), k2.foiID.getInternalID());
+            comp = Long.compare(k1.foiID, k2.foiID);
             if (comp != 0)
                 return comp;
             
@@ -113,10 +111,44 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     }
     
     
+    BigInteger toPublicKey(ObsKey obsKey)
+    {
+        // compute internal ID
+        ByteBuffer buf = ByteBuffer.allocate(24);
+        buf.putInt((int)obsKey.dataStreamID);
+        buf.putInt((int)obsKey.foiID);
+        buf.putInt((int)(obsKey.phenomenonTime.getEpochSecond()));
+        buf.putInt((int)(obsKey.phenomenonTime.getNano()));
+        return new BigInteger(buf.array(), 0, buf.position());
+    }
+    
+    
+    ObsKey toInternalKey(Object keyObj)
+    {
+        Asserts.checkArgument(keyObj instanceof BigInteger);
+        BigInteger key = (BigInteger)keyObj;
+
+        try
+        {
+            // parse from BigInt
+            ByteBuffer buf = ByteBuffer.wrap(key.toByteArray());
+            long dsID = buf.getInt();
+            long foiID = buf.getInt();
+            Instant phenomenonTime = Instant.ofEpochSecond(buf.getInt(), buf.getInt());
+            return new ObsKey(dsID, foiID, phenomenonTime);
+        }
+        catch (Exception e)
+        {
+            // invalid bigint key
+            return null;
+        }
+    }
+    
+    
     Stream<Entry<BigInteger, IObsData>> getObsByDataStream(long dataStreamID, Range<Instant> phenomenonTimeRange)
     {
-        ObsKey fromKey = new ObsKey(dataStreamID, FeatureId.NULL_FEATURE);        
-        ObsKey toKey = new ObsKey(dataStreamID, new FeatureId(Long.MAX_VALUE, ""));
+        ObsKey fromKey = new ObsKey(dataStreamID, 0, null);        
+        ObsKey toKey = new ObsKey(dataStreamID, Long.MAX_VALUE, null);
             
         return map.subMap(fromKey, toKey).entrySet().stream()
             .filter(e -> phenomenonTimeRange.contains(e.getKey().phenomenonTime))
@@ -135,7 +167,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     
     Entry<BigInteger, IObsData> toBigIntEntry(Entry<ObsKey, IObsData> e)
     {
-        return new AbstractMap.SimpleEntry<>(e.getKey().obsID, e.getValue());
+        return new AbstractMap.SimpleEntry<>(toPublicKey(e.getKey()), e.getValue());
     }
 
 
@@ -207,7 +239,6 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public void clear()
     {
-        idMap.clear();
         map.clear();
     }
 
@@ -215,7 +246,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public boolean containsKey(Object key)
     {
-        return key instanceof BigInteger && idMap.containsKey(key);
+        return key instanceof BigInteger && map.containsKey(toInternalKey(key));
     }
 
 
@@ -249,35 +280,33 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public IObsData get(Object key)
     {
-        if (!(key instanceof BigInteger))
-            return null;
-        
-        return idMap.get(key);
+        return map.get(toInternalKey(key));
     }
 
 
     @Override
     public IObsData put(BigInteger key, IObsData obs)
     {
-        ObsKey obsKey = new ObsKey(obs.getDataStreamID(), obs.getFoiID());
-        obsKey.obsID = key;
-        obsKey.phenomenonTime = obs.getPhenomenonTime();
+        ObsKey obsKey = toInternalKey(key);
+        IObsData oldObs = map.replace(obsKey, obs);
         
-        map.put(obsKey, obs);
-        return idMap.put(key, obs);
+        if (oldObs == null)
+            throw new IllegalArgumentException("put can only be used to update existing keys");
+        
+        return oldObs;
     }
 
 
     @Override
     public BigInteger add(IObsData obs)
     {
-        ObsKey key = new ObsKey(obs.getDataStreamID(), obs.getFoiID());
-        key.obsID = BigInteger.valueOf(obsCounter.incrementAndGet());
-        key.phenomenonTime = obs.getPhenomenonTime();            
-                
+        ObsKey key = new ObsKey(
+            obs.getDataStreamID(),
+            obs.getFoiID().getInternalID(),
+            obs.getPhenomenonTime());
+        map.remove(key);
         map.put(key, obs);
-        idMap.put(key.obsID, obs);
-        return key.obsID;
+        return toPublicKey(key);
     }
 
 
@@ -291,7 +320,9 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public Set<BigInteger> keySet()
     {
-        return Collections.unmodifiableSet(idMap.keySet());
+        return map.keySet().stream()
+            .map(this::toPublicKey)
+            .collect(Collectors.toSet());
     }
 
 
@@ -318,21 +349,14 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public IObsData remove(Object key)
     {
-        IObsData oldObs = idMap.remove(key);
-        
-        ObsKey obsKey = new ObsKey(oldObs.getDataStreamID(), oldObs.getFoiID());
-        obsKey.obsID = BigInteger.valueOf(obsCounter.incrementAndGet());
-        obsKey.phenomenonTime = oldObs.getPhenomenonTime(); 
-        
-        map.remove(obsKey);
-        return oldObs;
+        return map.remove(toInternalKey(key));
     }
 
 
     @Override
     public long getNumRecords()
     {
-        return idMap.size();
+        return map.size();
     }
 
 

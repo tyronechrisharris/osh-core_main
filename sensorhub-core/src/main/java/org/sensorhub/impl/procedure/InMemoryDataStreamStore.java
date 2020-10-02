@@ -26,7 +26,10 @@ import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
+import org.sensorhub.api.obs.ObsFilter;
+import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
 
 
 /**
@@ -41,6 +44,37 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
 {
     ConcurrentNavigableMap<Long, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
     InMemoryObsStore obsStore;
+    
+    
+    class DataStreamInfoWithTimeRanges extends DataStreamInfoWrapper
+    {
+        long id;
+        TimeExtent phenomenonTimeRange;
+        
+        DataStreamInfoWithTimeRanges(long internalID, IDataStreamInfo dsInfo)
+        {
+            super(dsInfo);
+            this.id = internalID;
+        }        
+        
+        @Override
+        public TimeExtent getPhenomenonTimeRange()
+        {
+            if (phenomenonTimeRange == null)
+            {
+                obsStore.select(new ObsFilter.Builder().withDataStreams(id).build())
+                    .forEach(obs -> {
+                        TimeExtent te = TimeExtent.instant(obs.getPhenomenonTime());
+                        if (phenomenonTimeRange == null)
+                            phenomenonTimeRange = te;
+                        else
+                            phenomenonTimeRange = TimeExtent.span(phenomenonTimeRange, te);
+                    });
+            }
+            
+            return phenomenonTimeRange;
+        }
+    }
 
 
     public InMemoryDataStreamStore(InMemoryObsStore obsStore)
@@ -76,7 +110,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
         {
             resultStream = query.getInternalIDs().stream()
                 .map(id -> {
-                    IDataStreamInfo val = map.get(id);
+                    IDataStreamInfo val = new DataStreamInfoWithTimeRanges(id, map.get(id));
                     return new AbstractMap.SimpleEntry<>(id, val);
                 });
         }
@@ -97,6 +131,10 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
         // filter with predicate and apply limit
         return resultStream
             .filter(e -> query.test(e.getValue()))
+            .map(e -> {
+                IDataStreamInfo val = new DataStreamInfoWithTimeRanges(e.getKey(), e.getValue());
+                return (Entry<Long, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(e.getKey(), val);
+            })
             .limit(query.getLimit());
     }
 
@@ -132,7 +170,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
     @Override
     public IDataStreamInfo get(Object key)
     {
-        return map.get(key);
+        return new DataStreamInfoWithTimeRanges((long)key, map.get(key));
     }
 
 
