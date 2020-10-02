@@ -102,7 +102,7 @@ import com.vaadin.ui.Window.CloseListener;
 @Theme("sensorhub")
 @Push(value=PushMode.MANUAL, transport=Transport.LONG_POLLING)
 @SuppressWarnings("serial")
-public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConstants
+public class AdminUI extends com.vaadin.ui.UI implements UIConstants
 {
     private static final String LOG_INIT_MSG = "New connection to admin UI (from ip={}, user={})";
     private static final String LOG_ACTION_MSG = "New UI action: {} (from ip={}, user={})";
@@ -214,7 +214,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
             {
                 selectStackItem(stack);
             }
-        });        
+        });
         VerticalLayout layout;
         Tab tab;
         
@@ -265,7 +265,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         tab.setIcon(FontAwesome.LOCK);
         buildModuleList(layout, SecurityModuleConfig.class);
         
-        leftPane.addComponent(stack);        
+        leftPane.addComponent(stack);
         leftPane.setExpandRatio(stack, 1);
         splitPanel.addComponent(leftPane);
         
@@ -282,13 +282,14 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         hub.getEventBus().newSubscription()
             .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
             .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
-            .listen(this).thenAccept(s -> moduleEventsSub = s);
+            .consume(this::handleEvent)
+            .thenAccept(s -> moduleEventsSub = s);
     }
     
     
     protected void selectStackItem(Accordion stack)
     {
-        VerticalLayout tabLayout = (VerticalLayout)stack.getSelectedTab();                
+        VerticalLayout tabLayout = (VerticalLayout)stack.getSelectedTab();
         if (tabLayout.getComponentCount() > 0)
         {
             TreeTable table = (TreeTable)tabLayout.getComponent(0);
@@ -352,7 +353,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                 content.addComponent(new Label("Licenced under <a href=\"https://www.mozilla.org/en-US/MPL/2.0\"" +
                                                " target=\"_blank\">Mozilla Public License v2.0</a>", ContentMode.HTML));
                 content.addComponent(new Label("<b>Version:</b> " + (version != null ? version: "?"), ContentMode.HTML));
-                content.addComponent(new Label("<b>Build Number:</b> " + (buildNumber != null ? buildNumber: "?"), ContentMode.HTML));                
+                content.addComponent(new Label("<b>Build Number:</b> " + (buildNumber != null ? buildNumber: "?"), ContentMode.HTML));
                 popup.setContent(content);
                 addWindow(popup);
             }
@@ -395,7 +396,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     public void windowClose(CloseEvent e)
                     {
                         if (popup.isConfirmed())
-                        {                    
+                        {
                             logAction(securityHandler.osh_shutdown.getName());
                             
                             disconnectFromModuleRegistry();
@@ -417,7 +418,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 }
                             }, 1000);
                         }
-                    }                        
+                    }
                 });
                 
                 addWindow(popup);
@@ -448,7 +449,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     public void windowClose(CloseEvent e)
                     {
                         if (popup.isConfirmed())
-                        {                    
+                        {
                             logAction(securityHandler.osh_restart.getName());
                             
                             disconnectFromModuleRegistry();
@@ -470,7 +471,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 }
                             }, 1000);
                         }
-                    }                        
+                    }
                 });
                 
                 addWindow(popup);
@@ -501,7 +502,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                     public void windowClose(CloseEvent e)
                     {
                         if (popup.isConfirmed())
-                        {                    
+                        {
                             logAction(securityHandler.osh_saveconfig.getName());
                             
                             try
@@ -515,7 +516,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 DisplayUtils.showErrorPopup(msg, ex);
                             }
                         }
-                    }                        
+                    }
                 });
                 
                 addWindow(popup);
@@ -538,7 +539,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
             ModuleConfig config = module.getConfiguration();
             if (config != null && NetworkConfig.class.isAssignableFrom(config.getClass()))
                 moduleList.add(module);
-        }        
+        }
         
         buildModuleList(layout, moduleList, NetworkConfig.class);
     }
@@ -548,7 +549,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
     {
         ArrayList<IModule<?>> moduleList = new ArrayList<>();
         
-        // add selected modules to list        
+        // add selected modules to list
         for (IModule<?> module: moduleRegistry.getLoadedModules())
         {
             ModuleConfig config = module.getConfiguration();
@@ -577,7 +578,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         layout.addComponent(table);
         moduleTables.put(configType, table);
         
-        // add modules info as table items       
+        // add modules info as table items
         for (IModule<?> module: moduleList)
             addModuleToTable(module, table);
         
@@ -680,9 +681,9 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                 {
                     DisplayUtils.showErrorPopup("Unexpected error when selecting module", e);
                 }
-            }            
-        });        
-                
+            }
+        });
+        
         // context menu
         table.addActionHandler(new Handler() {
             @Override
@@ -691,7 +692,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                 List<Action> actions = new ArrayList<>(10);
                                 
                 if (target != null)
-                {                    
+                {
                     ModuleState state = (ModuleState)table.getItem(target).getItemProperty(PROP_STATE).getValue();
                     if (state == ModuleState.STARTED)
                         actions.add(RESTART_MODULE_ACTION);
@@ -740,7 +741,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             try
                             {
                                 // log action
-                                logAction(action, config.moduleClass);                                
+                                logAction(action, config.moduleClass);
                                 
                                 // load module instance
                                 IModule<?> module = moduleRegistry.loadModule(config);
@@ -786,7 +787,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
-                                {                    
+                                {
                                     // log action
                                     logAction(action, selectedModule);
                                     
@@ -797,12 +798,12 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                         selectNone(table);
                                     }
                                     catch (SensorHubException ex)
-                                    {                        
+                                    {
                                         DisplayUtils.showErrorPopup("The module could not be removed", ex);
                                     }
                                 }
-                            }                        
-                        });                    
+                            }
+                        });
                         
                         addWindow(popup);
                     }
@@ -821,7 +822,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
-                                {                    
+                                {
                                     // log action
                                     logAction(action, selectedModule);
                                     
@@ -835,8 +836,8 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                         DisplayUtils.showErrorPopup("The module could not be started", ex);
                                     }
                                 }
-                            }                        
-                        });                    
+                            }
+                        });
                         
                         addWindow(popup);
                     }
@@ -855,7 +856,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
-                                {                    
+                                {
                                     // log action
                                     logAction(action, selectedModule);
                                     
@@ -869,8 +870,8 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                         DisplayUtils.showErrorPopup("The module could not be stopped", ex);
                                     }
                                 }
-                            }                        
-                        });                    
+                            }
+                        });
                         
                         addWindow(popup);
                     }
@@ -889,7 +890,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
-                                {                    
+                                {
                                     // log action
                                     logAction(action, selectedModule);
                                     
@@ -903,8 +904,8 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                         DisplayUtils.showErrorPopup("The module could not be restarted", ex);
                                     }
                                 }
-                            }                        
-                        });                    
+                            }
+                        });
                         
                         addWindow(popup);
                     }
@@ -923,7 +924,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                             public void windowClose(CloseEvent e)
                             {
                                 if (popup.isConfirmed())
-                                {                    
+                                {
                                     // log action
                                     logAction(action, selectedModule);
                                     
@@ -937,14 +938,14 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                         DisplayUtils.showErrorPopup("The module could not be reinitialized", ex);
                                     }
                                 }
-                            }                        
-                        });                    
+                            }
+                        });
                         
                         addWindow(popup);
                     }
                 }
             }
-        });        
+        });
         
         layout.setSizeFull();
         layout.setMargin(false);
@@ -961,7 +962,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         
         newItem.getItemProperty(PROP_NAME).setValue(module.getName());
         newItem.getItemProperty(PROP_STATE).setValue(module.getCurrentState());
-        newItem.getItemProperty(PROP_MODULE_OBJECT).setValue(module);   
+        newItem.getItemProperty(PROP_MODULE_OBJECT).setValue(module);
         
         // add submodules
         if (module instanceof SensorSystem)
@@ -987,7 +988,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         
         // also select if first item added
         else if (table.size() == 1)
-            table.select(moduleID);        
+            table.select(moduleID);
     }
     
     
@@ -1017,17 +1018,16 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
         
         configArea.removeAllComponents();
         
-        // get panel for this config object        
+        // get panel for this config object
         Class<?> configClass = beanItem.getBean().getClass();
         IModuleAdminPanel<IModule<?>> panel = adminModule.generatePanel(configClass);
         panel.build(beanItem, module);
         
-        // generate module admin panel        
+        // generate module admin panel
         configArea.addComponent(panel);
-    }    
+    }
 
 
-    @Override
     public void handleEvent(final org.sensorhub.api.event.Event e)
     {
         if (e instanceof ModuleEvent)
@@ -1042,7 +1042,7 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
             {
                 if (config != null && configClass.isAssignableFrom(config.getClass()))
                 {
-                    table = moduleTables.get(configClass);          
+                    table = moduleTables.get(configClass);
                     item = table.getItem(module.getLocalID());
                     break;
                 }
@@ -1102,12 +1102,12 @@ public class AdminUI extends com.vaadin.ui.UI implements IEventListener, UIConst
                                 push();
                             }
                         });
-                    }                    
-                    break;                                
+                    }
+                    break;
                     
-                default:  
+                default:
             }
-        }     
+        }
     }
     
     
