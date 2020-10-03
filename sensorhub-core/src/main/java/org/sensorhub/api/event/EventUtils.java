@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
+import org.sensorhub.impl.event.EventSourceInfo;
 
 public class EventUtils
 {
@@ -40,5 +41,21 @@ public class EventUtils
     public static final String getProcedureControlSourceID(String procedureUID, String outputName)
     {
         return procedureUID + PROCEDURE_CONTROL_CHANNELS + outputName;
+    }
+    
+    
+    public static final IEventSourceInfo getProcedureEventSourceInfo(String procedureUID)
+    {
+        return new EventSourceInfo(
+            procedureUID,
+            getProcedureSourceID(procedureUID));
+    }
+    
+    
+    public static final IEventSourceInfo getOutputEventSourceInfo(String procedureUID, String outputName)
+    {
+        return new EventSourceInfo(
+            procedureUID,
+            getProcedureOutputSourceID(procedureUID, outputName));
     }
 }
