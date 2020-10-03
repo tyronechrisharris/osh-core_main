@@ -28,6 +28,13 @@ import net.opengis.swe.v20.DataEncoding;
 /**
  * <p>
  * Immutable object containing information about a data stream of observations.
+ * </p><p>
+ * This class is mainly useful for creating new datastreams as it does not
+ * provide dynamic timing information (i.e. {@link #getPhenomenonTimeRange()}
+ * and {@link #getResultTimeRange()} both return a fixed arbitrary value).
+ * A full implementation must extend or wrap this class and implement these
+ * methods to compute correct values based on actual data available from the
+ * data store.
  * </p>
  *
  * @author Alex Robin
@@ -157,14 +164,14 @@ public class DataStreamInfo implements IDataStreamInfo
     @Override
     public TimeExtent getPhenomenonTimeRange()
     {
-        throw new UnsupportedOperationException();
+        return TimeExtent.instant(Instant.EPOCH);
     }
 
 
     @Override
     public TimeExtent getResultTimeRange()
     {
-        throw new UnsupportedOperationException();
+        return TimeExtent.instant(Instant.EPOCH);
     }
 
 

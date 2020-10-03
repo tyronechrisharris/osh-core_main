@@ -238,10 +238,10 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<MVObsSeriesInfo> getObsSeriesByDataStream(long dataStreamID, Range<Instant> resultTimeRange, boolean lastResultOnly)
+    Stream<MVObsSeriesInfo> getObsSeriesByDataStream(long dataStreamID, Range<Instant> resultTimeRange, boolean latestResultOnly)
     {
-        // special case when last result is requested
-        if (lastResultOnly)
+        // special case when latest result is requested
+        if (latestResultOnly)
         {
             MVObsSeriesKey key = new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
             MVObsSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
@@ -264,10 +264,10 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<MVObsSeriesInfo> getObsSeriesByFoi(long foiID, Range<Instant> resultTimeRange, boolean lastResultOnly)
+    Stream<MVObsSeriesInfo> getObsSeriesByFoi(long foiID, Range<Instant> resultTimeRange, boolean latestResultOnly)
     {
-        // special case when last result is requested
-        if (lastResultOnly)
+        // special case when latest result is requested
+        if (latestResultOnly)
         {
             MVObsSeriesKey key = new MVObsSeriesKey(Long.MAX_VALUE, foiID, Instant.MAX);
             MVObsSeriesKey lastKey = obsSeriesByFoiIndex.floorKey(key);
@@ -300,13 +300,13 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsStream(MVObsSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean lastResultOnly)
+    Stream<Entry<BigInteger, IObsData>> getObsStream(MVObsSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean latestResultOnly)
     {
         // if series is a special case where all obs have resultTime = phenomenonTime
         if (series.key.resultTime == Instant.MIN)
         {
-            // if request is for last result only, get the obs with latest phenomenon time
-            if (lastResultOnly)
+            // if request is for latest result only, get the obs with latest phenomenon time
+            if (latestResultOnly)
             {
                 MVObsKey maxKey = new MVObsKey(series.id, Instant.MAX);      
                 Entry<MVObsKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
@@ -500,6 +500,24 @@ public class MVObsStoreImpl implements IObsStore
         MVObsSeriesKey firstKey = obsSeriesMainIndex.ceilingKey(new MVObsSeriesKey(dataStreamID, 0, Instant.MIN));
         MVObsSeriesKey lastKey = obsSeriesMainIndex.floorKey(new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX));
         return Range.closed(firstKey.resultTime, lastKey.resultTime);
+    }
+    
+    
+    Range<Instant> getDataStreamPhenomenonTimeRange(long dataStreamID)
+    {
+        Instant[] timeRange = new Instant[] {Instant.MAX, Instant.MIN};
+        getObsSeriesByDataStream(dataStreamID, H2Utils.ALL_TIMES_RANGE, false)
+            .forEach(s -> {
+                MVObsKey firstKey = obsRecordsIndex.ceilingKey(new MVObsKey(s.id, Instant.MIN));
+                MVObsKey lastKey = obsRecordsIndex.floorKey(new MVObsKey(s.id, Instant.MAX));
+                
+                if (timeRange[0].isAfter(firstKey.phenomenonTime))
+                    timeRange[0] = firstKey.phenomenonTime;
+                if (timeRange[1].isBefore(lastKey.phenomenonTime))
+                    timeRange[1] = lastKey.phenomenonTime;
+            });
+        
+        return Range.closed(timeRange[0], timeRange[1]);
     }
 
 

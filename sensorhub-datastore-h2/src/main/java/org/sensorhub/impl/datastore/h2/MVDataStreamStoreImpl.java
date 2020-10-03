@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVVarLongDataType;
@@ -36,7 +37,9 @@ import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.IObsStore.ObsField;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
+import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
 
 
@@ -58,6 +61,47 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     protected MVBTreeMap<Long, IDataStreamInfo> dataStreamIndex;
     protected MVBTreeMap<MVDataStreamProcKey, Boolean> dataStreamByProcIndex;
     protected IdProvider idProvider;
+    
+    /*
+     * DataStreamInfo object wrapper used to compute time ranges lazily
+     */
+    class DataStreamInfoWithTimeRanges extends DataStreamInfoWrapper
+    {
+        Long dsID;
+        TimeExtent phenomenonTimeRange;
+        TimeExtent resultTimeRange;
+        
+        DataStreamInfoWithTimeRanges(Long internalID, IDataStreamInfo dsInfo)
+        {
+            super(dsInfo);
+            this.dsID = internalID;
+        }        
+        
+        @Override
+        public TimeExtent getPhenomenonTimeRange()
+        {
+            if (phenomenonTimeRange == null)
+            {
+                var timeRange = obsStore.getDataStreamPhenomenonTimeRange(dsID);
+                phenomenonTimeRange = TimeExtent.period(timeRange.lowerEndpoint(), timeRange.upperEndpoint());
+            }
+            
+            return phenomenonTimeRange;
+        }
+        
+        
+        @Override
+        public TimeExtent getResultTimeRange()
+        {
+            if (resultTimeRange == null)
+            {
+                var timeRange = obsStore.getDataStreamResultTimeRange(dsID);
+                resultTimeRange = TimeExtent.period(timeRange.lowerEndpoint(), timeRange.upperEndpoint());
+            }
+            
+            return resultTimeRange;
+        }
+    }
 
 
     public MVDataStreamStoreImpl(MVObsStoreImpl obsStore, IdProvider idProvider)
@@ -277,6 +321,14 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         if (filter.getLimit() < Long.MAX_VALUE)
             resultStream = resultStream.limit(filter.getLimit());
 
+        // always wrap with dynamic datastream object
+        resultStream = resultStream.map(e -> {
+            return new DataUtils.MapEntry<Long, IDataStreamInfo>(
+                e.getKey(),
+                new DataStreamInfoWithTimeRanges(e.getKey(), e.getValue())
+            ); 
+        });
+        
         return resultStream;
     }
 
@@ -328,7 +380,13 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     @Override
     public IDataStreamInfo get(Object key)
     {
-        return dataStreamIndex.get(key);
+        Asserts.checkNotNull(key, "key");
+        Asserts.checkArgument(key instanceof Long);
+        
+        return new DataStreamInfoWithTimeRanges(
+            (Long)key,
+            dataStreamIndex.get(key)
+        );
     }
 
 
