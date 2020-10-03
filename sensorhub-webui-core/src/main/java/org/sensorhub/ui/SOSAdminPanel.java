@@ -93,26 +93,17 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
         
         if (module.isStarted() && caps != null && baseUrl != null)
         {
-            ComponentContainer parent = (ComponentContainer)configTabs.getTab(0).getComponent();
+            //ComponentContainer parent = (ComponentContainer)configTabs.getTab(0).getComponent();
             
-            // section label
-            Label sectionLabel = new Label("Test Links");
-            sectionLabel.addStyleName(STYLE_H3);
-            sectionLabel.addStyleName(STYLE_COLORED);
-            parent.addComponent(sectionLabel);
-
+            VerticalLayout parent = new VerticalLayout();
+            configTabs.addTab(parent, "Test Links");
+            
             // link to capabilities
             baseUrl += "?service=SOS&version=2.0&request=";
             String href = baseUrl + "GetCapabilities";
             Link link = new Link("Service Capabilities", new ExternalResource(href), LINK_TARGET, 0, 0, null);
             link.setWidthUndefined();
             parent.addComponent(link);
-            
-            // spacer
-            Label spacer = new Label("");
-            spacer.setStyleName(STYLE_SPACER);
-            spacer.setHeight(10, Unit.PIXELS);
-            parent.addComponent(spacer);
             
             // offering links in tabs
             TabSheet linkTabs = new TabSheet();
@@ -144,7 +135,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                 for (String obs: offering.getObservableProperties())
                 {                
                     // spacer
-                    spacer = new Label();
+                    Label spacer = new Label();
                     spacer.setStyleName(STYLE_SPACER);
                     spacer.setHeight(10, Unit.PIXELS);
                     tabLayout.addComponent(spacer);
