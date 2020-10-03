@@ -269,6 +269,9 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     @Override
     public void handleEvent(final org.sensorhub.api.event.Event e)
     {
+        if (!isAttached())
+            return;
+        
         if (e instanceof ModuleEvent)
         {
             switch (((ModuleEvent)e).getType())
