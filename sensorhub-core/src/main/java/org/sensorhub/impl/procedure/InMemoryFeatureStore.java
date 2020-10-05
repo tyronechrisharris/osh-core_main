@@ -46,7 +46,7 @@ import org.vast.util.Bbox;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public abstract class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<T>> extends InMemoryDataStore implements IFeatureStoreBase<T, VF, F>
+public abstract class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>> extends InMemoryDataStore implements IFeatureStoreBase<T, VF, F>
 {
     ConcurrentNavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
     ConcurrentNavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();

@@ -20,6 +20,7 @@ import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.FoiFilter;
+import org.vast.ogc.om.IProcedure;
 
 
 /**
@@ -31,7 +32,7 @@ import org.sensorhub.api.obs.FoiFilter;
  * @author Alex Robin
  * @date Apr 2, 2018
  */
-public class ProcedureFilter extends FeatureFilterBase<IProcedureWithDesc>
+public class ProcedureFilter extends FeatureFilterBase<IProcedure>
 {
     protected SortedSet<String> parentUIDs;
     protected DataStreamFilter dataStreamFilter;
@@ -114,7 +115,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedureWithDesc>
     public static abstract class ProcedureFilterBuilder<
             B extends ProcedureFilterBuilder<B, F>,
             F extends ProcedureFilter>
-        extends FeatureFilterBuilder<B, IProcedureWithDesc, ProcedureFilter>
+        extends FeatureFilterBuilder<B, IProcedure, ProcedureFilter>
     {        
         
         protected ProcedureFilterBuilder(F instance)
