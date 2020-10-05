@@ -14,17 +14,19 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
+import org.sensorhub.utils.FilterUtils;
 import com.google.common.collect.Range;
 
 
 /**
  * <p>
  * Immutable union type that can be either a continuous range or discrete
- * set of values.
+ * sorted set of values.
  * </p>
  *
  * @author Alex Robin
@@ -106,6 +108,51 @@ public class RangeOrSet<T extends Comparable<T>> implements Predicate<T>
         else if (isSet())
             return set.contains(t);
         return false;
+    }
+    
+    
+    public RangeOrSet<T> and(RangeOrSet<T> other) throws EmptyFilterIntersection
+    {
+        if (other == null)
+            return this;
+        
+        if (isSet() && other.isSet())
+            return RangeOrSet.from(FilterUtils.intersect(set, other.set));
+        
+        if (isRange() && other.isRange())
+        {
+            if (!range.isConnected(other.range))
+                throw new EmptyFilterIntersection();
+            return RangeOrSet.from(range.intersection(other.range));
+        }
+        
+        if (isSet())
+        {
+            ArrayList<T> newSet = new ArrayList<>();
+            for (T e: set)
+            {
+                if (other.test(e))
+                    newSet.add(e);
+            }
+            if (newSet.isEmpty())
+                throw new EmptyFilterIntersection();
+            return RangeOrSet.from(newSet);
+        }
+        
+        if (other.isSet())
+        {
+            ArrayList<T> newSet = new ArrayList<>();
+            for (T e: other.set)
+            {
+                if (test(e))
+                    newSet.add(e);
+            }
+            if (newSet.isEmpty())
+                throw new EmptyFilterIntersection();
+            return RangeOrSet.from(newSet);
+        }
+        
+        return null;
     }
     
     

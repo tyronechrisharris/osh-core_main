@@ -63,6 +63,26 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    /**
+     * Computes a logical AND between this filter and another filter of the same kind
+     * @param filter The other filter to AND with
+     * @return The new composite filter
+     * @throws EmptyFilterIntersection if the intersection doesn't exist
+     */
+    public TemporalFilter and(TemporalFilter filter) throws EmptyFilterIntersection
+    {
+        if (filter == null)
+            return this;
+        return and(filter, new Builder()).build();
+    }
+    
+    
+    protected <F extends TemporalFilter, B extends TimeFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    {
+        return super.and(otherFilter, builder);
+    }
+    
+    
     /*
      * Builder
      */

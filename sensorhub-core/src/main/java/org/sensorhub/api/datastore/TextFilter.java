@@ -15,8 +15,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore;
 
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.Set;
+import java.util.TreeSet;
+import org.sensorhub.utils.FilterUtils;
 import org.vast.util.BaseBuilder;
 
 
@@ -30,12 +32,33 @@ import org.vast.util.BaseBuilder;
  */
 public class TextFilter
 {
-    private Set<String> keywords = new HashSet<>();
+    protected Set<String> keywords;
     
     
     public Set<String> getKeywords()
     {
         return keywords;
+    }
+    
+    
+    /**
+     * Computes a logical AND between this filter and another filter of the same kind
+     * @param filter The other filter to AND with
+     * @return The new composite filter
+     * @throws EmptyFilterIntersection if the intersection doesn't exist
+     */
+    public TextFilter and(TextFilter filter) throws EmptyFilterIntersection
+    {
+        if (filter == null)
+            return this;
+        return and(filter, new Builder()).build();
+    }
+    
+    
+    protected <F extends TextFilter, B extends TextFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    {
+        return builder
+            .withKeywords(FilterUtils.intersect(this.keywords, otherFilter.keywords));
     }
     
     
@@ -87,9 +110,15 @@ public class TextFilter
         
         public B withKeywords(String... keywords)
         {
+            return withKeywords(Arrays.asList(keywords));
+        }
+        
+        
+        public B withKeywords(Collection<String> keywords)
+        {
             if (instance.keywords == null)
-                instance.keywords = new HashSet<>();
-            instance.keywords.addAll(Arrays.asList(keywords));
+                instance.keywords = new TreeSet<>();
+            instance.keywords.addAll(keywords);
             return (B)this;
         }
     }

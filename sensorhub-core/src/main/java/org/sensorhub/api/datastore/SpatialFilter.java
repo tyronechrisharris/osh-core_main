@@ -76,6 +76,27 @@ public class SpatialFilter implements Predicate<Geometry>
     }
     
     
+    /**
+     * Computes a logical AND between this filter and another filter of the same kind
+     * @param filter The other filter to AND with
+     * @return The new composite filter
+     * @throws EmptyFilterIntersection if the intersection doesn't exist
+     */
+    public SpatialFilter and(SpatialFilter filter) throws EmptyFilterIntersection
+    {
+        if (filter == null)
+            return this;
+        return and(filter, new Builder()).build();
+    }
+    
+    
+    protected <F extends SpatialFilter, B extends SpatialFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    {
+        // we're handling only INTERSECTION operator for now        
+        return builder.withRoi(roi.intersection(otherFilter.roi));
+    }
+    
+    
     @Override
     public String toString()
     {
@@ -149,7 +170,7 @@ public class SpatialFilter implements Predicate<Geometry>
         {
             instance.center = center;
             instance.distance = distance;
-            withRoi(center.buffer(distance, 1).getEnvelope());
+            withRoi(center.buffer(distance, 4).getEnvelope());
             withOperator(SpatialOp.DISTANCE);
             return (B)this;
         }
@@ -158,13 +179,15 @@ public class SpatialFilter implements Predicate<Geometry>
         public B withBbox(Bbox bbox)
         {
             withRoi(bbox.toJtsPolygon());
-            withOperator(SpatialOp.INTERSECTS);
             return (B)this;
         }
         
         
         public B withOperator(SpatialOp op)
         {
+            if (instance.operator != null)
+                throw new IllegalStateException("Operator is already set");
+            
             instance.operator = op;
             final T instanceLocal = instance;
             
@@ -205,6 +228,8 @@ public class SpatialFilter implements Predicate<Geometry>
         @Override
         public T build()
         {
+            Asserts.checkNotNull(instance.roi, "roi");
+            
             if (instance.operator == null)
                 withOperator(SpatialOp.INTERSECTS);
             

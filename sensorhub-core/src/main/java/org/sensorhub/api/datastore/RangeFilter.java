@@ -27,11 +27,11 @@ import com.google.common.collect.Range;
  *
  * @author Alex Robin
  * @date Apr 4, 2018
- * @param <K> Type of range bounds
+ * @param <T> Type of range bounds
  */
-public class RangeFilter<K extends Comparable<?>> implements Predicate<K>
+public class RangeFilter<T extends Comparable<T>> implements Predicate<T>
 {    
-    protected Range<K> range;
+    protected Range<T> range;
     protected RangeOp op = RangeOp.INTERSECTS;
     
     
@@ -43,19 +43,19 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<K>
     }
     
     
-    public Range<K> getRange()
+    public Range<T> getRange()
     {
         return range;
     }
     
     
-    public K getMin()
+    public T getMin()
     {
         return range.lowerEndpoint();
     }
     
     
-    public K getMax()
+    public T getMax()
     {
         return range.upperEndpoint();
     }
@@ -74,13 +74,13 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<K>
     
     
     @Override
-    public boolean test(K val)
+    public boolean test(T val)
     {
         return range.contains(val);
     }
 
 
-    public boolean test(Range<K> other)
+    public boolean test(Range<T> other)
     {
         switch (op)
         {
@@ -91,6 +91,22 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<K>
             default:
                 return range.isConnected(other);
         }
+    }
+    
+    
+    public RangeFilter<T> and(RangeFilter<T> filter) throws EmptyFilterIntersection
+    {
+        if (filter == null)
+            return this;
+        return and(filter, new Builder()).build();
+    }
+    
+    
+    protected <F extends RangeFilter<T>, B extends RangeFilterBuilder<B, F, T>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    {
+        if (!range.isConnected(otherFilter.range))
+            throw new EmptyFilterIntersection();
+        return builder.withRange(range.intersection(otherFilter.range));
     }
     
     
@@ -129,6 +145,13 @@ public class RangeFilter<K extends Comparable<?>> implements Predicate<K>
         protected RangeFilterBuilder(F instance)
         {
             super(instance);
+        }
+        
+        
+        public B withRange(Range<T> range)
+        {
+            instance.range = range;
+            return (B)this;
         }
         
         
