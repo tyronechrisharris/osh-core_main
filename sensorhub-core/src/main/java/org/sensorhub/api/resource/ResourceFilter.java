@@ -22,7 +22,6 @@ import java.util.function.Predicate;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.TextFilter;
-import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
@@ -160,7 +159,7 @@ public class ResourceFilter<T extends IResource> implements IQueryFilter, Predic
         
         protected B copyFrom(F base)
         {
-            Asserts.checkNotNull(base, FeatureFilterBase.class);
+            Asserts.checkNotNull(base, ResourceFilter.class);
             instance.internalIDs = base.getInternalIDs();
             instance.parentIDs = base.getParentIDs();
             instance.fullText = base.getFullTextFilter();

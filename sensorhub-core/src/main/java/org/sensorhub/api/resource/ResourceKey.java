@@ -26,7 +26,8 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Oct 29, 2018
  */
-public class ResourceKey<T extends ResourceKey<T>> implements IResourceKey, Comparable<T>
+@SuppressWarnings("javadoc")
+public class ResourceKey<T extends ResourceKey<T>> implements Comparable<T>
 {
     protected long internalID = -1;
     

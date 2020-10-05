@@ -27,7 +27,7 @@ import org.vast.util.IResource;
  * @author Alex Robin
  * @date Oct 8, 2018
  */
-public interface IResourceStore<K extends IResourceKey, V extends IResource, VF extends ValueField, F extends ResourceFilter<? super V>> extends IDataStore<K, V, VF, F>
+public interface IResourceStore<K extends ResourceKey<K>, V extends IResource, VF extends ValueField, F extends ResourceFilter<? super V>> extends IDataStore<K, V, VF, F>
 {
 
     /**
