@@ -38,8 +38,7 @@ public class ServiceConfig extends ModuleConfig
     
     public String getPublicEndpoint()
     {
-        return HttpServer.getInstance().appendToUrlPath(
-            HttpServer.getInstance().getServletsBaseUrl(),
-            endPoint);
+        var http = HttpServer.getInstance();
+        return http.appendToUrlPath(http.getServletsBaseUrl(), endPoint);
     }
 }

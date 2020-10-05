@@ -446,7 +446,10 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     
     public String appendToUrlPath(String url, String nextPart)
     {
-        return url + (url.endsWith("/") || nextPart.startsWith("/") ? nextPart : "/" + nextPart);
+        if (url.endsWith("/"))
+            url = url.substring(0, url.length()-1);            
+        
+        return url + (nextPart.startsWith("/") ? nextPart : "/" + nextPart);
     }
     
     
