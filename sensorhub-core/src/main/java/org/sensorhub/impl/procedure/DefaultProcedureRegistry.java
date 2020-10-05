@@ -25,10 +25,10 @@ import org.sensorhub.api.datastore.DatabaseConfig;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.procedure.IProcedureWithState;
+import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureId;
-import org.sensorhub.api.procedure.IProcedureGroup;
+import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.IProcedureStateDatabase;
@@ -100,15 +100,15 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
 
     @Override
-    public ProcedureId register(IProcedureWithState proc)
+    public ProcedureId register(IProcedureDriver proc)
     {
         return register(proc, true);
     }
 
 
-    protected ProcedureId register(IProcedureWithState proc, boolean sendEvent)
+    protected ProcedureId register(IProcedureDriver proc, boolean sendEvent)
     {
-        Asserts.checkNotNull(proc, IProcedureWithState.class);
+        Asserts.checkNotNull(proc, IProcedureDriver.class);
 
         lock.writeLock().lock();
         String uid = proc.getUniqueIdentifier();
@@ -131,16 +131,16 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             }
             else
             {
-                IProcedureWithState liveProc = shadow.ref.get();
+                IProcedureDriver liveProc = shadow.ref.get();
                 if (liveProc != null && liveProc != proc)
                     throw new IllegalArgumentException("A procedure with ID " + uid + " is already registered");
                 shadow.connectLiveProcedure(proc);
             }
 
             // if group, also register members recursively
-            if (proc instanceof IProcedureGroup)
+            if (proc instanceof IProcedureGroupDriver)
             {
-                for (IProcedureWithState member: ((IProcedureGroup<?>)proc).getMembers().values())
+                for (IProcedureDriver member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
                     register(member, false);
             }
 
@@ -157,7 +157,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
 
 
-    protected FeatureKey addToDataStore(IProcedureWithState proc)
+    protected FeatureKey addToDataStore(IProcedureDriver proc)
     {
         // check if procedure data is handled by a dedicated DB
         FeatureKey existingKey = federatedDb.getProcedureStore().getLatestVersionKey(proc.getUniqueIdentifier());
@@ -178,7 +178,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
 
 
-    protected ProcedureShadow createProxy(ProcedureId procId, IProcedureWithState proc)
+    protected ProcedureShadow createProxy(ProcedureId procId, IProcedureDriver proc)
     {
         ProcedureShadow shadow;
         
@@ -197,7 +197,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
 
     @Override
-    public void unregister(IProcedureWithState proc)
+    public void unregister(IProcedureDriver proc)
     {
         cleanup(proc, true, false);
     }
@@ -209,15 +209,15 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         ProcedureShadow shadow = procedureShadows.get(uid);
         if (shadow == null)
             throw new IllegalArgumentException("Unknown procedure UID"); 
-        IProcedureWithState proc = shadow.ref.get();
+        IProcedureDriver proc = shadow.ref.get();
         if (proc != null)
             cleanup(proc, true, true);
     }
 
 
-    protected void cleanup(IProcedureWithState proc, boolean sendEvent, boolean removeFromDb)
+    protected void cleanup(IProcedureDriver proc, boolean sendEvent, boolean removeFromDb)
     {
-        Asserts.checkNotNull(proc, IProcedureWithState.class);
+        Asserts.checkNotNull(proc, IProcedureDriver.class);
 
         lock.writeLock().lock();
         String uid = proc.getUniqueIdentifier();
@@ -226,9 +226,9 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         try
         {
             // if entity group, unregister members recursively
-            if (proc instanceof IProcedureGroup)
+            if (proc instanceof IProcedureGroupDriver)
             {
-                for (IProcedureWithState member: ((IProcedureGroup<?>)proc).getMembers().values())
+                for (IProcedureDriver member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
                     cleanup(member, false, removeFromDb);
             }
 
@@ -253,7 +253,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
 
     @Override
-    public IProcedureWithState getProcedureShadow(String uid)
+    public IProcedureDriver getProcedureShadow(String uid)
     {
         lock.readLock().lock();
 
@@ -264,9 +264,9 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             if (moduleRegistry.isModuleLoaded(uid))
             {
                 IModule<?> module = moduleRegistry.getModuleById(uid);
-                if (!(module instanceof IProcedureWithState))
+                if (!(module instanceof IProcedureDriver))
                     throw new IllegalArgumentException("Module " + MsgUtils.moduleString(module) + " is not a procedure");
-                return getProcedureShadow(((IProcedureWithState)module).getUniqueIdentifier());
+                return getProcedureShadow(((IProcedureDriver)module).getUniqueIdentifier());
             }
 
             return procedureShadows.get(uid);

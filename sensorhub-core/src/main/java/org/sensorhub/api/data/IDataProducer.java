@@ -15,7 +15,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import java.util.Map;
-import org.sensorhub.api.procedure.IProcedureWithState;
+import org.sensorhub.api.procedure.IProcedureDriver;
 import org.vast.ogc.gml.IGeoFeature;
 
 
@@ -27,7 +27,7 @@ import org.vast.ogc.gml.IGeoFeature;
  * @author Alex Robin
  * @since Mar 23, 2017
  */
-public interface IDataProducer extends IProcedureWithState
+public interface IDataProducer extends IProcedureDriver
 {
     
     /**

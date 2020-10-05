@@ -52,7 +52,7 @@ import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
-import org.sensorhub.api.procedure.IProcedureWithState;
+import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureDisabledEvent;
@@ -184,7 +184,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
     
     protected IDataProducer getDataSource(ProcedureId procID)
     {
-        IProcedureWithState proc = getParentHub().getProcedureRegistry().getProcedureShadow(procID.getUniqueID());
+        IProcedureDriver proc = getParentHub().getProcedureRegistry().getProcedureShadow(procID.getUniqueID());
         if (proc == null || !(proc instanceof IDataProducer))
             return null;
         return (IDataProducer)proc;

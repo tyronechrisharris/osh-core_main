@@ -27,7 +27,7 @@ import org.sensorhub.api.data.IDataProducerModule;
  * @param <ConfigType> 
  * @since Nov 5, 2010
  */
-public interface ISensorModule<ConfigType extends SensorConfig> extends IDataProducerModule<ConfigType>, ISensor
+public interface ISensorModule<ConfigType extends SensorConfig> extends IDataProducerModule<ConfigType>, ISensorDriver
 {
     
 }

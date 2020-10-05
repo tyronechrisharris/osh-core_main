@@ -29,7 +29,6 @@ import net.opengis.gml.v32.TimePosition;
 import net.opengis.gml.v32.impl.GMLFactory;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
 import net.opengis.sensorml.v20.AbstractProcess;
-import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
@@ -40,8 +39,8 @@ import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.procedure.IProcedureWithState;
-import org.sensorhub.api.procedure.IProcedureGroup;
+import org.sensorhub.api.procedure.IProcedureDriver;
+import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureDisabledEvent;
 import org.sensorhub.api.procedure.ProcedureEnabledEvent;
@@ -253,7 +252,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public IProcedureGroup<IProcedureWithState> getParentGroup()
+    public IProcedureGroupDriver<IProcedureDriver> getParentGroup()
     {
         return null;
     }
@@ -540,25 +539,6 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         }
 
         return foi;
-    }
-
-
-    @Override
-    public Point getCurrentLocation()
-    {
-        if (locationOutput == null)
-            return null;
-
-        DataBlock loc = locationOutput.getLatestRecord();
-        if (loc == null)
-            return null;
-
-        Point point = new GMLFactory().newPoint();
-        point.setSrsName(SWEConstants.REF_FRAME_4979);
-        point.setSrsDimension(3);
-        point.setPos(new double[] {loc.getDoubleValue(0), loc.getDoubleValue(1), loc.getDoubleValue(2)});
-
-        return point;
     }
 
 

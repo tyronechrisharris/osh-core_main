@@ -18,18 +18,18 @@ import java.util.Map;
 import org.sensorhub.api.data.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.procedure.IProcedureWithLocation;
+import org.sensorhub.api.procedure.IProcedureDriver;
 
 
 /**
  * <p>
- * Interface for sensors combining data and control interfaces
+ * Interface for sensor drivers combining data and control interfaces.
  * </p>
  *
  * @author Alex Robin
  * @since Mar 23, 2017
  */
-public interface ISensor extends IProcedureWithLocation, IDataProducer, ICommandReceiver
+public interface ISensorDriver extends IProcedureDriver, IDataProducer, ICommandReceiver
 {
 
     /**

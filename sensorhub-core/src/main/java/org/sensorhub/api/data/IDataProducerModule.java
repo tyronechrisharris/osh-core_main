@@ -16,18 +16,20 @@ package org.sensorhub.api.data;
 
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.api.sensor.ISensor;
+import org.sensorhub.api.sensor.ISensorDriver;
 
 
 /**
  * <p>
  * Kept for backward compatibility; Will be removed later
  * </p>
+ * 
+ * @param <ConfigType> Type of config class
  *
  * @author Alex Robin
  * @date Sep 25, 2020
  */
-public interface IDataProducerModule<ConfigType extends ModuleConfig> extends IModule<ConfigType>, ISensor 
+public interface IDataProducerModule<ConfigType extends ModuleConfig> extends IModule<ConfigType>, ISensorDriver 
 {
 
 }

@@ -31,15 +31,14 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
-import org.sensorhub.api.procedure.IProcedureWithState;
+import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureId;
-import org.sensorhub.api.sensor.ISensor;
+import org.sensorhub.api.sensor.ISensorDriver;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
 import org.sensorhub.impl.procedure.ProcedureShadow;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
-import net.opengis.gml.v32.Point;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -54,7 +53,7 @@ import net.opengis.swe.v20.DataEncoding;
  * @author Alex Robin
  * @date Sep 6, 2019
  */
-public class SensorShadow extends ProcedureShadow implements ISensor
+public class SensorShadow extends ProcedureShadow implements ISensorDriver
 {
     private static final long serialVersionUID = -6315464994380209210L;
     
@@ -71,18 +70,18 @@ public class SensorShadow extends ProcedureShadow implements ISensor
 
 
     @Override
-    public void connectLiveProcedure(IProcedureWithState proc)
+    public void connectLiveProcedure(IProcedureDriver proc)
     {
         Asserts.checkArgument(proc instanceof IDataProducer);
         
         if (proc instanceof IDataProducer)
         {
-            if (proc instanceof ISensor)
+            if (proc instanceof ISensorDriver)
             {
-                for (IStreamingDataInterface output : ((ISensor) proc).getObservationOutputs().values())
+                for (IStreamingDataInterface output : ((ISensorDriver) proc).getObservationOutputs().values())
                     obsOutputs.put(output.getName(), new OutputProxy(output));
                 
-                for (IStreamingDataInterface output : ((ISensor) proc).getStatusOutputs().values())
+                for (IStreamingDataInterface output : ((ISensorDriver) proc).getStatusOutputs().values())
                     statusOutputs.put(output.getName(), new OutputProxy(output));
             }
             else
@@ -103,7 +102,7 @@ public class SensorShadow extends ProcedureShadow implements ISensor
 
 
     @Override
-    public void disconnectLiveProcedure(IProcedureWithState proc)
+    public void disconnectLiveProcedure(IProcedureDriver proc)
     {
         Asserts.checkArgument(proc instanceof IDataProducer);        
         super.disconnectLiveProcedure(proc);
@@ -145,19 +144,12 @@ public class SensorShadow extends ProcedureShadow implements ISensor
     {
         return Collections.unmodifiableMap(controlInputs);
     }
-    
-
-    @Override
-    public Point getCurrentLocation()
-    {
-        return null;
-    }
 
 
     @Override
     public IGeoFeature getCurrentFeatureOfInterest()
     {
-        IProcedureWithState proc = ref.get();
+        IProcedureDriver proc = ref.get();
         if (proc != null)
             return ((IDataProducer) proc).getCurrentFeatureOfInterest();
         else
@@ -168,19 +160,19 @@ public class SensorShadow extends ProcedureShadow implements ISensor
     @Override
     public boolean isConnected()
     {
-        IProcedureWithState proc = ref.get();
+        IProcedureDriver proc = ref.get();
         if (proc == null)
             return false;
         
-        if (proc instanceof ISensor)
-            return ((ISensor)proc).isConnected();
+        if (proc instanceof ISensorDriver)
+            return ((ISensorDriver)proc).isConnected();
         
         return false;
     }
     
     
     @Override
-    protected boolean captureState(IProcedureWithState proc)
+    protected boolean captureState(IProcedureDriver proc)
     {
         boolean changed = super.captureState(proc);
         

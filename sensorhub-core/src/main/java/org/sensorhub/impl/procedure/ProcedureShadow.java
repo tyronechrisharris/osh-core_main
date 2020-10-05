@@ -16,21 +16,17 @@ package org.sensorhub.impl.procedure;
 
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
-import java.time.Instant;
-import java.util.Map;
-import javax.xml.namespace.QName;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
-import org.sensorhub.api.procedure.IProcedureWithState;
+import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureEvent;
 import org.sensorhub.api.procedure.ProcedureId;
-import org.sensorhub.api.procedure.IProcedureGroup;
+import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.vast.util.Asserts;
-import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
@@ -47,13 +43,13 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Sep 5, 2019
  */
-public class ProcedureShadow implements IProcedureWithState, Serializable, IEventListener
+public class ProcedureShadow implements IProcedureDriver, Serializable, IEventListener
 {
     private static final long serialVersionUID = 978629974573336266L;
     public static final String NO_LISTENER_MSG = "Cannot register listener on a proxy class. Use the event bus";
 
     protected transient DefaultProcedureRegistry registry;
-    protected transient WeakReference<IProcedureWithState> ref; // reference to live procedure
+    protected transient WeakReference<IProcedureDriver> ref; // reference to live procedure
     protected transient IEventPublisher eventPublisher;
 
     protected IEventSourceInfo eventSrcInfo;
@@ -63,7 +59,7 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
     protected ProcedureId parentGroupId;
 
 
-    public ProcedureShadow(ProcedureId procId, IProcedureWithState liveProcedure, DefaultProcedureRegistry registry)
+    public ProcedureShadow(ProcedureId procId, IProcedureDriver liveProcedure, DefaultProcedureRegistry registry)
     {
         this.procedureId = Asserts.checkNotNull(procId);
         setProcedureRegistry(registry);
@@ -79,9 +75,9 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
     }
 
 
-    public void connectLiveProcedure(IProcedureWithState proc)
+    public void connectLiveProcedure(IProcedureDriver proc)
     {
-        Asserts.checkNotNull(proc, IProcedureWithState.class);
+        Asserts.checkNotNull(proc, IProcedureDriver.class);
 
         this.ref = new WeakReference<>(proc);
         long lastUpdated = lastDescriptionUpdate;
@@ -99,7 +95,7 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
     }
 
 
-    public void disconnectLiveProcedure(IProcedureWithState proc)
+    public void disconnectLiveProcedure(IProcedureDriver proc)
     {
         proc.unregisterListener(this);
         captureState();
@@ -125,14 +121,14 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
      */
     public boolean captureState()
     {
-        IProcedureWithState proc = ref.get();
+        IProcedureDriver proc = ref.get();
         if (proc != null)
             return captureState(proc);
         return false;
     }
 
 
-    protected boolean captureState(IProcedureWithState proc)
+    protected boolean captureState(IProcedureDriver proc)
     {
         long previousUpdate = lastDescriptionUpdate;
 
@@ -173,26 +169,6 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
 
 
     @Override
-    public Map<QName, Object> getProperties()
-    {
-        return getCurrentDescription().getProperties();
-    }
-
-
-    @Override
-    public TimeExtent getValidTime()
-    {
-        IProcedureWithState proc = ref.get();
-        if (proc != null && proc.isEnabled())
-            return proc.getValidTime();
-        else if (latestDescription != null)
-            return latestDescription.getValidTime();
-        else
-            return TimeExtent.beginAt(Instant.ofEpochMilli(lastDescriptionUpdate));
-    }
-
-
-    @Override
     public IEventSourceInfo getEventSourceInfo()
     {
         return eventSrcInfo;
@@ -202,7 +178,7 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
     @Override
     public AbstractProcess getCurrentDescription()
     {
-        IProcedureWithState proc = ref.get();
+        IProcedureDriver proc = ref.get();
         if (proc != null && proc.isEnabled())
             return proc.getCurrentDescription();
         else
@@ -211,13 +187,13 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
 
 
     @Override
-    public IProcedureGroup<? extends IProcedureWithState> getParentGroup()
+    public IProcedureGroupDriver<? extends IProcedureDriver> getParentGroup()
     {
-        IProcedureWithState proc = ref.get();
+        IProcedureDriver proc = ref.get();
         if (proc != null && proc.isEnabled())
             return proc.getParentGroup();
         else if (parentGroupId != null)
-            return (IProcedureGroup<?>)registry.getProcedureShadow(parentGroupId.getUniqueID());
+            return (IProcedureGroupDriver<?>)registry.getProcedureShadow(parentGroupId.getUniqueID());
         else
             return null;
     }
@@ -233,7 +209,7 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
     @Override
     public long getLastDescriptionUpdate()
     {
-        IProcedureWithState proc = ref.get();
+        IProcedureDriver proc = ref.get();
         if (proc != null && proc.isEnabled())
             return proc.getLastDescriptionUpdate();
         else
@@ -244,7 +220,7 @@ public class ProcedureShadow implements IProcedureWithState, Serializable, IEven
     @Override
     public boolean isEnabled()
     {
-        IProcedureWithState liveProc = ref.get();
+        IProcedureDriver liveProc = ref.get();
         return liveProc != null && liveProc.isEnabled();
     }
 

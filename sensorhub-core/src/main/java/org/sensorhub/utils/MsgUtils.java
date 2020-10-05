@@ -16,7 +16,7 @@ package org.sensorhub.utils;
 
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
-import org.vast.ogc.om.IProcedure;
+import org.sensorhub.api.procedure.IProcedureDriver;
 
 
 /**
@@ -54,7 +54,7 @@ public class MsgUtils
     }
     
     
-    public static String entityString(IProcedure entity)
+    public static String entityString(IProcedureDriver entity)
     {
         return "'" + entity.getName() + "' [" + entity.getUniqueIdentifier() + "]";
     }

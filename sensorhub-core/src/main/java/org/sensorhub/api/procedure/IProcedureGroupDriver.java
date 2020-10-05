@@ -7,40 +7,30 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
- 
+
 Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
- 
+
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.api.procedure;
 
-import org.vast.ogc.gml.IGeoFeature;
-import net.opengis.gml.v32.Point;
+import java.util.Map;
 
 
 /**
  * <p>
- * Interface for all procedures that can be geolocated
+ * Interface for groups of procedures (e.g. sensor networks, sensor systems).
  * </p>
  *
  * @author Alex Robin
- * @since Jun 12, 2017
+ * @param <T> Type of procedure composing this group
+ * @since Jun 9, 2017
  */
-public interface IProcedureWithLocation extends IProcedureWithState, IGeoFeature
+public interface IProcedureGroupDriver<T extends IProcedureDriver> extends IProcedureDriver
 {
 
     /**
-     * Retrieves the current geographic location of the procedure.
-     * <p><i>Note that the entity location can be different from the feature of interest
-     * location/geometry.</i></p>
-     * @return The procedure location as a GML point or null if unknown
+     * @return Map of member procedures (ID -> IProcedure object)
      */
-    public Point getCurrentLocation();
-    
-    
-    @Override
-    default Point getGeometry()
-    {
-        return getCurrentLocation();
-    }
+    public Map<ProcedureId, ? extends T> getMembers();
 }

@@ -15,7 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import net.opengis.swe.v20.DataBlock;
-import org.sensorhub.api.sensor.ISensor;
+import org.sensorhub.api.sensor.ISensorDriver;
 import org.sensorhub.api.data.DataEvent;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.helper.GeoPosHelper;
@@ -33,7 +33,7 @@ import org.vast.swe.helper.GeoPosHelper;
 public class DefaultLocationOutputLLA extends DefaultLocationOutput
 {
 
-    public DefaultLocationOutputLLA(ISensor parentSensor, String sensorFrameID, double updatePeriod)
+    public DefaultLocationOutputLLA(ISensorDriver parentSensor, String sensorFrameID, double updatePeriod)
     {
         super(parentSensor, updatePeriod);
 

@@ -36,7 +36,7 @@ import org.sensorhub.impl.event.EventSourceInfo;
  *
  * @author Alex Robin
  * @since Feb 18, 2019
- * @see IProcedureWithState IProcedure
+ * @see IProcedureDriver IProcedure
  */
 public interface IProcedureRegistry extends IEventSource
 {
@@ -51,7 +51,7 @@ public interface IProcedureRegistry extends IEventSource
      * @param proc The live procedure instance
      * @return The ID assigned to the new procedure
      */
-    public ProcedureId register(IProcedureWithState proc);
+    public ProcedureId register(IProcedureDriver proc);
 
 
     /**
@@ -60,7 +60,7 @@ public interface IProcedureRegistry extends IEventSource
      * data store but only disconnects the live procedure.
      * @param proc The live procedure instance
      */
-    public void unregister(IProcedureWithState proc);
+    public void unregister(IProcedureDriver proc);
     
     
     /**
@@ -77,7 +77,7 @@ public interface IProcedureRegistry extends IEventSource
      * @param uid The procedure unique ID
      * @return The procedure shadow
      */
-    public IProcedureWithState getProcedureShadow(String uid);
+    public IProcedureDriver getProcedureShadow(String uid);
     
     
     /**

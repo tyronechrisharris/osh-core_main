@@ -14,7 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import org.sensorhub.api.sensor.ISensor;
+import org.sensorhub.api.sensor.ISensorDriver;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -27,14 +27,14 @@ import net.opengis.swe.v20.DataEncoding;
  * @author Alex Robin
  * @since May 19, 2015
  */
-public abstract class DefaultLocationOutput extends AbstractSensorOutput<ISensor>
+public abstract class DefaultLocationOutput extends AbstractSensorOutput<ISensorDriver>
 {
     protected DataComponent outputStruct;
     DataEncoding outputEncoding;
     protected double updatePeriod;
 
 
-    public DefaultLocationOutput(ISensor parentSensor, double updatePeriod)
+    public DefaultLocationOutput(ISensorDriver parentSensor, double updatePeriod)
     {
         super(AbstractSensorModule.LOCATION_OUTPUT_NAME, parentSensor);
         this.updatePeriod = updatePeriod;

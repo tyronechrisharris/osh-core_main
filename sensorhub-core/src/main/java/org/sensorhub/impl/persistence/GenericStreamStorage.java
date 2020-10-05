@@ -59,7 +59,7 @@ import org.sensorhub.api.persistence.ObsPeriod;
 import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureRegistry;
-import org.sensorhub.api.procedure.IProcedureWithState;
+import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureDisabledEvent;
@@ -166,7 +166,7 @@ public class GenericStreamStorage extends AbstractModule<StreamStorageConfig> im
     
     protected IDataProducer getDataSource(String procUID)
     {
-        IProcedureWithState proc = getParentHub().getProcedureRegistry().getProcedureShadow(procUID);
+        IProcedureDriver proc = getParentHub().getProcedureRegistry().getProcedureShadow(procUID);
         if (!(proc instanceof IDataProducer))
             throw new IllegalStateException("Procedure " + procUID + " is not a data producer");
         return (IDataProducer)proc;

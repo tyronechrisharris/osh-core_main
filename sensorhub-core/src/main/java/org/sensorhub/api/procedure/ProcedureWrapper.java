@@ -36,6 +36,13 @@ public class ProcedureWrapper implements IProcedureWithDesc
     {
         this.fullDesc = Asserts.checkNotNull(fullDesc, AbstractProcess.class);
     }
+
+
+    @Override
+    public String getId()
+    {
+        return fullDesc.getId();
+    }
     
     
     @Override

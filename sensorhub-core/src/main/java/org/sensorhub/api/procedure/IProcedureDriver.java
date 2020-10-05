@@ -14,27 +14,43 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import java.time.Instant;
 import org.sensorhub.api.event.IEventProducer;
-import org.vast.ogc.om.IProcedure;
-import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
  * <p>
- * Base interface for all OSH procedures that provide a SensorML description
- * (e.g. sensors, actuators, processes, data producers in general)<br/>
- * When the procedure represents a real world object such as a hardware device,
- * the procedure description should do its best to reflect its current state.
+ * Base interface for all OSH procedure drivers that allow communication
+ * with a procedure and provide access to its current state (i.e. SensorML)
+ * </p><p>
+ * An instance of this class can represent a hardware device (e.g. sensors,
+ * actuators) or logical procedures (e.g. digital process, method, survey).
  * </p>
  *
  * @author Alex Robin
  * @since June 9, 2017
  */
-public interface IProcedureWithState extends IProcedure, IEventProducer
+public interface IProcedureDriver extends IEventProducer
 {
 
+    /**
+     * @return The procedure name
+     */
+    public String getName();
+    
+    
+    /**
+     * @return A short description of the procedure
+     */
+    public String getDescription();
+    
+    
+    /**
+     * @return The procedure's unique identifier
+     */
+    public String getUniqueIdentifier();
+    
+    
     /**
      * @return The ID object assigned to this procedure
      */
@@ -52,7 +68,7 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
      * @return The parent procedure group or null if this procedure is not
      * a member of any group
      */
-    public IProcedureGroup<? extends IProcedureWithState> getParentGroup();
+    public IProcedureGroupDriver<? extends IProcedureDriver> getParentGroup();
 
 
     /**
@@ -82,15 +98,5 @@ public interface IProcedureWithState extends IProcedure, IEventProducer
      * @return True if procedure is enabled, false otherwise
      */
     public boolean isEnabled();
-
-
-    @Override
-    default TimeExtent getValidTime()
-    {
-        if (getCurrentDescription() != null)
-            return getCurrentDescription().getValidTime();
-        else
-            return TimeExtent.beginAt(Instant.ofEpochMilli(getLastDescriptionUpdate()));
-    }
 
 }
