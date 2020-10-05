@@ -14,25 +14,67 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import org.sensorhub.api.feature.IFeatureStore;
-import org.sensorhub.api.feature.IFeatureStore.FeatureField;
+import org.sensorhub.api.feature.FeatureKey;
+import org.sensorhub.api.feature.IFeatureStoreBase;
+import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.obs.IObsStore;
-import org.vast.ogc.om.IProcedure;
+import org.sensorhub.api.procedure.IProcedureStore.ProcedureField;
+import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
  * <p>
- * Generic interface for all procedure description stores
+ * Interface for data store containing procedure descriptions (i.e. SensorML
+ * objects derived from AbstractProcess)
  * </p>
  *
- * @param <T> Procedure Type
- * @param <VF> Procedure Field Type
- * 
  * @author Alex Robin
- * @date Mar 19, 2018
+ * @date Oct 4, 2020
  */
-public interface IProcedureStore<T extends IProcedure, VF extends FeatureField> extends IFeatureStore<T, VF>
+public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, ProcedureField, ProcedureFilter>
 {
+
+    public static class ProcedureField extends FeatureField
+    {
+        public static final ProcedureField TYPE = new ProcedureField("type");
+        public static final ProcedureField GENERAL_METADATA = new ProcedureField("metadata");
+        public static final ProcedureField HISTORY = new ProcedureField("history");
+        public static final ProcedureField MEMBERS = new ProcedureField("members");
+        
+        public ProcedureField(String name)
+        {
+            super(name);
+        }
+    }
+    
+    
+    /**
+     * Add a new procedure using its full description
+     * @param desc The full procedure description
+     * @return The newly allocated key (internal ID)
+     */
+    public default FeatureKey add(AbstractProcess desc)
+    {
+        return add(new ProcedureWrapper(desc));
+    }
+    
+    
+    /**
+     * Add a new version of an existing procedure description
+     * @param desc The full procedure description
+     * @return The key associated with the new procedure version
+     */
+    public default FeatureKey addVersion(AbstractProcess desc)
+    {
+        return addVersion(new ProcedureWrapper(desc));
+    }
+    
+    
+    @Override
+    public default ProcedureFilter.Builder filterBuilder()
+    {
+        return new ProcedureFilter.Builder();
+    }
     
     
     /**
@@ -40,5 +82,5 @@ public interface IProcedureStore<T extends IProcedure, VF extends FeatureField> 
      * @param obsStore
      */
     public void linkTo(IObsStore obsStore);
-
+    
 }

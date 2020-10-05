@@ -19,7 +19,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.persistence.StorageConfig;
-import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.IProcedureStateDatabase;
 import org.sensorhub.impl.module.AbstractModule;
 
@@ -36,7 +36,7 @@ import org.sensorhub.impl.module.AbstractModule;
 public class InMemoryProcedureStateDatabase extends AbstractModule<StorageConfig> implements IProcedureStateDatabase
 {
     byte databaseID = 0;
-    IProcedureDescStore procStore;
+    IProcedureStore procStore;
     IFoiStore foiStore;
     IObsStore obsStore;
         
@@ -57,7 +57,7 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<StorageConfig
     
     
     @Override
-    public IProcedureDescStore getProcedureStore()
+    public IProcedureStore getProcedureStore()
     {
         return procStore;
     }

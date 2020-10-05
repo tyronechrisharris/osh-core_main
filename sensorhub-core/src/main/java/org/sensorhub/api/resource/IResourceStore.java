@@ -21,20 +21,24 @@ import org.vast.util.IResource;
  * </p>
  * @param <K> Key type
  * @param <V> Value type 
+ * @param <VF> Value field enum type
  * @param <F> Filter type
  *
  * @author Alex Robin
  * @date Oct 8, 2018
  */
-public interface IResourceStore<K extends IResourceKey, V extends IResource, VF extends ValueField, F extends ResourceFilter<V>> extends IDataStore<K, V, VF, F>
+public interface IResourceStore<K extends IResourceKey, V extends IResource, VF extends ValueField, F extends ResourceFilter<? super V>> extends IDataStore<K, V, VF, F>
 {
 
-    public ResourceFilterBuilder<? extends ResourceFilterBuilder<?, V, F>, V, F> getFilterBuilder();
+    /**
+     * @return A builder for a filter compatible with this datastore
+     */
+    public ResourceFilterBuilder<?,?,F> filterBuilder();
     
     
     /**
      * Add a new resource to the store, generating a new key for it
-     * @param value new resource
+     * @param value New resource object
      * @return The newly allocated key (internal ID)
      */
     K add(V value);

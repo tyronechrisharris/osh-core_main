@@ -49,10 +49,9 @@ import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.api.persistence.StorageException;
-import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
-import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.IProcedureWithState;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
@@ -599,7 +598,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
 
 
     @Override
-    public IProcedureDescStore getProcedureStore()
+    public IProcedureStore getProcedureStore()
     {
         return db.getProcedureStore();
     }

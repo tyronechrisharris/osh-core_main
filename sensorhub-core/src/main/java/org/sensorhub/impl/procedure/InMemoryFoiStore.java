@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.IFoiStore.FoiField;
@@ -30,7 +31,7 @@ import org.vast.ogc.gml.IGeoFeature;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryFoiStore extends InMemoryFeatureStore<IGeoFeature, FoiField> implements IFoiStore
+public class InMemoryFoiStore extends InMemoryFeatureStore<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
     IObsStore obsStore;
     

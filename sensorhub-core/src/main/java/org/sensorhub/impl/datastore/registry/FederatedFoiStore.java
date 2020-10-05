@@ -22,10 +22,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.sensorhub.api.feature.FeatureFilter;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.feature.IFeatureFilter;
 import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsStore;
@@ -46,7 +44,7 @@ import org.vast.util.Bbox;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature, FoiField, IFeatureFilter> implements IFoiStore
+public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
     DefaultDatabaseRegistry registry;
     FederatedObsDatabase db;
@@ -255,38 +253,10 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature
         
         return null;
     }
-    
-    
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FeatureFilter filter)
-    {
-        if (filter.getInternalIDs() != null)
-        {
-            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());            
-            for (var filterInfo: filterDispatchMap.values())
-            {
-                filterInfo.filter = FeatureFilter.Builder.from(filter)
-                    .withInternalIDs(filterInfo.internalIds)
-                    .build();
-            }
-            
-            return filterDispatchMap;
-        }
-        
-        return null;
-    }
-    
-    
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(IFeatureFilter filter)
-    {
-        if (filter instanceof FoiFilter)
-            return getFilterDispatchMap((FoiFilter)filter);
-        else
-            return getFilterDispatchMap((FeatureFilter)filter);
-    }
 
 
     @Override
-    public Stream<Entry<FeatureKey, IGeoFeature>> selectEntries(IFeatureFilter filter, Set<FoiField> fields)
+    public Stream<Entry<FeatureKey, IGeoFeature>> selectEntries(FoiFilter filter, Set<FoiField> fields)
     {
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -297,7 +267,7 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
                     int dbID = v.databaseID;
-                    return v.db.getFoiStore().selectEntries((FeatureFilter)v.filter, fields)
+                    return v.db.getFoiStore().selectEntries((FoiFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -389,6 +359,13 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature
     
     @Override
     public FeatureKey add(IGeoFeature feature)
+    {
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public FeatureKey add(long parentId, IGeoFeature value)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

@@ -35,7 +35,7 @@ public interface IProcedureObsDatabase extends IDatabase
     /**
      * @return Data store containing procedure descriptions and their history
      */
-    IProcedureDescStore getProcedureStore();
+    IProcedureStore getProcedureStore();
     
     
     /**

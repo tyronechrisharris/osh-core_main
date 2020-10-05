@@ -13,10 +13,11 @@ import java.time.ZoneOffset;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.obs.IObsStore;
-import org.sensorhub.api.procedure.IProcedureDescStore;
-import org.sensorhub.api.procedure.IProcedureDescStore.ProcedureField;
+import org.sensorhub.api.procedure.IProcedureStore;
+import org.sensorhub.api.procedure.IProcedureStore.ProcedureField;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.procedure.ProcedureFilter;
 import net.opengis.gml.v32.TimePeriod;
-import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
@@ -28,7 +29,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess, ProcedureField> implements IProcedureDescStore
+public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
 {
     MVObsStoreImpl obsStore;
     
@@ -65,7 +66,7 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess
     
     
     @Override
-    public synchronized AbstractProcess put(FeatureKey key, AbstractProcess value)
+    public synchronized IProcedureWithDesc put(FeatureKey key, IProcedureWithDesc value)
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -80,13 +81,17 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<AbstractProcess
                 var prevEntry = featuresIndex.lowerEntry(key);
                 if (prevEntry != null && prevEntry.getKey().getInternalID() == key.getInternalID())
                 {
-                    var validTimes = prevEntry.getValue().getValidTimeList();
-                    if (!validTimes.isEmpty())
+                    var fullDesc = prevEntry.getValue().getFullDescription();
+                    if (fullDesc != null)
                     {
-                        var validTime = validTimes.get(0);
-                        if (validTime instanceof TimePeriod)
-                            ((TimePeriod)validTime).getEndPosition().setDateTimeValue(key.getValidStartTime().atOffset(ZoneOffset.UTC));
-                        featuresIndex.put(prevEntry.getKey(), prevEntry.getValue());
+                        var validTimes = fullDesc.getValidTimeList();
+                        if (!validTimes.isEmpty())
+                        {
+                            var validTime = validTimes.get(0);
+                            if (validTime instanceof TimePeriod)
+                                ((TimePeriod)validTime).getEndPosition().setDateTimeValue(key.getValidStartTime().atOffset(ZoneOffset.UTC));
+                            featuresIndex.put(prevEntry.getKey(), prevEntry.getValue());
+                        }
                     }
                 }
                 

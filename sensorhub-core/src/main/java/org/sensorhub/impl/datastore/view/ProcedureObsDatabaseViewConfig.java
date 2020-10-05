@@ -12,25 +12,28 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.feature;
+package org.sensorhub.impl.datastore.view;
 
-import org.sensorhub.api.datastore.IDatabase;
+import org.sensorhub.api.procedure.ProcedureFilter;
 
 
 /**
  * <p>
- * Common interface for feature databases
+ * Configuration class used to define a new filtered view or reference an 
+ * existing one.
  * </p>
  *
  * @author Alex Robin
- * @date Oct 11, 2019
+ * @date Oct 1, 2020
  */
-public interface IFeatureDatabase extends IDatabase
+public class ProcedureObsDatabaseViewConfig
 {
-
-    /**
-     * @return The data store containing the feature data
-     */
-    IFeatureStore getFeatureStore();
+    public String filteredViewId;
     
+    public String sourceDatabaseId;
+    
+    public ProcedureFilter includeFilter;
+    
+    public ProcedureFilter excludeFilter;
+           
 }

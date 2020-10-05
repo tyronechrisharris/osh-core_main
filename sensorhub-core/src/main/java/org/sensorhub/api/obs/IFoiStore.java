@@ -14,8 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
-import org.sensorhub.api.feature.IFeatureStore;
-import org.sensorhub.api.feature.IFeatureStore.FeatureField;
+import org.sensorhub.api.feature.IFeatureStoreBase;
+import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.obs.IFoiStore.FoiField;
 import org.vast.ogc.gml.IGeoFeature;
 
@@ -28,7 +28,7 @@ import org.vast.ogc.gml.IGeoFeature;
  * @author Alex Robin
  * @date Apr 5, 2018
  */
-public interface IFoiStore extends IFeatureStore<IGeoFeature, FoiField>
+public interface IFoiStore extends IFeatureStoreBase<IGeoFeature, FoiField, FoiFilter>
 {
     
     public static class FoiField extends FeatureField
@@ -39,6 +39,13 @@ public interface IFoiStore extends IFeatureStore<IGeoFeature, FoiField>
         {
             super(name);
         }
+    }
+    
+    
+    @Override
+    public default FoiFilter.Builder filterBuilder()
+    {
+        return new FoiFilter.Builder();
     }
     
     

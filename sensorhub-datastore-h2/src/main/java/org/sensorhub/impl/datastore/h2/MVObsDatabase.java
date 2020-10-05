@@ -20,7 +20,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.persistence.StorageException;
-import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
@@ -130,7 +130,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
 
 
     @Override
-    public IProcedureDescStore getProcedureStore()
+    public IProcedureStore getProcedureStore()
     {
         return procStore;
     }

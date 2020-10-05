@@ -20,7 +20,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import org.junit.Before;
 import org.junit.Test;
-import org.sensorhub.api.feature.IFeatureStore;
+import org.sensorhub.api.feature.IFeatureStoreBase;
 import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
 import org.sensorhub.impl.procedure.InMemoryProcedureStateDatabase;
 import org.vast.ogc.gml.ITemporalFeature;
@@ -38,9 +38,9 @@ public class TestInMemoryProcedureStateDatabase
     @SuppressWarnings({"rawtypes", "unchecked"})
     class TestFeatureStore extends AbstractTestFeatureStore
     {
-        IFeatureStore store;
+        IFeatureStoreBase store;
         
-        TestFeatureStore(IFeatureStore store)
+        TestFeatureStore(IFeatureStoreBase store)
         {
             this.NUM_TIME_ENTRIES_PER_FEATURE = TestInMemoryProcedureStateDatabase.this.NUM_TIME_ENTRIES_PER_FEATURE;
             this.FIRST_VERSION_TIME = TestInMemoryProcedureStateDatabase.this.FIRST_VERSION_TIME; 
@@ -55,7 +55,7 @@ public class TestInMemoryProcedureStateDatabase
         }        
         
         @Override
-        protected IFeatureStore initStore(ZoneOffset timeZone) throws Exception
+        protected IFeatureStoreBase initStore(ZoneOffset timeZone) throws Exception
         {
             return store;
         }

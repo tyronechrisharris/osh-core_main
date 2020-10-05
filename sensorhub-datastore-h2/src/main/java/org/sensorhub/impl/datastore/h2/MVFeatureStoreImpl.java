@@ -10,11 +10,13 @@
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.feature.IFeatureStore.FeatureField;
-import net.opengis.gml.v32.AbstractFeature;
+import org.sensorhub.api.feature.FeatureFilter;
+import org.sensorhub.api.feature.IFeatureStore;
+import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
+import org.vast.ogc.gml.IGeoFeature;
 
 
-public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<AbstractFeature, FeatureField>
+public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FeatureField, FeatureFilter> implements IFeatureStore
 {
 
     protected MVFeatureStoreImpl()

@@ -125,7 +125,11 @@ public interface IDatabaseRegistry
      * See class description for more information about the federated DB
      */
     IProcedureObsDatabase getFederatedObsDatabase();
-
+    
+    
+    //Collection<IProcedureObsDatabase> getProcedureObsDatabases();
+    //Collection<IProcedureObsDatabase> getProcedureObsDatabaseViews();   
+    
 
     /**
      * Convert from a local DB entry ID to the public ID

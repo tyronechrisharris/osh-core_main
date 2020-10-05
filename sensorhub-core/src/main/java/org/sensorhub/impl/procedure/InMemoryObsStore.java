@@ -37,7 +37,7 @@ import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.api.obs.ObsStatsQuery;
-import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.vast.util.Asserts;
 import com.google.common.collect.Range;
 
@@ -60,7 +60,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     
     ConcurrentNavigableMap<ObsKey, IObsData> map = new ConcurrentSkipListMap<>(new ObsKeyComparator());
     InMemoryDataStreamStore dsStore;
-    IProcedureDescStore procStore;
+    IProcedureStore procStore;
     IFoiStore foiStore;
     AtomicLong obsCounter = new AtomicLong();
     
@@ -103,7 +103,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     }
     
     
-    public InMemoryObsStore(IProcedureDescStore procStore, IFoiStore foiStore)
+    public InMemoryObsStore(IProcedureStore procStore, IFoiStore foiStore)
     {
         this.procStore = procStore;
         this.foiStore = foiStore;

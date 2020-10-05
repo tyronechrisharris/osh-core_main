@@ -22,10 +22,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
+import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.feature.IFeatureFilter;
-import org.sensorhub.api.feature.IFeatureStore;
-import org.sensorhub.api.feature.IFeatureStore.FeatureField;
+import org.sensorhub.api.feature.IFeatureStoreBase;
+import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
@@ -41,11 +41,12 @@ import org.vast.util.Bbox;
  * 
  * @param <T> Feature type
  * @param <VF> Feature field Type
+ * @param <F> Filter type
  *
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField> extends InMemoryDataStore implements IFeatureStore<T, VF>
+public abstract class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<T>> extends InMemoryDataStore implements IFeatureStoreBase<T, VF, F>
 {
     ConcurrentNavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
     ConcurrentNavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
@@ -140,7 +141,7 @@ public class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField> e
     
     
     @Override
-    public Stream<Entry<FeatureKey, T>> selectEntries(IFeatureFilter query, Set<VF> fields)
+    public Stream<Entry<FeatureKey, T>> selectEntries(F query, Set<VF> fields)
     {
         Stream<Entry<FeatureKey, T>> resultStream;
         
@@ -263,5 +264,13 @@ public class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField> e
     {
         FeatureKey fk = ensureFeatureKey(key);
         return map.remove(fk, val);
+    }
+
+
+    @Override
+    public FeatureKey add(long parentId, T value)
+    {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

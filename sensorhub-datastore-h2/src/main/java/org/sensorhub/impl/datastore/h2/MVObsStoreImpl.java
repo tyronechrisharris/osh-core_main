@@ -37,9 +37,8 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.WriteBuffer;
 import org.sensorhub.api.datastore.RangeFilter;
-import org.sensorhub.api.feature.FeatureFilter;
-import org.sensorhub.api.feature.IFeatureStore;
 import org.sensorhub.api.obs.DataStreamFilter;
+import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsData;
@@ -202,7 +201,7 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<Long> selectFeatureIDs(IFeatureStore<?,?> featureStore, FeatureFilter filter)
+    Stream<Long> selectFeatureIDs(IFoiStore featureStore, FoiFilter filter)
     {
         if (filter.getInternalIDs() != null &&
             filter.getLocationFilter() == null)

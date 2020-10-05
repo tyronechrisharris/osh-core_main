@@ -13,9 +13,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.feature.FeatureFilter;
 import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.feature.IFeatureFilter;
 import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsStore;
@@ -34,7 +32,7 @@ import org.vast.ogc.gml.IGeoFeature;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField> implements IFoiStore
+public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
     MVObsStoreImpl obsStore;
     
@@ -71,9 +69,9 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
     
     
     @Override
-    protected Stream<Entry<FeatureKey, IGeoFeature>> getIndexedStream(IFeatureFilter filter)
+    protected Stream<Entry<FeatureKey, IGeoFeature>> getIndexedStream(FoiFilter filter)
     {
-        if (filter instanceof FoiFilter && ((FoiFilter)filter).getObservationFilter() != null)
+        if (((FoiFilter)filter).getObservationFilter() != null)
         {
             // handle case observation filter
             ObsFilter obsFilter = ((FoiFilter)filter).getObservationFilter();
@@ -81,7 +79,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
                 .map(obs -> obs.getFoiID().getInternalID())
                 .collect(Collectors.toSet());
             
-            return super.getIndexedStream(FeatureFilter.Builder.from(filter)
+            return super.getIndexedStream(FoiFilter.Builder.from(filter)
                 .withInternalIDs(foiKeys)
                 .build());
         }

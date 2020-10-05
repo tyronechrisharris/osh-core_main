@@ -29,10 +29,10 @@ import org.h2.mvstore.rtree.MVRTreeMap;
 import org.h2.mvstore.rtree.SpatialKey;
 import org.h2.mvstore.rtree.MVRTreeMap.RTreeCursor;
 import org.sensorhub.api.datastore.RangeFilter;
+import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.feature.IFeatureFilter;
-import org.sensorhub.api.feature.IFeatureStore;
-import org.sensorhub.api.feature.IFeatureStore.FeatureField;
+import org.sensorhub.api.feature.IFeatureStoreBase;
+import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
@@ -48,11 +48,12 @@ import com.google.common.collect.Range;
  * 
  * @param <V> Feature Type 
  * @param <VF> Feature Field Type
+ * @param <F> Filter Type
  * 
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField> implements IFeatureStore<V, VF>
+public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super V>> implements IFeatureStoreBase<V, VF, F>
 {
     private static final String FEATURE_IDS_MAP_NAME = "@feature_ids";
     private static final String FEATURE_RECORDS_MAP_NAME = "@feature_records";
@@ -71,7 +72,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
     }
     
     
-    protected MVBaseFeatureStoreImpl<V, VF> init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider idProvider)
+    protected MVBaseFeatureStoreImpl<V, VF, F> init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider idProvider)
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
@@ -166,6 +167,13 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
         Asserts.checkState(oldValue == null, "Duplicate key");
             
         return newKey;
+    }
+
+
+    @Override
+    public FeatureKey add(long parentId, V value)
+    {
+        throw new UnsupportedOperationException();
     }
     
     
@@ -290,7 +298,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
     }
     
     
-    protected Stream<Entry<FeatureKey, V>> getIndexedStream(IFeatureFilter filter)
+    protected Stream<Entry<FeatureKey, V>> getIndexedStream(F filter)
     {
         Stream<Entry<FeatureKey, V>> resultStream = null;
         Stream<Long> internalIdStream = null;
@@ -366,7 +374,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
 
 
     @Override
-    public Stream<Entry<FeatureKey, V>> selectEntries(IFeatureFilter filter, Set<VF> fields)
+    public Stream<Entry<FeatureKey, V>> selectEntries(F filter, Set<VF> fields)
     {
         var resultStream = getIndexedStream(filter);
         
@@ -410,7 +418,7 @@ public class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField>
 
 
     @Override
-    public long countMatchingEntries(IFeatureFilter filter)
+    public long countMatchingEntries(F filter)
     {
         // TODO implement faster method for some special cases
         // i.e. when no predicates are used

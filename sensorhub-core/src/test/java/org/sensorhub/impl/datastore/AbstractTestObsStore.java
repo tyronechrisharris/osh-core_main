@@ -40,7 +40,7 @@ import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.api.obs.ObsFilter;
-import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
@@ -71,7 +71,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     protected static String FOI_UID_PREFIX = "urn:osh:test:foi:";
 
     protected StoreType obsStore;
-    protected IProcedureDescStore procStore;
+    protected IProcedureStore procStore;
     protected IFoiStore foiStore;
     protected Map<Long, IDataStreamInfo> allDataStreams = new LinkedHashMap<>();
     protected Map<BigInteger, IObsData> allObs = new LinkedHashMap<>();

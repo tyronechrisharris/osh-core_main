@@ -15,6 +15,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.obs;
 
 import org.sensorhub.api.feature.FeatureFilter;
+import org.sensorhub.api.feature.FeatureFilterBase;
+import org.vast.ogc.gml.IGeoFeature;
+
 
 /**
  * <p>
@@ -25,7 +28,7 @@ import org.sensorhub.api.feature.FeatureFilter;
  * @author Alex Robin
  * @date Apr 5, 2018
  */
-public class FoiFilter extends FeatureFilter
+public class FoiFilter extends FeatureFilterBase<IGeoFeature>
 {
     protected FeatureFilter sampledFeatures;
     protected ObsFilter obsFilter;
@@ -87,7 +90,7 @@ public class FoiFilter extends FeatureFilter
     public static abstract class FoiFilterBuilder<
             B extends FoiFilterBuilder<B, F>,
             F extends FoiFilter>
-        extends FeatureFilterBuilder<B, FoiFilter>
+        extends FeatureFilterBuilder<B, IGeoFeature, FoiFilter>
     {    
         
         protected FoiFilterBuilder(F instance)

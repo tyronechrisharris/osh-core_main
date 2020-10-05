@@ -20,11 +20,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.sensorhub.api.datastore.IDatabaseRegistry;
-import org.sensorhub.api.feature.FeatureFilter;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.obs.DataStreamFilter;
+import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.procedure.IProcedureObsDatabase;
+import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.procedure.InMemoryProcedureStateDatabase;
 import org.vast.sensorML.SimpleProcessImpl;
@@ -101,8 +102,8 @@ public class TestFederatedDatabaseRegistry
         assertEquals(0, mainObsDatabase.getObservationStore().values().size());
         assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().values().size());
         
-        assertEquals(0, mainObsDatabase.getProcedureStore().selectEntries(new FeatureFilter.Builder().build()).count());
-        assertEquals(0, mainObsDatabase.getFoiStore().selectEntries(new FeatureFilter.Builder().build()).count());
+        assertEquals(0, mainObsDatabase.getProcedureStore().selectEntries(new ProcedureFilter.Builder().build()).count());
+        assertEquals(0, mainObsDatabase.getFoiStore().selectEntries(new FoiFilter.Builder().build()).count());
         assertEquals(0, mainObsDatabase.getObservationStore().selectEntries(new ObsFilter.Builder().build()).count());
         assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().selectEntries(new DataStreamFilter.Builder().build()).count());
     }

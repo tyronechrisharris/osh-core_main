@@ -16,7 +16,8 @@ package org.sensorhub.api.procedure;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
-import org.sensorhub.api.feature.FeatureFilter;
+import org.sensorhub.api.datastore.EmptyFilterIntersection;
+import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.FoiFilter;
 
@@ -30,7 +31,7 @@ import org.sensorhub.api.obs.FoiFilter;
  * @author Alex Robin
  * @date Apr 2, 2018
  */
-public class ProcedureFilter extends FeatureFilter
+public class ProcedureFilter extends FeatureFilterBase<IProcedureWithDesc>
 {
     protected SortedSet<String> parentUIDs;
     protected DataStreamFilter dataStreamFilter;
@@ -58,6 +59,20 @@ public class ProcedureFilter extends FeatureFilter
     public FoiFilter getFoiFilter()
     {
         return foiFilter;
+    }
+    
+    
+    /**
+     * Computes a logical AND between this filter and another filter of the same kind
+     * @param filter The other filter to AND with
+     * @return The new composite filter
+     * @throws EmptyFilterIntersection if the intersection doesn't exist
+     */
+    public ProcedureFilter and(ProcedureFilter filter) throws EmptyFilterIntersection
+    {
+        if (filter == null)
+            return this;
+        return and(filter, new Builder()).build();
     }
     
     
@@ -99,7 +114,7 @@ public class ProcedureFilter extends FeatureFilter
     public static abstract class ProcedureFilterBuilder<
             B extends ProcedureFilterBuilder<B, F>,
             F extends ProcedureFilter>
-        extends FeatureFilterBuilder<B, ProcedureFilter>
+        extends FeatureFilterBuilder<B, IProcedureWithDesc, ProcedureFilter>
     {        
         
         protected ProcedureFilterBuilder(F instance)

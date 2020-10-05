@@ -38,11 +38,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.feature.FeatureFilter;
 import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.feature.IFeatureStore;
-import org.sensorhub.api.feature.IFeatureStore.FeatureField;
+import org.sensorhub.api.feature.IFeatureStoreBase;
+import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
 import org.vast.ogc.gml.GMLUtils;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.GenericTemporalFeatureImpl;
+import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.ogc.om.SamplingPoint;
 import org.vast.util.Bbox;
@@ -62,7 +64,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * @param <StoreType> type of datastore under test
  * @since Apr 14, 2018
  */
-public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<AbstractFeature, FeatureField>>
+public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBase<IGeoFeature, FeatureField, FeatureFilter>>
 {
     protected String DATASTORE_NAME = "test-features";
     protected String UID_PREFIX = "urn:domain:features:";
@@ -101,14 +103,14 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     }
     
     
-    protected FeatureKey getKey(AbstractFeature f)
+    protected FeatureKey getKey(IFeature f)
     {
         Instant validStartTime = (f instanceof ITemporalFeature) ? 
                 ((ITemporalFeature)f).getValidTime().begin() :
                 Instant.MIN;
         
         return new FeatureKey(
-            Long.parseLong(f.getId().replaceAll("(F|G|T)*", ""))+1,
+            Long.parseLong(((AbstractFeature)f).getId().replaceAll("(F|G|T)*", ""))+1,
             validStartTime);
     }
     
@@ -350,7 +352,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     }
     
     
-    private void checkMapValues(Collection<AbstractFeature> mapValues)
+    private void checkMapValues(Collection<IGeoFeature> mapValues)
     {
         mapValues.forEach(f1 -> {
             AbstractFeature f2 = allFeatures.get(getKey(f1));
@@ -368,7 +370,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     }
     
     
-    private void checkFeaturesEqual(AbstractFeature f1, AbstractFeature f2)
+    private void checkFeaturesEqual(IGeoFeature f1, IGeoFeature f2)
     {
         assertEquals(f1.getClass(), f2.getClass());
         assertEquals(f1.getUniqueIdentifier(), f2.getUniqueIdentifier());
@@ -376,7 +378,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
         if (f1 instanceof ITemporalFeature)
             assertEquals(((ITemporalFeature)f1).getValidTime(), ((ITemporalFeature)f2).getValidTime());
         
-        if (f1.isSetGeometry())
+        if (f1.getGeometry() != null)
             assertEquals(f1.getGeometry().getClass(), f2.getGeometry().getClass());
     }
     
@@ -385,7 +387,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     {
         long t0 = System.currentTimeMillis();
         allFeatures.forEach((k, f1) -> {
-            AbstractFeature f2 = featureStore.get(k);
+            IGeoFeature f2 = featureStore.get(k);
             assertTrue("Feature " + k + " not found in datastore", f2 != null);
             checkFeaturesEqual(f1, f2);
         });
@@ -479,12 +481,12 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     }
     
     
-    private void checkSelectedEntries(Stream<Entry<FeatureKey, AbstractFeature>> resultStream, Set<String> expectedIds, Range<Instant> timeRange)
+    private void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Set<String> expectedIds, Range<Instant> timeRange)
     {
         boolean lastVersion = timeRange.lowerEndpoint() == Instant.MAX && timeRange.upperEndpoint() == Instant.MAX;
         System.out.println("\nSelect " + expectedIds + " within " +  (lastVersion ? "LATEST" : timeRange));
         
-        Map<FeatureKey, AbstractFeature> resultMap = resultStream
+        Map<FeatureKey, IGeoFeature> resultMap = resultStream
                 .peek(e -> System.out.println(e.getKey()))
                 .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
@@ -511,7 +513,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     @Test
     public void testSelectFeaturesByInternalID() throws Exception
     {
-        Stream<Entry<FeatureKey, AbstractFeature>> resultStream;
+        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
         Range<Instant> timeRange;
         Long[] ids;
         
@@ -532,7 +534,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     @Test
     public void testSelectFeaturesByUIDAndTime() throws Exception
     {
-        Stream<Entry<FeatureKey, AbstractFeature>> resultStream;
+        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
         Set<String> uids;
         Range<Instant> timeRange;
         
@@ -561,7 +563,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     @Test
     public void testSelectTemporalFeaturesByUIDAndTime() throws Exception
     {
-        Stream<Entry<FeatureKey, AbstractFeature>> resultStream;
+        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
         Set<String> ids;
         Range<Instant> timeRange;
         
@@ -614,16 +616,16 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     }
     
     
-    private void checkSelectedEntries(Stream<Entry<FeatureKey, AbstractFeature>> resultStream, Geometry roi, Range<Instant> timeRange)
+    private void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Geometry roi, Range<Instant> timeRange)
     {
         System.out.println("\nSelect " + roi + " within " + timeRange);
         
-        Map<FeatureKey, AbstractFeature> resultMap = resultStream
+        Map<FeatureKey, IGeoFeature> resultMap = resultStream
                 .peek(e -> System.out.println(e.getKey()))
                 .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
         resultMap.forEach((k, v) -> {
-            if (!v.isSetGeometry() || !((Geometry)v.getGeometry()).intersects(roi) ||
+            if (v.getGeometry() == null || !((Geometry)v.getGeometry()).intersects(roi) ||
                 (v instanceof ITemporalFeature) && !timeRange.isConnected(((ITemporalFeature)v).getValidTime().asRange()))
                 fail("Result contains unexpected feature: " + k + ", geom=" + v.getGeometry());
         });
@@ -642,7 +644,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStore<A
     @Test
     public void testSelectEntriesByRoi() throws Exception
     {
-        Stream<Entry<FeatureKey, AbstractFeature>> resultStream;
+        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
         Geometry roi;
         Range<Instant> timeRange;
         

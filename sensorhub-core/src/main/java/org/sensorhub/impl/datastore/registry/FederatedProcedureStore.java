@@ -22,19 +22,17 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.sensorhub.api.feature.FeatureFilter;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.feature.IFeatureFilter;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.IObsStore;
-import org.sensorhub.api.procedure.IProcedureDescStore;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.ProcedureFilter;
-import org.sensorhub.api.procedure.IProcedureDescStore.ProcedureField;
+import org.sensorhub.api.procedure.IProcedureStore.ProcedureField;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
-import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
@@ -46,7 +44,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, AbstractProcess, ProcedureField, IFeatureFilter> implements IProcedureDescStore
+public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
 {
     DefaultDatabaseRegistry registry;
     FederatedObsDatabase db;
@@ -170,7 +168,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
     /*
      * Convert to public entries on the way out
      */
-    protected Entry<FeatureKey, AbstractProcess> toPublicEntry(int databaseID, Entry<FeatureKey, AbstractProcess> e)
+    protected Entry<FeatureKey, IProcedureWithDesc> toPublicEntry(int databaseID, Entry<FeatureKey, IProcedureWithDesc> e)
     {
         return new AbstractMap.SimpleEntry<>(
             toPublicKey(databaseID, e.getKey()),
@@ -179,7 +177,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
 
 
     @Override
-    public AbstractProcess get(Object obj)
+    public IProcedureWithDesc get(Object obj)
     {
         FeatureKey key = ensureFeatureKey(obj);
         
@@ -229,39 +227,10 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
         
         return null;
     }
-    
-    
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FeatureFilter filter)
-    {
-        if (filter.getInternalIDs() != null)
-        {
-            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());            
-            for (var filterInfo: filterDispatchMap.values())
-            {
-                filterInfo.filter = FeatureFilter.Builder
-                    .from(filter)
-                    .withInternalIDs(filterInfo.internalIds)
-                    .build();
-            }
-            
-            return filterDispatchMap;
-        }
-        
-        return null;
-    }
-    
-    
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(IFeatureFilter filter)
-    {
-        if (filter instanceof ProcedureFilter)
-            return getFilterDispatchMap((ProcedureFilter)filter);
-        else
-            return getFilterDispatchMap((FeatureFilter)filter);
-    }
 
 
     @Override
-    public Stream<Entry<FeatureKey, AbstractProcess>> selectEntries(IFeatureFilter filter, Set<ProcedureField> fields)
+    public Stream<Entry<FeatureKey, IProcedureWithDesc>> selectEntries(ProcedureFilter filter, Set<ProcedureField> fields)
     {
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -272,7 +241,7 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
                     int dbID = v.databaseID;
-                    return v.db.getProcedureStore().selectEntries((FeatureFilter)v.filter, fields)
+                    return v.db.getProcedureStore().selectEntries((ProcedureFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
@@ -290,12 +259,12 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
 
 
     @Override
-    public Set<Entry<FeatureKey, AbstractProcess>> entrySet()
+    public Set<Entry<FeatureKey, IProcedureWithDesc>> entrySet()
     {
         return new AbstractSet<>()
         {
             @Override
-            public Iterator<Entry<FeatureKey, AbstractProcess>> iterator()
+            public Iterator<Entry<FeatureKey, IProcedureWithDesc>> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> {
@@ -342,12 +311,12 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
 
 
     @Override
-    public Collection<AbstractProcess> values()
+    public Collection<IProcedureWithDesc> values()
     {
         return new AbstractCollection<>()
         {
             @Override
-            public Iterator<AbstractProcess> iterator()
+            public Iterator<IProcedureWithDesc> iterator()
             {
                 return registry.obsDatabases.values().stream()
                     .flatMap(db -> db.getProcedureStore().values().stream())
@@ -364,14 +333,21 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, Abstr
     
     
     @Override
-    public FeatureKey add(AbstractProcess feature)
+    public FeatureKey add(IProcedureWithDesc feature)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
 
 
     @Override
-    public FeatureKey addVersion(AbstractProcess feature)
+    public FeatureKey add(long parentId, IProcedureWithDesc value)
+    {
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public FeatureKey addVersion(IProcedureWithDesc feature)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

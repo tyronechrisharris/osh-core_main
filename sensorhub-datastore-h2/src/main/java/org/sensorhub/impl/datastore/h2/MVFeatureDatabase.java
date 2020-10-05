@@ -18,11 +18,9 @@ import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.feature.IFeatureDatabase;
-import org.sensorhub.api.feature.IFeatureStore.FeatureField;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
-import net.opengis.gml.v32.AbstractFeature;
 
 
 /**
@@ -34,7 +32,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @date Oct 11, 2019
  */
-public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> implements IFeatureDatabase<AbstractFeature, FeatureField>
+public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> implements IFeatureDatabase
 {
     final static String FEATURE_STORE_NAME = "feature_store";
     
