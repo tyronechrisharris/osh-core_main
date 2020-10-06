@@ -33,17 +33,18 @@ public class TemporalFilter extends RangeFilter<Instant>
 {
     protected boolean currentTime; // current time at the time of query evaluation
     protected boolean latestTime; // latest available time (can be in future)
-    
-    
-    public boolean isLatestTime()
-    {
-        return latestTime;
-    }
+    protected int currentTimeMillisTolerance;
     
     
     public boolean isCurrentTime()
     {
         return currentTime;
+    }
+    
+    
+    public boolean isLatestTime()
+    {
+        return latestTime;
     }
     
     
@@ -53,13 +54,50 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    @Override
+    public Range<Instant> getRange()
+    {
+        if (currentTime)
+        {
+            var now = Instant.now();
+            range = Range.closed(
+                now.minusMillis(currentTimeMillisTolerance),
+                now.plusMillis(currentTimeMillisTolerance));
+        }
+        
+        return range;
+    }
+    
+    
+    @Override
+    public Instant getMin()
+    {
+        return getRange().lowerEndpoint();
+    }
+    
+    
+    @Override
+    public Instant getMax()
+    {
+        return getRange().upperEndpoint();
+    }
+    
+    
+    @Override
+    public boolean test(Instant val)
+    {
+        return getRange().contains(val);
+    }
+    
+    
     public boolean test(TimeExtent te)
     {
-        if (latestTime || currentTime && te.endsNow())
+        if (latestTime && te.endsNow())
             return true;
         
-        return getMin().compareTo(te.end()) <= 0 &&
-               getMax().compareTo(te.begin()) >= 0;
+        var range = getRange();
+        return range.lowerEndpoint().compareTo(te.end()) <= 0 &&
+               range.upperEndpoint().compareTo(te.begin()) >= 0;
     }
     
     
@@ -104,8 +142,8 @@ public class TemporalFilter extends RangeFilter<Instant>
         
         public NestedBuilder(B parent)
         {
-            this.parent = parent;
-            this.instance = new TemporalFilter();
+            super(new TemporalFilter());
+            this.parent = parent;            
         }
                 
         public abstract B done();
@@ -118,10 +156,6 @@ public class TemporalFilter extends RangeFilter<Instant>
             F extends TemporalFilter>
         extends RangeFilterBuilder<B, F, Instant>
     {
-        protected TimeFilterBuilder()
-        {
-        }
-        
         
         protected TimeFilterBuilder(F instance)
         {
@@ -129,15 +163,37 @@ public class TemporalFilter extends RangeFilter<Instant>
         }
         
         
+        /**
+         * Match time stamps that are within 1 sec of the current time as
+         * provided by {@link Instant#now}
+         * @return This builder for chaining
+         */
         public B withCurrentTime()
+        {
+            return withCurrentTime(1000);
+        }
+        
+        
+        /**
+         * Match time stamps that are within the specified time window
+         * around the current time as provided by {@link Instant#now}
+         * @param toleranceMillis Tolerance in milliseconds
+         * @return This builder for chaining
+         */
+        public B withCurrentTime(int toleranceMillis)
         {
             instance.currentTime = true;
             instance.latestTime = false;
-            instance.range = Range.singleton(Instant.now());
+            instance.currentTimeMillisTolerance = toleranceMillis;
+            instance.getRange();
             return (B)this;
         }
         
         
+        /**
+         * Keep only the objects with the latest time stamp in the selected time series
+         * @return This builder for chaining
+         */
         public B withLatestTime()
         {
             instance.latestTime = true;
@@ -147,6 +203,10 @@ public class TemporalFilter extends RangeFilter<Instant>
         }
         
         
+        /**
+         * Match any timestamp
+         * @return This builder for chaining
+         */
         public B withAllTimes()
         {
             withRange(Instant.MIN, Instant.MAX);

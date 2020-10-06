@@ -98,7 +98,7 @@ public class RangeFilter<T extends Comparable<T>> implements Predicate<T>
     {
         if (filter == null)
             return this;
-        return and(filter, new Builder()).build();
+        return and(filter, new Builder<T>()).build();
     }
     
     
