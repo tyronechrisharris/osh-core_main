@@ -35,9 +35,9 @@ import org.sensorhub.api.datastore.ValueField;
  * @author Alex Robin
  * @date Mar 23, 2020
  */
-abstract class ReadOnlyDataStore<K, V, VF extends ValueField, Q extends IQueryFilter> implements IDataStore<K, V, VF, Q>
+public abstract class ReadOnlyDataStore<K, V, VF extends ValueField, Q extends IQueryFilter> implements IDataStore<K, V, VF, Q>
 {
-    static final String READ_ONLY_ERROR_MSG = "This datastore is read-only";
+    protected static final String READ_ONLY_ERROR_MSG = "This datastore is read-only";
     
     
     public ZoneOffset getTimeZone()
@@ -85,7 +85,7 @@ abstract class ReadOnlyDataStore<K, V, VF extends ValueField, Q extends IQueryFi
     @Override
     public void clear()
     {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);        
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
     
     

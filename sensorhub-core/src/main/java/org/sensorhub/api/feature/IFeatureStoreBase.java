@@ -191,7 +191,12 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * later will count one entry for each version of the same feature while this
      * method will count the feature only once.
      */
-    public long getNumFeatures();
+    public default long getNumFeatures()
+    {
+        return countMatchingEntries(filterBuilder()
+            .withLatestVersion()
+            .build());
+    }
 
 
     /**

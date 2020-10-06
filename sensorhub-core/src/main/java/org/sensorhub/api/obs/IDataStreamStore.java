@@ -15,9 +15,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.obs;
 
 import java.util.Optional;
-import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
+import org.sensorhub.api.resource.IResourceStore;
 
 
 /**
@@ -29,7 +29,7 @@ import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
  * @author Alex Robin
  * @date Sep 18, 2019
  */
-public interface IDataStreamStore extends IDataStore<Long, IDataStreamInfo, DataStreamInfoField, DataStreamFilter>
+public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, DataStreamInfoField, DataStreamFilter>
 {
     
     public static class DataStreamInfoField extends ValueField
@@ -44,6 +44,13 @@ public interface IDataStreamStore extends IDataStore<Long, IDataStreamInfo, Data
         {
             super(name);
         }
+    }
+    
+    
+    @Override
+    public default DataStreamFilter.Builder filterBuilder()
+    {
+        return new DataStreamFilter.Builder();
     }
     
     
@@ -101,6 +108,13 @@ public interface IDataStreamStore extends IDataStore<Long, IDataStreamInfo, Data
         .findFirst();
         
         return entryOpt.isPresent() ? entryOpt.get() : null;
+    }
+    
+    
+    @Override
+    public default Long add(long parentId, IDataStreamInfo value)
+    {
+        throw new UnsupportedOperationException();
     }
     
 }

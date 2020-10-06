@@ -14,11 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.registry;
 
-import java.util.AbstractCollection;
 import java.util.AbstractMap;
-import java.util.AbstractSet;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -88,20 +84,6 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
         for (var db: registry.obsDatabases.values())
             count += db.getObservationStore().getDataStreams().getNumRecords();
         return count;
-    }
-
-
-    @Override
-    public int size()
-    {
-        return (int)getNumRecords();
-    }
-
-
-    @Override
-    public boolean isEmpty()
-    {
-        return getNumRecords() == 0;
     }
     
     
@@ -262,77 +244,6 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
-    }
-
-
-    @Override
-    public Set<Entry<Long, IDataStreamInfo>> entrySet()
-    {
-        return new AbstractSet<>()
-        {
-            @Override
-            public Iterator<Entry<Long, IDataStreamInfo>> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> {
-                        int dbID = db.getDatabaseID();
-                        return db.getObservationStore().getDataStreams().entrySet().stream()
-                            .map(e -> toPublicEntry(dbID, e));
-                    })
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedDataStreamStore.this.size();
-            }        
-        };
-    }
-
-
-    @Override
-    public Set<Long> keySet()
-    {
-        return new AbstractSet<>()
-        {
-            @Override
-            public Iterator<Long> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> db.getObservationStore().getDataStreams().keySet().stream()
-                        .map(k -> registry.getPublicID(db.getDatabaseID(), k)))
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedDataStreamStore.this.size();
-            }
-        };
-    }
-
-
-    @Override
-    public Collection<IDataStreamInfo> values()
-    {
-        return new AbstractCollection<>()
-        {
-            @Override
-            public Iterator<IDataStreamInfo> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> db.getObservationStore().getDataStreams().values().stream())
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedDataStreamStore.this.size();
-            }
-        };
     }
 
 

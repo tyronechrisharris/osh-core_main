@@ -18,6 +18,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.ZoneOffset;
+import java.util.AbstractCollection;
+import java.util.AbstractSet;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -63,7 +67,10 @@ public interface IDataStore<K, V, VF extends ValueField, Q extends IQueryFilter>
     /**
      * @return Total number of records contained in this data store
      */
-    public long getNumRecords();
+    public default long getNumRecords()
+    {
+        return countMatchingEntries(selectAllFilter());
+    }
 
 
     /**
@@ -201,6 +208,105 @@ public interface IDataStore<K, V, VF extends ValueField, Q extends IQueryFilter>
     public boolean isWriteSupported();
     
     
+    /**
+     * @return The filter to use to select all records
+     */
+    public Q selectAllFilter();
+    
+    
+    /*
+     * Default implementation of some map methods
+     */
+    
+    @Override
+    public default int size()
+    {
+        return (int)getNumRecords();
+    }
+    
+    
+    @Override
+    public default boolean isEmpty()
+    {
+        return getNumRecords() == 0;
+    }
+    
+    
+    @Override
+    public default boolean containsKey(Object key)
+    {
+        return get(key) != null;
+    }
+    
+    
+    @Override
+    public default boolean containsValue(Object value)
+    {
+        throw new UnsupportedOperationException();
+    }
+    
+    
+    @Override
+    public default Set<Entry<K, V>> entrySet()
+    {
+        return new AbstractSet<>()
+        {
+            @Override
+            public Iterator<Entry<K, V>> iterator()
+            {
+                return selectEntries(selectAllFilter()).iterator();
+            }
+
+            @Override
+            public int size()
+            {
+                return IDataStore.this.size();
+            }        
+        };
+    }
+
+
+    @Override
+    public default Set<K> keySet()
+    {
+        return new AbstractSet<>()
+        {
+            @Override
+            public Iterator<K> iterator()
+            {
+                return selectKeys(selectAllFilter()).iterator();
+            }
+
+            @Override
+            public int size()
+            {
+                return IDataStore.this.size();
+            }        
+        };
+    }
+
+
+    @Override
+    public default Collection<V> values()
+    {
+        return new AbstractCollection<>()
+        {
+            @Override
+            public Iterator<V> iterator()
+            {
+                return select(selectAllFilter()).iterator();
+            }
+
+            @Override
+            public int size()
+            {
+                return IDataStore.this.size();
+            }        
+        };
+    }
+    
+    
+    @Override
     public default void putAll(Map<? extends K, ? extends V> map)
     {
         Asserts.checkNotNull(map, Map.class);

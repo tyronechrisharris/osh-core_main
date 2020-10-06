@@ -14,11 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.registry;
 
-import java.util.AbstractCollection;
 import java.util.AbstractMap;
-import java.util.AbstractSet;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -81,20 +77,6 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProc
         for (var db: registry.obsDatabases.values())
             count += db.getProcedureStore().getNumRecords();
         return count;
-    }
-
-
-    @Override
-    public int size()
-    {
-        return (int)getNumRecords();
-    }
-
-
-    @Override
-    public boolean isEmpty()
-    {
-        return getNumRecords() == 0;
     }
 
 
@@ -255,80 +237,6 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProc
                         .map(e -> toPublicEntry(dbID, e));
                 });
         }
-    }
-
-
-    @Override
-    public Set<Entry<FeatureKey, IProcedureWithDesc>> entrySet()
-    {
-        return new AbstractSet<>()
-        {
-            @Override
-            public Iterator<Entry<FeatureKey, IProcedureWithDesc>> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> {
-                        int dbID = db.getDatabaseID();
-                        return db.getProcedureStore().entrySet().stream()
-                            .map(e -> toPublicEntry(dbID, e));
-                    })
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedProcedureStore.this.size();
-            }        
-        };
-    }
-
-
-    @Override
-    public Set<FeatureKey> keySet()
-    {
-        return new AbstractSet<>()
-        {
-            @Override
-            public Iterator<FeatureKey> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> {
-                        int dbID = db.getDatabaseID();
-                        return db.getProcedureStore().keySet().stream()
-                            .map(k -> toPublicKey(dbID, k));
-                    })
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedProcedureStore.this.size();
-            }        
-        };
-    }
-
-
-    @Override
-    public Collection<IProcedureWithDesc> values()
-    {
-        return new AbstractCollection<>()
-        {
-            @Override
-            public Iterator<IProcedureWithDesc> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> db.getProcedureStore().values().stream())
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedProcedureStore.this.size();
-            }        
-        };
     }
     
     

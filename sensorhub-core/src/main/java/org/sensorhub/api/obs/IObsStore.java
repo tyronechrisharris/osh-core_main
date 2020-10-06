@@ -90,5 +90,20 @@ public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, Ob
      * interest, and result time. 
      */
     public Stream<ObsStats> getStatistics(ObsStatsQuery query);
+
+
+    /**
+     * @return A builder for a filter compatible with this datastore
+     */
+    public default ObsFilter.Builder filterBuilder()
+    {
+        return new ObsFilter.Builder();
+    }
+    
+    
+    public default ObsFilter selectAllFilter()
+    {
+        return filterBuilder().build();
+    }
     
 }

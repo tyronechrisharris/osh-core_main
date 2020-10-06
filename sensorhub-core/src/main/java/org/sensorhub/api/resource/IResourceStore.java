@@ -27,15 +27,9 @@ import org.vast.util.IResource;
  * @author Alex Robin
  * @date Oct 8, 2018
  */
-public interface IResourceStore<K extends ResourceKey<K>, V extends IResource, VF extends ValueField, F extends ResourceFilter<? super V>> extends IDataStore<K, V, VF, F>
+public interface IResourceStore<K extends Comparable<K>, V extends IResource, VF extends ValueField, F extends ResourceFilter<? super V>> extends IDataStore<K, V, VF, F>
 {
 
-    /**
-     * @return A builder for a filter compatible with this datastore
-     */
-    public ResourceFilterBuilder<?,?,F> filterBuilder();
-    
-    
     /**
      * Add a new resource to the store, generating a new key for it
      * @param value New resource object
@@ -44,6 +38,24 @@ public interface IResourceStore<K extends ResourceKey<K>, V extends IResource, V
     K add(V value);
     
     
+    /**
+     * Add a new resource to the store, generating a new key for it.
+     * The resource is also added as a child of the given parent
+     * @param parentId Internal ID of parent resource
+     * @param value New resource object
+     * @return The newly allocated key (internal ID)
+     */
     K add(long parentId, V value);
     
+    
+    /**
+     * @return A builder for a filter compatible with this datastore
+     */
+    public ResourceFilterBuilder<?,?,F> filterBuilder();
+    
+    
+    public default F selectAllFilter()
+    {
+        return filterBuilder().build();
+    }
 }

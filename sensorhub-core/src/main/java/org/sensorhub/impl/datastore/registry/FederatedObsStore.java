@@ -15,11 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.registry;
 
 import java.math.BigInteger;
-import java.util.AbstractCollection;
 import java.util.AbstractMap;
-import java.util.AbstractSet;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -76,20 +72,6 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         for (var db: registry.obsDatabases.values())
             count += db.getObservationStore().getNumRecords();
         return count;
-    }
-
-
-    @Override
-    public int size()
-    {
-        return (int)getNumRecords();
-    }
-
-
-    @Override
-    public boolean isEmpty()
-    {
-        return getNumRecords() == 0;
     }
     
     
@@ -312,81 +294,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                 });
         }
     }
-
-
-    @Override
-    public Set<Entry<BigInteger, IObsData>> entrySet()
-    {
-        return new AbstractSet<>()
-        {
-            @Override
-            public Iterator<Entry<BigInteger, IObsData>> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> {
-                        int dbID = db.getDatabaseID();
-                        return db.getObservationStore().entrySet().stream()
-                            .map(e -> toPublicEntry(dbID, e));
-                    })
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedObsStore.this.size();
-            }        
-        };
-    }
-
-
-    @Override
-    public Set<BigInteger> keySet()
-    {
-        return new AbstractSet<>()
-        {
-            @Override
-            public Iterator<BigInteger> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> {
-                        int dbID = db.getDatabaseID();
-                        return db.getObservationStore().keySet().stream()
-                            .map(k -> toPublicKey(dbID, k));
-                    })
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedObsStore.this.size();
-            }        
-        };
-    }
-
-
-    @Override
-    public Collection<IObsData> values()
-    {
-        return new AbstractCollection<>()
-        {
-            @Override
-            public Iterator<IObsData> iterator()
-            {
-                return registry.obsDatabases.values().stream()
-                    .flatMap(db -> db.getObservationStore().values().stream())
-                    .iterator();
-            }
-
-            @Override
-            public int size()
-            {
-                return FederatedObsStore.this.size();
-            }        
-        };
-    }
-
+    
 
     @Override
     public IDataStreamStore getDataStreams()
