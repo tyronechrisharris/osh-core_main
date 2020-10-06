@@ -21,10 +21,12 @@ import java.util.Collection;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
+import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.procedure.ProcedureFilter;
+import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
 
@@ -44,9 +46,8 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
     protected TemporalFilter phenomenonTime;
     protected TemporalFilter resultTime;
     protected SpatialFilter phenomenonLocation;
-    protected DataStreamFilter dataStreams;
+    protected DataStreamFilter dataStreamFilter;
     protected FoiFilter foiFilter;
-    protected Predicate<BigInteger> keyPredicate;
     protected Predicate<IObsData> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
@@ -83,19 +84,13 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
 
     public DataStreamFilter getDataStreamFilter()
     {
-        return dataStreams;
+        return dataStreamFilter;
     }
 
 
     public FoiFilter getFoiFilter()
     {
         return foiFilter;
-    }
-
-
-    public Predicate<BigInteger> getKeyPredicate()
-    {
-        return keyPredicate;
     }
 
 
@@ -134,13 +129,6 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
     }
     
     
-    public boolean testKeyPredicate(BigInteger k)
-    {
-        return (keyPredicate == null ||
-                keyPredicate.test(k));
-    }
-    
-    
     public boolean testValuePredicate(IObsData v)
     {
         return (valuePredicate == null ||
@@ -153,6 +141,47 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
     {
         return (testPhenomenonLocation(obs) &&
                 testValuePredicate(obs));
+    }
+    
+    
+    /**
+     * Computes a logical AND between this filter and another filter of the same kind
+     * @param filter The other filter to AND with
+     * @return The new composite filter
+     * @throws EmptyFilterIntersection if the intersection doesn't exist
+     */
+    public ObsFilter and(ObsFilter filter) throws EmptyFilterIntersection
+    {
+        if (filter == null)
+            return this;
+        
+        var builder = new Builder();
+        
+        var internalIDs = FilterUtils.intersect(this.internalIDs, filter.internalIDs);
+        if (internalIDs != null)
+            builder.withInternalIDs(internalIDs);
+        
+        var phenomenonTime = this.phenomenonTime != null ? this.phenomenonTime.and(filter.phenomenonTime) : filter.phenomenonTime;
+        if (phenomenonTime != null)
+            builder.withPhenomenonTime(phenomenonTime);
+        
+        var resultTime = this.resultTime != null ? this.resultTime.and(filter.resultTime) : filter.resultTime;
+        if (resultTime != null)
+            builder.withResultTime(resultTime);
+        
+        var phenomenonLocation = this.phenomenonLocation != null ? this.phenomenonLocation.and(filter.phenomenonLocation) : filter.phenomenonLocation;
+        if (phenomenonLocation != null)
+            builder.withPhenomenonLocation(phenomenonLocation);
+        
+        var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.and(filter.dataStreamFilter) : filter.dataStreamFilter;
+        if (dataStreamFilter != null)
+            builder.withDataStreams(dataStreamFilter);
+        
+        var foiFilter = this.foiFilter != null ? this.foiFilter.and(filter.foiFilter) : filter.foiFilter;
+        if (foiFilter != null)
+            builder.withFois(foiFilter);
+        
+        return builder.build();
     }
 
 
@@ -173,6 +202,11 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
             this.instance = new ObsFilter();
         }
         
+        /**
+         * Builds a new filter using the provided filter as a base
+         * @param base Filter used as base
+         * @return The new builder
+         */
         public static Builder from(ObsFilter base)
         {
             return new Builder().copyFrom(base);
@@ -215,9 +249,8 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
             instance.phenomenonTime = base.phenomenonTime;
             instance.resultTime = base.resultTime;
             instance.phenomenonLocation = base.phenomenonLocation;
-            instance.dataStreams = base.dataStreams;
+            instance.dataStreamFilter = base.dataStreamFilter;
             instance.foiFilter = base.foiFilter;
-            instance.keyPredicate = base.keyPredicate;
             instance.valuePredicate = base.valuePredicate;
             instance.limit = base.limit;
             return (B)this;
@@ -249,23 +282,20 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
 
 
         /**
-         * Keep only observations whose phenomenon time is within the given period.<br/>
-         * The phenomenon time is the time when the phenomenon being measured happened.
-         * @param begin Beginning of desired period
-         * @param end End of desired period
+         * Keep only observations whose phenomenon time matches the temporal filter.
+         * @param filter Temporal filtering options
          * @return This builder for chaining
          */
-        public B withPhenomenonTimeDuring(Instant begin, Instant end)
+        public B withPhenomenonTime(TemporalFilter filter)
         {
-            instance.phenomenonTime = new TemporalFilter.Builder()
-                .withRange(begin, end)
-                .build();
+            instance.phenomenonTime = filter;
             return (B)this;
         }
 
         
         /**
-         * Keep only observations whose phenomenon time matches the temporal filter.
+         * Keep only observations whose phenomenon time matches the temporal filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
          * @return The {@link TemporalFilter} builder for chaining
          */
         public TemporalFilter.NestedBuilder<B> withPhenomenonTime()
@@ -274,7 +304,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
                 @Override
                 public B done()
                 {
-                    ObsFilterBuilder.this.instance.phenomenonTime = build();
+                    ObsFilterBuilder.this.withPhenomenonTime(build());
                     return (B)ObsFilterBuilder.this;
                 }                
             };
@@ -282,13 +312,29 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
 
 
         /**
-         * Keep only observations whose phenomenon time matches the spatial filter.
+         * Keep only observations whose phenomenon time is within the given period.<br/>
+         * The phenomenon time is the time when the phenomenon being measured happened.
+         * @param begin Beginning of desired period
+         * @param end End of desired period
+         * @return This builder for chaining
+         */
+        public B withPhenomenonTimeDuring(Instant begin, Instant end)
+        {
+            withPhenomenonTime(new TemporalFilter.Builder()
+                .withRange(begin, end)
+                .build());
+            return (B)this;
+        }
+
+
+        /**
+         * Keep only observations whose result time matches the temporal filter.
          * @param filter Temporal filtering options
          * @return This builder for chaining
          */
-        public B withPhenomenonTime(TemporalFilter filter)
+        public B withResultTime(TemporalFilter filter)
         {
-            instance.phenomenonTime = filter;
+            instance.resultTime = filter;
             return (B)this;
         }
 
@@ -303,9 +349,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withResultTimeDuring(Instant begin, Instant end)
         {
-            instance.resultTime = new TemporalFilter.Builder()
+            withResultTime(new TemporalFilter.Builder()
                     .withRange(begin, end)
-                    .build();
+                    .build());
             return (B)this;
         }
         
@@ -318,26 +364,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withLatestResult()
         {
-            instance.resultTime = new TemporalFilter.Builder()
-                .withLatestTime().build();
+            withResultTime(new TemporalFilter.Builder()
+                .withLatestTime().build());
             return (B)this;
-        }
-
-        
-        /**
-         * Keep only observations whose phenomenon location, if any, matches the spatial filter.
-         * @return The {@link SpatialFilter} builder for chaining
-         */
-        public SpatialFilter.NestedBuilder<B> withPhenomenonLocation()
-        {
-            return new SpatialFilter.NestedBuilder<B>((B)this) {
-                @Override
-                public B done()
-                {
-                    ObsFilterBuilder.this.instance.phenomenonLocation = build();
-                    return (B)ObsFilterBuilder.this;
-                }                
-            };
         }
 
 
@@ -351,19 +380,20 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
             instance.phenomenonLocation = filter;
             return (B)this;
         }
-        
+
         
         /**
-         * Keep only observations from data streams matching the filter.
-         * @return The {@link DataStreamFilter} builder for chaining
+         * Keep only observations whose phenomenon location, if any, matches the spatial filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link SpatialFilter} builder for chaining
          */
-        public DataStreamFilter.NestedBuilder<B> withDataStreams()
+        public SpatialFilter.NestedBuilder<B> withPhenomenonLocation()
         {
-            return new DataStreamFilter.NestedBuilder<B>((B)this) {
+            return new SpatialFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {
-                    ObsFilterBuilder.this.instance.dataStreams = build();
+                    ObsFilterBuilder.this.withPhenomenonLocation(build());
                     return (B)ObsFilterBuilder.this;
                 }                
             };
@@ -377,8 +407,26 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withDataStreams(DataStreamFilter filter)
         {
-            instance.dataStreams = filter;
+            instance.dataStreamFilter = filter;
             return (B)this;
+        }
+        
+        
+        /**
+         * Keep only observations from data streams matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link DataStreamFilter} builder for chaining
+         */
+        public DataStreamFilter.NestedBuilder<B> withDataStreams()
+        {
+            return new DataStreamFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ObsFilterBuilder.this.withDataStreams(build());
+                    return (B)ObsFilterBuilder.this;
+                }                
+            };
         }
 
 
@@ -389,15 +437,16 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withDataStreams(Long... ids)
         {
-            instance.dataStreams = new DataStreamFilter.Builder()
+            withDataStreams(new DataStreamFilter.Builder()
                 .withInternalIDs(ids)
-                .build();
+                .build());
             return (B)this;
         }
         
         
         /**
-         * Keep only observations from procedures matching the filter.
+         * Keep only observations from procedures matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
          * @return The {@link ProcedureFilter} builder for chaining
          */
         public ProcedureFilter.NestedBuilder<B> withProcedures()
@@ -406,9 +455,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
                 @Override
                 public B done()
                 {
-                    ObsFilterBuilder.this.instance.dataStreams = new DataStreamFilter.Builder()
+                    ObsFilterBuilder.this.withDataStreams(new DataStreamFilter.Builder()
                         .withProcedures(build())
-                        .build();
+                        .build());
                     return (B)ObsFilterBuilder.this;
                 }                
             };
@@ -422,9 +471,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withProcedures(Long... procIDs)
         {
-            instance.dataStreams = new DataStreamFilter.Builder()
+            withDataStreams(new DataStreamFilter.Builder()
                 .withProcedures(procIDs)
-                .build();
+                .build());
             return (B)this;
         }
 
@@ -437,28 +486,11 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withProcedure(long procID, String... outputNames)
         {
-            instance.dataStreams = new DataStreamFilter.Builder()
+            withDataStreams(new DataStreamFilter.Builder()
                 .withProcedures(procID)
-                .withOutputNames(outputNames)
-                .build();
+                .withNames(outputNames)
+                .build());
             return (B)this;
-        }
-
-        
-        /**
-         * Keep only observations of features of interest matching the filter.
-         * @return The {@link FoiFilter} builder for chaining
-         */
-        public FoiFilter.NestedBuilder<B> withFois()
-        {
-            return new FoiFilter.NestedBuilder<B>((B)this) {
-                @Override
-                public B done()
-                {
-                    ObsFilterBuilder.this.instance.foiFilter = build();
-                    return (B)ObsFilterBuilder.this;
-                }                
-            };
         }
 
 
@@ -473,6 +505,24 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
             return (B)this;
         }
 
+        
+        /**
+         * Keep only observations of features of interest matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link FoiFilter} builder for chaining
+         */
+        public FoiFilter.NestedBuilder<B> withFois()
+        {
+            return new FoiFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    withFois(build());
+                    return (B)ObsFilterBuilder.this;
+                }                
+            };
+        }
+
 
         /**
          * Keep only observations of the specified features of interests
@@ -481,9 +531,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withFois(Long... foiIDs)
         {
-            instance.foiFilter = new FoiFilter.Builder()
+            withFois(new FoiFilter.Builder()
                 .withInternalIDs(foiIDs)
-                .build();
+                .build());
             return (B)this;
         }
 
@@ -495,21 +545,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withFois(String... foiUIDs)
         {
-            instance.foiFilter = new FoiFilter.Builder()
+            withFois(new FoiFilter.Builder()
                 .withUniqueIDs(foiUIDs)
-                .build();
-            return (B)this;
-        }
-
-
-        /**
-         * Keep only the observations whose key matches the predicate
-         * @param keyPredicate The predicate to test the key
-         * @return This builder for chaining
-         */
-        public B withKeyPredicate(Predicate<BigInteger> keyPredicate)
-        {
-            instance.keyPredicate = keyPredicate;
+                .build());
             return (B)this;
         }
 

@@ -42,15 +42,24 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
     }
     
     
+    @Override
     public ProcedureId getProcedureID()
     {
         return delegate.getProcedureID();
     }
 
 
-    public String getOutputName()
+    @Override
+    public String getName()
     {
-        return delegate.getOutputName();
+        return delegate.getName();
+    }
+
+
+    @Override
+    public String getDescription()
+    {
+        return delegate.getDescription();
     }
 
 
@@ -60,9 +69,9 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
     }
 
 
-    public DataComponent getRecordDescription()
+    public DataComponent getRecordStructure()
     {
-        return delegate.getRecordDescription();
+        return delegate.getRecordStructure();
     }
 
 

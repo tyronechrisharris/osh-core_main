@@ -14,12 +14,15 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.FoiFilter;
+import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.om.IProcedure;
 
 
@@ -77,6 +80,26 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     }
     
     
+    protected <F extends ProcedureFilter, B extends ProcedureFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    {
+        super.and(otherFilter, builder);
+        
+        var parentUIDs = FilterUtils.intersect(this.parentUIDs, otherFilter.parentUIDs);
+        if (parentUIDs != null)
+            builder.withParentGroups(parentUIDs);
+        
+        var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.and(otherFilter.dataStreamFilter) : otherFilter.dataStreamFilter;
+        if (dataStreamFilter != null)
+            builder.withDataStreams(dataStreamFilter);
+        
+        var foiFilter = this.foiFilter != null ? this.foiFilter.and(otherFilter.foiFilter) : otherFilter.foiFilter;
+        if (foiFilter != null)
+            builder.withFois(foiFilter);
+        
+        return builder;
+    }
+    
+    
     /*
      * Builder
      */
@@ -87,6 +110,11 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
             super(new ProcedureFilter());
         }
         
+        /**
+         * Builds a new filter using the provided filter as a base
+         * @param base Filter used as base
+         * @return The new builder
+         */
         public static Builder from(ProcedureFilter base)
         {
             return new Builder().copyFrom(base);
@@ -136,32 +164,26 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         
         /**
          * Select only procedures belonging to the specified groups 
-         * @param parentIds IDs of parent groups
+         * @param parentUIDs UIDs of parent groups
          * @return This builder for chaining
          */
-        public B withParentGroups(String... parentIds)
+        public B withParentGroups(String... parentUIDs)
         {
-            instance.parentUIDs = new TreeSet<String>();            
-            for (String id: parentIds)
-                instance.parentUIDs.add(id);            
-            return (B)this;
+            return withParentGroups(Arrays.asList(parentUIDs));
         }
-
+        
         
         /**
-         * Keep only procedures from data streams matching the filter.
-         * @return The {@link DataStreamFilter} builder for chaining
+         * Select only procedures belonging to the specified groups 
+         * @param parentUIDs UIDs of parent groups
+         * @return This builder for chaining
          */
-        public DataStreamFilter.NestedBuilder<B> withDataStreams()
+        public B withParentGroups(Collection<String> parentUIDs)
         {
-            return new DataStreamFilter.NestedBuilder<B>((B)this) {
-                @Override
-                public B done()
-                {
-                    ProcedureFilterBuilder.this.instance.dataStreamFilter = build();
-                    return (B)ProcedureFilterBuilder.this;
-                }                
-            };
+            instance.parentUIDs = new TreeSet<String>();            
+            for (String id: parentUIDs)
+                instance.parentUIDs.add(id);            
+            return (B)this;
         }
         
         
@@ -178,16 +200,17 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
 
         
         /**
-         * Keep only procedures with features of interest matching the filter.
-         * @return The {@link FoiFilter} builder for chaining
+         * Keep only procedures from data streams matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link DataStreamFilter} builder for chaining
          */
-        public FoiFilter.NestedBuilder<B> withFois()
+        public DataStreamFilter.NestedBuilder<B> withDataStreams()
         {
-            return new FoiFilter.NestedBuilder<B>((B)this) {
+            return new DataStreamFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {
-                    ProcedureFilterBuilder.this.instance.foiFilter = build();
+                    ProcedureFilterBuilder.this.withDataStreams(build());
                     return (B)ProcedureFilterBuilder.this;
                 }                
             };
@@ -199,10 +222,28 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
          * @param filter Features of interest filter
          * @return This builder for chaining
          */
-        public B withFeaturesOfInterest(FoiFilter filter)
+        public B withFois(FoiFilter filter)
         {
             instance.foiFilter = filter;
             return (B)this;
+        }
+
+        
+        /**
+         * Select only procedures with features of interest matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link FoiFilter} builder for chaining
+         */
+        public FoiFilter.NestedBuilder<B> withFois()
+        {
+            return new FoiFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ProcedureFilterBuilder.this.withFois(build());
+                    return (B)ProcedureFilterBuilder.this;
+                }                
+            };
         }
     }
 }

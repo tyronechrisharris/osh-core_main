@@ -401,10 +401,6 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         if (filter.getLocationFilter() != null)
             resultStream = resultStream.filter(e -> filter.testLocation(e.getValue()));
         
-        // apply key predicate
-        if (filter.getKeyPredicate() != null)
-            resultStream = resultStream.filter(e -> filter.testKeyPredicate(e.getKey()));
-        
         // apply value predicate
         if (filter.getValuePredicate() != null)
             resultStream = resultStream.filter(e -> filter.testValuePredicate(e.getValue()));

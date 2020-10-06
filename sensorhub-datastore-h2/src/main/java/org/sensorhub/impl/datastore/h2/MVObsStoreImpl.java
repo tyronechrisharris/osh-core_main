@@ -477,9 +477,6 @@ public class MVObsStoreImpl implements IObsStore
     
     Stream<Entry<BigInteger, IObsData>> getPostFilteredResultStream(Stream<Entry<BigInteger, IObsData>> resultStream, ObsFilter filter)
     {
-        if (filter.getKeyPredicate() != null)
-            resultStream = resultStream.filter(e -> filter.testKeyPredicate(e.getKey()));
-        
         if (filter.getValuePredicate() != null)
             resultStream = resultStream.filter(e -> filter.testValuePredicate(e.getValue()));
         

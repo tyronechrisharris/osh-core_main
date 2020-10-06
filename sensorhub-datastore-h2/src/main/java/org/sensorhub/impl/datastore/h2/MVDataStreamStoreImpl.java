@@ -161,11 +161,11 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     {
         Asserts.checkNotNull(dsInfo, DataStreamInfo.class);
         Asserts.checkNotNull(dsInfo.getProcedureID(), "procedureID");
-        Asserts.checkNotNull(dsInfo.getOutputName(), "outputName");
+        Asserts.checkNotNull(dsInfo.getName(), "outputName");
 
         MVDataStreamProcKey procKey = new MVDataStreamProcKey(
             dsInfo.getProcedureID().getInternalID(),
-            dsInfo.getOutputName(),
+            dsInfo.getName(),
             dsInfo.getRecordVersion());
         Asserts.checkArgument(!dataStreamByProcIndex.containsKey(procKey), "A datastream with the same name already exists");
 
@@ -410,7 +410,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         Asserts.checkNotNull(key, "key");
         Asserts.checkNotNull(value, DataStreamInfo.class);
         Asserts.checkNotNull(value.getProcedureID(), "procedureID");
-        Asserts.checkNotNull(value.getOutputName(), "outputName");
+        Asserts.checkNotNull(value.getName(), "outputName");
 
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -425,7 +425,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 // add to secondary index
                 MVDataStreamProcKey procKey = new MVDataStreamProcKey(key,
                     value.getProcedureID().getInternalID(),
-                    value.getOutputName(),
+                    value.getName(),
                     value.getRecordVersion());
                 dataStreamByProcIndex.put(procKey, Boolean.TRUE);
 
@@ -460,7 +460,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 // remove entry in secondary index
                 dataStreamByProcIndex.remove(new MVDataStreamProcKey(
                     oldValue.getProcedureID().getInternalID(),
-                    oldValue.getOutputName(),
+                    oldValue.getName(),
                     oldValue.getRecordVersion()));
 
                 // remove all obs

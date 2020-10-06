@@ -67,4 +67,21 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
             return new Builder().copyFrom(base);
         }
     }
+    
+    
+    /*
+     * Nested builder for use within another builder
+     */
+    public static abstract class NestedBuilder<B> extends FeatureFilterBuilder<NestedBuilder<B>, IFeature, FeatureFilter>
+    {
+        B parent;
+        
+        public NestedBuilder(B parent)
+        {
+            super(new FeatureFilter());
+            this.parent = parent;
+        }
+                
+        public abstract B done();
+    }
 }

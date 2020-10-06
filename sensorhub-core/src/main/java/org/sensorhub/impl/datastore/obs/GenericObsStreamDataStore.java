@@ -322,7 +322,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                 dsID = dsEntry.getKey();
                 IDataStreamInfo dsInfo = dsEntry.getValue();
                 
-                if (hasOutputChanged(dsInfo.getRecordDescription(), output.getRecordDescription()))
+                if (hasOutputChanged(dsInfo.getRecordStructure(), output.getRecordDescription()))
                 {
                     // version existing data stream
                     dsInfo = new DataStreamInfo.Builder()

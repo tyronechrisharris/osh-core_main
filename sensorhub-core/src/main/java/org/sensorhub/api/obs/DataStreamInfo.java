@@ -56,9 +56,16 @@ public class DataStreamInfo implements IDataStreamInfo
 
 
     @Override
-    public String getOutputName()
+    public String getName()
     {
         return recordStruct.getName();
+    }
+    
+    
+    @Override
+    public String getDescription()
+    {
+        return recordStruct.getDescription();
     }
 
 
@@ -70,7 +77,7 @@ public class DataStreamInfo implements IDataStreamInfo
 
 
     @Override
-    public DataComponent getRecordDescription()
+    public DataComponent getRecordStructure()
     {
         return recordStruct;
     }
@@ -112,7 +119,7 @@ public class DataStreamInfo implements IDataStreamInfo
         protected B copyFrom(IDataStreamInfo base)
         {
             instance.procedureID = base.getProcedureID();
-            instance.recordStruct = base.getRecordDescription();
+            instance.recordStruct = base.getRecordStructure();
             instance.recordEncoding = base.getRecordEncoding();
             instance.recordVersion = base.getRecordVersion();
             return (B)this;
@@ -154,7 +161,7 @@ public class DataStreamInfo implements IDataStreamInfo
             Asserts.checkArgument(instance.procedureID.getInternalID() > 0, "procedure internalID must be > 0");
             //Asserts.checkArgument(!Strings.isNullOrEmpty(instance.procedureID.uniqueID), "procedure UID must be set");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");
-            Asserts.checkNotNull(instance.getOutputName(), "outputName/recordName");
+            Asserts.checkNotNull(instance.getName(), "outputName");
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");
             return super.build();
         }

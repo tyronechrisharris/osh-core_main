@@ -17,7 +17,6 @@ package org.sensorhub.api.feature;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.function.Predicate;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.RangeOrSet;
 import org.sensorhub.api.datastore.SpatialFilter;
@@ -53,7 +52,6 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     protected RangeOrSet<String> featureUIDs;
     protected TemporalFilter validTime;
     protected SpatialFilter location;
-    protected Predicate<FeatureKey> keyPredicate;
     protected long limit = Long.MAX_VALUE;
     
     
@@ -84,12 +82,6 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     public SpatialFilter getLocationFilter()
     {
         return location;
-    }
-
-
-    public Predicate<FeatureKey> getKeyPredicate()
-    {
-        return keyPredicate;
     }
 
 
@@ -132,13 +124,6 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
                 (f instanceof IGeoFeature &&
                 ((IGeoFeature)f).getGeometry() != null && 
                 location.test((Geometry)((IGeoFeature)f).getGeometry())));
-    }
-    
-    
-    public boolean testKeyPredicate(FeatureKey k)
-    {
-        return (keyPredicate == null ||
-                keyPredicate.test(k));
     }
     
     
@@ -190,7 +175,6 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
             instance.featureUIDs = base.getFeatureUIDs();
             instance.validTime = base.getValidTime();
             instance.location = base.getLocationFilter();
-            instance.keyPredicate = base.getKeyPredicate();
             return (B)this;
         }
         
@@ -397,39 +381,6 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
                     .withDistanceToPoint(center, dist)
                     .build();
             return (B)this;
-        }
-
-
-        /**
-         * Keep only features whose key matches the predicate.
-         * @param keyPredicate Predicate to apply to the feature key object
-         * @return This builder for chaining
-         */
-        public B withKeyPredicate(Predicate<FeatureKey> keyPredicate)
-        {
-            instance.keyPredicate = keyPredicate;
-            return (B)this;
-        }
-        
-        
-        /**
-         * Limit the number of selected features to the given number
-         * @param limit max number of features to retrieve
-         * @return This builder for chaining
-         */
-        public B withLimit(int limit)
-        {
-            instance.limit = limit;
-            return (B)this;
-        }
-
-
-        @Override
-        public F build()
-        {
-            F newInstance = instance;
-            instance = null; // nullify instance to prevent further changes
-            return newInstance;
         }
     }
 }

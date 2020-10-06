@@ -130,6 +130,10 @@ public class ResourceFilter<T extends IResource> implements IQueryFilter, Predic
         if (fullTextFilter != null)
             builder.withFullText(fullTextFilter);
         
+        var valuePredicate = this.valuePredicate != null ? this.valuePredicate.and(otherFilter.valuePredicate) : otherFilter.valuePredicate;
+        if (valuePredicate != null)
+            builder.withValuePredicate(valuePredicate);
+        
         return builder;
     }
 
@@ -145,9 +149,9 @@ public class ResourceFilter<T extends IResource> implements IQueryFilter, Predic
     
     @SuppressWarnings("unchecked")
     public static class ResourceFilterBuilder<
-            B extends ResourceFilterBuilder<B, T, F>,
-            T extends IResource,
-            F extends ResourceFilter<T>>
+            B extends ResourceFilterBuilder<B, V, F>,
+            V extends IResource,
+            F extends ResourceFilter<V>>
         extends BaseBuilder<F>
     {
         
@@ -252,25 +256,22 @@ public class ResourceFilter<T extends IResource> implements IQueryFilter, Predic
          * @param valuePredicate
          * @return This builder for chaining
          */
-        public B withValuePredicate(Predicate<T> valuePredicate)
+        public B withValuePredicate(Predicate<V> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
             return (B)this;
         }
         
         
+        /**
+         * Limit the number of selected resources to the given number
+         * @param limit max number of resources to retrieve
+         * @return This builder for chaining
+         */
         public B withLimit(int limit)
         {
             instance.limit = limit;
             return (B)this;
-        }
-        
-        
-        @Override
-        public F build()
-        {
-            instance.validate();
-            return super.build();
         }
     }
 }

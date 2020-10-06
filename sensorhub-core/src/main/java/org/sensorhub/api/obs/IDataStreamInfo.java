@@ -17,6 +17,7 @@ package org.sensorhub.api.obs;
 import java.time.Instant;
 import java.util.Map;
 import org.sensorhub.api.procedure.ProcedureId;
+import org.vast.util.IResource;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -30,7 +31,7 @@ import net.opengis.swe.v20.DataEncoding;
  * @author Alex Robin
  * @date Mar 23, 2020
  */
-public interface IDataStreamInfo
+public interface IDataStreamInfo extends IResource
 {
 
     /**
@@ -40,10 +41,11 @@ public interface IDataStreamInfo
 
 
     /**
-     * @return The name of the procedure output that is/was the source of
-     * this data stream
+     * @return The name of the datastream, which corresponds to the name of
+     * the procedure output that is/was the source of this data stream
      */
-    String getOutputName();
+    @Override
+    String getName();
 
 
     /**
@@ -55,7 +57,7 @@ public interface IDataStreamInfo
     /**
      * @return The data stream record structure
      */
-    DataComponent getRecordDescription();
+    DataComponent getRecordStructure();
 
 
     /**

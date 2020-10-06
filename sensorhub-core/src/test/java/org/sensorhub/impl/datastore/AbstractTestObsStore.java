@@ -219,8 +219,8 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         {
             IDataStreamInfo dsInfo = obsStore.getDataStreams().get(entry.getKey());
             assertEquals(entry.getValue().getProcedureID(), dsInfo.getProcedureID());
-            assertEquals(entry.getValue().getOutputName(), dsInfo.getOutputName());
-            checkDataComponentEquals(entry.getValue().getRecordDescription(), dsInfo.getRecordDescription());
+            assertEquals(entry.getValue().getName(), dsInfo.getName());
+            checkDataComponentEquals(entry.getValue().getRecordStructure(), dsInfo.getRecordStructure());
         }
     }
 
@@ -725,7 +725,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         forceReadBackFromStorage();
         filter = new ObsFilter.Builder()
             .withDataStreams(new DataStreamFilter.Builder()
-                .withOutputNames("test1")
+                .withNames("test1")
                 .build())
             .build();
         resultStream = obsStore.selectEntries(filter);

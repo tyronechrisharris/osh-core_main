@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
+import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.feature.FeatureFilter;
 import org.sensorhub.api.feature.FeatureFilterBase;
 import org.vast.ogc.gml.IGeoFeature;
@@ -52,6 +53,36 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
     }
     
     
+    /**
+     * Computes a logical AND between this filter and another filter of the same kind
+     * @param filter The other filter to AND with
+     * @return The new composite filter
+     * @throws EmptyFilterIntersection if the intersection doesn't exist
+     */
+    public FoiFilter and(FoiFilter filter) throws EmptyFilterIntersection
+    {
+        if (filter == null)
+            return this;
+        return and(filter, new Builder()).build();
+    }
+    
+    
+    protected <F extends FoiFilter, B extends FoiFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    {
+        super.and(otherFilter, builder);
+        
+        var sfFilter = this.sampledFeatures != null ? this.sampledFeatures.and(otherFilter.sampledFeatures) : otherFilter.sampledFeatures;
+        if (sfFilter != null)
+            builder.withSampledFeatures(sfFilter);
+        
+        var obsFilter = this.obsFilter != null ? this.obsFilter.and(otherFilter.obsFilter) : otherFilter.obsFilter;
+        if (obsFilter != null)
+            builder.withObservations(obsFilter);
+        
+        return builder;
+    }
+    
+    
     /*
      * Builder
      */
@@ -62,6 +93,12 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
             super(new FoiFilter());
         }
         
+        
+        /**
+         * Builds a new filter using the provided filter as a base
+         * @param base Filter used as base
+         * @return The new builder
+         */
         public static Builder from(FoiFilter base)
         {
             return new Builder().copyFrom(base);
@@ -121,27 +158,18 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
         
 
         /**
-         * Select only FOIs that are sampling the features matching the filter
+         * Select only FOIs that are sampling the features matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
          * @param sampledFeatures Sampled features filter
-         * @return This builder for chaining
+         * @return The {@link FeatureFilter} builder for chaining
          */
-        public B withSampledFeatures(FeatureFilter.Builder sampledFeatures)
+        public FeatureFilter.NestedBuilder<B> withSampledFeatures()
         {
-            return withSampledFeatures(sampledFeatures.build());
-        }
-
-        
-        /**
-         * Select only FOIs with observations matching the filter
-         * @return The {@link ObsFilter} builder for chaining
-         */
-        public ObsFilter.NestedBuilder<B> withObservations()
-        {
-            return new ObsFilter.NestedBuilder<B>((B)this) {
+            return new FeatureFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {
-                    FoiFilterBuilder.this.instance.obsFilter = build();
+                    FoiFilterBuilder.this.withSampledFeatures(build());
                     return (B)FoiFilterBuilder.this;
                 }                
             };
@@ -157,6 +185,24 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
         {
             instance.obsFilter = filter;
             return (B)this;
+        }
+
+        
+        /**
+         * Select only FOIs with observations matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link ObsFilter} builder for chaining
+         */
+        public ObsFilter.NestedBuilder<B> withObservations()
+        {
+            return new ObsFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    FoiFilterBuilder.this.withObservations(build());
+                    return (B)FoiFilterBuilder.this;
+                }                
+            };
         }
     }
 }
