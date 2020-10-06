@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.sensorhub.api.datastore.RangeFilter;
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsData;
@@ -39,7 +39,6 @@ import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.api.obs.ObsStatsQuery;
 import org.sensorhub.api.procedure.IProcedureStore;
 import org.vast.util.Asserts;
-import com.google.common.collect.Range;
 
 
 /**
@@ -54,9 +53,7 @@ import com.google.common.collect.Range;
  */
 public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
 {
-    static final RangeFilter<Instant> ALL_TIMES_FILTER = new RangeFilter.Builder<Instant>()
-        .withRange(Instant.MIN, Instant.MAX)
-        .build();
+    static final TemporalFilter ALL_TIMES_FILTER = new TemporalFilter.Builder().withAllTimes().build();
     
     ConcurrentNavigableMap<ObsKey, IObsData> map = new ConcurrentSkipListMap<>(new ObsKeyComparator());
     InMemoryDataStreamStore dsStore;
@@ -145,22 +142,22 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsByDataStream(long dataStreamID, Range<Instant> phenomenonTimeRange)
+    Stream<Entry<BigInteger, IObsData>> getObsByDataStream(long dataStreamID, TemporalFilter phenomenonTimeFilter)
     {
         ObsKey fromKey = new ObsKey(dataStreamID, 0, null);        
         ObsKey toKey = new ObsKey(dataStreamID, Long.MAX_VALUE, null);
-            
+        
         return map.subMap(fromKey, toKey).entrySet().stream()
-            .filter(e -> phenomenonTimeRange.contains(e.getKey().phenomenonTime))
+            .filter(e -> phenomenonTimeFilter.isLatestTime() || phenomenonTimeFilter.test(e.getKey().phenomenonTime))
             .map(e -> toBigIntEntry(e));
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsByFoi(long foiID, Range<Instant> phenomenonTimeRange)
+    Stream<Entry<BigInteger, IObsData>> getObsByFoi(long foiID, TemporalFilter phenomenonTimeFilter)
     {
         return map.entrySet().stream()
             .filter(e -> e.getValue().getFoiID().getInternalID() == foiID)
-            .filter(e -> phenomenonTimeRange.contains(e.getKey().phenomenonTime))
+            .filter(e -> phenomenonTimeFilter.isLatestTime() || phenomenonTimeFilter.test(e.getKey().phenomenonTime))
             .map(e -> toBigIntEntry(e));
     }
     
@@ -177,7 +174,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         Stream<Entry<BigInteger, IObsData>> resultStream = null;
         
         // get phenomenon time filter
-        final RangeFilter<Instant> phenomenonTimeFilter;
+        final TemporalFilter phenomenonTimeFilter;
         if (filter.getPhenomenonTime() != null)
             phenomenonTimeFilter = filter.getPhenomenonTime();
         else
@@ -191,7 +188,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
                 // stream directly from list of selected datastreams
                 resultStream = dsStore.selectKeys(filter.getDataStreamFilter())
                     .flatMap(id -> {
-                        return getObsByDataStream(id, phenomenonTimeFilter.getRange());
+                        return getObsByDataStream(id, phenomenonTimeFilter);
                     });
             }
             else
@@ -208,7 +205,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
                 // stream directly from list of selected fois
                 resultStream = foiStore.selectKeys(filter.getFoiFilter())
                     .flatMap(id -> {
-                        return getObsByFoi(id.getInternalID(), phenomenonTimeFilter.getRange());
+                        return getObsByFoi(id.getInternalID(), phenomenonTimeFilter);
                     });
             }
         }
@@ -224,7 +221,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
             // stream from fois and filter on datastream IDs
             resultStream = foiStore.selectKeys(filter.getFoiFilter())
                 .flatMap(id -> {
-                    return getObsByFoi(id.getInternalID(), phenomenonTimeFilter.getRange())
+                    return getObsByFoi(id.getInternalID(), phenomenonTimeFilter)
                         .filter(e -> dataStreamIDs.contains(e.getValue().getDataStreamID()));
                 });
         }
