@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,6 +22,7 @@ import java.util.TreeSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
+import org.sensorhub.utils.FilterUtils;
 import com.google.common.collect.Range;
 import net.opengis.swe.v20.DataComponent;
 
@@ -44,9 +44,8 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     protected ProcedureFilter procFilter;
     protected ObsFilter obsFilter;
     protected Set<String> outputNames;
-    protected Range<Integer> versions = LATEST_VERSION;
-    protected Range<Instant> resultTimes;
     protected Set<String> observedProperties;
+    protected Range<Integer> versions = LATEST_VERSION;
     
     
     /*
@@ -73,21 +72,15 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     }
 
 
-    public Range<Integer> getVersions()
-    {
-        return versions;
-    }
-
-
-    public Range<Instant> getResultTimes()
-    {
-        return resultTimes;
-    }
-
-
     public Set<String> getObservedProperties()
     {
         return observedProperties;
+    }
+
+
+    public Range<Integer> getVersions()
+    {
+        return versions;
     }
     
     
@@ -128,13 +121,6 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         
         return false;
     }
-    
-    
-    public boolean testValuePredicate(IDataStreamInfo v)
-    {
-        return (valuePredicate == null ||
-                valuePredicate.test(v));
-    }
 
 
     @Override
@@ -160,6 +146,30 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
             return this;
         
         return and((DataStreamFilter)filter, new Builder()).build();
+    }
+    
+    
+    protected <B extends DataStreamFilterBuilder<B, DataStreamFilter>> B and(DataStreamFilter otherFilter, B builder) throws EmptyFilterIntersection
+    {
+        super.and(otherFilter, builder);
+        
+        var procFilter = this.procFilter != null ? this.procFilter.and(otherFilter.procFilter) : otherFilter.procFilter;
+        if (procFilter != null)
+            builder.withProcedures(procFilter);
+        
+        var obsFilter = this.obsFilter != null ? this.obsFilter.and(otherFilter.obsFilter) : otherFilter.obsFilter;
+        if (obsFilter != null)
+            builder.withObservations(obsFilter);
+        
+        var outputNames = FilterUtils.intersect(this.outputNames, otherFilter.outputNames);
+        if (outputNames != null)
+            builder.withNames(outputNames);
+        
+        var observedProperties = FilterUtils.intersect(this.observedProperties, otherFilter.observedProperties);
+        if (observedProperties != null)
+            builder.withObservedProperties(observedProperties);
+        
+        return builder;
     }
     
     
@@ -222,7 +232,6 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
             instance.obsFilter = other.obsFilter;
             instance.outputNames = other.outputNames;
             instance.versions = other.versions;
-            instance.resultTimes = other.resultTimes;
             instance.observedProperties = other.observedProperties;
             return (B)this;
         }
@@ -336,6 +345,31 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
                 instance.outputNames.add(name);
             return (B)this;
         }
+        
+        
+        /**
+         * Keep only datastreams with the specified observed properties.
+         * @param uris One or more observable property URIs
+         * @return This builder for chaining
+         */
+        public B withObservedProperties(String... uris)
+        {
+            return withObservedProperties(Arrays.asList(uris));
+        }
+        
+        
+        /**
+         * Keep only datastreams with the specified observed properties.
+         * @param uris Collection of observable property URIs
+         * @return This builder for chaining
+         */
+        public B withObservedProperties(Collection<String> uris)
+        {
+            instance.observedProperties = new TreeSet<String>();
+            for (String uri: uris)
+                instance.observedProperties.add(uri);
+            return (B)this;
+        }
 
 
         /**
@@ -370,44 +404,6 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         public B withAllVersions()
         {
             instance.versions = Range.closed(0, Integer.MAX_VALUE);
-            return (B)this;
-        }
-
-
-        /**
-         * Keep only datastreams with results produced within the provided time range
-         * @param begin Beginning of time range
-         * @param end End of time range
-         * @return This builder for chaining
-         */
-        public B withResultTimeRange(Instant begin, Instant end)
-        {
-            instance.resultTimes = Range.closed(begin, end);
-            return (B)this;
-        }
-        
-        
-        /**
-         * Keep only datastreams with the specified observed properties.
-         * @param uris One or more observable property URIs
-         * @return This builder for chaining
-         */
-        public B withObservedProperties(String... uris)
-        {
-            return withObservedProperties(Arrays.asList(uris));
-        }
-        
-        
-        /**
-         * Keep only datastreams with the specified observed properties.
-         * @param uris Collection of observable property URIs
-         * @return This builder for chaining
-         */
-        public B withObservedProperties(Collection<String> uris)
-        {
-            instance.observedProperties = new TreeSet<String>();
-            for (String uri: uris)
-                instance.observedProperties.add(uri);
             return (B)this;
         }
         

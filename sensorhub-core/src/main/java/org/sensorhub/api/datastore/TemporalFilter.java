@@ -33,7 +33,7 @@ public class TemporalFilter extends RangeFilter<Instant>
 {
     protected boolean currentTime; // current time at the time of query evaluation
     protected boolean latestTime; // latest available time (can be in future)
-    protected int currentTimeMillisTolerance;
+    protected int currentTimeTolerance; // in millis
     
     
     public boolean isCurrentTime()
@@ -61,8 +61,8 @@ public class TemporalFilter extends RangeFilter<Instant>
         {
             var now = Instant.now();
             range = Range.closed(
-                now.minusMillis(currentTimeMillisTolerance),
-                now.plusMillis(currentTimeMillisTolerance));
+                now.minusMillis(currentTimeTolerance),
+                now.plusMillis(currentTimeTolerance));
         }
         
         return range;
@@ -117,7 +117,27 @@ public class TemporalFilter extends RangeFilter<Instant>
     
     protected <F extends TemporalFilter, B extends TimeFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
     {
-        return super.and(otherFilter, builder);
+        // handle latest time special case
+        if ((otherFilter.isLatestTime() && isLatestTime()) ||
+            (otherFilter.isLatestTime() && isAllTimes()) ||
+            (otherFilter.isAllTimes() && isLatestTime()))
+            return builder.withLatestTime();
+        
+        // handle current time special case
+        if (otherFilter.isCurrentTime() && isCurrentTime())
+            return builder.withCurrentTime(Math.min(currentTimeTolerance, otherFilter.currentTimeTolerance));
+        if (otherFilter.isCurrentTime() && isAllTimes())
+            return builder.withCurrentTime(otherFilter.currentTimeTolerance);
+        if (otherFilter.isAllTimes() && isCurrentTime())
+            return builder.withCurrentTime(currentTimeTolerance);
+        
+        // need to call getRange() to compute current time dynamically in case
+        // we need to AND it with a fixed time period
+        var range = getRange();
+        var otherRange = otherFilter.getRange();
+        if (!range.isConnected(otherRange))
+            throw new EmptyFilterIntersection();
+        return builder.withRange(range.intersection(otherRange));
     }
     
     
@@ -177,14 +197,14 @@ public class TemporalFilter extends RangeFilter<Instant>
         /**
          * Match time stamps that are within the specified time window
          * around the current time as provided by {@link Instant#now}
-         * @param toleranceMillis Tolerance in milliseconds
+         * @param toleranceMillis Half window size in milliseconds
          * @return This builder for chaining
          */
         public B withCurrentTime(int toleranceMillis)
         {
             instance.currentTime = true;
             instance.latestTime = false;
-            instance.currentTimeMillisTolerance = toleranceMillis;
+            instance.currentTimeTolerance = toleranceMillis;
             instance.getRange();
             return (B)this;
         }

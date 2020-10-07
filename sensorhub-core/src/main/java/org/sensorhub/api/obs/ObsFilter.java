@@ -181,6 +181,13 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
         if (foiFilter != null)
             builder.withFois(foiFilter);
         
+        var valuePredicate = this.valuePredicate != null ? this.valuePredicate.and(filter.valuePredicate) : filter.valuePredicate;
+        if (valuePredicate != null)
+            builder.withValuePredicate(valuePredicate);
+        
+        var limit = Math.min(this.limit, filter.limit);
+        builder.withLimit(limit);
+        
         return builder.build();
     }
 
@@ -569,7 +576,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param limit Max observations count
          * @return This builder for chaining
          */
-        public B withLimit(int limit)
+        public B withLimit(long limit)
         {
             instance.limit = limit;
             return (B)this;

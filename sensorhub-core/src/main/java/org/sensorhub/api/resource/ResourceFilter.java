@@ -124,6 +124,9 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
         if (valuePredicate != null)
             builder.withValuePredicate(valuePredicate);
         
+        var limit = Math.min(this.limit, otherFilter.limit);
+        builder.withLimit(limit);
+        
         return builder;
     }
     
@@ -249,7 +252,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          * @param limit max number of resources to retrieve
          * @return This builder for chaining
          */
-        public B withLimit(int limit)
+        public B withLimit(long limit)
         {
             instance.limit = limit;
             return (B)this;
