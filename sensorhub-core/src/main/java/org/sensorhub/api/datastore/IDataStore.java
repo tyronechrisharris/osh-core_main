@@ -111,7 +111,7 @@ public interface IDataStore<K, V, VF extends ValueField, Q extends IQueryFilter>
      */
     public default Stream<V> select(Q query)
     {
-        return selectEntries(query).map(e -> e.getValue());
+        return select(query, (Set<VF>)null);
     }
     
     
