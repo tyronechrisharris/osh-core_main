@@ -303,13 +303,13 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         }
 
         // apply post filters
-        if (filter.getResultTimes() != null)
+        /*if (filter.getResultTimes() != null)
         {
             resultStream = resultStream.filter(e -> {
                 Range<Instant> resultTimeRange = obsStore.getDataStreamResultTimeRange(e.getKey());
                 return resultTimeRange.isConnected(filter.getResultTimes());
             });
-        }
+        }*/
 
         if (filter.getObservedProperties() != null)
             resultStream = resultStream.filter(e -> filter.testObservedProperty(e.getValue()));
