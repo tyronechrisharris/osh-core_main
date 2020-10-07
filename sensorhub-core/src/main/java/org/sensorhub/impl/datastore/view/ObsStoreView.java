@@ -14,32 +14,75 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
 import java.time.ZoneOffset;
-import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.api.obs.ObsStatsQuery;
+import org.sensorhub.api.obs.IObsStore.ObsField;
+import org.sensorhub.impl.datastore.registry.ReadOnlyDataStore;
 
 
-public class ObsStoreView implements IObsStore
+public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsField, ObsFilter> implements IObsStore
 {
     IObsStore delegate;
     DataStreamStoreView dataStreamStoreView;
+    ObsFilter viewFilter;
     
     
-    public ObsStoreView(IObsStore delegate)
+    public ObsStoreView(IObsStore delegate, ObsFilter viewFilter)
     {
         this.delegate = delegate;
-        this.dataStreamStoreView = new DataStreamStoreView(delegate.getDataStreams());
+        this.dataStreamStoreView = new DataStreamStoreView(delegate.getDataStreams(), viewFilter.getDataStreamFilter());
+        this.viewFilter = viewFilter;
+    }
+
+
+    @Override
+    public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
+    {
+        try
+        {
+            return delegate.selectEntries(viewFilter.and(filter), fields);
+        }
+        catch (EmptyFilterIntersection e)
+        {
+            return Stream.empty();
+        }
+    }
+    
+    
+    @Override
+    public long countMatchingEntries(ObsFilter filter)
+    {
+        try
+        {
+            return delegate.countMatchingEntries(viewFilter.and(filter));
+        }
+        catch (EmptyFilterIntersection e)
+        {
+            return 0L;
+        } 
+    }
+
+
+    @Override
+    public IObsData get(Object key)
+    {
+        return delegate.get(key);
+    }
+
+
+    @Override
+    public Stream<ObsStats> getStatistics(ObsStatsQuery query)
+    {
+        throw new UnsupportedOperationException();
     }
     
     
@@ -60,146 +103,13 @@ public class ObsStoreView implements IObsStore
     @Override
     public IDataStreamStore getDataStreams()
     {
-        return delegate.getDataStreams();
-    }
-
-
-    @Override
-    public long getNumRecords()
-    {
-        return delegate.getNumRecords();
-    }
-
-
-    @Override
-    public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter query, Set<ObsField> fields)
-    {
-        return delegate.selectEntries(query, fields);
-    }
-
-
-    @Override
-    public Stream<ObsStats> getStatistics(ObsStatsQuery query)
-    {
-        return delegate.getStatistics(query);
-    }
-
-
-    @Override
-    public int size()
-    {
-        return delegate.size();
-    }
-
-
-    @Override
-    public boolean isEmpty()
-    {
-        return delegate.isEmpty();
-    }
-
-
-    @Override
-    public boolean containsKey(Object key)
-    {
-        return delegate.containsKey(key);
-    }
-
-
-    @Override
-    public boolean containsValue(Object value)
-    {
-        return delegate.containsValue(value);
-    }
-
-
-    @Override
-    public IObsData get(Object key)
-    {
-        return delegate.get(key);
-    }
-
-
-    @Override
-    public Set<BigInteger> keySet()
-    {
-        return delegate.keySet();
-    }
-
-
-    @Override
-    public Collection<IObsData> values()
-    {
-        return delegate.values();
-    }
-
-
-    @Override
-    public Set<Entry<BigInteger, IObsData>> entrySet()
-    {
-        return delegate.entrySet();
-    }
-
-
-    @Override
-    public boolean isReadSupported()
-    {
-        return delegate.isReadSupported();
-    }
-
-
-    @Override
-    public boolean isWriteSupported()
-    {
-        return false;
-    }
-
-
-    @Override
-    public void commit()
-    {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public void backup(OutputStream is) throws IOException
-    {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public void restore(InputStream os) throws IOException
-    {
-        throw new UnsupportedOperationException();
+        return dataStreamStoreView;
     }
 
 
     @Override
     public BigInteger add(IObsData obs)
     {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public IObsData put(BigInteger key, IObsData value)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public IObsData remove(Object key)
-    {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public void clear()
-    {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
 }

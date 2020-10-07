@@ -18,22 +18,30 @@ import java.time.ZoneOffset;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
-import org.sensorhub.api.obs.DataStreamFilter;
-import org.sensorhub.api.obs.IDataStreamInfo;
-import org.sensorhub.api.obs.IDataStreamStore;
-import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
+import org.sensorhub.api.feature.FeatureFilterBase;
+import org.sensorhub.api.feature.FeatureKey;
+import org.sensorhub.api.feature.IFeatureStoreBase;
+import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.impl.datastore.registry.ReadOnlyDataStore;
+import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
+import org.vast.util.Bbox;
 
 
-public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
-{    
-    IDataStreamStore delegate;
-    DataStreamFilter viewFilter;
+public abstract class FeatureStoreViewBase<
+        V extends IFeature,
+        VF extends FeatureField,
+        F extends FeatureFilterBase<? super V>,
+        S extends IFeatureStoreBase<V, VF, F>>
+    extends ReadOnlyDataStore<FeatureKey, V, VF, F>
+    implements IFeatureStoreBase<V, VF, F>
+{
+    S delegate;
+    F viewFilter;
     
     
-    public DataStreamStoreView(IDataStreamStore delegate, DataStreamFilter viewFilter)
+    public FeatureStoreViewBase(S delegate, F viewFilter)
     {
         this.delegate = delegate;
         this.viewFilter = viewFilter;
@@ -42,11 +50,11 @@ public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo
 
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public Stream<Entry<Long, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
+    public Stream<Entry<FeatureKey, V>> selectEntries(F filter, Set<VF> fields)
     {
         try
         {
-            return delegate.selectEntries(viewFilter.and((ResourceFilter)filter), fields);
+            return delegate.selectEntries((F)viewFilter.and((ResourceFilter)filter), fields);
         }
         catch (EmptyFilterIntersection e)
         {
@@ -57,11 +65,11 @@ public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo
     
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public long countMatchingEntries(DataStreamFilter filter)
+    public long countMatchingEntries(F filter)
     {
         try
         {
-            return delegate.countMatchingEntries(viewFilter.and((ResourceFilter)filter));
+            return delegate.countMatchingEntries((F)viewFilter.and((ResourceFilter)filter));
         }
         catch (EmptyFilterIntersection e)
         {
@@ -71,15 +79,23 @@ public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo
 
 
     @Override
-    public IDataStreamInfo get(Object key)
+    public V get(Object key)
     {
-        Asserts.checkArgument(key instanceof Long);
+        Asserts.checkArgument(key instanceof FeatureKey);
+        var fk = (FeatureKey)key;
         
-        if (viewFilter.getInternalIDs() != null && !viewFilter.getInternalIDs().contains(key))
+        if (viewFilter.getInternalIDs() != null && !viewFilter.getInternalIDs().contains(fk.getInternalID()))
             return null;
         
         var proc = delegate.get(key);
         return viewFilter.test(proc) ? proc : null;
+    }
+
+
+    @Override
+    public Bbox getFeaturesBbox()
+    {
+        return delegate.getFeaturesBbox();
     }
     
     
@@ -98,7 +114,21 @@ public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo
 
 
     @Override
-    public Long add(IDataStreamInfo dsInfo)
+    public FeatureKey add(V feature)
+    {
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public FeatureKey add(long parentId, V value)
+    {
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public FeatureKey addVersion(V feature)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

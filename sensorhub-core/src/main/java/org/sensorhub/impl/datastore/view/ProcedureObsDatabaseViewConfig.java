@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import org.sensorhub.api.procedure.ProcedureFilter;
+import org.sensorhub.api.obs.ObsFilter;
 
 
 /**
@@ -30,10 +30,10 @@ public class ProcedureObsDatabaseViewConfig
 {
     public String filteredViewId;
     
-    public String sourceDatabaseId;
+    public String sourceDatabaseId; // can be itself a filter view?
     
-    public ProcedureFilter includeFilter;
+    public ObsFilter includeFilter;
     
-    public ProcedureFilter excludeFilter;
+    public ObsFilter excludeFilter;
            
 }

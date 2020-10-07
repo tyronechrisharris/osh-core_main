@@ -17,12 +17,12 @@ package org.sensorhub.impl.datastore.view;
 import java.util.concurrent.Callable;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsStore;
+import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.IProcedureObsDatabase;
-import org.sensorhub.api.procedure.ProcedureFilter;
 
 
-public class ProcedureObsFilteredView implements IProcedureObsDatabase
+public class ProcedureObsDatabaseView implements IProcedureObsDatabase
 {
     IProcedureObsDatabase delegate;
     ProcedureStoreView procStoreView;
@@ -30,12 +30,12 @@ public class ProcedureObsFilteredView implements IProcedureObsDatabase
     ObsStoreView obsStoreView;
     
     
-    public ProcedureObsFilteredView(IProcedureObsDatabase delegate, ProcedureFilter filter)
+    public ProcedureObsDatabaseView(IProcedureObsDatabase delegate, ObsFilter obsFilter)
     {
         this.delegate = delegate;
-        this.procStoreView = new ProcedureStoreView(delegate.getProcedureStore(), filter);
-        this.foiStoreView = new FoiStoreView(delegate.getFoiStore());        
-        this.obsStoreView = new ObsStoreView(delegate.getObservationStore());
+        this.procStoreView = new ProcedureStoreView(delegate.getProcedureStore(), obsFilter.getDataStreamFilter().getProcedureFilter());
+        this.foiStoreView = new FoiStoreView(delegate.getFoiStore(), obsFilter.getFoiFilter());
+        this.obsStoreView = new ObsStoreView(delegate.getObservationStore(), obsFilter);
     }
     
     
@@ -45,21 +45,6 @@ public class ProcedureObsFilteredView implements IProcedureObsDatabase
         // need to return the underlying database ID so public IDs are
         // computed correctly
         return delegate.getDatabaseID();
-    }
-
-
-    @Override
-    public <T> T executeTransaction(Callable<T> transaction) throws Exception
-    {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public void commit()
-    {
-        throw new UnsupportedOperationException();
-
     }
 
 
@@ -81,6 +66,20 @@ public class ProcedureObsFilteredView implements IProcedureObsDatabase
     public IObsStore getObservationStore()
     {
         return obsStoreView;
+    }
+
+
+    @Override
+    public <T> T executeTransaction(Callable<T> transaction) throws Exception
+    {
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public void commit()
+    {
+        throw new UnsupportedOperationException();
     }
 
 }
