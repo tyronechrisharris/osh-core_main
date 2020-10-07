@@ -112,11 +112,12 @@ public class ResourceFilter<T extends IResource> implements IQueryFilter, Predic
     {
         if (filter == null)
             return this;
+        
         return and(filter, new Builder()).build();
     }
     
     
-    protected <F extends ResourceFilter<T>, B extends ResourceFilterBuilder<B, T, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends ResourceFilterBuilder<?,T,?>> B and(ResourceFilter<T> otherFilter, B builder) throws EmptyFilterIntersection
     {
         var internalIDs = FilterUtils.intersect(this.internalIDs, otherFilter.internalIDs);
         if (internalIDs != null)

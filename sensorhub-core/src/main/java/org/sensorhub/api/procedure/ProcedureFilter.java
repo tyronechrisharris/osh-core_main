@@ -22,6 +22,7 @@ import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.FoiFilter;
+import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.om.IProcedure;
 
@@ -72,15 +73,17 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public ProcedureFilter and(ProcedureFilter filter) throws EmptyFilterIntersection
+    @Override
+    public ProcedureFilter and(ResourceFilter<IProcedure> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
-        return and(filter, new Builder()).build();
+        
+        return and((ProcedureFilter)filter, new Builder()).build();
     }
     
     
-    protected <F extends ProcedureFilter, B extends ProcedureFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends ProcedureFilterBuilder<B, ProcedureFilter>> B and(ProcedureFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.and(otherFilter, builder);
         
@@ -143,7 +146,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     public static abstract class ProcedureFilterBuilder<
             B extends ProcedureFilterBuilder<B, F>,
             F extends ProcedureFilter>
-        extends FeatureFilterBuilder<B, IProcedure, ProcedureFilter>
+        extends FeatureFilterBuilder<B, IProcedure, F>
     {        
         
         protected ProcedureFilterBuilder(F instance)
@@ -152,7 +155,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         }
                 
         
-        protected B copyFrom(ProcedureFilter base)
+        protected B copyFrom(F base)
         {
             super.copyFrom(base);
             instance.parentUIDs = base.parentUIDs;

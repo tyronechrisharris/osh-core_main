@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.feature;
 
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
+import org.sensorhub.api.resource.ResourceFilter;
 import org.vast.ogc.gml.IFeature;
 
 
@@ -44,11 +45,13 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public FeatureFilter and(FeatureFilter filter) throws EmptyFilterIntersection
+    @Override
+    public FeatureFilter and(ResourceFilter<IFeature> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
-        return and(filter, new Builder()).build();
+        
+        return and((FeatureFilter)filter, new Builder()).build();
     }
     
     

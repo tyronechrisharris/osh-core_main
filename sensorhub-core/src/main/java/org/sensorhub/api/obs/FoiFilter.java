@@ -17,6 +17,7 @@ package org.sensorhub.api.obs;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.feature.FeatureFilter;
 import org.sensorhub.api.feature.FeatureFilterBase;
+import org.sensorhub.api.resource.ResourceFilter;
 import org.vast.ogc.gml.IGeoFeature;
 
 
@@ -59,15 +60,17 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public FoiFilter and(FoiFilter filter) throws EmptyFilterIntersection
+    @Override
+    public FoiFilter and(ResourceFilter<IGeoFeature> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
-        return and(filter, new Builder()).build();
+        
+        return and((FoiFilter)filter, new Builder()).build();
     }
     
     
-    protected <F extends FoiFilter, B extends FoiFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends FoiFilterBuilder<B, FoiFilter>> B and(FoiFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.and(otherFilter, builder);
         

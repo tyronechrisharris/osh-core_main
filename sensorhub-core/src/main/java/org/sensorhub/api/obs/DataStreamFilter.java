@@ -23,7 +23,6 @@ import java.util.TreeSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
-import org.sensorhub.utils.FilterUtils;
 import com.google.common.collect.Range;
 import net.opengis.swe.v20.DataComponent;
 
@@ -154,18 +153,13 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public DataStreamFilter and(DataStreamFilter filter) throws EmptyFilterIntersection
+    @Override
+    public DataStreamFilter and(ResourceFilter<IDataStreamInfo> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
         
-        var builder = new Builder();
-        
-        var internalIDs = FilterUtils.intersect(this.internalIDs, filter.internalIDs);
-        if (internalIDs != null)
-            builder.withInternalIDs(internalIDs);
-        
-        return builder.build();
+        return and((DataStreamFilter)filter, new Builder()).build();
     }
     
     

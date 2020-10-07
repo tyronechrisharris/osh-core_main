@@ -127,7 +127,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     }
     
     
-    protected <F extends FeatureFilterBase<T>, B extends FeatureFilterBuilder<B, T, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends FeatureFilterBuilder<?,T,?>> B and(FeatureFilterBase<T> otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.and(otherFilter, builder);
         
