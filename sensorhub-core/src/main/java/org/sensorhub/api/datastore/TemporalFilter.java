@@ -86,7 +86,10 @@ public class TemporalFilter extends RangeFilter<Instant>
     @Override
     public boolean test(Instant val)
     {
-        return getRange().contains(val);
+        // we always return true if set to latest time since we cannot maintain
+        // state of other possibly selected records here. It means that the caller
+        // must enforce the latestTime filter contract via other means
+        return latestTime || getRange().contains(val);
     }
     
     

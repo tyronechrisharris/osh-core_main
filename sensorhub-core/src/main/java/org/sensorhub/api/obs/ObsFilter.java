@@ -105,6 +105,16 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
     {
         return limit;
     }
+
+
+    @Override
+    public boolean test(IObsData obs)
+    {
+        return (testPhenomenonTime(obs) &&
+                testResultTime(obs) &&
+                testPhenomenonLocation(obs) &&
+                testValuePredicate(obs));
+    }
     
     
     public boolean testPhenomenonTime(IObsData v)
@@ -133,14 +143,6 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
     {
         return (valuePredicate == null ||
                 valuePredicate.test(v));
-    }
-
-
-    @Override
-    public boolean test(IObsData obs)
-    {
-        return (testPhenomenonLocation(obs) &&
-                testValuePredicate(obs));
     }
     
     
