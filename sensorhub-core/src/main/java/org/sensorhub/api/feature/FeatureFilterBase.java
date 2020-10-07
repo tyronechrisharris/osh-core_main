@@ -52,7 +52,6 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     protected RangeOrSet<String> featureUIDs;
     protected TemporalFilter validTime;
     protected SpatialFilter location;
-    protected long limit = Long.MAX_VALUE;
     
     
     /*
@@ -82,13 +81,6 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     public SpatialFilter getLocationFilter()
     {
         return location;
-    }
-
-
-    @Override
-    public long getLimit()
-    {
-        return limit;
     }
 
 
