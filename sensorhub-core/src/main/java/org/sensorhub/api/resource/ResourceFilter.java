@@ -40,7 +40,7 @@ import org.vast.util.IResource;
  * @author Alex Robin
  * @date Oct 8, 2018
  */
-public class ResourceFilter<T extends IResource> implements IQueryFilter, Predicate<T>
+public abstract class ResourceFilter<T extends IResource> implements IQueryFilter, Predicate<T>
 {
     protected SortedSet<Long> internalIDs;
     protected SortedSet<Long> parentIDs;
@@ -97,24 +97,13 @@ public class ResourceFilter<T extends IResource> implements IQueryFilter, Predic
     }
     
     
-    public void validate()
-    {
-    }
-    
-    
     /**
      * Computes a logical AND between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public ResourceFilter<T> and(ResourceFilter<T> filter) throws EmptyFilterIntersection
-    {
-        if (filter == null)
-            return this;
-        
-        return and(filter, new Builder()).build();
-    }
+    public abstract ResourceFilter<T> and(ResourceFilter<T> filter) throws EmptyFilterIntersection;
     
     
     protected <B extends ResourceFilterBuilder<?,T,?>> B and(ResourceFilter<T> otherFilter, B builder) throws EmptyFilterIntersection
@@ -136,15 +125,6 @@ public class ResourceFilter<T extends IResource> implements IQueryFilter, Predic
             builder.withValuePredicate(valuePredicate);
         
         return builder;
-    }
-
-
-    public class Builder extends ResourceFilterBuilder<Builder, T, ResourceFilter<T>>
-    {
-        public Builder()
-        {
-            super(new ResourceFilter<>());
-        }
     }
     
     
