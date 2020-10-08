@@ -54,17 +54,29 @@ public class SpatialFilter implements Predicate<Geometry>
     protected SpatialFilter()
     {        
     }
+
+
+    public SpatialOp getOperator()
+    {
+        return operator;
+    }
     
     
     public Geometry getRoi()
     {
         return roi;
     }
-
-
-    public SpatialOp getOperator()
+    
+    
+    public Point getCenter()
     {
-        return operator;
+        return center;
+    }
+    
+    
+    public double getDistance()
+    {
+        return distance;
     }
 
 
@@ -170,7 +182,7 @@ public class SpatialFilter implements Predicate<Geometry>
         {
             instance.center = center;
             instance.distance = distance;
-            withRoi(center.buffer(distance, 4).getEnvelope());
+            withRoi(center.buffer(distance, 1).getEnvelope());
             withOperator(SpatialOp.DISTANCE);
             return (B)this;
         }
