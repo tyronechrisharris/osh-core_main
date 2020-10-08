@@ -39,6 +39,8 @@ import org.vast.ogc.om.IProcedure;
 public class ProcedureFilter extends FeatureFilterBase<IProcedure>
 {
     protected SortedSet<String> parentUIDs;
+    // TODO protected ProcedureFilter parentFilter;
+    // TODO protected ProcedureFilter memberFilter;
     protected DataStreamFilter dataStreamFilter;
     protected FoiFilter foiFilter; // shortcut for ObsFilter/FoiFilter
     
