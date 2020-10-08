@@ -54,7 +54,9 @@ public abstract class FeatureStoreViewBase<
     {
         try
         {
-            return delegate.selectEntries((F)viewFilter.and((ResourceFilter)filter), fields);
+            if (viewFilter != null)
+                filter = (F)viewFilter.intersect((ResourceFilter)filter);
+            return delegate.selectEntries(filter, fields);
         }
         catch (EmptyFilterIntersection e)
         {
@@ -69,7 +71,9 @@ public abstract class FeatureStoreViewBase<
     {
         try
         {
-            return delegate.countMatchingEntries((F)viewFilter.and((ResourceFilter)filter));
+            if (viewFilter != null)
+                filter = (F)viewFilter.intersect((ResourceFilter)filter);
+            return delegate.countMatchingEntries(filter);
         }
         catch (EmptyFilterIntersection e)
         {
@@ -82,8 +86,11 @@ public abstract class FeatureStoreViewBase<
     public V get(Object key)
     {
         Asserts.checkArgument(key instanceof FeatureKey);
-        var fk = (FeatureKey)key;
+                
+        if (viewFilter == null)
+            return delegate.get(key);
         
+        var fk = (FeatureKey)key;
         if (viewFilter.getInternalIDs() != null && !viewFilter.getInternalIDs().contains(fk.getInternalID()))
             return null;
         

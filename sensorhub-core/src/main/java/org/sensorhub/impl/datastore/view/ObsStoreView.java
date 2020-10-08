@@ -49,7 +49,9 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
     {
         try
         {
-            return delegate.selectEntries(viewFilter.and(filter), fields);
+            if (viewFilter != null)
+                filter = viewFilter.intersect(filter);
+            return delegate.selectEntries(filter, fields);
         }
         catch (EmptyFilterIntersection e)
         {
@@ -63,7 +65,9 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
     {
         try
         {
-            return delegate.countMatchingEntries(viewFilter.and(filter));
+            if (viewFilter != null)
+                filter = viewFilter.intersect(filter);
+            return delegate.countMatchingEntries(filter);
         }
         catch (EmptyFilterIntersection e)
         {

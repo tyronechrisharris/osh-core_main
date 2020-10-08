@@ -46,7 +46,9 @@ public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo
     {
         try
         {
-            return delegate.selectEntries(viewFilter.and((ResourceFilter)filter), fields);
+            if (viewFilter != null)
+                filter = viewFilter.intersect((ResourceFilter)filter);
+            return delegate.selectEntries(filter, fields);
         }
         catch (EmptyFilterIntersection e)
         {
@@ -61,7 +63,9 @@ public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo
     {
         try
         {
-            return delegate.countMatchingEntries(viewFilter.and((ResourceFilter)filter));
+            if (viewFilter != null)
+                filter = viewFilter.intersect((ResourceFilter)filter);
+            return delegate.countMatchingEntries(filter);
         }
         catch (EmptyFilterIntersection e)
         {

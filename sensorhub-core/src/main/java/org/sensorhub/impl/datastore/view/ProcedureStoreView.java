@@ -33,6 +33,6 @@ public class ProcedureStoreView extends FeatureStoreViewBase<IProcedureWithDesc,
     @Override
     public void linkTo(IObsStore obsStore)
     {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
 }
