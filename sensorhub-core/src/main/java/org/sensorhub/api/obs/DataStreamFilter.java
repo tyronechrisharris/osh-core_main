@@ -156,7 +156,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         if (procFilter != null)
             builder.withProcedures(procFilter);
         
-        var obsFilter = this.obsFilter != null ? this.obsFilter.and(otherFilter.obsFilter) : otherFilter.obsFilter;
+        var obsFilter = this.obsFilter != null ? this.obsFilter.intersect(otherFilter.obsFilter) : otherFilter.obsFilter;
         if (obsFilter != null)
             builder.withObservations(obsFilter);
         

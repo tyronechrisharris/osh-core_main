@@ -94,7 +94,7 @@ public class RangeFilter<T extends Comparable<T>> implements Predicate<T>
     }
     
     
-    public RangeFilter<T> and(RangeFilter<T> filter) throws EmptyFilterIntersection
+    public RangeFilter<T> intersect(RangeFilter<T> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
