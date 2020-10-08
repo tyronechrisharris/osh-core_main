@@ -55,13 +55,13 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
     @Override
-    public FoiFilter and(ResourceFilter<IGeoFeature> filter) throws EmptyFilterIntersection
+    public FoiFilter intersect(ResourceFilter<IGeoFeature> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
@@ -72,9 +72,9 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
     
     protected <B extends FoiFilterBuilder<B, FoiFilter>> B and(FoiFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
-        super.and(otherFilter, builder);
+        super.intersect(otherFilter, builder);
         
-        var sfFilter = this.sampledFeatures != null ? this.sampledFeatures.and(otherFilter.sampledFeatures) : otherFilter.sampledFeatures;
+        var sfFilter = this.sampledFeatures != null ? this.sampledFeatures.intersect(otherFilter.sampledFeatures) : otherFilter.sampledFeatures;
         if (sfFilter != null)
             builder.withSampledFeatures(sfFilter);
         
@@ -83,6 +83,15 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
             builder.withObservations(obsFilter);
         
         return builder;
+    }
+    
+    
+    /**
+     * Deep clone this filter
+     */
+    public FoiFilter clone()
+    {
+        return Builder.from(this).build();
     }
     
     

@@ -19,7 +19,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.IQueryFilter;
@@ -29,6 +28,7 @@ import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
+import com.google.common.collect.ImmutableSortedSet;
 
 
 /**
@@ -147,12 +147,12 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public ObsFilter and(ObsFilter filter) throws EmptyFilterIntersection
+    public ObsFilter intersect(ObsFilter filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
@@ -163,23 +163,23 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
         if (internalIDs != null)
             builder.withInternalIDs(internalIDs);
         
-        var phenomenonTime = this.phenomenonTime != null ? this.phenomenonTime.and(filter.phenomenonTime) : filter.phenomenonTime;
+        var phenomenonTime = this.phenomenonTime != null ? this.phenomenonTime.intersect(filter.phenomenonTime) : filter.phenomenonTime;
         if (phenomenonTime != null)
             builder.withPhenomenonTime(phenomenonTime);
         
-        var resultTime = this.resultTime != null ? this.resultTime.and(filter.resultTime) : filter.resultTime;
+        var resultTime = this.resultTime != null ? this.resultTime.intersect(filter.resultTime) : filter.resultTime;
         if (resultTime != null)
             builder.withResultTime(resultTime);
         
-        var phenomenonLocation = this.phenomenonLocation != null ? this.phenomenonLocation.and(filter.phenomenonLocation) : filter.phenomenonLocation;
+        var phenomenonLocation = this.phenomenonLocation != null ? this.phenomenonLocation.intersect(filter.phenomenonLocation) : filter.phenomenonLocation;
         if (phenomenonLocation != null)
             builder.withPhenomenonLocation(phenomenonLocation);
         
-        var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.and(filter.dataStreamFilter) : filter.dataStreamFilter;
+        var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.intersect(filter.dataStreamFilter) : filter.dataStreamFilter;
         if (dataStreamFilter != null)
             builder.withDataStreams(dataStreamFilter);
         
-        var foiFilter = this.foiFilter != null ? this.foiFilter.and(filter.foiFilter) : filter.foiFilter;
+        var foiFilter = this.foiFilter != null ? this.foiFilter.intersect(filter.foiFilter) : filter.foiFilter;
         if (foiFilter != null)
             builder.withFois(foiFilter);
         
@@ -191,6 +191,15 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
         builder.withLimit(limit);
         
         return builder.build();
+    }
+    
+    
+    /**
+     * Deep clone this filter
+     */
+    public ObsFilter clone()
+    {
+        return Builder.from(this).build();
     }
 
 
@@ -284,8 +293,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withInternalIDs(Collection<BigInteger> ids)
         {
-            instance.internalIDs = new TreeSet<BigInteger>();
-            instance.internalIDs.addAll(ids);
+            instance.internalIDs = ImmutableSortedSet.copyOf(ids);
             return (B)this;
         }
 

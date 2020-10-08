@@ -17,15 +17,15 @@ package org.sensorhub.api.resource;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
-import org.sensorhub.api.datastore.TextFilter;
+import org.sensorhub.api.datastore.FullTextFilter;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.IResource;
+import com.google.common.collect.ImmutableSortedSet;
 
 
 /**
@@ -44,7 +44,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
 {
     protected SortedSet<Long> internalIDs;
     protected SortedSet<Long> parentIDs;
-    protected TextFilter fullText;
+    protected FullTextFilter fullText;
     protected Predicate<T> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
@@ -64,7 +64,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
     }
 
 
-    public TextFilter getFullTextFilter()
+    public FullTextFilter getFullTextFilter()
     {
         return fullText;
     }
@@ -98,12 +98,12 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public abstract ResourceFilter<T> and(ResourceFilter<T> filter) throws EmptyFilterIntersection;
+    public abstract ResourceFilter<T> intersect(ResourceFilter<T> filter) throws EmptyFilterIntersection;
     
     
     protected <B extends ResourceFilterBuilder<?,T,?>> B and(ResourceFilter<T> otherFilter, B builder) throws EmptyFilterIntersection
@@ -116,7 +116,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
         if (parentIDs != null)
             builder.withParents(parentIDs);
         
-        var fullTextFilter = this.fullText != null ? this.fullText.and(otherFilter.fullText) : otherFilter.fullText;
+        var fullTextFilter = this.fullText != null ? this.fullText.intersect(otherFilter.fullText) : otherFilter.fullText;
         if (fullTextFilter != null)
             builder.withFullText(fullTextFilter);
         
@@ -175,9 +175,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          */
         public B withInternalIDs(Collection<Long> ids)
         {
-            if (instance.internalIDs == null)
-                instance.internalIDs = new TreeSet<>();
-            instance.internalIDs.addAll(ids);
+            instance.internalIDs = ImmutableSortedSet.copyOf(ids);
             return (B)this;
         }
         
@@ -200,9 +198,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          */
         public B withParents(Collection<Long> parentIDs)
         {
-            if (instance.parentIDs == null)
-                instance.parentIDs = new TreeSet<>();
-            instance.parentIDs.addAll(parentIDs);
+            instance.parentIDs = ImmutableSortedSet.copyOf(parentIDs);
             return (B)this;
         }
 
@@ -212,7 +208,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          * @param filter Full text filter
          * @return This builder for chaining
          */
-        public B withFullText(TextFilter filter)
+        public B withFullText(FullTextFilter filter)
         {
             instance.fullText = filter;
             return (B)this;
@@ -222,9 +218,9 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          * Keep only resources matching the nested text filter
          * @return This builder for chaining
          */
-        public TextFilter.NestedBuilder<B> withFullText()
+        public FullTextFilter.NestedBuilder<B> withFullText()
         {
-            return new TextFilter.NestedBuilder<B>((B)this) {
+            return new FullTextFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {

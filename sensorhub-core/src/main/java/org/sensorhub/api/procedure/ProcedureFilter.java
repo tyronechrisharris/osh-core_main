@@ -17,7 +17,6 @@ package org.sensorhub.api.procedure;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.api.obs.DataStreamFilter;
@@ -25,6 +24,7 @@ import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.om.IProcedure;
+import com.google.common.collect.ImmutableSortedSet;
 
 
 /**
@@ -70,38 +70,47 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
     @Override
-    public ProcedureFilter and(ResourceFilter<IProcedure> filter) throws EmptyFilterIntersection
+    public ProcedureFilter intersect(ResourceFilter<IProcedure> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
         
-        return and((ProcedureFilter)filter, new Builder()).build();
+        return intersect((ProcedureFilter)filter, new Builder()).build();
     }
     
     
-    protected <B extends ProcedureFilterBuilder<B, ProcedureFilter>> B and(ProcedureFilter otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends ProcedureFilterBuilder<B, ProcedureFilter>> B intersect(ProcedureFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
-        super.and(otherFilter, builder);
+        super.intersect(otherFilter, builder);
         
         var parentUIDs = FilterUtils.intersect(this.parentUIDs, otherFilter.parentUIDs);
         if (parentUIDs != null)
             builder.withParentGroups(parentUIDs);
         
-        var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.and(otherFilter.dataStreamFilter) : otherFilter.dataStreamFilter;
+        var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.intersect(otherFilter.dataStreamFilter) : otherFilter.dataStreamFilter;
         if (dataStreamFilter != null)
             builder.withDataStreams(dataStreamFilter);
         
-        var foiFilter = this.foiFilter != null ? this.foiFilter.and(otherFilter.foiFilter) : otherFilter.foiFilter;
+        var foiFilter = this.foiFilter != null ? this.foiFilter.intersect(otherFilter.foiFilter) : otherFilter.foiFilter;
         if (foiFilter != null)
             builder.withFois(foiFilter);
         
         return builder;
+    }
+    
+    
+    /**
+     * Deep clone this filter
+     */
+    public ProcedureFilter clone()
+    {
+        return Builder.from(this).build();
     }
     
     
@@ -185,9 +194,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
          */
         public B withParentGroups(Collection<String> parentUIDs)
         {
-            instance.parentUIDs = new TreeSet<String>();            
-            for (String id: parentUIDs)
-                instance.parentUIDs.add(id);            
+            instance.parentUIDs = ImmutableSortedSet.copyOf(parentUIDs);
             return (B)this;
         }
         

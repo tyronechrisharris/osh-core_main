@@ -16,13 +16,12 @@ package org.sensorhub.api.obs;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.SortedSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Range;
 import net.opengis.swe.v20.DataComponent;
 
@@ -43,8 +42,8 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     
     protected ProcedureFilter procFilter;
     protected ObsFilter obsFilter;
-    protected Set<String> outputNames;
-    protected Set<String> observedProperties;
+    protected SortedSet<String> outputNames;
+    protected SortedSet<String> observedProperties;
     protected Range<Integer> versions = LATEST_VERSION;
     
     
@@ -66,13 +65,13 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     }
 
 
-    public Set<String> getOutputNames()
+    public SortedSet<String> getOutputNames()
     {
         return outputNames;
     }
 
 
-    public Set<String> getObservedProperties()
+    public SortedSet<String> getObservedProperties()
     {
         return observedProperties;
     }
@@ -134,26 +133,26 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
     @Override
-    public DataStreamFilter and(ResourceFilter<IDataStreamInfo> filter) throws EmptyFilterIntersection
+    public DataStreamFilter intersect(ResourceFilter<IDataStreamInfo> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
         
-        return and((DataStreamFilter)filter, new Builder()).build();
+        return intersect((DataStreamFilter)filter, new Builder()).build();
     }
     
     
-    protected <B extends DataStreamFilterBuilder<B, DataStreamFilter>> B and(DataStreamFilter otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends DataStreamFilterBuilder<B, DataStreamFilter>> B intersect(DataStreamFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.and(otherFilter, builder);
         
-        var procFilter = this.procFilter != null ? this.procFilter.and(otherFilter.procFilter) : otherFilter.procFilter;
+        var procFilter = this.procFilter != null ? this.procFilter.intersect(otherFilter.procFilter) : otherFilter.procFilter;
         if (procFilter != null)
             builder.withProcedures(procFilter);
         
@@ -170,6 +169,15 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
             builder.withObservedProperties(observedProperties);
         
         return builder;
+    }
+    
+    
+    /**
+     * Deep clone this filter
+     */
+    public DataStreamFilter clone()
+    {
+        return Builder.from(this).build();
     }
     
     
@@ -340,9 +348,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          */
         public B withNames(Collection<String> names)
         {
-            instance.outputNames = new TreeSet<String>();
-            for (String name: names)
-                instance.outputNames.add(name);
+            instance.outputNames = ImmutableSortedSet.copyOf(names);
             return (B)this;
         }
         
@@ -365,9 +371,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          */
         public B withObservedProperties(Collection<String> uris)
         {
-            instance.observedProperties = new TreeSet<String>();
-            for (String uri: uris)
-                instance.observedProperties.add(uri);
+            instance.observedProperties = ImmutableSortedSet.copyOf(uris);
             return (B)this;
         }
 
@@ -405,21 +409,6 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         {
             instance.versions = Range.closed(0, Integer.MAX_VALUE);
             return (B)this;
-        }
-        
-        
-        @Override
-        public F build()
-        {
-            // make all collections immutable
-            if (instance.internalIDs != null)
-                instance.internalIDs = Collections.unmodifiableSortedSet(instance.internalIDs);
-            if (instance.outputNames != null)
-                instance.outputNames = Collections.unmodifiableSet(instance.outputNames);
-            if (instance.observedProperties != null)
-                instance.observedProperties = Collections.unmodifiableSet(instance.observedProperties);
-            
-            return super.build();
         }
     }
 

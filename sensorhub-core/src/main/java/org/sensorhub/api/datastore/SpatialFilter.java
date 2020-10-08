@@ -89,20 +89,20 @@ public class SpatialFilter implements Predicate<Geometry>
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public SpatialFilter and(SpatialFilter filter) throws EmptyFilterIntersection
+    public SpatialFilter intersect(SpatialFilter filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
-        return and(filter, new Builder()).build();
+        return intersect(filter, new Builder()).build();
     }
     
     
-    protected <F extends SpatialFilter, B extends SpatialFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <F extends SpatialFilter, B extends SpatialFilterBuilder<B, F>> B intersect(F otherFilter, B builder) throws EmptyFilterIntersection
     {
         // we're handling only INTERSECTION operator for now        
         return builder.withRoi(roi.intersection(otherFilter.roi));

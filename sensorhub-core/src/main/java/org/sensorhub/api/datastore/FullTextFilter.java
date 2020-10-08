@@ -17,9 +17,11 @@ package org.sensorhub.api.datastore;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
-import java.util.TreeSet;
 import org.sensorhub.utils.FilterUtils;
+import org.sensorhub.utils.ObjectUtils;
+import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
+import com.google.common.collect.ImmutableSortedSet;
 
 
 /**
@@ -30,7 +32,7 @@ import org.vast.util.BaseBuilder;
  * @author Alex Robin
  * @date Sep 26, 2020
  */
-public class TextFilter
+public class FullTextFilter
 {
     protected Set<String> keywords;
     
@@ -42,20 +44,36 @@ public class TextFilter
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public TextFilter and(TextFilter filter) throws EmptyFilterIntersection
+    public FullTextFilter intersect(FullTextFilter filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
-        return and(filter, new Builder()).build();
+        return intersect(filter, new Builder()).build();
     }
     
     
-    protected <F extends TextFilter, B extends TextFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    /**
+     * Deep clone this filter
+     */
+    public FullTextFilter clone()
+    {
+        return Builder.from(this).build();
+    }
+    
+    
+    @Override
+    public String toString()
+    {
+        return ObjectUtils.toString(this, true, true); 
+    }
+    
+    
+    protected <F extends FullTextFilter, B extends TextFilterBuilder<B, F>> B intersect(F otherFilter, B builder) throws EmptyFilterIntersection
     {
         return builder
             .withKeywords(FilterUtils.intersect(this.keywords, otherFilter.keywords));
@@ -65,11 +83,21 @@ public class TextFilter
     /*
      * Builder
      */
-    public static class Builder extends TextFilterBuilder<Builder, TextFilter>
+    public static class Builder extends TextFilterBuilder<Builder, FullTextFilter>
     {
         public Builder()
         {
-            super(new TextFilter());
+            super(new FullTextFilter());
+        }
+        
+        /**
+         * Builds a new filter using the provided filter as a base
+         * @param base Filter used as base
+         * @return The new builder
+         */
+        public static Builder from(FullTextFilter base)
+        {
+            return new Builder().copyFrom(base);
         }
     }
     
@@ -77,14 +105,14 @@ public class TextFilter
     /*
      * Nested builder for use within another builder
      */
-    public static abstract class NestedBuilder<B> extends TextFilterBuilder<NestedBuilder<B>, TextFilter>
+    public static abstract class NestedBuilder<B> extends TextFilterBuilder<NestedBuilder<B>, FullTextFilter>
     {
         B parent;
         
         public NestedBuilder(B parent)
         {
-            this.parent = parent;
-            this.instance = new TextFilter();
+            super(new FullTextFilter());
+            this.parent = parent;            
         }
                 
         public abstract B done();
@@ -94,17 +122,20 @@ public class TextFilter
     @SuppressWarnings("unchecked")
     public static abstract class TextFilterBuilder<
             B extends TextFilterBuilder<B, F>,
-            F extends TextFilter> extends BaseBuilder<TextFilter>
+            F extends FullTextFilter> extends BaseBuilder<FullTextFilter>
     {
-        public TextFilterBuilder()
-        {
-            super(new TextFilter());
-        }
-        
         
         protected TextFilterBuilder(F instance)
         {
             super(instance);
+        }
+        
+        
+        protected B copyFrom(F base)
+        {
+            Asserts.checkNotNull(base, TemporalFilter.class);
+            instance.keywords = base.keywords;
+            return (B)this;
         }
         
         
@@ -116,9 +147,7 @@ public class TextFilter
         
         public B withKeywords(Collection<String> keywords)
         {
-            if (instance.keywords == null)
-                instance.keywords = new TreeSet<>();
-            instance.keywords.addAll(keywords);
+            instance.keywords = ImmutableSortedSet.copyOf(keywords);
             return (B)this;
         }
     }

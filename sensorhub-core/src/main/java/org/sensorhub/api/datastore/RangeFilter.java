@@ -98,15 +98,24 @@ public class RangeFilter<T extends Comparable<T>> implements Predicate<T>
     {
         if (filter == null)
             return this;
-        return and(filter, new Builder<T>()).build();
+        return intersect(filter, new Builder<T>()).build();
     }
     
     
-    protected <F extends RangeFilter<T>, B extends RangeFilterBuilder<B, F, T>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <F extends RangeFilter<T>, B extends RangeFilterBuilder<B, F, T>> B intersect(F otherFilter, B builder) throws EmptyFilterIntersection
     {
         if (!range.isConnected(otherFilter.range))
             throw new EmptyFilterIntersection();
         return builder.withRange(range.intersection(otherFilter.range));
+    }
+    
+    
+    /**
+     * Deep clone this filter
+     */
+    public RangeFilter<T> clone()
+    {
+        return Builder.from(this).build();
     }
     
     
@@ -127,6 +136,16 @@ public class RangeFilter<T extends Comparable<T>> implements Predicate<T>
         {
             super(new RangeFilter());
         }
+        
+        /**
+         * Builds a new filter using the provided filter as a base
+         * @param base Filter used as base
+         * @return The new builder
+         */
+        public static <T extends Comparable<T>> Builder<T> from(RangeFilter<T> base)
+        {
+            return new Builder<T>().copyFrom(base);
+        }
     }
     
     
@@ -137,14 +156,19 @@ public class RangeFilter<T extends Comparable<T>> implements Predicate<T>
             T extends Comparable<T>>
         extends BaseBuilder<F>
     {        
-        protected RangeFilterBuilder()
-        {
-        }
-        
         
         protected RangeFilterBuilder(F instance)
         {
             super(instance);
+        }
+        
+        
+        protected B copyFrom(F base)
+        {
+            Asserts.checkNotNull(base, RangeFilter.class);
+            instance.op = base.op;
+            instance.range = base.range;
+            return (B)this;
         }
         
         

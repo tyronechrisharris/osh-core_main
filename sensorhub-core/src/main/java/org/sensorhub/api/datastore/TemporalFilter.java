@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore;
 
 import java.time.Instant;
+import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
 
@@ -105,20 +106,20 @@ public class TemporalFilter extends RangeFilter<Instant>
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
-    public TemporalFilter and(TemporalFilter filter) throws EmptyFilterIntersection
+    public TemporalFilter intersect(TemporalFilter filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
-        return and(filter, new Builder()).build();
+        return intersect(filter, new Builder()).build();
     }
     
     
-    protected <F extends TemporalFilter, B extends TimeFilterBuilder<B, F>> B and(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <F extends TemporalFilter, B extends TimeFilterBuilder<B, F>> B intersect(F otherFilter, B builder) throws EmptyFilterIntersection
     {
         // handle latest time special case
         if ((otherFilter.isLatestTime() && isLatestTime()) ||
@@ -153,6 +154,16 @@ public class TemporalFilter extends RangeFilter<Instant>
         {
             super(new TemporalFilter());
         }
+        
+        /**
+         * Builds a new filter using the provided filter as a base
+         * @param base Filter used as base
+         * @return The new builder
+         */
+        public static Builder from(TemporalFilter base)
+        {
+            return new Builder().copyFrom(base);
+        }
     }
     
     
@@ -183,6 +194,17 @@ public class TemporalFilter extends RangeFilter<Instant>
         protected TimeFilterBuilder(F instance)
         {
             super(instance);
+        }
+        
+        
+        protected B copyFrom(F base)
+        {
+            Asserts.checkNotNull(base, TemporalFilter.class);
+            super.copyFrom(base);
+            instance.currentTime = base.currentTime;
+            instance.latestTime = base.latestTime;
+            instance.currentTimeTolerance = base.currentTimeTolerance;
+            return (B)this;
         }
         
         

@@ -119,19 +119,19 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     }
     
     
-    protected <B extends FeatureFilterBuilder<?,T,?>> B and(FeatureFilterBase<T> otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends FeatureFilterBuilder<?,T,?>> B intersect(FeatureFilterBase<T> otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.and(otherFilter, builder);
         
-        var featureUIDs = this.featureUIDs != null ? this.featureUIDs.and(otherFilter.featureUIDs) : otherFilter.featureUIDs;
+        var featureUIDs = this.featureUIDs != null ? this.featureUIDs.intersect(otherFilter.featureUIDs) : otherFilter.featureUIDs;
         if (featureUIDs != null)
             builder.withUniqueIDs(featureUIDs.getSet());
         
-        var validTime = this.validTime != null ? this.validTime.and(otherFilter.validTime) : otherFilter.validTime;
+        var validTime = this.validTime != null ? this.validTime.intersect(otherFilter.validTime) : otherFilter.validTime;
         if (validTime != null)
             builder.withValidTime(validTime);
         
-        var location = this.location != null ? this.location.and(otherFilter.location) : otherFilter.location;
+        var location = this.location != null ? this.location.intersect(otherFilter.location) : otherFilter.location;
         if (location != null)
             builder.withLocation(location);
         

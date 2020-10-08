@@ -40,18 +40,18 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
     
     
     /**
-     * Computes a logical AND between this filter and another filter of the same kind
+     * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
      * @return The new composite filter
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
     @Override
-    public FeatureFilter and(ResourceFilter<IFeature> filter) throws EmptyFilterIntersection
+    public FeatureFilter intersect(ResourceFilter<IFeature> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
         
-        return and((FeatureFilter)filter, new Builder()).build();
+        return intersect((FeatureFilter)filter, new Builder()).build();
     }
     
     

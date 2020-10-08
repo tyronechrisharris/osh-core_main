@@ -15,11 +15,13 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.Predicate;
 import org.sensorhub.utils.FilterUtils;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Range;
 
 
@@ -49,18 +51,14 @@ public class RangeOrSet<T extends Comparable<T>> implements Predicate<T>
     
     public static <T extends Comparable<T>> RangeOrSet<T> from(T lower, T upper)
     {
-        RangeOrSet<T> union = new RangeOrSet<>();
-        union.range = Range.closed(lower, upper);
-        return union;
+        return RangeOrSet.from(Range.closed(lower, upper));
     }
     
     
     public static <T extends Comparable<T>> RangeOrSet<T> from(Collection<T> col)
     {
         RangeOrSet<T> union = new RangeOrSet<>();
-        union.set = new TreeSet<>();
-        for (T val: col)
-            union.set.add(val);
+        union.set = ImmutableSortedSet.copyOf(col);
         return union;
     }
     
@@ -68,11 +66,7 @@ public class RangeOrSet<T extends Comparable<T>> implements Predicate<T>
     @SafeVarargs
     public static <T extends Comparable<T>> RangeOrSet<T> from(T... items)
     {
-        RangeOrSet<T> union = new RangeOrSet<>();
-        union.set = new TreeSet<>();
-        for (T val: items)
-            union.set.add(val);
-        return union;
+        return RangeOrSet.from(Arrays.asList(items));
     }
     
     
@@ -96,7 +90,7 @@ public class RangeOrSet<T extends Comparable<T>> implements Predicate<T>
     
     public SortedSet<T> getSet()
     {
-        return set;
+        return Collections.unmodifiableSortedSet(set);
     }
 
 
@@ -111,7 +105,7 @@ public class RangeOrSet<T extends Comparable<T>> implements Predicate<T>
     }
     
     
-    public RangeOrSet<T> and(RangeOrSet<T> other) throws EmptyFilterIntersection
+    public RangeOrSet<T> intersect(RangeOrSet<T> other) throws EmptyFilterIntersection
     {
         if (other == null)
             return this;
