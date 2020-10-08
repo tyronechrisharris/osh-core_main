@@ -17,6 +17,7 @@ package org.sensorhub.impl.procedure;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -110,9 +111,13 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
         {
             resultStream = query.getInternalIDs().stream()
                 .map(id -> {
+                    var dsInfo = map.get(id);
+                    if (dsInfo == null)
+                        return null;
                     IDataStreamInfo val = new DataStreamInfoWithTimeRanges(id, map.get(id));
-                    return new AbstractMap.SimpleEntry<>(id, val);
-                });
+                    return (Entry<Long, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(id, val);
+                })
+                .filter(Objects::nonNull);
         }
         else
             resultStream = map.entrySet().stream();
@@ -170,7 +175,11 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
     @Override
     public IDataStreamInfo get(Object key)
     {
-        return new DataStreamInfoWithTimeRanges((long)key, map.get(key));
+        var val = map.get(key);
+        if (val != null)
+            return new DataStreamInfoWithTimeRanges((long)key, val);
+        else
+            return null;
     }
 
 

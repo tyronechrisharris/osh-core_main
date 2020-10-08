@@ -18,6 +18,7 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -150,9 +151,13 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
             resultStream = query.getInternalIDs().stream()
                 .map(id -> {
                     FeatureKey key = new FeatureKey(id);
-                    T val = map.get(key); 
-                    return new AbstractMap.SimpleEntry<>(key, val);
-                });
+                    T val = map.get(key);
+                    if (val != null)
+                        return (Entry<FeatureKey, T>)new AbstractMap.SimpleEntry<>(key, val);
+                    else
+                        return null;
+                })
+                .filter(Objects::nonNull);
         }
         else
             resultStream = map.entrySet().stream();
