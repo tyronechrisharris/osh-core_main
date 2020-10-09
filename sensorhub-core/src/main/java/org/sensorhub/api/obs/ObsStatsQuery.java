@@ -14,18 +14,15 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
-import java.time.Instant;
 import org.sensorhub.api.datastore.IQueryFilter;
-import org.sensorhub.api.datastore.TemporalFilter;
-import org.sensorhub.api.obs.DataStreamFilter.Builder;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
+import ch.qos.logback.core.util.Duration;
 
 
 /**
  * <p>
- * Immutable filter object for observation statistics.<br/>
- * There is an implicit AND between all filter parameters
+ * Immutable query object for observation statistics.
  * </p>
  *
  * @author Alex Robin
@@ -33,11 +30,9 @@ import org.vast.util.BaseBuilder;
  */
 public class ObsStatsQuery implements IQueryFilter
 {
-    protected DataStreamFilter dataStreamFilter;
-    protected FoiFilter foiFilter;
-    protected TemporalFilter resultTime;
-    protected int numHistogramBins = 0;
+    protected ObsFilter obsFilter;
     protected boolean aggregateFois = true;
+    protected Duration histogramBinSize = Duration.buildByDays(1);
     protected long limit = Long.MAX_VALUE;
     
     
@@ -47,21 +42,21 @@ public class ObsStatsQuery implements IQueryFilter
     protected ObsStatsQuery() {}
 
 
-    public DataStreamFilter getDataStreamFilter()
+    public ObsFilter getObsFilter()
     {
-        return dataStreamFilter;
+        return obsFilter;
     }
 
 
-    public FoiFilter getFoiFilter()
+    public boolean isAggregateFois()
     {
-        return foiFilter;
+        return aggregateFois;
     }
 
 
-    public TemporalFilter getResultTime()
+    public Duration getHistogramBinSize()
     {
-        return resultTime;
+        return histogramBinSize;
     }
 
 
@@ -107,58 +102,39 @@ public class ObsStatsQuery implements IQueryFilter
         
         protected B copyFrom(ObsStatsQuery base)
         {
-            instance.dataStreamFilter = base.dataStreamFilter;
-            instance.foiFilter = base.foiFilter;
-            instance.resultTime = base.resultTime;
-            instance.numHistogramBins = base.numHistogramBins;
+            instance.obsFilter = base.obsFilter;
             instance.aggregateFois = base.aggregateFois;
+            instance.histogramBinSize = base.histogramBinSize;
             instance.limit = base.limit;
             return (B)this;
         }
         
 
-        public B withDataStreams(DataStreamFilter filter)
+        public B selectObservations(ObsFilter filter)
         {
-            instance.dataStreamFilter = filter;
+            instance.obsFilter = filter;
             return (B)this;
         }
         
-
-        public B withDataStreams(DataStreamFilter.Builder filter)
+        
+        public ObsFilter.NestedBuilder<B> selectObservations()
         {
-            return withDataStreams(filter.build());
-        }
-
-
-        public B withDataStreams(Long... dsIDs)
-        {
-            instance.dataStreamFilter = new DataStreamFilter.Builder()
-                .withInternalIDs(dsIDs)
-                .build();
-            return (B)this;
-        }
-
-
-        public B withFois(FoiFilter filter)
-        {
-            instance.foiFilter = filter;
-            return (B)this;
-        }
-
-
-        public B withFois(FoiFilter.Builder filter)
-        {
-            return withFois(filter.build());
+            return new ObsFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ObsStatsQueryBuilder.this.selectObservations(build());
+                    return (B)ObsStatsQueryBuilder.this;
+                }                
+            };
         }
         
         
-        public B withResultTimeRange(Instant begin, Instant end)
+        public B withHistogramBinSize(Duration size)
         {
-            instance.resultTime = new TemporalFilter.Builder()
-                    .withRange(begin, end)
-                    .build();
+            instance.histogramBinSize = size;
             return (B)this;
-        }
+        }      
 
 
         public B withLimit(int limit)

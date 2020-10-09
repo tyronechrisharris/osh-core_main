@@ -14,12 +14,15 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
-import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.SortedSet;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.Bbox;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Range;
 
 
@@ -34,13 +37,13 @@ import com.google.common.collect.Range;
  */
 public class ObsStats
 {
-    protected long dataStreamID = 0;
-    protected long foiID = 0;
-    protected long obsCount = 0;
-    protected Range<Instant> resultTimeRange = null;
-    protected Duration resultPeriod = null; // computed if step is regular
-    protected Range<Instant> phenomenonTimeRange = null;
+    protected Long dataStreamID;
+    protected FeatureId foiID;
+    protected Range<Instant> phenomenonTimeRange;
+    protected Range<Instant> resultTimeRange;
+    protected SortedSet<Instant> resultTimeSet; // computed if obs are grouped by discrete result times (e.g. model runs)
     protected Bbox phenomenonBbox = null;
+    protected long totalObsCount = 0;
     protected int[] obsCountsByTime = null;
     
     
@@ -56,7 +59,7 @@ public class ObsStats
      * @return The unique ID of the data stream that contains the observations 
      * in this bucket.
      */
-    public long getDataStreamID()
+    public Long getDataStreamID()
     {
         return dataStreamID;
     }
@@ -66,18 +69,18 @@ public class ObsStats
      * @return The unique ID of the feature of interest targeted by observations
      * in this bucket.
      */
-    public long getFoiID()
+    public FeatureId getFoiID()
     {
         return foiID;
     }
 
 
     /**
-     * @return The number of observations in the series.
+     * @return The range of phenomenon times in this series
      */
-    public long getTotalCount()
+    public Range<Instant> getPhenomenonTimeRange()
     {
-        return obsCount;
+        return phenomenonTimeRange;
     }
 
 
@@ -101,12 +104,9 @@ public class ObsStats
     }
 
 
-    /**
-     * @return The range of phenomenon times in this series
-     */
-    public Range<Instant> getPhenomenonTimeRange()
+    public SortedSet<Instant> getResultTimeSet()
     {
-        return phenomenonTimeRange;
+        return resultTimeSet;
     }
 
 
@@ -116,6 +116,24 @@ public class ObsStats
     public Bbox getPhenomenonBbox()
     {
         return phenomenonBbox;
+    }
+
+
+    /**
+     * @return The total number of observations in the series.
+     */
+    public long getTotalObsCount()
+    {
+        return totalObsCount;
+    }
+    
+
+    /**
+     * @return The histogram of observations count vs. time
+     */
+    public int[] getObsCountsByTime()
+    {
+        return obsCountsByTime;
     }
 
 
@@ -158,10 +176,10 @@ public class ObsStats
         {
             instance.dataStreamID = base.dataStreamID;
             instance.foiID = base.foiID;
-            instance.obsCount = base.obsCount;
-            instance.resultTimeRange = base.resultTimeRange;
-            instance.resultPeriod = base.resultPeriod; // computed if step is regular
+            instance.totalObsCount = base.totalObsCount;
             instance.phenomenonTimeRange = base.phenomenonTimeRange;
+            instance.resultTimeRange = base.resultTimeRange;
+            instance.resultTimeSet = base.resultTimeSet;
             instance.phenomenonBbox = base.phenomenonBbox;
             instance.obsCountsByTime = base.obsCountsByTime;
             return (B)this;
@@ -175,7 +193,7 @@ public class ObsStats
         }
 
 
-        public B withFoiID(long foiID)
+        public B withFoiID(FeatureId foiID)
         {
             instance.foiID = foiID;
             return (B)this;
@@ -196,16 +214,37 @@ public class ObsStats
         }
 
 
+        public B withResultTimes(Collection<Instant> resultTimes)
+        {
+            instance.resultTimeSet = ImmutableSortedSet.copyOf(resultTimes);
+            return (B)this;
+        }
+
+
         public B withPhenomenonBbox(Bbox bbox)
         {
             instance.phenomenonBbox = bbox;
+            return (B)this;
+        }
+
+
+        public B withTotalObsCount(int count)
+        {
+            instance.totalObsCount = count;
+            return (B)this;
+        }
+
+
+        public B withObsCountByTime(int[] counts)
+        {
+            instance.obsCountsByTime = counts;
             return (B)this;
         }
         
         
         public T build()
         {
-            Asserts.checkArgument(instance.dataStreamID > 0, "dataStreamID must be > 0");
+            Asserts.checkArgument(instance.dataStreamID != null && instance.dataStreamID > 0, "dataStreamID must be > 0");
             Asserts.checkState(instance.phenomenonTimeRange != null || instance.resultTimeRange != null, "At least one time range must be set");
             return super.build();
         }
