@@ -17,6 +17,8 @@ package org.sensorhub.api.datastore;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
@@ -32,9 +34,10 @@ import com.google.common.collect.ImmutableSortedSet;
  * @author Alex Robin
  * @date Sep 26, 2020
  */
-public class FullTextFilter
+public class FullTextFilter implements Predicate<String>
 {
     protected Set<String> keywords;
+    transient Pattern pattern;
     
     
     public Set<String> getKeywords()
@@ -54,6 +57,25 @@ public class FullTextFilter
         if (filter == null)
             return this;
         return intersect(filter, new Builder()).build();
+    }
+
+
+    @Override
+    public boolean test(String txt)
+    {
+        if (txt == null)
+            return false;
+        
+        if (pattern == null)
+        {
+            var regex = new StringBuilder();
+            for (var w: keywords)
+                regex.append(Pattern.quote(w)).append('|');
+            regex.setLength(regex.length()-1);
+            pattern = Pattern.compile(regex.toString());
+        }
+        
+        return pattern.matcher(txt).find();
     }
     
     

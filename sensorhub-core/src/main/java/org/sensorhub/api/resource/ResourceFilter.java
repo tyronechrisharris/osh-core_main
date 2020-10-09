@@ -83,6 +83,14 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
     }
     
     
+    public boolean testFullText(T res)
+    {
+        return (fullText == null ||
+                fullText.test(res.getName()) ||
+                fullText.test(res.getDescription()));
+    }
+    
+    
     public boolean testValuePredicate(T res)
     {
         return (valuePredicate == null ||
@@ -93,7 +101,8 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
     @Override
     public boolean test(T res)
     {
-        return testValuePredicate(res);
+        return testFullText(res) &&
+               testValuePredicate(res);
     }
     
     
@@ -229,7 +238,20 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
                 }                
             };
         }
-
+        
+        
+        /**
+         * Keep only resources whose textual properties contain the given keywords
+         * @param keywords One or more keyword to look for
+         * @return This builder for chaining
+         */
+        public B withKeywords(String... keywords)
+        {
+            return withFullText(new FullTextFilter.Builder()
+                .withKeywords(keywords)
+                .build());
+        }
+        
 
         /**
          * Keep only resources matching the provided predicate
