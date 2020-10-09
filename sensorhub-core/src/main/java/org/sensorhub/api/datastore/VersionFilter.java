@@ -176,6 +176,7 @@ public class VersionFilter extends RangeFilter<Integer>
         public B withCurrentVersion()
         {
             instance.currentVersion = true;
+            instance.range = Range.singleton(0);
             return (B)this;
         }
         

@@ -42,7 +42,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     protected ObsFilter obsFilter;
     protected SortedSet<String> outputNames;
     protected SortedSet<String> observedProperties;
-    protected VersionFilter versions;
+    protected VersionFilter version;
     
     
     /*
@@ -75,9 +75,9 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     }
 
 
-    public VersionFilter getVersions()
+    public VersionFilter getVersion()
     {
-        return versions;
+        return version;
     }
     
     
@@ -90,8 +90,8 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     
     public boolean testVersion(IDataStreamInfo ds)
     {
-        return (versions == null ||
-            versions.test(ds.getRecordVersion()));
+        return (version == null ||
+            version.test(ds.getRecordVersion()));
     }
     
     
@@ -237,7 +237,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
             instance.procFilter = other.procFilter;
             instance.obsFilter = other.obsFilter;
             instance.outputNames = other.outputNames;
-            instance.versions = other.versions;
+            instance.version = other.version;
             instance.observedProperties = other.observedProperties;
             return (B)this;
         }
@@ -381,7 +381,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          */
         public B withVersion(int version)
         {
-            instance.versions = new VersionFilter.Builder()
+            instance.version = new VersionFilter.Builder()
                 .withSingleValue(version)
                 .build();
             return (B)this;
@@ -396,7 +396,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          */
         public B withVersionRange(int minVersion, int maxVersion)
         {
-            instance.versions = new VersionFilter.Builder()
+            instance.version = new VersionFilter.Builder()
                 .withRange(minVersion, maxVersion)
                 .build();
             return (B)this;
@@ -409,7 +409,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          */
         public B withAllVersions()
         {
-            instance.versions = new VersionFilter.Builder()
+            instance.version = new VersionFilter.Builder()
                 .withAllVersions()
                 .build();
             return (B)this;
