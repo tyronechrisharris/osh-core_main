@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.Map;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.ProcedureId;
+import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -38,7 +39,7 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
 
     public DataStreamInfoWrapper(IDataStreamInfo dsInfo)
     {
-        this.delegate = dsInfo;
+        this.delegate = Asserts.checkNotNull(dsInfo, IDataStreamInfo.class);
     }
     
     

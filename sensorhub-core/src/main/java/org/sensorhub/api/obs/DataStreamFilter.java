@@ -18,11 +18,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
+import org.sensorhub.api.datastore.VersionFilter;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Range;
 import net.opengis.swe.v20.DataComponent;
 
 
@@ -38,13 +38,11 @@ import net.opengis.swe.v20.DataComponent;
  */
 public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
 {
-    public static final Range<Integer> LATEST_VERSION = Range.singleton(Integer.MAX_VALUE);
-    
     protected ProcedureFilter procFilter;
     protected ObsFilter obsFilter;
     protected SortedSet<String> outputNames;
     protected SortedSet<String> observedProperties;
-    protected Range<Integer> versions = LATEST_VERSION;
+    protected VersionFilter versions;
     
     
     /*
@@ -77,7 +75,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     }
 
 
-    public Range<Integer> getVersions()
+    public VersionFilter getVersions()
     {
         return versions;
     }
@@ -92,8 +90,8 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     
     public boolean testVersion(IDataStreamInfo ds)
     {
-        return (versions == null || versions.equals(LATEST_VERSION) ||
-            versions.contains(ds.getRecordVersion()));
+        return (versions == null ||
+            versions.test(ds.getRecordVersion()));
     }
     
     
@@ -383,7 +381,9 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          */
         public B withVersion(int version)
         {
-            instance.versions = Range.singleton(version);
+            instance.versions = new VersionFilter.Builder()
+                .withSingleValue(version)
+                .build();
             return (B)this;
         }
 
@@ -396,7 +396,9 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          */
         public B withVersionRange(int minVersion, int maxVersion)
         {
-            instance.versions = Range.closed(minVersion, maxVersion);
+            instance.versions = new VersionFilter.Builder()
+                .withRange(minVersion, maxVersion)
+                .build();
             return (B)this;
         }
 
@@ -407,7 +409,9 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          */
         public B withAllVersions()
         {
-            instance.versions = Range.closed(0, Integer.MAX_VALUE);
+            instance.versions = new VersionFilter.Builder()
+                .withAllVersions()
+                .build();
             return (B)this;
         }
     }
