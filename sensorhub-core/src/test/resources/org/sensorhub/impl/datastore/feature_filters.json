@@ -1,0 +1,47 @@
+[    
+    {
+        "internalIDs": [11, 1235, 698548]
+    },
+    {
+        "withParents": {
+            "internalIDs": [1235]
+        },
+        "fullText": {
+            "keywords": []
+        }
+    },
+    {
+        "withMembers": {
+            "fullText": {
+                "keywords": ["building", "room"]
+            },
+            "location": {
+                "within": {
+                    "roi": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [12.3,78.6],[56.9,45.12],[12.3,89.2],[12.3,78.6]
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    {
+        "internalIDs": [5689],
+        "validTime": {
+            "during": [
+                "1970-01-01",
+                "2100-12-31"
+            ]
+        },
+        "location": {
+            "intersects": {
+                "roi": {
+                    "type": "LineString",
+                    "coordinates": [[12.3,78.6],[56.9,45.12],[12.3,89.2]]
+                }
+            }
+        }
+    }
+]

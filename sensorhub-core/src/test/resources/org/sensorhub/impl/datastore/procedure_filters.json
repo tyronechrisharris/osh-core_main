@@ -54,9 +54,11 @@
             "indeterminate": "current",
             "tolerance": 1000
         },
-        "parentUIDs": [
-            "urn:osh:group:001"
-        ],
+        "withParents": {
+            "featureUIDs": [
+                "urn:osh:group:001"
+            ]
+        },
         "fullText": {
             "keywords": ["word1", "word2"]
         }
@@ -66,7 +68,23 @@
             "indeterminate": "current",
             "tolerance": "PT5M"
         },
-        "parentIDs": [1001],
+        "withParents": {
+            "internalIDs": [1235]
+        },
+        "fullText": {
+            "keywords": []
+        }
+    },
+    {
+        "withMembers": {
+            "withDatastreams": {
+                "observedProperties": [
+                    "http://blabla/air_pressure",
+                    "http://blabla/air_temperature",
+                    "http://blabla/wind_speed"
+                ]
+            }
+        },
         "fullText": {
             "keywords": []
         }
