@@ -43,7 +43,6 @@ import com.google.common.collect.ImmutableSortedSet;
 public abstract class ResourceFilter<T extends IResource> implements IQueryFilter, Predicate<T>
 {
     protected SortedSet<Long> internalIDs;
-    protected SortedSet<Long> parentIDs;
     protected FullTextFilter fullText;
     protected Predicate<T> valuePredicate;
     protected long limit = Long.MAX_VALUE;
@@ -55,12 +54,6 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
     public SortedSet<Long> getInternalIDs()
     {
         return internalIDs;
-    }
-
-
-    public SortedSet<Long> getParentIDs()
-    {
-        return parentIDs;
     }
 
 
@@ -121,10 +114,6 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
         if (internalIDs != null)
             builder.withInternalIDs(internalIDs);
         
-        var parentIDs = FilterUtils.intersect(this.parentIDs, otherFilter.parentIDs);
-        if (parentIDs != null)
-            builder.withParents(parentIDs);
-        
         var fullTextFilter = this.fullText != null ? this.fullText.intersect(otherFilter.fullText) : otherFilter.fullText;
         if (fullTextFilter != null)
             builder.withFullText(fullTextFilter);
@@ -158,7 +147,6 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
         {
             Asserts.checkNotNull(base, ResourceFilter.class);
             instance.internalIDs = base.getInternalIDs();
-            instance.parentIDs = base.getParentIDs();
             instance.fullText = base.getFullTextFilter();
             instance.valuePredicate = base.getValuePredicate();
             instance.limit = base.getLimit();
@@ -185,29 +173,6 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
         public B withInternalIDs(Collection<Long> ids)
         {
             instance.internalIDs = ImmutableSortedSet.copyOf(ids);
-            return (B)this;
-        }
-        
-        
-        /**
-         * Keep only resources with the specified parents
-         * @param parentIDs One or more IDs of parent resources
-         * @return This builder for chaining
-         */
-        public B withParents(Long... parentIDs)
-        {
-            return withParents(Arrays.asList(parentIDs));
-        }
-        
-        
-        /**
-         * Keep only resources with the specified parents
-         * @param parentIDs Collection of parent resource IDs
-         * @return This builder for chaining
-         */
-        public B withParents(Collection<Long> parentIDs)
-        {
-            instance.parentIDs = ImmutableSortedSet.copyOf(parentIDs);
             return (B)this;
         }
 
