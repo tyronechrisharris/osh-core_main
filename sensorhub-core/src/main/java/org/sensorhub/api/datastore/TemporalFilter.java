@@ -84,6 +84,12 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    public int getCurrentTimeTolerance()
+    {
+        return currentTimeTolerance;
+    }
+    
+    
     @Override
     public boolean test(Instant val)
     {
