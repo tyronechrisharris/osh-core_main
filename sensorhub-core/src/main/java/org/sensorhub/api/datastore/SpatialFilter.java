@@ -36,7 +36,7 @@ public class SpatialFilter implements Predicate<Geometry>
 {
     public enum SpatialOp
     {
-        INTERSECTS, CONTAINS, EQUALS, WITHIN, DISJOINT, DISTANCE
+        INTERSECTS, CONTAINS, EQUALS, WITHIN, DISJOINT, WITHIN_DISTANCE
     }
 
     protected SpatialOp operator;
@@ -183,7 +183,7 @@ public class SpatialFilter implements Predicate<Geometry>
             instance.center = center;
             instance.distance = distance;
             withRoi(center.buffer(distance, 1).getEnvelope());
-            withOperator(SpatialOp.DISTANCE);
+            withOperator(SpatialOp.WITHIN_DISTANCE);
             return (B)this;
         }
         
@@ -197,6 +197,9 @@ public class SpatialFilter implements Predicate<Geometry>
         
         public B withOperator(SpatialOp op)
         {
+            if (instance.operator == op)
+                return (B)this;
+            
             if (instance.operator != null)
                 throw new IllegalStateException("Operator is already set");
             
@@ -225,7 +228,7 @@ public class SpatialFilter implements Predicate<Geometry>
                     instance.geomTest = (g -> instanceLocal.preparedGeom.disjoint(g));
                     break;
                     
-                case DISTANCE:
+                case WITHIN_DISTANCE:
                     instance.geomTest = (g -> instanceLocal.center.isWithinDistance(g, instanceLocal.distance));
                     break;
                     
@@ -245,8 +248,8 @@ public class SpatialFilter implements Predicate<Geometry>
             if (instance.operator == null)
                 withOperator(SpatialOp.INTERSECTS);
             
-            if (instance.operator == SpatialOp.DISTANCE && Double.isNaN(instance.distance))
-                throw new IllegalStateException(SpatialOp.DISTANCE + " operator must be set along with a distance value");
+            if (instance.operator == SpatialOp.WITHIN_DISTANCE && Double.isNaN(instance.distance))
+                throw new IllegalStateException(SpatialOp.WITHIN_DISTANCE + " operator must be set along with a distance value");
                    
             return super.build();
         }
