@@ -17,54 +17,342 @@ package org.sensorhub.impl.datastore;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.sensorhub.api.datastore.IQueryFilter;
-import org.sensorhub.api.datastore.RangeFilter;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
-import org.sensorhub.api.datastore.TextFilter;
+import org.sensorhub.api.datastore.VersionFilter;
+import org.sensorhub.api.datastore.func.JavascriptPredicate;
+import org.sensorhub.api.datastore.FullTextFilter;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 
 
+/**
+ * <p>
+ * Gson type adapters to implement clean serializations of Datastore API
+ * filter objects.
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Oct 8, 2020
+ */
 public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
 {       
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type)
     {
           Class<T> rawType = (Class<T>) type.getRawType();
           
-          if (rawType == Range.class)
-              return (TypeAdapter<T>)new RangeTypeAdapter().nullSafe();
-          else if (rawType == Geometry.class)
-              return (TypeAdapter<T>)new GeometryTypeAdapter().nullSafe();
+          if (rawType == Instant.class)
+              return (TypeAdapter<T>)new InstantTypeAdapter().nullSafe();
+          else if (rawType == Duration.class)
+              return (TypeAdapter<T>)new DurationTypeAdapter().nullSafe();
+          else if (rawType == Predicate.class)
+              return (TypeAdapter<T>)new PredicateTypeAdapter().nullSafe();
+          else if (rawType == Range.class && (type.getType() instanceof ParameterizedType))
+              return (TypeAdapter<T>)new RangeTypeAdapter(gson, type).nullSafe();
+          else if (rawType == VersionFilter.class)
+              return (TypeAdapter<T>)new VersionFilterTypeAdapter(gson).nullSafe();
           else if (rawType == TemporalFilter.class)
               return (TypeAdapter<T>)new TemporalFilterTypeAdapter(gson).nullSafe();
+          else if (rawType == Geometry.class)
+              return (TypeAdapter<T>)new GeometryTypeAdapter().nullSafe();
           else if (rawType == SpatialFilter.class)
               return (TypeAdapter<T>)new SpatialFilterTypeAdapter(gson).nullSafe();
           else if (IQueryFilter.class.isAssignableFrom(rawType))
-              return (TypeAdapter<T>)new QueryFilterTypeAdapter(gson, this).nullSafe();
+              return (TypeAdapter<T>)new QueryFilterTypeAdapter(gson, this, type).nullSafe();
           
           return null;
     }
     
     
+    public static class InstantTypeAdapter extends TypeAdapter<Instant>
+    {
+        static DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE)
+            .optionalStart()
+            .appendLiteral('T')
+            .append(DateTimeFormatter.ISO_LOCAL_TIME)
+            .appendOffsetId()
+            .optionalEnd()
+            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+            .parseDefaulting(ChronoField.OFFSET_SECONDS, 0)
+            .toFormatter();
+        
+        @Override
+        public void write(JsonWriter writer, Instant instant) throws IOException
+        {
+            String timeStr;
+            if (instant.getEpochSecond() % 86400 == 0)
+                timeStr = LocalDate.ofInstant(instant, ZoneOffset.UTC).format(formatter);
+            else
+                timeStr = OffsetDateTime.ofInstant(instant, ZoneOffset.UTC).format(formatter);
+            writer.value(timeStr);
+        }
+
+        @Override
+        public Instant read(JsonReader reader) throws IOException
+        {
+            var timeStr = reader.nextString();
+            return OffsetDateTime.parse(timeStr, formatter).toInstant();
+        }
+    }
+    
+    
+    public static class DurationTypeAdapter extends TypeAdapter<Duration>
+    {
+        @Override
+        public void write(JsonWriter writer, Duration d) throws IOException
+        {
+            if (d.toSeconds() < 60)
+                writer.value(d.toMillis());
+            else
+                writer.value(d.toString());
+        }
+
+        @Override
+        public Duration read(JsonReader reader) throws IOException
+        {
+            if (reader.peek() == JsonToken.NUMBER)
+                return Duration.ofMillis(reader.nextInt());
+            else
+                return Duration.parse(reader.nextString());
+        }
+    }
+    
+    
+    public static class PredicateTypeAdapter extends TypeAdapter<Predicate<?>>
+    {
+        @Override
+        public void write(JsonWriter writer, Predicate<?> predicate) throws IOException
+        {
+            if (predicate instanceof JavascriptPredicate)
+                writer.value(((JavascriptPredicate<?>)predicate).getCode());
+        }
+
+        @Override
+        public Predicate<?> read(JsonReader reader) throws IOException
+        {
+            var str = reader.nextString();
+            return new JavascriptPredicate<>(str);
+        }
+        
+    }
+
+    
+    public static class RangeTypeAdapter<T extends Comparable<T>> extends TypeAdapter<Range<T>>
+    {
+        final TypeAdapter<T> rangeEltType;
+        
+        @SuppressWarnings("unchecked")
+        RangeTypeAdapter(Gson gson, TypeToken<T> type)
+        {
+            var eltType = ((ParameterizedType)type.getType()).getActualTypeArguments()[0];
+            this.rangeEltType = (TypeAdapter<T>)gson.getAdapter(TypeToken.get(eltType));
+        }
+        
+        @Override
+        public void write(JsonWriter writer, Range<T> range) throws IOException
+        {
+            if (range.lowerEndpoint() instanceof Integer)
+            {
+                if ((int)range.lowerEndpoint() == Integer.MAX_VALUE &&
+                    (int)range.upperEndpoint() == Integer.MAX_VALUE)
+                {
+                    writer.beginObject()
+                          .name("indeterminate").value("latest")
+                          .endObject();
+                    return;
+                }
+            }
+            
+            writer.beginArray();
+            rangeEltType.write(writer, range.lowerEndpoint());
+            rangeEltType.write(writer, range.upperEndpoint());
+            writer.endArray();
+        }
+
+        @Override
+        public Range<T> read(JsonReader reader) throws IOException
+        {
+            reader.beginArray();
+            var min = rangeEltType.read(reader);
+            var max = rangeEltType.read(reader);
+            reader.endArray();
+            
+            return Range.closed(min, max);
+        }
+    }
+
+
+    @SuppressWarnings({ "unchecked" })
+    public class TemporalFilterTypeAdapter extends TypeAdapter<TemporalFilter>
+    {
+        private final TypeAdapter<Range<Instant>> timeRangeType;
+        private final TypeAdapter<Duration> durationType;
+        
+        TemporalFilterTypeAdapter(Gson gson)
+        {
+            this.timeRangeType = (TypeAdapter<Range<Instant>>) gson.getAdapter(
+                TypeToken.getParameterized(Range.class, Instant.class));
+            
+            this.durationType = (TypeAdapter<Duration>) gson.getAdapter(Duration.class);
+        }
+        
+        @Override
+        public void write(JsonWriter writer, TemporalFilter filter) throws IOException
+        {
+            writer.beginObject();
+            if (filter.isLatestTime())
+                writer.name("indeterminate").value("latest");
+            else if (filter.isCurrentTime())
+            {
+                writer.name("indeterminate").value("current");
+                if (!TemporalFilter.CURRENT_TIME_TOLERANCE_DEFAULT.equals(filter.getCurrentTimeTolerance()))
+                {
+                    writer.name("tolerance");
+                    durationType.write(writer, filter.getCurrentTimeTolerance());
+                }
+            }
+            else
+            {
+                writer.name("during");
+                timeRangeType.write(writer, filter.getRange());
+            }
+            writer.endObject();
+        }
+    
+        @Override
+        public TemporalFilter read(JsonReader reader) throws IOException
+        {
+            var builder = new TemporalFilter.Builder();
+            
+            reader.beginObject();
+            while (reader.hasNext())
+            {
+                String name = reader.nextName();
+                if ("indeterminate".equals(name))
+                {
+                    var val = reader.nextString();
+                    if ("latest".equals(val))
+                        builder.withLatestTime();
+                    else if ("current".equals(val))
+                        builder.withCurrentTime();
+                    else
+                        throw new JsonIOException("Invalid indeterminate value: " + val);
+                }
+                else if ("tolerance".equals(name))
+                {
+                    var duration = durationType.read(reader);
+                    builder.withCurrentTime(duration);
+                }
+                else if ("during".equals(name))
+                {
+                    Range<Instant> timeRange = timeRangeType.read(reader);
+                    builder.withRange(timeRange);
+                }
+                else // ignore any other property
+                    reader.skipValue();
+            }
+            reader.endObject();
+            
+            return builder.build();
+        }
+    }
+
+
+    @SuppressWarnings({ "unchecked" })
+    public class VersionFilterTypeAdapter extends TypeAdapter<VersionFilter>
+    {
+        private final TypeAdapter<Range<Integer>> rangeType;
+        
+        VersionFilterTypeAdapter(Gson gson)
+        {
+            this.rangeType = (TypeAdapter<Range<Integer>>) gson.getAdapter(
+                TypeToken.getParameterized(Range.class, Integer.class));
+        }
+        
+        @Override
+        public void write(JsonWriter writer, VersionFilter filter) throws IOException
+        {
+            writer.beginObject();
+            if (filter.isCurrentVersion())
+                writer.name("indeterminate").value("current");
+            else
+            {
+                writer.name("range");
+                rangeType.write(writer, filter.getRange());
+            }
+            writer.endObject();
+        }
+    
+        @Override
+        public VersionFilter read(JsonReader reader) throws IOException
+        {
+            var builder = new VersionFilter.Builder();
+            
+            reader.beginObject();
+            while (reader.hasNext())
+            {
+                String name = reader.nextName();
+                if ("indeterminate".equals(name))
+                {
+                    var val = reader.nextString();
+                    if ("current".equals(val))
+                        builder.withCurrentVersion();
+                    else
+                        throw new JsonIOException("Invalid indeterminate value: " + val);
+                }
+                else if ("range".equals(name))
+                {
+                    Range<Integer> range = rangeType.read(reader);
+                    builder.withRange(range);
+                }
+                else // ignore any other property
+                    reader.skipValue();
+            }
+            reader.endObject();
+            
+            return builder.build();
+        }
+    }
+    
+    
     public static class GeometryTypeAdapter extends TypeAdapter<Geometry>
     {
+        GeometryFactory geomFac = new GeometryFactory();
+        
+        @Override
         public void write(JsonWriter writer, Geometry geom) throws IOException
         {
             writer.beginObject();
@@ -85,22 +373,69 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
                 writer.endArray();
             writer.endObject();
         }
+        
+        private Coordinate readCoordinate(JsonReader reader) throws IOException
+        {
+            Coordinate coord = new Coordinate();
+            int i = 0;
+            while (reader.hasNext())
+            {
+                var val = reader.nextDouble();
+                coord.setOrdinate(i++, val);
+            }
+            return coord;
+        }
 
+        @Override
         public Geometry read(JsonReader reader) throws IOException
         {
-            reader.beginObject();
+            Geometry geom = null;
+            String geomType = null;
             
+            reader.beginObject();
             while (reader.hasNext())
             {
                 String name = reader.nextName();
                 
-                // ignore any other property
-                reader.skipValue();
+                if ("type".equals(name))
+                {
+                    geomType = reader.nextString();
+                }
+                else if ("coordinates".equals(name))
+                {
+                    var coords = new ArrayList<Coordinate>();
+                    
+                    // read coordinate array or array of array
+                    reader.beginArray();
+                    if (reader.peek() == JsonToken.BEGIN_ARRAY)
+                    {
+                        while (reader.hasNext())
+                        {
+                            reader.beginArray();
+                            coords.add(readCoordinate(reader));
+                            reader.endArray();                            
+                        }
+                    }
+                    else
+                        coords.add(readCoordinate(reader));
+                    reader.endArray();
+                    
+                    if ("Point".equals(geomType))
+                        geom = geomFac.createPoint(coords.get(0));
+                    else if ("LineString".equals(geomType))                        
+                        geom = geomFac.createLineString(coords.toArray(new Coordinate[0]));
+                    else if ("Polygon".equals(geomType))                        
+                        geom = geomFac.createPolygon(coords.toArray(new Coordinate[0]));
+                    else
+                        throw new JsonIOException("Invalid or unsupported geometry type: " + geomType);
+                }
+                else // ignore any other property
+                    reader.skipValue();
             }
             
             reader.endObject();
             
-            return null;
+            return geom;
         }
     }
     
@@ -114,13 +449,14 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
             this.geomType = gson.getAdapter(Geometry.class);
         }
         
+        @Override
         public void write(JsonWriter writer, SpatialFilter filter) throws IOException
         {
             writer.beginObject();
+            writer.name(filter.getOperator().toString().toLowerCase());
             
-            writer.name("operator").value(filter.getOperator().toString());
-            
-            if (filter.getOperator() == SpatialOp.DISTANCE)
+            writer.beginObject();
+            if (filter.getOperator() == SpatialOp.WITHIN_DISTANCE)
             {
                 writer.name("center");
                 geomType.write(writer, filter.getCenter());
@@ -131,34 +467,36 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
                 writer.name("roi");
                 geomType.write(writer, filter.getRoi());
             }
+            writer.endObject();
             
             writer.endObject();
         }
 
+        @Override
         public SpatialFilter read(JsonReader reader) throws IOException
         {
-            reader.beginObject();
-            
             Point center = null;
             double distance = Double.NaN;
             var builder = new SpatialFilter.Builder();
             
+            reader.beginObject();
+            String spatialOp = reader.nextName().toUpperCase();
+            builder.withOperator(SpatialOp.valueOf(spatialOp));
+            
+            reader.beginObject();
             while (reader.hasNext())
             {
                 String name = reader.nextName();
-                if ("type".equals(name))
-                    builder.withOperator(SpatialOp.valueOf(reader.nextString()));
-                else if ("roi".equals(name))
+                if ("roi".equals(name))
                     builder.withRoi(geomType.read(reader));
                 else if ("distance".equals(name))
                     distance = reader.nextDouble();
                 else if ("center".equals(name))
                     center = (Point)geomType.read(reader);
-                
-                // ignore any other property
-                reader.skipValue();
-            }
-                        
+                else // ignore any other property
+                    reader.skipValue();
+            }                        
+            reader.endObject();
             reader.endObject();
             
             if (center != null)
@@ -167,97 +505,11 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
             return builder.build();
         }
     }
-
-
-    public class TemporalFilterTypeAdapter extends TypeAdapter<TemporalFilter>
+    
+    
+    public static class TextFilterTypeAdapter extends TypeAdapter<FullTextFilter>
     {
-        private final Gson gson;
-        
-        TemporalFilterTypeAdapter(Gson gson)
-        {
-            this.gson = gson;
-        }
-        
-        public void write(JsonWriter writer, TemporalFilter filter) throws IOException
-        {
-            writer.beginObject();
-            if (filter.isLatestTime())
-                writer.name("indeterminate").value("latest");
-            else if (filter.isCurrentTime())
-            {
-                writer.name("indeterminate").value("current");
-                writer.name("tolerance").value(0);
-            }
-            else
-            {
-                writer.name("during");
-                gson.getAdapter(Range.class).write(writer, filter.getRange());
-            }
-            writer.endObject();
-        }
-    
-        public TemporalFilter read(JsonReader reader) throws IOException
-        {
-            reader.beginObject();
-            reader.endObject();
-            return null;
-        }
-    }
-    
-    
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static class RangeFilterTypeAdapter extends TypeAdapter<RangeFilter>
-    {
-        private final Gson gson;
-        
-        RangeFilterTypeAdapter(Gson gson)
-        {
-            this.gson = gson;
-        }
-        
-        public void write(JsonWriter writer, RangeFilter filter) throws IOException
-        {
-            gson.getAdapter(Range.class).write(writer, filter.getRange());
-        }
-
-        public RangeFilter read(JsonReader reader) throws IOException
-        {
-            var range = gson.getAdapter(Range.class).read(reader);
-            return new RangeFilter.Builder().withRange(range).build();
-        }
-    }
-
-    
-    public static class RangeTypeAdapter extends TypeAdapter<Range<?>>
-    {
-        public void write(JsonWriter writer, Range<?> range) throws IOException
-        {
-            if (range.lowerEndpoint() instanceof Integer)
-            {
-                if ((int)range.lowerEndpoint() == Integer.MAX_VALUE &&
-                    (int)range.upperEndpoint() == Integer.MAX_VALUE)
-                {
-                    writer.beginObject().name("indeterminate").value("latest").endObject();
-                    return;
-                }
-            }
-            
-            writer.beginArray();
-            writer.value(range.lowerEndpoint().toString());
-            writer.value(range.upperEndpoint().toString());
-            writer.endArray();
-        }
-
-        public Range<?> read(JsonReader reader) throws IOException
-        {
-            return null;
-        }
-    }
-    
-    
-    public static class TextFilterTypeAdapter extends TypeAdapter<TextFilter>
-    {
-        public void write(JsonWriter writer, TextFilter filter) throws IOException
+        public void write(JsonWriter writer, FullTextFilter filter) throws IOException
         {
             writer.beginArray();
             for (var s: filter.getKeywords())
@@ -265,43 +517,38 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
             writer.endArray();
         }
 
-        public TextFilter read(JsonReader reader) throws IOException
+        public FullTextFilter read(JsonReader reader) throws IOException
         {
             return null;
         }
     }
     
     
-    public static class QueryFilterTypeAdapter extends TypeAdapter<IQueryFilter>
+    public static class QueryFilterTypeAdapter<T extends IQueryFilter> extends TypeAdapter<T>
     {
         static String LIMIT_FIELD = "limit";
         
-        final Gson gson;
         final TypeAdapter<JsonElement> jsonEltAdapter;
-        final DataStoreFiltersTypeAdapterFactory factory;
+        final TypeAdapter<T> filterType;
                      
-        QueryFilterTypeAdapter(Gson gson, DataStoreFiltersTypeAdapterFactory factory)
+        QueryFilterTypeAdapter(Gson gson, DataStoreFiltersTypeAdapterFactory factory, TypeToken<T> type)
         {
-            this.gson = gson;
             this.jsonEltAdapter = gson.getAdapter(JsonElement.class);
-            this.factory = factory;
+            this.filterType = (TypeAdapter<T>)gson.getDelegateAdapter(factory, type);
         }
         
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        public void write(JsonWriter writer, IQueryFilter filter) throws IOException
+        public void write(JsonWriter writer, T filter) throws IOException
         {
-            var delegate = (TypeAdapter)gson.getDelegateAdapter(factory, TypeToken.get(filter.getClass()));
-            
-            JsonObject jsObj = (JsonObject)delegate.toJsonTree(filter);
+            JsonObject jsObj = (JsonObject)filterType.toJsonTree(filter);
             if (filter.getLimit() == Long.MAX_VALUE)
                 jsObj.remove(LIMIT_FIELD);
             
             jsonEltAdapter.write(new FormattingJsonWriter(writer), jsObj);
         }
 
-        public IQueryFilter read(JsonReader reader) throws IOException
+        public T read(JsonReader reader) throws IOException
         {
-            return null;
+            return filterType.read(reader);
         }
     }
     
@@ -433,6 +680,7 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
             serializedNames.put("obsFilter", "withObservations");
             serializedNames.put("dataStreamFilter", "withDatastreams");
             serializedNames.put("foiFilter", "withFois");
+            serializedNames.put("sampledFeatures", "withSampledFeatures");
             serializedNames.put("parentFilter", "withParents");
             serializedNames.put("memberFilter", "withMembers");
             serializedNames.put("valuePredicate", "predicate");

@@ -1,0 +1,53 @@
+[
+    {
+        "phenomenonTime": {
+            "during": ["2019-03-25", "2019-04-17"]
+        },
+        "resultTime": {
+            "indeterminate": "latest"
+        },
+        "withFois": {
+            "location": {
+                "within": {
+                    "roi": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [-25.0,-10.0],
+                            [-50.0,10.0],
+                            [48.0,10.0],
+                            [50.0,-30.0],
+                            [-25.0,-10.0]                        
+                        ]
+                    }
+                }
+            },
+            "withSampledFeatures": {
+                "predicate": "f => f.properties.area < 50 && f.properties.head_count > 26"
+            }
+        },
+        "predicate": "obs => obs.result.temp > 27.5"
+    },
+    {
+        "phenomenonTime": {
+            "indeterminate": "current"
+        },
+        "resultTime": {
+            "during": ["2020-01-01T01:00:00Z", "2020-10-07"]
+        },
+        "internalIDs": [100, 200, 300],
+        "withFois": {
+            "location": {
+                "within_distance": {
+                    "center": {
+                        "type": "Point",
+                        "coordinates": [-26.5458, -89.5636]
+                    },
+                    "distance": 1200
+                }        
+            }       
+        },
+        "withDatastreams": {
+            "observedProperties": ["http://blabla/air_pressure"]
+        }
+    }
+]

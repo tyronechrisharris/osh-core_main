@@ -1,0 +1,17 @@
+[
+    {
+        "version": {
+            "indeterminate": "current"
+        },
+        "outputNames": ["press", "temp"],
+        "withProcedures": {
+            "internalIDs": [12, 568944]
+        }
+    },
+    {
+        "version": {
+            "indeterminate": "current"
+        },
+        "internalIDs": [100, 200, 300]
+    }
+]
