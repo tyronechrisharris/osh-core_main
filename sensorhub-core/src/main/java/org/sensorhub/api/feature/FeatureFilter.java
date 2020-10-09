@@ -30,6 +30,9 @@ import org.vast.ogc.gml.IFeature;
  */
 public class FeatureFilter extends FeatureFilterBase<IFeature>
 {        
+    protected FeatureFilter parentFilter;
+    protected FeatureFilter memberFilter;
+    
     
     /*
      * this class can only be instantiated using builder
@@ -39,6 +42,18 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
     }
     
     
+    public FeatureFilter getParentFilter()
+    {
+        return parentFilter;
+    }
+
+
+    public FeatureFilter getMemberFilter()
+    {
+        return memberFilter;
+    }
+
+
     /**
      * Computes the intersection (logical AND) between this filter and another filter of the same kind
      * @param filter The other filter to AND with
@@ -55,10 +70,26 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
     }
     
     
+    protected <B extends Builder> B intersect(FeatureFilter otherFilter, B builder) throws EmptyFilterIntersection
+    {
+        super.intersect(otherFilter, builder);
+        
+        var parentFilter = this.parentFilter != null ? this.parentFilter.intersect(otherFilter.parentFilter) : otherFilter.parentFilter;
+        if (parentFilter != null)
+            builder.withParents(parentFilter);
+        
+        var memberFilter = this.memberFilter != null ? this.memberFilter.intersect(otherFilter.memberFilter) : otherFilter.memberFilter;
+        if (parentFilter != null)
+            builder.withMembers(memberFilter);
+        
+        return builder;
+    }
+    
+    
     /*
      * Builder
      */
-    public static class Builder extends FeatureFilterBuilder<Builder, IFeature, FeatureFilter>
+    public static class Builder extends FeatureFilterBuilder<Builder, FeatureFilter>
     {
         public Builder()
         {
@@ -75,7 +106,7 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
     /*
      * Nested builder for use within another builder
      */
-    public static abstract class NestedBuilder<B> extends FeatureFilterBuilder<NestedBuilder<B>, IFeature, FeatureFilter>
+    public static abstract class NestedBuilder<B> extends FeatureFilterBaseBuilder<NestedBuilder<B>, IFeature, FeatureFilter>
     {
         B parent;
         
@@ -86,5 +117,88 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         }
                 
         public abstract B done();
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    public static abstract class FeatureFilterBuilder<
+            B extends FeatureFilterBuilder<B, F>,
+            F extends FeatureFilter>
+        extends FeatureFilterBaseBuilder<B, IFeature, F>
+    {        
+        
+        protected FeatureFilterBuilder(F instance)
+        {
+            super(instance);
+        }
+                
+        
+        protected B copyFrom(F base)
+        {
+            super.copyFrom(base);
+            instance.parentFilter = base.parentFilter;
+            instance.memberFilter = base.memberFilter;
+            return (B)this;
+        }
+        
+        
+        /**
+         * Select only procedures belonging to the matching groups
+         * @param filter Parent procedure filter
+         * @return This builder for chaining
+         */
+        public B withParents(FeatureFilter filter)
+        {
+            instance.parentFilter = filter;
+            return (B)this;
+        }
+
+        
+        /**
+         * Keep only features belonging to the matching collections.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link FeatureFilter} builder for chaining
+         */
+        public FeatureFilter.NestedBuilder<B> withParents()
+        {
+            return new FeatureFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    FeatureFilterBuilder.this.withParents(build());
+                    return (B)FeatureFilterBuilder.this;
+                }                
+            };
+        }
+        
+        
+        /**
+         * Select only feature collections with the matching members
+         * @param filter Member feature filter
+         * @return This builder for chaining
+         */
+        public B withMembers(FeatureFilter filter)
+        {
+            instance.memberFilter = filter;
+            return (B)this;
+        }
+
+        
+        /**
+         * Keep only feature collections with the matching members.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link FeatureFilter} builder for chaining
+         */
+        public FeatureFilter.NestedBuilder<B> withMembers()
+        {
+            return new FeatureFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    FeatureFilterBuilder.this.withMembers(build());
+                    return (B)FeatureFilterBuilder.this;
+                }                
+            };
+        }
     }
 }

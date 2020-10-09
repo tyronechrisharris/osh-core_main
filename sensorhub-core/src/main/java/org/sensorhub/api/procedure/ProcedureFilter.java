@@ -14,17 +14,12 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.SortedSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.feature.FeatureFilterBase;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.resource.ResourceFilter;
-import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.om.IProcedure;
-import com.google.common.collect.ImmutableSortedSet;
 
 
 /**
@@ -38,11 +33,14 @@ import com.google.common.collect.ImmutableSortedSet;
  */
 public class ProcedureFilter extends FeatureFilterBase<IProcedure>
 {
-    protected SortedSet<String> parentUIDs;
-    // TODO protected ProcedureFilter parentFilter;
-    // TODO protected ProcedureFilter memberFilter;
+    protected ProcedureFilter parentFilter;
+    protected ProcedureFilter memberFilter;
     protected DataStreamFilter dataStreamFilter;
-    protected FoiFilter foiFilter; // shortcut for ObsFilter/FoiFilter
+    
+    // Note that this FoiFilter is different from DataStreamFilter/ObsFilter/FoiFilter
+    // we also need a foi filter here because fois can be associated to a procedure
+    // before there are any observations about them
+    protected FoiFilter foiFilter;
     
     
     /*
@@ -51,9 +49,15 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     protected ProcedureFilter() {}
     
     
-    public SortedSet<String> getParentGroups()
+    public ProcedureFilter getParentFilter()
     {
-        return parentUIDs;
+        return parentFilter;
+    }
+    
+    
+    public ProcedureFilter getMemberFilter()
+    {
+        return memberFilter;
     }
     
     
@@ -89,9 +93,13 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     {
         super.intersect(otherFilter, builder);
         
-        var parentUIDs = FilterUtils.intersect(this.parentUIDs, otherFilter.parentUIDs);
-        if (parentUIDs != null)
-            builder.withParentGroups(parentUIDs);
+        var parentFilter = this.parentFilter != null ? this.parentFilter.intersect(otherFilter.parentFilter) : otherFilter.parentFilter;
+        if (parentFilter != null)
+            builder.withParents(parentFilter);
+        
+        var memberFilter = this.memberFilter != null ? this.memberFilter.intersect(otherFilter.memberFilter) : otherFilter.memberFilter;
+        if (parentFilter != null)
+            builder.withMembers(memberFilter);
         
         var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.intersect(otherFilter.dataStreamFilter) : otherFilter.dataStreamFilter;
         if (dataStreamFilter != null)
@@ -157,7 +165,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     public static abstract class ProcedureFilterBuilder<
             B extends ProcedureFilterBuilder<B, F>,
             F extends ProcedureFilter>
-        extends FeatureFilterBuilder<B, IProcedure, F>
+        extends FeatureFilterBaseBuilder<B, IProcedure, F>
     {        
         
         protected ProcedureFilterBuilder(F instance)
@@ -169,7 +177,8 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         protected B copyFrom(F base)
         {
             super.copyFrom(base);
-            instance.parentUIDs = base.parentUIDs;
+            instance.parentFilter = base.parentFilter;
+            instance.memberFilter = base.memberFilter;
             instance.dataStreamFilter = base.dataStreamFilter;
             instance.foiFilter = base.foiFilter;
             return (B)this;
@@ -177,25 +186,62 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         
         
         /**
-         * Select only procedures belonging to the specified groups 
-         * @param parentUIDs UIDs of parent groups
+         * Select only procedures belonging to the matching groups
+         * @param filter Parent procedure filter
          * @return This builder for chaining
          */
-        public B withParentGroups(String... parentUIDs)
+        public B withParents(ProcedureFilter filter)
         {
-            return withParentGroups(Arrays.asList(parentUIDs));
+            instance.parentFilter = filter;
+            return (B)this;
+        }
+
+        
+        /**
+         * Keep only procedures belonging to the matching groups.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link ProcedureFilter} builder for chaining
+         */
+        public ProcedureFilter.NestedBuilder<B> withParents()
+        {
+            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ProcedureFilterBuilder.this.withParents(build());
+                    return (B)ProcedureFilterBuilder.this;
+                }                
+            };
         }
         
         
         /**
-         * Select only procedures belonging to the specified groups 
-         * @param parentUIDs UIDs of parent groups
+         * Select only procedure groups with the matching members
+         * @param filter Member procedure filter
          * @return This builder for chaining
          */
-        public B withParentGroups(Collection<String> parentUIDs)
+        public B withMembers(ProcedureFilter filter)
         {
-            instance.parentUIDs = ImmutableSortedSet.copyOf(parentUIDs);
+            instance.memberFilter = filter;
             return (B)this;
+        }
+
+        
+        /**
+         * Keep only procedure groups with the matching members.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link ProcedureFilter} builder for chaining
+         */
+        public ProcedureFilter.NestedBuilder<B> withMembers()
+        {
+            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    ProcedureFilterBuilder.this.withMembers(build());
+                    return (B)ProcedureFilterBuilder.this;
+                }                
+            };
         }
         
         

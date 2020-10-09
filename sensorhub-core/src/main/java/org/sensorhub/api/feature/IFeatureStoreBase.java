@@ -15,7 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.feature;
 
 import org.sensorhub.api.datastore.ValueField;
-import org.sensorhub.api.feature.FeatureFilterBase.FeatureFilterBuilder;
+import org.sensorhub.api.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.resource.IResourceStore;
 import org.vast.ogc.gml.IFeature;
@@ -55,7 +55,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     @Override
-    public FeatureFilterBuilder<?,?,F> filterBuilder();
+    public FeatureFilterBaseBuilder<?,?,F> filterBuilder();
     
     
     /**

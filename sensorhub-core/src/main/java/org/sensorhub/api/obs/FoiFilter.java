@@ -139,7 +139,7 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
     public static abstract class FoiFilterBuilder<
             B extends FoiFilterBuilder<B, F>,
             F extends FoiFilter>
-        extends FeatureFilterBuilder<B, IGeoFeature, FoiFilter>
+        extends FeatureFilterBaseBuilder<B, IGeoFeature, FoiFilter>
     {    
         
         protected FoiFilterBuilder(F instance)

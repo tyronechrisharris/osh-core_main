@@ -117,7 +117,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     }
     
     
-    protected <B extends FeatureFilterBuilder<?,T,?>> B intersect(FeatureFilterBase<T> otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends FeatureFilterBaseBuilder<?,T,?>> B intersect(FeatureFilterBase<T> otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.and(otherFilter, builder);
         
@@ -145,14 +145,14 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     
     
     @SuppressWarnings("unchecked")
-    public static abstract class FeatureFilterBuilder<
-            B extends FeatureFilterBuilder<B, V, F>,
+    public static abstract class FeatureFilterBaseBuilder<
+            B extends FeatureFilterBaseBuilder<B, V, F>,
             V extends IFeature,
             F extends FeatureFilterBase<V>>
         extends ResourceFilterBuilder<B, V, F>
     {        
         
-        protected FeatureFilterBuilder(F instance)
+        protected FeatureFilterBaseBuilder(F instance)
         {
             super(instance);
         }
@@ -282,8 +282,8 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
                 @Override
                 public B done()
                 {
-                    FeatureFilterBuilder.this.instance.location = build();
-                    return (B)FeatureFilterBuilder.this;
+                    FeatureFilterBaseBuilder.this.instance.location = build();
+                    return (B)FeatureFilterBaseBuilder.this;
                 }                
             };
         }
