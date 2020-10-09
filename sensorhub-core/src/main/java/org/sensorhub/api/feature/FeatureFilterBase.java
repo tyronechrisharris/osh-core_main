@@ -306,7 +306,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
          * @param roi Region of interest expressed as a polygon
          * @return This builder for chaining
          */
-        public B withLocationIntersecting(Polygon roi)
+        public B withLocationIntersecting(Geometry roi)
         {
             instance.location = new SpatialFilter.Builder()
                     .withRoi(roi)
