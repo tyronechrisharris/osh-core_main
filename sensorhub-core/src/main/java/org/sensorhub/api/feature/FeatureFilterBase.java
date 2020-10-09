@@ -17,18 +17,20 @@ package org.sensorhub.api.feature;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.SortedSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
-import org.sensorhub.api.datastore.RangeOrSet;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.resource.ResourceFilter;
+import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
+import com.google.common.collect.ImmutableSortedSet;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
@@ -49,7 +51,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
 {
     protected static final Instant LATEST_VERSION = Instant.MAX;
         
-    protected RangeOrSet<String> featureUIDs;
+    protected SortedSet<String> featureUIDs;
     protected TemporalFilter validTime;
     protected SpatialFilter location;
     
@@ -59,14 +61,10 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
      */
     protected FeatureFilterBase()
     {
-        // defaults to currently valid version of feature
-        validTime = new TemporalFilter.Builder()
-            .withCurrentTime()
-            .build();
     }
 
 
-    public RangeOrSet<String> getFeatureUIDs()
+    public SortedSet<String> getFeatureUIDs()
     {
         return featureUIDs;
     }
@@ -97,7 +95,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     public boolean testFeatureUIDs(IFeature f)
     {
         return (featureUIDs == null ||
-                featureUIDs.test(f.getUniqueIdentifier()));
+                featureUIDs.contains(f.getUniqueIdentifier()));
     }
     
     
@@ -123,9 +121,9 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     {
         super.and(otherFilter, builder);
         
-        var featureUIDs = this.featureUIDs != null ? this.featureUIDs.intersect(otherFilter.featureUIDs) : otherFilter.featureUIDs;
+        var featureUIDs = FilterUtils.intersect(this.featureUIDs, otherFilter.featureUIDs);
         if (featureUIDs != null)
-            builder.withUniqueIDs(featureUIDs.getSet());
+            builder.withUniqueIDs(featureUIDs);
         
         var validTime = this.validTime != null ? this.validTime.intersect(otherFilter.validTime) : otherFilter.validTime;
         if (validTime != null)
@@ -189,21 +187,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
          */
         public B withUniqueIDs(Collection<String> uids)
         {
-            instance.featureUIDs = RangeOrSet.from(uids);            
-            return (B)this;
-        }
-        
-        
-        /**
-         * Keep only features with unique IDs starting with given prefix.
-         * @param prefix UID prefix
-         * @return This builder for chaining
-         */
-        public B withUniqueIDPrefix(String prefix)
-        {
-            String begin = prefix + Character.toString((char)0);
-            String end = prefix + Character.toString((char)Integer.MAX_VALUE);
-            instance.featureUIDs = RangeOrSet.from(begin, end);            
+            instance.featureUIDs = ImmutableSortedSet.copyOf(uids);            
             return (B)this;
         }
 
