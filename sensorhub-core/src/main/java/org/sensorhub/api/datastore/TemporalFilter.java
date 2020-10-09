@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore;
 
+import java.time.Duration;
 import java.time.Instant;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -32,9 +33,11 @@ import com.google.common.collect.Range;
  */
 public class TemporalFilter extends RangeFilter<Instant>
 {
+    public static final Duration CURRENT_TIME_TOLERANCE_DEFAULT = Duration.ofMillis(10000);
+    
     protected boolean currentTime; // current time at the time of query evaluation
     protected boolean latestTime; // latest available time (can be in future)
-    protected int currentTimeTolerance; // in millis
+    protected Duration currentTimeTolerance; // in millis
     
     
     public boolean isCurrentTime()
@@ -62,8 +65,8 @@ public class TemporalFilter extends RangeFilter<Instant>
         {
             var now = Instant.now();
             range = Range.closed(
-                now.minusMillis(currentTimeTolerance),
-                now.plusMillis(currentTimeTolerance));
+                now.minus(currentTimeTolerance),
+                now.plus(currentTimeTolerance));
         }
         
         return range;
@@ -84,7 +87,7 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
-    public int getCurrentTimeTolerance()
+    public Duration getCurrentTimeTolerance()
     {
         return currentTimeTolerance;
     }
@@ -135,7 +138,7 @@ public class TemporalFilter extends RangeFilter<Instant>
         
         // handle current time special case
         if (otherFilter.isCurrentTime() && isCurrentTime())
-            return builder.withCurrentTime(Math.min(currentTimeTolerance, otherFilter.currentTimeTolerance));
+            return builder.withCurrentTime(currentTimeTolerance.compareTo(otherFilter.currentTimeTolerance));
         if (otherFilter.isCurrentTime() && isAllTimes())
             return builder.withCurrentTime(otherFilter.currentTimeTolerance);
         if (otherFilter.isAllTimes() && isCurrentTime())
@@ -221,7 +224,7 @@ public class TemporalFilter extends RangeFilter<Instant>
          */
         public B withCurrentTime()
         {
-            return withCurrentTime(1000);
+            return withCurrentTime(CURRENT_TIME_TOLERANCE_DEFAULT);
         }
         
         
@@ -233,10 +236,22 @@ public class TemporalFilter extends RangeFilter<Instant>
          */
         public B withCurrentTime(int toleranceMillis)
         {
+            return withCurrentTime(Duration.ofMillis(toleranceMillis));
+        }
+        
+        
+        /**
+         * Match time stamps that are within the specified time window
+         * around the current time as provided by {@link Instant#now}
+         * @param tolerance Half window size as a duration
+         * @return This builder for chaining
+         */
+        public B withCurrentTime(Duration tolerance)
+        {
             instance.currentTime = true;
             instance.latestTime = false;
-            instance.currentTimeTolerance = toleranceMillis;
-            instance.getRange();
+            instance.currentTimeTolerance = tolerance;
+            instance.getRange(); // precompute time range
             return (B)this;
         }
         
