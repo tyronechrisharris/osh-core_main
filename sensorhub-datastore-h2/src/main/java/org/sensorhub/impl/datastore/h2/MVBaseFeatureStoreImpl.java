@@ -317,19 +317,19 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         // if filtering by UID, use idsIndex as primary
         else if (filter.getFeatureUIDs() != null)
         {
-            if (filter.getFeatureUIDs().isRange())
+            /*if (filter.getFeatureUIDs().isRange())
             {
                 var range = filter.getFeatureUIDs().getRange();
                 var cursor = new RangeCursor<>(
                     idsIndex,
                     range.lowerEndpoint(),
                     range.upperEndpoint());
-                internalIdStream = cursor.valueStream(); 
+                internalIdStream = cursor.valueStream();
             }
-            else
+            else*/
             {
                 // concatenate streams for each selected feature UID
-                internalIdStream = filter.getFeatureUIDs().getSet().stream()
+                internalIdStream = filter.getFeatureUIDs().stream()
                         .map(uid -> {
                             Long internalID = idsIndex.get(uid);
                             if (internalID == null)
