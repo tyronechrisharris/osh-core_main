@@ -30,7 +30,7 @@
             "indeterminate": "latest"
         },
         "internalIDs": [100, 200, 300],
-        "featureUIDs": [
+        "uniqueIDs": [
             "urn:osh:sim:gps",
             "urn:osh:temp*",
             "urn:sensia:test:*"
@@ -55,7 +55,7 @@
             "tolerance": 1000
         },
         "withParents": {
-            "featureUIDs": [
+            "uniqueIDs": [
                 "urn:osh:group:001"
             ]
         },

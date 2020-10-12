@@ -67,9 +67,9 @@ public class TestDatastoreFilters
         filter = new ProcedureFilter.Builder()
             .withUniqueIDs(uids)
             .build();
-        assertTrue(filter.getFeatureUIDs().size() == 3);
+        assertTrue(filter.getUniqueIDs().size() == 3);
         for (var uid: uids)
-            assertTrue(filter.getFeatureUIDs().contains(uid));
+            assertTrue(filter.getUniqueIDs().contains(uid));
                 
         // location
         Geometry roi = new GeometryFactory().createPolygon(new Coordinate[] {

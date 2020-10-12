@@ -556,7 +556,7 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
     public static class FormattingJsonWriter extends JsonWriter
     {
         static Set<String> inlineArrayFields = Sets.newHashSet(
-            "coordinates", "internalIDs", "parentIDs");
+            "coordinates", "internalIDs");
         
         JsonWriter delegate;
         String lastName;

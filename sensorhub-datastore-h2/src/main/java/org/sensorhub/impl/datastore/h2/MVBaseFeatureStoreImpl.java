@@ -315,7 +315,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         }
         
         // if filtering by UID, use idsIndex as primary
-        else if (filter.getFeatureUIDs() != null)
+        else if (filter.getUniqueIDs() != null)
         {
             /*if (filter.getFeatureUIDs().isRange())
             {
@@ -329,7 +329,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             else*/
             {
                 // concatenate streams for each selected feature UID
-                internalIdStream = filter.getFeatureUIDs().stream()
+                internalIdStream = filter.getUniqueIDs().stream()
                         .map(uid -> {
                             Long internalID = idsIndex.get(uid);
                             if (internalID == null)

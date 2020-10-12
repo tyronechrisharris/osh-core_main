@@ -51,7 +51,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
 {
     protected static final Instant LATEST_VERSION = Instant.MAX;
         
-    protected SortedSet<String> featureUIDs;
+    protected SortedSet<String> uniqueIDs;
     protected TemporalFilter validTime;
     protected SpatialFilter location;
     
@@ -64,9 +64,9 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     }
 
 
-    public SortedSet<String> getFeatureUIDs()
+    public SortedSet<String> getUniqueIDs()
     {
-        return featureUIDs;
+        return uniqueIDs;
     }
 
 
@@ -86,16 +86,16 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     public boolean test(T f)
     {
         return (super.test(f) &&
-                testFeatureUIDs(f) &&
+                testUniqueIDs(f) &&
                 testValidTime(f) &&
                 testLocation(f));
     }
     
     
-    public boolean testFeatureUIDs(IFeature f)
+    public boolean testUniqueIDs(IFeature f)
     {
-        return (featureUIDs == null ||
-                featureUIDs.contains(f.getUniqueIdentifier()));
+        return (uniqueIDs == null ||
+                uniqueIDs.contains(f.getUniqueIdentifier()));
     }
     
     
@@ -121,9 +121,9 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     {
         super.and(otherFilter, builder);
         
-        var featureUIDs = FilterUtils.intersect(this.featureUIDs, otherFilter.featureUIDs);
-        if (featureUIDs != null)
-            builder.withUniqueIDs(featureUIDs);
+        var uniqueIDs = FilterUtils.intersect(this.uniqueIDs, otherFilter.uniqueIDs);
+        if (uniqueIDs != null)
+            builder.withUniqueIDs(uniqueIDs);
         
         var validTime = this.validTime != null ? this.validTime.intersect(otherFilter.validTime) : otherFilter.validTime;
         if (validTime != null)
@@ -162,7 +162,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         {
             Asserts.checkNotNull(base, FeatureFilterBase.class);
             super.copyFrom(base);
-            instance.featureUIDs = base.getFeatureUIDs();
+            instance.uniqueIDs = base.getUniqueIDs();
             instance.validTime = base.getValidTime();
             instance.location = base.getLocationFilter();
             return (B)this;
@@ -187,7 +187,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
          */
         public B withUniqueIDs(Collection<String> uids)
         {
-            instance.featureUIDs = ImmutableSortedSet.copyOf(uids);            
+            instance.uniqueIDs = ImmutableSortedSet.copyOf(uids);            
             return (B)this;
         }
 
