@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.datastore.DataStoreFiltersTypeAdapterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
@@ -172,13 +173,15 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
         this.configMap = new LinkedHashMap<>();
         
         // init json serializer/deserializer
-        final GsonBuilder builder = new GsonBuilder();
-        builder.setLenient();
-        builder.setPrettyPrinting();
-        builder.disableHtmlEscaping();
-        builder.serializeSpecialFloatingPointValues();
-        builder.setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-        builder.registerTypeAdapterFactory(new RuntimeTypeAdapterFactory<Object>(Object.class, OBJ_CLASS_FIELD));
+        final GsonBuilder builder = new GsonBuilder()
+            .setLenient()
+            .setPrettyPrinting()
+            .disableHtmlEscaping()
+            .serializeSpecialFloatingPointValues()
+            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+            .registerTypeAdapterFactory(new DataStoreFiltersTypeAdapterFactory())
+            .registerTypeAdapterFactory(new RuntimeTypeAdapterFactory<Object>(Object.class, OBJ_CLASS_FIELD))
+            .setFieldNamingStrategy(new DataStoreFiltersTypeAdapterFactory.FieldNamingStrategy());        
         
         gson = builder.create();
         readJSON();
