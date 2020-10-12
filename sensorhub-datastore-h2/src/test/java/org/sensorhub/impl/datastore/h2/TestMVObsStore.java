@@ -12,7 +12,6 @@ package org.sensorhub.impl.datastore.h2;
 import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.nio.file.Files;
-import java.time.ZoneOffset;
 import org.h2.mvstore.MVStore;
 import org.junit.After;
 import org.junit.Test;
@@ -26,7 +25,7 @@ public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
     protected MVStore mvStore;
         
     
-    protected void initStore(ZoneOffset timeZone) throws Exception
+    protected void initStore() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
         dbFile.deleteOnExit();
@@ -45,9 +44,8 @@ public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
             (MVProcedureStoreImpl)procStore,
             (MVFoiStoreImpl)foiStore,
             MVDataStoreInfo.builder()
-            .withName(OBS_DATASTORE_NAME)
-            .withTimeZone(timeZone)
-            .build());
+                .withName(OBS_DATASTORE_NAME)
+                .build());
     }
     
     

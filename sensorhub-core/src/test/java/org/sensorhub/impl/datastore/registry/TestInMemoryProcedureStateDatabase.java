@@ -16,7 +16,6 @@ package org.sensorhub.impl.datastore.registry;
 
 import static org.junit.Assert.assertEquals;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +54,7 @@ public class TestInMemoryProcedureStateDatabase
         }        
         
         @Override
-        protected IFeatureStoreBase initStore(ZoneOffset timeZone) throws Exception
+        protected IFeatureStoreBase initStore() throws Exception
         {
             return store;
         }

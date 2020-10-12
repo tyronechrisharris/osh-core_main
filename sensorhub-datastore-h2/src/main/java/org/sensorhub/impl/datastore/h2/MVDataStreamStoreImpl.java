@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -139,13 +138,6 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     public String getDatastoreName()
     {
         return obsStore.getDatastoreName();
-    }
-
-
-    @Override
-    public ZoneOffset getTimeZone()
-    {
-        return obsStore.getTimeZone();
     }
 
 

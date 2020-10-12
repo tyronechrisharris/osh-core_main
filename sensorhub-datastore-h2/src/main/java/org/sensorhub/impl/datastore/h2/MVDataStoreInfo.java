@@ -9,7 +9,6 @@
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.time.ZoneOffset;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 
@@ -25,7 +24,6 @@ import org.vast.util.BaseBuilder;
 public class MVDataStoreInfo
 {
     protected String name;
-    protected ZoneOffset zoneOffset = ZoneOffset.UTC;
     
 
     protected MVDataStoreInfo()
@@ -36,12 +34,6 @@ public class MVDataStoreInfo
     public String getName()
     {
         return name;
-    }
-
-
-    public ZoneOffset getZoneOffset()
-    {
-        return zoneOffset;
     }
     
     
@@ -64,13 +56,6 @@ public class MVDataStoreInfo
         public B withName(String name)
         {
             instance.name = name;
-            return (B)this;
-        }
-
-
-        public B withTimeZone(ZoneOffset zoneOffset)
-        {
-            instance.zoneOffset = zoneOffset;
             return (B)this;
         }
         

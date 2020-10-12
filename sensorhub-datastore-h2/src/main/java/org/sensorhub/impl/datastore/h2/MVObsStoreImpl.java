@@ -20,7 +20,6 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -162,14 +161,7 @@ public class MVObsStoreImpl implements IObsStore
     {
         return dataStoreInfo.getName();
     }
-
-
-    @Override
-    public ZoneOffset getTimeZone()
-    {
-        return dataStoreInfo.getZoneOffset();
-    }
-
+    
 
     @Override
     public IDataStreamStore getDataStreams()

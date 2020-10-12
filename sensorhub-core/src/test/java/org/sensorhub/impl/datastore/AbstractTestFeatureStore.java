@@ -17,7 +17,6 @@ package org.sensorhub.impl.datastore;
 import static org.junit.Assert.*;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
@@ -77,14 +76,14 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     boolean useAdd, useAddVersion;
     
     
-    protected abstract StoreType initStore(ZoneOffset timeZone) throws Exception;
+    protected abstract StoreType initStore() throws Exception;
     protected abstract void forceReadBackFromStorage() throws Exception;
     
     
     @Before
     public void init() throws Exception
     {
-        this.featureStore = initStore(ZoneOffset.UTC);
+        this.featureStore = initStore();
     }
     
     
@@ -233,20 +232,6 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         forceReadBackFromStorage();
         assertEquals(DATASTORE_NAME, featureStore.getDatastoreName());
-    }
-    
-    
-    @Test
-    public void testGetTimeZone() throws Exception
-    {
-        assertEquals(ZoneOffset.UTC, featureStore.getTimeZone());
-        
-        ZoneOffset timeZone = ZoneOffset.ofHours(-7);
-        this.featureStore = initStore(timeZone);
-        assertEquals(timeZone, featureStore.getTimeZone());
-        
-        forceReadBackFromStorage();
-        assertEquals(timeZone, featureStore.getTimeZone());
     }
     
     

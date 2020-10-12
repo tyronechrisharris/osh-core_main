@@ -15,7 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.view;
 
 import java.math.BigInteger;
-import java.time.ZoneOffset;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
@@ -94,13 +93,6 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
     public String getDatastoreName()
     {
         return delegate.getDatastoreName();
-    }
-
-
-    @Override
-    public ZoneOffset getTimeZone()
-    {
-        return delegate.getTimeZone();
     }
 
 

@@ -17,7 +17,6 @@ package org.sensorhub.impl.procedure;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.time.ZoneOffset;
 
 
 abstract class InMemoryDataStore
@@ -26,12 +25,6 @@ abstract class InMemoryDataStore
     public String getDatastoreName()
     {
         return getClass().getSimpleName();
-    }
-    
-
-    public ZoneOffset getTimeZone()
-    {
-        return ZoneOffset.UTC;
     }
     
     

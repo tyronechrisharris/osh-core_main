@@ -11,7 +11,6 @@ package org.sensorhub.impl.datastore.h2;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.time.ZoneOffset;
 import org.h2.mvstore.MVStore;
 import org.junit.After;
 import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
@@ -24,7 +23,7 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
     protected MVStore mvStore;
     
     
-    protected MVFeatureStoreImpl initStore(ZoneOffset timeZone) throws Exception
+    protected MVFeatureStoreImpl initStore() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
         dbFile.deleteOnExit();
@@ -33,7 +32,6 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
         
         MVDataStoreInfo dataStoreInfo = MVDataStoreInfo.builder()
                 .withName(DATASTORE_NAME)
-                .withTimeZone(timeZone)
                 .build();
                 
         return MVFeatureStoreImpl.create(mvStore, dataStoreInfo);

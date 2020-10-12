@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import java.time.ZoneOffset;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
@@ -110,13 +109,6 @@ public abstract class FeatureStoreViewBase<
     public String getDatastoreName()
     {
         return delegate.getDatastoreName();
-    }
-
-
-    @Override
-    public ZoneOffset getTimeZone()
-    {
-        return delegate.getTimeZone();
     }
 
 

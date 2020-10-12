@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -116,13 +115,6 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     public String getDatastoreName()
     {
         return dataStoreInfo.getName();
-    }
-
-
-    @Override
-    public ZoneOffset getTimeZone()
-    {
-        return dataStoreInfo.getZoneOffset();
     }
 
 

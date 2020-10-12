@@ -17,7 +17,6 @@ package org.sensorhub.impl.datastore.registry;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.time.ZoneOffset;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.ValueField;
@@ -38,12 +37,6 @@ import org.sensorhub.api.datastore.ValueField;
 public abstract class ReadOnlyDataStore<K, V, VF extends ValueField, Q extends IQueryFilter> implements IDataStore<K, V, VF, Q>
 {
     public static final String READ_ONLY_ERROR_MSG = "This datastore is read-only";
-    
-    
-    public ZoneOffset getTimeZone()
-    {
-        return ZoneOffset.UTC;
-    }
     
     
     public void backup(OutputStream is) throws IOException

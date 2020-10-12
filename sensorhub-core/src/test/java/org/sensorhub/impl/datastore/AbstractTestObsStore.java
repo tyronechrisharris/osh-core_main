@@ -19,7 +19,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
@@ -77,14 +76,14 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     protected Map<BigInteger, IObsData> allObs = new LinkedHashMap<>();
 
 
-    protected abstract void initStore(ZoneOffset timeZone) throws Exception;
+    protected abstract void initStore() throws Exception;
     protected abstract void forceReadBackFromStorage() throws Exception;
 
 
     @Before
     public void init() throws Exception
     {
-        initStore(ZoneOffset.UTC);
+        initStore();
     }
 
 
@@ -177,20 +176,6 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         forceReadBackFromStorage();
         assertEquals(OBS_DATASTORE_NAME, obsStore.getDatastoreName());
-    }
-
-
-    @Test
-    public void testGetTimeZone() throws Exception
-    {
-        assertEquals(ZoneOffset.UTC, obsStore.getTimeZone());
-
-        ZoneOffset timeZone = ZoneOffset.ofHours(-7);
-        initStore(timeZone);
-        assertEquals(timeZone, obsStore.getTimeZone());
-
-        forceReadBackFromStorage();
-        assertEquals(timeZone, obsStore.getTimeZone());
     }
 
 

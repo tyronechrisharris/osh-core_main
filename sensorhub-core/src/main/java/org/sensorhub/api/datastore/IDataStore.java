@@ -17,7 +17,6 @@ package org.sensorhub.api.datastore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.time.ZoneOffset;
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
 import java.util.Collection;
@@ -55,13 +54,6 @@ public interface IDataStore<K, V, VF extends ValueField, Q extends IQueryFilter>
      * @return Data store name
      */
     public String getDatastoreName();
-
-
-    /**
-     * @return Time zone to be used with all time stamps contained in this
-     * data store
-     */
-    public ZoneOffset getTimeZone();
 
 
     /**
