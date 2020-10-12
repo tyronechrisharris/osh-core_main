@@ -29,6 +29,7 @@ import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVVarLongDataType;
 import org.h2.mvstore.RangeCursor;
+import org.sensorhub.api.datastore.VersionFilter;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
@@ -40,7 +41,6 @@ import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
-import com.google.common.collect.Range;
 
 
 /**
@@ -201,7 +201,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     }
 
 
-    Stream<Long> getDataStreamIdsByProcedure(long procID, Set<String> outputNames, Range<Integer> versionRange)
+    Stream<Long> getDataStreamIdsByProcedure(long procID, Set<String> outputNames, VersionFilter versionRange)
     {
         MVDataStreamProcKey first = new MVDataStreamProcKey(procID, "", 0);
         RangeCursor<MVDataStreamProcKey, Boolean> cursor = new RangeCursor<>(dataStreamByProcIndex, first);
@@ -217,7 +217,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     }
 
 
-    Stream<Long> getDataStreamIdsFromAllProcedures(Set<String> outputNames, Range<Integer> versionRange)
+    Stream<Long> getDataStreamIdsFromAllProcedures(Set<String> outputNames, VersionFilter versionRange)
     {
         Stream<MVDataStreamProcKey> keyStream = dataStreamByProcIndex.keySet().stream();
 
@@ -227,14 +227,14 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     }
 
 
-    Stream<MVDataStreamProcKey> postFilterKeyStream(Stream<MVDataStreamProcKey> keyStream, Set<String> outputNames, Range<Integer> versionRange)
+    Stream<MVDataStreamProcKey> postFilterKeyStream(Stream<MVDataStreamProcKey> keyStream, Set<String> outputNames, VersionFilter versionRange)
     {
         if (outputNames != null)
             keyStream = keyStream.filter(k -> outputNames.contains(k.outputName));
 
         if (versionRange != null)
         {
-            if (DataStreamFilter.LATEST_VERSION.equals(versionRange))
+            if (versionRange.isCurrentVersion())
             {
                 Holder<MVDataStreamProcKey> lastKey = new Holder<>();
                 keyStream = keyStream.map(k -> {
@@ -251,7 +251,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 }).filter(Objects::nonNull);
             }
             else
-                keyStream = keyStream.filter(k -> versionRange.contains(k.recordVersion));
+                keyStream = keyStream.filter(k -> versionRange.test(k.recordVersion));
         }
 
         return keyStream;
@@ -276,7 +276,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         {
             // stream directly from list of selected procedures
             resultStream = selectProcedureIDs(filter.getProcedureFilter())
-                .flatMap(id -> getDataStreamIdsByProcedure(id, filter.getOutputNames(), filter.getVersions()))
+                .flatMap(id -> getDataStreamIdsByProcedure(id, filter.getOutputNames(), filter.getVersion()))
                 .map(id -> dataStreamIndex.getEntry(id))
                 .filter(Objects::nonNull);
         }
@@ -297,7 +297,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         // else filter data stream only by output name and version
         else
         {
-            resultStream = getDataStreamIdsFromAllProcedures(filter.getOutputNames(), filter.getVersions())
+            resultStream = getDataStreamIdsFromAllProcedures(filter.getOutputNames(), filter.getVersion())
                 .map(id -> dataStreamIndex.getEntry(id))
                 .filter(Objects::nonNull);
         }
