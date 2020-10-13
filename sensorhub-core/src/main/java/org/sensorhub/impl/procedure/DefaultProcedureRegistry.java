@@ -33,7 +33,6 @@ import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.IProcedureStateDatabase;
 import org.sensorhub.api.procedure.ProcedureRemovedEvent;
-import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.impl.datastore.obs.GenericObsStreamDataStore;
 import org.sensorhub.impl.datastore.obs.StreamDataStoreConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
@@ -170,7 +169,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         
         // if procedure not in DB yet, add to procedure state DB
         // TODO only add version if description has changed
-        FeatureKey newKey = procStateDb.getProcedureStore().addVersion(new ProcedureWrapper(proc.getCurrentDescription()));
+        FeatureKey newKey = procStateDb.getProcedureStore().addVersion(proc.getCurrentDescription());
         if (proc instanceof IDataProducer)
             procStateDb.getConfiguration().procedureUIDs.add(proc.getUniqueIdentifier());
 
