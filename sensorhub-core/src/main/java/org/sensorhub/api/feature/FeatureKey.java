@@ -34,7 +34,6 @@ import org.vast.util.Asserts;
 public class FeatureKey extends ResourceKey<FeatureKey>
 {    
     public final static Instant TIMELESS = Instant.MIN;
-    public final static Instant LATEST = Instant.MAX;
     
     protected Instant validStartTime = TIMELESS;
     
@@ -63,18 +62,7 @@ public class FeatureKey extends ResourceKey<FeatureKey>
     public FeatureKey(long internalID, Instant validStartTime)
     {
         this(internalID);
-        this.validStartTime = Asserts.checkNotNull(validStartTime);
-    }
-    
-    
-    /**
-     * Creates a key for the latest version of a feature
-     * @param internalID Feature internal ID
-     * @return The feature key object
-     */
-    public static FeatureKey latest(long internalID)
-    {
-        return new FeatureKey(internalID, Instant.MAX);
+        this.validStartTime = Asserts.checkNotNull(validStartTime, Instant.class);
     }
 
 
