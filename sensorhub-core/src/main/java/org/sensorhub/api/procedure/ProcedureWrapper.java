@@ -78,11 +78,4 @@ public class ProcedureWrapper implements IProcedureWithDesc
     {
         return fullDesc;
     }
-
-
-    @Override
-    public boolean hasFullDescription()
-    {
-        return fullDesc != null;
-    }
 }

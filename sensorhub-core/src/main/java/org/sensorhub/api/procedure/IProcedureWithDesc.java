@@ -29,8 +29,6 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public interface IProcedureWithDesc extends IProcedure
 {
 
-    boolean hasFullDescription();
-    
-    
     AbstractProcess getFullDescription();
+    
 }
