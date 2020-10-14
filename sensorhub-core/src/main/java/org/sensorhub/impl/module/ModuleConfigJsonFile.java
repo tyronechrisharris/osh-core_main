@@ -179,8 +179,8 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
             .disableHtmlEscaping()
             .serializeSpecialFloatingPointValues()
             .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-            .registerTypeAdapterFactory(new DataStoreFiltersTypeAdapterFactory())
             .registerTypeAdapterFactory(new RuntimeTypeAdapterFactory<Object>(Object.class, OBJ_CLASS_FIELD))
+            .registerTypeAdapterFactory(new DataStoreFiltersTypeAdapterFactory())
             .setFieldNamingStrategy(new DataStoreFiltersTypeAdapterFactory.FieldNamingStrategy());        
         
         gson = builder.create();

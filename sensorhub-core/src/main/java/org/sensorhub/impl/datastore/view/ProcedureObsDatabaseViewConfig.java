@@ -8,13 +8,15 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.datastore.view;
 
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.obs.ObsFilter;
+import org.sensorhub.api.procedure.IProcedureObsDatabase;
 
 
 /**
@@ -35,5 +37,18 @@ public class ProcedureObsDatabaseViewConfig
     public ObsFilter includeFilter;
     
     public ObsFilter excludeFilter;
+    
+        
+    public IProcedureObsDatabase getFilteredView(ISensorHub hub)
+    {
+        var srcDatabase = sourceDatabaseId != null ?
+            hub.getDatabaseRegistry().getDatabase(sourceDatabaseId) :
+            hub.getDatabaseRegistry().getFederatedObsDatabase();
+        
+        if (includeFilter != null)
+            return new ProcedureObsDatabaseView(srcDatabase, includeFilter);
+        else
+            return srcDatabase;
+    }
            
 }
