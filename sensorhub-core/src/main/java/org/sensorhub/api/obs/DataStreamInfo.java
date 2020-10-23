@@ -43,9 +43,9 @@ import net.opengis.swe.v20.DataEncoding;
 public class DataStreamInfo implements IDataStreamInfo
 {
     protected ProcedureId procedureID;
-    protected int recordVersion;
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
+    protected TimeExtent validTime;
 
 
     @Override
@@ -56,9 +56,17 @@ public class DataStreamInfo implements IDataStreamInfo
 
 
     @Override
-    public String getName()
+    public String getOutputName()
     {
         return recordStruct.getName();
+    }
+
+
+    @Override
+    public String getName()
+    {
+        return recordStruct.getLabel() != null ?
+            recordStruct.getLabel() : getOutputName();
     }
     
     
@@ -66,13 +74,6 @@ public class DataStreamInfo implements IDataStreamInfo
     public String getDescription()
     {
         return recordStruct.getDescription();
-    }
-
-
-    @Override
-    public int getRecordVersion()
-    {
-        return recordVersion;
     }
 
 
@@ -87,6 +88,13 @@ public class DataStreamInfo implements IDataStreamInfo
     public DataEncoding getRecordEncoding()
     {
         return recordEncoding;
+    }
+
+
+    @Override
+    public TimeExtent getValidTime()
+    {
+        return validTime;
     }
 
 
@@ -121,7 +129,7 @@ public class DataStreamInfo implements IDataStreamInfo
             instance.procedureID = base.getProcedureID();
             instance.recordStruct = base.getRecordStructure();
             instance.recordEncoding = base.getRecordEncoding();
-            instance.recordVersion = base.getRecordVersion();
+            instance.validTime = base.getValidTime();
             return (B)this;
         }
 
@@ -129,13 +137,6 @@ public class DataStreamInfo implements IDataStreamInfo
         public B withProcedure(ProcedureId procID)
         {
             instance.procedureID = procID;
-            return (B)this;
-        }
-
-
-        public B withRecordVersion(int version)
-        {
-            instance.recordVersion = version;
             return (B)this;
         }
 
@@ -154,14 +155,20 @@ public class DataStreamInfo implements IDataStreamInfo
         }
 
 
+        public B withValidTime(TimeExtent validTime)
+        {
+            instance.validTime = validTime;
+            return (B)this;
+        }
+
+
         @Override
         public T build()
         {
             Asserts.checkNotNull(instance.procedureID, "procedureID");
             Asserts.checkArgument(instance.procedureID.getInternalID() > 0, "procedure internalID must be > 0");
-            //Asserts.checkArgument(!Strings.isNullOrEmpty(instance.procedureID.uniqueID), "procedure UID must be set");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");
-            Asserts.checkNotNull(instance.getName(), "outputName");
+            Asserts.checkNotNull(instance.getOutputName(), "outputName");
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");
             return super.build();
         }
@@ -171,14 +178,14 @@ public class DataStreamInfo implements IDataStreamInfo
     @Override
     public TimeExtent getPhenomenonTimeRange()
     {
-        return TimeExtent.instant(Instant.EPOCH);
+        return null;
     }
 
 
     @Override
     public TimeExtent getResultTimeRange()
     {
-        return TimeExtent.instant(Instant.EPOCH);
+        return null;
     }
 
 

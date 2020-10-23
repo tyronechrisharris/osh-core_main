@@ -505,7 +505,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
         {
             withDataStreams(new DataStreamFilter.Builder()
                 .withProcedures(procID)
-                .withNames(outputNames)
+                .withOutputNames(outputNames)
                 .build());
             return (B)this;
         }

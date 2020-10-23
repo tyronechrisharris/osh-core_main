@@ -55,7 +55,9 @@ public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, 
     
     
     /**
-     * Add a new data stream and generate a new unique key for it.
+     * Add a new data stream and generate a new unique key for it.<br/>
+     * If the datastream valid time is not set, it will be set to the valid time
+     * of the parent procedure.
      * @param dsInfo The data stream info object to be stored
      * @return The key associated with the new data stream
      */
@@ -103,7 +105,7 @@ public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, 
             .withProcedures()
                 .withUniqueIDs(procUID)
                 .done()
-            .withNames(outputName)
+            .withOutputNames(outputName)
             .build())
         .findFirst();
         

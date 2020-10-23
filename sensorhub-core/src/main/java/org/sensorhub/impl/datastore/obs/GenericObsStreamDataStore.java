@@ -67,6 +67,7 @@ import org.vast.ogc.gml.IGeoFeature;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
 
 
 /**
@@ -329,7 +330,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                         .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
                         .withRecordDescription(output.getRecordDescription())
                         .withRecordEncoding(output.getRecommendedEncoding())
-                        .withRecordVersion(dsInfo.getRecordVersion()+1)
+                        .withValidTime(TimeExtent.beginAt(Instant.now()))
                         .build();
                     dsID = dataStreamStore.add(dsInfo);
                 }

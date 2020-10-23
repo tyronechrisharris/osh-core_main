@@ -34,20 +34,16 @@ import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
-import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.api.obs.ObsFilter;
-import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
-import org.vast.sensorML.SMLBuilders;
-import org.vast.sensorML.SMLHelper;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEUtils;
-import net.opengis.sensorml.v20.AbstractProcess;
+import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
 
@@ -58,7 +54,7 @@ import net.opengis.swe.v20.DataRecord;
  * </p>
  *
  * @author Alex Robin
- * @param <StoreType> type of datastore under test
+ * @param <StoreType> Type of store under test
  * @since Apr 14, 2018
  */
 public abstract class AbstractTestObsStore<StoreType extends IObsStore>
@@ -68,48 +64,49 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     protected static String FOI_DATASTORE_NAME = "test-foi";
     protected static String PROC_UID_PREFIX = "urn:osh:test:sensor:";
     protected static String FOI_UID_PREFIX = "urn:osh:test:foi:";
-
+    
     protected StoreType obsStore;
-    protected IProcedureStore procStore;
-    protected IFoiStore foiStore;
     protected Map<Long, IDataStreamInfo> allDataStreams = new LinkedHashMap<>();
     protected Map<BigInteger, IObsData> allObs = new LinkedHashMap<>();
 
 
-    protected abstract void initStore() throws Exception;
+    protected abstract StoreType initStore() throws Exception;
     protected abstract void forceReadBackFromStorage() throws Exception;
 
 
     @Before
     public void init() throws Exception
     {
-        initStore();
+        this.obsStore = initStore();
+        
     }
 
 
-    protected Long addDataStream(ProcedureId procID, DataComponent recordStruct, int version)
+    protected Long addDataStream(ProcedureId procID, DataComponent recordStruct, TimeExtent validTime)
     {
-        DataStreamInfo dsInfo = new DataStreamInfo.Builder()
+        var builder = new DataStreamInfo.Builder()
             .withProcedure(procID)
             .withRecordDescription(recordStruct)
-            .withRecordEncoding(new TextEncodingImpl())
-            .withRecordVersion(version)
-            .build();
-
+            .withRecordEncoding(new TextEncodingImpl());
+        
+        if (validTime != null)
+            builder.withValidTime(validTime);
+                
+        var dsInfo = builder.build();
         Long key = obsStore.getDataStreams().add(dsInfo);
         allDataStreams.put(key, dsInfo);
         return key;
     }
 
 
-    protected Long addSimpleDataStream(ProcedureId procID, String name, int version)
+    protected Long addSimpleDataStream(ProcedureId procID, String outputName, TimeExtent validTime)
     {
         SWEHelper fac = new SWEHelper();
         DataRecord rec = fac.newDataRecord(5);
-        rec.setName(name);
+        rec.setName(outputName);
         for (int i=0; i<5; i++)
             rec.addComponent("comp"+i, fac.newQuantity());
-        return addDataStream(procID, rec, version);
+        return addDataStream(procID, rec, validTime);
     }
 
 
@@ -197,14 +194,14 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     public void testAddAndGetDataStreamByKey() throws Exception
     {
         ProcedureId procID = new ProcedureId(1, PROC_UID_PREFIX+1);
-        addSimpleDataStream(procID, "test", 0);
+        addSimpleDataStream(procID, "test", null);
         forceReadBackFromStorage();
 
         for (Entry<Long, IDataStreamInfo> entry: allDataStreams.entrySet())
         {
             IDataStreamInfo dsInfo = obsStore.getDataStreams().get(entry.getKey());
             assertEquals(entry.getValue().getProcedureID(), dsInfo.getProcedureID());
-            assertEquals(entry.getValue().getName(), dsInfo.getName());
+            assertEquals(entry.getValue().getOutputName(), dsInfo.getOutputName());
             checkDataComponentEquals(entry.getValue().getRecordStructure(), dsInfo.getRecordStructure());
         }
     }
@@ -232,24 +229,27 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
 
     @Test
-    public void testAddDataStreamAndSelectVersions() throws Exception
+    public void testAddDataStreamAndSelectLatestVersion() throws Exception
     {
         Stream<Entry<Long, IDataStreamInfo>> resultStream;
         Map<Long, IDataStreamInfo> expectedResults = new LinkedHashMap<>();
 
         ProcedureId procID = new ProcedureId(1, PROC_UID_PREFIX+1);
-        long ds1v0 = addSimpleDataStream(procID, "test1", 0);
-        long ds1v1 = addSimpleDataStream(procID, "test1", 1);
-        long ds1v2 = addSimpleDataStream(procID, "test1", 2);
-        long ds2v0 = addSimpleDataStream(procID, "test2", 0);
-        long ds2v1 = addSimpleDataStream(procID, "test2", 1);
+        var now = Instant.now();
+        long ds1v0 = addSimpleDataStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
+        long ds1v1 = addSimpleDataStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
+        long ds1v2 = addSimpleDataStream(procID, "test1", TimeExtent.beginAt(now));
+        long ds2v0 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
+        long ds2v1 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now.minusSeconds(600)));
         forceReadBackFromStorage();
 
         // last version of everything
         DataStreamFilter filter = new DataStreamFilter.Builder()
             .withProcedures(procID.getInternalID())
+            .withLatestVersion()
             .build();
         resultStream = obsStore.getDataStreams().selectEntries(filter);
+        
         expectedResults.clear();
         expectedResults.put(ds1v2, allDataStreams.get(ds1v2));
         expectedResults.put(ds2v1, allDataStreams.get(ds2v1));
@@ -655,23 +655,6 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    protected long[] addProcedures(int... uidSuffixes)
-    {
-        long[] internalIDs = new long[uidSuffixes.length];
-
-        for (int i = 0 ; i < uidSuffixes.length; i++)
-        {
-            AbstractProcess p = new SMLHelper().createPhysicalComponent()
-                .uniqueID(PROC_UID_PREFIX+uidSuffixes[i])
-                .build();
-            p.setName("Procedure " + (char)(uidSuffixes[i]+65));
-            internalIDs[i] = procStore.add(p).getInternalID();
-        }
-
-        return internalIDs;
-    }
-
-
     @Test
     public void testSelectObsByDataStreamFilter() throws Exception
     {
@@ -680,8 +663,8 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         ObsFilter filter;
 
         ProcedureId procID = new ProcedureId(10, PROC_UID_PREFIX+10);
-        long ds1 = addSimpleDataStream(procID, "test1", 0);
-        long ds2 = addSimpleDataStream(procID, "test2", 0);
+        long ds1 = addSimpleDataStream(procID, "test1", null);
+        long ds2 = addSimpleDataStream(procID, "test2", null);
 
         Instant startBatch1 = Instant.parse("2018-02-11T08:12:06.897Z");
         Map<BigInteger, IObsData> obsBatch1 = addSimpleObsWithoutResultTime(ds1, 0, startBatch1, 55, 1000);
@@ -710,7 +693,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         forceReadBackFromStorage();
         filter = new ObsFilter.Builder()
             .withDataStreams(new DataStreamFilter.Builder()
-                .withNames("test1")
+                .withOutputNames("test1")
                 .build())
             .build();
         resultStream = obsStore.selectEntries(filter);

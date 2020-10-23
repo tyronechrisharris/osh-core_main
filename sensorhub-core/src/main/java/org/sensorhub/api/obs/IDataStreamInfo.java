@@ -41,18 +41,11 @@ public interface IDataStreamInfo extends IResource
 
 
     /**
-     * @return The name of the datastream, which corresponds to the name of
-     * the procedure output that is/was the source of this data stream
+     * @return The name of the procedure output that is/was the source of
+     * this data stream
      */
-    @Override
-    String getName();
-
-
-    /**
-     * @return The version of the output record schema used in this data stream
-     */
-    int getRecordVersion();
-
+    String getOutputName();
+    
 
     /**
      * @return The data stream record structure
@@ -67,15 +60,22 @@ public interface IDataStreamInfo extends IResource
     
     
     /**
+     * @return The time of validity of this datastream. This corresponds to the time
+     * during which the corresponding procedure output actually existed.
+     */
+    TimeExtent getValidTime();
+    
+    
+    /**
      * @return The range of phenomenon times of observations that are part
-     * of this datastream.
+     * of this datastream, or null if no observations have been recorded yet.
      */
     TimeExtent getPhenomenonTimeRange();
     
     
     /**
      * @return The range of result times of observations that are part
-     * of this datastream.
+     * of this datastream, or null if no observations have been recorded yet.
      */
     TimeExtent getResultTimeRange();
     

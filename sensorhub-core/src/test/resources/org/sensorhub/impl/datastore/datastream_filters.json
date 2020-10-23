@@ -1,6 +1,6 @@
 [
     {
-        "version": {
+        "validTime": {
             "indeterminate": "current"
         },
         "outputNames": ["press", "temp"],
@@ -9,7 +9,7 @@
         }
     },
     {
-        "version": {
+        "validTime": {
             "indeterminate": "current"
         },
         "internalIDs": [100, 200, 300]

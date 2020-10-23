@@ -51,6 +51,13 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
 
 
     @Override
+    public String getOutputName()
+    {
+        return delegate.getOutputName();
+    }
+
+
+    @Override
     public String getName()
     {
         return delegate.getName();
@@ -64,42 +71,49 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
     }
 
 
-    public int getRecordVersion()
-    {
-        return delegate.getRecordVersion();
-    }
-
-
+    @Override
     public DataComponent getRecordStructure()
     {
         return delegate.getRecordStructure();
     }
 
 
+    @Override
     public DataEncoding getRecordEncoding()
     {
         return delegate.getRecordEncoding();
     }
 
 
+    @Override
+    public TimeExtent getValidTime()
+    {
+        return delegate.getValidTime();
+    }
+
+
+    @Override
     public TimeExtent getPhenomenonTimeRange()
     {
         return delegate.getPhenomenonTimeRange();
     }
 
 
+    @Override
     public TimeExtent getResultTimeRange()
     {
         return delegate.getResultTimeRange();
     }
 
 
+    @Override
     public boolean hasDiscreteResultTimes()
     {
         return delegate.hasDiscreteResultTimes();
     }
 
 
+    @Override
     public Map<Instant, TimeExtent> getDiscreteResultTimes()
     {
         return delegate.getDiscreteResultTimes();

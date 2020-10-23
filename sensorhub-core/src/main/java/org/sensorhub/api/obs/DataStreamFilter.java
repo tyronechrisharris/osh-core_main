@@ -14,11 +14,12 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
-import org.sensorhub.api.datastore.VersionFilter;
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
@@ -42,7 +43,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     protected ObsFilter obsFilter;
     protected SortedSet<String> outputNames;
     protected SortedSet<String> observedProperties;
-    protected VersionFilter version;
+    protected TemporalFilter validTime;
     
     
     /*
@@ -75,23 +76,23 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     }
 
 
-    public VersionFilter getVersion()
+    public TemporalFilter getValidTimeFilter()
     {
-        return version;
+        return validTime;
     }
     
     
     public boolean testOutputName(IDataStreamInfo ds)
     {
         return (outputNames == null ||
-            outputNames.contains(ds.getName()));
+            outputNames.contains(ds.getOutputName()));
     }
     
     
-    public boolean testVersion(IDataStreamInfo ds)
+    public boolean testValidTime(IDataStreamInfo ds)
     {
-        return (version == null ||
-            version.test(ds.getRecordVersion()));
+        return (validTime == null ||
+            validTime.test(ds.getValidTime()));
     }
     
     
@@ -124,7 +125,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     public boolean test(IDataStreamInfo ds)
     {
         return (testOutputName(ds) &&
-            testVersion(ds) &&
+            testValidTime(ds) &&
             testObservedProperty(ds) &&
             testValuePredicate(ds));
     }
@@ -160,7 +161,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         
         var outputNames = FilterUtils.intersect(this.outputNames, otherFilter.outputNames);
         if (outputNames != null)
-            builder.withNames(outputNames);
+            builder.withOutputNames(outputNames);
         
         var observedProperties = FilterUtils.intersect(this.observedProperties, otherFilter.observedProperties);
         if (observedProperties != null)
@@ -237,7 +238,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
             instance.procFilter = other.procFilter;
             instance.obsFilter = other.obsFilter;
             instance.outputNames = other.outputNames;
-            instance.version = other.version;
+            instance.validTime = other.validTime;
             instance.observedProperties = other.observedProperties;
             return (B)this;
         }
@@ -329,22 +330,22 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         
         
         /**
-         * Keep only datastreams with the specified names.
-         * @param names One or more datastream names
+         * Keep only datastreams associated to the specified outputs.
+         * @param names One or more procedure output names
          * @return This builder for chaining
          */
-        public B withNames(String... names)
+        public B withOutputNames(String... names)
         {
-            return withNames(Arrays.asList(names));
+            return withOutputNames(Arrays.asList(names));
         }
         
         
         /**
-         * Keep only datastreams with the specified names.
-         * @param names Collections of datastream names
+         * Keep only datastreams associated to the specified outputs.
+         * @param names Collections of procedure output names
          * @return This builder for chaining
          */
-        public B withNames(Collection<String> names)
+        public B withOutputNames(Collection<String> names)
         {
             instance.outputNames = ImmutableSortedSet.copyOf(names);
             return (B)this;
@@ -375,42 +376,80 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
 
 
         /**
-         * Keep only datastreams at a specific version
-         * @param version Version number
+         * Keep only datastreams whose temporal validity matches the filter.
+         * @param timeFilter Temporal filter (see {@link TemporalFilter})
          * @return This builder for chaining
          */
-        public B withVersion(int version)
+        public B withValidTime(TemporalFilter timeFilter)
         {
-            instance.version = new VersionFilter.Builder()
-                .withSingleValue(version)
-                .build();
+            instance.validTime = timeFilter;
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep only datastreams that are valid at some point during the specified period.
+         * @param begin Beginning of search period
+         * @param end End of search period
+         * @return This builder for chaining
+         */
+        public B withValidTimeDuring(Instant begin, Instant end)
+        {
+            instance.validTime = new TemporalFilter.Builder()
+                    .withRange(begin, end)
+                    .build();
             return (B)this;
         }
 
 
         /**
-         * Keep only datastreams within a specific version range
-         * @param minVersion Min version number
-         * @param maxVersion Max version number
+         * Keep only datastreams that are valid at the specified time.
+         * @param time Time instant of interest (can be set to past or future)
          * @return This builder for chaining
          */
-        public B withVersionRange(int minVersion, int maxVersion)
+        public B validAtTime(Instant time)
         {
-            instance.version = new VersionFilter.Builder()
-                .withRange(minVersion, maxVersion)
-                .build();
+            instance.validTime = new TemporalFilter.Builder()
+                    .withSingleValue(time)
+                    .build();
             return (B)this;
         }
 
 
         /**
-         * Keep only the latest version of selected datastreams
+         * Keep only datastreams that are valid at the current time.
+         * @return This builder for chaining
+         */
+        public B validNow()
+        {
+            instance.validTime = new TemporalFilter.Builder()
+                .withCurrentTime()
+                .build();
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep only the latest version of selected datastreams.
+         * @return This builder for chaining
+         */
+        public B withLatestVersion()
+        {
+            instance.validTime = new TemporalFilter.Builder()
+                .withLatestTime()
+                .build();
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep all versions of selected datastreams.
          * @return This builder for chaining
          */
         public B withAllVersions()
         {
-            instance.version = new VersionFilter.Builder()
-                .withAllVersions()
+            instance.validTime = new TemporalFilter.Builder()
+                .withAllTimes()
                 .build();
             return (B)this;
         }
