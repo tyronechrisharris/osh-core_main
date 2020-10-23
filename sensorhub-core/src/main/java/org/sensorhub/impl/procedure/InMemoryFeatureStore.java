@@ -103,9 +103,9 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
     
     
     @Override
-    public Entry<FeatureKey, T> getLatestVersionEntry(String uid)
+    public Entry<FeatureKey, T> getCurrentVersionEntry(String uid)
     {
-        FeatureKey key = getLatestVersionKey(uid);
+        FeatureKey key = getCurrentVersionKey(uid);
         if (key == null)
             return null;
         return new AbstractMap.SimpleEntry<>(key, map.get(key));
@@ -113,7 +113,7 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
     
     
     @Override
-    public FeatureKey getLatestVersionKey(String uid)
+    public FeatureKey getCurrentVersionKey(String uid)
     {
         Asserts.checkNotNull(uid, "uniqueID");
         return uidMap.get(uid);

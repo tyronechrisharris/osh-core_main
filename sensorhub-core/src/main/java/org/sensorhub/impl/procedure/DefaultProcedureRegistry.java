@@ -159,7 +159,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     protected FeatureKey addToDataStore(IProcedureDriver proc)
     {
         // check if procedure data is handled by a dedicated DB
-        FeatureKey existingKey = federatedDb.getProcedureStore().getLatestVersionKey(proc.getUniqueIdentifier());
+        FeatureKey existingKey = federatedDb.getProcedureStore().getCurrentVersionKey(proc.getUniqueIdentifier());
         if (existingKey != null)
         {
             long databaseID = hub.getDatabaseRegistry().getDatabaseID(existingKey.getInternalID());

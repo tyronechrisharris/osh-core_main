@@ -586,7 +586,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         timeRange = Range.singleton(Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(ids.toArray(new String[0]))
-                .withLatestVersion()
+                .withCurrentVersion()
                 .build());
         checkSelectedEntries(resultStream, ids, timeRange);
         
@@ -595,7 +595,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         timeRange = Range.singleton(Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
                 .withUniqueIDs(ids.toArray(new String[0]))
-                .withLatestVersion()
+                .withCurrentVersion()
                 .build());
         checkSelectedEntries(resultStream, ids, timeRange);
     }

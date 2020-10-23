@@ -215,21 +215,21 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
                 //.peek(e -> System.out.println(e.getKey()))
                 //.peek(e -> System.out.println(Arrays.toString((double[])e.getValue().getResult().getUnderlyingObject())))
                 .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
-        assertEquals(expectedResults.size(), resultMap.size());
         System.out.println(resultMap.size() + " obs selected");
-
+        assertEquals(expectedResults.size(), resultMap.size());
+        
         resultMap.forEach((k, v) -> {
-            assertTrue(expectedResults.containsKey(k));
+            assertTrue("Extra key "+k, expectedResults.containsKey(k));
         });
 
         expectedResults.forEach((k, v) -> {
-            assertTrue(resultMap.containsKey(k));
+            assertTrue("Missing key "+k, resultMap.containsKey(k));
         });
     }
-
-
+    
+    
     @Test
-    public void testAddDataStreamAndSelectLatestVersion() throws Exception
+    public void testAddDataStreamAndSelectCurrentVersion() throws Exception
     {
         Stream<Entry<Long, IDataStreamInfo>> resultStream;
         Map<Long, IDataStreamInfo> expectedResults = new LinkedHashMap<>();
@@ -240,19 +240,23 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         long ds1v1 = addSimpleDataStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
         long ds1v2 = addSimpleDataStream(procID, "test1", TimeExtent.beginAt(now));
         long ds2v0 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
-        long ds2v1 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now.minusSeconds(600)));
+        long ds2v1 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now));
+        long ds2v2 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now.plusSeconds(600)));
+        long ds3v0 = addSimpleDataStream(procID, "test3", TimeExtent.beginAt(now.minusSeconds(3600)));
+        long ds3v1 = addSimpleDataStream(procID, "test3", TimeExtent.beginAt(now.minusSeconds(600)));
         forceReadBackFromStorage();
 
         // last version of everything
         DataStreamFilter filter = new DataStreamFilter.Builder()
             .withProcedures(procID.getInternalID())
-            .withLatestVersion()
+            .withCurrentVersion()
             .build();
         resultStream = obsStore.getDataStreams().selectEntries(filter);
         
         expectedResults.clear();
         expectedResults.put(ds1v2, allDataStreams.get(ds1v2));
         expectedResults.put(ds2v1, allDataStreams.get(ds2v1));
+        expectedResults.put(ds3v1, allDataStreams.get(ds3v1));
         checkSelectedEntries(resultStream, expectedResults, filter);
     }
 

@@ -22,5 +22,5 @@ import org.vast.ogc.gml.IGeoFeature;
 public interface IFeatureCollection extends IGeoFeature
 {
 
-    Collection<IFeature> getMember();
+    Collection<IFeature> getMembers();
 }

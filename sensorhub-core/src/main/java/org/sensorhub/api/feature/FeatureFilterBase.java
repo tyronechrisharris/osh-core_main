@@ -231,29 +231,16 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
                     .build();
             return (B)this;
         }
-
-
-        /**
-         * Keep only feature representations that are valid at the current time.
-         * @return This builder for chaining
-         */
-        public B validNow()
-        {
-            instance.validTime = new TemporalFilter.Builder()
-                .withCurrentTime()
-                .build();
-            return (B)this;
-        }
         
         
         /**
-         * Keep only the latest version of features.
+         * Keep only the current version of features.
          * @return This builder for chaining
          */
-        public B withLatestVersion()
+        public B withCurrentVersion()
         {
             instance.validTime = new TemporalFilter.Builder()
-                .withLatestTime()
+                .withCurrentTime(0)
                 .build();
             return (B)this;
         }

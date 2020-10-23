@@ -281,7 +281,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         ProcedureId procId = dataSource.getProcedureID();
         String procUID = procId.getUniqueID();
         ProducerInfo producerInfo = registeredProducers.computeIfAbsent(procId, k -> new ProducerInfo());
-        FeatureKey procKey = db.getProcedureStore().getLatestVersionKey(procUID);
+        FeatureKey procKey = db.getProcedureStore().getCurrentVersionKey(procUID);
 
         // need to make sure we add things if they are missing in storage
         
@@ -348,7 +348,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         if (foi != null)
         {
             // TODO support versioning but check that fois are really different            
-            FeatureKey fk = db.getFoiStore().getLatestVersionKey(foi.getUniqueIdentifier());
+            FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foi.getUniqueIdentifier());
             if (fk == null)
                 fk = db.getFoiStore().addVersion(foi);
             producerInfo.currentFoi = new FeatureId(fk.getInternalID(), foi.getUniqueIdentifier());
@@ -538,7 +538,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                         return;
 
                     // store feature object if specified
-                    FeatureKey fk = db.getFoiStore().getLatestVersionKey(foiEvent.getFoiUID());
+                    FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foiEvent.getFoiUID());
                     if (foiEvent.getFoi() != null && fk == null)
                     {
                         fk = db.getFoiStore().add(foiEvent.getFoi());

@@ -125,10 +125,10 @@ public class TestFederatedDatabaseRegistry
         proc3.setUniqueIdentifier("sensor3");
         FeatureKey fk3 = db2.getProcedureStore().add(proc3);
         
-        FeatureKey id1 = mainObsDatabase.getProcedureStore().getLatestVersionKey("sensor1");
+        FeatureKey id1 = mainObsDatabase.getProcedureStore().getCurrentVersionKey("sensor1");
         assertTrue(fk1.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db1.getDatabaseID() == id1.getInternalID());
         
-        FeatureKey id3 = mainObsDatabase.getProcedureStore().getLatestVersionKey("sensor3");
+        FeatureKey id3 = mainObsDatabase.getProcedureStore().getCurrentVersionKey("sensor3");
         assertTrue(fk3.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db2.getDatabaseID() == id3.getInternalID());
         
         assertEquals(2, mainObsDatabase.getProcedureStore().keySet().size());        

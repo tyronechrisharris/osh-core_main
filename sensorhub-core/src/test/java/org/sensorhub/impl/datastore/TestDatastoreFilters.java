@@ -134,7 +134,7 @@ public class TestDatastoreFilters
         
         assertTrue(new ProcedureFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:001")
-            .withLatestVersion().build()
+            .withCurrentVersion().build()
             .test(proc));
         
         assertFalse(new ProcedureFilter.Builder()

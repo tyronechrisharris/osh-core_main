@@ -420,23 +420,10 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          * Keep only datastreams that are valid at the current time.
          * @return This builder for chaining
          */
-        public B validNow()
+        public B withCurrentVersion()
         {
             instance.validTime = new TemporalFilter.Builder()
-                .withCurrentTime()
-                .build();
-            return (B)this;
-        }
-        
-        
-        /**
-         * Keep only the latest version of selected datastreams.
-         * @return This builder for chaining
-         */
-        public B withLatestVersion()
-        {
-            instance.validTime = new TemporalFilter.Builder()
-                .withLatestTime()
+                .withCurrentTime(0)
                 .build();
             return (B)this;
         }

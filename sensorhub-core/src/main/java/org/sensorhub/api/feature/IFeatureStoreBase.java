@@ -67,16 +67,16 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     /**
-     * Helper method to retrieve the full key corresponding to the latest version
+     * Helper method to retrieve the full key corresponding to the current version
      * of the feature with the given unique ID
      * @param uid The feature unique ID
      * @return The feature key or null if no feature with the given ID was found
      */
-    public default FeatureKey getLatestVersionKey(String uid)
+    public default FeatureKey getCurrentVersionKey(String uid)
     {
         return selectKeys(filterBuilder()
                 .withUniqueIDs(uid)
-                .withLatestVersion()
+                .withCurrentVersion()
                 .build())
             .findFirst()
             .orElse(null);
@@ -84,16 +84,16 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     /**
-     * Helper method to retrieve the full key corresponding to the latest version
+     * Helper method to retrieve the full key corresponding to the current version
      * of the feature with the given internal ID
      * @param internalID The feature internal ID
      * @return The feature key or null if no feature with the given ID was found
      */
-    public default FeatureKey getLatestVersionKey(long internalID)
+    public default FeatureKey getCurrentVersionKey(long internalID)
     {
         return selectKeys(filterBuilder()
                 .withInternalIDs(internalID)
-                .withLatestVersion()
+                .withCurrentVersion()
                 .build())
             .findFirst()
             .orElse(null);
@@ -101,16 +101,16 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     /**
-     * Helper method to retrieve the entry corresponding to the latest version
+     * Helper method to retrieve the entry corresponding to the current version
      * of the feature with the given unique ID
      * @param uid The feature unique ID
      * @return The feature entry or null if no feature with the given ID was found
      */
-    public default Entry<FeatureKey, V> getLatestVersionEntry(String uid)
+    public default Entry<FeatureKey, V> getCurrentVersionEntry(String uid)
     {
         return selectEntries(filterBuilder()
                 .withUniqueIDs(uid)
-                .withLatestVersion()
+                .withCurrentVersion()
                 .build())
             .findFirst()
             .orElse(null);            
@@ -118,16 +118,16 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     /**
-     * Helper method to retrieve the entry corresponding to the latest version
+     * Helper method to retrieve the entry corresponding to the current version
      * of the feature with the given internal ID
      * @param internalID The feature internal ID
      * @return The feature entry or null if no feature with the given ID was found
      */
-    public default Entry<FeatureKey, V> getLatestVersionEntry(long internalID)
+    public default Entry<FeatureKey, V> getCurrentVersionEntry(long internalID)
     {
         return selectEntries(filterBuilder()
                 .withInternalIDs(internalID)
-                .withLatestVersion()
+                .withCurrentVersion()
                 .build())
             .findFirst()
             .orElse(null);            
@@ -135,29 +135,29 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     /**
-     * Helper method to retrieve the latest version of the feature with the given
+     * Helper method to retrieve the current version of the feature with the given
      * unique ID
      * @param uid The feature unique ID
      * @return The feature representation or null if no feature with the
      * given ID was found
      */
-    public default V getLatestVersion(String uid)
+    public default V getCurrentVersion(String uid)
     {
-        Entry<FeatureKey, V> e = getLatestVersionEntry(uid);
+        Entry<FeatureKey, V> e = getCurrentVersionEntry(uid);
         return e != null ? e.getValue() : null;
     }
     
     
     /**
-     * Helper method to retrieve the latest version of the feature with the given
+     * Helper method to retrieve the current version of the feature with the given
      * internal ID
      * @param internalID The feature internal ID
      * @return The feature representation or null if no feature with the
      * given ID was found
      */
-    public default V getLatestVersion(long internalID)
+    public default V getCurrentVersion(long internalID)
     {
-        Entry<FeatureKey, V> e = getLatestVersionEntry(internalID);
+        Entry<FeatureKey, V> e = getCurrentVersionEntry(internalID);
         return e != null ? e.getValue() : null;
     }
 
@@ -169,7 +169,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      */
     public default boolean contains(String uid)
     {
-        return getLatestVersionKey(uid) != null;
+        return getCurrentVersionKey(uid) != null;
     }
     
     
@@ -194,7 +194,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     public default long getNumFeatures()
     {
         return countMatchingEntries(filterBuilder()
-            .withLatestVersion()
+            .withCurrentVersion()
             .build());
     }
 
