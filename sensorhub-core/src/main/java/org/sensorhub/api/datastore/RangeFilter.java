@@ -110,19 +110,10 @@ public class RangeFilter<T extends Comparable<T>> implements Predicate<T>
     }
     
     
-    /**
-     * Deep clone this filter
-     */
-    public RangeFilter<T> clone()
-    {
-        return Builder.from(this).build();
-    }
-    
-    
     @Override
     public String toString()
     {
-        return String.format("Range %s [%s - %s]", op, range.lowerEndpoint(), range.upperEndpoint()); 
+        return String.format("%s [%s - %s]", op, range.lowerEndpoint(), range.upperEndpoint()); 
     }
     
     

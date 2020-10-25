@@ -22,6 +22,7 @@ import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.FullTextFilter;
 import org.sensorhub.utils.FilterUtils;
+import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.IResource;
@@ -96,6 +97,13 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
     {
         return testFullText(res) &&
                testValuePredicate(res);
+    }
+
+
+    @Override
+    public String toString()
+    {
+        return ObjectUtils.toString(this, true);
     }
     
     

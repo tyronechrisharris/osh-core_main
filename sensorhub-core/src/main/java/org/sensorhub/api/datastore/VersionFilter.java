@@ -108,6 +108,16 @@ public class VersionFilter extends RangeFilter<Integer>
     }
     
     
+    @Override
+    public String toString()
+    {
+        if (isCurrentVersion())
+            return "current";
+        else
+            return super.toString();
+    }
+    
+    
     /*
      * Builder
      */

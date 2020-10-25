@@ -154,6 +154,18 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    @Override
+    public String toString()
+    {
+        if (isCurrentTime())
+            return "current";
+        else if (isLatestTime())
+            return "latest";
+        else
+            return super.toString();
+    }
+    
+    
     /*
      * Builder
      */
