@@ -142,13 +142,15 @@ public interface IDataStore<K, V, VF extends ValueField, Q extends IQueryFilter>
 
 
     /**
-     * Remove all entries matching the query
+     * Batch remove all entries matching the query
      * @param query selection filter (datastore specific)
-     * @return Stream of deleted keys
+     * @return Number of deleted entries
      */
-    public default Stream<K> removeEntries(Q query)
+    public default long removeEntries(Q query)
     {
-        return selectKeys(query).peek(k -> remove(k));
+        return selectKeys(query)
+            .filter(k -> remove(k) != null)
+            .count();
     }
 
 

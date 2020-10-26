@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.feature;
 
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
@@ -176,12 +177,19 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     /**
      * Helper method to remove all versions of the feature with the given UID
      * @param uid The feature unique ID
-     * @return The feature key of the last version or null if nothing was removed
+     * @return The feature key of the current version or null if nothing was removed
      */
     public default FeatureKey remove(String uid)
     {
-        return removeEntries(filterBuilder().withUniqueIDs(uid).build())
-            .reduce((k1, k2) -> k2).orElse(null);
+        var fk = getCurrentVersionKey(uid);
+        if (fk == null)
+            return null;
+        
+        long count = removeEntries(filterBuilder()
+            .withUniqueIDs(uid)
+            .build());
+        
+        return count > 0 ? fk : null;
     }
        
     
@@ -194,7 +202,9 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     public default long getNumFeatures()
     {
         return countMatchingEntries(filterBuilder()
-            .withCurrentVersion()
+            .withValidTime(new TemporalFilter.Builder()
+                .withLatestTime()
+                .build())
             .build());
     }
 
