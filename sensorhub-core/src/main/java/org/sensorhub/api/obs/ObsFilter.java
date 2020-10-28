@@ -452,7 +452,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param ids Internal IDs of one or more data streams
          * @return This builder for chaining
          */
-        public B withDataStreams(Long... ids)
+        public B withDataStreams(long... ids)
         {
             withDataStreams(new DataStreamFilter.Builder()
                 .withInternalIDs(ids)
@@ -486,7 +486,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param procIDs Internal IDs of one or more procedures
          * @return This builder for chaining
          */
-        public B withProcedures(Long... procIDs)
+        public B withProcedures(long... procIDs)
         {
             withDataStreams(new DataStreamFilter.Builder()
                 .withProcedures(procIDs)
@@ -546,7 +546,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param foiIDs Internal IDs of one or more fois
          * @return This builder for chaining
          */
-        public B withFois(Long... foiIDs)
+        public B withFois(long... foiIDs)
         {
             withFois(new FoiFilter.Builder()
                 .withInternalIDs(foiIDs)

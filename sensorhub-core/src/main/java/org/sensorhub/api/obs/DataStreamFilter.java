@@ -24,6 +24,7 @@ import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.primitives.Longs;
 import net.opengis.swe.v20.DataComponent;
 
 
@@ -279,9 +280,9 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          * @param procIDs Internal IDs of one or more procedures
          * @return This builder for chaining
          */
-        public B withProcedures(Long... procIDs)
+        public B withProcedures(long... procIDs)
         {
-            return withProcedures(Arrays.asList(procIDs));
+            return withProcedures(Longs.asList(procIDs));
         }
 
 

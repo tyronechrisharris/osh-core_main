@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.resource;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
 import java.util.function.Predicate;
@@ -27,6 +26,7 @@ import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.IResource;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.primitives.Longs;
 
 
 /**
@@ -167,9 +167,9 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          * @param ids One or more internal IDs of resources to select
          * @return This builder for chaining
          */
-        public B withInternalIDs(Long... ids)
+        public B withInternalIDs(long... ids)
         {
-            return withInternalIDs(Arrays.asList(ids));
+            return withInternalIDs(Longs.asList(ids));
         }
         
         
