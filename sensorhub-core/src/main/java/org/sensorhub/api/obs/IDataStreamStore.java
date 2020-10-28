@@ -112,11 +112,4 @@ public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, 
         return entryOpt.isPresent() ? entryOpt.get() : null;
     }
     
-    
-    @Override
-    public default Long add(long parentId, IDataStreamInfo value)
-    {
-        throw new UnsupportedOperationException();
-    }
-    
 }

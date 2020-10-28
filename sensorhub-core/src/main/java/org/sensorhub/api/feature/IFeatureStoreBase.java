@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.feature;
 
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
@@ -65,6 +66,17 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * @return The key associated with the new feature
      */
     public FeatureKey addVersion(V feature);
+    
+    
+    /**
+     * Add a new feature to the store, generating a new key for it, and
+     * also add it as a child of the specified parent
+     * @param parentID Internal ID of parent feature
+     * @param value New feature object
+     * @return The newly allocated key (internal ID)
+     * @throws DataStoreException if the parent doesn't exist in this store
+     */
+    FeatureKey add(long parentID, V value) throws DataStoreException;
     
     
     /**

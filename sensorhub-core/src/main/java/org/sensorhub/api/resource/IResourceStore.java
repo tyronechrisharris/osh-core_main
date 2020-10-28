@@ -39,16 +39,6 @@ public interface IResourceStore<K extends Comparable<K>, V extends IResource, VF
     
     
     /**
-     * Add a new resource to the store, generating a new key for it.
-     * The resource is also added as a child of the given parent
-     * @param parentId Internal ID of parent resource
-     * @param value New resource object
-     * @return The newly allocated key (internal ID)
-     */
-    K add(long parentId, V value);
-    
-    
-    /**
      * @return A builder for a filter compatible with this datastore
      */
     public ResourceFilterBuilder<?,?,F> filterBuilder();
