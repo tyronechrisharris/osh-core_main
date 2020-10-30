@@ -64,6 +64,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * Add a new version of an existing feature
      * @param feature The feature object to be stored
      * @return The key associated with the new feature
+     * @throws DataStoreException if the parent doesn't exist in this store
      */
     public FeatureKey addVersion(V feature);
     
@@ -76,7 +77,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * @return The newly allocated key (internal ID)
      * @throws DataStoreException if the parent doesn't exist in this store
      */
-    FeatureKey add(long parentID, V value) throws DataStoreException;
+    FeatureKey add(long parentID, V value);
     
     
     /**
