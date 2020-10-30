@@ -14,14 +14,14 @@ Software distributed under the License is distributed on an "AS IS" basis,&#13;
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License&#13;
 for the specific language governing rights and limitations under the License.&#13;
  &#13;
-Copyright (C) 2012-${year} Sensia Software LLC. All Rights Reserved.&#13;
+Copyright (C) ${year} Sensia Software LLC. All Rights Reserved.&#13;
  &#13;
 ******************************* END LICENSE BLOCK ***************************/</template><template autoinsert="false" context="typecomment_context" deleted="false" description="Comment for created types" enabled="true" id="org.eclipse.jdt.ui.text.codetemplates.typecomment" name="typecomment">/**
  * &lt;p&gt;
  * TODO ${type_name} type description
  * &lt;/p&gt;
  *
- * @author Alex Robin &lt;alex.robin@sensiasoftware.com&gt;
+ * @author Alex Robin
  * @since ${date}
  */</template><template autoinsert="true" context="fieldcomment_context" deleted="false" description="Comment for fields" enabled="true" id="org.eclipse.jdt.ui.text.codetemplates.fieldcomment" name="fieldcomment">/**
  * 
@@ -41,7 +41,7 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-${year} Sensia Software LLC. All Rights Reserved.
+Copyright (C) ${year} Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
