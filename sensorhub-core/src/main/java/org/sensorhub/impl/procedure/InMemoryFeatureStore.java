@@ -74,20 +74,6 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
         put(newKey, feature);    
         return newKey;
     }
-
-
-    @Override
-    public FeatureKey addVersion(T feature)
-    {
-        // create new or replace last version
-        FeatureKey fk = uidMap.get(feature.getUniqueIdentifier());
-        if (fk == null)
-            fk = add(feature);
-        else
-            put(fk, feature);
-        
-        return fk;
-    }
     
     
     protected FeatureKey generateKey(T feature)

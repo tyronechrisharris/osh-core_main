@@ -168,8 +168,8 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         }
         
         // if procedure not in DB yet, add to procedure state DB
-        // TODO only add version if description has changed
-        FeatureKey newKey = procStateDb.getProcedureStore().addVersion(proc.getCurrentDescription());
+        // TODO only add if description has actually changed
+        FeatureKey newKey = procStateDb.getProcedureStore().add(proc.getCurrentDescription());
         if (proc instanceof IDataProducer)
             procStateDb.getConfiguration().procedureUIDs.add(proc.getUniqueIdentifier());
 

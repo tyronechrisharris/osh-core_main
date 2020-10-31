@@ -49,7 +49,8 @@ public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, P
     
     
     /**
-     * Add a new procedure using its full description
+     * Add a new procedure using its full description.<br/>
+     * This method delegates to {@link IFeatureStoreBase#add(T)}
      * @param desc The full procedure description
      * @return The newly allocated key (internal ID)
      */
@@ -60,13 +61,15 @@ public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, P
     
     
     /**
-     * Add a new version of an existing procedure description
+     * Add a new procedure using its full description and associate to its parent.<br/>
+     * This method delegates to {@link IFeatureStoreBase#add(long, T)}
+     * @param parentID Internal ID of parent procedure
      * @param desc The full procedure description
-     * @return The key associated with the new procedure version
+     * @return The newly allocated key (internal ID)
      */
-    public default FeatureKey addVersion(AbstractProcess desc)
+    public default FeatureKey add(long parentID, AbstractProcess desc)
     {
-        return addVersion(new ProcedureWrapper(desc));
+        return add(parentID, new ProcedureWrapper(desc));
     }
     
     

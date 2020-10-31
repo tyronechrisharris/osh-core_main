@@ -296,7 +296,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         {
             Instant validStartTime = dataSource.getCurrentDescription().getValidTime().begin();
             if (procKey.getValidStartTime().isBefore(validStartTime))
-                procKey = db.getProcedureStore().addVersion(dataSource.getCurrentDescription());
+                procKey = db.getProcedureStore().add(dataSource.getCurrentDescription());
         }
         
         // add data stream for each selected output that is not already registered
@@ -347,10 +347,10 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         IGeoFeature foi = dataSource.getCurrentFeatureOfInterest();
         if (foi != null)
         {
-            // TODO support versioning but check that fois are really different            
+            // TODO support versioning but check that fois are really different
             FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foi.getUniqueIdentifier());
             if (fk == null)
-                fk = db.getFoiStore().addVersion(foi);
+                fk = db.getFoiStore().add(foi);
             producerInfo.currentFoi = new FeatureId(fk.getInternalID(), foi.getUniqueIdentifier());
         }
         
@@ -563,7 +563,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                 ProcedureId procID = ((ProcedureChangedEvent)e).getProcedureID();
                 IDataProducer producer = getDataSource(procID);
                 if (producer != null)
-                    db.getProcedureStore().addVersion(producer.getCurrentDescription());
+                    db.getProcedureStore().add(producer.getCurrentDescription());
             }
             
             // commit only when necessary

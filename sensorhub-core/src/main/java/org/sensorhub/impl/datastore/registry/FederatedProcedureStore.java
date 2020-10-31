@@ -252,13 +252,6 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProc
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
-
-
-    @Override
-    public FeatureKey addVersion(IProcedureWithDesc feature)
-    {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
-    }
     
     
     @Override

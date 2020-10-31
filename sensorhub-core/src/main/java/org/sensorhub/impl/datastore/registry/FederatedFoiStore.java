@@ -277,13 +277,6 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
-
-
-    @Override
-    public FeatureKey addVersion(IGeoFeature feature)
-    {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
-    }
     
     
     @Override

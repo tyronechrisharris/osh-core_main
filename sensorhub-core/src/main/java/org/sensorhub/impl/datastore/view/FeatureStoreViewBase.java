@@ -124,11 +124,4 @@ public abstract class FeatureStoreViewBase<
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
-
-
-    @Override
-    public FeatureKey addVersion(V feature)
-    {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
-    }
 }
