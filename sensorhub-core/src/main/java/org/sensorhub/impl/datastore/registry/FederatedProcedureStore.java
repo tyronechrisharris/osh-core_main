@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore.registry;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.feature.FeatureKey;
@@ -175,6 +176,10 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProc
     
     protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(ProcedureFilter filter)
     {
+        Map<Integer, LocalFilterInfo> dataStreamFilterDispatchMap = null;
+        Map<Integer, LocalFilterInfo> parentFilterDispatchMap = null;
+        Map<Integer, LocalFilterInfo> procFilterDispatchMap = new TreeMap<>();
+        
         if (filter.getInternalIDs() != null)
         {
             var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());
@@ -189,25 +194,60 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProc
             return filterDispatchMap;
         }
         
-        else if (filter.getDataStreamFilter() != null)
+        // otherwise get dispatch map for datastreams and parent procedures
+        if (filter.getDataStreamFilter() != null)
+            dataStreamFilterDispatchMap = db.obsStore.dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
+        
+        if (filter.getParentFilter() != null)
+            parentFilterDispatchMap = getFilterDispatchMap(filter.getParentFilter());
+        
+        // merge both maps
+        if (dataStreamFilterDispatchMap != null)
         {
-            // delegate to datastream store handle datastream filter dispatch map
-            var filterDispatchMap = db.obsStore.dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
-            if (filterDispatchMap != null)
+            for (var entry: dataStreamFilterDispatchMap.entrySet())
             {
-                for (var filterInfo: filterDispatchMap.values())
-                {
-                    filterInfo.filter = ProcedureFilter.Builder
-                        .from(filter)
-                        .withDataStreams((DataStreamFilter)filterInfo.filter)
-                        .build();
-                }
+                var dataStreamFilterInfo = entry.getValue();
+                                
+                var builder = ProcedureFilter.Builder
+                    .from(filter)
+                    .withDataStreams((DataStreamFilter)dataStreamFilterInfo.filter);
+                
+                var parentfilterInfo = parentFilterDispatchMap != null ? parentFilterDispatchMap.get(entry.getKey()) : null;
+                if (parentfilterInfo != null)
+                    builder.withParents((ProcedureFilter)parentfilterInfo.filter);
+                    
+                var filterInfo = new LocalFilterInfo();
+                filterInfo.databaseID = dataStreamFilterInfo.databaseID;
+                filterInfo.db = dataStreamFilterInfo.db;
+                filterInfo.filter = builder.build();
+                procFilterDispatchMap.put(entry.getKey(), filterInfo);
             }
-            
-            return filterDispatchMap;
         }
         
-        return null;
+        if (parentFilterDispatchMap != null)
+        {
+            for (var entry: parentFilterDispatchMap.entrySet())
+            {
+                var parentFilterInfo = entry.getValue();
+                
+                // only process DBs not already processed in first loop above
+                if (!procFilterDispatchMap.containsKey(entry.getKey()))
+                {
+                    var filterInfo = new LocalFilterInfo();
+                    filterInfo.databaseID = parentFilterInfo.databaseID;
+                    filterInfo.db = parentFilterInfo.db;
+                    filterInfo.filter = ProcedureFilter.Builder.from(filter)
+                        .withParents((ProcedureFilter)parentFilterInfo.filter)
+                        .build();
+                    procFilterDispatchMap.put(entry.getKey(), filterInfo);
+                }
+            }
+        }
+        
+        if (!procFilterDispatchMap.isEmpty())
+            return procFilterDispatchMap;
+        else
+            return null;
     }
 
 

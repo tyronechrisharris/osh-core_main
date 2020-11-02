@@ -193,7 +193,9 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     
     protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(ObsFilter filter)
     {
-        Map<Integer, LocalFilterInfo> dataStreamFilterDispatchMap = null, foiFilterDispatchMap = null;
+        Map<Integer, LocalFilterInfo> dataStreamFilterDispatchMap = null;
+        Map<Integer, LocalFilterInfo> foiFilterDispatchMap = null;
+        Map<Integer, LocalFilterInfo> obsFilterDispatchMap = new TreeMap<>();
         
         // use internal IDs if present
         if (filter.getInternalIDs() != null)
@@ -218,7 +220,6 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
             foiFilterDispatchMap = db.foiStore.getFilterDispatchMap(filter.getFoiFilter());
         
         // merge both maps
-        Map<Integer, LocalFilterInfo> obsFilterDispatchMap = new TreeMap<>();
         if (dataStreamFilterDispatchMap != null)
         {
             for (var entry: dataStreamFilterDispatchMap.entrySet())
