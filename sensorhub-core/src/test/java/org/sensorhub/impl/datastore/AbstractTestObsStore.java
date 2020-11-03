@@ -15,8 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore;
 
 import static org.junit.Assert.*;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -33,6 +31,7 @@ import org.junit.Test;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.DataStreamInfo;
+import org.sensorhub.api.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.IObsStore;
@@ -42,10 +41,7 @@ import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
-import org.vast.swe.SWEUtils;
-import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataRecord;
 
 
 /**
@@ -66,7 +62,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     protected static String FOI_UID_PREFIX = "urn:osh:test:foi:";
     
     protected StoreType obsStore;
-    protected Map<Long, IDataStreamInfo> allDataStreams = new LinkedHashMap<>();
+    protected Map<DataStreamKey, IDataStreamInfo> allDataStreams = new LinkedHashMap<>();
     protected Map<BigInteger, IObsData> allObs = new LinkedHashMap<>();
 
 
@@ -82,31 +78,28 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    protected Long addDataStream(ProcedureId procID, DataComponent recordStruct, TimeExtent validTime)
+    protected DataStreamKey addDataStream(long procID, DataComponent recordStruct)
     {
-        var builder = new DataStreamInfo.Builder()
-            .withProcedure(procID)
+        var dsInfo = new DataStreamInfo.Builder()
+            .withProcedure(new ProcedureId(procID, PROC_UID_PREFIX+procID))
             .withRecordDescription(recordStruct)
-            .withRecordEncoding(new TextEncodingImpl());
+            .withRecordEncoding(new TextEncodingImpl())
+            .build();
         
-        if (validTime != null)
-            builder.withValidTime(validTime);
-                
-        var dsInfo = builder.build();
-        Long key = obsStore.getDataStreams().add(dsInfo);
-        allDataStreams.put(key, dsInfo);
-        return key;
+        var dsID = obsStore.getDataStreams().add(dsInfo);
+        allDataStreams.put(dsID, dsInfo);
+        return dsID;
     }
 
 
-    protected Long addSimpleDataStream(ProcedureId procID, String outputName, TimeExtent validTime)
+    protected DataStreamKey addSimpleDataStream(long procID, String outputName)
     {
         SWEHelper fac = new SWEHelper();
-        DataRecord rec = fac.newDataRecord(5);
-        rec.setName(outputName);
+        var builder = fac.createDataRecord()
+            .name(outputName);
         for (int i=0; i<5; i++)
-            rec.addComponent("comp"+i, fac.newQuantity());
-        return addDataStream(procID, rec, validTime);
+            builder.addField("comp"+i, fac.createQuantity().build());        
+        return addDataStream(procID, builder.build());
     }
 
 
@@ -118,9 +111,9 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    protected void addSimpleObsWithoutResultTime(long procID, long foiID, Instant startTime, int numObs) throws Exception
+    protected void addSimpleObsWithoutResultTime(long dsID, long foiID, Instant startTime, int numObs) throws Exception
     {
-        addSimpleObsWithoutResultTime(procID, foiID, startTime, numObs, 60000);
+        addSimpleObsWithoutResultTime(dsID, foiID, startTime, numObs, 60000);
     }
 
 
@@ -128,7 +121,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     {
         Map<BigInteger, IObsData> addedObs = new LinkedHashMap<>();
         FeatureId foi = foiID == 0 ? IObsData.NO_FOI : new FeatureId(foiID, FOI_UID_PREFIX + foiID);
-
+        
         for (int i = 0; i < numObs; i++)
         {
             DataBlockDouble data = new DataBlockDouble(5);
@@ -176,91 +169,6 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    protected void checkDataComponentEquals(DataComponent c1, DataComponent c2) throws IOException
-    {
-        SWEUtils utils = new SWEUtils(SWEUtils.V2_0);
-
-        ByteArrayOutputStream os1 = new ByteArrayOutputStream();
-        utils.writeComponent(os1, c1, false, false);
-
-        ByteArrayOutputStream os2 = new ByteArrayOutputStream();
-        utils.writeComponent(os2, c2, false, false);
-
-        assertArrayEquals(os1.toByteArray(), os2.toByteArray());
-    }
-
-
-    @Test
-    public void testAddAndGetDataStreamByKey() throws Exception
-    {
-        ProcedureId procID = new ProcedureId(1, PROC_UID_PREFIX+1);
-        addSimpleDataStream(procID, "test", null);
-        forceReadBackFromStorage();
-
-        for (Entry<Long, IDataStreamInfo> entry: allDataStreams.entrySet())
-        {
-            IDataStreamInfo dsInfo = obsStore.getDataStreams().get(entry.getKey());
-            assertEquals(entry.getValue().getProcedureID(), dsInfo.getProcedureID());
-            assertEquals(entry.getValue().getOutputName(), dsInfo.getOutputName());
-            checkDataComponentEquals(entry.getValue().getRecordStructure(), dsInfo.getRecordStructure());
-        }
-    }
-
-
-    private void checkSelectedEntries(Stream<Entry<Long, IDataStreamInfo>> resultStream, Map<Long, IDataStreamInfo> expectedResults, DataStreamFilter filter)
-    {
-        System.out.println("Select datastreams with " + filter);
-
-        Map<Long, IDataStreamInfo> resultMap = resultStream
-                //.peek(e -> System.out.println(e.getKey()))
-                //.peek(e -> System.out.println(Arrays.toString((double[])e.getValue().getResult().getUnderlyingObject())))
-                .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
-        System.out.println(resultMap.size() + " obs selected");
-        assertEquals(expectedResults.size(), resultMap.size());
-        
-        resultMap.forEach((k, v) -> {
-            assertTrue("Extra key "+k, expectedResults.containsKey(k));
-        });
-
-        expectedResults.forEach((k, v) -> {
-            assertTrue("Missing key "+k, resultMap.containsKey(k));
-        });
-    }
-    
-    
-    @Test
-    public void testAddDataStreamAndSelectCurrentVersion() throws Exception
-    {
-        Stream<Entry<Long, IDataStreamInfo>> resultStream;
-        Map<Long, IDataStreamInfo> expectedResults = new LinkedHashMap<>();
-
-        ProcedureId procID = new ProcedureId(1, PROC_UID_PREFIX+1);
-        var now = Instant.now();
-        long ds1v0 = addSimpleDataStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
-        long ds1v1 = addSimpleDataStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
-        long ds1v2 = addSimpleDataStream(procID, "test1", TimeExtent.beginAt(now));
-        long ds2v0 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
-        long ds2v1 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now));
-        long ds2v2 = addSimpleDataStream(procID, "test2", TimeExtent.beginAt(now.plusSeconds(600)));
-        long ds3v0 = addSimpleDataStream(procID, "test3", TimeExtent.beginAt(now.minusSeconds(3600)));
-        long ds3v1 = addSimpleDataStream(procID, "test3", TimeExtent.beginAt(now.minusSeconds(600)));
-        forceReadBackFromStorage();
-
-        // last version of everything
-        DataStreamFilter filter = new DataStreamFilter.Builder()
-            .withProcedures(procID.getInternalID())
-            .withCurrentVersion()
-            .build();
-        resultStream = obsStore.getDataStreams().selectEntries(filter);
-        
-        expectedResults.clear();
-        expectedResults.put(ds1v2, allDataStreams.get(ds1v2));
-        expectedResults.put(ds2v1, allDataStreams.get(ds2v1));
-        expectedResults.put(ds3v1, allDataStreams.get(ds3v1));
-        checkSelectedEntries(resultStream, expectedResults, filter);
-    }
-
-
     protected void checkGetObs(int expectedNumObs) throws Exception
     {
         assertEquals(expectedNumObs, obsStore.getNumRecords());
@@ -274,12 +182,13 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
 
     @Test
-    public void testGetNumRecordsOneProcedure() throws Exception
+    public void testGetNumRecordsOneDataStream() throws Exception
     {
         int totalObs = 0, numObs;
-
+        var dsKey = addSimpleDataStream(10, "out1");
+        
         // add obs w/o FOI
-        addSimpleObsWithoutResultTime(10, 0, Instant.parse("2000-01-01T00:00:00Z"), numObs=100);
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.parse("2000-01-01T00:00:00Z"), numObs=100);
         assertEquals(totalObs += numObs, obsStore.getNumRecords());
 
         forceReadBackFromStorage();
@@ -288,16 +197,18 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
 
     @Test
-    public void testGetNumRecordsTwoProcedures() throws Exception
+    public void testGetNumRecordsTwoDataStreams() throws Exception
     {
         int totalObs = 0, numObs;
+        var ds1 = addSimpleDataStream(1, "out1");
+        var ds2 = addSimpleDataStream(2, "out1");
 
         // add obs with proc1
-        addSimpleObsWithoutResultTime(10, 0, Instant.parse("2000-06-21T14:36:12Z"), numObs=100);
+        addSimpleObsWithoutResultTime(ds1.getInternalID(), 0, Instant.parse("2000-06-21T14:36:12Z"), numObs=100);
         assertEquals(totalObs += numObs, obsStore.getNumRecords());
 
         // add obs with proc2
-        addSimpleObsWithoutResultTime(25, 0, Instant.parse("1970-01-01T00:00:00Z"), numObs=50);
+        addSimpleObsWithoutResultTime(ds2.getInternalID(), 0, Instant.parse("1970-01-01T00:00:00Z"), numObs=50);
         assertEquals(totalObs += numObs, obsStore.getNumRecords());
 
         forceReadBackFromStorage();
@@ -306,18 +217,19 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
 
     @Test
-    public void testAddAndGetByKeyOneProcedure() throws Exception
+    public void testAddAndGetByKeyOneDataStream() throws Exception
     {
         int totalObs = 0, numObs;
-
+        var dsKey = addSimpleDataStream(1, "out1");
+        
         // add obs w/o FOI
-        addSimpleObsWithoutResultTime(10, 0, Instant.parse("2000-01-01T00:00:00Z"), numObs=100);
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.parse("2000-01-01T00:00:00Z"), numObs=100);
         checkGetObs(totalObs += numObs);
         forceReadBackFromStorage();
         checkGetObs(totalObs);
 
         // add obs with FOI
-        addSimpleObsWithoutResultTime(10, 1001, Instant.parse("9080-02-01T00:00:00Z"), numObs=30);
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 1001, Instant.parse("9080-02-01T00:00:00Z"), numObs=30);
         checkGetObs(totalObs += numObs);
         forceReadBackFromStorage();
         checkGetObs(totalObs);
@@ -327,9 +239,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     @Test
     public void testGetWrongKey() throws Exception
     {
-        testGetNumRecordsOneProcedure();
-
-        // wrong procedure
+        testGetNumRecordsOneDataStream();
         assertNull(obsStore.get(BigInteger.valueOf(11)));
     }
 
@@ -337,7 +247,6 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     private void checkMapKeySet(Set<BigInteger> keySet)
     {
         keySet.forEach(k -> {
-            System.out.println(k);
             if (!allObs.containsKey(k))
                 fail("No matching key in reference list: " + k);
         });
@@ -350,22 +259,24 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
 
     @Test
-    public void testMapKeySet() throws Exception
+    public void testAddAndCheckMapKeys() throws Exception
     {
-        long procID = 10;
-        addSimpleObsWithoutResultTime(procID, 0, Instant.parse("2000-01-01T00:00:00Z"), 100);
+        var dsKey = addSimpleDataStream(10, "out1");
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.parse("2000-01-01T00:00:00Z"), 100);
         checkMapKeySet(obsStore.keySet());
 
         forceReadBackFromStorage();
         checkMapKeySet(obsStore.keySet());
 
-        procID = 36589;
-        addSimpleObsWithoutResultTime(procID, 0, Instant.MIN.plusSeconds(1), 11);
-        addSimpleObsWithoutResultTime(procID, 0, Instant.MAX.minus(10, ChronoUnit.DAYS), 11);
+        dsKey = addSimpleDataStream(10, "out2");
+        dsKey = new DataStreamKey(36589L);
+        obsStore.getDataStreams().put(dsKey, obsStore.getDataStreams().get(dsKey));
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.MIN.plusSeconds(1), 11);
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.MAX.minus(10, ChronoUnit.DAYS), 11);
         checkMapKeySet(obsStore.keySet());
 
-        procID = Long.MAX_VALUE/2;
-        addSimpleObsWithoutResultTime(procID, 569, Instant.parse("1950-01-01T00:00:00.5648712Z"), 56);
+        dsKey = addSimpleDataStream(456, "output");
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 569, Instant.parse("1950-01-01T00:00:00.5648712Z"), 56);
         checkMapKeySet(obsStore.keySet());
 
         forceReadBackFromStorage();
@@ -388,10 +299,11 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
 
     @Test
-    public void testMapValues() throws Exception
+    public void testAddAndCheckMapValues() throws Exception
     {
-        long procID = Long.MAX_VALUE-1;
-        addSimpleObsWithoutResultTime(procID, 0, Instant.parse("1900-01-01T00:00:00Z"), 100);
+        var dsKey = addSimpleDataStream(100, "output3");
+        
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.parse("1900-01-01T00:00:00Z"), 100);
         checkMapValues(obsStore.values());
 
         forceReadBackFromStorage();
@@ -419,17 +331,19 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
 
     @Test
-    public void testRemoveByKey() throws Exception
+    public void testAddAndRemoveByKey() throws Exception
     {
-        addSimpleObsWithoutResultTime(10, 0, Instant.parse("1900-01-01T00:00:00Z"), 100);
+        var dsKey = addSimpleDataStream(10, "out1");
+        
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.parse("1900-01-01T00:00:00Z"), 100);
         testRemoveAllKeys();
 
-        addSimpleObsWithoutResultTime(1003, 563, Instant.parse("2900-01-01T00:00:00Z"), 100);
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 563, Instant.parse("2900-01-01T00:00:00Z"), 100);
         forceReadBackFromStorage();
         testRemoveAllKeys();
 
         forceReadBackFromStorage();
-        addSimpleObsWithoutResultTime(563, 1003, Instant.parse("0001-01-01T00:00:00Z"), 100);
+        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 1003, Instant.parse("0001-01-01T00:00:00Z"), 100);
         testRemoveAllKeys();
 
         forceReadBackFromStorage();
@@ -446,15 +360,15 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
                 //.peek(e -> System.out.println(Arrays.toString((double[])e.getValue().getResult().getUnderlyingObject())))
                 .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         assertEquals(expectedResults.size(), resultMap.size());
-        System.out.println(resultMap.size() + " obs selected");
+        System.out.println(resultMap.size() + " entries selected");
 
         resultMap.forEach((k, v) -> {
-            assertTrue(expectedResults.containsKey(k));
+            assertTrue("Result set contains extra key "+k, expectedResults.containsKey(k));
             checkObsDataEqual(expectedResults.get(k), v);
         });
 
         expectedResults.forEach((k, v) -> {
-            assertTrue(resultMap.containsKey(k));
+            assertTrue("Result set is missing key "+k, resultMap.containsKey(k));
         });
     }
 
@@ -465,22 +379,22 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         Stream<Entry<BigInteger, IObsData>> resultStream;
         ObsFilter filter;
 
-        Long dataStreamID = 3L;
+        var dsKey = addSimpleDataStream(10, "out1");
         Instant startTime1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        Map<BigInteger, IObsData> obsBatch1 = addSimpleObsWithoutResultTime(dataStreamID, 0, startTime1, 55, 1000);
+        Map<BigInteger, IObsData> obsBatch1 = addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, startTime1, 55, 1000);
         Instant startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
-        Map<BigInteger, IObsData> obsBatch2 = addSimpleObsWithoutResultTime(dataStreamID, 104, startTime2, 100, 10000);
+        Map<BigInteger, IObsData> obsBatch2 = addSimpleObsWithoutResultTime(dsKey.getInternalID(), 104, startTime2, 100, 10000);
 
         // correct procedure ID and all times
         filter = new ObsFilter.Builder()
-            .withDataStreams(dataStreamID)
+            .withDataStreams(dsKey.getInternalID())
             .build();
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, allObs, filter);
 
         // correct procedure ID and time range containing all
         filter = new ObsFilter.Builder()
-            .withDataStreams(dataStreamID)
+            .withDataStreams(dsKey.getInternalID())
             .withPhenomenonTimeDuring(startTime1, startTime2.plus(1, ChronoUnit.DAYS))
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -488,7 +402,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // correct procedure ID and time range containing only batch 1
         filter = new ObsFilter.Builder()
-            .withDataStreams(dataStreamID)
+            .withDataStreams(dsKey.getInternalID())
             .withPhenomenonTimeDuring(startTime1, startTime1.plus(1, ChronoUnit.DAYS))
             .build();
         forceReadBackFromStorage();
@@ -497,7 +411,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // correct procedure ID and time range containing only batch 2
         filter = new ObsFilter.Builder()
-            .withDataStreams(dataStreamID)
+            .withDataStreams(dsKey.getInternalID())
             .withPhenomenonTimeDuring(startTime2, startTime2.plus(1, ChronoUnit.DAYS))
             .build();
         forceReadBackFromStorage();
@@ -513,7 +427,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // incorrect time range
         filter = new ObsFilter.Builder()
-            .withDataStreams(dataStreamID)
+            .withDataStreams(dsKey.getInternalID())
             .withPhenomenonTimeDuring(startTime1.minus(100, ChronoUnit.DAYS), startTime1.minusMillis(1))
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -528,25 +442,25 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         Map<BigInteger, IObsData> expectedResults;
         ObsFilter filter;
 
-        long ds1 = 1;
+        var ds1 = addSimpleDataStream(1, "out1");
         Instant startProc1Batch1 = Instant.parse("2015-06-23T18:24:15.233Z");
-        Map<BigInteger, IObsData> proc1Batch1 = addSimpleObsWithoutResultTime(ds1, 23, startProc1Batch1, 10, 30*24*3600*1000L);
+        Map<BigInteger, IObsData> proc1Batch1 = addSimpleObsWithoutResultTime(ds1.getInternalID(), 23, startProc1Batch1, 10, 30*24*3600*1000L);
         Instant startProc1Batch2 = Instant.parse("2018-02-11T08:12:06.897Z");
-        Map<BigInteger, IObsData> proc1Batch2 = addSimpleObsWithoutResultTime(ds1, 46, startProc1Batch2, 3, 100*24*3600*1000L);
+        Map<BigInteger, IObsData> proc1Batch2 = addSimpleObsWithoutResultTime(ds1.getInternalID(), 46, startProc1Batch2, 3, 100*24*3600*1000L);
         Instant startProc1Batch3 = Instant.parse("2025-06-23T18:24:15.233Z");
-        Map<BigInteger, IObsData> proc1Batch3 = addSimpleObsWithoutResultTime(ds1, 0, startProc1Batch3, 10, 30*24*3600*1000L);
+        Map<BigInteger, IObsData> proc1Batch3 = addSimpleObsWithoutResultTime(ds1.getInternalID(), 0, startProc1Batch3, 10, 30*24*3600*1000L);
 
-        long ds2 = 2;
+        var ds2 = addSimpleDataStream(1, "out2");
         Instant startProc2Batch1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        Map<BigInteger, IObsData> proc2Batch1 = addSimpleObsWithoutResultTime(ds2, 23, startProc2Batch1, 10, 10*24*3600*1000L);
+        Map<BigInteger, IObsData> proc2Batch1 = addSimpleObsWithoutResultTime(ds2.getInternalID(), 23, startProc2Batch1, 10, 10*24*3600*1000L);
         Instant startProc2Batch2 = Instant.parse("2019-05-31T10:46:03.258Z");
-        Map<BigInteger, IObsData> proc2Batch2 = addSimpleObsWithoutResultTime(ds2, 104, startProc2Batch2, 100, 24*3600*1000L);
+        Map<BigInteger, IObsData> proc2Batch2 = addSimpleObsWithoutResultTime(ds2.getInternalID(), 104, startProc2Batch2, 100, 24*3600*1000L);
         Instant startProc2Batch3 = Instant.parse("2020-05-31T10:46:03.258Z");
-        Map<BigInteger, IObsData> proc2Batch3 = addSimpleObsWithoutResultTime(ds2, 104, startProc2Batch3, 50, 24*3600*1000L);
+        Map<BigInteger, IObsData> proc2Batch3 = addSimpleObsWithoutResultTime(ds2.getInternalID(), 104, startProc2Batch3, 50, 24*3600*1000L);
 
         // proc1 and all times
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds1)
+            .withDataStreams(ds1.getInternalID())
             .build();
         resultStream = obsStore.selectEntries(filter);
         expectedResults = new LinkedHashMap<>();
@@ -557,7 +471,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // proc1, foi46 and all times
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds1)
+            .withDataStreams(ds1.getInternalID())
             .withFois(46L)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -565,7 +479,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // proc1, no foi
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds1)
+            .withDataStreams(ds1.getInternalID())
             .withFois(0L)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -573,7 +487,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // proc2, foi23 and all times
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds2)
+            .withDataStreams(ds2.getInternalID())
             .withFois(23L)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -581,7 +495,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // proc2, foi23 and all times
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds2)
+            .withDataStreams(ds2.getInternalID())
             .withFois(23L)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -589,7 +503,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // proc2, foi104 and time range
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds2)
+            .withDataStreams(ds2.getInternalID())
             .withFois(104L)
             .withPhenomenonTimeDuring(startProc2Batch3, startProc2Batch3.plus(49, ChronoUnit.DAYS))
             .build();
@@ -628,19 +542,19 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         Map<BigInteger, IObsData> expectedResults;
         ObsFilter filter;
 
-        long ds1 = 1;
+        var ds1 = addSimpleDataStream(1, "out1");
         Instant startTime1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        Map<BigInteger, IObsData> obsBatch1 = addSimpleObsWithoutResultTime(ds1, 0, startTime1, 55, 1000);
+        Map<BigInteger, IObsData> obsBatch1 = addSimpleObsWithoutResultTime(ds1.getInternalID(), 0, startTime1, 55, 1000);
         Instant startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
-        Map<BigInteger, IObsData> obsBatch2 = addSimpleObsWithoutResultTime(ds1, 104, startTime2, 100, 10000);
+        Map<BigInteger, IObsData> obsBatch2 = addSimpleObsWithoutResultTime(ds1.getInternalID(), 104, startTime2, 100, 10000);
 
-        long ds2 = 2;
+        var ds2 = addSimpleDataStream(1, "out2");
         Instant startProc2Batch1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        addSimpleObsWithoutResultTime(ds2, 23, startProc2Batch1, 10, 10*24*3600*1000L);
+        addSimpleObsWithoutResultTime(ds2.getInternalID(), 23, startProc2Batch1, 10, 10*24*3600*1000L);
 
         // proc1 and predicate to select NO FOI
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds1)
+            .withDataStreams(ds1.getInternalID())
             .withValuePredicate(v -> v.getFoiID() == IObsData.NO_FOI)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -648,7 +562,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // proc1 and predicate to select results < 10
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds1)
+            .withDataStreams(ds1.getInternalID())
             .withValuePredicate(v -> v.getResult().getDoubleValue(0) < 10)
             .build();
         resultStream = obsStore.selectEntries(filter);
@@ -666,26 +580,25 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         Map<BigInteger, IObsData> expectedResults = new LinkedHashMap<>();
         ObsFilter filter;
 
-        ProcedureId procID = new ProcedureId(10, PROC_UID_PREFIX+10);
-        long ds1 = addSimpleDataStream(procID, "test1", null);
-        long ds2 = addSimpleDataStream(procID, "test2", null);
+        var ds1 = addSimpleDataStream(1, "test1");
+        var ds2 = addSimpleDataStream(1, "test2");
 
         Instant startBatch1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        Map<BigInteger, IObsData> obsBatch1 = addSimpleObsWithoutResultTime(ds1, 0, startBatch1, 55, 1000);
+        Map<BigInteger, IObsData> obsBatch1 = addSimpleObsWithoutResultTime(ds1.getInternalID(), 0, startBatch1, 55, 1000);
 
         Instant startBatch2 = Instant.parse("2018-02-11T08:11:48.125Z");
-        Map<BigInteger, IObsData> obsBatch2 = addSimpleObsWithoutResultTime(ds2, 23, startBatch2, 10, 1200);
+        Map<BigInteger, IObsData> obsBatch2 = addSimpleObsWithoutResultTime(ds2.getInternalID(), 23, startBatch2, 10, 1200);
 
         // datastream 2 by ID
         filter = new ObsFilter.Builder()
-            .withDataStreams(ds2)
+            .withDataStreams(ds2.getInternalID())
             .build();
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, obsBatch2, filter);
 
         // datastream 1 & 2 by proc ID
         filter = new ObsFilter.Builder()
-            .withProcedures(procID.getInternalID())
+            .withProcedures(1L)
             .build();
         resultStream = obsStore.selectEntries(filter);
         expectedResults.clear();
@@ -703,11 +616,47 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, obsBatch1, filter);
     }
+    
+    
+    @Test(expected = IllegalStateException.class)
+    public void testErrorWithFoiFilterJoin() throws Exception
+    {
+        try
+        {
+            obsStore.selectEntries(new ObsFilter.Builder()
+                .withFois()
+                    .withKeywords("road")
+                    .done()
+                .build());
+        }
+        catch (Exception e)
+        {
+            System.err.println(e.getMessage());
+            throw e;
+        }
+    }
+    
+    
+    @Test(expected = IllegalStateException.class)
+    public void testErrorWithProcedureFilterJoin() throws Exception
+    {
+        try
+        {
+            obsStore.selectEntries(new ObsFilter.Builder()
+                .withProcedures()
+                    .withKeywords("thermometer")
+                    .done()
+                .build());
+        }
+        catch (Exception e)
+        {
+            System.err.println(e.getMessage());
+            throw e;
+        }
+    }
 
 
     /*
-
-
     ///////////////////////
     // Performance Tests //
     ///////////////////////

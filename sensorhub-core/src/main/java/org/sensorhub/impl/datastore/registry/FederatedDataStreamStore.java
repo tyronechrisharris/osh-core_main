@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.obs.DataStreamFilter;
+import org.sensorhub.api.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.ObsFilter;
@@ -39,7 +40,7 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
+public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {
     DefaultDatabaseRegistry registry;
     FederatedObsDatabase db;
@@ -87,24 +88,24 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
     }
     
     
-    protected Long ensureDataStreamKey(Object obj)
+    protected DataStreamKey ensureDataStreamKey(Object obj)
     {
-        Asserts.checkArgument(obj instanceof Long, "key must be a Long");
-        return (Long)obj;
+        Asserts.checkArgument(obj instanceof DataStreamKey, "key must be a DataStreamKey");
+        return (DataStreamKey)obj;
     }
 
 
     @Override
     public boolean containsKey(Object obj)
     {
-        Long key = ensureDataStreamKey(obj);
+        var key = ensureDataStreamKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key);
+        var dbInfo = registry.getLocalDbInfo(key.getInternalID());
         if (dbInfo == null)
             return false;
         else
-            return dbInfo.db.getObservationStore().getDataStreams().containsKey(dbInfo.entryID);
+            return dbInfo.db.getObservationStore().getDataStreams().containsKey(new DataStreamKey(dbInfo.entryID));
     }
 
 
@@ -124,18 +125,28 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
     @Override
     public IDataStreamInfo get(Object obj)
     {
-        Long key = ensureDataStreamKey(obj);
+        var key = ensureDataStreamKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key);
+        var dbInfo = registry.getLocalDbInfo(key.getInternalID());
         if (dbInfo != null)
         {
-            IDataStreamInfo dsInfo = dbInfo.db.getObservationStore().getDataStreams().get(dbInfo.entryID);
+            IDataStreamInfo dsInfo = dbInfo.db.getObservationStore().getDataStreams().get(new DataStreamKey(dbInfo.entryID));
             if (dsInfo != null)
                 return toPublicValue(dbInfo.databaseID, dsInfo);
         }
         
         return null;
+    }
+    
+    
+    /*
+     * Convert to public keys on the way out
+     */
+    protected DataStreamKey toPublicKey(int databaseID, DataStreamKey k)
+    {
+        long publicID = registry.getPublicID(databaseID, k.getInternalID());
+        return new DataStreamKey(publicID);
     }
     
     
@@ -153,10 +164,11 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
     /*
      * Convert to public entries on the way out
      */
-    protected Entry<Long, IDataStreamInfo> toPublicEntry(int databaseID, Entry<Long, IDataStreamInfo> e)
+    protected Entry<DataStreamKey, IDataStreamInfo> toPublicEntry(int databaseID, Entry<DataStreamKey, IDataStreamInfo> e)
     {
-        long publicID = registry.getPublicID(databaseID, e.getKey());
-        return new AbstractMap.SimpleEntry<>(publicID, toPublicValue(databaseID, e.getValue()));
+        return new AbstractMap.SimpleEntry<>(
+            toPublicKey(databaseID, e.getKey()),
+            toPublicValue(databaseID, e.getValue()));
     }
     
     
@@ -220,7 +232,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
     
     
     @Override
-    public Stream<Entry<Long, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
+    public Stream<Entry<DataStreamKey, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
     {
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -248,7 +260,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<Long, IDataStrea
 
 
     @Override
-    public Long add(IDataStreamInfo dsInfo)
+    public DataStreamKey add(IDataStreamInfo dsInfo)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

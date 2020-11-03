@@ -73,7 +73,9 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     protected StoreType featureStore;
     GMLFactory gmlFac = new GMLFactory(true);
     Map<FeatureKey, AbstractFeature> allFeatures = new LinkedHashMap<>();
-    boolean useAdd, useAddVersion;
+    Map<FeatureKey, Long> allParents = new LinkedHashMap<>();
+    boolean useAdd;
+    String[] featureTypes = {"building", "road", "waterbody"};
     
     
     protected abstract StoreType initStore() throws Exception;
@@ -98,15 +100,15 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         f.setId(idPrefix + num);
         f.setUniqueIdentifier(UID_PREFIX + idPrefix + num);
         f.setName("Feature " + num);
-        f.setDescription("This is feature #" + num);
+        f.setDescription("This is " + featureTypes[num%3] +  " #" + num);
     }
     
     
     protected FeatureKey getKey(IFeature f)
     {
         Instant validStartTime = (f instanceof ITemporalFeature) ? 
-                ((ITemporalFeature)f).getValidTime().begin() :
-                Instant.MIN;
+            ((ITemporalFeature)f).getValidTime().begin() :
+            Instant.MIN;
         
         return new FeatureKey(
             Long.parseLong(((AbstractFeature)f).getId().replaceAll("(F|G|T)*", ""))+1,
@@ -114,16 +116,13 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    protected void addOrPutFeature(AbstractFeature f)
+    protected FeatureKey addOrPutFeature(long parentID, AbstractFeature f) throws Exception
     {
-        //System.out.println("Adding " + f.getId());        
-        FeatureKey key;
+        //System.out.println("Adding " + f.getId());
+        FeatureKey key = null;
         
         if (useAdd) {
-            key = featureStore.add(f);
-        }
-        else if (useAddVersion) {
-            key = featureStore.addVersion(f);
+            key = featureStore.add(parentID, f);
         }
         else {
             key = getKey(f);
@@ -132,10 +131,32 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         //System.out.println(key);
         allFeatures.put(key, f);
+        allParents.put(key, parentID);
+        return key;
+    }
+    
+    
+    protected long addFeatureCollection(long parentID, String uidSuffix, String name) throws Exception
+    {
+        QName fType = new QName("http://mydomain/features", "FeatureCollection");        
+        AbstractFeature f = new GenericFeatureImpl(fType);
+        f.setName(name);
+        f.setUniqueIdentifier(UID_PREFIX + uidSuffix);
+        
+        var fk = featureStore.add(f);
+        allFeatures.put(fk, f);
+        allParents.put(fk, 0L);
+        return fk.getInternalID();
     }
     
     
     protected void addNonGeoFeatures(int startIndex, int numFeatures) throws Exception
+    {
+        addNonGeoFeatures(0L, startIndex, numFeatures);
+    }
+    
+    
+    protected void addNonGeoFeatures(long parentID, int startIndex, int numFeatures) throws Exception
     {
         QName fType = new QName("http://mydomain/features", "MyFeature");
         
@@ -143,12 +164,18 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         {
             AbstractFeature f = new GenericFeatureImpl(fType);
             setCommonFeatureProperties(f, i);
-            addOrPutFeature(f);
+            addOrPutFeature(parentID, f);
         }
     }
     
     
     protected void addGeoFeaturesPoint2D(int startIndex, int numFeatures) throws Exception
+    {
+        addGeoFeaturesPoint2D(0L, startIndex, numFeatures);
+    }
+    
+    
+    protected void addGeoFeaturesPoint2D(long parentID, int startIndex, int numFeatures) throws Exception
     {
         QName fType = new QName("http://mydomain/features", "MyPointFeature");
         
@@ -159,12 +186,18 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             p.setPos(new double[] {i, i, 0.0});
             f.setGeometry(p);
             setCommonFeatureProperties(f, i);
-            addOrPutFeature(f);
+            addOrPutFeature(parentID, f);
         }
     }
     
     
     protected void addSamplingPoints2D(int startIndex, int numFeatures) throws Exception
+    {
+        addGeoFeaturesPoint2D(0L, startIndex, numFeatures);
+    }
+    
+    
+    protected void addSamplingPoints2D(long parentID, int startIndex, int numFeatures) throws Exception
     {
         for (int i = startIndex; i < startIndex+numFeatures; i++)
         {
@@ -173,12 +206,18 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             p.setPos(new double[] {0.5*i, 1.5*i, 0.0});
             sp.setShape(p);
             setCommonFeatureProperties(sp, i);
-            addOrPutFeature(sp);
+            addOrPutFeature(parentID, sp);
         }
     }
     
     
     protected void addTemporalFeatures(int startIndex, int numFeatures) throws Exception
+    {
+        addTemporalFeatures(0L, startIndex, numFeatures);
+    }
+    
+    
+    protected void addTemporalFeatures(long parentID, int startIndex, int numFeatures) throws Exception
     {
         QName fType = new QName("http://mydomain/features", "MyTimeFeature");
         
@@ -192,13 +231,19 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 OffsetDateTime endTime = beginTime.plus(30, ChronoUnit.DAYS);
                 f.setValidTimePeriod(beginTime, endTime);
                 setCommonFeatureProperties(f, i);
-                addOrPutFeature(f);
+                addOrPutFeature(parentID, f);
             }
         }
     }
     
     
     protected void addTemporalGeoFeatures(int startIndex, int numFeatures) throws Exception
+    {
+        addTemporalGeoFeatures(0L, startIndex, numFeatures);
+    }
+    
+    
+    protected void addTemporalGeoFeatures(long parentID, int startIndex, int numFeatures) throws Exception
     {
         QName fType = new QName("http://mydomain/features", "MyGeoTimeFeature");
         
@@ -219,7 +264,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 shape.setExterior(ring);
                 f.setGeometry(shape);
                 setCommonFeatureProperties(f, i);
-                addOrPutFeature(f);
+                addOrPutFeature(parentID, f);
             }
         }
     }
@@ -388,7 +433,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         forceReadBackFromStorage();
         getAndCheckFeatures();
         
-        addTemporalFeatures(50, 22);
+        addTemporalFeatures(200, 22);
         getAndCheckFeatures();
         addNonGeoFeatures(1, 40);
         getAndCheckFeatures();
@@ -407,33 +452,21 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         assertEquals(allFeatures.size(), featureStore.size());
         getAndCheckFeatures();
         
-        forceReadBackFromStorage();
         addNonGeoFeatures(50, 22);
         forceReadBackFromStorage();
         getAndCheckFeatures();
-    }
-    
-    
-    @Test
-    public void testAddVersionAndGet() throws Exception
-    {
-        useAddVersion = true;
         
-        addGeoFeaturesPoint2D(10, 33);
-        assertEquals(allFeatures.size(), featureStore.size());
-        getAndCheckFeatures();
-        
-        forceReadBackFromStorage();
-        addTemporalFeatures(50, 22);
+        addTemporalFeatures(80, 22);
         forceReadBackFromStorage();
         getAndCheckFeatures();
     }
     
     
-    private void testRemoveAllKeys()
+    private void checkRemoveAllKeys()
     {
         long t0 = System.currentTimeMillis();
         allFeatures.forEach((k, f) -> {
+            assertTrue(featureStore.containsKey(k));
             featureStore.remove(k);
             assertFalse(featureStore.containsKey(k));
             assertTrue(featureStore.get(k) == null);
@@ -450,19 +483,42 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     @Test
     public void testRemoveByKey() throws Exception
     {
-        addGeoFeaturesPoint2D(100, 25);
-        testRemoveAllKeys();
+        //addGeoFeaturesPoint2D(100, 25);
+        //testRemoveAllKeys();
         
         addTemporalFeatures(200, 30);
         forceReadBackFromStorage();
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
         
         forceReadBackFromStorage();
         addNonGeoFeatures(1, 40);
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
         
         forceReadBackFromStorage();
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
+    }
+    
+    
+    private void checkSelectedEntries(FeatureFilter filter, Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Map<FeatureKey, IGeoFeature> expectedResults)
+    {
+        if (filter != null)
+            System.out.println("\nSelect with " + filter);
+        
+        Map<FeatureKey, IGeoFeature> resultMap = resultStream
+            .peek(e -> System.out.println(e.getKey()))
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        System.out.println("Selected " + resultMap.size() + " entries");
+        
+        resultMap.forEach((k, v) -> {
+            if (!expectedResults.containsKey(k))
+                fail("Result contains unexpected entry: " + k);
+        });
+        
+        expectedResults.entrySet().stream()
+            .forEach(e -> {
+                if (!resultMap.containsKey(e.getKey()))
+                    fail("Result is missing entry: " + e.getKey());
+            });
     }
     
     
@@ -471,42 +527,41 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         boolean lastVersion = timeRange.lowerEndpoint() == Instant.MAX && timeRange.upperEndpoint() == Instant.MAX;
         System.out.println("\nSelect " + expectedIds + " within " +  (lastVersion ? "LATEST" : timeRange));
         
-        Map<FeatureKey, IGeoFeature> resultMap = resultStream
-                .peek(e -> System.out.println(e.getKey()))
-                .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> expectedIds.contains(e.getValue().getUniqueIdentifier()))
+            .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
+                         timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
-        resultMap.forEach((k, v) -> {
-            if (!expectedIds.contains(v.getUniqueIdentifier()) ||
-                (v instanceof ITemporalFeature) && !lastVersion && !timeRange.isConnected(((ITemporalFeature)v).getValidTime().asRange()))
-                fail("Result contains unexpected feature: " + k);
-        });
+        checkSelectedEntries(null, resultStream, expectedResults);
+    }
+    
+    
+    private void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Geometry roi, Range<Instant> timeRange)
+    {
+        System.out.println("\nSelect " + roi + " within " + timeRange);
         
-        if (!lastVersion)
-        {
-            allFeatures.entrySet().stream()
-                .filter(e -> expectedIds.contains(e.getValue().getUniqueIdentifier()))
-                .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
-                             timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
-                .forEach(e -> {
-                    if (!resultMap.containsKey(e.getKey()))
-                        fail("Result is missing feature: " + e.getKey());
-                });
-        }
+        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> e.getValue().isSetGeometry() && ((Geometry)e.getValue().getGeometry()).intersects(roi))
+            .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
+                         timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        checkSelectedEntries(null, resultStream, expectedResults);
     }
     
     
     @Test
-    public void testSelectFeaturesByInternalID() throws Exception
+    public void testSelectByInternalID() throws Exception
     {
         Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
         Range<Instant> timeRange;
-        Long[] ids;
-        
+                
         addNonGeoFeatures(0, 50);
         
         // correct IDs and all times
-        ids = new Long[] {3L, 24L};
-        Set<String> uids = Arrays.stream(ids).map(i -> UID_PREFIX+"F"+(i-1)).collect(Collectors.toSet());
+        var ids = new long[] {3L, 24L, 43L};
+        Set<String> uids = Arrays.stream(ids).mapToObj(i -> UID_PREFIX+"F"+(i-1)).collect(Collectors.toSet());
         timeRange = Range.closed(Instant.MIN, Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
             .withInternalIDs(ids)
@@ -517,7 +572,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     
     
     @Test
-    public void testSelectFeaturesByUIDAndTime() throws Exception
+    public void testSelectByUIDAndTime() throws Exception
     {
         Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
         Set<String> uids;
@@ -542,92 +597,58 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
         checkSelectedEntries(resultStream, uids, timeRange);
-    }
-    
-    
-    @Test
-    public void testSelectTemporalFeaturesByUIDAndTime() throws Exception
-    {
-        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
-        Set<String> ids;
-        Range<Instant> timeRange;
         
         addTemporalFeatures(200, 30);
         
         // correct IDs and all times
-        ids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
+        uids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.closed(Instant.MIN, Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(ids.toArray(new String[0]))
+                .withUniqueIDs(uids.toArray(new String[0]))
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
-        checkSelectedEntries(resultStream, ids, timeRange);
+        checkSelectedEntries(resultStream, uids, timeRange);
         
         // correct IDs and time range
-        ids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
+        uids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.closed(Instant.parse("2000-04-08T08:59:59Z"), Instant.parse("2000-06-08T07:59:59Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(ids.toArray(new String[0]))
+                .withUniqueIDs(uids.toArray(new String[0]))
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
-        checkSelectedEntries(resultStream, ids, timeRange);
+        checkSelectedEntries(resultStream, uids, timeRange);
         
         // correct IDs and future time
-        ids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
+        uids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.singleton(Instant.parse("2001-04-08T07:59:59Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(ids.toArray(new String[0]))
+                .withUniqueIDs(uids.toArray(new String[0]))
                 .validAtTime(timeRange.lowerEndpoint())
                 .build());
-        checkSelectedEntries(resultStream, ids, timeRange);
+        checkSelectedEntries(resultStream, uids, timeRange);
         
         // mix of correct and wrong IDs
-        ids = Sets.newHashSet(UID_PREFIX+"FT300", UID_PREFIX+"FT201");
+        uids = Sets.newHashSet(UID_PREFIX+"FT300", UID_PREFIX+"FT201");
         timeRange = Range.singleton(Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(ids.toArray(new String[0]))
+                .withUniqueIDs(uids.toArray(new String[0]))
                 .withCurrentVersion()
                 .build());
-        checkSelectedEntries(resultStream, ids, timeRange);
+        checkSelectedEntries(resultStream, uids, timeRange);
         
         // only wrong IDs
-        ids = Sets.newHashSet(UID_PREFIX+"FT300", UID_PREFIX+"FT301");
+        uids = Sets.newHashSet(UID_PREFIX+"FT300", UID_PREFIX+"FT301");
         timeRange = Range.singleton(Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(ids.toArray(new String[0]))
+                .withUniqueIDs(uids.toArray(new String[0]))
                 .withCurrentVersion()
                 .build());
-        checkSelectedEntries(resultStream, ids, timeRange);
-    }
-    
-    
-    private void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Geometry roi, Range<Instant> timeRange)
-    {
-        System.out.println("\nSelect " + roi + " within " + timeRange);
-        
-        Map<FeatureKey, IGeoFeature> resultMap = resultStream
-                .peek(e -> System.out.println(e.getKey()))
-                .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
-        
-        resultMap.forEach((k, v) -> {
-            if (v.getGeometry() == null || !((Geometry)v.getGeometry()).intersects(roi) ||
-                (v instanceof ITemporalFeature) && !timeRange.isConnected(((ITemporalFeature)v).getValidTime().asRange()))
-                fail("Result contains unexpected feature: " + k + ", geom=" + v.getGeometry());
-        });
-        
-        allFeatures.entrySet().stream()
-            .filter(e -> e.getValue().isSetGeometry() && ((Geometry)e.getValue().getGeometry()).intersects(roi))
-            .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
-                         timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
-            .forEach(e -> {
-                if (!resultMap.containsKey(e.getKey()))
-                    fail("Result is missing feature: " + e.getKey());
-            });
+        checkSelectedEntries(resultStream, uids, timeRange);
     }
     
     
     @Test
-    public void testSelectEntriesByRoi() throws Exception
+    public void testSelectByRoi() throws Exception
     {
         Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
         Geometry roi;
@@ -646,41 +667,263 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         });
         timeRange = Range.closed(Instant.MIN, Instant.MAX);        
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
-                .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
-                .build());
+            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
+            .build());
         checkSelectedEntries(resultStream, roi, timeRange);
         
         // containing polygon and time range
         timeRange = Range.closed(Instant.parse("2000-02-28T09:59:59Z"), Instant.parse("2000-04-08T10:00:00Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
-                .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
-                .build());
+            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
+            .build());
         checkSelectedEntries(resultStream, roi, timeRange);
         
         // smaller polygon and all times
         roi = new GeometryFactory().createPolygon(new Coordinate[] {
-                new Coordinate(0, 0),
-                new Coordinate(200, 0),
-                new Coordinate(200, 29.9),
-                new Coordinate(0, 29.9),
-                new Coordinate(0, 0)
-            });
-            timeRange = Range.closed(Instant.MIN, Instant.MAX);        
-            resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                    .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
-                    .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
-                    .build());
-            checkSelectedEntries(resultStream, roi, timeRange);
+            new Coordinate(0, 0),
+            new Coordinate(200, 0),
+            new Coordinate(200, 29.9),
+            new Coordinate(0, 29.9),
+            new Coordinate(0, 0)
+        });
+        timeRange = Range.closed(Instant.MIN, Instant.MAX);        
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
+            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
+            .build());
+        checkSelectedEntries(resultStream, roi, timeRange);
         
         // smaller polygon and time range
         timeRange = Range.closed(Instant.parse("2000-02-28T09:59:59Z"), Instant.parse("2000-04-08T10:00:00Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
-                .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
-                .build());
+            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
+            .build());
         checkSelectedEntries(resultStream, roi, timeRange);
+    }
+
+
+    @Test
+    public void testAddAndRemoveByFilter() throws Exception
+    {
+        addTemporalGeoFeatures(0, 20);
+        
+        var timeRange = Range.closed(FIRST_VERSION_TIME.toInstant(), Instant.parse("2000-04-08T10:00:00Z"));
+        long count = featureStore.removeEntries(new FeatureFilter.Builder()
+            .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
+            .build());
+        System.out.println(count + " features removed");
+        
+        var resultStream = featureStore.selectEntries(featureStore.selectAllFilter());
+        var bbox = new Bbox(0, 0, 1e6, 1e6);
+        timeRange = Range.closed(Instant.parse("2000-05-01T00:00:00Z"), Instant.MAX);
+        checkSelectedEntries(resultStream, bbox.toJtsPolygon(), timeRange);
+    }
+            
+    
+    @Test
+    public void testSelectByParentID() throws Exception
+    {
+        useAdd = true;
+        long group1Id = addFeatureCollection(0L, "col1", "collection 1");
+        long group2Id = addFeatureCollection(0L, "col2", "collection 2");
+        long group3Id = addFeatureCollection(0L, "col3", "collection 3");
+        addGeoFeaturesPoint2D(group1Id, 0, 20);
+        addNonGeoFeatures(group2Id, 40, 35);
+        addTemporalGeoFeatures(group3Id, 100, 46);
+        
+        var filter = new FeatureFilter.Builder()
+            .withParents()
+                .withInternalIDs(group1Id, group3Id)
+                .done()
+            .build();
+        
+        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> {
+                var parentID = allParents.get(e.getKey());
+                return parentID == group1Id || parentID == group3Id;
+            })
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        var resultStream = featureStore.selectEntries(filter);
+        checkSelectedEntries(filter, resultStream, expectedResults);
+    }
+    
+    
+    @Test
+    public void testSelectByParentIDAndTime() throws Exception
+    {
+        useAdd = true;
+        long group1Id = addFeatureCollection(0L, "col1", "collection 1");
+        long group2Id = addFeatureCollection(0L, "col2", "collection 2");
+        long group3Id = addFeatureCollection(0L, "col3", "collection 3");
+        addGeoFeaturesPoint2D(group1Id, 0, 20);
+        addNonGeoFeatures(group2Id, 40, 35);
+        addTemporalGeoFeatures(group3Id, 100, 46);
+        
+        // select with parent and time range
+        var timeRange = Range.closed(
+            FIRST_VERSION_TIME.toInstant(),
+            FIRST_VERSION_TIME.toInstant().plus(70, ChronoUnit.DAYS));
+        
+        var filter1 = new FeatureFilter.Builder()
+            .withParents()
+                .withInternalIDs(group1Id, group3Id)
+                .done()
+            .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
+            .build();
+        
+        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> {
+                var parentID = allParents.get(e.getKey());
+                return parentID == group1Id || parentID == group3Id;
+            })
+            .filter(e -> {
+                return !(e.getValue() instanceof ITemporalFeature) ||
+                    timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange());
+            })
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        var resultStream = featureStore.selectEntries(filter1);
+        checkSelectedEntries(filter1, resultStream, expectedResults);
+        
+        // select with parent and current time
+        var filter2 = new FeatureFilter.Builder()
+            .withParents()
+                .withInternalIDs(group1Id, group3Id)
+                .done()
+            .withCurrentVersion()
+            .build();
+        
+        var currentTime = Instant.now();
+        expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> {
+                var parentID = allParents.get(e.getKey());
+                return parentID == group1Id || parentID == group3Id;
+            })
+            .filter(e -> {
+                return !(e.getValue() instanceof ITemporalFeature) ||
+                    ((ITemporalFeature)e.getValue()).getValidTime().asRange().contains(currentTime);
+            })             
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        resultStream = featureStore.selectEntries(filter2);
+        checkSelectedEntries(filter2, resultStream, expectedResults);
+        
+        // select with parent and time instant
+        var timeInstant = FIRST_VERSION_TIME.toInstant().plus(70, ChronoUnit.DAYS);
+        var filter3 = new FeatureFilter.Builder()
+            .withParents()
+                .withInternalIDs(group2Id, group3Id)
+                .done()
+            .validAtTime(timeInstant)
+            .build();
+                
+        expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> {
+                var parentID = allParents.get(e.getKey());
+                return parentID == group2Id || parentID == group3Id;
+            })
+            .filter(e -> {
+                return !(e.getValue() instanceof ITemporalFeature) ||
+                    ((ITemporalFeature)e.getValue()).getValidTime().asRange().contains(timeInstant);
+            })             
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        resultStream = featureStore.selectEntries(filter3);
+        checkSelectedEntries(filter3, resultStream, expectedResults);
+    }
+    
+    
+    @Test
+    public void testSelectByParentUID() throws Exception
+    {
+        useAdd = true;
+        long group1Id = addFeatureCollection(0L, "col1", "collection 1");
+        long group2Id = addFeatureCollection(0L, "col2", "collection 2");
+        long group3Id = addFeatureCollection(0L, "col3", "collection 3");
+        addGeoFeaturesPoint2D(group1Id, 0, 20);
+        addNonGeoFeatures(group2Id, 40, 35);
+        addTemporalGeoFeatures(group3Id, 100, 46);
+        
+        var filter = new FeatureFilter.Builder()
+            .withParents()
+                .withUniqueIDs(UID_PREFIX + "col3")
+                .done()
+            .build();
+        
+        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> {
+                var parentID = allParents.get(e.getKey());
+                return parentID == group3Id;
+            })
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        var resultStream = featureStore.selectEntries(filter);
+        checkSelectedEntries(filter, resultStream, expectedResults);
+    }
+    
+    
+    @Test
+    public void testSelectByKeywords() throws Exception
+    {
+        addNonGeoFeatures(40, 35);
+    
+        // single keyword
+        var filter = new FeatureFilter.Builder()
+            .withKeywords(featureTypes[0])
+            .build();
+        
+        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> e.getValue().getDescription().contains(featureTypes[0]))
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        var resultStream = featureStore.selectEntries(filter);
+        checkSelectedEntries(filter, resultStream, expectedResults);
+        
+        // two keywords
+        filter = new FeatureFilter.Builder()
+            .withKeywords(featureTypes[0], featureTypes[2])
+            .build();
+        
+        expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> e.getValue().getDescription().contains(featureTypes[0]) ||
+                e.getValue().getDescription().contains(featureTypes[2]))
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        resultStream = featureStore.selectEntries(filter);
+        checkSelectedEntries(filter, resultStream, expectedResults);
+    }
+    
+    
+    @Test
+    public void testSelectByRoiAndKeywords() throws Exception
+    {
+        addGeoFeaturesPoint2D(0, 200);
+    
+        var roi = new GeometryFactory().createPolygon(new Coordinate[] {
+            new Coordinate(0, 0),
+            new Coordinate(500, 0),
+            new Coordinate(500, 100),
+            new Coordinate(0, 100),
+            new Coordinate(0, 0)
+        });
+        
+        // single keyword
+        var filter = new FeatureFilter.Builder()
+            .withKeywords(featureTypes[0])
+            .withLocationIntersecting(roi)
+            .build();
+        
+        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> e.getValue().getDescription().contains(featureTypes[0]) &&
+                ((Geometry)e.getValue().getGeometry()).intersects(roi))
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        var resultStream = featureStore.selectEntries(filter);
+        checkSelectedEntries(filter, resultStream, expectedResults);
     }
     
     
@@ -693,26 +936,27 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         System.out.println("Write Throughput (put operations)");
         
+        // simple features
         int numFeatures = 100000;
         long t0 = System.currentTimeMillis();
-        //addSamplingPoints2D(0, numFeatures);
         addNonGeoFeatures(0, numFeatures);
-        //addTemporalGeoFeatures(0, numFeatures);
         featureStore.commit();
         double dt = System.currentTimeMillis() - t0;
         int throughPut = (int)(numFeatures/dt*1000);
         System.out.println(String.format("Simple Features: %d writes/s", throughPut));
-        assertTrue(throughPut > 50000);        
+        assertTrue(throughPut > 20000);        
         
+        // sampling features
         numFeatures = 10000;
         t0 = System.currentTimeMillis();
         addSamplingPoints2D(0, numFeatures);
         featureStore.commit();
         dt = System.currentTimeMillis() - t0;
         throughPut = (int)(numFeatures/dt*1000);
-        System.out.println(String.format("Geo Features: %d writes/s", throughPut));
+        System.out.println(String.format("Sampling-point Features: %d writes/s", throughPut));
         assertTrue(throughPut > 10000);
         
+        // geo features w/ polygons
         numFeatures = 10000;
         t0 = System.currentTimeMillis();
         addTemporalGeoFeatures(0, numFeatures);
@@ -880,6 +1124,22 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         //assertTrue(throughPut > 50000);        
     }
     
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testErrorAddWithExistingUID() throws Exception
+    {
+        useAdd = true;
+        addNonGeoFeatures(1, 10);
+        addNonGeoFeatures(1, 2);
+    }
+    
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void testErrorAddWithInvalidParent() throws Exception
+    {
+        useAdd = true;
+        addNonGeoFeatures(10L, 1, 2);
+    }    
     
     
     ///////////////////////

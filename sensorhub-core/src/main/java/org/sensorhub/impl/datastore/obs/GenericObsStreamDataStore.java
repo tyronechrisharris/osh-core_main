@@ -41,6 +41,7 @@ import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.obs.DataStreamInfo;
+import org.sensorhub.api.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IFoiStore;
@@ -305,8 +306,8 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
         for (IStreamingDataInterface output: selectedOutputs)
         {
             // try to retrieve existing data stream
-            Entry<Long, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procUID, output.getName());
-            Long dsID;
+            Entry<DataStreamKey, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procUID, output.getName());
+            DataStreamKey dsKey;
             
             if (dsEntry == null)
             {
@@ -316,11 +317,11 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                     .withRecordDescription(output.getRecordDescription())
                     .withRecordEncoding(output.getRecommendedEncoding())
                     .build();
-                dsID = dataStreamStore.add(dsInfo);
+                dsKey = dataStreamStore.add(dsInfo);
             }
             else
             {
-                dsID = dsEntry.getKey();
+                dsKey = dsEntry.getKey();
                 IDataStreamInfo dsInfo = dsEntry.getValue();
                 
                 if (hasOutputChanged(dsInfo.getRecordStructure(), output.getRecordDescription()))
@@ -332,13 +333,13 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                         .withRecordEncoding(output.getRecommendedEncoding())
                         .withValidTime(TimeExtent.beginAt(Instant.now()))
                         .build();
-                    dsID = dataStreamStore.add(dsInfo);
+                    dsKey = dataStreamStore.add(dsInfo);
                 }
             }
             
             // cache info about this data stream
             DataStreamCachedInfo cachedInfo = new DataStreamCachedInfo();
-            cachedInfo.dataStreamID = dsID;
+            cachedInfo.dataStreamID = dsKey.getInternalID();
             cachedInfo.timeStampIndexer = SWEHelper.getTimeStampIndexer(output.getRecordDescription());
             producerInfo.dataStreams.put(output.getName(), cachedInfo);
         }

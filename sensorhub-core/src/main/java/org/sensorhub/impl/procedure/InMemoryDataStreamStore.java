@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sensorhub.api.obs.DataStreamFilter;
 import org.sensorhub.api.obs.DataStreamInfo;
+import org.sensorhub.api.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.ObsFilter;
@@ -43,7 +44,7 @@ import org.vast.util.TimeExtent;
  */
 public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataStreamStore
 {
-    ConcurrentNavigableMap<Long, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
+    ConcurrentNavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
     InMemoryObsStore obsStore;
     
     
@@ -85,13 +86,14 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
 
 
     @Override
-    public synchronized Long add(IDataStreamInfo dsInfo)
+    public synchronized DataStreamKey add(IDataStreamInfo dsInfo)
     {
         Asserts.checkNotNull(dsInfo, DataStreamInfo.class);
 
-        Long nextId = map.isEmpty() ? 1 : map.lastKey()+1;
-        map.put(nextId, dsInfo);
-        return nextId;
+        long nextId = map.isEmpty() ? 1 : map.lastKey().getInternalID()+1;
+        var nextKey = new DataStreamKey(nextId);
+        map.put(nextKey, dsInfo);
+        return nextKey;
     }
 
 
@@ -103,19 +105,16 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
 
 
     @Override
-    public Stream<Entry<Long, IDataStreamInfo>> selectEntries(DataStreamFilter query, Set<DataStreamInfoField> fields)
+    public Stream<Entry<DataStreamKey, IDataStreamInfo>> selectEntries(DataStreamFilter query, Set<DataStreamInfoField> fields)
     {
-        Stream<Entry<Long, IDataStreamInfo>> resultStream;
+        Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
 
         if (query.getInternalIDs() != null)
         {
             resultStream = query.getInternalIDs().stream()
                 .map(id -> {
-                    var dsInfo = map.get(id);
-                    if (dsInfo == null)
-                        return null;
-                    IDataStreamInfo val = new DataStreamInfoWithTimeRanges(id, map.get(id));
-                    return (Entry<Long, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(id, val);
+                    var dsKey = new DataStreamKey(id);
+                    return (Entry<DataStreamKey, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(dsKey, map.get(dsKey));
                 })
                 .filter(Objects::nonNull);
         }
@@ -133,14 +132,15 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
                 selectedProcedures.contains(e.getValue().getProcedureID().getInternalID()));
         }
 
-        // filter with predicate and apply limit
+        // filter with predicate, apply limit
+        // and wrap with DataStreamInfoWithTimeRanges
         return resultStream
             .filter(e -> query.test(e.getValue()))
+            .limit(query.getLimit())
             .map(e -> {
-                IDataStreamInfo val = new DataStreamInfoWithTimeRanges(e.getKey(), e.getValue());
-                return (Entry<Long, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(e.getKey(), val);
-            })
-            .limit(query.getLimit());
+                IDataStreamInfo val = new DataStreamInfoWithTimeRanges(e.getKey().getInternalID(), e.getValue());
+                return (Entry<DataStreamKey, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(e.getKey(), val);
+            });
     }
 
 
@@ -166,7 +166,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
 
 
     @Override
-    public Set<Entry<Long, IDataStreamInfo>> entrySet()
+    public Set<Entry<DataStreamKey, IDataStreamInfo>> entrySet()
     {
         return map.entrySet();
     }
@@ -184,7 +184,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
 
 
     @Override
-    public IDataStreamInfo put(Long key, IDataStreamInfo value)
+    public IDataStreamInfo put(DataStreamKey key, IDataStreamInfo value)
     {
         return map.put(key, value);
     }
@@ -198,7 +198,7 @@ public class InMemoryDataStreamStore extends InMemoryDataStore implements IDataS
 
 
     @Override
-    public Set<Long> keySet()
+    public Set<DataStreamKey> keySet()
     {
         return Collections.unmodifiableSet(map.keySet());
     }

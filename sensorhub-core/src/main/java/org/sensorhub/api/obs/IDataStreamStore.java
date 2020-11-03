@@ -29,7 +29,7 @@ import org.sensorhub.api.resource.IResourceStore;
  * @author Alex Robin
  * @date Sep 18, 2019
  */
-public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, DataStreamInfoField, DataStreamFilter>
+public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter>
 {
     
     public static class DataStreamInfoField extends ValueField
@@ -61,7 +61,7 @@ public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, 
      * @param dsInfo The data stream info object to be stored
      * @return The key associated with the new data stream
      */
-    public Long add(IDataStreamInfo dsInfo);
+    public DataStreamKey add(IDataStreamInfo dsInfo);
     
     
     /**
@@ -71,9 +71,9 @@ public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, 
      * @param outputName Name of output generating the data stream
      * @return The feature key or null if none was found with this UID
      */
-    public default Long getLatestVersionKey(String procUID, String outputName)
+    public default DataStreamKey getLatestVersionKey(String procUID, String outputName)
     {
-        Entry<Long, IDataStreamInfo> e = getLatestVersionEntry(procUID, outputName);
+        Entry<DataStreamKey, IDataStreamInfo> e = getLatestVersionEntry(procUID, outputName);
         return e != null ? e.getKey() : null;
     }
     
@@ -87,7 +87,7 @@ public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, 
      */
     public default IDataStreamInfo getLatestVersion(String procUID, String outputName)
     {
-        Entry<Long, IDataStreamInfo> e = getLatestVersionEntry(procUID, outputName);
+        Entry<DataStreamKey, IDataStreamInfo> e = getLatestVersionEntry(procUID, outputName);
         return e != null ? e.getValue() : null;
     }
     
@@ -99,9 +99,9 @@ public interface IDataStreamStore extends IResourceStore<Long, IDataStreamInfo, 
      * @param outputName Name of output generating the data stream
      * @return The feature entry or null if none was found with this UID
      */
-    public default Entry<Long, IDataStreamInfo> getLatestVersionEntry(String procUID, String outputName)
+    public default Entry<DataStreamKey, IDataStreamInfo> getLatestVersionEntry(String procUID, String outputName)
     {
-        Optional<Entry<Long, IDataStreamInfo>> entryOpt = selectEntries(new DataStreamFilter.Builder()
+        Optional<Entry<DataStreamKey, IDataStreamInfo>> entryOpt = selectEntries(new DataStreamFilter.Builder()
             .withProcedures()
                 .withUniqueIDs(procUID)
                 .done()

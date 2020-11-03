@@ -187,8 +187,8 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
             {
                 // stream directly from list of selected datastreams
                 resultStream = dsStore.selectKeys(filter.getDataStreamFilter())
-                    .flatMap(id -> {
-                        return getObsByDataStream(id, phenomenonTimeFilter);
+                    .flatMap(k -> {
+                        return getObsByDataStream(k.getInternalID(), phenomenonTimeFilter);
                     });
             }
             else
@@ -213,6 +213,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         {
             // create set of selected datastreams
             Set<Long> dataStreamIDs = dsStore.selectKeys(filter.getDataStreamFilter())
+                .map(k -> k.getInternalID())
                 .collect(Collectors.toSet());
 
             if (dataStreamIDs.isEmpty())

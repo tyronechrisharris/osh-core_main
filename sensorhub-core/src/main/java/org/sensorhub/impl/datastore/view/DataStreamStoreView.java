@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.obs.DataStreamFilter;
+import org.sensorhub.api.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
@@ -26,7 +27,7 @@ import org.sensorhub.impl.datastore.registry.ReadOnlyDataStore;
 import org.vast.util.Asserts;
 
 
-public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
+public class DataStreamStoreView extends ReadOnlyDataStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {    
     IDataStreamStore delegate;
     DataStreamFilter viewFilter;
@@ -41,7 +42,7 @@ public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo
 
     @Override
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public Stream<Entry<Long, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
+    public Stream<Entry<DataStreamKey, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
     {
         try
         {
@@ -94,7 +95,7 @@ public class DataStreamStoreView extends ReadOnlyDataStore<Long, IDataStreamInfo
 
 
     @Override
-    public Long add(IDataStreamInfo dsInfo)
+    public DataStreamKey add(IDataStreamInfo dsInfo)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

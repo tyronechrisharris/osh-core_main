@@ -24,8 +24,7 @@ import org.vast.util.Asserts;
 /**
  * <p>
  * Immutable key object used to index features in data stores.<br/>
- * The key can include an internal ID or a unique ID or both. If both are
- * set when the key is used for retrieval, only the internal ID is used.
+ * The key includes the feature internal ID and its validity time stamp.
  * </p>
  *
  * @author Alex Robin
