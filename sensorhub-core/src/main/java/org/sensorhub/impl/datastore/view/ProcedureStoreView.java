@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import org.sensorhub.api.obs.IObsStore;
+import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.procedure.ProcedureFilter;
@@ -39,7 +39,7 @@ public class ProcedureStoreView extends FeatureStoreViewBase<IProcedureWithDesc,
     
     
     @Override
-    public void linkTo(IObsStore obsStore)
+    public void linkTo(IDataStreamStore dataStreamStore)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

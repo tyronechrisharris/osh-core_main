@@ -24,6 +24,7 @@ import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
@@ -263,6 +264,13 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     public DataStreamKey add(IDataStreamInfo dsInfo)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procedureStore)
+    {
+        throw new UnsupportedOperationException();        
     }
 
 }

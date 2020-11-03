@@ -17,6 +17,7 @@ package org.sensorhub.api.obs;
 import java.util.Optional;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.resource.IResourceStore;
 
 
@@ -111,5 +112,12 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
         
         return entryOpt.isPresent() ? entryOpt.get() : null;
     }
+    
+    
+    /**
+     * Link this store to an procedure store to enable JOIN queries
+     * @param procedureStore
+     */
+    public void linkTo(IProcedureStore procedureStore);
     
 }

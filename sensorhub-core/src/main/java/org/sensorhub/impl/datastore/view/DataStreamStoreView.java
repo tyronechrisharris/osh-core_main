@@ -22,6 +22,7 @@ import org.sensorhub.api.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.impl.datastore.registry.ReadOnlyDataStore;
 import org.vast.util.Asserts;
@@ -106,5 +107,12 @@ public class DataStreamStoreView extends ReadOnlyDataStore<DataStreamKey, IDataS
     public DataStreamKey add(IDataStreamInfo dsInfo)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procedureStore)
+    {
+        throw new UnsupportedOperationException();        
     }
 }

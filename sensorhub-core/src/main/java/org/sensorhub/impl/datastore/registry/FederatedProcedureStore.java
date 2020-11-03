@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.obs.DataStreamFilter;
-import org.sensorhub.api.obs.IObsStore;
+import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureStore.ProcedureField;
@@ -292,11 +292,12 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProc
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
-    
-    
+
+
     @Override
-    public void linkTo(IObsStore obsStore)
+    public void linkTo(IDataStreamStore dataStreamStore)
     {
+        throw new UnsupportedOperationException();        
     }
 
 }

@@ -17,7 +17,7 @@ package org.sensorhub.api.procedure;
 import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.feature.IFeatureStoreBase;
 import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
-import org.sensorhub.api.obs.IObsStore;
+import org.sensorhub.api.obs.IDataStreamStore;
 import org.sensorhub.api.procedure.IProcedureStore.ProcedureField;
 import net.opengis.sensorml.v20.AbstractProcess;
 
@@ -81,9 +81,9 @@ public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, P
     
     
     /**
-     * Link this store to a observation store to enable JOIN queries
-     * @param obsStore
+     * Link this store to a datastream store to enable JOIN queries
+     * @param dataStreamStore
      */
-    public void linkTo(IObsStore obsStore);
+    public void linkTo(IDataStreamStore dataStreamStore);
     
 }

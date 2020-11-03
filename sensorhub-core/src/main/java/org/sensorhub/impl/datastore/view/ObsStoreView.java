@@ -25,7 +25,6 @@ import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.api.obs.ObsStatsQuery;
-import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.obs.IObsStore.ObsField;
 import org.sensorhub.impl.datastore.registry.ReadOnlyDataStore;
 
@@ -117,13 +116,6 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
     public BigInteger add(IObsData obs)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
-    }
-
-
-    @Override
-    public void linkTo(IProcedureStore procedureStore)
-    {
-        throw new UnsupportedOperationException();        
     }
 
 

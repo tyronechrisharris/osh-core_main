@@ -30,7 +30,6 @@ import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.api.obs.ObsStatsQuery;
-import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.obs.IObsStore.ObsField;
 import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
@@ -318,13 +317,6 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     {
         // TODO Auto-generated method stub
         return null;
-    }
-
-
-    @Override
-    public void linkTo(IProcedureStore procedureStore)
-    {
-        throw new UnsupportedOperationException();        
     }
 
 
