@@ -125,10 +125,10 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     @Override
     public boolean test(IDataStreamInfo ds)
     {
-        return (testOutputName(ds) &&
+        return (super.test(ds) &&
+            testOutputName(ds) &&
             testValidTime(ds) &&
-            testObservedProperty(ds) &&
-            testValuePredicate(ds));
+            testObservedProperty(ds));
     }
     
     

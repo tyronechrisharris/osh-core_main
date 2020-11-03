@@ -72,7 +72,7 @@ public class FullTextFilter implements Predicate<String>
             for (var w: keywords)
                 regex.append(Pattern.quote(w)).append('|');
             regex.setLength(regex.length()-1);
-            pattern = Pattern.compile(regex.toString());
+            pattern = Pattern.compile(regex.toString(), Pattern.CASE_INSENSITIVE);
         }
         
         return pattern.matcher(txt).find();
