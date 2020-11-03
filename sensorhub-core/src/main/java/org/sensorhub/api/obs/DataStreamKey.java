@@ -30,6 +30,6 @@ public class DataStreamKey extends ResourceKey<DataStreamKey>
 
     public DataStreamKey(long internalID)
     {
-        this.internalID = internalID;
+        super(internalID);
     }
 }
