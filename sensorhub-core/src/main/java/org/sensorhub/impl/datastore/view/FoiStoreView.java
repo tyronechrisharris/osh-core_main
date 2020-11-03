@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
+import org.sensorhub.api.feature.IFeatureStore;
 import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsStore;
@@ -21,6 +22,14 @@ import org.sensorhub.api.obs.IFoiStore.FoiField;
 import org.vast.ogc.gml.IGeoFeature;
 
 
+/**
+ * <p>
+ * Filtered view implemented as a wrapper for an instance of IFoiStore
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Nov 3, 2020
+ */
 public class FoiStoreView extends FeatureStoreViewBase<IGeoFeature, FoiField, FoiFilter, IFoiStore> implements IFoiStore
 {        
     
@@ -33,6 +42,13 @@ public class FoiStoreView extends FeatureStoreViewBase<IGeoFeature, FoiField, Fo
     @Override
     public void linkTo(IObsStore obsStore)
     {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public void linkTo(IFeatureStore featureStore)
+    {
+        throw new UnsupportedOperationException();        
     }
 }

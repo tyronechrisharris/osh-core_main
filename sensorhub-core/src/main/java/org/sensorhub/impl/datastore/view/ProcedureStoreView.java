@@ -21,6 +21,14 @@ import org.sensorhub.api.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureStore.ProcedureField;
 
 
+/**
+ * <p>
+ * Filtered view implemented as a wrapper to an instance of IProcedureStore
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Nov 3, 2020
+ */
 public class ProcedureStoreView extends FeatureStoreViewBase<IProcedureWithDesc, ProcedureField, ProcedureFilter, IProcedureStore> implements IProcedureStore
 {
     

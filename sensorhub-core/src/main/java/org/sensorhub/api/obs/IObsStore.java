@@ -19,6 +19,7 @@ import java.util.stream.Stream;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.obs.IObsStore.ObsField;
+import org.sensorhub.api.procedure.IProcedureStore;
 import net.opengis.swe.v20.DataBlock;
 import com.google.common.collect.Sets;
 
@@ -101,9 +102,24 @@ public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, Ob
     }
     
     
+    @Override
     public default ObsFilter selectAllFilter()
     {
         return filterBuilder().build();
     }
+    
+    
+    /**
+     * Link this store to an procedure store to enable JOIN queries
+     * @param procedureStore
+     */
+    public void linkTo(IProcedureStore procedureStore);
+    
+    
+    /**
+     * Link this store to a feature of interest store to enable JOIN queries
+     * @param foiStore
+     */
+    public void linkTo(IFoiStore foiStore);
     
 }

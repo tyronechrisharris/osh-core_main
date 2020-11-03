@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.feature.FeatureKey;
+import org.sensorhub.api.feature.IFeatureStore;
 import org.sensorhub.api.obs.FoiFilter;
 import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsStore;
@@ -282,6 +283,14 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature
     @Override
     public void linkTo(IObsStore obsStore)
     {
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public void linkTo(IFeatureStore featureStore)
+    {
+        throw new UnsupportedOperationException();
     }
 
 }

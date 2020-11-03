@@ -81,7 +81,7 @@ public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, P
     
     
     /**
-     * Link this store to an observation store to enable JOIN queries
+     * Link this store to a observation store to enable JOIN queries
      * @param obsStore
      */
     public void linkTo(IObsStore obsStore);

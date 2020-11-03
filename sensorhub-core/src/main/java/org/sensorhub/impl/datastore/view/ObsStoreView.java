@@ -19,15 +19,25 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.obs.IDataStreamStore;
+import org.sensorhub.api.obs.IFoiStore;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.api.obs.ObsStatsQuery;
+import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.obs.IObsStore.ObsField;
 import org.sensorhub.impl.datastore.registry.ReadOnlyDataStore;
 
 
+/**
+ * <p>
+ * Filtered view implemented as a wrapper for an instance of IObsStore
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Nov 3, 2020
+ */
 public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsField, ObsFilter> implements IObsStore
 {
     IObsStore delegate;
@@ -107,5 +117,19 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
     public BigInteger add(IObsData obs)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procedureStore)
+    {
+        throw new UnsupportedOperationException();        
+    }
+
+
+    @Override
+    public void linkTo(IFoiStore foiStore)
+    {
+        throw new UnsupportedOperationException();        
     }
 }

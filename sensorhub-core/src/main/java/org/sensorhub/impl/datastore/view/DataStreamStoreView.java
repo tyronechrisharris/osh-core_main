@@ -27,6 +27,14 @@ import org.sensorhub.impl.datastore.registry.ReadOnlyDataStore;
 import org.vast.util.Asserts;
 
 
+/**
+ * <p>
+ * Filtered view implemented as a wrapper to an instance of IDataStreamStore
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Nov 3, 2020
+ */
 public class DataStreamStoreView extends ReadOnlyDataStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {    
     IDataStreamStore delegate;

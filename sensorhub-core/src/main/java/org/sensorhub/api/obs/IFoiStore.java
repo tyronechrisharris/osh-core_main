@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
+import org.sensorhub.api.feature.IFeatureStore;
 import org.sensorhub.api.feature.IFeatureStoreBase;
 import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.obs.IFoiStore.FoiField;
@@ -54,4 +55,11 @@ public interface IFoiStore extends IFeatureStoreBase<IGeoFeature, FoiField, FoiF
      * @param obsStore
      */
     public void linkTo(IObsStore obsStore);
+    
+    
+    /**
+     * Link this store to a sampled feature store to enable JOIN queries
+     * @param featureStore
+     */
+    public void linkTo(IFeatureStore featureStore);
 }
