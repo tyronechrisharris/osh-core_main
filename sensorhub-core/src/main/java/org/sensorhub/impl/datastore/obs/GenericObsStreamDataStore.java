@@ -331,7 +331,7 @@ public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreCon
                         .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
                         .withRecordDescription(output.getRecordDescription())
                         .withRecordEncoding(output.getRecommendedEncoding())
-                        .withValidTime(TimeExtent.beginAt(Instant.now()))
+                        .withValidTime(TimeExtent.endNow(Instant.now()))
                         .build();
                     dsKey = dataStreamStore.add(dsInfo);
                 }
