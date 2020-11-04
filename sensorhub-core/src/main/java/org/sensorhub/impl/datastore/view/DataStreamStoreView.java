@@ -86,9 +86,13 @@ public class DataStreamStoreView extends ReadOnlyDataStore<DataStreamKey, IDataS
     @Override
     public IDataStreamInfo get(Object key)
     {
-        Asserts.checkArgument(key instanceof Long);
+        Asserts.checkArgument(key instanceof DataStreamKey);
         
-        if (viewFilter.getInternalIDs() != null && !viewFilter.getInternalIDs().contains(key))
+        if (viewFilter == null)
+            return delegate.get(key);
+        
+        var pk = (DataStreamKey)key;
+        if (viewFilter.getInternalIDs() != null && !viewFilter.getInternalIDs().contains(pk.getInternalID()))
             return null;
         
         var proc = delegate.get(key);
