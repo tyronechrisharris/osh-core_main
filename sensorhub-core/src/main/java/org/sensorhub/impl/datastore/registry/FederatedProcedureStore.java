@@ -265,7 +265,8 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProc
                     int dbID = v.databaseID;
                     return v.db.getProcedureStore().selectEntries((ProcedureFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                });
+                })
+                .limit(filter.getLimit());
         }
         else
         {
@@ -275,7 +276,8 @@ public class FederatedProcedureStore extends ReadOnlyDataStore<FeatureKey, IProc
                     int dbID = db.getDatabaseID();
                     return db.getProcedureStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                });
+                })
+                .limit(filter.getLimit());
         }
     }
     

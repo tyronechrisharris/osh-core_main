@@ -246,7 +246,8 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
                     int dbID = v.databaseID;
                     return v.db.getObservationStore().getDataStreams().selectEntries((DataStreamFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                });
+                })
+                .limit(filter.getLimit());
         }
         else
         {
@@ -255,7 +256,8 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
                     int dbID = db.getDatabaseID();
                     return db.getObservationStore().getDataStreams().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                });
+                })
+                .limit(filter.getLimit());
         }
     }
 

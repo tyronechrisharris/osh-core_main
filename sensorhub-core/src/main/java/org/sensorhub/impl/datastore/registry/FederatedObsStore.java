@@ -284,7 +284,8 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                     int dbID = v.databaseID;
                     return v.db.getObservationStore().selectEntries((ObsFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                });
+                })
+                .limit(filter.getLimit());
         }
         else
         {
@@ -293,7 +294,8 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                     int dbID = db.getDatabaseID();
                     return db.getObservationStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                });
+                })
+                .limit(filter.getLimit());
         }
     }
     

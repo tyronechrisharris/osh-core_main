@@ -252,7 +252,8 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature
                     int dbID = v.databaseID;
                     return v.db.getFoiStore().selectEntries((FoiFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                });
+                })
+                .limit(filter.getLimit());
         }
         else
         {
@@ -261,7 +262,8 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature
                     int dbID = db.getDatabaseID();
                     return db.getFoiStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                });
+                })
+                .limit(filter.getLimit());
         }
     }
     
