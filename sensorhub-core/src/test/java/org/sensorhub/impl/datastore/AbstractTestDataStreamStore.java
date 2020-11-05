@@ -18,6 +18,7 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayOutputStream;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -205,18 +206,20 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         assertNull(dataStreamStore.get(new DataStreamKey(21L)));
         
         // add N different datastreams
+        var idList = new ArrayList<Long>();
         var now = TimeExtent.beginAt(Instant.now());
         for (int i = 1; i < 5; i++)
         {
             long procID = i;
-            addSimpleDataStream(procID, "test1", now);
+            var k = addSimpleDataStream(procID, "test1", now);
+            idList.add(k.getInternalID());
         }
         
-        assertNotNull(dataStreamStore.get(new DataStreamKey(1L)));
+        assertNotNull(dataStreamStore.get(new DataStreamKey(idList.get(0))));
         assertNull(dataStreamStore.get(new DataStreamKey(21L)));
         forceReadBackFromStorage();
         assertNull(dataStreamStore.get(new DataStreamKey(11L)));
-        assertNotNull(dataStreamStore.get(new DataStreamKey(3L)));
+        assertNotNull(dataStreamStore.get(new DataStreamKey(idList.get(3))));
         
     }
 
@@ -304,19 +307,21 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     public void testAddAndRemoveByFilter() throws Exception
     {
         // add N different datastreams
+        var idList = new ArrayList<Long>();
         var now = TimeExtent.beginAt(Instant.now());
         int numDs = 45;
         for (int i = 1; i <= numDs; i++)
         {
             long procID = i;
-            addSimpleDataStream(procID, "out"+i, now);
+            var key = addSimpleDataStream(procID, "out"+i, now);
+            idList.add(key.getInternalID());
         }
         
         int numRecords = numDs;
         assertEquals(numRecords, dataStreamStore.getNumRecords());
         
         // remove some by ID
-        var removedIds = new long[] {3L, 15L, 36L, 24L};
+        var removedIds = new long[] {idList.get(3), idList.get(15), idList.get(36), idList.get(24)};
         for (long id: removedIds)
             allDataStreams.remove(new DataStreamKey(id));
         dataStreamStore.removeEntries(new DataStreamFilter.Builder()
@@ -327,8 +332,10 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         assertEquals(numRecords, dataStreamStore.getNumRecords());
         
         // remove some by name
-        var removedIdsList = Arrays.asList(4L, 41L, 29L, 11L, 33L, 12L);
-        var removedNames = removedIdsList.stream().map(id -> "out"+id).collect(Collectors.toList());
+        var removedIdsList = Arrays.asList(idList.get(4), idList.get(41), idList.get(29), idList.get(11));
+        var removedNames = removedIdsList.stream()
+            .map(id -> allDataStreams.get(new DataStreamKey(id)).getOutputName())
+            .collect(Collectors.toList());
         for (long id: removedIdsList)
             allDataStreams.remove(new DataStreamKey(id));
         dataStreamStore.removeEntries(new DataStreamFilter.Builder()
