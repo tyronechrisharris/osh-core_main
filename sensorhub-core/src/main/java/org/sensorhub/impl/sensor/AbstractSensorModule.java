@@ -530,7 +530,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 sf.setName(config.name);
             sf.setDescription("Sampling point for " + config.name);
             sf.setHostedProcedureUID(uniqueID);
-            Point point = new GMLFactory().newPoint();
+            Point point = new GMLFactory(true).newPoint();
             point.setSrsName(SWEConstants.REF_FRAME_4979);
             point.setSrsDimension(3);
             point.setPos(new double[] {loc.lat, loc.lon, loc.alt});
