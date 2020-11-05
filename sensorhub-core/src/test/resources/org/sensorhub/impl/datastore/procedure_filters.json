@@ -52,7 +52,7 @@
     {
         "validTime": {
             "indeterminate": "current",
-            "tolerance": 1000
+            "tolerance": 15000
         },
         "withParents": {
             "uniqueIDs": [

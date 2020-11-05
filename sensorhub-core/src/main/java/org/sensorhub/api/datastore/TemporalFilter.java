@@ -33,16 +33,17 @@ import com.google.common.collect.Range;
  */
 public class TemporalFilter extends RangeFilter<Instant>
 {
-    public static final Duration CURRENT_TIME_TOLERANCE_DEFAULT = Duration.ofMillis(10000);
+    public static final Duration CURRENT_TIME_TOLERANCE_DEFAULT = Duration.ofMillis(1000);
     
-    protected boolean currentTime; // current time at the time of query evaluation
+    protected boolean timeRangeBeginsNow; // now = current time at the time of query evaluation
+    protected boolean timeRangeEndsNow; // now = current time at the time of query evaluation
     protected boolean latestTime; // latest available time (can be in future)
     protected Duration currentTimeTolerance; // in millis
     
     
     public boolean isCurrentTime()
     {
-        return currentTime;
+        return timeRangeBeginsNow && timeRangeEndsNow;
     }
     
     
@@ -58,15 +59,37 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    public boolean beginsNow()
+    {
+        return timeRangeBeginsNow;
+    }
+    
+    
+    public boolean endsNow()
+    {
+        return timeRangeEndsNow;
+    }
+    
+    
     @Override
     public Range<Instant> getRange()
     {
-        if (currentTime)
+        if (isCurrentTime())
         {
             var now = Instant.now();
             range = Range.closed(
                 now.minus(currentTimeTolerance),
                 now.plus(currentTimeTolerance));
+        }
+        else if (timeRangeBeginsNow)
+        {
+            var now = Instant.now();
+            range = Range.closed(now, range.upperEndpoint());
+        }
+        else if (timeRangeEndsNow)
+        {
+            var now = Instant.now();
+            range = Range.closed(range.lowerEndpoint(), now);
         }
         
         return range;
@@ -105,7 +128,9 @@ public class TemporalFilter extends RangeFilter<Instant>
     
     public boolean test(TimeExtent te)
     {
-        if (latestTime && te.endsNow())
+        // always pass when latestTime is selected because it depends on other
+        // elements in the time series and cannot be processed here
+        if (latestTime)
             return true;
         
         var range = getRange();
@@ -222,7 +247,8 @@ public class TemporalFilter extends RangeFilter<Instant>
         {
             Asserts.checkNotNull(base, TemporalFilter.class);
             super.copyFrom(base);
-            instance.currentTime = base.currentTime;
+            instance.timeRangeBeginsNow = base.timeRangeBeginsNow;
+            instance.timeRangeEndsNow = base.timeRangeEndsNow;
             instance.latestTime = base.latestTime;
             instance.currentTimeTolerance = base.currentTimeTolerance;
             return (B)this;
@@ -260,7 +286,7 @@ public class TemporalFilter extends RangeFilter<Instant>
          */
         public B withCurrentTime(Duration tolerance)
         {
-            instance.currentTime = true;
+            instance.timeRangeBeginsNow = instance.timeRangeEndsNow = true;
             instance.latestTime = false;
             instance.currentTimeTolerance = tolerance;
             instance.getRange(); // precompute time range
@@ -269,13 +295,13 @@ public class TemporalFilter extends RangeFilter<Instant>
         
         
         /**
-         * Keep only the objects with the latest time stamp in the selected time series
+         * Match only the latest time stamp a time series
          * @return This builder for chaining
          */
         public B withLatestTime()
         {
             instance.latestTime = true;
-            instance.currentTime = false;
+            instance.timeRangeBeginsNow = instance.timeRangeEndsNow = false;
             instance.range = Range.singleton(Instant.MAX);
             return (B)this;
         }
@@ -289,6 +315,55 @@ public class TemporalFilter extends RangeFilter<Instant>
         {
             withRange(Instant.MIN, Instant.MAX);
             return (B)this;
+        }
+        
+        
+        /**
+         * Match time stamps between the specified instant and the current time, both included
+         * @param begin Beginning of time range
+         * @return This builder for chaining
+         */
+        public B withRangeEndingNow(Instant begin)
+        {
+            instance.timeRangeEndsNow = true;
+            withRange(begin, Instant.EPOCH);
+            return (B)this;
+        }
+        
+        
+        /**
+         * Match time stamps between the current time and the specified instant, both included
+         * @param end End of time range
+         * @return This builder for chaining
+         */
+        public B withRangeBeginningNow(Instant end)
+        {
+            instance.timeRangeBeginsNow = true;
+            withRange(Instant.EPOCH, end);
+            return (B)this;
+        }
+        
+        
+        /**
+         * Build the filter using the same bounds as the provided time extent,
+         * accounting for 'now' and unbounded edge cases.
+         * @param te Time extent
+         * @return This builder for chaining
+         */
+        public B fromTimeExtent(TimeExtent te)
+        {
+            if (te.isNow())
+                return withCurrentTime(0);
+            else if (te.beginsNow())
+                return withRangeBeginningNow(te.end());
+            else if (te.endsNow())
+                return withRangeEndingNow(te.begin());
+            else if (!te.hasBegin())
+                return withRange(Instant.MIN, te.end());
+            else if (!te.hasEnd())
+                return withRange(te.begin(), Instant.MAX);
+            else
+                return withRange(te.begin(), te.end());
         }
     }
 }

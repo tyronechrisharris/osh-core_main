@@ -386,6 +386,24 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
             instance.validTime = timeFilter;
             return (B)this;
         }
+
+
+        /**
+         * Keep only datastreams whose temporal validity matches the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link TemporalFilter} builder for chaining
+         */
+        public TemporalFilter.NestedBuilder<B> withValidTime()
+        {
+            return new TemporalFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    DataStreamFilterBuilder.this.withValidTime(build());
+                    return (B)DataStreamFilterBuilder.this;
+                }                
+            };
+        }
         
         
         /**

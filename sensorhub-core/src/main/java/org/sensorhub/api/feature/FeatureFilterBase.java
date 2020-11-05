@@ -202,6 +202,24 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
             instance.validTime = timeFilter;
             return (B)this;
         }
+
+
+        /**
+         * Keep only features whose temporal validity matches the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link TemporalFilter} builder for chaining
+         */
+        public TemporalFilter.NestedBuilder<B> withValidTime()
+        {
+            return new TemporalFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    FeatureFilterBaseBuilder.this.withValidTime(build());
+                    return (B)FeatureFilterBaseBuilder.this;
+                }                
+            };
+        }
         
         
         /**
