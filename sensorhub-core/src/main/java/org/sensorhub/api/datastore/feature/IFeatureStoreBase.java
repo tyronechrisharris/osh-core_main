@@ -28,7 +28,6 @@ import org.vast.util.Bbox;
  * Base interface for data stores containing objects derived from IFeature.
  * </p>
  * 
- * @param <K> Key type
  * @param <V> Value type
  * @param <VF> Value field enum type
  * @param <F> Filter type

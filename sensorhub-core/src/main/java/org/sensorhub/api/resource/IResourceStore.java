@@ -20,9 +20,9 @@ import org.vast.util.IResource;
  * Generic interface for all resource stores
  * </p>
  * @param <K> Key type
- * @param <V> Value type 
- * @param <VF> Value field enum type
- * @param <F> Filter type
+ * @param <V> Resource type 
+ * @param <VF> Resource value field enum type
+ * @param <F> Resource filter type
  *
  * @author Alex Robin
  * @date Oct 8, 2018

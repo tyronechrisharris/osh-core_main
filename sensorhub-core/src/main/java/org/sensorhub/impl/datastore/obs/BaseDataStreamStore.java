@@ -29,7 +29,7 @@ import org.vast.util.TimeExtent;
 
 /**
  * <p>
- * Base helper class for DataStreamStore implementations
+ * Base helper class for datastream store implementations
  * </p>
  *
  * @author Alex Robin
