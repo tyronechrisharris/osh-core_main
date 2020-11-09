@@ -17,7 +17,6 @@ package org.sensorhub.impl.module;
 import java.io.IOException;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.impl.module.AbstractModule;
 
 
 /**

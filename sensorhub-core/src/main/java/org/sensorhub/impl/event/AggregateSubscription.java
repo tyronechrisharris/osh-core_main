@@ -16,11 +16,9 @@ package org.sensorhub.impl.event;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.PriorityQueue;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import org.sensorhub.api.event.Event;
 import org.vast.util.Asserts;
 

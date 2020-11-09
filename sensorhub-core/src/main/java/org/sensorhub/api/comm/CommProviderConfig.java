@@ -18,19 +18,29 @@ import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.module.ModuleConfig;
 
 
-public class CommProviderConfig<ConfigType> extends ModuleConfig
+/**
+ * <p>
+ * Base class for communication provider configuration objects
+ * </p>
+ * 
+ * @param <P> Type of protocol configuration
+ *
+ * @author Alex Robin
+ * @date Nov 9, 2020
+ */
+public class CommProviderConfig<P> extends ModuleConfig
 {
     @DisplayInfo(label="Protocol Options")
-    public ConfigType protocol;
+    public P protocol;
     
     
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public ICommProvider getProvider()
     {
         try
         {
             Class<?> clazz = Class.forName(moduleClass);
-            ICommProvider commProvider = (ICommProvider)clazz.newInstance();
+            ICommProvider commProvider = (ICommProvider)clazz.getDeclaredConstructor().newInstance();
             commProvider.init(this);  
             return commProvider;
         }
