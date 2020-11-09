@@ -40,6 +40,7 @@ import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEUtils;
 import org.vast.util.TimeExtent;
+import com.google.common.collect.Lists;
 import net.opengis.swe.v20.DataComponent;
 
 
@@ -58,7 +59,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     
     protected StoreType dataStreamStore;
     protected Map<DataStreamKey, IDataStreamInfo> allDataStreams = new LinkedHashMap<>();
-
+    protected Map<DataStreamKey, IDataStreamInfo> expectedResults = new LinkedHashMap<>();
 
     protected abstract StoreType initStore() throws Exception;
     protected abstract void forceReadBackFromStorage() throws Exception;
@@ -85,6 +86,22 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         var key = dataStreamStore.add(dsInfo);
         allDataStreams.put(key, dsInfo);
         return key;
+    }
+    
+    
+    protected void addToExpectedResults(Entry<DataStreamKey, IDataStreamInfo> entry)
+    {
+        expectedResults.put(entry.getKey(), entry.getValue());
+    }
+    
+    
+    protected void addToExpectedResults(int... entryIdxList)
+    {
+        for (int idx: entryIdxList)
+        {
+            var entryList = Lists.newArrayList(allDataStreams.entrySet());
+            addToExpectedResults(entryList.get(idx));
+        }
     }
 
 
@@ -357,7 +374,6 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     public void testAddAndSelectCurrentVersion() throws Exception
     {
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
-        var expectedResults = new LinkedHashMap<DataStreamKey, IDataStreamInfo>();
 
         long procID = 10;
         var now = Instant.now();
@@ -378,11 +394,14 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             .build();
         resultStream = dataStreamStore.selectEntries(filter);
         
-        expectedResults.clear();
-        expectedResults.put(ds1v2, allDataStreams.get(ds1v2));
-        expectedResults.put(ds2v1, allDataStreams.get(ds2v1));
-        expectedResults.put(ds3v1, allDataStreams.get(ds3v1));
+        testAddAndSelectCurrentVersion_ExpectedResults();
         checkSelectedEntries(resultStream, expectedResults, filter);
+    }
+    
+    
+    protected void testAddAndSelectCurrentVersion_ExpectedResults()
+    {
+        addToExpectedResults(2, 4, 7);
     }
         
     
@@ -391,7 +410,6 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     public void testAddAndSelectLatestValidTime() throws Exception
     {
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
-        var expectedResults = new LinkedHashMap<DataStreamKey, IDataStreamInfo>();
 
         long procID = 1;
         var now = Instant.now();
@@ -414,11 +432,14 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             .build();
         resultStream = dataStreamStore.selectEntries(filter);
         
-        expectedResults.clear();
-        expectedResults.put(ds1v2, allDataStreams.get(ds1v2));
-        expectedResults.put(ds2v2, allDataStreams.get(ds2v2));
-        expectedResults.put(ds3v1, allDataStreams.get(ds3v1));
+        testAddAndSelectLatestValidTime_ExpectedResults();
         checkSelectedEntries(resultStream, expectedResults, filter);
+    }
+    
+    
+    protected void testAddAndSelectLatestValidTime_ExpectedResults()
+    {
+        addToExpectedResults(2, 5, 7);
     }
     
     
@@ -427,7 +448,6 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     public void testAddAndSelectByTimeRange() throws Exception
     {
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
-        var expectedResults = new LinkedHashMap<DataStreamKey, IDataStreamInfo>();
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         var ds1v0 = addSimpleDataStream(1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
@@ -445,12 +465,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             .build();
         resultStream = dataStreamStore.selectEntries(filter);
         
-        expectedResults.clear();
-        expectedResults.put(ds1v1, allDataStreams.get(ds1v1));
-        expectedResults.put(ds2v1, allDataStreams.get(ds2v1));
-        expectedResults.put(ds3v0, allDataStreams.get(ds3v0));
-        expectedResults.put(ds3v1, allDataStreams.get(ds3v1));
-        expectedResults.put(ds5v0, allDataStreams.get(ds5v0));
+        testAddAndSelectByTimeRange_ExpectedResults(1);
         checkSelectedEntries(resultStream, expectedResults, filter);
                 
         // select from t0 to t1
@@ -461,11 +476,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         resultStream = dataStreamStore.selectEntries(filter);
         
         expectedResults.clear();
-        expectedResults.put(ds1v0, allDataStreams.get(ds1v0));
-        expectedResults.put(ds1v1, allDataStreams.get(ds1v1));
-        expectedResults.put(ds2v0, allDataStreams.get(ds2v0));
-        expectedResults.put(ds3v0, allDataStreams.get(ds3v0));
-        expectedResults.put(ds5v0, allDataStreams.get(ds5v0));
+        testAddAndSelectByTimeRange_ExpectedResults(2);
         checkSelectedEntries(resultStream, expectedResults, filter);
         
         // select from t0 to t1, only proc 3
@@ -477,17 +488,27 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         resultStream = dataStreamStore.selectEntries(filter);
         
         expectedResults.clear();
-        expectedResults.put(ds5v0, allDataStreams.get(ds5v0));
+        testAddAndSelectByTimeRange_ExpectedResults(3);
         checkSelectedEntries(resultStream, expectedResults, filter); 
+    }
+    
+    
+    protected void testAddAndSelectByTimeRange_ExpectedResults(int testCaseIdx)
+    {
+        switch (testCaseIdx)
+        {
+            case 1: addToExpectedResults(1, 3, 4, 5, 7); break;
+            case 2: addToExpectedResults(0, 1, 2, 4, 7); break;
+            case 3: addToExpectedResults(7); break;
+        }        
     }
     
     
     @Test
     @SuppressWarnings("unused")
-    public void testAddAndSelectByName() throws Exception
+    public void testAddAndSelectByOutputName() throws Exception
     {
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
-        var expectedResults = new LinkedHashMap<DataStreamKey, IDataStreamInfo>();
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         var ds1v0 = addSimpleDataStream(1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
@@ -503,12 +524,14 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             .build();
         resultStream = dataStreamStore.selectEntries(filter);
         
-        expectedResults.clear();
-        expectedResults.put(ds1v0, allDataStreams.get(ds1v0));
-        expectedResults.put(ds1v1, allDataStreams.get(ds1v1));
-        expectedResults.put(ds3v0, allDataStreams.get(ds3v0));
-        expectedResults.put(ds5v0, allDataStreams.get(ds5v0));
+        testAddAndSelectByOutputName_ExpectedResults();
         checkSelectedEntries(resultStream, expectedResults, filter);
+    }
+    
+    
+    protected void testAddAndSelectByOutputName_ExpectedResults()
+    {
+        addToExpectedResults(0, 1, 3, 5);
     }
     
     
@@ -517,7 +540,6 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     public void testAddAndSelectByProcedureID() throws Exception
     {
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
-        var expectedResults = new LinkedHashMap<DataStreamKey, IDataStreamInfo>();
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         var ds1v0 = addSimpleDataStream(1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
@@ -533,11 +555,14 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             .build();
         resultStream = dataStreamStore.selectEntries(filter);
         
-        expectedResults.clear();
-        expectedResults.put(ds3v0, allDataStreams.get(ds3v0));
-        expectedResults.put(ds4v0, allDataStreams.get(ds4v0));
-        expectedResults.put(ds5v0, allDataStreams.get(ds5v0));
+        testAddAndSelectByProcedureID_ExpectedResults();
         checkSelectedEntries(resultStream, expectedResults, filter);
+    }
+    
+    
+    protected void testAddAndSelectByProcedureID_ExpectedResults()
+    {
+        addToExpectedResults(3, 4, 5);
     }
     
     
@@ -546,7 +571,6 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     public void testAddAndSelectByKeywords() throws Exception
     {
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
-        var expectedResults = new LinkedHashMap<DataStreamKey, IDataStreamInfo>();
         DataStreamFilter filter;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
@@ -564,8 +588,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         resultStream = dataStreamStore.selectEntries(filter);
         
         expectedResults.clear();
-        expectedResults.put(ds4v0, allDataStreams.get(ds4v0));
-        expectedResults.put(ds5v0, allDataStreams.get(ds5v0));
+        testAddAndSelectByKeywords_ExpectedResults(1);
         checkSelectedEntries(resultStream, expectedResults, filter);
         
         // select with 2 keywords
@@ -575,10 +598,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         resultStream = dataStreamStore.selectEntries(filter);
         
         expectedResults.clear();
-        expectedResults.put(ds1v0, allDataStreams.get(ds1v0));
-        expectedResults.put(ds1v1, allDataStreams.get(ds1v1));
-        expectedResults.put(ds4v0, allDataStreams.get(ds4v0));
-        expectedResults.put(ds5v0, allDataStreams.get(ds5v0));
+        testAddAndSelectByKeywords_ExpectedResults(2);
         checkSelectedEntries(resultStream, expectedResults, filter);
         
         // select with 2 keywords
@@ -588,9 +608,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         resultStream = dataStreamStore.selectEntries(filter);
         
         expectedResults.clear();
-        expectedResults.put(ds2v0, allDataStreams.get(ds2v0));
-        expectedResults.put(ds4v0, allDataStreams.get(ds4v0));
-        expectedResults.put(ds5v0, allDataStreams.get(ds5v0));
+        testAddAndSelectByKeywords_ExpectedResults(3);
         checkSelectedEntries(resultStream, expectedResults, filter);
         
         // select with procedure and keywords (partial words)
@@ -601,7 +619,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         resultStream = dataStreamStore.selectEntries(filter);
         
         expectedResults.clear();
-        expectedResults.put(ds4v0, allDataStreams.get(ds4v0));
+        testAddAndSelectByKeywords_ExpectedResults(4);
         checkSelectedEntries(resultStream, expectedResults, filter);
         
         // select unknown keywords
@@ -612,7 +630,20 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         resultStream = dataStreamStore.selectEntries(filter);
         
         expectedResults.clear();
+        testAddAndSelectByKeywords_ExpectedResults(5);
         checkSelectedEntries(resultStream, expectedResults, filter);
+    }
+    
+    
+    protected void testAddAndSelectByKeywords_ExpectedResults(int testCaseIdx)
+    {
+        switch (testCaseIdx)
+        {
+            case 1: addToExpectedResults(4, 5); break;
+            case 2: addToExpectedResults(0, 1, 4, 5); break;
+            case 3: addToExpectedResults(2, 4, 5); break;
+            case 4: addToExpectedResults(4); break;
+        }        
     }
     
     
