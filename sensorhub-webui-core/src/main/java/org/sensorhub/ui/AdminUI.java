@@ -28,6 +28,7 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.client.ClientConfig;
 import org.sensorhub.api.comm.NetworkConfig;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
@@ -227,10 +228,16 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         buildModuleList(layout, SensorConfig.class);
         
         layout = new VerticalLayout();
-        tab = stack.addTab(layout, "Storage");
+        tab = stack.addTab(layout, "Storage (Old API)");
         //tab.setIcon(ACC_TAB_ICON);
         tab.setIcon(FontAwesome.DATABASE);
         buildModuleList(layout, StorageConfig.class);
+        
+        layout = new VerticalLayout();
+        tab = stack.addTab(layout, "Storage (New API)");
+        //tab.setIcon(ACC_TAB_ICON);
+        tab.setIcon(FontAwesome.DATABASE);
+        buildModuleList(layout, DatabaseConfig.class);
         
         layout = new VerticalLayout();
         tab = stack.addTab(layout, "Processing");
