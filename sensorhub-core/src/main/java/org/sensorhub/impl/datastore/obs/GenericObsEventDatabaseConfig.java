@@ -38,7 +38,7 @@ public class GenericObsEventDatabaseConfig extends DatabaseConfig
     
     
     @Required
-    @DisplayInfo(label="Data Source IDs", desc="Unique IDs of streaming data sources whose data will be stored")
+    @DisplayInfo(label="Procedure UIDs", desc="Unique IDs of streaming data sources whose data will be stored")
     public Set<String> procedureUIDs = new TreeSet<>();
     
     

@@ -21,7 +21,7 @@ import org.sensorhub.api.module.ModuleConfig;
 
 /**
  * <p>
- * BAse config class for all database modules
+ * Base config class for all database modules
  * </p>
  *
  * @author Alex Robin
@@ -30,7 +30,7 @@ import org.sensorhub.api.module.ModuleConfig;
 public class DatabaseConfig extends ModuleConfig
 {
     @Required
-    @DisplayInfo(desc="Numerical identifier of the database. Each database "
-        + "must have a unique ID on the sensor hub")
+    @DisplayInfo(label="Database ID", desc="Numerical identifier of the database. Each database "
+        + "must have a unique integer ID on the sensor hub")
     public int databaseID = 1;
 }
