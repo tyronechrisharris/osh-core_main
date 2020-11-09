@@ -27,7 +27,7 @@ import org.slf4j.Logger;
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public interface IObsDbAutoPurgePolicy
+public interface IProcedureObsDbAutoPurgePolicy
 {    
         
     /**

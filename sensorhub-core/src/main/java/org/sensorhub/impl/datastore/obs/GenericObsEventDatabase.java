@@ -36,7 +36,7 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.DatabaseConfig;
-import org.sensorhub.api.database.IObsDbAutoPurgePolicy;
+import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -154,7 +154,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
         // start auto-purge timer thread if policy is specified and enabled
         if (config.autoPurgeConfig != null && config.autoPurgeConfig.enabled)
         {
-            final IObsDbAutoPurgePolicy policy = config.autoPurgeConfig.getPolicy();
+            final IProcedureObsDbAutoPurgePolicy policy = config.autoPurgeConfig.getPolicy();
             autoPurgeTimer = new Timer();
             TimerTask task = new TimerTask() {
                 public void run()
