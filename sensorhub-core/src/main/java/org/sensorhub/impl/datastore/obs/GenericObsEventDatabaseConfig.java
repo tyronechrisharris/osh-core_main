@@ -23,13 +23,13 @@ import org.sensorhub.api.database.DatabaseConfig;
 
 /**
  * <p>
- * Config class for {@link GenericObsStreamDataStore}.
+ * Config class for {@link GenericObsEventDatabase}.
  * </p>
  *
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class ObsStreamDataStoreConfig extends DatabaseConfig
+public class GenericObsEventDatabaseConfig extends DatabaseConfig
 {
     
     @Required
@@ -58,8 +58,8 @@ public class ObsStreamDataStoreConfig extends DatabaseConfig
     public boolean processEvents = true;
     
     
-    public ObsStreamDataStoreConfig()
+    public GenericObsEventDatabaseConfig()
     {
-        this.moduleClass = GenericObsStreamDataStore.class.getCanonicalName();
+        this.moduleClass = GenericObsEventDatabase.class.getCanonicalName();
     }
 }

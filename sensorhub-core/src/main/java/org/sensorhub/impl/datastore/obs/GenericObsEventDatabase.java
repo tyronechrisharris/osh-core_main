@@ -73,9 +73,16 @@ import org.vast.util.TimeExtent;
 
 /**
  * <p>
- * Generic wrapper/adapter enabling any {@link IProcedureObsDatabase}
- * implementation to store data coming from data events (e.g. sensor data,
- * processed data, etc.).
+ * Generic database loader implementation allowing wrapping any implementation
+ * of a writable {@link IProcedureObsDatabase} and inserting procedure event
+ * data into it.
+ * </p><p>
+ * The following procedure events are handled and the corresponding data or
+ * metadata stored in the database:
+ * <li>procedure added/changed (see {@link ProcedureEvent})</li>
+ * <li>datastream added/changed (see {@link DataStreamEvent})</li>
+ * <li>new observation (see {@link DataEvent})</li>
+ * <li>new feature of interest (see {@link FoiEvent})</li>
  * </p><p>
  * This class takes care of registering with the appropriate producers and
  * uses the data store API to store records in the underlying database.
@@ -84,7 +91,7 @@ import org.vast.util.TimeExtent;
  * @author Alex Robin
  * @since Sep 23, 2019
  */
-public class GenericObsStreamDataStore extends AbstractModule<ObsStreamDataStoreConfig> implements IProcedureObsDatabase
+public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatabaseConfig> implements IProcedureObsDatabase
 {
     static final String WAITING_STATUS_MSG = "Waiting for data source {}";
 

@@ -33,8 +33,8 @@ import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.ProcedureRemovedEvent;
-import org.sensorhub.impl.datastore.obs.GenericObsStreamDataStore;
-import org.sensorhub.impl.datastore.obs.ObsStreamDataStoreConfig;
+import org.sensorhub.impl.datastore.obs.GenericObsEventDatabase;
+import org.sensorhub.impl.datastore.obs.GenericObsEventDatabaseConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorShadow;
 import org.sensorhub.utils.MsgUtils;
@@ -61,7 +61,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
     ISensorHub hub;
     IEventPublisher eventPublisher;
-    GenericObsStreamDataStore procStateDb;
+    GenericObsEventDatabase procStateDb;
     IProcedureObsDatabase federatedDb;
     ReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -83,10 +83,10 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         
         try
         {
-            ObsStreamDataStoreConfig dbListenerConfig = new ObsStreamDataStoreConfig();
+            GenericObsEventDatabaseConfig dbListenerConfig = new GenericObsEventDatabaseConfig();
             dbListenerConfig.dbConfig = stateDbConfig;
 
-            procStateDb = new GenericObsStreamDataStore();
+            procStateDb = new GenericObsEventDatabase();
             procStateDb.setParentHub(hub);
             procStateDb.init(dbListenerConfig);
             procStateDb.start();
