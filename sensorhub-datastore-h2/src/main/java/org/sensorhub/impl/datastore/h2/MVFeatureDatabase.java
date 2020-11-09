@@ -17,7 +17,7 @@ package org.sensorhub.impl.datastore.h2;
 import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.feature.IFeatureDatabase;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
@@ -65,14 +65,9 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
             mvStore.setVersionsToKeep(0);
             
             // open procedure store
-            if (H2Utils.getDataStoreInfo(mvStore, FEATURE_STORE_NAME) == null)
-            {
-                featureStore = MVFeatureStoreImpl.create(mvStore, MVDataStoreInfo.builder()
-                    .withName(FEATURE_STORE_NAME)
-                    .build());
-            }
-            else
-                featureStore = MVFeatureStoreImpl.open(mvStore, FEATURE_STORE_NAME);
+            featureStore = MVFeatureStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+                .withName(FEATURE_STORE_NAME)
+                .build());
         }
         catch (Exception e)
         {

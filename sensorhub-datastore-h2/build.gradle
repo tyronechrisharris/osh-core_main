@@ -5,6 +5,7 @@ dependencies {
   compile project(':sensorhub-core')
   compile 'com.h2database:h2-mvstore:1.4.197'
   compile 'com.esotericsoftware:kryo:4.0.2'
+  compile 'org.apache.lucene:lucene-analyzers-common:7.5.0'
   testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }
 

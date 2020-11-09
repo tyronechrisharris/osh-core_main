@@ -15,61 +15,42 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.time.Instant;
-import org.sensorhub.utils.ObjectUtils;
-import com.google.common.collect.Range;
+import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.vast.util.Asserts;
 
 
 /**
  * <p>
- * Internal object stored in secondary indexes to reference a feature
+ * Key used for associating features with their parent.
+ * Note: we don't override hashcode and equals so we can still compare with
+ * plain FeatureKey objects.
  * </p>
  *
  * @author Alex Robin
- * @date Apr 12, 2018
+ * @date Oct 28, 2020
  */
-public class MVFeatureRef
+public class MVFeatureParentKey extends FeatureKey
 {
-    private long internalID;
-    private long parentID;
-    private Range<Instant> validityPeriod;
-    //private Geometry geom;
+    protected long parentID; // 0 indicates no parent
     
     
-    public MVFeatureRef(long parentID, long internalID, Range<Instant> validityPeriod)
+    public MVFeatureParentKey(long parentID, long internalID)
     {
+        this(parentID, internalID, TIMELESS);
+    }
+    
+    
+    public MVFeatureParentKey(long parentID, long internalID, Instant validStartTime)
+    {
+        super(internalID, validStartTime);
+        
+        Asserts.checkArgument(parentID >= 0, "Invalid parentID");
         this.parentID = parentID;
-        this.internalID = internalID;
-        this.validityPeriod = validityPeriod;
     }
     
-
-    public long getInternalID()
-    {
-        return internalID;
-    }
-
 
     public long getParentID()
     {
         return parentID;
-    }
-
-
-    /*public Geometry getGeom()
-    {
-        return geom;
-    }*/
-
-
-    public Range<Instant> getValidityPeriod()
-    {
-        return validityPeriod;
-    }
-
-
-    @Override
-    public String toString()
-    {
-        return ObjectUtils.toString(this, true);
     }
 }

@@ -8,7 +8,7 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2018 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -18,6 +18,7 @@ import java.nio.ByteBuffer;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
+import org.sensorhub.api.datastore.obs.DataStreamKey;
 
 
 /**
@@ -26,51 +27,34 @@ import org.h2.mvstore.type.DataType;
  * </p>
  *
  * @author Alex Robin
- * @date Apr 7, 2018
+ * @date Nov 3, 2020
  */
-class MVDataStreamProcKeyDataType implements DataType
+class MVDataStreamKeyDataType implements DataType
 {
-    private static final int MIN_MEM_SIZE = 8+8+4;
+    private static final int MEM_SIZE = 8;
     
             
     @Override
     public int compare(Object objA, Object objB)
     {
-        MVDataStreamProcKey a = (MVDataStreamProcKey)objA;
-        MVDataStreamProcKey b = (MVDataStreamProcKey)objB;
-        
-        // first compare procedure internal ID
-        int comp = Long.compare(a.procedureID, b.procedureID);
-        if (comp != 0)
-            return comp;
-        
-        // only if IDs are the same, compare output name
-        comp = a.outputName.compareTo(b.outputName);
-        if (comp != 0)
-            return comp;
-        
-        // only if output names are the same, compare valid times
-        // sort in reverse order so that latest version is always first
-        return -Long.compare(a.validStartTime, b.validStartTime);
+        DataStreamKey a = (DataStreamKey)objA;
+        DataStreamKey b = (DataStreamKey)objB;        
+        return Long.compare(a.getInternalID(), b.getInternalID());
     }
     
 
     @Override
     public int getMemory(Object obj)
     {
-        MVDataStreamProcKey key = (MVDataStreamProcKey)obj;
-        return MIN_MEM_SIZE + key.outputName.length();
+        return MEM_SIZE;
     }
     
 
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        MVDataStreamProcKey key = (MVDataStreamProcKey)obj;
-        wbuf.putVarLong(key.internalID);
-        wbuf.putVarLong(key.procedureID);
-        H2Utils.writeAsciiString(wbuf, key.outputName);
-        wbuf.putVarLong(key.validStartTime);
+        DataStreamKey key = (DataStreamKey)obj;
+        wbuf.putVarLong(key.getInternalID());
     }
     
 
@@ -85,11 +69,8 @@ class MVDataStreamProcKeyDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
-        long internalID = DataUtils.readVarLong(buff);
-        long procID = DataUtils.readVarLong(buff);
-        String outputName = H2Utils.readAsciiString(buff);
-        long validStartTime = DataUtils.readVarLong(buff);        
-        return new MVDataStreamProcKey(internalID, procID, outputName, validStartTime);
+        long internalID = DataUtils.readVarLong(buff);       
+        return new DataStreamKey(internalID);
     }
     
 

@@ -71,16 +71,6 @@ public class H2Utils
     }
     
     
-    public static MVDataStoreInfo loadDataStoreInfo(MVStore mvStore, String dataStoreName)
-    {
-        MVDataStoreInfo dataStoreInfo = getDataStoreInfo(mvStore, dataStoreName);
-        if (dataStoreInfo == null)
-            throw new IllegalArgumentException("Cannot find datastore " + dataStoreName);
-        
-        return dataStoreInfo;
-    }
-    
-    
     public static void addDataStoreInfo(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
     {
         Asserts.checkNotNull(mvStore, MVStore.class);

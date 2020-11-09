@@ -36,18 +36,19 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.WriteBuffer;
 import org.sensorhub.api.datastore.RangeFilter;
-import org.sensorhub.api.obs.DataStreamFilter;
-import org.sensorhub.api.obs.FoiFilter;
-import org.sensorhub.api.obs.IDataStreamStore;
-import org.sensorhub.api.obs.IFoiStore;
+import org.sensorhub.api.datastore.feature.FoiFilter;
+import org.sensorhub.api.datastore.feature.IFoiStore;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.obs.IObsData;
-import org.sensorhub.api.obs.IObsStore;
-import org.sensorhub.api.obs.ObsFilter;
 import org.sensorhub.api.obs.ObsStats;
-import org.sensorhub.api.obs.ObsStatsQuery;
-import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.impl.datastore.stream.MergeSortSpliterator;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
 import net.opengis.swe.v20.DataBlock;
 
@@ -84,7 +85,6 @@ public class MVObsStoreImpl implements IObsStore
     protected MVBTreeMap<MVObsSeriesKey, Boolean> obsSeriesByFoiIndex;
     
     protected MVFoiStoreImpl foiStore;
-    protected MVProcedureStoreImpl procedureStore;
     protected int maxSelectedSeriesOnJoin = 200;
     
     
@@ -94,41 +94,30 @@ public class MVObsStoreImpl implements IObsStore
 
 
     /**
-     * Opens an existing obs store with the specified name
+     * Opens an existing obs store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
-     * @param dataStoreName name of data store to open
      * @param procedureStore associated procedure descriptions data store
      * @param foiStore associated FOIs data store
+     * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVObsStoreImpl open(MVStore mvStore, String dataStoreName, MVProcedureStoreImpl procedureStore, MVFoiStoreImpl foiStore)
+    public static MVObsStoreImpl open(MVStore mvStore, MVDataStoreInfo newStoreInfo)
     {
-        MVDataStoreInfo dataStoreInfo = (MVDataStoreInfo)H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
-        return new MVObsStoreImpl().init(mvStore, procedureStore, foiStore, dataStoreInfo);
+        var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
+        if (dataStoreInfo == null)
+        {
+            dataStoreInfo = newStoreInfo;
+            H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
+        }
+        
+        return new MVObsStoreImpl().init(mvStore, dataStoreInfo);
     }
     
     
-    /**
-     * Create a new obs store with the provided info
-     * @param mvStore MVStore instance where the data store maps will be created
-     * @param procedureStore associated procedure descriptions data store
-     * @param foiStore associated FOIs data store
-     * @param dataStoreInfo new data store info
-     * @return The new datastore instance 
-     */
-    public static MVObsStoreImpl create(MVStore mvStore, MVProcedureStoreImpl procedureStore, MVFoiStoreImpl foiStore, MVDataStoreInfo dataStoreInfo)
-    {
-        H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
-        return new MVObsStoreImpl().init(mvStore, procedureStore, foiStore, dataStoreInfo);
-    }
-    
-    
-    private MVObsStoreImpl init(MVStore mvStore, MVProcedureStoreImpl procedureStore, MVFoiStoreImpl foiStore, MVDataStoreInfo dataStoreInfo)
+    private MVObsStoreImpl init(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
-        this.foiStore = Asserts.checkNotNull(foiStore, IFoiStore.class);
-        this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
         this.dataStreamStore = new MVDataStreamStoreImpl(this, null); 
                         
         // open observation map
@@ -147,10 +136,6 @@ public class MVObsStoreImpl implements IObsStore
         this.obsSeriesByFoiIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVObsSeriesKey, Boolean>()
                 .keyType(new MVObsSeriesKeyByFoiDataType())
                 .valueType(new MVVoidDataType()));
-        
-        // link all 3 stores together to enable JOIN queries
-        foiStore.linkTo(this);
-        procedureStore.linkTo(this);
         
         return this;
     }
@@ -188,7 +173,8 @@ public class MVObsStoreImpl implements IObsStore
         else
         {
             // otherwise select all datastream keys matching the filter
-            return dataStreamStore.selectKeys(filter);
+            return dataStreamStore.selectKeys(filter)
+                .map(k -> k.getInternalID());
         }
     }
     
@@ -203,6 +189,8 @@ public class MVObsStoreImpl implements IObsStore
         }
         else
         {
+            Asserts.checkState(featureStore != null, "No linked FOI store");
+            
             // otherwise get all feature keys matching the filter from linked feature store
             // we apply the distinct operation to make sure the same feature is not
             // listed twice (it can happen when there exists several versions of the 
@@ -483,15 +471,21 @@ public class MVObsStoreImpl implements IObsStore
     }
         
     
-    Range<Instant> getDataStreamResultTimeRange(long dataStreamID)
+    TimeExtent getDataStreamResultTimeRange(long dataStreamID)
     {
         MVObsSeriesKey firstKey = obsSeriesMainIndex.ceilingKey(new MVObsSeriesKey(dataStreamID, 0, Instant.MIN));
         MVObsSeriesKey lastKey = obsSeriesMainIndex.floorKey(new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX));
-        return Range.closed(firstKey.resultTime, lastKey.resultTime);
+        
+        if (firstKey == null || lastKey == null)
+            return null;
+        else if (firstKey.resultTime == Instant.MIN)
+            return getDataStreamPhenomenonTimeRange(dataStreamID);
+        else            
+            return TimeExtent.period(firstKey.resultTime, lastKey.resultTime);
     }
     
     
-    Range<Instant> getDataStreamPhenomenonTimeRange(long dataStreamID)
+    TimeExtent getDataStreamPhenomenonTimeRange(long dataStreamID)
     {
         Instant[] timeRange = new Instant[] {Instant.MAX, Instant.MIN};
         getObsSeriesByDataStream(dataStreamID, H2Utils.ALL_TIMES_RANGE, false)
@@ -499,13 +493,16 @@ public class MVObsStoreImpl implements IObsStore
                 MVObsKey firstKey = obsRecordsIndex.ceilingKey(new MVObsKey(s.id, Instant.MIN));
                 MVObsKey lastKey = obsRecordsIndex.floorKey(new MVObsKey(s.id, Instant.MAX));
                 
-                if (timeRange[0].isAfter(firstKey.phenomenonTime))
+                if (firstKey != null && timeRange[0].isAfter(firstKey.phenomenonTime))
                     timeRange[0] = firstKey.phenomenonTime;
-                if (timeRange[1].isBefore(lastKey.phenomenonTime))
+                if (lastKey != null && timeRange[1].isBefore(lastKey.phenomenonTime))
                     timeRange[1] = lastKey.phenomenonTime;
             });
         
-        return Range.closed(timeRange[0], timeRange[1]);
+        if (timeRange[0] == Instant.MAX || timeRange[1] == Instant.MIN)
+            return null;
+        else
+            return TimeExtent.period(timeRange[0], timeRange[1]);
     }
 
 
@@ -640,6 +637,10 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public BigInteger add(IObsData obs)
     {
+        // check that datastream exists
+        if (!dataStreamStore.containsKey(new DataStreamKey(obs.getDataStreamID())))
+            throw new IllegalStateException("Unknown datastream: " + obs.getDataStreamID()); 
+            
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
         {
@@ -775,5 +776,18 @@ public class MVObsStoreImpl implements IObsStore
     public boolean isWriteSupported()
     {
         return true;
+    }
+    
+    
+    @Override
+    public void linkTo(IFoiStore foiStore)
+    {
+        Asserts.checkNotNull(foiStore, IFoiStore.class);
+        
+        if (this.foiStore != foiStore)
+        {
+            this.foiStore = (MVFoiStoreImpl)foiStore;
+            foiStore.linkTo(this);
+        }
     }
 }

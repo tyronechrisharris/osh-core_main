@@ -11,12 +11,8 @@ package org.h2.mvstore;
 
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.h2.mvstore.DataUtils;
-import org.h2.mvstore.MVMap;
-import org.h2.mvstore.Page;
 import org.h2.mvstore.type.DataType;
 import org.h2.mvstore.type.ObjectDataType;
 
@@ -40,7 +36,36 @@ public class MVBTreeMap<K, V> extends MVMap<K, V>
     }
 
 
-    public Entry<K, V> getEntry(K key)
+    public K getFullKey(Object key)
+    {
+        return getFullKey(root, key);
+    }
+
+
+    /*
+     * Same code as binarySearch method but returning full entry
+     */
+    @SuppressWarnings({ "unchecked" })
+    private K getFullKey(Page p, Object key)
+    {
+        int x = p.binarySearch(key);
+        if (!p.isLeaf()) {
+            if (x < 0) {
+                x = -x - 1;
+            } else {
+                x++;
+            }
+            p = p.getChildPage(x);
+            return getFullKey(p, key);
+        }
+        if (x >= 0) {
+            return (K)p.getKey(x);
+        }
+        return null;
+    }
+
+
+    public Entry<K, V> getEntry(Object key)
     {
         return getEntry(root, key);
     }
@@ -50,7 +75,7 @@ public class MVBTreeMap<K, V> extends MVMap<K, V>
      * Same code as binarySearch method but returning full entry
      */
     @SuppressWarnings({ "unchecked" })
-    private Entry<K, V> getEntry(Page p, K key)
+    private Entry<K, V> getEntry(Page p, Object key)
     {
         int x = p.binarySearch(key);
         if (!p.isLeaf()) {
@@ -174,42 +199,7 @@ public class MVBTreeMap<K, V> extends MVMap<K, V>
         return result;
     }
     
-
-    @Override
-    public synchronized V putIfAbsent(K key, V value) {
-        if (containsKey(key))
-            return get(key);
-        else
-            return put(key, value);
-    }
     
-    
-    /**
-     * Associates the new value to the given key only if the specified
-     * predicate is true
-     * @param key
-     * @param value
-     * @param predicate Bi-Predicate taking the old and new value
-     * @return the old value if the key existed, or null otherwise
-     */
-    public V putWithCondition(K key, V value, BiPredicate<V, V> predicate)
-    {
-        V oldValue = get(key);
-        if (predicate.test(oldValue, value))
-            put(key, value);
-        return oldValue;
-    }
-    
-    
-    /**
-     * Add or update a key-value pair.
-     *
-     * @param p the page
-     * @param writeVersion the write version
-     * @param key the key (may not be null)
-     * @param value the value (may not be null)
-     * @return the old value, or null
-     */
     @Override
     protected Object put(Page p, long writeVersion, Object key, Object value) {
         int index = p.binarySearch(key);
@@ -217,7 +207,7 @@ public class MVBTreeMap<K, V> extends MVMap<K, V>
             if (index < 0) {
                 index = -index - 1;
                 p.insertLeaf(index, key, value);
-                return null;
+                return null;          
             }
             p.setKey(index, key); // updating key is needed in case parts are not used for comparison
             return p.setValue(index, value);

@@ -20,9 +20,6 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.h2.mvstore.Cursor;
-import org.h2.mvstore.DataUtils;
-import org.h2.mvstore.MVMap;
 import org.sensorhub.impl.persistence.IteratorWrapper;
 
 

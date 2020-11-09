@@ -54,11 +54,8 @@ public class MVFeatureRefDataType implements DataType
     public void write(WriteBuffer wbuf, Object obj)
     {
         MVFeatureRef ref = (MVFeatureRef)obj;
-        
-        // internal ID
+        wbuf.putVarLong(ref.getParentID());
         wbuf.putVarLong(ref.getInternalID());
-        
-        // time range
         H2Utils.writeTimeRange(wbuf, ref.getValidityPeriod());
     }
     
@@ -74,16 +71,10 @@ public class MVFeatureRefDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
-        // internal ID
-        long internalID = DataUtils.readVarLong(buff); 
-        
-        // time range        
+        long parentID = DataUtils.readVarLong(buff);
+        long internalID = DataUtils.readVarLong(buff);        
         Range<Instant> timeRange = H2Utils.readTimeRange(buff);
-        
-        return new MVFeatureRef.Builder()
-                .withInternalID(internalID)
-                .withValidityPeriod(timeRange)
-                .build();
+        return new MVFeatureRef(parentID, internalID, timeRange);
     }
     
 

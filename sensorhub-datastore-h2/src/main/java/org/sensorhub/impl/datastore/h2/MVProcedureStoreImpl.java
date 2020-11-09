@@ -1,23 +1,35 @@
 /***************************** BEGIN LICENSE BLOCK ***************************
 
- The contents of this file are copyright (C) 2018, Sensia Software LLC
- All Rights Reserved. This software is the property of Sensia Software LLC.
- It cannot be duplicated, used, or distributed without the express written
- consent of Sensia Software LLC.
+The contents of this file are subject to the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one
+at http://mozilla.org/MPL/2.0/.
+
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+for the specific language governing rights and limitations under the License.
+ 
+Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.time.ZoneOffset;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.xml.namespace.QName;
+import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.obs.IObsStore;
-import org.sensorhub.api.procedure.IProcedureStore;
-import org.sensorhub.api.procedure.IProcedureStore.ProcedureField;
+import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
+import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
+import net.opengis.sensorml.v20.AbstractProcess;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.api.procedure.ProcedureFilter;
-import net.opengis.gml.v32.TimePeriod;
 
 
 /**
@@ -31,7 +43,7 @@ import net.opengis.gml.v32.TimePeriod;
  */
 public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
 {
-    MVObsStoreImpl obsStore;
+    IDataStreamStore dataStreamStore;
     
     
     protected MVProcedureStoreImpl()
@@ -40,79 +52,102 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
     
     
     /**
-     * Opens an existing feature store with the specified name
+     * Opens an existing procedure store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
-     * @param dataStoreName name of data store to open
+     * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVProcedureStoreImpl open(MVStore mvStore, String dataStoreName)
+    public static MVProcedureStoreImpl open(MVStore mvStore, MVDataStoreInfo newStoreInfo)
     {
-        MVDataStoreInfo dataStoreInfo = H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
-        return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo, null);
-    }
-    
-    
-    /**
-     * Create a new feature store with the provided info
-     * @param mvStore MVStore instance where the maps will be created
-     * @param dataStoreInfo new data store info
-     * @return The new datastore instance 
-     */
-    public static MVProcedureStoreImpl create(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
-    {
-        H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
+        var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
+        if (dataStoreInfo == null)
+        {
+            dataStoreInfo = newStoreInfo;
+            H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
+        }
+        
         return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo, null);
     }
     
     
     @Override
-    public synchronized IProcedureWithDesc put(FeatureKey key, IProcedureWithDesc value)
+    protected Stream<Entry<MVFeatureParentKey, IProcedureWithDesc>> getIndexedStream(ProcedureFilter filter)
     {
-        // synchronize on MVStore to avoid autocommit in the middle of things
-        synchronized (mvStore)
+        var resultStream = super.getIndexedStream(filter);
+        
+        if (filter.getParentFilter() != null)
         {
-            long currentVersion = mvStore.getCurrentVersion();
-                        
-            try
+            if (resultStream == null)
             {
-                var oldValue = super.put(key, value);
-                
-                // update end of valid time of previous version if any
-                var prevEntry = featuresIndex.lowerEntry(key);
-                if (prevEntry != null && prevEntry.getKey().getInternalID() == key.getInternalID())
-                {
-                    var fullDesc = prevEntry.getValue().getFullDescription();
-                    if (fullDesc != null)
-                    {
-                        var validTimes = fullDesc.getValidTimeList();
-                        if (!validTimes.isEmpty())
-                        {
-                            var validTime = validTimes.get(0);
-                            if (validTime instanceof TimePeriod)
-                                ((TimePeriod)validTime).getEndPosition().setDateTimeValue(key.getValidStartTime().atOffset(ZoneOffset.UTC));
-                            featuresIndex.put(prevEntry.getKey(), prevEntry.getValue());
-                        }
-                    }
-                }
-                
-                return oldValue;
+                resultStream = selectParentIDs(filter.getParentFilter())
+                    .flatMap(id -> getParentResultStream(id, filter.getValidTime()));
             }
-            catch (Exception e)
+            else
             {
-                mvStore.rollbackTo(currentVersion);
-                throw e;
+                var parentIDs = selectParentIDs(filter.getParentFilter())
+                    .collect(Collectors.toSet());
+                
+                resultStream = resultStream.filter(
+                    e -> parentIDs.contains(((MVFeatureParentKey)e.getKey()).getParentID()));
+                
+                // post filter using keys valid time if needed
+                if (filter.getValidTime() != null)
+                    resultStream = postFilterKeyValidTime(resultStream, filter.getValidTime());
             }
         }
+        
+        return resultStream;
     }
 
 
-    /**
-     * Link this store to an observation store to enable JOIN queries
-     * @param obsStore
-     */
-    public void linkTo(IObsStore obsStore)
+    @Override
+    public Stream<Entry<FeatureKey, IProcedureWithDesc>> selectEntries(ProcedureFilter filter, Set<ProcedureField> fields)
     {
-        this.obsStore = (MVObsStoreImpl)obsStore;
+        // update validTime in the case it ends at now and there is a
+        // more recent version of the procedure description available
+        Stream<Entry<FeatureKey, IProcedureWithDesc>> resultStream = super.selectEntries(filter, fields).map(e -> {
+            var proc = (IProcedureWithDesc)e.getValue();
+            var procWrap = new IProcedureWithDesc()
+            {
+                public String getId() { return proc.getId(); }
+                public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
+                public String getName() { return proc.getName(); }
+                public String getDescription() { return proc.getDescription(); }
+                public Map<QName, Object> getProperties() { return proc.getProperties(); }
+                public AbstractProcess getFullDescription() { return proc.getFullDescription(); }  
+                
+                public TimeExtent getValidTime()
+                {
+                    var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
+                    if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
+                        proc.getValidTime() != null && proc.getValidTime().endsNow())
+                        return TimeExtent.period(proc.getValidTime().begin(), nextKey.getValidStartTime());
+                    else
+                        return proc.getValidTime();
+                }                  
+            };
+            
+            return new DataUtils.MapEntry<FeatureKey, IProcedureWithDesc>(e.getKey(), procWrap);
+        });
+        
+        // apply post filter on time now that we computed the correct valid time period
+        if (filter.getValidTime() != null)
+            resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
+        
+        return resultStream;
+    }
+
+
+    @Override
+    public void linkTo(IDataStreamStore dataStreamStore)
+    {
+        Asserts.checkNotNull(dataStreamStore, IDataStreamStore.class);
+        
+        if (this.dataStreamStore != dataStreamStore)
+        {
+            this.dataStreamStore = dataStreamStore;
+            dataStreamStore.linkTo(this);
+        }
     }    
 
 }

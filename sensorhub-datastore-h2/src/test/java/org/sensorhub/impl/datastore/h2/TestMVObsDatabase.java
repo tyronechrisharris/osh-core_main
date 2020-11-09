@@ -9,51 +9,44 @@
 
 package org.sensorhub.impl.datastore.h2;
 
-import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.nio.file.Files;
 import org.h2.mvstore.MVStore;
 import org.junit.After;
-import org.junit.Test;
-import org.sensorhub.impl.datastore.AbstractTestObsStore;
+import org.sensorhub.impl.datastore.AbstractTestObsDatabase;
 
 
-public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
+public class TestMVObsDatabase extends AbstractTestObsDatabase<MVObsDatabase>
 {
-    private static String DB_FILE_PREFIX = "test-mvobs-";
+    private static String DB_FILE_PREFIX = "test-mvobsdb-";
     protected File dbFile;
     protected MVStore mvStore;
         
     
-    protected MVObsStoreImpl initStore() throws Exception
+    @Override
+    protected MVObsDatabase initDatabase() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
         dbFile.deleteOnExit();        
-        return openMVStore();
+        return openDatabase();
     }
     
     
-    protected void forceReadBackFromStorage()
+    @Override
+    protected void forceReadBackFromStorage() throws Exception
     {
-        this.obsStore = openMVStore();
+        this.obsDb = openDatabase();
     }
     
     
-    private MVObsStoreImpl openMVStore()
+    private MVObsDatabase openDatabase() throws Exception
     {
-        if (mvStore != null)
-            mvStore.close();
-        
-        mvStore = new MVStore.Builder()
-                .fileName(dbFile.getAbsolutePath())
-                .autoCommitBufferSize(10)
-                .cacheSize(10)
-                .open();
-        
-        return MVObsStoreImpl.open(mvStore,
-            MVDataStoreInfo.builder()
-                .withName(OBS_DATASTORE_NAME)
-                .build());
+        MVObsDatabase db = new MVObsDatabase();
+        MVObsDatabaseConfig config = new MVObsDatabaseConfig();
+        config.storagePath = dbFile.getAbsolutePath();
+        db.init(config);
+        db.start();
+        return db;
     }
     
     
@@ -71,16 +64,6 @@ public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
                  .filter(f -> f.getFileName().toString().startsWith(DB_FILE_PREFIX))
                  .forEach(f -> f.toFile().delete());
         }            
-    }
-    
-    
-    @Test
-    public void testGetNumRecordsTwoDataStreams() throws Exception
-    {
-        super.testGetNumRecordsTwoDataStreams();
-        
-        // check that 2 series were created
-        assertEquals(2, obsStore.obsSeriesMainIndex.size());
     }
 
 }

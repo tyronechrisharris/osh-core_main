@@ -17,11 +17,11 @@ package org.sensorhub.impl.datastore.h2;
 import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.obs.IFoiStore;
-import org.sensorhub.api.obs.IObsStore;
+import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.feature.IFoiStore;
+import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.persistence.StorageException;
-import org.sensorhub.api.procedure.IProcedureStore;
-import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
 
@@ -72,37 +72,22 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
             mvStore.setVersionsToKeep(0);
             
             // open procedure store
-            if (H2Utils.getDataStoreInfo(mvStore, PROCEDURE_STORE_NAME) == null)
-            {
-                procStore = MVProcedureStoreImpl.create(mvStore, MVDataStoreInfo.builder()
-                    .withName(PROCEDURE_STORE_NAME)
-                    .build());
-            }
-            else
-                procStore = MVProcedureStoreImpl.open(mvStore, PROCEDURE_STORE_NAME);
+            procStore = MVProcedureStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+                .withName(PROCEDURE_STORE_NAME)
+                .build());
             
             // open foi store
-            if (H2Utils.getDataStoreInfo(mvStore, FOI_STORE_NAME) == null)
-            {
-                foiStore = MVFoiStoreImpl.create(mvStore, MVDataStoreInfo.builder()
-                    .withName(FOI_STORE_NAME)
-                    .build());
-            }
-            else
-                foiStore = MVFoiStoreImpl.open(mvStore, FOI_STORE_NAME);
+            foiStore = MVFoiStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+                .withName(FOI_STORE_NAME)
+                .build());
             
             // open observation store
-            if (H2Utils.getDataStoreInfo(mvStore, OBS_STORE_NAME) == null)
-            {
-                obsStore = MVObsStoreImpl.create(mvStore, procStore, foiStore, MVDataStoreInfo.builder()
-                    .withName(OBS_STORE_NAME)
-                    .build());
-            }
-            else
-                obsStore = MVObsStoreImpl.open(mvStore, OBS_STORE_NAME, procStore, foiStore);
+            obsStore = MVObsStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+                .withName(OBS_STORE_NAME)
+                .build());
             
-            procStore.linkTo(obsStore);
-            foiStore.linkTo(obsStore);
+            obsStore.linkTo(foiStore);
+            obsStore.getDataStreams().linkTo(procStore);
         }
         catch (Exception e)
         {

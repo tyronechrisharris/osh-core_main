@@ -13,14 +13,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.h2.mvstore.MVStore;
-import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.obs.FoiFilter;
-import org.sensorhub.api.obs.IFoiStore;
-import org.sensorhub.api.obs.IObsStore;
-import org.sensorhub.api.obs.ObsFilter;
-import org.sensorhub.api.obs.IFoiStore.FoiField;
-import org.sensorhub.api.obs.IObsStore.ObsField;
+import org.sensorhub.api.datastore.feature.FoiFilter;
+import org.sensorhub.api.datastore.feature.IFeatureStore;
+import org.sensorhub.api.datastore.feature.IFoiStore;
+import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
+import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.vast.ogc.gml.IGeoFeature;
+import org.vast.util.Asserts;
 
 
 /**
@@ -43,14 +44,20 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
     
     
     /**
-     * Opens an existing feature store with the specified name
+     * Opens an existing foi store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
-     * @param dataStoreName name of data store to open
+     * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVFoiStoreImpl open(MVStore mvStore, String dataStoreName)
+    public static MVFoiStoreImpl open(MVStore mvStore, MVDataStoreInfo newStoreInfo)
     {
-        MVDataStoreInfo dataStoreInfo = H2Utils.loadDataStoreInfo(mvStore, dataStoreName);
+        var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
+        if (dataStoreInfo == null)
+        {
+            dataStoreInfo = newStoreInfo;
+            H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
+        }
+        
         return (MVFoiStoreImpl)new MVFoiStoreImpl().init(mvStore, dataStoreInfo, null);
     }
     
@@ -69,7 +76,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
     
     
     @Override
-    protected Stream<Entry<FeatureKey, IGeoFeature>> getIndexedStream(FoiFilter filter)
+    protected Stream<Entry<MVFeatureParentKey, IGeoFeature>> getIndexedStream(FoiFilter filter)
     {
         if (((FoiFilter)filter).getObservationFilter() != null)
         {
@@ -91,7 +98,21 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
     @Override
     public void linkTo(IObsStore obsStore)
     {
-        this.obsStore = (MVObsStoreImpl)obsStore;        
-    }    
+        Asserts.checkNotNull(obsStore, IObsStore.class);
+        
+        if (this.obsStore != obsStore)
+        {
+            this.obsStore = (MVObsStoreImpl)obsStore;
+            obsStore.linkTo(this);
+        }
+        
+    }
+    
+    
+    @Override
+    public void linkTo(IFeatureStore featureStore)
+    {
+        throw new UnsupportedOperationException();
+    }
 
 }

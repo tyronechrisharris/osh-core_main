@@ -26,35 +26,31 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
     protected MVFeatureStoreImpl initStore() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
-        dbFile.deleteOnExit();
-        
-        openMVStore();
-        
-        MVDataStoreInfo dataStoreInfo = MVDataStoreInfo.builder()
-                .withName(DATASTORE_NAME)
-                .build();
-                
-        return MVFeatureStoreImpl.create(mvStore, dataStoreInfo);
+        dbFile.deleteOnExit();        
+        return openMVStore();
     }
     
     
     protected void forceReadBackFromStorage()
     {
-        openMVStore();
-        featureStore = MVFeatureStoreImpl.open(mvStore, DATASTORE_NAME);
+        this.featureStore = openMVStore();
     }
     
     
-    private void openMVStore()
+    private MVFeatureStoreImpl openMVStore()
     {
         if (mvStore != null)
             mvStore.close();
         
         mvStore = new MVStore.Builder()
                 .fileName(dbFile.getAbsolutePath())
-                .autoCommitBufferSize(10)
+                .autoCommitBufferSize(100)
                 .cacheSize(10)
                 .open();
+        
+        return MVFeatureStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+            .withName(DATASTORE_NAME)
+            .build());
     }
     
     

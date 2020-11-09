@@ -14,7 +14,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.time.Instant;
 import org.sensorhub.utils.ObjectUtils;
+import org.vast.util.Asserts;
+
 
 /**
  * <p>
@@ -29,21 +32,21 @@ class MVDataStreamProcKey
     long internalID;
     long procedureID;
     String outputName;
-    int recordVersion;
+    long validStartTime; // seconds past unix epoch
     
     
-    MVDataStreamProcKey(long procID, String outputName, int version)
+    MVDataStreamProcKey(long procID, String outputName, Instant validStartTime)
     {        
-        this(0, procID, outputName, version);
+        this(0, procID, outputName, validStartTime.getEpochSecond());
     }
     
     
-    MVDataStreamProcKey(long internalID, long procID, String outputName, int version)
+    MVDataStreamProcKey(long internalID, long procID, String outputName, long validStartTime)
     {        
         this.internalID = internalID;
         this.procedureID = procID;
-        this.outputName = outputName;
-        this.recordVersion = version;
+        this.outputName = Asserts.checkNotNull(outputName, "outputName");
+        this.validStartTime = validStartTime;
     }
 
 

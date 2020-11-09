@@ -16,7 +16,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
-import org.sensorhub.api.datastore.DatabaseConfig;
+import org.sensorhub.api.database.DatabaseConfig;
 
 
 /**

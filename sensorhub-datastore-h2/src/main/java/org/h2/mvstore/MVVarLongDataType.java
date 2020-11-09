@@ -15,8 +15,6 @@ Copyright (C) 2012-2018 Sensia Software LLC. All Rights Reserved.
 package org.h2.mvstore;
 
 import java.nio.ByteBuffer;
-import org.h2.mvstore.DataUtils;
-import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 
 

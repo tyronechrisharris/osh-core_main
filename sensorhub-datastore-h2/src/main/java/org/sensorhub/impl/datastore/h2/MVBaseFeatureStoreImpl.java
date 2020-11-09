@@ -1,9 +1,14 @@
 /***************************** BEGIN LICENSE BLOCK ***************************
 
- The contents of this file are copyright (C) 2018, Sensia Software LLC
- All Rights Reserved. This software is the property of Sensia Software LLC.
- It cannot be duplicated, used, or distributed without the express written
- consent of Sensia Software LLC.
+The contents of this file are subject to the Mozilla Public License, v. 2.0.
+If a copy of the MPL was not distributed with this file, You can obtain one
+at http://mozilla.org/MPL/2.0/.
+
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+for the specific language governing rights and limitations under the License.
+ 
+Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -13,31 +18,29 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
+import java.util.AbstractSet;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
-import org.h2.mvstore.Page;
 import org.h2.mvstore.RangeCursor;
-import org.h2.mvstore.rtree.MVRTreeMap;
 import org.h2.mvstore.rtree.SpatialKey;
-import org.h2.mvstore.rtree.MVRTreeMap.RTreeCursor;
-import org.sensorhub.api.datastore.RangeFilter;
-import org.sensorhub.api.feature.FeatureFilterBase;
-import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.feature.IFeatureStoreBase;
-import org.sensorhub.api.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.api.datastore.TemporalFilter;
+import org.sensorhub.api.datastore.feature.FeatureFilterBase;
+import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
+import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.impl.datastore.SpliteratorWrapper;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
-import com.google.common.collect.Range;
 
 
 /**
@@ -55,15 +58,47 @@ import com.google.common.collect.Range;
 public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super V>> implements IFeatureStoreBase<V, VF, F>
 {
     private static final String FEATURE_IDS_MAP_NAME = "@feature_ids";
+    private static final String FEATURE_UIDS_MAP_NAME = "@feature_uids";
     private static final String FEATURE_RECORDS_MAP_NAME = "@feature_records";
-    private static final String SPATIAL_INDEX_MAP_NAME = "@feature_spatial";
+    private static final String FEATURE_SPATIAL_INDEX_MAP_NAME = "@feature_geom";
+    private static final String FEATURE_FULLTEXT_MAP_NAME = "@feature_text";
 
     protected MVStore mvStore;
     protected MVDataStoreInfo dataStoreInfo;
-    protected MVBTreeMap<String, Long> idsIndex;
-    protected MVBTreeMap<FeatureKey, V> featuresIndex;
-    protected MVRTreeMap<MVFeatureRef> spatialIndex;
     protected IdProvider idProvider;
+    
+    /*
+     * Main index holding feature objects
+     * We use MVFeatureParentKey as keys sorted by parent ID, internal ID, and then validTime
+     * This allows efficient retrieval of all children attached to a parent
+     */
+    protected MVBTreeMap<MVFeatureParentKey, V> featuresIndex;
+    
+    /*
+     * ID index pointing to main index
+     * Map of internal ID to parent ID for lookup by ID
+     * We store both IDs in the key and no value (use MVVoidDataType for efficiency)
+     * The map also accepts a Long object as key for retrieval
+     */
+    protected MVBTreeMap<MVFeatureParentKey, Boolean> idsIndex;
+    
+    /*
+     * UID index pointing to main index
+     * Map of unique ID to parentID/internalID pairs
+     */
+    protected MVBTreeMap<String, MVFeatureParentKey> uidsIndex;
+    
+    /*
+     * Spatial index pointing to main index
+     * Key references are parentID/internalID/validTime
+     */
+    protected SpatialIndex<V, MVFeatureParentKey> spatialIndex;
+    
+    /*
+     * Full text index pointing to main index
+     * Key references are parentID/internalID pairs
+     */
+    protected FullTextIndex<V, MVFeatureParentKey> fullTextIndex;
     
     
     protected MVBaseFeatureStoreImpl()
@@ -79,21 +114,44 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         // feature records map
         String mapName = FEATURE_RECORDS_MAP_NAME + ":" + dataStoreInfo.name;
         this.featuresIndex = mvStore.openMap(mapName, 
-                new MVBTreeMap.Builder<FeatureKey, V>()
-                         .keyType(new MVFeatureKeyDataType())
+                new MVBTreeMap.Builder<MVFeatureParentKey, V>()
+                         .keyType(new MVFeatureParentKeyDataType(true))
                          .valueType(new KryoDataType()));
                 
-        // feature unique IDs to internal IDs map
+        // feature IDs to main index
         mapName = FEATURE_IDS_MAP_NAME + ":" + dataStoreInfo.name;
         this.idsIndex = mvStore.openMap(mapName, 
-                new MVBTreeMap.Builder<String, Long>());
+                new MVBTreeMap.Builder<MVFeatureParentKey, Boolean>()
+                        .keyType(new MVFeatureParentKeyByIdDataType())
+                        .valueType(new MVVoidDataType()));
+        
+        // feature unique IDs to main index
+        mapName = FEATURE_UIDS_MAP_NAME + ":" + dataStoreInfo.name;
+        this.uidsIndex = mvStore.openMap(mapName, 
+                new MVBTreeMap.Builder<String, MVFeatureParentKey>()
+                        .valueType(new MVFeatureParentKeyDataType(false)));
                 
-        // open FOI times map
-        mapName = SPATIAL_INDEX_MAP_NAME + ":" + dataStoreInfo.name;
-        this.spatialIndex = mvStore.openMap(mapName, 
-                new MVRTreeMap.Builder<MVFeatureRef>()
-                              .dimensions(3)
-                              .valueType(new MVFeatureRefDataType()));
+        // spatial index
+        mapName = FEATURE_SPATIAL_INDEX_MAP_NAME + ":" + dataStoreInfo.name;
+        this.spatialIndex = new SpatialIndex<>(mvStore, mapName, new MVFeatureParentKeyDataType(true)) {
+            @Override
+            protected SpatialKey getSpatialKey(MVFeatureParentKey key, IFeature f)
+            {
+                if (!(f instanceof IGeoFeature))
+                    return null;
+                
+                IGeoFeature gf = (IGeoFeature)f;
+                if (gf.getGeometry() == null)
+                    return null;
+                
+                int hashID = Objects.hash(key.getInternalID(), key.getValidStartTime());
+                return H2Utils.getBoundingRectangle(hashID, gf.getGeometry());
+            }            
+        };
+        
+        // full-text index
+        mapName = FEATURE_FULLTEXT_MAP_NAME + ":" + dataStoreInfo.getName();
+        this.fullTextIndex = new FullTextIndex<>(mvStore, mapName, new MVFeatureParentKeyDataType(false));
         
         // Id provider
         this.idProvider = idProvider;
@@ -103,7 +161,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 if (featuresIndex.isEmpty())
                     return 1;
                 else
-                    return ((FeatureKey)featuresIndex.lastKey()).getInternalID()+1;
+                    return featuresIndex.lastKey().getInternalID()+1;
             };
         }
         
@@ -135,134 +193,134 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public Bbox getFeaturesBbox()
     {
-        Bbox extent = new Bbox();
-        
-        Page root = spatialIndex.getRoot();
-        for (int i = 0; i < root.getKeyCount(); i++)
-        {
-            SpatialKey key = (SpatialKey)root.getKey(i);
-            extent.add(new Bbox(key.min(0), key.min(1), key.min(2),
-                                key.max(0), key.max(1), key.max(2)));
-        }
-        
-        return extent;
+        return spatialIndex.getFullExtent();
     }
 
 
     @Override
     public synchronized FeatureKey add(V feature)
     {
-        FeatureKey newKey = generateKey(feature);
+        return add(0L, feature);
+    }
+    
+    
+    @Override
+    @SuppressWarnings("unlikely-arg-type")
+    public synchronized FeatureKey add(long parentID, V feature)
+    {
+        Asserts.checkNotNull(feature, IFeature.class);
+        Asserts.checkNotNull(feature.getUniqueIdentifier(), "uniqueID");
+        
+        var uidFk = uidsIndex.get(feature.getUniqueIdentifier());
+        var newKey = generateKey(parentID, uidFk, feature);
+                
+        if (newKey.getParentID() != 0 && !idsIndex.containsKey(newKey.getParentID()))
+            throw new IllegalArgumentException("Unknown parent feature with ID " + newKey.getParentID());
 
         // add to store
-        V oldValue = putIfAbsent(newKey, feature);
-        Asserts.checkState(oldValue == null, "Duplicate key");
-            
-        return newKey;
+        put(newKey, feature, uidFk != null, false);
+        return newKey;       
     }
-
-
+    
+    
+    protected MVFeatureParentKey generateKey(long parentID, MVFeatureParentKey existingKey, V f)
+    {
+        // use existing IDs if feature is already known
+        // otherwise generate new one
+        long internalID;        
+        if (existingKey != null)
+        {
+            internalID = existingKey.getInternalID();
+            parentID = existingKey.getParentID();
+        }
+        else
+            internalID = idProvider.newInternalID();
+                
+        // get valid start time from feature object
+        // or use default value if no valid time is set
+        Instant validStartTime;
+        if (f instanceof ITemporalFeature && ((ITemporalFeature)f).getValidTime() != null)
+            validStartTime = ((ITemporalFeature)f).getValidTime().begin();
+        else
+            validStartTime = FeatureKey.TIMELESS; // default value meaning feature is always valid
+        
+        // generate full key
+        return new MVFeatureParentKey(parentID, internalID, validStartTime);
+    }
+    
+    
     @Override
-    public FeatureKey add(long parentId, V value)
+    public FeatureKey getCurrentVersionKey(long internalID)
     {
-        throw new UnsupportedOperationException();
-    }
-    
-    
-    @Override
-    public synchronized FeatureKey addVersion(V feature)
-    {
-        String uid = feature.getUniqueIdentifier();
-        Asserts.checkNotNull(uid, "uniqueID");
+        Asserts.checkArgument(internalID > 0, "ID must be > 0");
         
-        Long internalID = idsIndex.get(uid);
-        if (internalID == null)
-            return add(feature); // case of first version
-        
-        // check valid time is older than previous
-        Instant validStartTime = getValidStartTime(feature);
-        if (!validStartTime.isAfter(getLastVersionKey(internalID).getValidStartTime()))
-            throw new IllegalArgumentException("Feature validity must start after the previous version");
-        
-        // generate key
-        var key = new FeatureKey(internalID, validStartTime);
-        V oldValue = putIfAbsent(key, feature);
-        Asserts.checkState(oldValue == null, "Duplicate key");
-        
-        return key;
-    }
-    
-    
-    protected FeatureKey generateKey(V feature)
-    {
-        String uid = feature.getUniqueIdentifier();
-        Asserts.checkNotNull(uid, "uniqueID");
-        if (idsIndex.containsKey(uid))
-            throw new IllegalArgumentException("Datastore already contains feature with UID " + uid);
-        
-        // generate key
-        long internalID = idProvider.newInternalID();
-        Instant validStartTime = getValidStartTime(feature);
-        return new FeatureKey(internalID, validStartTime);
-    }
-    
-    
-    protected Instant getValidStartTime(V feature)
-    {
-        if (feature instanceof ITemporalFeature && ((ITemporalFeature)feature).getValidTime() != null)
-            return ((ITemporalFeature)feature).getValidTime().begin();
-        
-        // return default value for features with no time stamps
-        // -> this means they are always valid
-        return FeatureKey.TIMELESS;
-    }
-
-
-    @Override
-    public FeatureKey getLatestVersionKey(String uid)
-    {
-        Asserts.checkNotNull(uid, "uniqueID");
-        
-        Long internalID = idsIndex.get(uid);
-        if (internalID != null)
-            return getLastVersionKey(internalID);
+        var fk = idsIndex.getFullKey(internalID);
+        if (fk != null)
+            return getCurrentVersionKey(fk);
         return null;
     }
 
 
     @Override
-    public V getLatestVersion(String uid)
+    public FeatureKey getCurrentVersionKey(String uid)
     {
         Asserts.checkNotNull(uid, "uniqueID");
         
-        Long internalID = idsIndex.get(uid);
-        if (internalID != null)
-            return featuresIndex.get(getLastVersionKey(internalID));
+        var fk = uidsIndex.get(uid);
+        if (fk != null)
+            return getCurrentVersionKey(fk);
         return null;
     }
     
     
-    @Override
-    public Entry<FeatureKey, V> getLatestVersionEntry(String uid)
+    protected FeatureKey getCurrentVersionKey(MVFeatureParentKey fk)
     {
-        Asserts.checkNotNull(uid, "uniqueID");
+        var keyAtNow = new MVFeatureParentKey(fk.getParentID(), fk.getInternalID(), Instant.now());
+        var currentVersionKey = featuresIndex.floorKey(keyAtNow);
         
-        Long internalID = idsIndex.get(uid);
-        
-        if (internalID != null)
-            return featuresIndex.getEntry(getLastVersionKey(internalID));
+        if (currentVersionKey != null && currentVersionKey.getInternalID() == fk.getInternalID())
+            return currentVersionKey;
         else
             return null;
     }
     
     
-    protected FeatureKey getLastVersionKey(long internalID)
+    @Override
+    public Entry<FeatureKey, V> getCurrentVersionEntry(long internalID)
     {
-        var afterLast = new FeatureKey(internalID, Instant.MAX);
-        var lastKey = featuresIndex.floorKey(afterLast);
+        Asserts.checkArgument(internalID > 0, "ID must be > 0");
         
-        if (lastKey != null && lastKey.getInternalID() == internalID)
-            return lastKey;
+        var fk = idsIndex.getFullKey(internalID);
+        if (fk != null)
+            return getCurrentVersionEntry(fk);
+        return null;
+    }
+    
+    
+    @Override
+    public Entry<FeatureKey, V> getCurrentVersionEntry(String uid)
+    {
+        Asserts.checkNotNull(uid, "uniqueID");
+        
+        var fk = uidsIndex.get(uid);
+        if (fk != null)
+            return getCurrentVersionEntry(fk);
+        return null;
+    }
+    
+    
+    protected Entry<FeatureKey, V> getCurrentVersionEntry(MVFeatureParentKey fk)
+    {
+        var keyAtNow = new MVFeatureParentKey(fk.getParentID(), fk.getInternalID(), Instant.now());
+        var currentVersionKey = featuresIndex.floorKey(keyAtNow);
+        
+        if (currentVersionKey != null && currentVersionKey.getInternalID() == fk.getInternalID())
+        {
+            // down casting is ok since keys are always subtypes of FeatureKey
+            @SuppressWarnings({ "unchecked" })
+            var entry = (Entry<FeatureKey, V>)(Entry<?,?>)featuresIndex.getEntry(currentVersionKey);
+            return entry;
+        }
         else
             return null;
     }
@@ -271,95 +329,179 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public boolean contains(String uid)
     {
-        return idsIndex.containsKey(uid);
+        return uidsIndex.containsKey(uid);
     }
     
     
-    private RangeCursor<FeatureKey, V> getFeatureCursor(long internalID, RangeFilter<Instant> timeFilter)
+    protected RangeCursor<MVFeatureParentKey, V> getFeatureCursor(MVFeatureParentKey fk, TemporalFilter timeFilter)
     {
-        FeatureKey first = new FeatureKey(internalID, timeFilter.getMin());
-        FeatureKey last = new FeatureKey(internalID, timeFilter.getMax());
+        var first = new MVFeatureParentKey(fk.getParentID(), fk.getInternalID(), timeFilter.getMin());
+        var last = new MVFeatureParentKey(fk.getParentID(), fk.getInternalID(), timeFilter.getMax());
         
         // start from first key before selected time range to make sure we include
         // any intersecting feature validity period
-        FeatureKey before = featuresIndex.floorKey(first);
-        if (before != null && before.getInternalID() == internalID)
+        var before = (MVFeatureParentKey)featuresIndex.floorKey(first);
+        if (before != null && before.getInternalID() == fk.getInternalID())
             first = before;
         
         return new RangeCursor<>(featuresIndex, first, last);
     }
     
     
-    protected Stream<Entry<FeatureKey, V>> getIndexedStream(F filter)
+    protected Stream<Entry<MVFeatureParentKey, V>> getIndexedStream(F filter)
     {
-        Stream<Entry<FeatureKey, V>> resultStream = null;
-        Stream<Long> internalIdStream = null;
+        Stream<MVFeatureParentKey> fkStream = null;
         
-        // get time filter
+        // get time filter, default to ALL_TIMES if none provided
         var timeFilter = filter.getValidTime() != null ?
             filter.getValidTime() : H2Utils.ALL_TIMES_FILTER;
-        boolean latestVersionOnly = timeFilter.isLatestTime();
         
-        // if filtering by internal IDs, use these IDs directly
+        // if filtering by internal IDs, use IDs index as primary
         if (filter.getInternalIDs() != null)
         {
-            internalIdStream = filter.getInternalIDs().stream();
+            fkStream = filter.getInternalIDs().stream()
+                .map(id -> idsIndex.getFullKey(id));
         }
         
-        // if filtering by UID, use idsIndex as primary
+        // if filtering by UID, use UIDs index as primary
         else if (filter.getUniqueIDs() != null)
         {
-            /*if (filter.getFeatureUIDs().isRange())
-            {
-                var range = filter.getFeatureUIDs().getRange();
-                var cursor = new RangeCursor<>(
-                    idsIndex,
-                    range.lowerEndpoint(),
-                    range.upperEndpoint());
-                internalIdStream = cursor.valueStream();
-            }
-            else*/
-            {
-                // concatenate streams for each selected feature UID
-                internalIdStream = filter.getUniqueIDs().stream()
-                        .map(uid -> {
-                            Long internalID = idsIndex.get(uid);
-                            if (internalID == null)
-                                return null; // return null if uid is not found 
-                            return internalID;
-                        });
-            }
+            // concatenate streams for each selected feature UID
+            fkStream = filter.getUniqueIDs().stream()
+                .map(uid -> {
+                    var fk = uidsIndex.get(uid);
+                    if (fk == null)
+                        return null; // return null if uid is not found 
+                    return fk;
+                });
         }
         
-        // if spatial filter is used, use spatialIndex as primary
+        // if full-text filter is used, use full-text index as primary
+        else if (filter.getFullTextFilter() != null)
+        {
+            fkStream = fullTextIndex.selectKeys(filter.getFullTextFilter());
+        }
+        
+        // if spatial filter is used, use spatial index as primary
         else if (filter.getLocationFilter() != null)
         {
-            SpatialKey bbox = H2Utils.getBoundingRectangle(0, filter.getLocationFilter().getRoi());
-            final RTreeCursor geoCursor = spatialIndex.findIntersectingKeys(bbox);
-            resultStream = StreamSupport.stream(Spliterators.spliteratorUnknownSize(geoCursor, Spliterator.DISTINCT), true)
-                    .map(k -> {
-                        MVFeatureRef ref = spatialIndex.get(k);
-                        
-                        // filter on time here to avoid unnecessary lookups in featuresIndex
-                        Range<Instant> validPeriod = ref.getValidityPeriod();
-                        if (validPeriod != null && !latestVersionOnly && !timeFilter.test(validPeriod))
-                            return null;
-                        
-                        var fk = new FeatureKey(ref.getInternalID(),
-                            validPeriod != null ? validPeriod.lowerEndpoint() : Instant.MIN);
-                        
-                        return featuresIndex.getEntry(fk);
-                    })
-                    .filter(Objects::nonNull);
+            fkStream = spatialIndex.selectKeys(filter.getLocationFilter());
+                    
+            // post-filter on other fields to avoid unnecessary lookups in featuresIndex                    
+            // valid time 
+            if (!timeFilter.isLatestTime() && timeFilter != H2Utils.ALL_TIMES_FILTER)
+                fkStream = fkStream.filter(fk -> timeFilter.getMax().isAfter(fk.getValidStartTime()));
+            
+            // full-text
+            if (filter.getFullTextFilter() != null)
+                fkStream = fullTextIndex.addFullTextPostFilter(fkStream, filter.getFullTextFilter());
+            
+            // spatial index ref keys contain valid time
+            // so we can poll each entry directly from main index
+            return fkStream.map(fk -> featuresIndex.getEntry(fk))
+                .filter(Objects::nonNull);
         }
         
         // if some procedures were selected by ID
-        if (internalIdStream != null)
+        if (fkStream != null)
         {
-            resultStream = internalIdStream
+            return fkStream
                 .filter(Objects::nonNull)
                 .flatMap(id -> getFeatureCursor(id, timeFilter).entryStream());
         }
+        
+        return null;
+    }
+    
+    
+    protected Stream<Long> selectParentIDs(F parentFilter)
+    {
+        if (parentFilter.getInternalIDs() != null)
+        {
+            // if only internal IDs were specified, no need to search the feature store
+            return parentFilter.getInternalIDs().stream();
+        }
+        else
+        {
+            // otherwise get all feature keys matching the filter
+            // we use distinct() to prevent several versions of parent features to be selected
+            // since they would all lead to scanning the same children
+            return selectKeys(parentFilter)
+                .map(k -> k.getInternalID())
+                .distinct();
+        }
+    }
+    
+    
+    protected Stream<Entry<MVFeatureParentKey, V>> postFilterKeyValidTime(Stream<Entry<MVFeatureParentKey, V>> resultStream, TemporalFilter timeFilter)
+    {
+        Asserts.checkNotNull(timeFilter);
+        
+        // handle special case of current time & latest time
+        Instant filterStartTime, filterEndTime;
+        if (timeFilter.isCurrentTime()) {
+            filterStartTime = filterEndTime = Instant.now();
+        } else if (timeFilter.isLatestTime()) {
+            filterStartTime = filterEndTime = Instant.MAX;
+        } else {
+            filterStartTime = timeFilter.getMin();
+            filterEndTime = timeFilter.getMax();
+        }
+        
+        // custom statefull filter
+        return StreamSupport.stream(new SpliteratorWrapper<>(resultStream.spliterator()) {
+            Entry<MVFeatureParentKey, V> previous;
+            
+            @Override
+            public boolean tryAdvance(Consumer<? super Entry<MVFeatureParentKey, V>> action)
+            {
+                if (previous == null)
+                {
+                    var more = super.tryAdvance(e -> previous = e);
+                    if (!more)
+                        return false;
+                }
+                
+                var more = super.tryAdvance(e -> {
+                    FeatureKey prevK = previous.getKey();
+                    FeatureKey k = e.getKey();
+                    
+                    var prevAfterStart = prevK.getValidStartTime().compareTo(filterStartTime) >= 0;
+                    var prevBeforeEnd = prevK.getValidStartTime().compareTo(filterEndTime) <= 0;
+                    var nextStartsAfter = k.getValidStartTime().compareTo(filterStartTime) > 0;
+                    var nextHasNewId = k.getInternalID() != prevK.getInternalID();
+                    if ((prevAfterStart && prevBeforeEnd) ||
+                        (!prevAfterStart && nextStartsAfter) ||
+                        (!prevAfterStart && nextHasNewId))
+                      action.accept(previous);
+                    
+                    previous = e;
+                });
+                
+                if (!more)
+                {
+                    FeatureKey prevK = previous.getKey();
+                    if (prevK.getValidStartTime().compareTo(filterStartTime) <= 0)
+                        action.accept(previous);
+                }
+                
+                return more;
+            }
+        }, false);
+    }
+    
+    
+    protected Stream<Entry<MVFeatureParentKey, V>> getParentResultStream(long parentID, TemporalFilter timeFilter)
+    {
+        var first = new MVFeatureParentKey(parentID, 1, Instant.MIN);
+        var last = new MVFeatureParentKey(parentID, Long.MAX_VALUE, Instant.MAX);
+        
+        // scan all features that are members of the selected parentID
+        var resultStream = new RangeCursor<>(featuresIndex, first, last).entryStream();
+        
+        // post filter using keys valid time if needed
+        if (timeFilter != null)
+            resultStream = postFilterKeyValidTime(resultStream, timeFilter);
         
         return resultStream;
     }
@@ -374,7 +516,8 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         if (resultStream == null)
             resultStream = featuresIndex.entrySet().stream();
         
-        // add exact time predicate
+        /*// add exact time predicate
+        // this is now applied in sub classes after valid time period has been computed
         if (filter.getValidTime() != null)
         {            
             if (filter.getValidTime().isLatestTime())
@@ -387,7 +530,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             }
             else
                 resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
-        }
+        }*/
         
         // add exact geo predicate
         if (filter.getLocationFilter() != null)
@@ -401,7 +544,10 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         if (filter.getLimit() < Long.MAX_VALUE)
             resultStream = resultStream.limit(filter.getLimit());
         
-        return resultStream;
+        // down casting is ok since keys are always subtypes of FeatureKey
+        @SuppressWarnings({ "unchecked", })
+        var castedResultStream = (Stream<Entry<FeatureKey, V>>)(Stream<?>)resultStream;
+        return castedResultStream;
     }
 
 
@@ -467,6 +613,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 idsIndex.clear();
                 spatialIndex.clear();
                 featuresIndex.clear();
+                fullTextIndex.clear();
             }
             catch (Exception e)
             {
@@ -481,7 +628,9 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     public boolean containsKey(Object key)
     {
         FeatureKey fk = ensureFeatureKey(key);
-        return fk != null ? featuresIndex.containsKey(fk) : false;
+        if (fk == null)
+            return false;
+        return featuresIndex.containsKey(fk);
     }
 
 
@@ -493,24 +642,25 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
 
 
     @Override
-    public Set<Entry<FeatureKey, V>> entrySet()
-    {
-        return featuresIndex.entrySet();
-    }
-
-
-    @Override
     public V get(Object key)
     {
-        FeatureKey fk = ensureFeatureKey(key);
+        var fk = ensureFeatureKey(key);
         return fk != null ? featuresIndex.get(fk) : null;
     }
     
     
-    protected FeatureKey ensureFeatureKey(Object key)
+    protected MVFeatureParentKey ensureFeatureKey(Object key)
     {
         Asserts.checkArgument(key instanceof FeatureKey, "key must be a FeatureKey");
-        return (FeatureKey)key;
+        
+        var fk = idsIndex.getFullKey(key);
+        if (fk == null)
+            return null;
+        
+        return new MVFeatureParentKey(
+            fk.getParentID(),
+            fk.getInternalID(),
+            ((FeatureKey)key).getValidStartTime());
     }
 
 
@@ -522,32 +672,31 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
 
 
     @Override
-    public Set<FeatureKey> keySet()
+    public V put(FeatureKey key, V feature)
     {
-        return featuresIndex.keySet();
+        Asserts.checkNotNull(key, FeatureKey.class);
+        Asserts.checkNotNull(feature, IFeature.class);
+        Asserts.checkNotNull(feature.getUniqueIdentifier(), "uniqueID");
+        
+        // check that no other feature with same UID exists
+        var uid = feature.getUniqueIdentifier();
+        var uidFk = uidsIndex.get(uid);
+        if (uidFk != null && uidFk.getInternalID() != key.getInternalID())
+            throw new IllegalArgumentException("Datastore already contains entry with UID " + uid);
+        
+        // use parent from existing mapping or create new one w/o parent
+        MVFeatureParentKey fk;
+        if (uidFk == null)
+            fk = new MVFeatureParentKey(0L, key.getInternalID(), key.getValidStartTime());
+        else
+            fk = new MVFeatureParentKey(uidFk.getParentID(), key.getInternalID(), key.getValidStartTime());
+            
+        return put(fk, feature, uidFk != null, true);
     }
     
     
-    protected SpatialKey getSpatialKey(FeatureKey key, IFeature feature)
+    protected V put(MVFeatureParentKey fk, V f, boolean isExistingFeature, boolean replace)
     {
-        if (!(feature instanceof IGeoFeature))
-            return null;
-        
-        IGeoFeature gf = (IGeoFeature)feature;
-        if (gf.getGeometry() == null)
-            return null;
-        
-        int hashID = Objects.hash(key.getInternalID(), key.getValidStartTime());
-        return H2Utils.getBoundingRectangle(hashID, gf.getGeometry());
-    }
-
-
-    @Override
-    public synchronized V put(FeatureKey key, V f)
-    {
-        // Instant.MAX is reserved for querying last version
-        Asserts.checkArgument(key.getValidStartTime() != Instant.MAX, "Incorrect valid time");
-        
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
         {
@@ -555,27 +704,32 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             
             try
             {
-                // add to main features index
-                V oldValue = featuresIndex.put(key, f);
+                // add to main index
+                V oldValue = featuresIndex.put(fk, f);
                 
-                // add to UID index 
-                idsIndex.putIfAbsent(f.getUniqueIdentifier(), key.getInternalID());
+                // check if we're allowed to replace existing entry
+                boolean isNewEntry = (oldValue == null);
+                if (!isNewEntry && !replace)
+                    throw new IllegalArgumentException("Datastore already contains entry with same UID and validTime");
                 
-                // if feature has geom, add to spatial index
-                SpatialKey spatialKey = getSpatialKey(key, f);
-                if (spatialKey != null)
+                // update ID and UID indexes
+                if (!isExistingFeature)
                 {
-                    Range<Instant> validPeriod = null;
-                    if (f instanceof ITemporalFeature)
-                        validPeriod = ((ITemporalFeature) f).getValidTime().asRange();
-                    
-                    MVFeatureRef ref = new MVFeatureRef.Builder()
-                            .withInternalID(key.getInternalID())
-                            .withValidityPeriod(validPeriod)
-                            .build();
-                    
-                    spatialIndex.put(spatialKey, ref);
+                    idsIndex.put(fk, Boolean.TRUE);
+                    uidsIndex.put(f.getUniqueIdentifier(), fk);
                 }
+                
+                // update spatial index
+                if (isNewEntry)
+                    spatialIndex.add(fk, f);
+                else
+                    spatialIndex.update(fk, oldValue, f);
+                
+                // update full-text index
+                if (isNewEntry)
+                    fullTextIndex.add(fk, f);
+                else
+                    fullTextIndex.update(fk, oldValue, f);
                 
                 return oldValue;
             }
@@ -591,7 +745,9 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public synchronized V remove(Object key)
     {
-        FeatureKey fk = ensureFeatureKey(key);
+        var fk = ensureFeatureKey(key);
+        if (fk == null)
+            return null;
         
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -605,17 +761,21 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 if (oldValue == null)
                     return null;
                 
-                // remove entry from ID index if no more feature entries are present
+                // remove entry from ID and UIDs index if no more feature entries are present
                 long internalID = fk.getInternalID();
-                FeatureKey firstKey = new FeatureKey(internalID);
-                FeatureKey nextKey = featuresIndex.ceilingKey(firstKey);
+                var firstKey = new MVFeatureParentKey(fk.getParentID(), internalID, Instant.MIN);
+                var nextKey = featuresIndex.ceilingKey(firstKey);
                 if (nextKey == null || internalID != nextKey.getInternalID())
-                    idsIndex.remove(oldValue.getUniqueIdentifier());
+                {
+                    idsIndex.remove(firstKey);
+                    uidsIndex.remove(oldValue.getUniqueIdentifier());
+                }
                 
                 // remove from spatial index
-                SpatialKey spatialKey = getSpatialKey(fk, oldValue);
-                if (spatialKey != null)
-                    spatialIndex.remove(spatialKey);   
+                spatialIndex.remove(fk, oldValue);
+                
+                // remove from full-text index
+                fullTextIndex.remove(fk, oldValue);
                 
                 return oldValue;
             }
@@ -632,6 +792,44 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     public int size()
     {
         return featuresIndex.size();
+    }
+
+
+    @Override
+    public Set<FeatureKey> keySet()
+    {
+        return new AbstractSet<>() {
+            @Override
+            public Iterator<FeatureKey> iterator()
+            {
+                // down casting is ok since keys are always subtypes of FeatureKey
+                @SuppressWarnings({ "unchecked", })
+                var castedIterator = (Iterator<FeatureKey>)(Iterator<?>)featuresIndex.keySet().iterator();
+                return castedIterator;
+            }
+
+            @Override
+            public boolean contains(Object k)
+            {
+                return MVBaseFeatureStoreImpl.this.containsKey(k);
+            }
+
+            @Override
+            public int size()
+            {
+                return MVBaseFeatureStoreImpl.this.size();
+            }            
+        };
+    }
+
+
+    @Override
+    public Set<Entry<FeatureKey, V>> entrySet()
+    {
+        // down casting is ok since keys are always subtypes of FeatureKey
+        @SuppressWarnings({ "unchecked", })
+        var castedEntrySet = (Set<Entry<FeatureKey, V>>)(Set<?>)featuresIndex.entrySet();
+        return castedEntrySet;
     }
 
 
