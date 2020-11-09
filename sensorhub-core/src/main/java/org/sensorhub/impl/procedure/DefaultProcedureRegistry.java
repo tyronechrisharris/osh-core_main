@@ -21,20 +21,20 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.datastore.DatabaseConfig;
+import org.sensorhub.api.database.DatabaseConfig;
+import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IProcedureStateDatabase;
+import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
-import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
-import org.sensorhub.api.procedure.IProcedureStateDatabase;
 import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.impl.datastore.obs.GenericObsStreamDataStore;
-import org.sensorhub.impl.datastore.obs.StreamDataStoreConfig;
+import org.sensorhub.impl.datastore.obs.ObsStreamDataStoreConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorShadow;
 import org.sensorhub.utils.MsgUtils;
@@ -83,7 +83,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         
         try
         {
-            StreamDataStoreConfig dbListenerConfig = new StreamDataStoreConfig();
+            ObsStreamDataStoreConfig dbListenerConfig = new ObsStreamDataStoreConfig();
             dbListenerConfig.dbConfig = stateDbConfig;
 
             procStateDb = new GenericObsStreamDataStore();

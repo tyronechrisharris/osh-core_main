@@ -15,8 +15,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.view;
 
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.obs.ObsFilter;
-import org.sensorhub.api.procedure.IProcedureObsDatabase;
+import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.obs.ObsFilter;
 
 
 /**

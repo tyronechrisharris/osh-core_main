@@ -14,11 +14,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import org.sensorhub.api.feature.IFeatureStore;
-import org.sensorhub.api.obs.FoiFilter;
-import org.sensorhub.api.obs.IFoiStore;
-import org.sensorhub.api.obs.IObsStore;
-import org.sensorhub.api.obs.IFoiStore.FoiField;
+import org.sensorhub.api.datastore.feature.FoiFilter;
+import org.sensorhub.api.datastore.feature.IFeatureStore;
+import org.sensorhub.api.datastore.feature.IFoiStore;
+import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
+import org.sensorhub.api.datastore.obs.IObsStore;
 import org.vast.ogc.gml.IGeoFeature;
 
 

@@ -14,11 +14,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import org.sensorhub.api.obs.IDataStreamStore;
-import org.sensorhub.api.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.api.procedure.ProcedureFilter;
-import org.sensorhub.api.procedure.IProcedureStore.ProcedureField;
 
 
 /**

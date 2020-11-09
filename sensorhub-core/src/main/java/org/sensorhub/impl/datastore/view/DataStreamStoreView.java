@@ -17,14 +17,14 @@ package org.sensorhub.impl.datastore.view;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
-import org.sensorhub.api.obs.DataStreamFilter;
-import org.sensorhub.api.obs.DataStreamKey;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.obs.IDataStreamInfo;
-import org.sensorhub.api.obs.IDataStreamStore;
-import org.sensorhub.api.obs.IDataStreamStore.DataStreamInfoField;
-import org.sensorhub.api.procedure.IProcedureStore;
 import org.sensorhub.api.resource.ResourceFilter;
-import org.sensorhub.impl.datastore.registry.ReadOnlyDataStore;
+import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
 
 

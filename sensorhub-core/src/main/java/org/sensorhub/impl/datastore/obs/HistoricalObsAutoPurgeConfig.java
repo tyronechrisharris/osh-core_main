@@ -15,7 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.obs;
 
 import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.obs.IObsDbAutoPurgePolicy;
+import org.sensorhub.api.database.IObsDbAutoPurgePolicy;
 
 
 /**

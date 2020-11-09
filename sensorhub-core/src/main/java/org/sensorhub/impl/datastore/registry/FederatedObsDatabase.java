@@ -15,10 +15,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.registry;
 
 import java.util.concurrent.Callable;
-import org.sensorhub.api.obs.IFoiStore;
-import org.sensorhub.api.obs.IObsStore;
-import org.sensorhub.api.procedure.IProcedureStore;
-import org.sensorhub.api.procedure.IProcedureObsDatabase;
+import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.feature.IFoiStore;
+import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 
 
 public class FederatedObsDatabase implements IProcedureObsDatabase

@@ -14,8 +14,8 @@ Copyright (C) 2012-2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.obs;
 
-import org.sensorhub.api.obs.IObsDbAutoPurgePolicy;
-import org.sensorhub.api.procedure.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsDbAutoPurgePolicy;
+import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.slf4j.Logger;
 import org.vast.util.DateTimeFormat;
 

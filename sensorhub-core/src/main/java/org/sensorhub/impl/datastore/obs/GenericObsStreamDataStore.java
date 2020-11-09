@@ -35,23 +35,23 @@ import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.datastore.DatabaseConfig;
+import org.sensorhub.api.database.DatabaseConfig;
+import org.sensorhub.api.database.IObsDbAutoPurgePolicy;
+import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.feature.IFoiStore;
+import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.api.feature.FeatureKey;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.obs.DataStreamInfo;
-import org.sensorhub.api.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
-import org.sensorhub.api.obs.IDataStreamStore;
-import org.sensorhub.api.obs.IFoiStore;
-import org.sensorhub.api.obs.IObsDbAutoPurgePolicy;
 import org.sensorhub.api.obs.IObsData;
-import org.sensorhub.api.obs.IObsStore;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.api.persistence.StorageException;
-import org.sensorhub.api.procedure.IProcedureStore;
-import org.sensorhub.api.procedure.IProcedureObsDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
@@ -84,7 +84,7 @@ import org.vast.util.TimeExtent;
  * @author Alex Robin
  * @since Sep 23, 2019
  */
-public class GenericObsStreamDataStore extends AbstractModule<StreamDataStoreConfig> implements IProcedureObsDatabase
+public class GenericObsStreamDataStore extends AbstractModule<ObsStreamDataStoreConfig> implements IProcedureObsDatabase
 {
     static final String WAITING_STATUS_MSG = "Waiting for data source {}";
 

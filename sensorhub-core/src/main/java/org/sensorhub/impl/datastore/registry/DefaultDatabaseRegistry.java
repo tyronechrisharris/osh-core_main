@@ -24,11 +24,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.datastore.IDatabaseRegistry;
+import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
-import org.sensorhub.api.feature.FeatureKey;
-import org.sensorhub.api.obs.DataStreamFilter;
-import org.sensorhub.api.procedure.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -57,7 +57,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     FederatedObsDatabase globalObsDatabase;
     
     
-    static class LocalDatabaseInfo
+    public static class LocalDatabaseInfo
     {
         IProcedureObsDatabase db;
         int databaseID;
@@ -66,7 +66,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     }
     
     
-    static class LocalFilterInfo
+    public static class LocalFilterInfo
     {
         IProcedureObsDatabase db;
         int databaseID;

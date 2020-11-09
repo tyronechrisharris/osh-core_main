@@ -19,9 +19,9 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import org.junit.Before;
 import org.junit.Test;
-import org.sensorhub.api.feature.IFeatureStoreBase;
+import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
-import org.sensorhub.impl.procedure.InMemoryProcedureStateDatabase;
+import org.sensorhub.impl.datastore.mem.InMemoryProcedureStateDatabase;
 import org.vast.ogc.gml.ITemporalFeature;
 
 

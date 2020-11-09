@@ -20,7 +20,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.function.Predicate;
 import org.junit.Test;
-import org.sensorhub.api.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.vast.ogc.om.IProcedure;
 import org.vast.sensorML.SMLHelper;
 import com.vividsolutions.jts.geom.Coordinate;

@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.procedure;
 
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.database.IProcedureStateDatabase;
 import org.sensorhub.api.event.IEventSource;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.impl.event.EventSourceInfo;
