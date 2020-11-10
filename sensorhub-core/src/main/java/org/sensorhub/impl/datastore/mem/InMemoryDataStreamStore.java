@@ -29,10 +29,12 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.obs.IDataStreamInfo;
-import org.sensorhub.impl.datastore.obs.BaseDataStreamStore;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -46,11 +48,12 @@ import org.vast.util.TimeExtent;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryDataStreamStore extends BaseDataStreamStore
+public class InMemoryDataStreamStore implements IDataStreamStore
 {
     ConcurrentNavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
     ConcurrentNavigableMap<Long, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
     InMemoryObsStore obsStore;
+    IProcedureStore procedureStore;
     
     
     class DataStreamInfoWithTimeRanges extends DataStreamInfoWrapper
@@ -94,12 +97,41 @@ public class InMemoryDataStreamStore extends BaseDataStreamStore
     {
         this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);
     }
+    
+    
+    @Override
+    public synchronized DataStreamKey add(IDataStreamInfo dsInfo)
+    {
+        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
+        
+        // use valid time of parent procedure or current time if none was set
+        dsInfo = DataStoreUtils.ensureValidTime(procedureStore, dsInfo);
+
+        // create key
+        var newKey = generateKey(dsInfo);
+
+        // add to store
+        put(newKey, dsInfo, false);
+        return newKey;
+    }
+    
+    
+    protected DataStreamKey generateKey(IDataStreamInfo dsInfo)
+    {
+        // make sure that the same procedure/output combination always returns the same ID
+        // this will keep things more coherent across restart
+        var hash = Objects.hash(
+            dsInfo.getProcedureID().getInternalID(),
+            dsInfo.getOutputName(),
+            dsInfo.getValidTime());
+        return new DataStreamKey(hash & 0xFFFFFFFFL);
+    }
 
 
     @Override
     public IDataStreamInfo get(Object key)
     {
-        var dsKey = checkKey(key);
+        var dsKey = DataStoreUtils.checkDataStreamKey(key);
         
         var val = map.get(dsKey);
         if (val != null)
@@ -110,24 +142,25 @@ public class InMemoryDataStreamStore extends BaseDataStreamStore
 
 
     @Override
-    public Stream<Entry<DataStreamKey, IDataStreamInfo>> selectEntries(DataStreamFilter query, Set<DataStreamInfoField> fields)
+    public Stream<Entry<DataStreamKey, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
     {
         Stream<DataStreamKey> keyStream = null;
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
 
-        if (query.getInternalIDs() != null)
+        if (filter.getInternalIDs() != null)
         {
-            keyStream = query.getInternalIDs().stream()
+            keyStream = filter.getInternalIDs().stream()
                 .map(id -> new DataStreamKey(id));
         }
         
         // or filter on selected procedures
-        else if (query.getProcedureFilter() != null)
+        else if (filter.getProcedureFilter() != null)
         {
-            keyStream = selectProcedureIDs(query.getProcedureFilter()).flatMap(procId -> {
-                var dsKeys = procIdToDsKeys.get(procId);
-                return dsKeys != null ? dsKeys.stream() : Stream.empty();
-            });
+            keyStream = DataStoreUtils.selectProcedureIDs(procedureStore, filter.getProcedureFilter()) 
+                .flatMap(procId -> {
+                    var dsKeys = procIdToDsKeys.get(procId);
+                    return dsKeys != null ? dsKeys.stream() : Stream.empty();
+                });
         }        
         
         if (keyStream != null)
@@ -148,23 +181,20 @@ public class InMemoryDataStreamStore extends BaseDataStreamStore
         
         // filter with predicate, apply limit and wrap with DataStreamInfoWithTimeRanges
         return resultStream
-            .filter(e -> query.test(e.getValue()))
-            .limit(query.getLimit()).map(e -> {
+            .filter(e -> filter.test(e.getValue()))
+            .limit(filter.getLimit()).map(e -> {
                 IDataStreamInfo val = new DataStreamInfoWithTimeRanges(e.getKey().getInternalID(), e.getValue());
                 return (Entry<DataStreamKey, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(e.getKey(), val);
             });
     }
-    
-    
-    protected DataStreamKey generateKey(IDataStreamInfo dsInfo)
+
+
+    @Override
+    public IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo)
     {
-        // make sure that the same procedure/output combination always returns the same ID
-        // this will keep things more coherent across restart
-        var hash = Objects.hash(
-            dsInfo.getProcedureID().getInternalID(),
-            dsInfo.getOutputName(),
-            dsInfo.getValidTime());
-        return new DataStreamKey(hash & 0xFFFFFFFFL);
+        DataStoreUtils.checkDataStreamKey(key);
+        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);        
+        return put(key, dsInfo, true);
     }
     
     
@@ -190,7 +220,7 @@ public class InMemoryDataStreamStore extends BaseDataStreamStore
                 
                 // error if datastream with same procedure/name/validTime already exists
                 if (prevValidTime.equals(newValidTime))
-                    throw new IllegalArgumentException(ERROR_EXISTING_DATASTREAM);
+                    throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
                 // don't add if previous entry had a more recent valid time
                 if (prevValidTime.isAfter(newValidTime) || newValidTime.isAfter(Instant.now()))
@@ -211,7 +241,7 @@ public class InMemoryDataStreamStore extends BaseDataStreamStore
     @Override
     public IDataStreamInfo remove(Object key)
     {
-        var dsKey = checkKey(key);
+        var dsKey = DataStoreUtils.checkDataStreamKey(key);
         var oldValue = map.remove(dsKey);
         if (oldValue != null)
             procIdToDsKeys.get(oldValue.getProcedureID().getInternalID()).remove(dsKey);
@@ -236,7 +266,7 @@ public class InMemoryDataStreamStore extends BaseDataStreamStore
     @Override
     public boolean containsKey(Object key)
     {
-        var dsKey = checkKey(key);
+        var dsKey = DataStoreUtils.checkDataStreamKey(key);
         return map.containsKey(dsKey);
     }
 
@@ -284,13 +314,6 @@ public class InMemoryDataStreamStore extends BaseDataStreamStore
 
 
     @Override
-    protected IObsStore getObsStore()
-    {
-        return obsStore;
-    }
-
-
-    @Override
     public String getDatastoreName()
     {
         return getClass().getSimpleName();
@@ -328,5 +351,12 @@ public class InMemoryDataStreamStore extends BaseDataStreamStore
     public boolean isWriteSupported()
     {
         return true;
+    }
+    
+    
+    @Override
+    public void linkTo(IProcedureStore procedureStore)
+    {
+        this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
     }
 }

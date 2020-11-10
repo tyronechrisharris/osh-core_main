@@ -30,12 +30,13 @@ import org.h2.mvstore.RangeCursor;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
-import org.sensorhub.impl.datastore.obs.BaseDataStreamStore;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -49,7 +50,7 @@ import org.vast.util.TimeExtent;
  * @author Alex Robin
  * @date Sep 19, 2019
  */
-public class MVDataStreamStoreImpl extends BaseDataStreamStore
+public class MVDataStreamStoreImpl implements IDataStreamStore
 {
     private static final String DATASTREAM_MAP_NAME = "@dstreams";
     private static final String DATASTREAM_PROC_MAP_NAME = "@dstreams_proc";
@@ -57,6 +58,7 @@ public class MVDataStreamStoreImpl extends BaseDataStreamStore
 
     protected MVStore mvStore;
     protected MVObsStoreImpl obsStore;
+    protected IProcedureStore procedureStore;
     protected IdProvider idProvider;
     
     /*
@@ -173,12 +175,35 @@ public class MVDataStreamStoreImpl extends BaseDataStreamStore
             };
         }
     }
+    
+    
+    @Override
+    public synchronized DataStreamKey add(IDataStreamInfo dsInfo)
+    {
+        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
+        
+        // use valid time of parent procedure or current time if none was set
+        dsInfo = DataStoreUtils.ensureValidTime(procedureStore, dsInfo);
+
+        // create key
+        var newKey = generateKey(dsInfo);
+
+        // add to store
+        put(newKey, dsInfo, false);
+        return newKey;
+    }
+    
+    
+    protected DataStreamKey generateKey(IDataStreamInfo dsInfo)
+    {
+        return new DataStreamKey(idProvider.newInternalID());
+    }
 
 
     @Override
     public IDataStreamInfo get(Object key)
     {
-        var dsKey = checkKey(key);
+        var dsKey = DataStoreUtils.checkDataStreamKey(key);
         
         var dsInfo = dataStreamIndex.get(dsKey);
         if (dsInfo == null)
@@ -279,7 +304,7 @@ public class MVDataStreamStoreImpl extends BaseDataStreamStore
         else if (filter.getProcedureFilter() != null)
         {
             // first select procedures and fetch corresponding datastreams
-            idStream = selectProcedureIDs(filter.getProcedureFilter())
+            idStream = DataStoreUtils.selectProcedureIDs(procedureStore, filter.getProcedureFilter())
                 .flatMap(id -> getDataStreamIdsByProcedure(id, filter.getOutputNames(), filter.getValidTimeFilter()));            
             validTimeFilterApplied = true;
         }
@@ -336,11 +361,14 @@ public class MVDataStreamStoreImpl extends BaseDataStreamStore
         
         return resultStream;
     }
-    
-    
-    protected DataStreamKey generateKey(IDataStreamInfo dsInfo)
+
+
+    @Override
+    public IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo)
     {
-        return new DataStreamKey(idProvider.newInternalID());
+        DataStoreUtils.checkDataStreamKey(key);
+        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);        
+        return put(key, dsInfo, true);
     }
     
     
@@ -378,7 +406,7 @@ public class MVDataStreamStoreImpl extends BaseDataStreamStore
                     dsInfo.getValidTime().begin().getEpochSecond());
                 var oldProcKey = dataStreamByProcIndex.put(procKey, Boolean.TRUE);
                 if (oldProcKey != null && !replace)
-                    throw new IllegalArgumentException(ERROR_EXISTING_DATASTREAM);
+                    throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
                 // update full-text index
                 if (isNewEntry)
@@ -400,7 +428,7 @@ public class MVDataStreamStoreImpl extends BaseDataStreamStore
     @Override
     public synchronized IDataStreamInfo remove(Object key)
     {
-        var dsKey = checkKey(key);
+        var dsKey = DataStoreUtils.checkDataStreamKey(key);
 
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -483,7 +511,7 @@ public class MVDataStreamStoreImpl extends BaseDataStreamStore
     @Override
     public boolean containsKey(Object key)
     {
-        var dsKey = checkKey(key);
+        var dsKey = DataStoreUtils.checkDataStreamKey(key);
         return dataStreamIndex.containsKey(dsKey);
     }
 
@@ -577,12 +605,11 @@ public class MVDataStreamStoreImpl extends BaseDataStreamStore
     {
         return true;
     }
-
-
+    
+    
     @Override
-    protected IObsStore getObsStore()
+    public void linkTo(IProcedureStore procedureStore)
     {
-        return obsStore;
+        this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
     }
-
 }
