@@ -30,6 +30,7 @@ import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
+import org.vast.util.TimeExtent;
 import com.google.common.collect.ImmutableSortedSet;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
@@ -232,6 +233,20 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         {
             instance.validTime = new TemporalFilter.Builder()
                     .withRange(begin, end)
+                    .build();
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep only features that are valid at some point during the specified period.
+         * @param timeRange Search period
+         * @return This builder for chaining
+         */
+        public B withValidTimeDuring(TimeExtent timeRange)
+        {
+            instance.validTime = new TemporalFilter.Builder()
+                    .fromTimeExtent(timeRange)
                     .build();
             return (B)this;
         }
