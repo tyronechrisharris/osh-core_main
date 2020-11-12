@@ -28,9 +28,9 @@ import org.vast.util.Bbox;
  * Base interface for data stores containing objects derived from IFeature.
  * </p>
  * 
- * @param <V> Value type
- * @param <VF> Value field enum type
- * @param <F> Filter type
+ * @param <V> Feature type
+ * @param <VF> Feature field enum type
+ * @param <F> Feature filter type
  *
  * @author Alex Robin
  * @date Mar 19, 2018
@@ -80,6 +80,36 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * @throws IllegalArgumentException if the parent doesn't exist in this store
      */
     FeatureKey add(long parentID, V value);
+
+
+    /**
+     * Checks if store contains a feature with the given internal ID
+     * @param internalID The feature internal ID
+     * @return True if a feature with the given ID exists, false otherwise
+     */
+    public default boolean contains(long internalID)
+    {
+        return selectKeys(filterBuilder()
+                .withInternalIDs(internalID)
+                .build())
+            .findFirst()
+            .isPresent();
+    }
+
+
+    /**
+     * Checks if store contains a feature with the given unique ID
+     * @param uid The feature unique ID
+     * @return True if a feature with the given ID exists, false otherwise
+     */
+    public default boolean contains(String uid)
+    {
+        return selectKeys(filterBuilder()
+                .withUniqueIDs(uid)
+                .build())
+            .findFirst()
+            .isPresent();
+    }
     
     
     /**
@@ -175,17 +205,6 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     {
         Entry<FeatureKey, V> e = getCurrentVersionEntry(internalID);
         return e != null ? e.getValue() : null;
-    }
-
-
-    /**
-     * Checks if store contains a feature with the given unique ID
-     * @param uid The feature unique ID
-     * @return True if a procedure with the given ID exists, false otherwise
-     */
-    public default boolean contains(String uid)
-    {
-        return getCurrentVersionKey(uid) != null;
     }
     
     
