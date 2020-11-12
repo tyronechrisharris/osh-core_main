@@ -26,14 +26,14 @@ import org.vast.util.Asserts;
 /**
  * <p>
  * In-memory implementation of FOI store backed by a {@link java.util.NavigableMap}.
- * This implementation is only used to store the latest procedure state and thus
+ * This implementation is only used to store the latest feature state and thus
  * doesn't support versioning/history of FOI descriptions.
  * </p>
  *
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryFoiStore extends InMemoryFeatureStore<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
+public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
     IObsStore obsStore;
     

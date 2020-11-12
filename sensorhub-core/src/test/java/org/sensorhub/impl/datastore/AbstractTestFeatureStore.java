@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.xml.namespace.QName;
@@ -47,11 +48,13 @@ import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.ogc.om.SamplingPoint;
 import org.vast.util.Bbox;
+import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory;
 
 
 /**
@@ -71,11 +74,11 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     protected OffsetDateTime FIRST_VERSION_TIME = OffsetDateTime.parse("2000-01-01T00:00:00Z");
         
     protected StoreType featureStore;
-    GMLFactory gmlFac = new GMLFactory(true);
-    Map<FeatureKey, AbstractFeature> allFeatures = new LinkedHashMap<>();
-    Map<FeatureKey, Long> allParents = new LinkedHashMap<>();
-    boolean useAdd;
-    String[] featureTypes = {"building", "road", "waterbody"};
+    protected GMLFactory gmlFac = new GMLFactory(true);
+    protected Map<FeatureKey, IGeoFeature> allFeatures = new LinkedHashMap<>();
+    protected Map<FeatureKey, Long> allParents = new LinkedHashMap<>();
+    protected boolean useAdd;
+    protected String[] featureTypes = {"building", "road", "waterbody"};
     
     
     protected abstract StoreType initStore() throws Exception;
@@ -283,20 +286,18 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     @Test
     public void testPutAndGetNumRecords() throws Exception
     {
-        int totalFeatures = 0;
-        
         int numFeatures = 100;
         addNonGeoFeatures(1, numFeatures);
-        assertEquals(totalFeatures += numFeatures, featureStore.getNumRecords());
+        assertEquals(allFeatures.size(), featureStore.getNumRecords());
         
         numFeatures = 120;
         addGeoFeaturesPoint2D(1000, numFeatures);
         forceReadBackFromStorage();
-        assertEquals(totalFeatures += numFeatures, featureStore.getNumRecords());
+        assertEquals(allFeatures.size(), featureStore.getNumRecords());
         
         numFeatures = 40;
         addTemporalFeatures(2000, numFeatures);
-        assertEquals(totalFeatures += numFeatures*NUM_TIME_ENTRIES_PER_FEATURE, featureStore.getNumRecords());
+        assertEquals(allFeatures.size(), featureStore.getNumRecords());
     }
     
     
@@ -323,9 +324,9 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     private void checkFeaturesBbox(Bbox bbox)
     {
         Bbox expectedBbox = new Bbox();
-        for (AbstractFeature f: allFeatures.values())
+        for (IGeoFeature f: allFeatures.values())
         {
-            if (f.isSetGeometry())
+            if (f.getGeometry() != null)
             {
                 Envelope env = f.getGeometry().getGeomEnvelope();
                 expectedBbox.add(GMLUtils.envelopeToBbox(env));
@@ -385,7 +386,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     private void checkMapValues(Collection<IGeoFeature> mapValues)
     {
         mapValues.forEach(f1 -> {
-            AbstractFeature f2 = allFeatures.get(getKey(f1));
+            IGeoFeature f2 = allFeatures.get(getKey(f1));
             if (f2 == null || !f2.getUniqueIdentifier().equals(f1.getUniqueIdentifier()))
                 fail("No matching feature in reference list: " + f1);
         });
@@ -400,7 +401,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    private void checkFeaturesEqual(IGeoFeature f1, IGeoFeature f2)
+    protected void checkFeaturesEqual(IGeoFeature f1, IGeoFeature f2)
     {
         assertEquals(f1.getClass(), f2.getClass());
         assertEquals(f1.getUniqueIdentifier(), f2.getUniqueIdentifier());
@@ -413,7 +414,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    private void getAndCheckFeatures() throws Exception
+    protected void getAndCheckFeatures() throws Exception
     {
         long t0 = System.currentTimeMillis();
         allFeatures.forEach((k, f1) -> {
@@ -499,7 +500,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    private void checkSelectedEntries(FeatureFilter filter, Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Map<FeatureKey, IGeoFeature> expectedResults)
+    protected void checkSelectedEntries(FeatureFilter filter, Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Map<FeatureKey, IGeoFeature> expectedResults)
     {
         if (filter != null)
             System.out.println("\nSelect with " + filter);
@@ -522,30 +523,32 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    private void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Set<String> expectedIds, Range<Instant> timeRange)
+    protected void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Set<String> expectedIds, Range<Instant> timeRange)
     {
         boolean lastVersion = timeRange.lowerEndpoint() == Instant.MAX && timeRange.upperEndpoint() == Instant.MAX;
         System.out.println("\nSelect " + expectedIds + " within " +  (lastVersion ? "LATEST" : timeRange));
         
-        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+        Map<FeatureKey, IGeoFeature> expectedResults = new TreeMap<>();
+        allFeatures.entrySet().stream()
             .filter(e -> expectedIds.contains(e.getValue().getUniqueIdentifier()))
             .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
                          timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
-            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+            .forEach(e -> expectedResults.put(e.getKey(), e.getValue()));
         
         checkSelectedEntries(null, resultStream, expectedResults);
     }
     
     
-    private void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Geometry roi, Range<Instant> timeRange)
+    protected void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Geometry roi, Range<Instant> timeRange)
     {
         System.out.println("\nSelect " + roi + " within " + timeRange);
         
-        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
-            .filter(e -> e.getValue().isSetGeometry() && ((Geometry)e.getValue().getGeometry()).intersects(roi))
+        Map<FeatureKey, IGeoFeature> expectedResults = new TreeMap<>();
+        allFeatures.entrySet().stream()
+            .filter(e -> e.getValue().getGeometry() != null && ((Geometry)e.getValue().getGeometry()).intersects(roi))
             .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
                          timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
-            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+            .forEach(e -> expectedResults.put(e.getKey(), e.getValue()));
         
         checkSelectedEntries(null, resultStream, expectedResults);
     }
@@ -655,7 +658,9 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         Range<Instant> timeRange;
         
         addTemporalGeoFeatures(0, 30);
-        addSamplingPoints2D(0, 30);
+        featureStore.keySet().forEach(System.out::println);
+        addSamplingPoints2D(30, 30); // overlap IDs on purpose
+        featureStore.keySet().forEach(System.out::println);
         
         // containing polygon and all times
         roi = new GeometryFactory().createPolygon(new Coordinate[] {
@@ -665,7 +670,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             new Coordinate(0, 100),
             new Coordinate(0, 0)
         });
-        timeRange = Range.closed(Instant.MIN, Instant.MAX);        
+        timeRange = Range.closed(Instant.MIN, Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
             .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
             .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
@@ -673,6 +678,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         checkSelectedEntries(resultStream, roi, timeRange);
         
         // containing polygon and time range
+        forceReadBackFromStorage();
         timeRange = Range.closed(Instant.parse("2000-02-28T09:59:59Z"), Instant.parse("2000-04-08T10:00:00Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
             .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
@@ -706,20 +712,62 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
 
 
     @Test
-    public void testAddAndRemoveByFilter() throws Exception
+    public void testAddAndRemoveByTimeRange() throws Exception
     {
         addTemporalGeoFeatures(0, 20);
         
-        var timeRange = Range.closed(FIRST_VERSION_TIME.toInstant(), Instant.parse("2000-04-08T10:00:00Z"));
+        var timeFilter = TimeExtent.period(FIRST_VERSION_TIME.toInstant(), Instant.parse("2000-04-08T10:00:00Z"));
         long count = featureStore.removeEntries(new FeatureFilter.Builder()
-            .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
+            .withValidTimeDuring(timeFilter)
             .build());
         System.out.println(count + " features removed");
         
+        // generate truth by removing entries from allFeatures map
+        var it = allFeatures.values().iterator();
+        while (it.hasNext())
+        {
+            var f = (ITemporalFeature)it.next();
+            if (f.getValidTime().begin().isBefore(timeFilter.end()))
+                it.remove();
+        }
+        
         var resultStream = featureStore.selectEntries(featureStore.selectAllFilter());
-        var bbox = new Bbox(0, 0, 1e6, 1e6);
-        timeRange = Range.closed(Instant.parse("2000-05-01T00:00:00Z"), Instant.MAX);
-        checkSelectedEntries(resultStream, bbox.toJtsPolygon(), timeRange);
+        checkSelectedEntries(null, resultStream, allFeatures);
+    }
+
+
+    @Test
+    public void testAddAndRemoveByRoi() throws Exception
+    {
+        addTemporalGeoFeatures(0, 20);
+        
+        // remove all features intersecting polygon
+        var roi = new GeometryFactory().createPolygon(new Coordinate[] {
+            new Coordinate(0, 0),
+            new Coordinate(500, 0),
+            new Coordinate(500, 100),
+            new Coordinate(0, 100),
+            new Coordinate(0, 0)
+        });
+        
+        long count = featureStore.removeEntries(new FeatureFilter.Builder()
+            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .build());
+        System.out.println(count + " features removed");
+        forceReadBackFromStorage();
+        
+        // generate truth by removing entries from allFeatures map
+        var preparedGeom = PreparedGeometryFactory.prepare(roi);
+        var it = allFeatures.values().iterator();
+        while (it.hasNext())
+        {
+            var f = (IGeoFeature)it.next();
+            if (preparedGeom.intersects((Geometry)f.getGeometry()))
+                it.remove();
+        }
+        
+        var resultStream = featureStore.selectEntries(featureStore.selectAllFilter());
+        checkSelectedEntries(null, resultStream, allFeatures);
     }
             
     
@@ -732,12 +780,11 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         long group3Id = addFeatureCollection(0L, "col3", "collection 3");
         addGeoFeaturesPoint2D(group1Id, 0, 20);
         addNonGeoFeatures(group2Id, 40, 35);
+        forceReadBackFromStorage();
         addTemporalGeoFeatures(group3Id, 100, 46);
         
         var filter = new FeatureFilter.Builder()
-            .withParents()
-                .withInternalIDs(group1Id, group3Id)
-                .done()
+            .withParents(group1Id, group3Id)
             .build();
         
         Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
@@ -769,9 +816,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             FIRST_VERSION_TIME.toInstant().plus(70, ChronoUnit.DAYS));
         
         var filter1 = new FeatureFilter.Builder()
-            .withParents()
-                .withInternalIDs(group1Id, group3Id)
-                .done()
+            .withParents(group1Id, group3Id)
             .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
             .build();
         
@@ -849,9 +894,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         addTemporalGeoFeatures(group3Id, 100, 46);
         
         var filter = new FeatureFilter.Builder()
-            .withParents()
-                .withUniqueIDs(UID_PREFIX + "col3")
-                .done()
+            .withParents(UID_PREFIX + "col3")
             .build();
         
         Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
@@ -938,31 +981,31 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         // simple features
         int numFeatures = 100000;
-        long t0 = System.currentTimeMillis();
+        long t0 = System.nanoTime();
         addNonGeoFeatures(0, numFeatures);
         featureStore.commit();
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(numFeatures/dt*1000);
+        double dt = System.nanoTime() - t0;
+        int throughPut = (int)(numFeatures/dt*1e9);
         System.out.println(String.format("Simple Features: %d writes/s", throughPut));
         assertTrue(throughPut > 20000);        
         
         // sampling features
         numFeatures = 10000;
-        t0 = System.currentTimeMillis();
+        t0 = System.nanoTime();
         addSamplingPoints2D(0, numFeatures);
         featureStore.commit();
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(numFeatures/dt*1000);
+        dt = System.nanoTime() - t0;
+        throughPut = (int)(numFeatures/dt*1e9);
         System.out.println(String.format("Sampling-point Features: %d writes/s", throughPut));
         assertTrue(throughPut > 10000);
         
         // geo features w/ polygons
         numFeatures = 10000;
-        t0 = System.currentTimeMillis();
+        t0 = System.nanoTime();
         addTemporalGeoFeatures(0, numFeatures);
         featureStore.commit();
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(numFeatures/dt*1000*NUM_TIME_ENTRIES_PER_FEATURE);
+        dt = System.nanoTime() - t0;
+        throughPut = (int)(numFeatures/dt*1e9*NUM_TIME_ENTRIES_PER_FEATURE);
         System.out.println(String.format("Spatio-temporal features: %d writes/s", throughPut));
         assertTrue(throughPut > 10000);
     }
@@ -978,7 +1021,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         // sequential reads
         int numReads = numFeatures;
-        long t0 = System.currentTimeMillis();
+        long t0 = System.nanoTime();
         for (int i = 0; i < numReads; i++)
         {
             String uid = UID_PREFIX + "F" + i;
@@ -986,14 +1029,14 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             var f = featureStore.get(key);
             assertEquals(uid, f.getUniqueIdentifier());
         }
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(numReads/dt*1000);
+        double dt = System.nanoTime() - t0;
+        int throughPut = (int)(numReads/dt*1e9);
         System.out.println(String.format("Sequential Reads: %d reads/s", throughPut));
         assertTrue(throughPut > 100000);
         
         // random reads
         numReads = 10000;
-        t0 = System.currentTimeMillis();
+        t0 = System.nanoTime();
         for (int i = 0; i < numReads; i++)
         {
             int id = (int)(Math.random()*(numFeatures-1));
@@ -1002,8 +1045,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             var f = featureStore.get(key);
             assertEquals(uid, f.getUniqueIdentifier());
         }
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(numReads/dt*1000);
+        dt = System.nanoTime() - t0;
+        throughPut = (int)(numReads/dt*1e9);
         System.out.println(String.format("Random Reads: %d reads/s", throughPut));
         assertTrue(throughPut > 10000);
     }
@@ -1014,27 +1057,28 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         System.out.println("Scan Throughput (cursor iteration)");
         
-        int numFeatures = 100000;
+        int numFeatures = 200000;
         addNonGeoFeatures(0, numFeatures);
+        forceReadBackFromStorage();
         
         // warm up
         long count = featureStore.keySet().stream().count();
         
         // key scan
-        long t0 = System.currentTimeMillis();
+        long t0 = System.nanoTime();
         count = featureStore.keySet().stream().count();
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(count/dt*1000);
-        System.out.println(String.format("Key Scan: %d reads/s", throughPut));
-        assertTrue(throughPut > 200000);
+        double dt = System.nanoTime() - t0;
+        int throughPut = (int)(count/dt*1e9);
+        System.out.println(String.format("Key Scan: %d keys, %d reads/s", count, throughPut));
+        assertTrue(throughPut > 1000000);
         
         // entry scan
-        t0 = System.currentTimeMillis();
+        t0 = System.nanoTime();
         count = featureStore.entrySet().stream().count();
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(count/dt*1000);
+        dt = System.nanoTime() - t0;
+        throughPut = (int)(count/dt*1e9);
         System.out.println(String.format("Entry Scan: %d reads/s", throughPut));
-        assertTrue(throughPut > 200000);
+        assertTrue(throughPut > 1000000);
     }
     
     
@@ -1052,13 +1096,13 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 .withValidTimeDuring(date0, date0.plus(numFeatures+NUM_TIME_ENTRIES_PER_FEATURE*30*24, ChronoUnit.HOURS))
                 .build();
         
-        long t0 = System.currentTimeMillis();
-        long count = featureStore.selectEntries(filter).count();//.forEach(entry -> count.incrementAndGet());        
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(count/dt*1000);
+        long t0 = System.nanoTime();
+        long count = featureStore.selectEntries(filter).count();
+        double dt = System.nanoTime() - t0;
+        int throughPut = (int)(count/dt*1e9);
         System.out.println(String.format("Entry Stream: %d reads/s", throughPut));
         assertTrue(throughPut > 50000);
-        assertEquals(numFeatures*NUM_TIME_ENTRIES_PER_FEATURE, count);
+        assertEquals(allFeatures.size(), count);
     }
         
     
@@ -1075,17 +1119,17 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 .withLocationWithin(featureStore.getFeaturesBbox())
                 .build();
         
-        long t0 = System.currentTimeMillis();
+        long t0 = System.nanoTime();
         long count = featureStore.selectEntries(filter).count();
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(count/dt*1000);
+        double dt = System.nanoTime() - t0;
+        int throughPut = (int)(count/dt*1e9);
         System.out.println(String.format("Entry Stream: %d reads/s", throughPut));
         assertTrue(throughPut > 50000);
         assertEquals(numFeatures, count);
         
         // with geo temporal features
         int numFeatures2 = 20000;
-        addTemporalGeoFeatures(1000, numFeatures2);
+        addTemporalGeoFeatures(numFeatures, numFeatures2);
           
         // spatial filter with all features
         filter = new FeatureFilter.Builder()
@@ -1093,19 +1137,19 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 .withLocationWithin(featureStore.getFeaturesBbox())
                 .build();
         
-        t0 = System.currentTimeMillis();
+        t0 = System.nanoTime();
         count = featureStore.selectEntries(filter).count();
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(count/dt*1000);
+        dt = System.nanoTime() - t0;
+        throughPut = (int)(count/dt*1e9);
         System.out.println(String.format("Entry Stream: %d reads/s", throughPut));
         assertTrue(throughPut > 50000);
-        assertEquals(numFeatures+numFeatures2*NUM_TIME_ENTRIES_PER_FEATURE, count);
+        assertEquals(allFeatures.size(), count);
         
         // many requests with small random bbox
         Bbox bboxAll = featureStore.getFeaturesBbox();
         Bbox selectBbox = new Bbox();
         int numRequests = 1000;
-        t0 = System.currentTimeMillis();
+        t0 = System.nanoTime();
         for (int i = 0; i < numRequests; i++)
         {        
             selectBbox.setMinX(bboxAll.getMinX() + bboxAll.getSizeX()*Math.random());
@@ -1118,8 +1162,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             featureStore.selectEntries(filter).count();
         }
                 
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(numRequests/dt*1000);
+        dt = System.nanoTime() - t0;
+        throughPut = (int)(numRequests/dt*1e9);
         System.out.println(String.format("Random Reads: %d reads/s", throughPut));
         //assertTrue(throughPut > 50000);        
     }

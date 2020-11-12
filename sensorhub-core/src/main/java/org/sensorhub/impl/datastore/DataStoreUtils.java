@@ -19,7 +19,9 @@ import java.util.stream.Stream;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.DataStreamInfo;
@@ -40,19 +42,20 @@ import org.vast.util.TimeExtent;
 public class DataStoreUtils
 {
     public static final String ERROR_INVALID_DATASTREAM_KEY = "Key must be an instance of " + DataStreamKey.class.getSimpleName();
-    public static final String ERROR_EXISTING_DATASTREAM = "A datastream for the same procedure, output and validTime already exists";
+    public static final String ERROR_EXISTING_DATASTREAM = "Datastore already contains datastream for the same procedure, output and validTime";
     
     public static final String ERROR_INVALID_FEATURE_KEY = "Key must be an instance of " + FeatureKey.class.getSimpleName();
-    public static final String ERROR_EXISTING_FEATURE = "A feature with the same UID already exists: ";
-    public static final String ERROR_EXISTING_VERSION = "A feature with the same UID and validTime already exists: ";
+    public static final String ERROR_EXISTING_FEATURE = "Datastore already contains feature with the same UID: ";
+    public static final String ERROR_EXISTING_FEATURE_VERSION = "Datastore already contains feature with the same UID and validTime";
     public static final String ERROR_UNKNOWN_PARENT_FEATURE = "Unknown parent feature: ";
     
     
-    
-    public static void checkParentFeatureExists(IFeatureStoreBase<?,?,?> dataStore, long id)
+    public static long checkInternalID(long internalID)
     {
-        
+        Asserts.checkArgument(internalID > 0, "ID must be > 0");
+        return internalID;
     }
+    
     
     //////////////////////////////////////
     // Helper methods for feature stores
@@ -65,10 +68,21 @@ public class DataStoreUtils
         return (FeatureKey)key;
     }
     
-    public static void checkFeatureObject(IFeature f)
+    public static String checkFeatureObject(IFeature f)
     {
         Asserts.checkNotNull(f, IFeature.class);
-        Asserts.checkNotNull(f.getUniqueIdentifier(), "uniqueID");
+        return checkUniqueID(f.getUniqueIdentifier());
+    }
+    
+    public static String checkUniqueID(String uid)
+    {
+        return Asserts.checkNotNull(uid, "uniqueID");
+    }
+    
+    public static void checkParentFeatureExists(IFeatureStoreBase<?,?,?> dataStore, long parentID)
+    {
+        if (parentID != 0 && !dataStore.contains(parentID))
+            throw new IllegalArgumentException(DataStoreUtils.ERROR_UNKNOWN_PARENT_FEATURE + parentID);
     }
     
     
@@ -76,11 +90,6 @@ public class DataStoreUtils
     // Helpers methods for datastream stores
     //////////////////////////////////////////
     
-    /**
-     * Checks that the key is not null and of proper type
-     * @param key Key object
-     * @return the key casted to the proper key type
-     */
     public static DataStreamKey checkDataStreamKey(Object key)
     {
         Asserts.checkNotNull(key, DataStreamKey.class);
@@ -137,19 +146,40 @@ public class DataStoreUtils
     // Helpers methods for JOIN operations
     //////////////////////////////////////////
         
+    public static <V extends IFeature, F extends FeatureFilterBase<? super V>> Stream<Long> selectFeatureIDs(IFeatureStoreBase<V,?,F> featureStore, F filter)
+    {
+        if (filter.getInternalIDs() != null)
+        {
+            // if only internal IDs were specified, no need to search the linked datastore
+            return filter.getInternalIDs().stream();
+        }
+        else
+        {
+            Asserts.checkState(featureStore != null, "No linked feature store");
+            
+            // otherwise get all feature keys matching the filter from linked datastore
+            // we apply the distinct operation to make sure the same feature is not
+            // listed twice (it can happen when there exists several versions of the 
+            // same feature with different valid times)
+            return featureStore.selectKeys(filter)
+                .map(k -> k.getInternalID())
+                .distinct();
+        }
+    }
+    
+    
     public static Stream<Long> selectProcedureIDs(IProcedureStore procedureStore, ProcedureFilter filter)
     {
-        if (filter.getInternalIDs() != null &&
-            filter.getLocationFilter() == null )
+        if (filter.getInternalIDs() != null)
         {
-            // if only internal IDs were specified, no need to search the feature store
+            // if only internal IDs were specified, no need to search the linked datastore
             return filter.getInternalIDs().stream();
         }
         else
         {
             Asserts.checkState(procedureStore != null, "No linked procedure store");
             
-            // otherwise get all feature keys matching the filter from linked feature store
+            // otherwise get all feature keys matching the filter from linked datastore
             // we apply the distinct operation to make sure the same feature is not
             // listed twice (it can happen when there exists several versions of the
             // same feature with different valid times)
@@ -160,25 +190,27 @@ public class DataStoreUtils
     }
     
     
-    public static <V extends IFeature, F extends FeatureFilterBase<? super V>> Stream<Long> selectFeatureIDs(IFeatureStoreBase<V,?,F> featureStore, F filter)
+    public static Stream<Long> selectDataStreamIDs(IDataStreamStore dataStreamStore, DataStreamFilter filter)
     {
-        if (filter.getInternalIDs() != null &&
-            filter.getLocationFilter() == null)
+        if (filter.getInternalIDs() != null)
         {
-            // if only internal IDs were specified, no need to search the feature store
+            // if only internal IDs were specified, no need to search the linked datastore
             return filter.getInternalIDs().stream();
         }
         else
         {
-            Asserts.checkState(featureStore != null, "No linked FOI store");
+            Asserts.checkState(dataStreamStore != null, "No linked datastream store");
             
-            // otherwise get all feature keys matching the filter from linked feature store
-            // we apply the distinct operation to make sure the same feature is not
-            // listed twice (it can happen when there exists several versions of the 
-            // same feature with different valid times)
-            return featureStore.selectKeys(filter)
-                .map(k -> k.getInternalID())
-                .distinct();
+            // otherwise get all datastream keys matching the filter from linked datastore
+            return dataStreamStore.selectKeys(filter)
+                .map(k -> k.getInternalID());
         }
+    }
+    
+    
+    public static Stream<IDataStreamInfo> selectDataStreams(IDataStreamStore dataStreamStore, DataStreamFilter filter)
+    {
+        Asserts.checkState(dataStreamStore != null, "No linked datastream store");            
+        return dataStreamStore.select(filter);
     }
 }

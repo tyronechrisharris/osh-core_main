@@ -27,6 +27,7 @@ import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVVarLongDataType;
 import org.h2.mvstore.RangeCursor;
+import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -59,7 +60,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     protected MVStore mvStore;
     protected MVObsStoreImpl obsStore;
     protected IProcedureStore procedureStore;
-    protected IdProvider idProvider;
+    protected IdProvider<IDataStreamInfo> idProvider;
     
     /*
      * Main index
@@ -142,7 +143,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     }
 
 
-    public MVDataStreamStoreImpl(MVObsStoreImpl obsStore, IdProvider idProvider)
+    public MVDataStreamStoreImpl(MVObsStoreImpl obsStore, IdProvider<IDataStreamInfo> idProvider)
     {
         this.obsStore = Asserts.checkNotNull(obsStore, MVObsStoreImpl.class);
         this.mvStore = Asserts.checkNotNull(obsStore.mvStore, MVStore.class);
@@ -163,11 +164,11 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         mapName = DATASTREAM_FULLTEXT_MAP_NAME + ":" + obsStore.getDatastoreName();
         this.fullTextIndex = new FullTextIndex<>(mvStore, mapName, new MVVarLongDataType());
 
-        // Id provider
+        // ID provider
         this.idProvider = idProvider;
         if (idProvider == null) // use default if nothing is set
         {
-            this.idProvider = () -> {
+            this.idProvider = dsInfo -> {
                 if (dataStreamIndex.isEmpty())
                     return 1;
                 else
@@ -196,7 +197,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     
     protected DataStreamKey generateKey(IDataStreamInfo dsInfo)
     {
-        return new DataStreamKey(idProvider.newInternalID());
+        return new DataStreamKey(idProvider.newInternalID(dsInfo));
     }
 
 

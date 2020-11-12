@@ -7,19 +7,21 @@
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2;
+package org.sensorhub.api.datastore;
 
 
 /**
  * <p>
  * Interface for ID providers that generate internal IDs for stored objects 
  * </p>
+ * 
+ * @param <T> Type of object to generate IDs for
  *
  * @author Alex Robin
  * @date Oct 8, 2018
  */
-public interface IdProvider
+public interface IdProvider<T>
 {
 
-    long newInternalID();
+    long newInternalID(T obj);
 }

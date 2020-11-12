@@ -35,7 +35,7 @@ import org.vast.util.Asserts;
  */
 public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
-    MVObsStoreImpl obsStore;
+    IObsStore obsStore;
     
     
     protected MVFoiStoreImpl()
@@ -98,14 +98,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
     @Override
     public void linkTo(IObsStore obsStore)
     {
-        Asserts.checkNotNull(obsStore, IObsStore.class);
-        
-        if (this.obsStore != obsStore)
-        {
-            this.obsStore = (MVObsStoreImpl)obsStore;
-            obsStore.linkTo(this);
-        }
-        
+        this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);        
     }
     
     

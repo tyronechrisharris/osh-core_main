@@ -21,17 +21,19 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
+import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
-import org.vast.ogc.om.IProcedure;
-import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 
 
@@ -49,10 +51,13 @@ import org.vast.util.Bbox;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public abstract class InMemoryFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>> extends InMemoryDataStore implements IFeatureStoreBase<T, VF, F>
+public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>> extends InMemoryDataStore implements IFeatureStoreBase<T, VF, F>
 {
     ConcurrentNavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
     ConcurrentNavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
+    ConcurrentNavigableMap<Long, Set<Long>> parentChildMap = new ConcurrentSkipListMap<>();
+    Bbox allFeaturesBbox = new Bbox();
+    IdProvider<? super T> idProvider = new InMemoryIdProvider<>(1);
     
     
     /*
@@ -77,24 +82,38 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
 
 
     @Override
-    public FeatureKey add(long parentId, T feature)
+    public FeatureKey add(long parentID, T feature)
     {        
-        String uid = feature.getUniqueIdentifier();
-        Asserts.checkNotNull(uid, "uniqueID");
+        var uid = DataStoreUtils.checkFeatureObject(feature);
+        DataStoreUtils.checkParentFeatureExists(this, parentID);
         
-        FeatureKey newKey = generateKey(feature);
-        var fk = uidMap.get(uid);
-        if (fk != null && fk.getValidStartTime().equals(newKey.getValidStartTime()))
-            throw new IllegalArgumentException("Data store already contains entry with same UID and validTime");
+        var existingKey = uidMap.get(uid);
+        FeatureKey newKey = generateKey(existingKey, feature);
+        if (existingKey != null && existingKey.getValidStartTime().equals(newKey.getValidStartTime()))
+            throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);     
+                
+        put(newKey, feature);
         
-        put(newKey, feature);    
+        // also update parent map
+        if (existingKey == null)
+        {
+            // if needed, add a new feature keyset for the specified parent
+            parentChildMap.compute(parentID, (id, keys) -> {
+                if (keys == null)
+                    keys = new TreeSet<>();
+                keys.add(newKey.getInternalID());
+                return keys;
+            });
+        }
+        
         return newKey;
     }
     
     
-    protected FeatureKey generateKey(T f)
+    protected FeatureKey generateKey(FeatureKey existingKey, T f)
     {
-        long internalID = map.isEmpty() ? 1 : map.lastKey().getInternalID()+1;
+        long internalID = existingKey != null ? 
+            existingKey.getInternalID() : idProvider.newInternalID(f);
         
         // get valid start time from feature object
         // or use default value (meaning always valid) if no valid time is set
@@ -105,6 +124,22 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
             validStartTime = FeatureKey.TIMELESS;
         
         return new FeatureKey(internalID, validStartTime);
+    }
+    
+    
+    @Override
+    public boolean contains(long internalID)
+    {
+        DataStoreUtils.checkInternalID(internalID);
+        return map.containsKey(new FeatureKey(internalID));
+    }
+
+
+    @Override
+    public boolean contains(String uid)
+    {
+        DataStoreUtils.checkUniqueID(uid);
+        return uidMap.containsKey(uid);
     }
     
     
@@ -121,7 +156,7 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
     @Override
     public FeatureKey getCurrentVersionKey(String uid)
     {
-        Asserts.checkNotNull(uid, "uniqueID");
+        DataStoreUtils.checkUniqueID(uid);
         return uidMap.get(uid);
     }
 
@@ -136,7 +171,7 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
     @Override
     public Bbox getFeaturesBbox()
     {
-        return null;
+        return allFeaturesBbox;
     }
 
 
@@ -147,30 +182,48 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
     }
     
     
-    @Override
-    public Stream<Entry<FeatureKey, T>> selectEntries(F query, Set<VF> fields)
+    protected Stream<Entry<FeatureKey, T>> entryStream(Stream<Long> idStream)
     {
-        Stream<Entry<FeatureKey, T>> resultStream;
-        
-        if (query.getInternalIDs() != null)
+        return idStream.map(id -> {
+                FeatureKey key = new FeatureKey(id);
+                var entry = map.ceilingEntry(key);
+                return entry.getKey().getInternalID() == id ? entry : null;
+            })
+            .filter(Objects::nonNull);
+    }
+    
+    
+    protected Stream<Entry<FeatureKey, T>> getFeaturesByParent(long parentID)
+    {
+        var idStream = parentChildMap.get(parentID).stream();
+        return entryStream(idStream);
+    }
+    
+    
+    protected Stream<Entry<FeatureKey, T>> getIndexedStream(F filter)
+    {
+        if (filter.getInternalIDs() != null)
         {
-            resultStream = query.getInternalIDs().stream()
-                .map(id -> {
-                    FeatureKey key = new FeatureKey(id);
-                    T val = map.get(key);
-                    if (val != null)
-                        return (Entry<FeatureKey, T>)new AbstractMap.SimpleEntry<>(key, val);
-                    else
-                        return null;
-                })
-                .filter(Objects::nonNull);
+            var idStream = filter.getInternalIDs().stream();
+            return entryStream(idStream);
         }
-        else
+        
+        return null;
+    }
+    
+    
+    @Override
+    public Stream<Entry<FeatureKey, T>> selectEntries(F filter, Set<VF> fields)
+    {
+        var resultStream = getIndexedStream(filter);        
+        
+        // if no index used, just scan all features
+        if (resultStream == null)
             resultStream = map.entrySet().stream();
         
         return resultStream
-            .filter(e -> query.test(e.getValue()))
-            .limit(query.getLimit());
+            .filter(e -> filter.test(e.getValue()))
+            .limit(filter.getLimit());
     }
 
 
@@ -184,7 +237,7 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
     @Override
     public boolean containsKey(Object key)
     {
-        FeatureKey fk = ensureFeatureKey(key);
+        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);
         return map.containsKey(fk);
     }
 
@@ -198,14 +251,14 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
 
     public Set<Entry<FeatureKey, T>> entrySet()
     {
-        return map.entrySet();
+        return Collections.unmodifiableSet(map.entrySet());
     }
     
 
     @Override
     public T get(Object key)
     {
-        FeatureKey fk = ensureFeatureKey(key);                
+        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);                
         return map.get(fk);
     }
 
@@ -220,40 +273,65 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
     @Override
     public Set<FeatureKey> keySet()
     {
-        return map.keySet();
+        return Collections.unmodifiableSet(map.keySet());
     }
 
 
     @Override
-    public T put(FeatureKey key, T val)
+    public T put(FeatureKey key, T feature)
     {
-        Asserts.checkNotNull(key, FeatureKey.class);
-        Asserts.checkNotNull(val, IProcedure.class);
-        Asserts.checkNotNull(val.getUniqueIdentifier(), "uniqueID");
+        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);
+        DataStoreUtils.checkFeatureObject(feature);
         
-        FeatureKey fk = ensureFeatureKey(key);
-        T old = map.put(fk, val);
-        uidMap.put(val.getUniqueIdentifier(), fk);
+        // check that no other feature with same UID exists
+        var uid = feature.getUniqueIdentifier();
+        var existingKey = uidMap.get(uid);
+        if (existingKey != null && existingKey.getInternalID() != key.getInternalID())
+            throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
+        
+        // skip silently if feature currently in store is newer
+        if (existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime()))
+            return map.get(existingKey);
+        
+        // otherwise update both key and value
+        // need to remove 1st to replace key object
+        T old = map.remove(fk);
+        map.put(fk, feature);
+        uidMap.put(feature.getUniqueIdentifier(), fk);
+        
+        if (feature instanceof IGeoFeature)
+            addGeomToBbox((IGeoFeature)feature);
         
         return old;
+    }
+    
+    
+    protected void addGeomToBbox(IGeoFeature feature)
+    {
+        if (feature.getGeometry() != null)
+        {
+            var env = feature.getGeometry().getGeomEnvelope();
+            var ur = env.getUpperCorner();
+            var ll = env.getLowerCorner();
+            allFeaturesBbox.resizeToContain(ll[0], ll[1], 0);
+            allFeaturesBbox.resizeToContain(ur[0], ur[1], 0);
+        }
     }
 
 
     @Override
     public T remove(Object key)
     {
-        FeatureKey fk = ensureFeatureKey(key);
+        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);
         T proc = map.remove(fk);
         if (proc != null)
+        {
             uidMap.remove(proc.getUniqueIdentifier());
+            
+            // also remove parent assoc
+            
+        }
         return proc;
-    }
-    
-    
-    protected FeatureKey ensureFeatureKey(Object key)
-    {
-        Asserts.checkArgument(key instanceof FeatureKey, "key must be a FeatureKey");
-        return (FeatureKey)key;
     }
 
 
@@ -268,12 +346,5 @@ public abstract class InMemoryFeatureStore<T extends IFeature, VF extends Featur
     public Collection<T> values()
     {
         return Collections.unmodifiableCollection(map.values());
-    }
-
-
-    public boolean remove(Object key, Object val)
-    {
-        FeatureKey fk = ensureFeatureKey(key);
-        return map.remove(fk, val);
     }
 }

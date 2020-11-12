@@ -118,8 +118,11 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     
     protected DataStreamKey generateKey(IDataStreamInfo dsInfo)
     {
+        //long internalID = map.isEmpty() ? 1 : map.lastKey().getInternalID()+1;
+        //return new DataStreamKey(internalID);
+        
         // make sure that the same procedure/output combination always returns the same ID
-        // this will keep things more coherent across restart
+        // this will keep things more consistent across restart
         var hash = Objects.hash(
             dsInfo.getProcedureID().getInternalID(),
             dsInfo.getOutputName(),
@@ -200,13 +203,14 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     
     protected synchronized IDataStreamInfo put(DataStreamKey dsKey, IDataStreamInfo dsInfo, boolean replace)
     {
-        // add or check existing entries for the specified procedure
+        // if needed, add a new datastream keyset for the specified procedure
         var procDsKeys = procIdToDsKeys.compute(dsInfo.getProcedureID().getInternalID(), (id, keys) -> {
             if (keys == null)
                 keys = new TreeSet<>();
             return keys;
         });
         
+        // scan existing datastreams associated to the same procedure
         for (var key: procDsKeys)
         {
             var prevDsInfo = map.get(key);
@@ -223,10 +227,15 @@ public class InMemoryDataStreamStore implements IDataStreamStore
                     throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
                 // don't add if previous entry had a more recent valid time
+                // or if new entry is dated in the future
                 if (prevValidTime.isAfter(newValidTime) || newValidTime.isAfter(Instant.now()))
                     return prevDsInfo;
                 
+                // otherwise remove existing datastream and associated observations
                 map.remove(key);
+                obsStore.removeEntries(new ObsFilter.Builder()
+                    .withDataStreams(key.getInternalID())
+                    .build());
                 break;
             }
         }

@@ -14,12 +14,16 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.mem;
 
+import java.util.stream.Stream;
+import org.sensorhub.api.datastore.IdProvider;
+import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.vast.util.Asserts;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 
 
 /**
@@ -32,9 +36,47 @@ import org.sensorhub.api.procedure.IProcedureWithDesc;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryProcedureStore extends InMemoryFeatureStore<IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
+public class InMemoryProcedureStore extends InMemoryBaseFeatureStore<IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
 {
     IDataStreamStore dataStreamStore;
+    
+    
+    public InMemoryProcedureStore()
+    {
+        this.idProvider = new HashCodeFeatureIdProvider(1353704900);
+    }
+    
+    
+    public InMemoryProcedureStore(IdProvider<? super IProcedureWithDesc> idProvider)
+    {
+        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);            
+    }
+    
+    
+    @Override
+    protected Stream<Entry<FeatureKey, IProcedureWithDesc>> getIndexedStream(ProcedureFilter filter)
+    {
+        var resultStream = super.getIndexedStream(filter);
+        
+        if (resultStream == null)
+        {
+            if (filter.getParentFilter() != null)
+            {
+                resultStream = DataStoreUtils.selectProcedureIDs(this, filter.getParentFilter())
+                    .flatMap(id -> getFeaturesByParent(id));
+            }
+            
+            else if (filter.getDataStreamFilter() != null)
+            {
+                DataStoreUtils.selectDataStreams(dataStreamStore, filter.getDataStreamFilter())
+                    .map(ds -> ds.getProcedureID().getInternalID())
+                    .distinct()
+                    .map(id -> map.get(new FeatureKey(id)));
+            }
+        }
+        
+        return resultStream;
+    }
     
     
     @Override

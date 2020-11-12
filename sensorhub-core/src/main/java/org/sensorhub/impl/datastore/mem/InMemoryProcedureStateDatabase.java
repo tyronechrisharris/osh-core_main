@@ -50,6 +50,7 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<StorageConfig
     public InMemoryProcedureStateDatabase(byte id)
     {
         this.databaseID = id;
+        
         this.procStore = new InMemoryProcedureStore();
         this.foiStore = new InMemoryFoiStore();
         this.obsStore = new InMemoryObsStore();

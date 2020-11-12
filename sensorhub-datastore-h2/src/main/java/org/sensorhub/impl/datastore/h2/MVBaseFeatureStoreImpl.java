@@ -30,11 +30,13 @@ import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.rtree.SpatialKey;
+import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.SpliteratorWrapper;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
@@ -65,7 +67,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
 
     protected MVStore mvStore;
     protected MVDataStoreInfo dataStoreInfo;
-    protected IdProvider idProvider;
+    protected IdProvider<V> idProvider;
     
     /*
      * Main index holding feature objects
@@ -106,7 +108,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     }
     
     
-    protected MVBaseFeatureStoreImpl<V, VF, F> init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider idProvider)
+    protected MVBaseFeatureStoreImpl<V, VF, F> init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider<V> idProvider)
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
@@ -157,7 +159,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         this.idProvider = idProvider;
         if (idProvider == null) // use default if nothing is set
         {
-            this.idProvider = () -> {
+            this.idProvider = f -> {
                 if (featuresIndex.isEmpty())
                     return 1;
                 else
@@ -205,20 +207,16 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     
     
     @Override
-    @SuppressWarnings("unlikely-arg-type")
     public synchronized FeatureKey add(long parentID, V feature)
     {
-        Asserts.checkNotNull(feature, IFeature.class);
-        Asserts.checkNotNull(feature.getUniqueIdentifier(), "uniqueID");
+        DataStoreUtils.checkFeatureObject(feature);
+        DataStoreUtils.checkParentFeatureExists(this, parentID);
         
-        var uidFk = uidsIndex.get(feature.getUniqueIdentifier());
-        var newKey = generateKey(parentID, uidFk, feature);
-                
-        if (newKey.getParentID() != 0 && !idsIndex.containsKey(newKey.getParentID()))
-            throw new IllegalArgumentException("Unknown parent feature with ID " + newKey.getParentID());
-
+        var existingKey = uidsIndex.get(feature.getUniqueIdentifier());
+        var newKey = generateKey(parentID, existingKey, feature);                
+        
         // add to store
-        put(newKey, feature, uidFk != null, false);
+        put(newKey, feature, existingKey == null, false);
         return newKey;       
     }
     
@@ -234,7 +232,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             parentID = existingKey.getParentID();
         }
         else
-            internalID = idProvider.newInternalID();
+            internalID = idProvider.newInternalID(f);
                 
         // get valid start time from feature object
         // or use default value if no valid time is set
@@ -250,9 +248,26 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     
     
     @Override
+    @SuppressWarnings("unlikely-arg-type")
+    public boolean contains(long internalID)
+    {
+        DataStoreUtils.checkInternalID(internalID);
+        return idsIndex.containsKey(internalID);
+    }
+
+
+    @Override
+    public boolean contains(String uid)
+    {
+        DataStoreUtils.checkUniqueID(uid);
+        return uidsIndex.containsKey(uid);
+    }
+    
+    
+    @Override
     public FeatureKey getCurrentVersionKey(long internalID)
     {
-        Asserts.checkArgument(internalID > 0, "ID must be > 0");
+        DataStoreUtils.checkInternalID(internalID);
         
         var fk = idsIndex.getFullKey(internalID);
         if (fk != null)
@@ -264,7 +279,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public FeatureKey getCurrentVersionKey(String uid)
     {
-        Asserts.checkNotNull(uid, "uniqueID");
+        DataStoreUtils.checkUniqueID(uid);
         
         var fk = uidsIndex.get(uid);
         if (fk != null)
@@ -288,7 +303,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public Entry<FeatureKey, V> getCurrentVersionEntry(long internalID)
     {
-        Asserts.checkArgument(internalID > 0, "ID must be > 0");
+        DataStoreUtils.checkInternalID(internalID);
         
         var fk = idsIndex.getFullKey(internalID);
         if (fk != null)
@@ -300,7 +315,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public Entry<FeatureKey, V> getCurrentVersionEntry(String uid)
     {
-        Asserts.checkNotNull(uid, "uniqueID");
+        DataStoreUtils.checkUniqueID(uid);
         
         var fk = uidsIndex.get(uid);
         if (fk != null)
@@ -323,13 +338,6 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         }
         else
             return null;
-    }
-
-
-    @Override
-    public boolean contains(String uid)
-    {
-        return uidsIndex.containsKey(uid);
     }
     
     
@@ -416,20 +424,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     
     protected Stream<Long> selectParentIDs(F parentFilter)
     {
-        if (parentFilter.getInternalIDs() != null)
-        {
-            // if only internal IDs were specified, no need to search the feature store
-            return parentFilter.getInternalIDs().stream();
-        }
-        else
-        {
-            // otherwise get all feature keys matching the filter
-            // we use distinct() to prevent several versions of parent features to be selected
-            // since they would all lead to scanning the same children
-            return selectKeys(parentFilter)
-                .map(k -> k.getInternalID())
-                .distinct();
-        }
+        return DataStoreUtils.selectFeatureIDs(this, parentFilter);
     }
     
     
@@ -627,7 +622,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public boolean containsKey(Object key)
     {
-        FeatureKey fk = ensureFeatureKey(key);
+        FeatureKey fk = ensureFullFeatureKey(key);
         if (fk == null)
             return false;
         return featuresIndex.containsKey(fk);
@@ -644,14 +639,14 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public V get(Object key)
     {
-        var fk = ensureFeatureKey(key);
+        var fk = ensureFullFeatureKey(key);
         return fk != null ? featuresIndex.get(fk) : null;
     }
     
     
-    protected MVFeatureParentKey ensureFeatureKey(Object key)
+    protected MVFeatureParentKey ensureFullFeatureKey(Object key)
     {
-        Asserts.checkArgument(key instanceof FeatureKey, "key must be a FeatureKey");
+        DataStoreUtils.checkFeatureKey(key);
         
         var fk = idsIndex.getFullKey(key);
         if (fk == null)
@@ -674,28 +669,27 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public V put(FeatureKey key, V feature)
     {
-        Asserts.checkNotNull(key, FeatureKey.class);
-        Asserts.checkNotNull(feature, IFeature.class);
-        Asserts.checkNotNull(feature.getUniqueIdentifier(), "uniqueID");
+        ensureFullFeatureKey(key);
+        DataStoreUtils.checkFeatureObject(feature);
         
         // check that no other feature with same UID exists
         var uid = feature.getUniqueIdentifier();
-        var uidFk = uidsIndex.get(uid);
-        if (uidFk != null && uidFk.getInternalID() != key.getInternalID())
-            throw new IllegalArgumentException("Datastore already contains entry with UID " + uid);
+        var existingKey = uidsIndex.get(uid);
+        if (existingKey != null && existingKey.getInternalID() != key.getInternalID())
+            throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
         
         // use parent from existing mapping or create new one w/o parent
         MVFeatureParentKey fk;
-        if (uidFk == null)
+        if (existingKey == null)
             fk = new MVFeatureParentKey(0L, key.getInternalID(), key.getValidStartTime());
         else
-            fk = new MVFeatureParentKey(uidFk.getParentID(), key.getInternalID(), key.getValidStartTime());
+            fk = new MVFeatureParentKey(existingKey.getParentID(), key.getInternalID(), key.getValidStartTime());
             
-        return put(fk, feature, uidFk != null, true);
+        return put(fk, feature, existingKey == null, true);
     }
     
     
-    protected V put(MVFeatureParentKey fk, V f, boolean isExistingFeature, boolean replace)
+    protected V put(MVFeatureParentKey fk, V f, boolean isNewFeature, boolean replaceVersion)
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -709,11 +703,11 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 
                 // check if we're allowed to replace existing entry
                 boolean isNewEntry = (oldValue == null);
-                if (!isNewEntry && !replace)
-                    throw new IllegalArgumentException("Datastore already contains entry with same UID and validTime");
+                if (!isNewEntry && !replaceVersion)
+                    throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);
                 
                 // update ID and UID indexes
-                if (!isExistingFeature)
+                if (isNewFeature)
                 {
                     idsIndex.put(fk, Boolean.TRUE);
                     uidsIndex.put(f.getUniqueIdentifier(), fk);
@@ -745,7 +739,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public synchronized V remove(Object key)
     {
-        var fk = ensureFeatureKey(key);
+        var fk = ensureFullFeatureKey(key);
         if (fk == null)
             return null;
         

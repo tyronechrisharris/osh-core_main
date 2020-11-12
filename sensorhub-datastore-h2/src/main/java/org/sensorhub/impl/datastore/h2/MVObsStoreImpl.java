@@ -36,7 +36,6 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.WriteBuffer;
 import org.sensorhub.api.datastore.RangeFilter;
-import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -46,6 +45,7 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsStats;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.stream.MergeSortSpliterator;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -84,7 +84,7 @@ public class MVObsStoreImpl implements IObsStore
     protected MVBTreeMap<MVObsSeriesKey, MVObsSeriesInfo> obsSeriesMainIndex;
     protected MVBTreeMap<MVObsSeriesKey, Boolean> obsSeriesByFoiIndex;
     
-    protected MVFoiStoreImpl foiStore;
+    protected IFoiStore foiStore;
     protected int maxSelectedSeriesOnJoin = 200;
     
     
@@ -175,29 +175,6 @@ public class MVObsStoreImpl implements IObsStore
             // otherwise select all datastream keys matching the filter
             return dataStreamStore.selectKeys(filter)
                 .map(k -> k.getInternalID());
-        }
-    }
-    
-    
-    Stream<Long> selectFeatureIDs(IFoiStore featureStore, FoiFilter filter)
-    {
-        if (filter.getInternalIDs() != null &&
-            filter.getLocationFilter() == null)
-        {
-            // if only internal IDs were specified, no need to search the feature store
-            return filter.getInternalIDs().stream();
-        }
-        else
-        {
-            Asserts.checkState(featureStore != null, "No linked FOI store");
-            
-            // otherwise get all feature keys matching the filter from linked feature store
-            // we apply the distinct operation to make sure the same feature is not
-            // listed twice (it can happen when there exists several versions of the 
-            // same feature with different valid times)
-            return featureStore.selectKeys(filter)
-                .map(k -> k.getInternalID())
-                .distinct();
         }
     }
     
@@ -396,7 +373,7 @@ public class MVObsStoreImpl implements IObsStore
             if (filter.getFoiFilter() != null)
             {
                 // stream directly from list of selected fois
-                obsSeries = selectFeatureIDs(foiStore, filter.getFoiFilter())
+                obsSeries = DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
                     .flatMap(id -> {
                         return getObsSeriesByFoi(id, resultTimeFilter.getRange(), latestResultOnly);
                     });
@@ -418,7 +395,7 @@ public class MVObsStoreImpl implements IObsStore
                 return Stream.empty();
             
             // stream from fois and filter on datastream IDs
-            obsSeries = selectFeatureIDs(foiStore, filter.getFoiFilter())
+            obsSeries = DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
                 .flatMap(id -> {
                     return getObsSeriesByFoi(id, resultTimeFilter.getRange(), latestResultOnly)
                         .filter(s -> dataStreamIDs.contains(s.key.dataStreamID));
@@ -782,12 +759,6 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public void linkTo(IFoiStore foiStore)
     {
-        Asserts.checkNotNull(foiStore, IFoiStore.class);
-        
-        if (this.foiStore != foiStore)
-        {
-            this.foiStore = (MVFoiStoreImpl)foiStore;
-            foiStore.linkTo(this);
-        }
+        this.foiStore = Asserts.checkNotNull(foiStore, IFoiStore.class);
     }
 }
