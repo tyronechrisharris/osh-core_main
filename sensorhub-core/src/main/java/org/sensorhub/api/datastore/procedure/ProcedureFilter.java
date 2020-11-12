@@ -216,6 +216,34 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         
         
         /**
+         * Select only procedures belonging to the parent groups with
+         * specific internal IDs
+         * @param ids List of IDs of parent procedure groups
+         * @return This builder for chaining
+         */
+        public B withParents(long... ids)
+        {
+            return withParents()
+                .withInternalIDs(ids)
+                .done();
+        }
+        
+        
+        /**
+         * Select only features belonging to the parent groups with
+         * specific unique IDs
+         * @param uids List of UIDs of parent procedure groups
+         * @return This builder for chaining
+         */
+        public B withParents(String... uids)
+        {
+            return withParents()
+                .withUniqueIDs(uids)
+                .done();
+        }
+        
+        
+        /**
          * Select only procedure groups with the matching members
          * @param filter Member procedure filter
          * @return This builder for chaining

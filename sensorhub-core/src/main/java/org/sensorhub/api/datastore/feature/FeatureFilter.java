@@ -143,7 +143,7 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         
         
         /**
-         * Select only procedures belonging to the matching groups
+         * Select only features belonging to the matching groups
          * @param filter Parent procedure filter
          * @return This builder for chaining
          */
@@ -169,6 +169,32 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
                     return (B)FeatureFilterBuilder.this;
                 }                
             };
+        }
+        
+        
+        /**
+         * Select only features belonging to the collections with specific internal IDs
+         * @param ids List of IDs of parent feature collections
+         * @return This builder for chaining
+         */
+        public B withParents(long... ids)
+        {
+            return withParents()
+                .withInternalIDs(ids)
+                .done();
+        }
+        
+        
+        /**
+         * Select only features belonging to the collections with specific unique IDs
+         * @param uids List of UIDs of parent feature collections
+         * @return This builder for chaining
+         */
+        public B withParents(String... uids)
+        {
+            return withParents()
+                .withUniqueIDs(uids)
+                .done();
         }
         
         
