@@ -31,7 +31,7 @@ import org.vast.ogc.gml.IGeoFeature;
  */
 public class FoiFilter extends FeatureFilterBase<IGeoFeature>
 {
-    protected FeatureFilter sampledFeatures;
+    protected FeatureFilter sampledFeatureFilter;
     protected ObsFilter obsFilter;
     
     
@@ -41,9 +41,9 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
     protected FoiFilter() {}
 
 
-    public FeatureFilter getSampledFeatures()
+    public FeatureFilter getSampledFeatureFilter()
     {
-        return sampledFeatures;
+        return sampledFeatureFilter;
     }
     
     
@@ -73,7 +73,7 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
     {
         super.intersect(otherFilter, builder);
         
-        var sfFilter = this.sampledFeatures != null ? this.sampledFeatures.intersect(otherFilter.sampledFeatures) : otherFilter.sampledFeatures;
+        var sfFilter = this.sampledFeatureFilter != null ? this.sampledFeatureFilter.intersect(otherFilter.sampledFeatureFilter) : otherFilter.sampledFeatureFilter;
         if (sfFilter != null)
             builder.withSampledFeatures(sfFilter);
         
@@ -150,7 +150,7 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
         protected B copyFrom(FoiFilter base)
         {
             super.copyFrom(base);
-            instance.sampledFeatures = base.sampledFeatures;
+            instance.sampledFeatureFilter = base.sampledFeatureFilter;
             instance.obsFilter = base.obsFilter;
             return (B)this;
         }
@@ -158,12 +158,12 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
 
         /**
          * Select only FOIs that are sampling the features matching the filter
-         * @param sampledFeatures Sampled features filter
+         * @param filter Sampled features filter
          * @return This builder for chaining
          */
-        public B withSampledFeatures(FeatureFilter sampledFeatures)
+        public B withSampledFeatures(FeatureFilter filter)
         {
-            instance.sampledFeatures = sampledFeatures;
+            instance.sampledFeatureFilter = filter;
             return (B)this;
         }
         

@@ -680,7 +680,7 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
             serializedNames.put("obsFilter", "withObservations");
             serializedNames.put("dataStreamFilter", "withDatastreams");
             serializedNames.put("foiFilter", "withFois");
-            serializedNames.put("sampledFeatures", "withSampledFeatures");
+            serializedNames.put("sampledFeatureFilter", "withSampledFeatures");
             serializedNames.put("parentFilter", "withParents");
             serializedNames.put("memberFilter", "withMembers");
             serializedNames.put("valuePredicate", "predicate");
