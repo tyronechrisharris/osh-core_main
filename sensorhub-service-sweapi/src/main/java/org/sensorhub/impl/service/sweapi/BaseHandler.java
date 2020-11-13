@@ -16,6 +16,8 @@ package org.sensorhub.impl.service.sweapi;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
+import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 
 
 public abstract class BaseHandler implements IResourceHandler

@@ -15,6 +15,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi;
 
 import java.io.IOException;
+import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
+import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 
 
 public class RootHandler extends BaseHandler

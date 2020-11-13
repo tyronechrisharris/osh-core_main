@@ -25,6 +25,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
+import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.slf4j.Logger;
 
 
@@ -283,13 +285,13 @@ public class SWEApiServlet extends HttpServlet
     }
     
     
-    protected void sendError(int code, HttpServletResponse resp)
+    public void sendError(int code, HttpServletResponse resp)
     {
         sendError(code, null, resp);
     }
     
     
-    protected void sendError(int code, String msg, HttpServletResponse resp)
+    public void sendError(int code, String msg, HttpServletResponse resp)
     {
         try
         {
@@ -305,6 +307,12 @@ public class SWEApiServlet extends HttpServlet
         {
             log.error("Could not send error response", e);
         }
+    }
+    
+    
+    public Logger getLogger()
+    {
+        return this.log;
     }
 
 }

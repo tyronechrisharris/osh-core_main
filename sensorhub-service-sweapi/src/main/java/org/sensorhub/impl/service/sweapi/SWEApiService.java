@@ -18,6 +18,7 @@ import org.sensorhub.api.event.Event;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent;
@@ -25,6 +26,14 @@ import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServer;
+import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
+import org.sensorhub.impl.service.sweapi.feature.FoiStoreWrapper;
+import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
+import org.sensorhub.impl.service.sweapi.obs.DataStreamStoreWrapper;
+import org.sensorhub.impl.service.sweapi.obs.ObsHandler;
+import org.sensorhub.impl.service.sweapi.obs.ObsStoreWrapper;
+import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
+import org.sensorhub.impl.service.sweapi.procedure.ProcedureStoreWrapper;
 import org.sensorhub.utils.NamedThreadFactory;
 
 
@@ -43,8 +52,10 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
     protected SWEApiServlet servlet;
     ExecutorService threadPool;
     //TimeOutMonitor timeOutMonitor;
-    IProcedureObsDatabase readDatabase;
-    IProcedureObsDatabase writeDatabase;
+    IProcedureObsDatabase obsReadDatabase;
+    IProcedureObsDatabase obsWriteDatabase;
+    IFeatureDatabase featureReadDatabase;
+    IFeatureDatabase featureWriteDatabase;
 
 
     @Override
@@ -79,15 +90,15 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
         // get handle to database
         if (config.databaseID != null)
         {
-            writeDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
+            obsWriteDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
                 .getModuleById(config.databaseID);
         }
         
         // get existing or create new FilteredView from config
         if (config.exposedResources != null)
-            readDatabase = config.exposedResources.getFilteredView(getParentHub());
+            obsReadDatabase = config.exposedResources.getFilteredView(getParentHub());
         else
-            readDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
+            obsReadDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
 
         // init thread pool
         threadPool = Executors.newFixedThreadPool(
@@ -101,30 +112,39 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
         RootHandler rootHandler = new RootHandler();
         
         var procedureStore = new ProcedureStoreWrapper(
-            readDatabase.getProcedureStore(), 
-            writeDatabase != null ? writeDatabase.getProcedureStore() : null);
+            obsReadDatabase.getProcedureStore(), 
+            obsWriteDatabase != null ? obsWriteDatabase.getProcedureStore() : null);
         ProcedureHandler procedureHandler = new ProcedureHandler(procedureStore);    
         rootHandler.addSubResource(procedureHandler);
         
         var dataStreamStore = new DataStreamStoreWrapper(
-            readDatabase.getDataStreamStore(), 
-            writeDatabase != null ? writeDatabase.getDataStreamStore() : null);
+            obsReadDatabase.getDataStreamStore(), 
+            obsWriteDatabase != null ? obsWriteDatabase.getDataStreamStore() : null);
         DataStreamHandler dataStreamHandler = new DataStreamHandler(dataStreamStore);
         rootHandler.addSubResource(dataStreamHandler);
         procedureHandler.addSubResource(dataStreamHandler);
         
         var obsStore = new ObsStoreWrapper(
-            readDatabase.getObservationStore(), 
-            writeDatabase != null ? writeDatabase.getObservationStore() : null);
+            obsReadDatabase.getObservationStore(), 
+            obsWriteDatabase != null ? obsWriteDatabase.getObservationStore() : null);
         ObsHandler obsHandler = new ObsHandler(obsStore);    
         rootHandler.addSubResource(obsHandler);
         dataStreamHandler.addSubResource(obsHandler);
         
+        // fois are either sampling features or simple references to sampled features
         var foiStore = new FoiStoreWrapper(
-            readDatabase.getFoiStore(), 
-            writeDatabase != null ? writeDatabase.getFoiStore() : null);
+            obsReadDatabase.getFoiStore(), 
+            obsWriteDatabase != null ? obsWriteDatabase.getFoiStore() : null);
         FoiHandler foiHandler = new FoiHandler(foiStore);
         rootHandler.addSubResource(foiHandler);
+        procedureHandler.addSubResource(foiHandler);
+        
+        // sampled features
+        /*var featureStore = new FeatureStoreWrapper(
+            featureReadDatabase.getFeatureStore(), 
+            featureWriteDatabase != null ? featureWriteDatabase.getFeatureStore() : null);
+        FeatureHandler featureHandler = new FeatureHandler(featureStore);
+        rootHandler.addSubResource(featureHandler);*/
         
         // deploy servlet
         servlet = new SWEApiServlet(rootHandler, (SWEApiSecurity)securityHandler, getLogger());

@@ -22,6 +22,8 @@ import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.ModuleSecurity;
 import org.sensorhub.impl.security.ItemPermission;
 import org.sensorhub.impl.security.PermissionRequest;
+import org.sensorhub.impl.service.sweapi.resource.ResourceCollectionPermission;
+import org.sensorhub.impl.service.sweapi.resource.ResourcePermission;
 
 
 public class SWEApiSecurity extends ModuleSecurity
