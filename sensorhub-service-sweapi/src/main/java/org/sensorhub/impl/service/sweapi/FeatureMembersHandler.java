@@ -24,7 +24,7 @@ import org.vast.ogc.gml.IGeoFeature;
 
 public class FeatureMembersHandler extends AbstractFeatureHandler<IGeoFeature, FeatureFilter, FeatureFilter.Builder, IFeatureStore>
 {
-    public static final String NAME = "members";
+    public static final String[] NAMES = { "members" };
     
     
     public FeatureMembersHandler(IFeatureStore dataStore)
@@ -67,8 +67,8 @@ public class FeatureMembersHandler extends AbstractFeatureHandler<IGeoFeature, F
     
     
     @Override
-    public String getName()
+    public String[] getNames()
     {
-        return NAME;
+        return NAMES;
     }
 }

@@ -36,8 +36,8 @@ public abstract class AbstractFeatureHistoryHandler<
     extends ResourceHandler<FeatureKey, V, F, B, S>
 {
     static final Logger log = LoggerFactory.getLogger(AbstractFeatureHistoryHandler.class);
-    public static final String NAME = "history";
     static final String VERSION_NOT_FOUND_ERROR_MSG = "Resource version not found: v%s";
+    public static final String[] NAMES = { "history" };
     
     
     public AbstractFeatureHistoryHandler(S dataStore, ResourceType<FeatureKey, V> resourceType)
@@ -174,8 +174,8 @@ public abstract class AbstractFeatureHistoryHandler<
     
     
     @Override
-    public String getName()
+    public String[] getNames()
     {
-        return NAME;
+        return NAMES;
     }
 }

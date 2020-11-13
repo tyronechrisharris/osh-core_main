@@ -25,19 +25,12 @@ import org.sensorhub.impl.service.sweapi.ResourceContext.ResourceRef;
 
 public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
 {
-    public static final String NAME = "observations";
+    public static final String[] NAMES = { "obs", "observations" };
     
     
     public ObsHandler(IObsStore dataStore)
     {
         super(dataStore, new ObsResourceType(dataStore));
-    }
-    
-    
-    @Override
-    public String getName()
-    {
-        return NAME;
     }
 
 
@@ -156,6 +149,13 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         }
         
         return null;
+    }
+    
+    
+    @Override
+    public String[] getNames()
+    {
+        return NAMES;
     }
 
 }

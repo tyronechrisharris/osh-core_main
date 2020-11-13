@@ -24,7 +24,7 @@ import org.sensorhub.impl.service.sweapi.ResourceContext.ResourceRef;
 
 public class ProcedureMembersHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
-    public static final String NAME = "members";
+    public static final String[] NAMES = { "members" };
     
     
     public ProcedureMembersHandler(IProcedureStore dataStore)
@@ -61,9 +61,9 @@ public class ProcedureMembersHandler extends AbstractFeatureHandler<IProcedureWi
     
     
     @Override
-    public String getName()
+    public String[] getNames()
     {
-        return NAME;
+        return NAMES;
     }
 
 

@@ -30,9 +30,17 @@ public abstract class BaseHandler implements IResourceHandler
     
 
     @Override
-    public void addSubResource(IResourceHandler resource)
+    public void addSubResource(IResourceHandler handler)
     {
-        subResources.put(resource.getName(), resource);
+        addSubResource(handler, handler.getNames());
+    }
+    
+
+    @Override
+    public void addSubResource(IResourceHandler handler, String... names)
+    {
+        for (var name: names)
+            subResources.put(name, handler);
     }
     
 

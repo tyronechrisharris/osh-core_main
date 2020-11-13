@@ -419,7 +419,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     {
         //return req.getRequestURL().append('/').append(id).toString();
         StringBuilder buf = new StringBuilder();
-        buf.append('/').append(getName());
+        buf.append('/').append(getNames()[0]);
         buf.append('/').append(id);
         return buf.toString();
     }

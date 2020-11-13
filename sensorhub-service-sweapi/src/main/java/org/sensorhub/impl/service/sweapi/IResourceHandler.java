@@ -20,7 +20,7 @@ import java.io.IOException;
 public interface IResourceHandler
 {
 
-    String getName();
+    String[] getNames();
     
     
     boolean doGet(ResourceContext ctx) throws IOException;
@@ -36,5 +36,8 @@ public interface IResourceHandler
 
 
     void addSubResource(IResourceHandler resource);
+
+
+    void addSubResource(IResourceHandler resource, String... names);
 
 }

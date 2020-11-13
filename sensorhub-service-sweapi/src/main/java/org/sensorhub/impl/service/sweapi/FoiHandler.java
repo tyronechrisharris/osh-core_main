@@ -24,7 +24,7 @@ import org.vast.ogc.gml.IGeoFeature;
 
 public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
 {
-    public static final String NAME = "fois";
+    public static final String[] NAMES = { "fois", "featuresOfInterest" };
     
     
     public FoiHandler(IFoiStore dataStore)
@@ -58,9 +58,9 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
 
 
     @Override
-    public String getName()
+    public String[] getNames()
     {
-        return NAME;
+        return NAMES;
     }
 
 

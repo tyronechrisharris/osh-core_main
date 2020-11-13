@@ -30,7 +30,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
     static final Logger log = LoggerFactory.getLogger(ProcedureDetailsHandler.class);
-    public static final String NAME = "details"; //"fullDescription"; //"specs"; //"specsheet"; //"metadata";
+    public static final String[] NAMES = { "details", "specsheet" }; //"fullDescription"; //"specs"; //"specsheet"; //"metadata";
     
     
     public ProcedureDetailsHandler(IProcedureStore dataStore)
@@ -125,8 +125,8 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     
     
     @Override
-    public String getName()
+    public String[] getNames()
     {
-        return NAME;
+        return NAMES;
     }
 }

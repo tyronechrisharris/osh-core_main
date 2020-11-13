@@ -70,8 +70,8 @@ public class RootHandler extends BaseHandler
     
     
     @Override
-    public String getName()
+    public String[] getNames()
     {
-        return "";
+        return new String[0];
     }
 }

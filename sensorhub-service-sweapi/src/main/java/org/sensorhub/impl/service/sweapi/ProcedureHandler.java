@@ -24,7 +24,7 @@ import org.sensorhub.impl.service.sweapi.ResourceContext.ResourceRef;
 
 public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
-    public static final String NAME = "procedures";
+    public static final String[] NAMES = { "proc", "procedures" };
     
     
     public ProcedureHandler(IProcedureStore dataStore)
@@ -58,21 +58,30 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     protected void buildFilter(final ResourceRef parent, final Map<String, String[]> queryParams, final ProcedureFilter.Builder builder) throws InvalidRequestException
     {
         super.buildFilter(parent, queryParams, builder);
+        String[] paramValues;
         
-        // parent ID or UID
-        String[] parentIDs = queryParams.get("parent");
-        if (parentIDs != null)
+        // parent ID
+        paramValues = queryParams.get("parentId");
+        if (paramValues != null)
         {
-            var ids = parseResourceIds(parentIDs);            
+            var ids = parseResourceIds(paramValues);            
             builder.withParents().withInternalIDs(ids).done();
+        }
+        
+        // parent UID
+        paramValues = queryParams.get("parentUid");
+        if (paramValues != null)
+        {
+            var uids = parseMultiValuesArg(paramValues);
+            builder.withParents().withUniqueIDs(uids).done();
         }
     }
     
     
     @Override
-    public String getName()
+    public String[] getNames()
     {
-        return NAME;
+        return NAMES;
     }
 
 

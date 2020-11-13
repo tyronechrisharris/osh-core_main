@@ -25,7 +25,7 @@ import org.sensorhub.impl.service.sweapi.ResourceContext.ResourceRef;
 
 public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStreamInfo, DataStreamFilter, DataStreamFilter.Builder, IDataStreamStore>
 {
-    public static final String NAME = "datastreams";
+    public static final String[] NAMES = { "datastreams" };
     
     
     public DataStreamHandler(IDataStreamStore dataStore)
@@ -56,9 +56,9 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    public String getName()
+    public String[] getNames()
     {
-        return NAME;
+        return NAMES;
     }
 
 
