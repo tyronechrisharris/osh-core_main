@@ -27,7 +27,6 @@ import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.service.ServiceConfig;
-import org.sensorhub.impl.module.ModuleConfigJsonFile;
 import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 import static org.junit.Assert.*;
 

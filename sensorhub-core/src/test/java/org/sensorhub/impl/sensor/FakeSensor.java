@@ -22,7 +22,6 @@ import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.impl.sensor.AbstractSensorModule;
 
 
 public class FakeSensor extends AbstractSensorModule<SensorConfig>

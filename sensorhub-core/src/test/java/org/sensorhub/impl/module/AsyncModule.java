@@ -22,7 +22,6 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
 
 

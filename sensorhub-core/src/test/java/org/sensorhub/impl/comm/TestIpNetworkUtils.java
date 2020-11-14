@@ -16,7 +16,6 @@ package org.sensorhub.impl.comm;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
-import org.sensorhub.impl.comm.IPNetworkUtils;
 
 
 public class TestIpNetworkUtils

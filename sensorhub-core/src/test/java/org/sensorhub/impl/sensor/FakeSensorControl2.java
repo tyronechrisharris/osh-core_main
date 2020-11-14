@@ -22,7 +22,6 @@ import org.sensorhub.api.common.CommandStatus;
 import org.sensorhub.api.common.CommandStatus.StatusCode;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.impl.sensor.AbstractSensorControl;
 import org.vast.data.AllowedTokensImpl;
 import org.vast.data.CategoryImpl;
 

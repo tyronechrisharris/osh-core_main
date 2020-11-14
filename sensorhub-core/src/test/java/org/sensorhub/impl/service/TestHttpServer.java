@@ -32,8 +32,6 @@ import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.security.BasicSecurityRealmConfig;
 import org.sensorhub.impl.security.BasicSecurityRealmConfig.UserConfig;
-import org.sensorhub.impl.service.HttpServer;
-import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.HttpServerConfig.AuthMethod;
 
 
