@@ -15,10 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import java.util.Collection;
-import java.util.Map;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.ProcedureId;
-import org.vast.ogc.gml.IGeoFeature;
 
 
 /**
@@ -35,14 +33,6 @@ import org.vast.ogc.gml.IGeoFeature;
  */
 public interface IMultiSourceDataProducer extends IDataProducer, IProcedureGroupDriver<IDataProducer>
 {
-
-    /**
-     * Retrieves the list of all features of interest for which this producer
-     * is generating data
-     * @return Read-only map of FOI unique IDs -> feature objects
-     */
-    public Map<String, ? extends IGeoFeature> getFeaturesOfInterest();
-
 
     /**
      * Get procedures that are observing the specified feature of interest.

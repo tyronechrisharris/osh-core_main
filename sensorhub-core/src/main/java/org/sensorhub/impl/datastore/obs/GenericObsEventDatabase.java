@@ -49,7 +49,6 @@ import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
-import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureRegistry;
@@ -64,7 +63,6 @@ import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
 import org.sensorhub.utils.SWEDataUtils;
-import org.vast.ogc.gml.IGeoFeature;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
@@ -107,7 +105,6 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     {
         Map<String, DataStreamCachedInfo> dataStreams = new HashMap<>();
         Subscription eventSub;
-        FeatureId currentFoi = IObsData.NO_FOI;
     }
     
     
@@ -351,15 +348,17 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
             producerInfo.dataStreams.put(output.getName(), cachedInfo);
         }
         
-        // init current FOI
-        IGeoFeature foi = dataSource.getCurrentFeatureOfInterest();
-        if (foi != null)
+        // init current FOIs
+        var foiMap = dataSource.getCurrentFeaturesOfInterest();
+        if (foiMap != null)
         {
-            // TODO support versioning but check that fois are really different
-            FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foi.getUniqueIdentifier());
-            if (fk == null)
-                fk = db.getFoiStore().add(foi);
-            producerInfo.currentFoi = new FeatureId(fk.getInternalID(), foi.getUniqueIdentifier());
+            for (var foi: foiMap.values())
+            {
+                // TODO support versioning but check that fois are really different
+                FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foi.getUniqueIdentifier());
+                if (fk == null)
+                    fk = db.getFoiStore().add(foi);
+            }
         }
         
         // make sure changes are written to storage
@@ -499,6 +498,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
             {
                 DataEvent dataEvent = (DataEvent)e;
                 ProcedureId procId = dataEvent.getProcedureID();
+                FeatureId foiId = dataEvent.getFoiID();
 
                 if (procId != null)
                 {
@@ -523,7 +523,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
                         // store record with proper key
                         ObsData obs = new ObsData.Builder()
                             .withDataStream(dsInfo.dataStreamID)
-                            .withFoi(procInfo.currentFoi)
+                            .withFoi(foiId != null ? foiId : ObsData.NO_FOI)
                             .withPhenomenonTime(SWEDataUtils.toInstant(time))
                             .withResult(record)
                             .build();
@@ -552,9 +552,6 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
                         fk = db.getFoiStore().add(foiEvent.getFoi());
                         getLogger().trace("Storing foi {}", fk);
                     }
-                
-                    // also remember as current FOI
-                    procInfo.currentFoi = new FeatureId(fk.getInternalID(), foiEvent.getFoiUID());
                 }
             }
             

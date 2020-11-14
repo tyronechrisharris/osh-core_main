@@ -60,7 +60,7 @@ public class SensorShadow extends ProcedureShadow implements ISensorDriver
     protected Map<String, OutputProxy> obsOutputs = new LinkedHashMap<>();
     protected Map<String, OutputProxy> statusOutputs = new LinkedHashMap<>();
     protected Map<String, ControlProxy> controlInputs = new LinkedHashMap<>();
-    protected IGeoFeature currentFoi;
+    protected Map<String, ? extends IGeoFeature> currentFois;
 
 
     public SensorShadow(ProcedureId procId, IDataProducer liveProcedure, DefaultProcedureRegistry registry)
@@ -147,13 +147,13 @@ public class SensorShadow extends ProcedureShadow implements ISensorDriver
 
 
     @Override
-    public IGeoFeature getCurrentFeatureOfInterest()
+    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
     {
         IProcedureDriver proc = ref.get();
         if (proc != null)
-            return ((IDataProducer) proc).getCurrentFeatureOfInterest();
+            return ((IDataProducer) proc).getCurrentFeaturesOfInterest();
         else
-            return currentFoi;
+            return currentFois;
     }
 
 
@@ -176,7 +176,7 @@ public class SensorShadow extends ProcedureShadow implements ISensorDriver
     {
         boolean changed = super.captureState(proc);
         
-        currentFoi = ((IDataProducer)proc).getCurrentFeatureOfInterest();
+        currentFois = ((IDataProducer)proc).getCurrentFeaturesOfInterest();
         
         for (OutputProxy output: obsOutputs.values())
             output.captureState();

@@ -38,10 +38,10 @@ public interface IDataProducer extends IProcedureDriver
     
     
     /**
-     * Retrieves the feature of interest for which this producer is 
-     * currently generating data.
-     * @return Feature object
+     * Retrieves the list of all features of interest for which this producer
+     * is currently generating data
+     * @return Read-only map of FOI unique IDs -> feature objects
      */
-    public IGeoFeature getCurrentFeatureOfInterest();
+    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest();
     
 }

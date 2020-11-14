@@ -17,6 +17,7 @@ package org.sensorhub.impl.sensor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -60,6 +61,7 @@ import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
+import com.google.common.collect.Maps;
 
 
 /**
@@ -517,7 +519,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public IGeoFeature getCurrentFeatureOfInterest()
+    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
     {
         // add default feature of interest if location is set in config
         LLALocation loc = config.getLocation();
@@ -538,7 +540,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             this.foi = sf;
         }
 
-        return foi;
+        return foi != null ?
+            Maps.uniqueIndex(Arrays.asList(foi), v -> v.getUniqueIdentifier()) :
+            Collections.emptyMap();
     }
 
 
