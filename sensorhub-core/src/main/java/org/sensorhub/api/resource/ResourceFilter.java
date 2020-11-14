@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.resource;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
 import java.util.function.Predicate;
@@ -219,6 +220,17 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          * @return This builder for chaining
          */
         public B withKeywords(String... keywords)
+        {
+            return withKeywords(Arrays.asList(keywords));
+        }
+        
+        
+        /**
+         * Keep only resources whose textual properties contain the given keywords
+         * @param keywords Collection of keywords to look for
+         * @return This builder for chaining
+         */
+        public B withKeywords(Collection<String> keywords)
         {
             return withFullText(new FullTextFilter.Builder()
                 .withKeywords(keywords)

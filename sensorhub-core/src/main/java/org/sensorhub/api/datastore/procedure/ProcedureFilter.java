@@ -37,11 +37,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     protected ProcedureFilter memberFilter;
     protected DataStreamFilter dataStreamFilter;
     
-    // Note that this FoiFilter is different from DataStreamFilter/ObsFilter/FoiFilter
-    // we also need a foi filter here because fois can be associated to a procedure
-    // before there are any observations about them
-    protected FoiFilter foiFilter;
-    
     
     /*
      * this class can only be instantiated using builder
@@ -64,12 +59,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     public DataStreamFilter getDataStreamFilter()
     {
         return dataStreamFilter;
-    }
-
-
-    public FoiFilter getFoiFilter()
-    {
-        return foiFilter;
     }
     
     
@@ -104,10 +93,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.intersect(otherFilter.dataStreamFilter) : otherFilter.dataStreamFilter;
         if (dataStreamFilter != null)
             builder.withDataStreams(dataStreamFilter);
-        
-        var foiFilter = this.foiFilter != null ? this.foiFilter.intersect(otherFilter.foiFilter) : otherFilter.foiFilter;
-        if (foiFilter != null)
-            builder.withFois(foiFilter);
         
         return builder;
     }
@@ -180,7 +165,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
             instance.parentFilter = base.parentFilter;
             instance.memberFilter = base.memberFilter;
             instance.dataStreamFilter = base.dataStreamFilter;
-            instance.foiFilter = base.foiFilter;
             return (B)this;
         }
         
@@ -304,19 +288,22 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         
 
         /**
-         * Select only procedures with features of interest matching the filter
+         * Select only procedures that produced observations of features of interest
+         * matching the filter
          * @param filter Features of interest filter
          * @return This builder for chaining
          */
         public B withFois(FoiFilter filter)
         {
-            instance.foiFilter = filter;
-            return (B)this;
+            return withDataStreams(new DataStreamFilter.Builder()
+                .withFois(filter)
+                .build());
         }
 
         
         /**
-         * Select only procedures with features of interest matching the filter.<br/>
+         * Select only procedures that produced observations of features of interest
+         * matching the filter.<br/>
          * Call done() on the nested builder to go back to main builder.
          * @return The {@link FoiFilter} builder for chaining
          */

@@ -31,6 +31,7 @@ import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.primitives.Longs;
 
 
 /**
@@ -339,10 +340,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withPhenomenonTimeDuring(Instant begin, Instant end)
         {
-            withPhenomenonTime(new TemporalFilter.Builder()
+            return withPhenomenonTime(new TemporalFilter.Builder()
                 .withRange(begin, end)
                 .build());
-            return (B)this;
         }
 
 
@@ -368,10 +368,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withResultTimeDuring(Instant begin, Instant end)
         {
-            withResultTime(new TemporalFilter.Builder()
+            return withResultTime(new TemporalFilter.Builder()
                     .withRange(begin, end)
                     .build());
-            return (B)this;
         }
         
         
@@ -383,9 +382,8 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withLatestResult()
         {
-            withResultTime(new TemporalFilter.Builder()
+            return withResultTime(new TemporalFilter.Builder()
                 .withLatestTime().build());
-            return (B)this;
         }
 
 
@@ -456,10 +454,33 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withDataStreams(long... ids)
         {
-            withDataStreams(new DataStreamFilter.Builder()
+            return withDataStreams(Longs.asList(ids));
+        }
+
+
+        /**
+         * Keep only observations from specific data streams.
+         * @param ids Collection of internal IDs of data streams
+         * @return This builder for chaining
+         */
+        public B withDataStreams(Collection<Long> ids)
+        {
+            return withDataStreams(new DataStreamFilter.Builder()
                 .withInternalIDs(ids)
                 .build());
-            return (B)this;
+        }
+
+
+        /**
+         * Keep only observations from procedures matching the filter.
+         * @param filter Filter to select desired procedures
+         * @return This builder for chaining
+         */
+        public B withProcedures(ProcedureFilter filter)
+        {
+            return withDataStreams(new DataStreamFilter.Builder()
+                .withProcedures(filter)
+                .build());
         }
         
         
@@ -474,9 +495,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
                 @Override
                 public B done()
                 {
-                    ObsFilterBuilder.this.withDataStreams(new DataStreamFilter.Builder()
-                        .withProcedures(build())
-                        .build());
+                    ObsFilterBuilder.this.withProcedures(build());
                     return (B)ObsFilterBuilder.this;
                 }                
             };
@@ -490,10 +509,20 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withProcedures(long... procIDs)
         {
-            withDataStreams(new DataStreamFilter.Builder()
+            return withDataStreams(Longs.asList(procIDs));
+        }
+
+
+        /**
+         * Keep only observations from specific procedures (including all outputs).
+         * @param procIDs Collection of internal IDs of procedures
+         * @return This builder for chaining
+         */
+        public B withProcedures(Collection<Long> procIDs)
+        {
+            return withDataStreams(new DataStreamFilter.Builder()
                 .withProcedures(procIDs)
                 .build());
-            return (B)this;
         }
 
 
@@ -505,11 +534,10 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withProcedure(long procID, String... outputNames)
         {
-            withDataStreams(new DataStreamFilter.Builder()
+            return withDataStreams(new DataStreamFilter.Builder()
                 .withProcedures(procID)
                 .withOutputNames(outputNames)
                 .build());
-            return (B)this;
         }
 
 
@@ -550,10 +578,20 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withFois(long... foiIDs)
         {
-            withFois(new FoiFilter.Builder()
+            return withFois(Longs.asList(foiIDs));
+        }
+
+
+        /**
+         * Keep only observations of the specified features of interests
+         * @param foiIDs Collection of FOI internal IDs
+         * @return This builder for chaining
+         */
+        public B withFois(Collection<Long> foiIDs)
+        {
+            return withFois(new FoiFilter.Builder()
                 .withInternalIDs(foiIDs)
                 .build());
-            return (B)this;
         }
 
 
@@ -564,10 +602,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withFois(String... foiUIDs)
         {
-            withFois(new FoiFilter.Builder()
+            return withFois(new FoiFilter.Builder()
                 .withUniqueIDs(foiUIDs)
                 .build());
-            return (B)this;
         }
 
 

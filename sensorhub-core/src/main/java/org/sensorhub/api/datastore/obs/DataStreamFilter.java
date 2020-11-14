@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.SortedSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.TemporalFilter;
+import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.resource.ResourceFilter;
@@ -459,6 +460,39 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
                 .withAllTimes()
                 .build();
             return (B)this;
+        }
+        
+
+        /**
+         * Select only datastreams containing observations of features of interest
+         * matching the filter
+         * @param filter Features of interest filter
+         * @return This builder for chaining
+         */
+        public B withFois(FoiFilter filter)
+        {
+            return withObservations(new ObsFilter.Builder()
+                .withFois(filter)
+                .build());
+        }
+
+        
+        /**
+         * Select only datastreams containing observations of features of interest
+         * matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link FoiFilter} builder for chaining
+         */
+        public FoiFilter.NestedBuilder<B> withFois()
+        {
+            return new FoiFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    DataStreamFilterBuilder.this.withFois(build());
+                    return (B)DataStreamFilterBuilder.this;
+                }                
+            };
         }
     }
 

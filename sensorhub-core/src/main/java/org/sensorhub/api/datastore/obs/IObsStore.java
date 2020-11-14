@@ -20,6 +20,7 @@ import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsStats;
 import net.opengis.swe.v20.DataBlock;
@@ -75,13 +76,27 @@ public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, Ob
     
     /**
      * Select all observations matching the query and return result datablocks only
-     * @param query selection filter (datastore specific)
+     * @param filter Observation filter
      * @return Stream of result data blocks
      */
-    public default Stream<DataBlock> selectResults(ObsFilter query)
+    public default Stream<DataBlock> selectResults(ObsFilter filter)
     {
-        return select(query, Sets.newHashSet(ObsField.RESULT))
+        return select(filter, Sets.newHashSet(ObsField.RESULT))
             .map(o -> o.getResult());
+    }
+    
+    
+    /**
+     * Select all FOIs for which observation matching the filter are available
+     * @param filter
+     * @return Stream of FOI internal IDs
+     */
+    public default Stream<Long> selectObservedFois(ObsFilter filter)
+    {
+        return select(filter, Sets.newHashSet(ObsField.FOI_ID))
+            .filter(o -> o.getFoiID() != FeatureId.NULL_FEATURE)
+            .map(o -> o.getFoiID().getInternalID())
+            .distinct();
     }
     
     

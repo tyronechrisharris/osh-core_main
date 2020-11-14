@@ -37,6 +37,7 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsStats;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.util.Asserts;
 
 
@@ -55,7 +56,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     static final TemporalFilter ALL_TIMES_FILTER = new TemporalFilter.Builder().withAllTimes().build();
     
     ConcurrentNavigableMap<ObsKey, IObsData> map = new ConcurrentSkipListMap<>(new ObsKeyComparator());
-    InMemoryDataStreamStore dsStore;
+    InMemoryDataStreamStore dataStreamStore;
     IFoiStore foiStore;
     AtomicLong obsCounter = new AtomicLong();
     
@@ -100,7 +101,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     
     public InMemoryObsStore()
     {
-        this.dsStore = new InMemoryDataStreamStore(this);
+        this.dataStreamStore = new InMemoryDataStreamStore(this);
     }
     
     
@@ -138,23 +139,28 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsByDataStream(long dataStreamID, TemporalFilter phenomenonTimeFilter)
+    Stream<Entry<ObsKey, IObsData>> getObsByDataStream(long dataStreamID)
     {
         ObsKey fromKey = new ObsKey(dataStreamID, 0, null);        
         ObsKey toKey = new ObsKey(dataStreamID, Long.MAX_VALUE, null);
         
-        return map.subMap(fromKey, toKey).entrySet().stream()
-            .filter(e -> phenomenonTimeFilter.isLatestTime() || phenomenonTimeFilter.test(e.getKey().phenomenonTime))
-            .map(e -> toBigIntEntry(e));
+        return map.subMap(fromKey, toKey).entrySet().stream();
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsByFoi(long foiID, TemporalFilter phenomenonTimeFilter)
+    Stream<Entry<ObsKey, IObsData>> getObsByFoi(long foiID)
     {
         return map.entrySet().stream()
-            .filter(e -> e.getValue().getFoiID().getInternalID() == foiID)
-            .filter(e -> phenomenonTimeFilter.isLatestTime() || phenomenonTimeFilter.test(e.getKey().phenomenonTime))
-            .map(e -> toBigIntEntry(e));
+            .filter(e -> e.getValue().getFoiID().getInternalID() == foiID);
+    }
+    
+    
+    Stream<Entry<ObsKey, IObsData>> getObsByDataStreamAndFoi(long dataStreamID, long foiID)
+    {
+        ObsKey fromKey = new ObsKey(dataStreamID, foiID, null);        
+        ObsKey toKey = new ObsKey(dataStreamID, foiID, null);
+        
+        return map.subMap(fromKey, toKey).entrySet().stream();
     }
     
     
@@ -167,66 +173,54 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
     {
-        Stream<Entry<BigInteger, IObsData>> resultStream = null;
+        Stream<Entry<ObsKey, IObsData>> resultStream = null;
         
-        // get phenomenon time filter
-        final TemporalFilter phenomenonTimeFilter;
-        if (filter.getPhenomenonTime() != null)
-            phenomenonTimeFilter = filter.getPhenomenonTime();
+        // if no datastream nor FOI filter used, scan all obs
+        if (filter.getDataStreamFilter() == null && filter.getFoiFilter() == null)
+        {
+            resultStream = map.entrySet().stream();
+        }
+        
+        // only datastream filter used
+        else if (filter.getDataStreamFilter() != null && filter.getFoiFilter() == null)
+        {
+            // stream directly from list of selected datastreams
+            resultStream = DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
+                .flatMap(id -> getObsByDataStream(id));
+        }
+        
+        // only FOI filter used
+        else if (filter.getFoiFilter() != null && filter.getDataStreamFilter() == null)
+        {
+            // stream directly from list of selected fois
+            resultStream = DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
+                .flatMap(id -> getObsByFoi(id));
+        }
+        
+        // both datastream and FOI filters used
         else
-            phenomenonTimeFilter = ALL_TIMES_FILTER;
-        
-        // add filter on data stream
-        if (filter.getFoiFilter() == null) // no FOI filter set
-        {
-            if (filter.getDataStreamFilter() != null)
-            {
-                // stream directly from list of selected datastreams
-                resultStream = dsStore.selectKeys(filter.getDataStreamFilter())
-                    .flatMap(k -> {
-                        return getObsByDataStream(k.getInternalID(), phenomenonTimeFilter);
-                    });
-            }
-            else
-            {
-                // if no datastream or FOI selected, scan all obs
-                resultStream = map.entrySet().stream()
-                    .map(e -> toBigIntEntry(e));
-            }
-        }
-        else if (filter.getDataStreamFilter() == null) // no datastream filter set
-        {
-            if (filter.getFoiFilter() != null)
-            {
-                // stream directly from list of selected fois
-                resultStream = foiStore.selectKeys(filter.getFoiFilter())
-                    .flatMap(id -> {
-                        return getObsByFoi(id.getInternalID(), phenomenonTimeFilter);
-                    });
-            }
-        }
-        else // both datastream and FOI filters are set
         {
             // create set of selected datastreams
-            Set<Long> dataStreamIDs = dsStore.selectKeys(filter.getDataStreamFilter())
-                .map(k -> k.getInternalID())
+            Set<Long> dataStreamIDs = DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
                 .collect(Collectors.toSet());
-
             if (dataStreamIDs.isEmpty())
                 return Stream.empty();
             
-            // stream from fois and filter on datastream IDs
-            resultStream = foiStore.selectKeys(filter.getFoiFilter())
-                .flatMap(id -> {
-                    return getObsByFoi(id.getInternalID(), phenomenonTimeFilter)
-                        .filter(e -> dataStreamIDs.contains(e.getValue().getDataStreamID()));
+            // cross product between list of datastream IDs and foiIDs
+            resultStream = dataStreamIDs.stream()
+                .flatMap(dsID -> {
+                    return DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
+                        .flatMap(foiID -> {
+                            return getObsByDataStreamAndFoi(dsID, foiID);
+                        });
                 });
         }
             
         // filter with predicate and apply limit
         return resultStream
             .filter(e -> filter.test(e.getValue()))
-            .limit(filter.getLimit());
+            .limit(filter.getLimit())
+            .map(e -> toBigIntEntry(e));
     }
 
 
@@ -357,7 +351,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public IDataStreamStore getDataStreams()
     {
-        return dsStore;
+        return dataStreamStore;
     }
 
 
@@ -372,12 +366,6 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public void linkTo(IFoiStore foiStore)
     {
-        Asserts.checkNotNull(foiStore, IFoiStore.class);
-        
-        if (this.foiStore != foiStore)
-        {
-            this.foiStore = foiStore;
-            foiStore.linkTo(this);
-        }
+        this.foiStore = Asserts.checkNotNull(foiStore, IFoiStore.class);
     }
 }
