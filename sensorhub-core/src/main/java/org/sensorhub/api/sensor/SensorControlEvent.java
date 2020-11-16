@@ -40,7 +40,7 @@ public class SensorControlEvent extends ProcedureEvent
      */
     public SensorControlEvent(long timeStamp, IStreamingControlInterface controlInterface, CommandStatus status)
     {
-        super(timeStamp, controlInterface.getParentProducer().getProcedureID());
+        super(timeStamp, controlInterface.getParentProducer().getUniqueIdentifier());
         this.source = controlInterface;
         this.status = status;
     }

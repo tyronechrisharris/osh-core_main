@@ -15,7 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.obs;
 
 import org.sensorhub.api.procedure.ProcedureEvent;
-import org.sensorhub.api.procedure.ProcedureId;
 
 
 /**
@@ -28,52 +27,38 @@ import org.sensorhub.api.procedure.ProcedureId;
  */
 public abstract class DataStreamEvent extends ProcedureEvent
 {
-    String dataStreamName;
-    long dataStreamID;
+    String outputName;
 
 
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureId ID of parent procedure
-     * @param dataStreamName Name of datastream (same as output name)
-     * @param dataStreamID Internal ID of datastream
+     * @param procUID Unique ID of parent procedure
+     * @param outputName Name of output producing the datastream
      */
-    public DataStreamEvent(long timeStamp, ProcedureId procedureId, String dataStreamName, long dataStreamID)
+    public DataStreamEvent(long timeStamp, String procUID, String outputName)
     {
-        super(timeStamp, procedureId);
-        this.dataStreamName = dataStreamName;
-        this.dataStreamID = dataStreamID;
+        super(timeStamp, procUID);
+        this.outputName = outputName;
     }
     
     
     /**
      * Helper constructor that sets the timestamp to current system time
-     * @param procedureId ID of parent procedure
-     * @param dataStreamName Name of datastream
-     * @param dataStreamID Internal ID of datastream
+     * @param procUID Unique ID of parent procedure
+     * @param outputName Name of output producing the datastream
      */
-    public DataStreamEvent(ProcedureId procedureId, String dataStreamName, long dataStreamID)
+    public DataStreamEvent(String procUID, String outputName)
     {
-        super(procedureId);
-        this.dataStreamName = dataStreamName;
-        this.dataStreamID = dataStreamID;
+        super(procUID);
+        this.outputName = outputName;
     }
 
 
     /**
      * @return Name of datastream
      */
-    public String getDataStreamName()
+    public String getOutputName()
     {
-        return dataStreamName;
-    }
-
-
-    /**
-     * @return Internal ID of datastream
-     */
-    public long getDataStreamID()
-    {
-        return dataStreamID;
+        return outputName;
     }
 }

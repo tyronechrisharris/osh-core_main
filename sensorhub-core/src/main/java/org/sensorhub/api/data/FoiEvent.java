@@ -16,7 +16,6 @@ package org.sensorhub.api.data;
 
 import java.time.Instant;
 import org.sensorhub.api.procedure.ProcedureEvent;
-import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 import com.google.common.base.Strings;
@@ -33,45 +32,22 @@ import com.google.common.base.Strings;
  */
 public class FoiEvent extends ProcedureEvent
 {
-
-    /**
-	 * Description of Feature of Interest related to this event (by reference)
-	 */
-	protected IGeoFeature foi;
-
-
-	/**
-	 * Unique ID of feature of interest related to this event
-	 */
+    protected IGeoFeature foi;
 	protected String foiUID;
-
-
-	/**
-	 * Time at which the feature of interest started being observed.<br/>
-	 * Use {@link Double#NaN} with a value for {@link #stopTime} to end the
-	 * FoI observation period.<br/>
-	 */
 	protected Instant startTime;
-
-
-	/**
-	 * Time at which the feature of interest stopped being observed.<br/>
-     * Use {@link Double#NaN} with a value for {@link #startTime} to start a
-     * new observation period for the FoI
-	 */
-	protected Instant stopTime;
+	//protected Instant stopTime;
 
 
     /**
      * Creates a {@link Type#NEW_FOI} event with only the feature ID
-     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureID ID of producer that generated the event
+     * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
+     * @param procUID Unique ID of producer that generated the event
      * @param foiUID Unique ID of feature of interest
-     * @param startTime time at which observation of the FoI started
+     * @param startTime Time at which observation of the FoI started
      */
-	public FoiEvent(long timeStamp, ProcedureId procedureID, String foiUID, Instant startTime)
+	public FoiEvent(long timeStamp, String procUID, String foiUID, Instant startTime)
     {
-        super(timeStamp, procedureID);
+        super(timeStamp, procUID);
 
         Asserts.checkArgument(!Strings.isNullOrEmpty(foiUID), "FOI UID must be set");
         Asserts.checkNotNull(startTime, "startTime");
@@ -83,30 +59,19 @@ public class FoiEvent extends ProcedureEvent
 
 	/**
 	 * Creates a {@link Type#NEW_FOI} event with only the feature ID
-	 * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param producer producer that generated the event
+	 * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
+     * @param producer Producer that generated the event
 	 * @param foiUID Unique ID of feature of interest
-     * @param startTime time at which observation of the FoI started
+     * @param startTime Time at which observation of the FoI started
 	 */
 	public FoiEvent(long timeStamp, IDataProducer producer, String foiUID, Instant startTime)
 	{
 	    this(timeStamp,
-	        producer.getProcedureID(),
+	        producer.getUniqueIdentifier(),
 	        foiUID,
 	        startTime);
         this.source = producer;
 	}
-
-
-	/**
-     * @deprecated Use {@link #FoiEvent(long, IDataProducer, String, Instant)
-     */
-    @Deprecated
-    @SuppressWarnings("javadoc")
-    public FoiEvent(long timeStamp, IDataProducer producer, String foiUID, double startTime)
-    {
-	    this(timeStamp, producer, foiUID, Instant.ofEpochMilli((long)(startTime*1000.0)));
-    }
 
 
 	/**
@@ -119,7 +84,7 @@ public class FoiEvent extends ProcedureEvent
 	public FoiEvent(long timeStamp, IDataProducer producer, IGeoFeature foi, Instant startTime)
     {
 	    this(timeStamp,
-	        producer.getProcedureID(),
+	        producer.getUniqueIdentifier(),
 	        foi.getUniqueIdentifier(),
 	        startTime);
         this.source = producer;
@@ -127,38 +92,40 @@ public class FoiEvent extends ProcedureEvent
     }
 
 
-	/**
-     * @deprecated Use {@link #FoiEvent(long, IDataProducer, AbstractFeature, Instant)
+    /**
+     * @return The unique ID of the feature of interest related to this event
      */
-    @Deprecated
-    @SuppressWarnings("javadoc")
-    public FoiEvent(long timeStamp, IDataProducer producer, IGeoFeature foi, double startTime)
+    public String getFoiUID()
     {
-	    this(timeStamp, producer, foi, Instant.ofEpochMilli((long)(startTime*1000.0)));
+        return foiUID;
     }
+    
 
-
+	/**
+     * @return The description of the feature of interest related to this event
+     * or null if the description was already registered by some other means.
+     * (in this case, only the UID is provided in the event)
+     */
 	public IGeoFeature getFoi()
     {
         return foi;
     }
 
 
-    public String getFoiUID()
-    {
-        return foiUID;
-    }
-
-
+	/**
+     * @return The time at which the feature of interest started being observed.
+     */
     public Instant getStartTime()
     {
         return startTime;
     }
 
 
+    /*
+     * @return The time at which the feature of interest stopped being observed.
     public Instant getStopTime()
     {
         return stopTime;
-    }
+    }*/
 
 }

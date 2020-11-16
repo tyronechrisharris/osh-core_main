@@ -16,7 +16,7 @@ package org.sensorhub.api.procedure;
 
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
-import org.vast.util.Asserts;
+import org.sensorhub.api.utils.OshAsserts;
 
 
 /**
@@ -32,33 +32,33 @@ import org.vast.util.Asserts;
  */
 public abstract class ProcedureEvent extends Event
 {
-    protected ProcedureId procedureID;
+    protected String procedureUID;
     protected transient String sourceID;
 
 
-    public ProcedureEvent(long timeStamp, ProcedureId procedureId)
+    public ProcedureEvent(long timeStamp, String procUID)
     {
         this.timeStamp = timeStamp;
-        this.procedureID = Asserts.checkNotNull(procedureId, ProcedureId.class);
+        this.procedureUID = OshAsserts.checkValidUID(procUID);
     }
     
     
-    public ProcedureEvent(ProcedureId procedureId)
+    public ProcedureEvent(String procUID)
     {
-        this(System.currentTimeMillis(), procedureId);
+        this(System.currentTimeMillis(), procUID);
     }
 
 
     /**
-     * Gets the ID of the procedure related to this event.<br/>
-     * For procedure groups (e.g. sensor networks), it will be either the ID
-     * of the group as a whole (if the event is global) or the ID of a single
+     * Gets the unique ID of the procedure related to this event.<br/>
+     * For procedure groups (e.g. sensor networks), it will be either the UID
+     * of the group as a whole (if the event is global) or the UID of a single
      * procedure within the group (if the event applies only to that member)
      * @return Unique ID of related procedure
      */
-    public ProcedureId getProcedureID()
+    public String getProcedureUID()
     {
-        return procedureID;
+        return procedureUID;
     }
 
 
@@ -66,7 +66,7 @@ public abstract class ProcedureEvent extends Event
     public String getSourceID()
     {
         if (sourceID == null)
-            sourceID = EventUtils.getProcedureSourceID(procedureID.getUniqueID());
+            sourceID = EventUtils.getProcedureSourceID(procedureUID);
         return sourceID;
     }
 

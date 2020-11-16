@@ -24,19 +24,19 @@ package org.sensorhub.api.procedure;
  */
 public class ProcedureRemovedEvent extends ProcedureEvent
 {
-    ProcedureId parentGroupId;
+    String parentGroupUID;
 
 
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procId ID of removed procedure
-     * @param parentGroupId ID of parent procedure group (or null if procedure
+     * @param procUID Unique ID of removed procedure
+     * @param parentGroupUID Unique ID of parent procedure group (or null if procedure
      * is not a member of any group)
      */
-    public ProcedureRemovedEvent(long timeStamp, ProcedureId procId, ProcedureId parentGroupId)
+    public ProcedureRemovedEvent(long timeStamp, String procUID, String parentGroupUID)
     {
-        super(timeStamp, procId);
-        this.parentGroupId = parentGroupId;
+        super(timeStamp, procUID);
+        this.parentGroupUID = parentGroupUID;
     }
     
     
@@ -44,18 +44,18 @@ public class ProcedureRemovedEvent extends ProcedureEvent
      * Helper constructor that sets the timestamp to current system time
      */
     @SuppressWarnings("javadoc")
-    public ProcedureRemovedEvent(ProcedureId procedureId, ProcedureId parentGroupId)
+    public ProcedureRemovedEvent(String procUID, String parentGroupUID)
     {
-        super(procedureId);
-        this.parentGroupId = parentGroupId;
+        super(procUID);
+        this.parentGroupUID = parentGroupUID;
     }
 
 
     /**
-     * @return ID of parent procedure group
+     * @return Unique ID of parent procedure group
      */
-    public ProcedureId getParentGroupId()
+    public String getParentGroupUID()
     {
-        return parentGroupId;
+        return parentGroupUID;
     }
 }

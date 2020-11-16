@@ -49,19 +49,13 @@ public interface IProcedureDriver extends IEventProducer
      * @return The procedure's unique identifier
      */
     public String getUniqueIdentifier();
-    
-    
-    /**
-     * @return The ID object assigned to this procedure
-     */
-    public ProcedureId getProcedureID();
 
 
     /**
-     * @return The ID object of the parent procedure group or null if this
+     * @return The unique ID of the parent procedure group or null if this
      * procedure is not a member of any group
      */
-    public ProcedureId getParentGroupID();
+    public String getParentGroupUID();
 
 
     /**
@@ -72,7 +66,7 @@ public interface IProcedureDriver extends IEventProducer
 
 
     /**
-     * Retrieves most current SensorML description of the procedure.
+     * Retrieves the most current SensorML description of the procedure.
      * All implementations must return an instance of AbstractProcess with
      * a valid unique identifier.<br/>
      * In the case of a module generating data from multiple procedures (e.g.

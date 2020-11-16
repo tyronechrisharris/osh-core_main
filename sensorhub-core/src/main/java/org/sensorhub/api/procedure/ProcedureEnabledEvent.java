@@ -27,11 +27,11 @@ public class ProcedureEnabledEvent extends ProcedureEvent
 
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureId ID of enabled procedure
+     * @param procUID Unique ID of enabled procedure
      */
-    public ProcedureEnabledEvent(long timeStamp, ProcedureId procedureId)
+    public ProcedureEnabledEvent(long timeStamp, String procUID)
     {
-        super(timeStamp, procedureId);
+        super(timeStamp, procUID);
     }
     
     
@@ -39,8 +39,8 @@ public class ProcedureEnabledEvent extends ProcedureEvent
      * Helper constructor that sets the timestamp to current system time
      */
     @SuppressWarnings("javadoc")
-    public ProcedureEnabledEvent(ProcedureId procedureId)
+    public ProcedureEnabledEvent(String procUID)
     {
-        super(procedureId);
+        super(procUID);
     }
 }

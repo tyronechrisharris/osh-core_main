@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.procedure;
 
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.database.IProcedureStateDatabase;
 import org.sensorhub.api.event.IEventSource;
 import org.sensorhub.api.event.IEventSourceInfo;
@@ -46,19 +47,31 @@ public interface IProcedureRegistry extends IEventSource
 
 
     /**
-     * Registers a procedure driver (e.g. sensor driver) with this registry.
-     * This method creates an internal proxy instance which takes care of 
-     * forwarding all events to the event bus.
+     * Registers a procedure driver (e.g. sensor driver, etc.) with this registry.
+     * Implementation of this method must take take care of forwarding all events
+     * produced by the driver to the event bus.
+     * <br/><br/>
+     * If the procedure is a {@link IDataProducer}, this method takes care of
+     * registering all FOIs associated to the procedure at the time of registration
+     * (i.e. returned by {@link IDataProducer#getCurrentFeaturesOfInterest()}).
+     * <br/><br/>
+     * If the procedure is a {@link IProcedureGroupDriver}, this method takes
+     * care of registering all group members defined by the driver at the time of
+     * registration (i.e. returned by {@link IProcedureGroupDriver#getMembers()}).
+     * <br/><br/>
+     * Note that a single {@link ProcedureAddedEvent} is generated for the parent
+     * procedure. No event is generated for members of a procedure group. 
      * @param proc The live procedure instance
-     * @return The ID assigned to the new procedure
      */
-    public ProcedureId register(IProcedureDriver proc);
+    public void register(IProcedureDriver proc);
 
 
     /**
-     * Unregisters the procedure with the given unique ID.<br/>
+     * Unregisters a procedure and, if a procedure group, all of its members.
+     * <br/><br/>
      * Note that unregistering the procedure doesn't remove it from the
-     * data store but only disconnects the live procedure.
+     * data store but only disconnects the live procedure and sends a
+     * {@link ProcedureDisabledEvent} event.
      * @param proc The live procedure instance
      */
     public void unregister(IProcedureDriver proc);

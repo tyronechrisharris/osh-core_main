@@ -7,40 +7,32 @@ at http://mozilla.org/MPL/2.0/.
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
-
+ 
 Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
-
+ 
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.procedure;
+package org.sensorhub.api.utils;
 
-/**
- * <p>
- * Event sent when a procedure is disabled
- * </p>
- *
- * @author Alex Robin
- * @date Mar 2, 2019
- */
-public class ProcedureDisabledEvent extends ProcedureEvent
+import org.vast.util.Asserts;
+
+
+public class OshAsserts
 {
-
-    /**
-     * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID Unique ID of disabled procedure
-     */
-    public ProcedureDisabledEvent(long timeStamp, String procUID)
+    static final int UID_MIN_CHARS = 8; 
+    
+    
+    public static String checkValidUID(String uid)
     {
-        super(timeStamp, procUID);
+        Asserts.checkNotNull(uid, "UniqueID");
+        Asserts.checkArgument(uid.length() > UID_MIN_CHARS, "Unique ID must be at least " + UID_MIN_CHARS + " characters long");
+        return uid;
     }
     
     
-    /**
-     * Helper constructor that sets the timestamp to current system time
-     */
-    @SuppressWarnings("javadoc")
-    public ProcedureDisabledEvent(String procUID)
+    public static long checkValidInternalID(long id)
     {
-        super(procUID);
+        Asserts.checkArgument(id > 0, "Internal ID must be > 0");
+        return id;
     }
 }

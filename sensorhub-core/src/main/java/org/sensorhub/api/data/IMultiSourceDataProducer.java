@@ -16,7 +16,6 @@ package org.sensorhub.api.data;
 
 import java.util.Collection;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
-import org.sensorhub.api.procedure.ProcedureId;
 
 
 /**
@@ -39,6 +38,6 @@ public interface IMultiSourceDataProducer extends IDataProducer, IProcedureGroup
      * @param foiUID Unique ID of feature of interest
      * @return Read-only collection of procedure unique IDs (can be empty)
      */
-    public Collection<ProcedureId> getProceduresWithFoi(String foiUID);
+    public Collection<String> getProceduresWithFoi(String foiUID);
 
 }

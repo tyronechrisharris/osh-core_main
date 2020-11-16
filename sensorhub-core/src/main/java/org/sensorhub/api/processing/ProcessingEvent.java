@@ -15,7 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.processing;
 
 import org.sensorhub.api.procedure.ProcedureEvent;
-import org.sensorhub.api.procedure.ProcedureId;
 
 
 /**
@@ -49,12 +48,12 @@ public class ProcessingEvent extends ProcedureEvent
 	/**
 	 * Sole constructor
 	 * @param timeStamp unix time of event generation
-     * @param processId ID of originating process
+     * @param processUID Unique ID of originating process
      * @param type type of event
 	 */
-	public ProcessingEvent(long timeStamp, ProcedureId processId, Type type)
+	public ProcessingEvent(long timeStamp, String processUID, Type type)
 	{
-	    super(timeStamp, processId);
+	    super(timeStamp, processUID);
 	    this.type = type;
 	}
 

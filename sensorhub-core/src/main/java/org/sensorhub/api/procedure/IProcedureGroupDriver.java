@@ -32,5 +32,5 @@ public interface IProcedureGroupDriver<T extends IProcedureDriver> extends IProc
     /**
      * @return Map of member procedures (ID -> IProcedure object)
      */
-    public Map<ProcedureId, ? extends T> getMembers();
+    public Map<String, ? extends T> getMembers();
 }

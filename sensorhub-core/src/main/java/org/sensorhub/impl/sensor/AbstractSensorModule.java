@@ -17,7 +17,6 @@ package org.sensorhub.impl.sensor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -45,7 +44,6 @@ import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureDisabledEvent;
 import org.sensorhub.api.procedure.ProcedureEnabledEvent;
-import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.PositionConfig.LLALocation;
 import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
@@ -61,7 +59,7 @@ import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -113,8 +111,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected String xmlID;
     protected String uniqueID;
     protected boolean randomUniqueID;
-    protected IGeoFeature foi = null;
-    protected ProcedureId procId;
+    protected Map<String, IGeoFeature> foiMap;
 
 
     @Override
@@ -125,7 +122,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         // reset internal state
         this.uniqueID = null;
         this.xmlID = null;
-        this.foi = null;
+        this.foiMap = null;
         this.locationOutput = null;
         this.sensorDescription = new PhysicalSystemImpl();
         removeAllOutputs();
@@ -161,11 +158,24 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             addLocationOutput(Double.NaN);
         
         // register sensor with registry
-        procId = getParentHub().getProcedureRegistry().register(this);
+        register();
         
         // send new location event
         if (addLocationOutput)
             locationOutput.updateLocation(System.currentTimeMillis()/1000., loc.lon, loc.lat, loc.alt);
+    }
+    
+    
+    /**
+     * Default registration method.<br/>
+     * This must be overridden for procedure groups (sensor networks, etc.)
+     * so the caller has the opportunity to collect internal IDs assigned
+     * to group members and multiple fois.
+     */
+    protected void register()
+    {
+        if (getParentHub() != null && getParentHub().getProcedureRegistry() != null)
+            getParentHub().getProcedureRegistry().register(this);
     }
 
 
@@ -233,13 +243,6 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public ProcedureId getProcedureID()
-    {
-        return procId;
-    }
-
-
-    @Override
     public IEventSourceInfo getEventSourceInfo()
     {
         if (eventSrcInfo == null)
@@ -261,7 +264,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public ProcedureId getParentGroupID()
+    public String getParentGroupUID()
     {
         return null;
     }
@@ -477,7 +480,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         // send event
         lastUpdatedSensorDescription = updateTime;
-        eventHandler.publish(new ProcedureChangedEvent(updateTime, procId));
+        eventHandler.publish(new ProcedureChangedEvent(updateTime, uniqueID));
     }
 
 
@@ -521,28 +524,31 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     @Override
     public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
     {
-        // add default feature of interest if location is set in config
-        LLALocation loc = config.getLocation();
-        if (foi == null && loc != null)
+        if (foiMap == null)
         {
-            SamplingPoint sf = new SamplingPoint();
-            sf.setId("FOI_" + xmlID);
-            sf.setUniqueIdentifier(uniqueID + "-foi");
-            if (config.name != null)
-                sf.setName(config.name);
-            sf.setDescription("Sampling point for " + config.name);
-            sf.setHostedProcedureUID(uniqueID);
-            Point point = new GMLFactory(true).newPoint();
-            point.setSrsName(SWEConstants.REF_FRAME_4979);
-            point.setSrsDimension(3);
-            point.setPos(new double[] {loc.lat, loc.lon, loc.alt});
-            sf.setShape(point);
-            this.foi = sf;
+            // add default feature of interest if location is set in config
+            LLALocation loc = config.getLocation();
+            if (loc != null)
+            {
+                SamplingPoint sf = new SamplingPoint();
+                sf.setId("FOI_" + xmlID);
+                sf.setUniqueIdentifier(uniqueID + "-foi");
+                if (config.name != null)
+                    sf.setName(config.name);
+                sf.setDescription("Sampling point for " + config.name);
+                sf.setHostedProcedureUID(uniqueID);
+                Point point = new GMLFactory(true).newPoint();
+                point.setSrsName(SWEConstants.REF_FRAME_4979);
+                point.setSrsDimension(3);
+                point.setPos(new double[] {loc.lat, loc.lon, loc.alt});
+                sf.setShape(point);                
+                foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
+            }
+            else
+                foiMap = Collections.emptyMap();
         }
 
-        return foi != null ?
-            Maps.uniqueIndex(Arrays.asList(foi), v -> v.getUniqueIdentifier()) :
-            Collections.emptyMap();
+        return foiMap;            
     }
 
 
@@ -565,10 +571,10 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         super.setState(newState);
 
         // send procedure enabled/disabled events
-        if (newState == ModuleState.STARTED && procId != null)
-            eventHandler.publish(new ProcedureEnabledEvent(procId));
-        else if (newState == ModuleState.STOPPED && procId != null)
-            eventHandler.publish(new ProcedureDisabledEvent(procId));
+        if (newState == ModuleState.STARTED && uniqueID != null)
+            eventHandler.publish(new ProcedureEnabledEvent(uniqueID));
+        else if (newState == ModuleState.STOPPED && uniqueID != null)
+            eventHandler.publish(new ProcedureDisabledEvent(uniqueID));
     }
 
 

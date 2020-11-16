@@ -27,11 +27,11 @@ public class ProcedureChangedEvent extends ProcedureEvent
 
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procedureId ID of changed procedure
+     * @param procUID Unique ID of changed procedure
      */
-    public ProcedureChangedEvent(long timeStamp, ProcedureId procedureId)
+    public ProcedureChangedEvent(long timeStamp, String procUID)
     {
-        super(timeStamp, procedureId);
+        super(timeStamp, procUID);
     }
     
     
@@ -39,8 +39,8 @@ public class ProcedureChangedEvent extends ProcedureEvent
      * Helper constructor that sets the timestamp to current system time
      */
     @SuppressWarnings("javadoc")
-    public ProcedureChangedEvent(ProcedureId procedureId)
+    public ProcedureChangedEvent(String procUID)
     {
-        super(procedureId);
+        super(procUID);
     }
 }

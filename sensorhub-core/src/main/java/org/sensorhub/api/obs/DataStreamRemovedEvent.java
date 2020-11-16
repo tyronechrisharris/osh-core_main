@@ -14,8 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
-import org.sensorhub.api.procedure.ProcedureId;
-
 
 /**
  * <p>
@@ -30,20 +28,20 @@ public class DataStreamRemovedEvent extends DataStreamEvent
     
     /**
      * Pass-through to super class constructor
-     * @see DataStreamEvent#DataStreamEvent(long, ProcedureId, String, long)
+     * @see DataStreamEvent#DataStreamEvent(long, String, String)
      */
-    public DataStreamRemovedEvent(long timeStamp, ProcedureId procedureId, String dataStreamName, long dataStreamID)
+    public DataStreamRemovedEvent(long timeStamp, String procUID, String outputName)
     {
-        super(timeStamp, procedureId, dataStreamName, dataStreamID);
+        super(timeStamp, procUID, outputName);
     }
     
     
     /**
      * Pass-through to super class constructor
-     * @see DataStreamEvent#DataStreamEvent(ProcedureId, String, long)
+     * @see DataStreamEvent#DataStreamEvent(String, String)
      */
-    public DataStreamRemovedEvent(ProcedureId procedureId, String dataStreamName, long dataStreamID)
+    public DataStreamRemovedEvent(String procUID, String outputName)
     {
-        super(procedureId, dataStreamName, dataStreamID);
+        super(procUID, outputName);
     }
 }

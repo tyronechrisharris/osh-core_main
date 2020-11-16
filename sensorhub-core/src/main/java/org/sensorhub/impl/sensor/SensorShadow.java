@@ -32,7 +32,6 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.procedure.IProcedureDriver;
-import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.sensor.ISensorDriver;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
@@ -63,9 +62,9 @@ public class SensorShadow extends ProcedureShadow implements ISensorDriver
     protected Map<String, ? extends IGeoFeature> currentFois;
 
 
-    public SensorShadow(ProcedureId procId, IDataProducer liveProcedure, DefaultProcedureRegistry registry)
+    public SensorShadow(String procUID, IDataProducer liveProcedure, DefaultProcedureRegistry registry)
     {
-        super(procId, liveProcedure, registry);
+        super(procUID, liveProcedure, registry);
     }
 
 

@@ -23,7 +23,6 @@ import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureEvent;
-import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.vast.util.Asserts;
@@ -55,13 +54,13 @@ public class ProcedureShadow implements IProcedureDriver, Serializable, IEventLi
     protected IEventSourceInfo eventSrcInfo;
     protected long lastDescriptionUpdate = Long.MIN_VALUE;
     protected AbstractProcess latestDescription;
-    protected ProcedureId procedureId;
-    protected ProcedureId parentGroupId;
+    protected String procUID;
+    protected String parentGroupUID;
 
 
-    public ProcedureShadow(ProcedureId procId, IProcedureDriver liveProcedure, DefaultProcedureRegistry registry)
+    public ProcedureShadow(String procUID, IProcedureDriver liveProcedure, DefaultProcedureRegistry registry)
     {
-        this.procedureId = Asserts.checkNotNull(procId);
+        this.procUID = Asserts.checkNotNull(procUID);
         setProcedureRegistry(registry);
     }
 
@@ -87,11 +86,11 @@ public class ProcedureShadow implements IProcedureDriver, Serializable, IEventLi
         eventSrcInfo = proc.getEventSourceInfo();
         eventPublisher = registry.getParentHub().getEventBus().getPublisher(eventSrcInfo);
         proc.registerListener(this);
-        DefaultProcedureRegistry.log.debug("Procedure {} connected to shadow", procedureId.getUniqueID());
+        DefaultProcedureRegistry.log.debug("Procedure {} connected to shadow", procUID);
 
         // send procedure changed event if description has changed
         if (lastUpdated < lastDescriptionUpdate)
-            eventPublisher.publish(new ProcedureChangedEvent(System.currentTimeMillis(), procedureId));
+            eventPublisher.publish(new ProcedureChangedEvent(System.currentTimeMillis(), procUID));
     }
 
 
@@ -100,7 +99,7 @@ public class ProcedureShadow implements IProcedureDriver, Serializable, IEventLi
         proc.unregisterListener(this);
         captureState();
         ref.clear();
-        DefaultProcedureRegistry.log.debug("Procedure {} disconnected from shadow", procedureId.getUniqueID());
+        DefaultProcedureRegistry.log.debug("Procedure {} disconnected from shadow", procUID);
     }
 
 
@@ -112,6 +111,8 @@ public class ProcedureShadow implements IProcedureDriver, Serializable, IEventLi
             // forward all procedure events to bus
             eventPublisher.publish(e);
             registry.eventPublisher.publish(e);
+            
+            // register entity when necessary
         }
     }
 
@@ -134,23 +135,16 @@ public class ProcedureShadow implements IProcedureDriver, Serializable, IEventLi
 
         lastDescriptionUpdate = proc.getLastDescriptionUpdate();
         latestDescription = proc.getCurrentDescription();
-        parentGroupId = proc.getParentGroupID();
+        parentGroupUID = proc.getParentGroupUID();
 
         return previousUpdate < lastDescriptionUpdate;
     }
 
 
     @Override
-    public ProcedureId getProcedureID()
-    {
-        return procedureId;
-    }
-
-
-    @Override
     public String getUniqueIdentifier()
     {
-        return procedureId.getUniqueID();
+        return procUID;
     }
 
 
@@ -192,17 +186,17 @@ public class ProcedureShadow implements IProcedureDriver, Serializable, IEventLi
         IProcedureDriver proc = ref.get();
         if (proc != null && proc.isEnabled())
             return proc.getParentGroup();
-        else if (parentGroupId != null)
-            return (IProcedureGroupDriver<?>)registry.getProcedureShadow(parentGroupId.getUniqueID());
+        else if (parentGroupUID != null)
+            return (IProcedureGroupDriver<?>)registry.getProcedureShadow(parentGroupUID);
         else
             return null;
     }
 
 
     @Override
-    public ProcedureId getParentGroupID()
+    public String getParentGroupUID()
     {
-        return parentGroupId;
+        return parentGroupUID;
     }
 
 

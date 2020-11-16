@@ -26,8 +26,6 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.api.procedure.ProcedureId;
-import org.sensorhub.impl.event.EventBus;
 import com.google.common.collect.Sets;
 
 
@@ -401,13 +399,14 @@ public class TestEventBus
                 }
             });
 
-        ProcedureId procID = new ProcedureId(1, "source");
+        String procUID = "source001";
+        String foiUID = "foi";
         for (int i = 0; i < 10; i++)
         {
             if (i % 2 == 0)
                 pub.publish(new TestEvent("source", "test", 0));
             else
-                pub.publish(new FoiEvent(System.currentTimeMillis(), procID, "foi", Instant.now()));
+                pub.publish(new FoiEvent(System.currentTimeMillis(), procUID, foiUID, Instant.now()));
         }
 
         assertTrue("Not enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
