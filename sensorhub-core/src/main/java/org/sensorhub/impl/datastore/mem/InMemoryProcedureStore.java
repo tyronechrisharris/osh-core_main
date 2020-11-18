@@ -82,12 +82,6 @@ public class InMemoryProcedureStore extends InMemoryBaseFeatureStore<IProcedureW
     @Override
     public void linkTo(IDataStreamStore dataStreamStore)
     {
-        Asserts.checkNotNull(dataStreamStore, IDataStreamStore.class);
-        
-        if (this.dataStreamStore != dataStreamStore)
-        {
-            this.dataStreamStore = dataStreamStore;
-            dataStreamStore.linkTo(this);
-        }
+        this.dataStreamStore = Asserts.checkNotNull(dataStreamStore, IDataStreamStore.class);
     }
 }

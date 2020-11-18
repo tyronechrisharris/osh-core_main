@@ -86,7 +86,7 @@ public class TestInMemoryProcedureStateDatabase
     @Test
     public void testAddAndGetFois() throws Exception
     {
-        foiStoreTests.testAddAndGet();
+        foiStoreTests.testAddAndGetByKey();
     }
     
     

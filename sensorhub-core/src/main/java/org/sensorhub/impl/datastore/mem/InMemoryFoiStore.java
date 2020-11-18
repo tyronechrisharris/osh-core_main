@@ -14,6 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.mem;
 
+import java.util.stream.Stream;
+import org.sensorhub.api.datastore.IdProvider;
+import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -37,23 +40,47 @@ public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IGeoFeature, FoiF
 {
     IObsStore obsStore;
     
+    
+    public InMemoryFoiStore()
+    {
+        this.idProvider = new HashCodeFeatureIdProvider(806335237);
+    }
+    
+    
+    public InMemoryFoiStore(IdProvider<? super IGeoFeature> idProvider)
+    {
+        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);            
+    }
+    
+    
+    @Override
+    protected Stream<Entry<FeatureKey, IGeoFeature>> getIndexedStream(FoiFilter filter)
+    {
+        if (filter.getObservationFilter() != null)
+        {
+            var idStream = obsStore.selectObservedFois(filter.getObservationFilter());
+            return entryStream(idStream);
+        }
+        
+        else if (filter.getSampledFeatureFilter() != null)
+        {
+            // TODO
+        }
+        
+        return super.getIndexedStream(filter);
+    }
+    
 
     @Override
     public void linkTo(IObsStore obsStore)
     {
-        Asserts.checkNotNull(obsStore, IObsStore.class);
-        
-        if (this.obsStore != obsStore)
-        {
-            this.obsStore = obsStore;
-            obsStore.linkTo(this);
-        }
+        this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);
     }
 
 
     @Override
     public void linkTo(IFeatureStore featureStore)
     {
-        throw new UnsupportedOperationException();        
+        throw new UnsupportedOperationException();
     }
 }

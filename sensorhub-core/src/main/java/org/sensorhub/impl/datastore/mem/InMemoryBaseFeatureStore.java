@@ -144,12 +144,32 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     
     
     @Override
+    public Entry<FeatureKey, T> getCurrentVersionEntry(long id)
+    {
+        var entry = map.ceilingEntry(new FeatureKey(id));
+        if (entry == null || entry.getKey().getInternalID() != id)
+            return null;
+        return entry;
+    }
+    
+    
+    @Override
     public Entry<FeatureKey, T> getCurrentVersionEntry(String uid)
     {
         FeatureKey key = getCurrentVersionKey(uid);
         if (key == null)
             return null;
         return new AbstractMap.SimpleEntry<>(key, map.get(key));
+    }
+    
+    
+    @Override
+    public FeatureKey getCurrentVersionKey(long id)
+    {
+        var k = map.ceilingKey(new FeatureKey(id));
+        if (k == null || k.getInternalID() != id)
+            return null;
+        return k;
     }
     
     
@@ -290,7 +310,9 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
         
         // skip silently if feature currently in store is newer
-        if (existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime()))
+        // or if new feature has a valid time in the future
+        if (( existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime()) ) || 
+            key.getValidStartTime().isAfter(Instant.now()) )
             return map.get(existingKey);
         
         // otherwise update both key and value

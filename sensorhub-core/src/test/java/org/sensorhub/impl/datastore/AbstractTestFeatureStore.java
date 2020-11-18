@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore;
 import static org.junit.Assert.*;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
@@ -220,7 +221,19 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
+    protected void addTemporalFeatures(int startIndex, int numFeatures, OffsetDateTime startTime) throws Exception
+    {
+        addTemporalFeatures(0L, startIndex, numFeatures, startTime);
+    }
+    
+    
     protected void addTemporalFeatures(long parentID, int startIndex, int numFeatures) throws Exception
+    {
+        addTemporalFeatures(parentID, startIndex, numFeatures, FIRST_VERSION_TIME);
+    }
+    
+    
+    protected void addTemporalFeatures(long parentID, int startIndex, int numFeatures, OffsetDateTime startTime) throws Exception
     {
         QName fType = new QName("http://mydomain/features", "MyTimeFeature");
         
@@ -230,7 +243,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             for (int j = 0; j < NUM_TIME_ENTRIES_PER_FEATURE; j++)
             {
                 GenericTemporalFeatureImpl f = new GenericTemporalFeatureImpl(fType);
-                OffsetDateTime beginTime = FIRST_VERSION_TIME.plus(j*30, ChronoUnit.DAYS).plus(i, ChronoUnit.HOURS);
+                OffsetDateTime beginTime = startTime.plus(j*30, ChronoUnit.DAYS).plus(i, ChronoUnit.HOURS);
                 OffsetDateTime endTime = beginTime.plus(30, ChronoUnit.DAYS);
                 f.setValidTimePeriod(beginTime, endTime);
                 setCommonFeatureProperties(f, i);
@@ -427,7 +440,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     
     
     @Test
-    public void testGetByKey() throws Exception
+    public void testPutAndGetByKey() throws Exception
     {
         addTemporalFeatures(50, 63);
         addGeoFeaturesPoint2D(700, 33);
@@ -445,7 +458,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     
     
     @Test
-    public void testAddAndGet() throws Exception
+    public void testAddAndGetByKey() throws Exception
     {
         useAdd = true;
         
@@ -460,6 +473,36 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         addTemporalFeatures(80, 22);
         forceReadBackFromStorage();
         getAndCheckFeatures();
+    }
+    
+    
+    @Test
+    public void testGetCurrentVersion() throws Exception
+    {
+        var shiftFromCurrentTime = 2*30; // in days
+        int numFeatures = 20;
+        
+        var startTime = OffsetDateTime.now(ZoneOffset.UTC)
+            .minusDays(shiftFromCurrentTime+15).truncatedTo(ChronoUnit.HOURS);
+        addTemporalFeatures(0, numFeatures, startTime);
+        forceReadBackFromStorage();
+        
+        for (int i = 0; i < numFeatures; i++)
+        {
+            var expectedCurrentVersionTime = startTime.plusDays(shiftFromCurrentTime).plusHours(i);
+            
+            var fk = featureStore.getCurrentVersionKey(i+1);
+            assertEquals(expectedCurrentVersionTime.toInstant(), fk.getValidStartTime());
+            
+            fk = featureStore.getCurrentVersionKey(UID_PREFIX + "FT" + i);
+            assertEquals(expectedCurrentVersionTime.toInstant(), fk.getValidStartTime());
+            
+            var f = featureStore.getCurrentVersion(i+1);
+            assertEquals(expectedCurrentVersionTime.toInstant(), ((ITemporalFeature)f).getValidTime().begin());
+            
+            f = featureStore.getCurrentVersion(UID_PREFIX + "FT" + i);
+            assertEquals(expectedCurrentVersionTime.toInstant(), ((ITemporalFeature)f).getValidTime().begin());
+        }
     }
     
     
