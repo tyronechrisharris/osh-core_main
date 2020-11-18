@@ -62,6 +62,6 @@ public abstract class DefaultLocationOutput extends AbstractSensorOutput<ISensor
     }
     
     
-    protected abstract void updateLocation(double time, double x, double y, double z);
+    protected abstract void updateLocation(double time, double x, double y, double z, boolean forceUpdate);
 
 }

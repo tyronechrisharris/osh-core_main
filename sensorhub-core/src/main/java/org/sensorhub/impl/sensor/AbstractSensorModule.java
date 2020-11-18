@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import net.opengis.OgcProperty;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.TimeIndeterminateValue;
@@ -131,7 +132,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    protected void postInit()
+    protected void afterInit() throws SensorHubException
     {
         // generate random unique ID in case sensor driver hasn't generate one
         // if a random UUID has already been generated it will be restored by
@@ -152,30 +153,29 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             this.lastUpdatedSensorDescription = config.lastUpdated.getTime();
 
         // add location output if a location is provided
-        LLALocation loc = config.getLocation();
-        boolean addLocationOutput = loc != null && locationOutput == null;
-        if (addLocationOutput)
+        if (config.getLocation() != null && locationOutput == null)
             addLocationOutput(Double.NaN);
         
-        // register sensor with registry
-        register();
-        
-        // send new location event
-        if (addLocationOutput)
-            locationOutput.updateLocation(System.currentTimeMillis()/1000., loc.lon, loc.lat, loc.alt);
+        // register sensor with registry if attached to a hub
+        try
+        {
+            if (getParentHub() != null && getParentHub().getProcedureRegistry() != null)
+                getParentHub().getProcedureRegistry().register(this).get(); // for now, block here until requestInit is also async
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            throw new SensorException("Error registering driver", e.getCause());
+        }
     }
     
     
-    /**
-     * Default registration method.<br/>
-     * This must be overridden for procedure groups (sensor networks, etc.)
-     * so the caller has the opportunity to collect internal IDs assigned
-     * to group members and multiple fois.
-     */
-    protected void register()
+    @Override
+    protected void beforeStart() throws SensorHubException
     {
-        if (getParentHub() != null && getParentHub().getProcedureRegistry() != null)
-            getParentHub().getProcedureRegistry().register(this);
+        // send new location event
+        var loc = config.getLocation();
+        if (locationOutput != null && loc != null)
+            locationOutput.updateLocation(System.currentTimeMillis()/1000., loc.lon, loc.lat, loc.alt, false);
     }
 
 

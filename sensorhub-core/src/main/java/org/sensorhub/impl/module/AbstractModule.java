@@ -391,9 +391,9 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             try
             {
-                // default implementation just calls init() and postInit()
+                beforeInit();
                 init();
-                postInit();
+                afterInit();
                 setState(ModuleState.INITIALIZED);
             }
             catch (Exception e)
@@ -421,13 +421,26 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
 
 
     /**
-     * This method is called right after init().<br/>
+     * This method is called right before {@link #init()}.<br/>
      * It is typically implemented whenever a super class needs to run some logic
-     * at the end of the initialization phase even when init() is overriden by
-     * its descendants
+     * at the beginning of the initialization phase even when {@link #init()} is
+     * overriden by its descendants
      * @throws SensorHubException
      */
-    protected void postInit() throws SensorHubException
+    protected void beforeInit() throws SensorHubException
+    {
+        // to be implemented by derived classes 
+    }
+
+
+    /**
+     * This method is called right after {@link #init()}.<br/>
+     * It is typically implemented whenever a super class needs to run some logic
+     * at the end of the initialization phase even when {@link #init()} is
+     * overriden by its descendants
+     * @throws SensorHubException
+     */
+    protected void afterInit() throws SensorHubException
     {
         // to be implemented by derived classes 
     }
@@ -470,8 +483,9 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             try
             {
-                // default implementation just calls start()
+                beforeStart();
                 start();
+                afterStart();
                 setState(ModuleState.STARTED);
             }
             catch (Exception e)
@@ -480,6 +494,32 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 requestStop();
             }
         }
+    }
+
+
+    /**
+     * This method is called right before {@link #start()}.<br/>
+     * It is typically implemented whenever a super class needs to run some logic
+     * at the beginning of the start phase even when {@link #start()} is
+     * overriden by its descendants
+     * @throws SensorHubException
+     */
+    protected void beforeStart() throws SensorHubException
+    {
+        // to be implemented by derived classes 
+    }
+
+
+    /**
+     * This method is called right after {@link #start()}.<br/>
+     * It is typically implemented whenever a super class needs to run some logic
+     * at the end of the start phase even when {@link #start()} is overriden by
+     * its descendants
+     * @throws SensorHubException
+     */
+    protected void afterStart() throws SensorHubException
+    {
+        // to be implemented by derived classes 
     }
     
     
@@ -509,8 +549,9 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             try
             {
-                // default implementation just calls stop()
+                beforeStop();
                 stop();
+                afterStop();
                 clearStatus();
                 
                 // make sure we reset to LOADED if we didn't initialize correctly
@@ -524,6 +565,32 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 reportError(CANNOT_STOP_MSG, e);
             }
         }
+    }
+
+
+    /**
+     * This method is called right before {@link #stop()}.<br/>
+     * It is typically implemented whenever a super class needs to run some logic
+     * at the beginning of the stop phase even when {@link #stop()} is
+     * overriden by its descendants
+     * @throws SensorHubException
+     */
+    protected void beforeStop() throws SensorHubException
+    {
+        // to be implemented by derived classes 
+    }
+
+
+    /**
+     * This method is called right after {@link #stop()}.<br/>
+     * It is typically implemented whenever a super class needs to run some logic
+     * at the end of the stop phase even when {@link #stop()} is overriden by
+     * its descendants
+     * @throws SensorHubException
+     */
+    protected void afterStop() throws SensorHubException
+    {
+        // to be implemented by derived classes 
     }
 
 

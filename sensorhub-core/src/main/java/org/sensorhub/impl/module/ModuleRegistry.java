@@ -167,6 +167,13 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 throw new IllegalStateException("Could not start all datastores", e);
             }
         }
+                
+        // register all database modules
+        for (IModule<?> m: loadedModules.values())
+        {
+            if (m instanceof IDatabase)
+                getParentHub().getDatabaseRegistry().register((IDatabase)m);
+        }
         
         // then load all other modules
         log.info("All datastores ready. Loading all other modules");

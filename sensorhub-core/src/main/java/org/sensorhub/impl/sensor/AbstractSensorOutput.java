@@ -97,8 +97,10 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
         this.eventHandler = new BasicEventHandler();
         if (eventSrcInfo == null)
         {
-            String groupID = parentSensor.getUniqueIdentifier();
-            String sourceID = EventUtils.getProcedureOutputSourceID(groupID, getName());
+            var procUID = parentSensor.getUniqueIdentifier();
+            var groupUID = parentSensor.getParentGroupUID();
+            String groupID = groupUID != null ? groupUID : procUID;
+            String sourceID = EventUtils.getProcedureOutputSourceID(procUID, getName());
             this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
         }
         else

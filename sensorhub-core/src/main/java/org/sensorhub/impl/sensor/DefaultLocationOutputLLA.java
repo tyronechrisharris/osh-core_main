@@ -54,7 +54,7 @@ public class DefaultLocationOutputLLA extends DefaultLocationOutput
 
 
     @Override
-    protected void updateLocation(double time, double x, double y, double z)
+    protected void updateLocation(double time, double x, double y, double z, boolean forceUpdate)
     {
         // build new datablock
         DataBlock dataBlock = (latestRecord == null) ? outputStruct.createDataBlock() : latestRecord.renew();
@@ -62,11 +62,19 @@ public class DefaultLocationOutputLLA extends DefaultLocationOutput
         dataBlock.setDoubleValue(1, y);
         dataBlock.setDoubleValue(2, x);
         dataBlock.setDoubleValue(3, z);
+        
+        var locationChanged = forceUpdate || latestRecord == null ||
+            latestRecord.getDoubleValue(1) != dataBlock.getDoubleValue(1) ||
+            latestRecord.getDoubleValue(2) != dataBlock.getDoubleValue(2) ||
+            latestRecord.getDoubleValue(3) != dataBlock.getDoubleValue(3);
 
-        // update latest record and send event
-        latestRecord = dataBlock;
-        latestRecordTime = System.currentTimeMillis();
-        eventHandler.publish(new DataEvent(latestRecordTime, this, dataBlock));
+        // if location has actually changed, update latest record and send event
+        if (locationChanged)
+        {
+            latestRecord = dataBlock;
+            latestRecordTime = System.currentTimeMillis();
+            eventHandler.publish(new DataEvent(latestRecordTime, this, dataBlock));
+        }
     }
 
 }
