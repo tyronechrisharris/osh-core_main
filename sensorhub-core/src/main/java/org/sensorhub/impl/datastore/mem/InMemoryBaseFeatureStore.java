@@ -19,6 +19,7 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -35,6 +36,8 @@ import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Bbox;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.index.quadtree.Quadtree;
 
 
 /**
@@ -56,6 +59,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     ConcurrentNavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
     ConcurrentNavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
     ConcurrentNavigableMap<Long, Set<Long>> parentChildMap = new ConcurrentSkipListMap<>();
+    Quadtree spatialIndex = new Quadtree();
     Bbox allFeaturesBbox = new Bbox();
     IdProvider<? super T> idProvider = new InMemoryIdProvider<>(1);
     
@@ -71,6 +75,31 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         {
             return Long.compare(k1.getInternalID(), k2.getInternalID());
         }        
+    }
+    
+    
+    /*
+     * Mutable feature key so we can update valid time of an existing key.
+     * This is needed because many in-memory map implementations don't overwrite
+     * the key when it is equal to the existing key. 
+     */
+    static class MutableFeatureKey extends FeatureKey
+    {
+        MutableFeatureKey(long internalID, Instant validStartTime)
+        {
+            this.internalID = internalID;
+            this.validStartTime = validStartTime;
+        }
+        
+        MutableFeatureKey(FeatureKey fk)
+        {
+            this(fk.getInternalID(), fk.getValidStartTime());
+        }
+        
+        void updateValidTime(Instant validStartTime)
+        {
+            this.validStartTime = validStartTime;
+        }
     }
     
     
@@ -123,7 +152,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         else
             validStartTime = FeatureKey.TIMELESS;
         
-        return new FeatureKey(internalID, validStartTime);
+        return new MutableFeatureKey(internalID, validStartTime);
     }
     
     
@@ -215,8 +244,35 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     
     protected Stream<Entry<FeatureKey, T>> getFeaturesByParent(long parentID)
     {
-        var idStream = parentChildMap.get(parentID).stream();
-        return entryStream(idStream);
+        var children = parentChildMap.get(parentID);
+        if (children == null)
+            return Stream.empty();
+        return entryStream(children.stream());
+    }
+    
+    
+    protected Stream<Entry<FeatureKey, T>> postFilterOnParents(Stream<Entry<FeatureKey, T>> resultStream, F parentFilter)
+    {
+        var parentIdStream = DataStoreUtils.selectFeatureIDs(this, parentFilter);
+        
+        if (resultStream == null)
+        {
+            return parentIdStream.flatMap(id -> getFeaturesByParent(id));
+        }
+        else
+        {
+            // collect child ids from all selected parents
+            var allIds = new HashSet<Long>();
+            parentIdStream.forEach(id -> {
+                allIds.addAll(parentChildMap.get(id));
+            });
+            
+            // use existing result stream and post-filter to check
+            // if each item is in id set
+            return resultStream.filter(e -> {
+                return allIds.contains(e.getKey().getInternalID());
+            });
+        }
     }
     
     
@@ -226,6 +282,19 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         {
             var idStream = filter.getInternalIDs().stream();
             return entryStream(idStream);
+        }
+        
+        else if (filter.getLocationFilter() != null)
+        {
+            synchronized (spatialIndex)
+            {
+                var bbox = filter.getLocationFilter().getRoi().getEnvelopeInternal();
+                @SuppressWarnings("unchecked")
+                var idStream = (Stream<Long>)spatialIndex.query(bbox).stream()
+                    .map(k -> ((FeatureKey)k).getInternalID())
+                    .distinct();
+                return entryStream(idStream);
+            }
         }
         
         return null;
@@ -300,7 +369,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     @Override
     public T put(FeatureKey key, T feature)
     {
-        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);
+        FeatureKey fk = new MutableFeatureKey(DataStoreUtils.checkFeatureKey(key));
         DataStoreUtils.checkFeatureObject(feature);
         
         // check that no other feature with same UID exists
@@ -311,38 +380,45 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         
         // skip silently if feature currently in store is newer
         // or if new feature has a valid time in the future
-        if (( existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime()) ) || 
+        if ((existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime()) ) || 
             key.getValidStartTime().isAfter(Instant.now()) )
             return map.get(existingKey);
         
-        // otherwise update both key and value
-        // need to remove 1st to replace key object
+        // otherwise update both key and value atomically
+        /*T old = (existingKey != null) ?
+            map.compute(existingKey, (k, v) -> {
+                ((MutableFeatureKey)k).updateValidTime(fk.getValidStartTime());
+                return feature;
+            }) :
+            map.put(fk, feature);*/
         T old = map.remove(fk);
         map.put(fk, feature);
         uidMap.put(feature.getUniqueIdentifier(), fk);
         
         if (feature instanceof IGeoFeature)
-            addGeomToBbox((IGeoFeature)feature);
+            addToSpatialIndex(fk, (IGeoFeature)feature);
         
         return old;
     }
     
     
-    protected void addGeomToBbox(IGeoFeature feature)
+    protected void addToSpatialIndex(FeatureKey key, IGeoFeature feature)
     {
         if (feature.getGeometry() != null)
         {
-            var env = feature.getGeometry().getGeomEnvelope();
-            var ur = env.getUpperCorner();
-            var ll = env.getLowerCorner();
-            allFeaturesBbox.resizeToContain(ll[0], ll[1], 0);
-            allFeaturesBbox.resizeToContain(ur[0], ur[1], 0);
+            synchronized(spatialIndex)
+            {
+                var jtsEnv = ((Geometry)feature.getGeometry()).getEnvelopeInternal();
+                allFeaturesBbox.resizeToContain(jtsEnv.getMinX(), jtsEnv.getMinY(), 0);
+                allFeaturesBbox.resizeToContain(jtsEnv.getMaxX(), jtsEnv.getMaxY(), 0);
+                spatialIndex.insert(jtsEnv, key);
+            }
         }
     }
 
 
     @Override
-    public T remove(Object key)
+    public synchronized T remove(Object key)
     {
         FeatureKey fk = DataStoreUtils.checkFeatureKey(key);
         T proc = map.remove(fk);
@@ -351,7 +427,8 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             uidMap.remove(proc.getUniqueIdentifier());
             
             // also remove parent assoc
-            
+            for (var childIDs: parentChildMap.values())
+                childIDs.remove(fk.getInternalID());
         }
         return proc;
     }

@@ -26,6 +26,7 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.utils.OshAsserts;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -76,7 +77,7 @@ public class DataStoreUtils
     
     public static String checkUniqueID(String uid)
     {
-        return Asserts.checkNotNull(uid, "uniqueID");
+        return OshAsserts.checkValidUID(uid);
     }
     
     public static void checkParentFeatureExists(IFeatureStoreBase<?,?,?> dataStore, long parentID)

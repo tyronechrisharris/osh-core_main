@@ -20,7 +20,6 @@ import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
-import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 
@@ -46,7 +45,7 @@ public class InMemoryFeatureStore extends InMemoryBaseFeatureStore<IGeoFeature, 
     
     public InMemoryFeatureStore(IdProvider<? super IGeoFeature> idProvider)
     {
-        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);            
+        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
     }
     
     
@@ -55,11 +54,8 @@ public class InMemoryFeatureStore extends InMemoryBaseFeatureStore<IGeoFeature, 
     {
         var resultStream = super.getIndexedStream(filter);
         
-        if (resultStream == null && filter.getParentFilter() != null)
-        {
-            resultStream = DataStoreUtils.selectFeatureIDs(this, filter.getParentFilter())
-                .flatMap(id -> getFeaturesByParent(id));
-        }
+        if (filter.getParentFilter() != null)
+            return postFilterOnParents(resultStream, filter.getParentFilter());
         
         return resultStream;
     }
