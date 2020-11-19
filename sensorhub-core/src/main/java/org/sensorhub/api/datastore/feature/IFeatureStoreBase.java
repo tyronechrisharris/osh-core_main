@@ -113,40 +113,6 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     /**
-     * Helper method to retrieve the full key corresponding to the current version
-     * of the feature with the given unique ID
-     * @param uid The feature unique ID
-     * @return The feature key or null if no feature with the given ID was found
-     */
-    public default FeatureKey getCurrentVersionKey(String uid)
-    {
-        return selectKeys(filterBuilder()
-                .withUniqueIDs(uid)
-                .withCurrentVersion()
-                .build())
-            .findFirst()
-            .orElse(null);
-    }
-    
-    
-    /**
-     * Helper method to retrieve the full key corresponding to the current version
-     * of the feature with the given internal ID
-     * @param internalID The feature internal ID
-     * @return The feature key or null if no feature with the given ID was found
-     */
-    public default FeatureKey getCurrentVersionKey(long internalID)
-    {
-        return selectKeys(filterBuilder()
-                .withInternalIDs(internalID)
-                .withCurrentVersion()
-                .build())
-            .findFirst()
-            .orElse(null);
-    }
-    
-    
-    /**
      * Helper method to retrieve the entry corresponding to the current version
      * of the feature with the given unique ID
      * @param uid The feature unique ID
@@ -181,6 +147,32 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     /**
+     * Helper method to retrieve the full key corresponding to the current version
+     * of the feature with the given unique ID
+     * @param uid The feature unique ID
+     * @return The feature key or null if no feature with the given ID was found
+     */
+    public default FeatureKey getCurrentVersionKey(String uid)
+    {
+        var e = getCurrentVersionEntry(uid);
+        return e != null ? e.getKey() : null;
+    }
+    
+    
+    /**
+     * Helper method to retrieve the full key corresponding to the current version
+     * of the feature with the given internal ID
+     * @param internalID The feature internal ID
+     * @return The feature key or null if no feature with the given ID was found
+     */
+    public default FeatureKey getCurrentVersionKey(long internalID)
+    {
+        var e = getCurrentVersionEntry(internalID);
+        return e != null ? e.getKey() : null;
+    }
+    
+    
+    /**
      * Helper method to retrieve the current version of the feature with the given
      * unique ID
      * @param uid The feature unique ID
@@ -189,7 +181,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      */
     public default V getCurrentVersion(String uid)
     {
-        Entry<FeatureKey, V> e = getCurrentVersionEntry(uid);
+        var e = getCurrentVersionEntry(uid);
         return e != null ? e.getValue() : null;
     }
     
@@ -203,7 +195,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      */
     public default V getCurrentVersion(long internalID)
     {
-        Entry<FeatureKey, V> e = getCurrentVersionEntry(internalID);
+        var e = getCurrentVersionEntry(internalID);
         return e != null ? e.getValue() : null;
     }
     
