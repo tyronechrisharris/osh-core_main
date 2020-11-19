@@ -16,9 +16,9 @@ package org.sensorhub.api.data;
 
 import java.time.Instant;
 import org.sensorhub.api.procedure.ProcedureEvent;
+import org.sensorhub.api.utils.OshAsserts;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
-import com.google.common.base.Strings;
 
 
 /**
@@ -48,12 +48,8 @@ public class FoiEvent extends ProcedureEvent
 	public FoiEvent(long timeStamp, String procUID, String foiUID, Instant startTime)
     {
         super(timeStamp, procUID);
-
-        Asserts.checkArgument(!Strings.isNullOrEmpty(foiUID), "FOI UID must be set");
-        Asserts.checkNotNull(startTime, "startTime");
-
-        this.foiUID = foiUID;
-        this.startTime = startTime;
+        this.foiUID = OshAsserts.checkValidUID(foiUID);
+        this.startTime = Asserts.checkNotNull(startTime, "startTime");
     }
 
 
@@ -70,7 +66,7 @@ public class FoiEvent extends ProcedureEvent
 	        producer.getUniqueIdentifier(),
 	        foiUID,
 	        startTime);
-        this.source = producer;
+        this.source = Asserts.checkNotNull(producer, IDataProducer.class);
 	}
 
 
@@ -87,7 +83,7 @@ public class FoiEvent extends ProcedureEvent
 	        producer.getUniqueIdentifier(),
 	        foi.getUniqueIdentifier(),
 	        startTime);
-        this.source = producer;
+        this.source = Asserts.checkNotNull(producer, IDataProducer.class);
         this.foi = foi;
     }
 

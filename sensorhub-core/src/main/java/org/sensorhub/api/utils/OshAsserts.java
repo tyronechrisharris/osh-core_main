@@ -24,8 +24,14 @@ public class OshAsserts
     
     public static String checkValidUID(String uid)
     {
-        Asserts.checkNotNull(uid, "UniqueID");
-        Asserts.checkArgument(uid.length() > UID_MIN_CHARS, "Unique ID must be at least " + UID_MIN_CHARS + " characters long");
+        return checkValidUID(uid, "UniqueID");
+    }
+    
+    
+    public static String checkValidUID(String uid, String idName)
+    {
+        Asserts.checkNotNull(uid, idName);
+        Asserts.checkArgument(uid.length() > UID_MIN_CHARS, "{} must be at least {} characters long", idName, UID_MIN_CHARS);
         return uid;
     }
     
