@@ -35,52 +35,68 @@ public interface ISubscriptionBuilder<E extends Event>
 {
     
     /**
-     * Add one or more sources to the subscription<br/>
-     * The source ID can also contain a trailing wildcard (e.g. "mysource/*")
-     * @param sourceIDs IDs of sources to subscribe to
-     * @return this builder for chaining
+     * Add one or more topics to the subscription<br/>
+     * Topic IDs can also contain a trailing wildcard (e.g. "mysource/*")
+     * @param topicIDs One or more topic IDs
+     * @return This builder for chaining
      */
-    ISubscriptionBuilder<E> withSourceID(String... sourceIDs);
+    ISubscriptionBuilder<E> withTopicID(String... topicIDs);
     
     
     /**
-     * Add one or more sources to the subscription<br/>
-     * Source IDs can also contain a trailing wildcard (e.g. "mysource/*")
-     * @param sourceIDs collection containing IDs of sources to subscribe to
-     * @return this builder for chaining
+     * Add one or more topics to the subscription<br/>
+     * Topic IDs can also contain a trailing wildcard (e.g. "mysource/*")
+     * @param topicIDs Collection of topics IDs to subscribe to
+     * @return This builder for chaining
      */
-    ISubscriptionBuilder<E> withSourceIDs(Iterable<String> sourceIDs);
+    ISubscriptionBuilder<E> withTopicIDs(Iterable<String> topicIDs);
     
     
     /**
      * Add one or more sources to the subscription.
-     * @param sources event producers to subscribe to
-     * @return this builder for chaining
+     * @param sources One or more event producers to subscribe to
+     * @return This builder for chaining
      */
     ISubscriptionBuilder<E> withSource(IEventSource... sources);
     
     
     /**
      * Add one or more sources to the subscription
-     * @param sources collection of event producers to subscribe to
-     * @return this builder for chaining
+     * @param sources Collection of event producers to subscribe to
+     * @return This builder for chaining
      */
     ISubscriptionBuilder<E> withSources(Iterable<IEventSource> sources);
     
     
     /**
+     * Add one or more event sources to the subscription
+     * @param sourcesInfo One or more event sources to subscribe to
+     * @return This builder for chaining
+     */
+    ISubscriptionBuilder<E> withSourceInfo(IEventSourceInfo... sourcesInfo);
+    
+    
+    /**
+     * Add one or more event sources to the subscription
+     * @param sourcesInfo Collection of event sources to subscribe to
+     * @return This builder for chaining
+     */
+    ISubscriptionBuilder<E> withSourceInfos(Iterable<IEventSourceInfo> sourcesInfo);
+    
+    
+    /**
      * Include only events of the specified type<br/>
      * This method can be called several times to include more types
-     * @param type the accepted event types/classes
-     * @return @return this builder for chaining
+     * @param type The accepted event types/classes
+     * @return @return This builder for chaining
      */
     ISubscriptionBuilder<E> withEventType(Class<? extends E> type);
     
     
     /**
      * Filter events using a custom predicate
-     * @param filter event filter predicate
-     * @return this builder for chaining
+     * @param filter Event filter predicate
+     * @return This builder for chaining
      */
     ISubscriptionBuilder<E> withFilter(Predicate<? super E> filter);
     
@@ -88,8 +104,8 @@ public interface ISubscriptionBuilder<E extends Event>
     /**
      * Subscribe asynchronously with a reactive stream subscriber that allows
      * controlling the flow of the subscription (i.e. by applying back pressure) 
-     * @param subscriber subscriber that will receive events
-     * @return a future that will be notified when the subscription is ready
+     * @param subscriber Subscriber that will receive events
+     * @return A future that will be notified when the subscription is ready
      */
     CompletableFuture<Subscription> subscribe(Subscriber<? super E> subscriber);
     
@@ -97,8 +113,8 @@ public interface ISubscriptionBuilder<E extends Event>
     /**
      * Subscribe asynchronously with the specified callbacks and the ability
      * to control the flow of the subscription (i.e. by applying back pressure)
-     * @param onNext callback invoked every time a new event is available
-     * @return a future that will be notified when the subscription is ready
+     * @param onNext Callback invoked every time a new event is available
+     * @return A future that will be notified when the subscription is ready
      */
     CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext);
     
@@ -106,10 +122,10 @@ public interface ISubscriptionBuilder<E extends Event>
     /**
      * Subscribe asynchronously with the specified callbacks and the ability
      * to control the flow of the subscription (i.e. by applying back pressure)
-     * @param onNext callback invoked every time a new event is available
-     * @param onError callback invoked if an error occurs while delivering 
+     * @param onNext Callback invoked every time a new event is available
+     * @param onError Callback invoked if an error occurs while delivering 
      * events to this subscription (e.g. the onNext callback throws an exception)
-     * @return a future that will be notified when the subscription is ready
+     * @return A future that will be notified when the subscription is ready
      */
     CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext, Consumer<Throwable> onError);
     
@@ -117,12 +133,12 @@ public interface ISubscriptionBuilder<E extends Event>
     /**
      * Subscribe asynchronously with the specified callbacks and the ability
      * to control the flow of the subscription (i.e. by applying back pressure)
-     * @param onNext callback invoked every time a new event is available
-     * @param onError callback invoked if an error occurs while delivering 
+     * @param onNext Callback invoked every time a new event is available
+     * @param onError Callback invoked if an error occurs while delivering 
      * events to this subscription (e.g. the onNext callback throws an exception)
-     * @param onComplete callback invoked when the subscription is closed by
+     * @param onComplete Callback invoked when the subscription is closed by
      * the publisher (i.e. no more events will be delivered to this subscription)
-     * @return a future that will be notified when the subscription is ready
+     * @return A future that will be notified when the subscription is ready
      */
     CompletableFuture<Subscription> subscribe(Consumer<? super E> onNext, Consumer<Throwable> onError, Runnable onComplete);
     
@@ -130,8 +146,8 @@ public interface ISubscriptionBuilder<E extends Event>
     /**
      * Subscribe asynchronously with a simple consumer without flow
      * control (back pressure) capability
-     * @param consumer callback that will receive the events
-     * @return a future that will be notified when the subscription is ready
+     * @param consumer Callback that will receive the events
+     * @return A future that will be notified when the subscription is ready
      */
     CompletableFuture<Subscription> consume(Consumer<? super E> consumer);
     

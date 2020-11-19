@@ -55,7 +55,7 @@ public class EventSourceInfo implements IEventSourceInfo
     @Override
     public String toString()
     {
-        return (groupID == null ? "" : groupID) + " | " + sourceID;        
+        return sourceID + (groupID == null ? "" : " (group "+groupID+")");        
     }
     
 

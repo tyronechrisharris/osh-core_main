@@ -50,7 +50,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                             {
                                 //getParentHub().getEventBus().registerListener(config.moduleIDNeededForInit, AsyncModule.this);
                                 getParentHub().getEventBus().newSubscription()
-                                    .withSourceID(config.moduleIDNeededForInit)
+                                    .withTopicID(config.moduleIDNeededForInit)
                                     .consume(AsyncModule.this::handleEvent);
                                 return null;
                             }
@@ -118,7 +118,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                             {
                                 //getParentHub().getEventBus().registerListener(config.moduleIDNeededForStart, AsyncModule.this);
                                 getParentHub().getEventBus().newSubscription()
-                                    .withSourceID(config.moduleIDNeededForStart)
+                                    .withTopicID(config.moduleIDNeededForStart)
                                     .consume(AsyncModule.this::handleEvent);
                                 return null;
                             }

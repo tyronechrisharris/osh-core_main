@@ -409,7 +409,7 @@ public class TestModuleRegistry
         long timeOut = 10000;
         
         hub.getEventBus().newSubscription(ModuleEvent.class)
-            .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
+            .withTopicID(ModuleRegistry.EVENT_GROUP_ID)
             .consume(e -> {
                 System.out.println(">> Received " + e.getType() + (e.getNewState() != null ? " -> " + e.getNewState() : ""));
                 if (e.getNewState() == ModuleState.INITIALIZED)

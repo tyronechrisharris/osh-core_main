@@ -134,7 +134,7 @@ public class TestEventBus
             SubscriberInfo sub = subscribers[subId];
 
             bus.newSubscription()
-                .withSourceIDs(sub.sourceIds)
+                .withTopicIDs(sub.sourceIds)
                 .withFilter(sub.filter)
                 .subscribe(new Subscriber<Event>() {
                     @Override
@@ -372,7 +372,7 @@ public class TestEventBus
         AtomicInteger count = new AtomicInteger();
 
         bus.newSubscription(TestEvent.class)
-            .withSourceID(SOURCES[0])
+            .withTopicID(SOURCES[0])
             .subscribe(new Subscriber<TestEvent>() {
                 @Override
                 public void onNext(TestEvent item)
@@ -422,7 +422,7 @@ public class TestEventBus
         AtomicInteger count = new AtomicInteger();
 
         bus.newSubscription(TestEvent.class)
-            .withSourceID(sources)
+            .withTopicID(sources)
             .consume(e -> {
                 count.incrementAndGet();
                 doneSignal.countDown();

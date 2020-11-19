@@ -74,20 +74,20 @@ public class EventBus implements IEventBus
     
     
     /*
-     * Ensures a publisher is created for this sourceID.
+     * Ensures a publisher is created for this topicID.
      * 1. If a publisher already exists, it is returned.
      * 2. If the previously registered publisher was just a placeholder it is
      *    converted to a full fledged publisher.
      * 3. Otherwise a new publisher is created.
      */
-    protected IEventPublisher ensurePublisher(final String sourceID, final Supplier<IEventPublisher> supplier)
+    protected IEventPublisher ensurePublisher(final String topicID, final Supplier<IEventPublisher> supplier)
     {
-        return publishers.compute(sourceID, (id, pub) -> {
+        return publishers.compute(topicID, (id, pub) -> {
             // if there is a placeholder, replace by actual publisher
             boolean hasPlaceHolder = pub instanceof PlaceHolderPublisher;
             if (pub == null || hasPlaceHolder)
             {
-                log.debug("Creating publisher for {}", sourceID);
+                log.debug("Creating publisher for {}", topicID);
                 IEventPublisher newPublisher = supplier.get();
                 
                 if (hasPlaceHolder)
@@ -101,25 +101,25 @@ public class EventBus implements IEventBus
     
     
     @Override
-    public synchronized IEventPublisher getPublisher(String sourceID)
+    public synchronized IEventPublisher getPublisher(String topicID)
     {
-        Asserts.checkNotNull(sourceID, "sourceID");
+        Asserts.checkNotNull(topicID, "topicID");
         
-        return ensurePublisher(sourceID,
-            () -> new FilteredEventPublisher(sourceID, threadPool, MAX_BUFFER_CAPACITY, log) );
+        return ensurePublisher(topicID,
+            () -> new FilteredEventPublisher(topicID, threadPool, MAX_BUFFER_CAPACITY, log) );
     }
         
     
     @Override
-    public synchronized IEventPublisher getPublisher(String groupID, String sourceID)
+    public synchronized IEventPublisher getPublisher(String groupID, String topicID)
     {
         Asserts.checkNotNull(groupID, "groupID");
-        Asserts.checkNotNull(sourceID, "sourceID");
+        Asserts.checkNotNull(topicID, "topicID");
         
         IEventPublisher groupPublisher = getPublisher(groupID);
-        return ensurePublisher(sourceID, () -> {
+        return ensurePublisher(topicID, () -> {
             log.debug("Publisher group = {}", groupID);
-            return new FilteredEventPublisherWrapper(groupPublisher, sourceID, e -> sourceID.equals(e.getSourceID()));
+            return new FilteredEventPublisherWrapper(groupPublisher, topicID, e -> topicID.equals(e.getSourceID()));
         });
     }
     
@@ -162,9 +162,9 @@ public class EventBus implements IEventBus
     /*
      * Register one subscriber to a single source
      */
-    synchronized void subscribe(String sourceID, Subscriber<Event> subscriber)
+    synchronized void subscribe(String topicID, Subscriber<Event> subscriber)
     {
-        IEventPublisher publisher = publishers.computeIfAbsent(sourceID, id -> new PlaceHolderPublisher());
+        IEventPublisher publisher = publishers.computeIfAbsent(topicID, id -> new PlaceHolderPublisher());
         publisher.subscribe(subscriber);
     }
     
@@ -173,34 +173,34 @@ public class EventBus implements IEventBus
      * Register subscriber to a single source with a filter
      */
     @SuppressWarnings("unchecked")
-    synchronized <E extends Event> void subscribe(String sourceID, Predicate<? super E> filter, Subscriber<? super E> subscriber)
+    synchronized <E extends Event> void subscribe(String topicID, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
         if (filter == null)
-            subscribe(sourceID, (Subscriber<Event>)subscriber);
+            subscribe(topicID, (Subscriber<Event>)subscriber);
         else
-            subscribe(sourceID, (Subscriber<Event>)new FilteredSubscriber<E>(subscriber, filter));
+            subscribe(topicID, (Subscriber<Event>)new FilteredSubscriber<E>(subscriber, filter));
     }
     
     
     /*
      * Register subscriber to multiple sources, with an optional filter
      */
-    <E extends Event> void subscribeMulti(Set<String> sourceIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
+    <E extends Event> void subscribeMulti(Set<String> topicIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
-        AggregateSubscription<E> sub = new AggregateSubscription<>(subscriber, sourceIDs.size());
+        AggregateSubscription<E> sub = new AggregateSubscription<>(subscriber, topicIDs.size());
         
-        for (String sourceID: sourceIDs)
-            subscribe(sourceID, filter, sub);
+        for (String topicID: topicIDs)
+            subscribe(topicID, filter, sub);
     }
     
     
     /*
      * Register subscriber to multiple sources in the same group, with an optional filter
      */
-    <E extends Event> void subscribeMulti(String groupID, Set<String> sourceIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
+    <E extends Event> void subscribeMulti(String groupID, Set<String> topicIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
         //  create filter with list of sources
-        Predicate<? super E> groupFilter = e -> sourceIDs.contains(e.getSourceID()) && filter.test(e);
+        Predicate<? super E> groupFilter = e -> topicIDs.contains(e.getSourceID()) && filter.test(e);
         
         // subscribe to entire group with filter
         subscribe(groupID, groupFilter, subscriber);

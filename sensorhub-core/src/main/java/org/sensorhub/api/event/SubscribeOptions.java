@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
@@ -92,17 +93,17 @@ public class SubscribeOptions<E extends Event>
         }
         
         
-        public B withSourceID(String... sourceIDs)
+        public B withTopicID(String... topicIDs)
         {
-            return withSourceIDs(Arrays.asList(sourceIDs));
+            return withTopicIDs(Arrays.asList(topicIDs));
         }
         
         
-        public B withSourceIDs(Iterable<String> sourceIDs)
+        public B withTopicIDs(Iterable<String> topicIDs)
         {
-            for (String id: sourceIDs)
+            for (String id: topicIDs)
             {
-                Asserts.checkNotNull(id, "sourceID");
+                Asserts.checkNotNull(id, "topicID");
                 instance.sourceIDs.add(id);
             }
             return (B)this;
@@ -117,13 +118,32 @@ public class SubscribeOptions<E extends Event>
         
         public B withSources(Iterable<IEventSource> sources)
         {
+            var srcInfoList = new ArrayList<IEventSourceInfo>();
+            
             for (IEventSource s: sources)
             {
                 Asserts.checkNotNull(s.getEventSourceInfo().getSourceID(), "sourceID");
-                instance.sourceIDs.add(s.getEventSourceInfo().getSourceID());
+                srcInfoList.add(s.getEventSourceInfo());
+            }
+            
+            return withSourceInfos(srcInfoList);
+        }
+        
+        
+        public B withSourceInfo(IEventSourceInfo... sourcesInfo)
+        {
+            return withSourceInfos(Arrays.asList(sourcesInfo));
+        }
+        
+        
+        public B withSourceInfos(Iterable<IEventSourceInfo> sourcesInfo)
+        {
+            for (IEventSourceInfo s: sourcesInfo)
+            {
+                instance.sourceIDs.add(s.getSourceID());
                 
                 // set/keep group ID only if all sources are in the same group
-                String groupID = s.getEventSourceInfo().getGroupID();
+                String groupID = s.getGroupID();
                 if (instance.groupID == null)
                     instance.groupID = groupID;
                 else if (!Objects.equals(groupID, instance.groupID))
