@@ -111,7 +111,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
 
 
     @Override
-    public FeatureKey add(long parentID, T feature)
+    public synchronized FeatureKey add(long parentID, T feature)
     {        
         var uid = DataStoreUtils.checkFeatureObject(feature);
         DataStoreUtils.checkParentFeatureExists(this, parentID);
@@ -367,7 +367,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
 
 
     @Override
-    public T put(FeatureKey key, T feature)
+    public synchronized T put(FeatureKey key, T feature)
     {
         FeatureKey fk = new MutableFeatureKey(DataStoreUtils.checkFeatureKey(key));
         DataStoreUtils.checkFeatureObject(feature);
@@ -384,17 +384,28 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             key.getValidStartTime().isAfter(Instant.now()) )
             return map.get(existingKey);
         
-        // otherwise update both key and value atomically
-        /*T old = (existingKey != null) ?
-            map.compute(existingKey, (k, v) -> {
-                ((MutableFeatureKey)k).updateValidTime(fk.getValidStartTime());
+        // otherwise update main map
+        // update both key and value atomically
+        T old;
+        if (existingKey != null)
+        {
+            Instant newValidStartTime = fk.getValidStartTime();
+            old = map.compute(existingKey, (k, v) -> {
+                ((MutableFeatureKey)k).updateValidTime(newValidStartTime);
                 return feature;
-            }) :
-            map.put(fk, feature);*/
-        T old = map.remove(fk);
-        map.put(fk, feature);
-        uidMap.put(feature.getUniqueIdentifier(), fk);
+            });
+            
+            // make sure form now on we use the same key object
+            // as the one already in the main map
+            fk = existingKey;
+        }
+        else
+            old = map.put(fk, feature);
+        /*T old = map.remove(fk);
+        map.put(fk, feature);*/
         
+        // update other indexes
+        uidMap.put(feature.getUniqueIdentifier(), fk);        
         if (feature instanceof IGeoFeature)
             addToSpatialIndex(fk, (IGeoFeature)feature);
         
