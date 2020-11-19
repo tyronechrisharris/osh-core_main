@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl;
 
+import java.util.concurrent.ForkJoinPool;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
@@ -96,6 +97,9 @@ public class SensorHub implements ISensorHub
     {
         log.info("*****************************************");
         log.info("Starting SensorHub...");
+        log.info("Version : {}", ModuleUtils.getModuleInfo(getClass()).getModuleVersion());
+        log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
+        log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
         
         // prepare client authenticator (e.g. for HTTP connections, etc...)
         ClientAuth.createInstance("keystore");
