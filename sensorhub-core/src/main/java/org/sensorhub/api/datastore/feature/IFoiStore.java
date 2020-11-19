@@ -41,6 +41,9 @@ public interface IFoiStore extends IFeatureStoreBase<IGeoFeature, FoiField, FoiF
         }
     }
     
+    //public void addSampledFeatureAssociation(long featureID, long foiID);
+    //public void removeSampledFeatureAssociation(long featureID, long foiID);
+    
     
     @Override
     public default FoiFilter.Builder filterBuilder()
