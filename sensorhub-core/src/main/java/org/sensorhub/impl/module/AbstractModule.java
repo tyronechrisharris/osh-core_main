@@ -74,6 +74,12 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     }
     
     
+    public boolean hasParentHub()
+    {
+        return hub != null;
+    }
+    
+    
     @Override
     public String getName()
     {

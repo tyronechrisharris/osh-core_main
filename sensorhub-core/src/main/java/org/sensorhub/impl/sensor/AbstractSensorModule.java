@@ -159,7 +159,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         // register sensor with registry if attached to a hub
         try
         {
-            if (getParentHub() != null && getParentHub().getProcedureRegistry() != null)
+            if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
                 getParentHub().getProcedureRegistry().register(this).get(); // for now, block here until requestInit is also async
         }
         catch (ExecutionException | InterruptedException e)
