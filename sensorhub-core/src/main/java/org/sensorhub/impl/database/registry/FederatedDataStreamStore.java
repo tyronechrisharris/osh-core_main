@@ -12,7 +12,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.registry;
+package org.sensorhub.impl.database.registry;
 
 import java.util.AbstractMap;
 import java.util.Map;
@@ -27,9 +27,9 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
-import org.sensorhub.impl.datastore.registry.DefaultDatabaseRegistry.LocalFilterInfo;
 import org.vast.util.Asserts;
 
 
