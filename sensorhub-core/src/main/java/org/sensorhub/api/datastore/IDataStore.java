@@ -190,16 +190,12 @@ public interface IDataStore<K, V, VF extends ValueField, Q extends IQueryFilter>
 
 
     /**
-     * @return true if reading from this datastore is supported
+     * @return true if the datastore is read-only, false otherwise
      */
-    public boolean isReadSupported();
-
-
-    /**
-     * @return true if writing to this datastore is supported,
-     * false if read-only
-     */
-    public boolean isWriteSupported();
+    public default boolean isReadOnly()
+    {
+        return false;
+    }
     
     
     /**

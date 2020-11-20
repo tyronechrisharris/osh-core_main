@@ -52,4 +52,13 @@ public interface IDatabase
      */
     void commit();
     
+    
+    /**
+     * @return True if the database is read-only, false otherwise
+     */
+    default boolean isReadOnly()
+    {
+        return false;
+    }
+    
 }

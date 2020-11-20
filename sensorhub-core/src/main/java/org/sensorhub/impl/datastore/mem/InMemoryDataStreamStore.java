@@ -350,16 +350,9 @@ public class InMemoryDataStreamStore implements IDataStreamStore
 
 
     @Override
-    public boolean isReadSupported()
+    public boolean isReadOnly()
     {
-        return true;
-    }
-
-
-    @Override
-    public boolean isWriteSupported()
-    {
-        return true;
+        return false;
     }
     
     

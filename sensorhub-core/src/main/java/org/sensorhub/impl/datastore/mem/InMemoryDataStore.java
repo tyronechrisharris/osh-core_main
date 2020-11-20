@@ -43,14 +43,8 @@ abstract class InMemoryDataStore
     }
     
 
-    public boolean isReadSupported()
+    public boolean isReadOnly()
     {
-        return true;
-    }
-    
-
-    public boolean isWriteSupported()
-    {
-        return true;
+        return false;
     }
 }
