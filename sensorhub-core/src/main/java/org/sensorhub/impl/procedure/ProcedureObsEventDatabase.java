@@ -66,6 +66,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             Asserts.checkNotNull(db.getProcedureStore(), IProcedureStore.class);
             Asserts.checkNotNull(db.getFoiStore(), IFoiStore.class);
             Asserts.checkNotNull(db.getObservationStore(), IObsStore.class);
+            Asserts.checkState(!db.isReadOnly(), "Database is read-only");
         }
         catch (Exception e)
         {
