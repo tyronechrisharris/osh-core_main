@@ -16,6 +16,7 @@ package org.sensorhub.impl.datastore.registry;
 
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -129,6 +130,9 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         // case of database w/ event handler
         if (db instanceof IProcedureEventHandlerDatabase)
         {
+            if (db.isReadOnly())
+                throw new IllegalStateException("Cannot use a read-only database to collect procedure & obs data");
+            
             for (var procUID: ((IProcedureEventHandlerDatabase) db).getHandledProcedures())
                 registerMapping(procUID, databaseID);
         }
@@ -204,6 +208,13 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         }
         
         return dbID == null ? null : obsDatabases.get(dbID);
+    }
+    
+    
+    @Override
+    public Collection<IProcedureObsDatabase> getProcedureObsDatabases()
+    {
+        return Collections.unmodifiableCollection(obsDatabases.values());
     }
 
 

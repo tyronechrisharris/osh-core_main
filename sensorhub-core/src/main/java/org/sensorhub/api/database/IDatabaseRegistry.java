@@ -16,6 +16,7 @@ package org.sensorhub.api.database;
 
 import java.math.BigInteger;
 import java.util.Collection;
+import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 
 
 /**
@@ -44,17 +45,20 @@ public interface IDatabaseRegistry
 {
 
     /**
-     * Sets the database that should be queried when no other
+     * Register a database to be exposed through the federated database.
+     * <br/><br/>
+     * If the database is a {@link IProcedureEventHandlerDatabase} a mapping is
+     * registered with the procedure UIDs obtained by calling the
+     * {@link IProcedureEventHandlerDatabase#getHandledProcedures() getHandledProcedures()}
+     * method 
      * @param db
-     *
-    void setDefaultDatabase(IHistoricalObsDatabase db);*/
-    
-    
+     */
     void register(IDatabase db);
 
 
     /**
-     * Registers a procedure to observation database mapping.
+     * Registers a procedure/observation database and configure the registry to write
+     * data produced by the specified procedure to it.
      * <p>This can be called multiple times to register multiple mappings with the
      * same database instance. However, several databases cannot contain data for
      * the same procedure so a given procedure UID cannot be mapped to different
@@ -63,6 +67,7 @@ public interface IDatabaseRegistry
      * procedure at the time of the call.</p>
      * @param procedureUID Unique ID of procedure to associate with the database
      * @param db A database instance
+     * @throws IllegalArgumentException if the database is not writable
      */
     void register(String procedureUID, IProcedureObsDatabase db);
 
@@ -129,7 +134,13 @@ public interface IDatabaseRegistry
     IProcedureObsDatabase getFederatedObsDatabase();
     
     
-    //Collection<IProcedureObsDatabase> getProcedureObsDatabases();
+    /**
+     * @return a read-only collection of all procedure/obs databases registered
+     * on the hub
+     */
+    Collection<IProcedureObsDatabase> getProcedureObsDatabases();
+    
+    
     //Collection<IProcedureObsDatabase> getProcedureObsDatabaseViews();   
     
 
