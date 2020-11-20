@@ -1,4 +1,4 @@
-/***************************** BEGIN LICENSE BLOCK ***************************
+    /***************************** BEGIN LICENSE BLOCK ***************************
 
 The contents of this file are subject to the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one
@@ -12,11 +12,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.registry;
+package org.sensorhub.impl.datastore.mem;
 
 import org.sensorhub.impl.datastore.AbstractTestDataStreamStore;
-import org.sensorhub.impl.datastore.mem.InMemoryDataStreamStore;
-import org.sensorhub.impl.datastore.mem.InMemoryObsStore;
 
 
 public class TestInMemDataStreamStore extends AbstractTestDataStreamStore<InMemoryDataStreamStore>

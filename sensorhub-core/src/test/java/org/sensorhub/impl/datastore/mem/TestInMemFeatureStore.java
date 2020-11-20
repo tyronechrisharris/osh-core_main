@@ -12,15 +12,13 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.registry;
+package org.sensorhub.impl.datastore.mem;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import org.junit.Test;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
-import org.sensorhub.impl.datastore.mem.InMemoryFeatureStore;
-import org.sensorhub.impl.datastore.mem.InMemoryIdProvider;
 
 
 public class TestInMemFeatureStore extends AbstractTestFeatureStore<InMemoryFeatureStore>

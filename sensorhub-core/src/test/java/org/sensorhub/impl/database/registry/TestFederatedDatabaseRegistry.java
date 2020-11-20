@@ -12,7 +12,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.registry;
+package org.sensorhub.impl.database.registry;
 
 import static org.junit.Assert.*;
 import org.junit.Before;

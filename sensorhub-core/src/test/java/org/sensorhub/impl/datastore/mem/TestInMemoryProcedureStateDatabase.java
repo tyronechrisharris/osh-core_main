@@ -12,7 +12,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.registry;
+package org.sensorhub.impl.datastore.mem;
 
 import static org.junit.Assert.assertEquals;
 import java.time.OffsetDateTime;
@@ -21,7 +21,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
-import org.sensorhub.impl.datastore.mem.InMemoryProcedureStateDatabase;
 import org.vast.ogc.gml.ITemporalFeature;
 
 
