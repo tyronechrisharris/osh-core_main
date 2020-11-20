@@ -30,6 +30,8 @@ import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.utils.OshAsserts;
+import org.sensorhub.impl.database.obs.ProcedureObsEventDatabase;
+import org.sensorhub.impl.database.obs.ProcedureObsEventDatabaseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IGeoFeature;
@@ -82,7 +84,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             procStateDb.init(dbListenerConfig);
             procStateDb.start();
             
-            hub.getDatabaseRegistry().register(procStateDb.db);            
+            hub.getDatabaseRegistry().register(procStateDb.getWrappedDatabase());            
         }
         catch (Exception e)
         {
@@ -211,7 +213,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     @Override
     public IProcedureStateDatabase getProcedureStateDatabase()
     {
-        return (IProcedureStateDatabase)procStateDb.db;
+        return (IProcedureStateDatabase)procStateDb.getWrappedDatabase();
     }
 
 

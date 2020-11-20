@@ -12,7 +12,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.procedure;
+package org.sensorhub.impl.database.obs;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -158,5 +158,11 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     public IDataStreamStore getDataStreamStore()
     {
         return db.getDataStreamStore();
+    }
+    
+    
+    public IProcedureObsDatabase getWrappedDatabase()
+    {
+        return db;
     }
 }

@@ -12,25 +12,24 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.procedure;
+package org.sensorhub.impl.database.obs;
 
 import java.util.Set;
 import java.util.TreeSet;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.database.DatabaseConfig;
-import org.sensorhub.impl.datastore.obs.HistoricalObsAutoPurgeConfig;
 
 
 /**
  * <p>
- * Config class for {@link ProcedureObsEventDatabase}.
+ * Config class for {@link GenericObsEventDatabase}.
  * </p>
  *
  * @author Alex Robin
- * @date Nov 18, 2020
+ * @date Sep 23, 2019
  */
-public class ProcedureObsEventDatabaseConfig extends DatabaseConfig
+public class GenericObsEventDatabaseConfig extends DatabaseConfig
 {
     
     @Required
@@ -59,8 +58,8 @@ public class ProcedureObsEventDatabaseConfig extends DatabaseConfig
     public boolean processEvents = true;
     
     
-    public ProcedureObsEventDatabaseConfig()
+    public GenericObsEventDatabaseConfig()
     {
-        this.moduleClass = ProcedureObsEventDatabase.class.getCanonicalName();
+        this.moduleClass = GenericObsEventDatabase.class.getCanonicalName();
     }
 }

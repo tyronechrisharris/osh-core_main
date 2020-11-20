@@ -12,7 +12,7 @@ Copyright (C) 2012-2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.obs;
+package org.sensorhub.impl.database.obs;
 
 import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
 import org.sensorhub.api.database.IProcedureObsDatabase;

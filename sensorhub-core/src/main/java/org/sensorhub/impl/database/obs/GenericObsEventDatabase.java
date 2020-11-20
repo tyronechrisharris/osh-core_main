@@ -12,7 +12,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.obs;
+package org.sensorhub.impl.database.obs;
 
 import java.math.BigInteger;
 import java.time.Instant;

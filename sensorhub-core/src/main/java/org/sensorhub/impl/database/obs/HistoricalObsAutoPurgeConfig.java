@@ -12,7 +12,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.obs;
+package org.sensorhub.impl.database.obs;
 
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
@@ -20,22 +20,22 @@ import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
 
 /**
  * <p>
- * Configuration for automatic database cleanup based on record age.
+ * Base configuration for automatic purge policies
  * </p>
  *
  * @author Alex Robin
- * @since Oct 29, 2019
+ * @since Sep 23, 2019
  */
-public class MaxAgeAutoPurgeConfig extends HistoricalObsAutoPurgeConfig
+public abstract class HistoricalObsAutoPurgeConfig
 {
     
-    @DisplayInfo(label="Max Record Age", desc="Maximum age of data to be kept in storage (in seconds)")
-    public double maxRecordAge = 7.*24.*3600.;
+    @DisplayInfo(desc="Uncheck to disable auto-purge temporarily")
+    public boolean enabled = true;
     
     
-    @Override
-    public IProcedureObsDbAutoPurgePolicy getPolicy()
-    {
-        return new MaxAgeAutoPurgePolicy(this);
-    }
+    @DisplayInfo(label="Purge Execution Period", desc="Execution period of the purge policy (in seconds)")
+    public double purgePeriod = 3600.0;
+
+    
+    public abstract IProcedureObsDbAutoPurgePolicy getPolicy();
 }
