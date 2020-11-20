@@ -16,9 +16,7 @@ package org.sensorhub.impl.datastore.obs;
 
 import java.math.BigInteger;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Timer;
@@ -26,6 +24,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.Flow.Subscription;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
@@ -47,6 +46,7 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.module.IModule;
+import org.sensorhub.api.obs.DataStreamEvent;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.ObsData;
@@ -60,9 +60,11 @@ import org.sensorhub.api.procedure.ProcedureEnabledEvent;
 import org.sensorhub.api.procedure.ProcedureEvent;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.procedure.ProcedureRemovedEvent;
+import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
 import org.sensorhub.utils.SWEDataUtils;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
@@ -94,16 +96,18 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     static final String WAITING_STATUS_MSG = "Waiting for data source {}";
 
     IProcedureObsDatabase db;
-    Map<ProcedureId, ProducerInfo> registeredProducers = new ConcurrentHashMap<>();
+    Map<String, ProducerCachedInfo> registeredProducers = new ConcurrentSkipListMap<>();
     long lastCommitTime = Long.MIN_VALUE;
     Timer autoPurgeTimer;
     Subscription procRegistrySub;
     boolean processEvents;
     
     
-    static class ProducerInfo
+    static class ProducerCachedInfo
     {
-        Map<String, DataStreamCachedInfo> dataStreams = new HashMap<>();
+        FeatureKey dbKey;
+        Map<String, DataStreamCachedInfo> dataStreams = new ConcurrentHashMap<>();
+        Map<String, FeatureId> fois = new ConcurrentSkipListMap<>();
         Subscription eventSub;
     }
     
@@ -135,8 +139,9 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
             @SuppressWarnings("unchecked")
             IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
             dbModule.setParentHub(getParentHub());
-            dbModule.init(dbConfig);
-            dbModule.start();
+            dbModule.setConfiguration(dbConfig);
+            dbModule.requestInit(true);
+            dbModule.requestStart();
             
             this.db = (IProcedureObsDatabase)dbModule;
             Asserts.checkNotNull(db.getProcedureStore(), IProcedureStore.class);
@@ -164,7 +169,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
         }
         
         // pre-register database for all procedures configured with it
-        getParentHub().getDatabaseRegistry().register(config.procedureUIDs, db);
+        //getParentHub().getDatabaseRegistry().register(config.procedureUIDs, db);
         
         // make sure we get notified if procedures are added later
         subscribeToProcedureRegistryEvents()
@@ -176,10 +181,9 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
                 // load data sources that are already enabled
                 for (String uid: config.procedureUIDs)
                 {
-                    ProcedureId procId = getParentHub().getProcedureRegistry().getProcedureId(uid);
-                    if (procId != null)
+                    if (uid != null)
                     {
-                        IDataProducer dataSource = getDataSource(procId);
+                        IDataProducer dataSource = getDataSource(uid);
                         if (dataSource != null)
                             addProcedure(dataSource);
                     }
@@ -188,9 +192,9 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     }
     
     
-    protected IDataProducer getDataSource(ProcedureId procID)
+    protected IDataProducer getDataSource(String procUID)
     {
-        IProcedureDriver proc = getParentHub().getProcedureRegistry().getProcedureShadow(procID.getUniqueID());
+        IProcedureDriver proc = getParentHub().getProcedureRegistry().getProcedure(procUID);
         if (proc == null || !(proc instanceof IDataProducer))
             return null;
         return (IDataProducer)proc;
@@ -199,12 +203,14 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
 
     protected synchronized void addProcedure(IDataProducer dataSource)
     {
-        ProcedureId procId = dataSource.getProcedureID();
-        if (dataSource.isEnabled() && !registeredProducers.containsKey(procId))
+        Asserts.checkNotNull(dataSource, IDataProducer.class);
+        String procUID = OshAsserts.checkValidUID(dataSource.getUniqueIdentifier());
+        
+        if (!registeredProducers.containsKey(procUID))
         {
             connectDataSource(dataSource);
             getLogger().info("Connected to data source " + MsgUtils.entityString(dataSource));
-            getParentHub().getDatabaseRegistry().register(Arrays.asList(procId.getUniqueID()), db);
+            //getParentHub().getDatabaseRegistry().register(Arrays.asList(procUID), db);
         }
     }
 
@@ -221,12 +227,12 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
      */
     protected void maybeAddProcedure(IDataProducer dataSource)
     {
-        String uid = dataSource.getUniqueIdentifier();
-        ProcedureId parentGroupId = dataSource.getParentGroupID();
+        String procUID = dataSource.getUniqueIdentifier();
+        String parentGroupUID = dataSource.getParentGroupUID();
 
         // check if UID or parent UID was configured
-        if (config.procedureUIDs.contains(uid) ||
-            (parentGroupId != null && config.procedureUIDs.contains(parentGroupId.getUniqueID())))
+        if (config.procedureUIDs.contains(procUID) ||
+            (parentGroupUID != null && config.procedureUIDs.contains(parentGroupUID)))
             addProcedure(dataSource);
     }
     
@@ -234,13 +240,13 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     protected CompletableFuture<Subscription> subscribeToProcedureRegistryEvents()
     {     
         return getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
-            .withSourceID(IProcedureRegistry.EVENT_SOURCE_ID)
+            .withTopicID(IProcedureRegistry.EVENT_SOURCE_ID)
             .withEventType(ProcedureAddedEvent.class)
             .withEventType(ProcedureRemovedEvent.class)
             .withEventType(ProcedureEnabledEvent.class)
             .withEventType(ProcedureDisabledEvent.class)
             .consume(e -> {
-                IDataProducer dataSource = getDataSource(e.getProcedureID());
+                IDataProducer dataSource = getDataSource(e.getProcedureUID());
                 if (e instanceof ProcedureAddedEvent || e instanceof ProcedureEnabledEvent)
                     maybeAddProcedure(dataSource);
                 else
@@ -281,11 +287,9 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     protected void connectDataSource(final IDataProducer dataSource)
     {
         Asserts.checkNotNull(dataSource, IDataProducer.class);
-        Asserts.checkNotNull(dataSource.getProcedureID(), ProcedureId.class);
+        String procUID = OshAsserts.checkValidUID(dataSource.getUniqueIdentifier());
 
-        ProcedureId procId = dataSource.getProcedureID();
-        String procUID = procId.getUniqueID();
-        ProducerInfo producerInfo = registeredProducers.computeIfAbsent(procId, k -> new ProducerInfo());
+        ProducerCachedInfo producerInfo = registeredProducers.computeIfAbsent(procUID, k -> new ProducerCachedInfo());
         FeatureKey procKey = db.getProcedureStore().getCurrentVersionKey(procUID);
 
         // need to make sure we add things if they are missing in storage
@@ -348,22 +352,6 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
             producerInfo.dataStreams.put(output.getName(), cachedInfo);
         }
         
-        // init current FOIs
-        var foiMap = dataSource.getCurrentFeaturesOfInterest();
-        if (foiMap != null)
-        {
-            for (var foi: foiMap.values())
-            {
-                // TODO support versioning but check that fois are really different
-                FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foi.getUniqueIdentifier());
-                if (fk == null)
-                    fk = db.getFoiStore().add(foi);
-            }
-        }
-        
-        // make sure changes are written to storage
-        db.commit();
-        
         // register to procedure and output data events
         if (producerInfo.eventSub == null)
         {
@@ -375,12 +363,23 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
                 });
         }
         
+        // init current FOIs
+        var foiMap = dataSource.getCurrentFeaturesOfInterest();
+        if (foiMap != null)
+        {
+            for (var foi: foiMap.values())
+                ensureFoi(producerInfo, foi);
+        }
+        
+        // make sure changes are written to storage
+        db.commit();
+        
         // if multisource, call recursively to connect nested producers
         if (dataSource instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (ProcedureId nestedProducerID: multiSource.getMembers().keySet())
-                ensureProducerInfo(nestedProducerID);
+            for (String nestedProducerUID: multiSource.getMembers().keySet())
+                ensureProducerInfo(nestedProducerUID);
         }
     }
     
@@ -395,11 +394,38 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     /*
      * Ensure producer metadata has been initialized
      */
-    protected void ensureProducerInfo(ProcedureId producerID)
+    protected void ensureProducerInfo(String procUID)
     {
-        IDataProducer dataSource = getDataSource(producerID);
+        IDataProducer dataSource = getDataSource(procUID);
         if (dataSource != null)
             connectDataSource(dataSource);
+    }
+    
+    
+    protected void ensureFoi(ProducerCachedInfo producerInfo, IGeoFeature foi)
+    {
+        // TODO support versioning but check that fois are really different
+        Asserts.checkNotNull(foi, IGeoFeature.class);
+        var uid = OshAsserts.checkValidUID(foi.getUniqueIdentifier());
+        
+        FeatureKey fk = db.getFoiStore().getCurrentVersionKey(uid);
+        if (fk == null)
+        {
+            fk = db.getFoiStore().add(foi);
+            getLogger().trace("Storing foi {}", fk);
+        }
+        
+        producerInfo.fois.put(uid, new FeatureId(fk.getInternalID(), uid));
+    }
+    
+    
+    protected void ensureFoi(ProducerCachedInfo producerInfo, String foiUID)
+    {
+        FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foiUID);
+        if (fk != null)
+            producerInfo.fois.put(foiUID, new FeatureId(fk.getInternalID(), foiUID));
+        else
+            getLogger().error("Unknown FOI: {}", foiUID);
     }
     
     
@@ -414,12 +440,12 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
         if (dataSource instanceof IMultiSourceDataProducer)
         {
             IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)dataSource;
-            for (ProcedureId procID: multiSource.getMembers().keySet())
-                disconnectDataSource(multiSource.getMembers().get(procID));
+            for (var member: multiSource.getMembers().values())
+                disconnectDataSource(member);
         }
 
         // remove producer and cancel subscriptions
-        ProducerInfo procInfo = registeredProducers.remove(dataSource.getProcedureID());
+        ProducerCachedInfo procInfo = registeredProducers.remove(dataSource.getUniqueIdentifier());
         if (procInfo != null)
             procInfo.eventSub.cancel();
     }
@@ -436,6 +462,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
             .newSubscription(ProcedureEvent.class)
             .withEventType(DataEvent.class)
             .withEventType(FoiEvent.class)
+            .withEventType(DataStreamEvent.class)
             .withEventType(ProcedureChangedEvent.class)
             .withSource(producer); // to get procedure changed events
         
@@ -474,7 +501,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
         }
             
         // unsubscribe from all procedure events
-        for (ProducerInfo procInfo: registeredProducers.values())
+        for (ProducerCachedInfo procInfo: registeredProducers.values())
             procInfo.eventSub.cancel();
         registeredProducers.clear();
         
@@ -497,18 +524,29 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
             if (e instanceof DataEvent)
             {
                 DataEvent dataEvent = (DataEvent)e;
-                ProcedureId procId = dataEvent.getProcedureID();
-                FeatureId foiId = dataEvent.getFoiID();
+                String procUID = dataEvent.getProcedureUID();
+                String foiUID = dataEvent.getFoiUID();
 
-                if (procId != null)
+                if (procUID != null)
                 {
-                    ProducerInfo procInfo = registeredProducers.get(procId);
+                    ProducerCachedInfo procInfo = registeredProducers.get(procUID);
                     if (procInfo == null)
                         return;
 
                     // look up data stream cached info
-                    String outputName = dataEvent.getChannelID();
+                    String outputName = dataEvent.getOutputName();
                     DataStreamCachedInfo dsInfo = procInfo.dataStreams.get(outputName);
+                    
+                    // lookup FOI full ID
+                    var foiId = ObsData.NO_FOI;
+                    if (foiUID != null)
+                    {
+                        var fid = procInfo.fois.get(foiUID);
+                        if (fid != null)
+                            foiId = fid;
+                        else
+                            getLogger().warn("Unknown FOI: {}", foiUID);
+                    }   
                     
                     // store all records
                     for (DataBlock record: dataEvent.getRecords())
@@ -523,7 +561,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
                         // store record with proper key
                         ObsData obs = new ObsData.Builder()
                             .withDataStream(dsInfo.dataStreamID)
-                            .withFoi(foiId != null ? foiId : ObsData.NO_FOI)
+                            .withFoi(foiId)
                             .withPhenomenonTime(SWEDataUtils.toInstant(time))
                             .withResult(record)
                             .build();
@@ -537,21 +575,19 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
             else if (e instanceof FoiEvent)
             {
                 FoiEvent foiEvent = (FoiEvent)e;
-                ProcedureId procId = foiEvent.getProcedureID();
+                String procUID = foiEvent.getProcedureUID();
 
-                if (procId != null)
+                if (procUID != null)
                 {
-                    ProducerInfo procInfo = registeredProducers.get(procId);
+                    ProducerCachedInfo procInfo = registeredProducers.get(procUID);
                     if (procInfo == null)
                         return;
 
                     // store feature object if specified
-                    FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foiEvent.getFoiUID());
-                    if (foiEvent.getFoi() != null && fk == null)
-                    {
-                        fk = db.getFoiStore().add(foiEvent.getFoi());
-                        getLogger().trace("Storing foi {}", fk);
-                    }
+                    if (foiEvent.getFoi() != null)
+                        ensureFoi(procInfo, foiEvent.getFoi());
+                    else
+                        ensureFoi(procInfo, foiEvent.getFoiUID());
                 }
             }
             
@@ -565,8 +601,8 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
 
                 // TODO to manage this issue, first check that no other description is valid at the same time
                 //storage.storeDataSourceDescription(dataSourceRef.get().getCurrentDescription());
-                ProcedureId procID = ((ProcedureChangedEvent)e).getProcedureID();
-                IDataProducer producer = getDataSource(procID);
+                String procUID = ((ProcedureChangedEvent)e).getProcedureUID();
+                IDataProducer producer = getDataSource(procUID);
                 if (producer != null)
                     db.getProcedureStore().add(producer.getCurrentDescription());
             }
@@ -621,5 +657,11 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     public IFoiStore getFoiStore()
     {
         return db.getFoiStore();
+    }
+    
+    
+    public IProcedureObsDatabase getWrappedDatabase()
+    {
+        return db;
     }
 }
