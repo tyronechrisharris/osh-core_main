@@ -59,8 +59,9 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             @SuppressWarnings("unchecked")
             IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
             dbModule.setParentHub(getParentHub());
-            dbModule.init(dbConfig);
-            dbModule.start();
+            dbModule.setConfiguration(dbConfig);
+            dbModule.requestInit(true);
+            dbModule.requestStart();
             
             this.db = (IProcedureObsDatabase)dbModule;
             Asserts.checkNotNull(db.getProcedureStore(), IProcedureStore.class);
