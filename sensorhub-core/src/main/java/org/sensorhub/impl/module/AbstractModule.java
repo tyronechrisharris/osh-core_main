@@ -165,6 +165,13 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     }
     
     
+    protected void checkStarted()
+    {
+        if (!isStarted())
+            throw new IllegalStateException("Module is not started yet");
+    }
+    
+    
     @Override
     public ModuleState getCurrentState()
     {
