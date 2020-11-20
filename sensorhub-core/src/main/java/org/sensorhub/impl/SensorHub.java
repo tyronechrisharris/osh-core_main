@@ -95,12 +95,6 @@ public class SensorHub implements ISensorHub
     @Override
     public void start()
     {
-        log.info("*****************************************");
-        log.info("Starting SensorHub...");
-        log.info("Version : {}", ModuleUtils.getModuleInfo(getClass()).getModuleVersion());
-        log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
-        log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
-        
         // prepare client authenticator (e.g. for HTTP connections, etc...)
         ClientAuth.createInstance("keystore");
                 
@@ -224,6 +218,12 @@ public class SensorHub implements ISensorHub
             System.out.println("Command syntax: sensorhub [module_config_path] [base_storage_path]");
             System.exit(1);
         }
+        
+        log.info("*****************************************");
+        log.info("Starting SensorHub...");
+        log.info("Version : {}", ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion());
+        log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
+        log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
         
         // start sensorhub
         ISensorHub instance = null;
