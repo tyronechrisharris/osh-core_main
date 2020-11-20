@@ -14,25 +14,20 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
+import java.time.Instant;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataBlock;
-import net.opengis.swe.v20.Quantity;
-import net.opengis.swe.v20.Time;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
-import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.data.DataEvent;
 import org.vast.data.DataBlockDouble;
-import org.vast.data.DataRecordImpl;
-import org.vast.data.QuantityImpl;
 import org.vast.data.TextEncodingImpl;
-import org.vast.data.TimeImpl;
-import org.vast.swe.SWEConstants;
-import org.vast.util.DateTimeFormat;
+import org.vast.swe.SWEHelper;
 
 
 /**
@@ -67,7 +62,7 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     }
     
     
-    public FakeSensorData(ISensorModule<?> sensor, final String name, final double samplingPeriod, final int maxSampleCount)
+    public FakeSensorData(IDataProducer sensor, final String name, final double samplingPeriod, final int maxSampleCount)
     {
         this(sensor,name, samplingPeriod, maxSampleCount, null);
     }
@@ -84,29 +79,24 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     
     public void init()
     {
-        outputStruct = new DataRecordImpl(3);
-        outputStruct.setName(this.name);
-        outputStruct.setDefinition(URI_OUTPUT1);
+        // generate output structure and encoding
+        SWEHelper fac = new SWEHelper();
         
-        Time time = new TimeImpl();
-        time.setDefinition(SWEConstants.DEF_SAMPLING_TIME);
-        time.getUom().setHref(Time.ISO_TIME_UNIT);
-        outputStruct.addComponent("time", time);
-        
-        Quantity temp = new QuantityImpl();
-        temp.setDefinition(URI_OUTPUT1_FIELD1);
-        temp.getUom().setCode("Cel");
-        outputStruct.addComponent("temp", temp);
-        
-        Quantity wind = new QuantityImpl();
-        wind.setDefinition(URI_OUTPUT1_FIELD2);
-        wind.getUom().setCode("m/s");
-        outputStruct.addComponent("windSpeed", wind);
-        
-        Quantity press = new QuantityImpl();
-        press.setDefinition(URI_OUTPUT1_FIELD3);
-        press.getUom().setCode("hPa");
-        outputStruct.addComponent("press", press);
+        outputStruct = fac.createRecord()
+            .name(this.name)
+            .label("Weather Data Record")
+            .definition(URI_OUTPUT1)
+            .addSamplingTimeIsoUTC("time")
+            .addField("temp", fac.createQuantity()
+                .definition(URI_OUTPUT1_FIELD1)
+                .uomCode("Cel"))
+            .addField("windSpeed", fac.createQuantity()
+                .definition(URI_OUTPUT1_FIELD2)
+                .uomCode("m/s"))
+            .addField("press", fac.createQuantity()
+                .definition(URI_OUTPUT1_FIELD3)
+                .uomCode("hPa"))
+            .build();
         
         outputEncoding = new TextEncodingImpl(",", "\n");
     }
@@ -119,8 +109,10 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
 
 
     @Override
-    public void start(boolean waitForListeners)
+    public CompletableFuture<Integer> start(boolean waitForListeners)
     {
+        var future = new CompletableFuture<Integer>();
+        
         sendTask = new TimerTask()
         {
             @Override
@@ -143,14 +135,18 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
                 data.setDoubleValue(3, 3.0 + ((int)(Math.random()*100))/1000.);
                            
                 sampleCount++;
-                String isoTime = new DateTimeFormat().formatIso(samplingTime, 0);
-                System.out.println("Weather record #" + sampleCount + " generated @ " + isoTime);
-                if (sampleCount >= maxSampleCount)
-                    cancel();
-                
                 latestRecord = data;
                 latestRecordTime = System.currentTimeMillis();
-                eventHandler.publish(new DataEvent(latestRecordTime, FakeSensorData.this, data));                        
+                
+                System.out.println("Weather record #" + sampleCount + " generated @ " +
+                    Instant.ofEpochMilli(latestRecordTime));
+                eventHandler.publish(new DataEvent(latestRecordTime, FakeSensorData.this, data));
+                               
+                if (sampleCount >= maxSampleCount)
+                {
+                    cancel();
+                    future.complete(sampleCount-1);
+                }
             }                
         };
         
@@ -158,6 +154,8 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
         if (hasListeners || !waitForListeners)
             startSending();
         started = true;
+        
+        return future;
     }
     
     

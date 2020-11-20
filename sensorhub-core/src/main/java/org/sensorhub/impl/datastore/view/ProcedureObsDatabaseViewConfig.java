@@ -42,7 +42,7 @@ public class ProcedureObsDatabaseViewConfig
     public IProcedureObsDatabase getFilteredView(ISensorHub hub)
     {
         var srcDatabase = sourceDatabaseId != null ?
-            hub.getDatabaseRegistry().getDatabase(sourceDatabaseId) :
+            hub.getDatabaseRegistry().getObsDatabase(sourceDatabaseId) :
             hub.getDatabaseRegistry().getFederatedObsDatabase();
         
         if (includeFilter != null)

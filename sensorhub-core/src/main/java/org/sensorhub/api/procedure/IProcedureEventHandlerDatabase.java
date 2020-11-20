@@ -8,16 +8,31 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.sensor;
+package org.sensorhub.api.procedure;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.Collection;
+import org.sensorhub.api.database.IProcedureObsDatabase;
 
-public interface IFakeSensorOutput
+
+/**
+ * <p>
+ * Extension to procedure/obs database interface allowing processing of
+ * procedure and data events and persisting the corresponding payload.
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Nov 16, 2020
+ */
+public interface IProcedureEventHandlerDatabase extends IProcedureObsDatabase
 {
-    public CompletableFuture<Integer> start(boolean waitForListeners);
-    public void stop();
+        
+    Collection<String> getHandledProcedures();
+    
+    
+    boolean isProcessEvents();
+    
 }

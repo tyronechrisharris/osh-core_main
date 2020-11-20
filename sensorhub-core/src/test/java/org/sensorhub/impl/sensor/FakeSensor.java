@@ -17,6 +17,8 @@ package org.sensorhub.impl.sensor;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.impl.PointImpl;
 import net.opengis.sensorml.v20.PhysicalSystem;
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.data.IStreamingControlInterface;
@@ -26,7 +28,7 @@ import org.sensorhub.api.sensor.SensorException;
 
 public class FakeSensor extends AbstractSensorModule<SensorConfig>
 {
-       
+    
     public FakeSensor()
     {
         this.uniqueID = "urn:sensors:mysensor:001";
@@ -108,13 +110,18 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
     }
 
 
-    public void startSendingData(boolean waitForListeners)
+    public CompletableFuture<Void> startSendingData(boolean waitForListeners)
     {
+        var outputFutures = new ArrayList<CompletableFuture<?>>();
+            
         for (IStreamingDataInterface o: getObservationOutputs().values())
         {
             o.getLatestRecord();
-            ((IFakeSensorOutput)o).start(waitForListeners);
-        }            
+            var f = ((IFakeSensorOutput)o).start(waitForListeners);
+            outputFutures.add(f);
+        }
+        
+        return CompletableFuture.allOf(outputFutures.toArray(new CompletableFuture[0]));
     }
     
     
@@ -125,5 +132,11 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
                 return true;            
         
         return false;
+    }
+    
+    
+    public String getFoiUID(int foiNum)
+    {
+        return uniqueID + ":foi";
     }
 }

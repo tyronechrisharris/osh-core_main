@@ -14,12 +14,16 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
+import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.IProcedureStateDatabase;
 import org.sensorhub.api.event.IEventSource;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.impl.event.EventSourceInfo;
+import org.vast.ogc.gml.IGeoFeature;
 
 
 /**
@@ -47,12 +51,12 @@ public interface IProcedureRegistry extends IEventSource
 
 
     /**
-     * Registers a procedure driver (e.g. sensor driver, etc.) with this registry.
-     * Implementation of this method must take take care of forwarding all events
-     * produced by the driver to the event bus.
+     * Asynchronously registers a procedure driver (e.g. sensor driver, etc.)
+     * with this registry. Implementation of this method must take take care of
+     * forwarding all events produced by the driver to the event bus.
      * <br/><br/>
      * If the procedure is a {@link IDataProducer}, this method takes care of
-     * registering all FOIs associated to the procedure at the time of registration
+     * registering all FOIs associated with the procedure at the time of registration
      * (i.e. returned by {@link IDataProducer#getCurrentFeaturesOfInterest()}).
      * <br/><br/>
      * If the procedure is a {@link IProcedureGroupDriver}, this method takes
@@ -62,44 +66,61 @@ public interface IProcedureRegistry extends IEventSource
      * Note that a single {@link ProcedureAddedEvent} is generated for the parent
      * procedure. No event is generated for members of a procedure group. 
      * @param proc The live procedure instance
+     * @return A future that will be completed when the procedure is successfully
+     * registered or report an exception if an error occurred.
      */
-    public void register(IProcedureDriver proc);
+    public CompletableFuture<Boolean> register(IProcedureDriver proc);
+    
+    
+    /**
+     * Asynchronously registers a datastream / data interface.
+     * @param dataStream The streaming data interface of a live procedure instance
+     * @return A future that will be completed when the datastream is successfully
+     * registered or report an exception if an error occurred.
+     */
+    public CompletableFuture<Boolean> register(IStreamingDataInterface dataStream);
+    
+    
+    /**
+     * Asynchronously registers a control interface.
+     * @param controlStream The streaming control interface of a live procedure instance
+     * @return A future that will be completed when the control interface is successfully
+     * registered or report an exception if an error occurred.
+     */
+    public CompletableFuture<Boolean> register(IStreamingControlInterface controlStream);
+    
+    
+    /**
+     * Asynchronously registers a feature of interest.
+     * @param proc The procedure observing the feature of interest
+     * @param foi The feature of interest
+     * @return A future that will be completed when the feature of interest is
+     * successfully registered or report an exception if an error occurred.
+     */
+    public CompletableFuture<Boolean> register(IProcedureDriver proc, IGeoFeature foi);
 
 
     /**
-     * Unregisters a procedure and, if a procedure group, all of its members.
+     * Unregisters a procedure and all its datastreams and features of interest.
+     * If it is a procedure group, all of its members are also unregistered
+     * recursively.
      * <br/><br/>
      * Note that unregistering the procedure doesn't remove it from the
-     * data store but only disconnects the live procedure and sends a
+     * data store but only disconnects the live procedure(s) and send a
      * {@link ProcedureDisabledEvent} event.
      * @param proc The live procedure instance
+     * @return A future that will be completed when the control interface is
+     * successfully unregistered or report an exception if an error occurred.
      */
-    public void unregister(IProcedureDriver proc);
+    public CompletableFuture<Void> unregister(IProcedureDriver proc);
     
     
     /**
-     * Completely remove the procedure and all data associated to it in the 
-     * procedure state database (note that it won't remove any data stored
-     * in any other database)
-     * @param procUID The unique ID of the procedure to delete
-     */
-    public void remove(String procUID);
-    
-    
-    /**
-     * Retrieves a shadow object for the procedure with the given ID.
+     * Retrieves the procedure driver with the given unique ID.
      * @param uid The procedure unique ID
-     * @return The procedure shadow
+     * @return The procedure driver instance
      */
-    public IProcedureDriver getProcedureShadow(String uid);
-    
-    
-    /**
-     * Retrieves the full ID object of a registered procedure, knowing its unique ID
-     * @param uid The unique ID of the procedure
-     * @return the ProcedureId object
-     */
-    public ProcedureId getProcedureId(String uid);
+    public <T extends IProcedureDriver> T getProcedure(String uid);
     
     
     /**

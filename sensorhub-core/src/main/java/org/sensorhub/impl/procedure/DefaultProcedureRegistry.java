@@ -15,31 +15,24 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.procedure;
 
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.data.IDataProducer;
+import org.sensorhub.api.data.IStreamingControlInterface;
+import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureStateDatabase;
-import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.procedure.IProcedureDriver;
-import org.sensorhub.api.procedure.ProcedureAddedEvent;
-import org.sensorhub.api.procedure.ProcedureId;
-import org.sensorhub.api.procedure.IProcedureGroupDriver;
+import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
-import org.sensorhub.api.procedure.ProcedureRemovedEvent;
-import org.sensorhub.impl.datastore.obs.GenericObsEventDatabase;
-import org.sensorhub.impl.datastore.obs.GenericObsEventDatabaseConfig;
-import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.sensor.SensorShadow;
-import org.sensorhub.utils.MsgUtils;
+import org.sensorhub.api.utils.OshAsserts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 
 
@@ -58,15 +51,13 @@ import org.vast.util.Asserts;
 public class DefaultProcedureRegistry implements IProcedureRegistry
 {
     static final Logger log = LoggerFactory.getLogger(DefaultProcedureRegistry.class);
-
+    
     ISensorHub hub;
     IEventPublisher eventPublisher;
-    GenericObsEventDatabase procStateDb;
+    ProcedureObsEventDatabase procStateDb;
     IProcedureObsDatabase federatedDb;
     ReadWriteLock lock = new ReentrantReadWriteLock();
-
-    // map to cache and pin proxies in memory so they don't get GC
-    Map<String, ProcedureShadow> procedureShadows = new TreeMap<>();
+    Map<String, ProcedureRegistryEventHandler> procedureListeners = new ConcurrentSkipListMap<>();
 
 
     public DefaultProcedureRegistry(ISensorHub hub, DatabaseConfig stateDbConfig)
@@ -83,201 +74,130 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         
         try
         {
-            GenericObsEventDatabaseConfig dbListenerConfig = new GenericObsEventDatabaseConfig();
+            ProcedureObsEventDatabaseConfig dbListenerConfig = new ProcedureObsEventDatabaseConfig();
             dbListenerConfig.dbConfig = stateDbConfig;
 
-            procStateDb = new GenericObsEventDatabase();
+            procStateDb = new ProcedureObsEventDatabase();
             procStateDb.setParentHub(hub);
             procStateDb.init(dbListenerConfig);
             procStateDb.start();
+            
+            hub.getDatabaseRegistry().register(procStateDb.db);            
         }
         catch (Exception e)
         {
             throw new IllegalStateException("Error initializing procedure state database", e);
-        }        
+        }
     }
-
-
-    @Override
-    public ProcedureId register(IProcedureDriver proc)
+    
+    
+    protected ProcedureRegistryEventHandler createProxy(IProcedureDriver proc)
     {
-        return register(proc, true);
+        var procUID = proc.getUniqueIdentifier();
+        
+        // use dedicated DB if available, otherwise use default state DB
+        IProcedureObsDatabase db = hub.getDatabaseRegistry().getObsDatabase(procUID);
+        if (db == null)
+            db = procStateDb;
+        
+        // error if DB is not an event handler DB
+        if (!(db instanceof IProcedureEventHandlerDatabase))
+            throw new IllegalStateException("Another database already contains a procedure with UID " + procUID);
+        
+        return new ProcedureRegistryEventHandler(this, proc, (IProcedureEventHandlerDatabase)db);
     }
 
 
-    protected ProcedureId register(IProcedureDriver proc, boolean sendEvent)
+    public CompletableFuture<Boolean> register(IProcedureDriver proc)
     {
         Asserts.checkNotNull(proc, IProcedureDriver.class);
-
-        lock.writeLock().lock();
-        String uid = proc.getUniqueIdentifier();
-        log.debug("Registering procedure {}", uid);
-
-        try
-        {
-            // save in data store if needed
-            FeatureKey key = addToDataStore(proc);
-            ProcedureId procId = new ProcedureId(key.getInternalID(), uid);
-
-            // create shadow or simply reconnect to it
-            ProcedureShadow shadow = procedureShadows.get(uid);
-            boolean isNew = (shadow == null);
-            if (isNew)
+        String procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
+        log.debug("Registering procedure {}", procUID);
+        
+        // create listener or simply reconnect to it
+        // use compute() to do it atomatically
+        var proxy = procedureListeners.compute(procUID, (k,v) -> {
+            if (v != null)
             {
-                shadow = createProxy(procId, proc);
-                shadow.connectLiveProcedure(proc);
-                procedureShadows.put(uid, shadow);
+                IProcedureDriver liveProc = v.driverRef.get();
+                if (liveProc != null && liveProc != proc)
+                    throw new IllegalArgumentException("A procedure with UID " + procUID + " is already registered");
             }
             else
-            {
-                IProcedureDriver liveProc = shadow.ref.get();
-                if (liveProc != null && liveProc != proc)
-                    throw new IllegalArgumentException("A procedure with ID " + uid + " is already registered");
-                shadow.connectLiveProcedure(proc);
-            }
-
-            // if group, also register members recursively
-            if (proc instanceof IProcedureGroupDriver)
-            {
-                for (IProcedureDriver member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
-                    register(member, false);
-            }
-
-            // publish procedure added event
-            if (sendEvent && isNew)
-                eventPublisher.publish(new ProcedureAddedEvent(System.currentTimeMillis(), procId, shadow.getParentGroupID()));
-
-            return procId;
-        }
-        finally
+                v = createProxy(proc);    
+            return v;
+        });
+        
+        // connect and register procedure
+        // callee will take care of double registrations
+        synchronized (proxy)
         {
-            lock.writeLock().unlock();
+            proxy.connectLiveProcedure(proc);
+            return proxy.register(proc);
         }
     }
-
-
-    protected FeatureKey addToDataStore(IProcedureDriver proc)
+    
+    
+    protected ProcedureRegistryEventHandler getProxy(String procUID)
     {
-        // check if procedure data is handled by a dedicated DB
-        FeatureKey existingKey = federatedDb.getProcedureStore().getCurrentVersionKey(proc.getUniqueIdentifier());
-        if (existingKey != null)
-        {
-            long databaseID = hub.getDatabaseRegistry().getDatabaseID(existingKey.getInternalID());
-            if (databaseID != procStateDb.getDatabaseID())
-                return existingKey;
-        }
+        var handler = procedureListeners.get(procUID);
+        if (handler == null)
+            throw new IllegalStateException("Procedure " + procUID + " hasn't been registered");        
         
-        // if procedure not in DB yet, add to procedure state DB
-        // TODO only add if description has actually changed
-        FeatureKey newKey = procStateDb.getProcedureStore().add(proc.getCurrentDescription());
-        if (proc instanceof IDataProducer)
-            procStateDb.getConfiguration().procedureUIDs.add(proc.getUniqueIdentifier());
-
-        return newKey;
-    }
-
-
-    protected ProcedureShadow createProxy(ProcedureId procId, IProcedureDriver proc)
-    {
-        ProcedureShadow shadow;
-        
-        if (proc instanceof ProcedureShadow)
-        {
-            ((ProcedureShadow)proc).setProcedureRegistry(this);
-            return (ProcedureShadow)proc;
-        }
-        else if (proc instanceof IDataProducer)
-            shadow = new SensorShadow(procId, (IDataProducer)proc, this);
-        else
-            shadow = new ProcedureShadow(procId, proc, this);
-        
-        return shadow;
+        return handler;
     }
 
 
     @Override
-    public void unregister(IProcedureDriver proc)
-    {
-        cleanup(proc, true, false);
-    }
-    
-    
-    @Override
-    public void remove(String uid)
-    {
-        ProcedureShadow shadow = procedureShadows.get(uid);
-        if (shadow == null)
-            throw new IllegalArgumentException("Unknown procedure UID"); 
-        IProcedureDriver proc = shadow.ref.get();
-        if (proc != null)
-            cleanup(proc, true, true);
-    }
-
-
-    protected void cleanup(IProcedureDriver proc, boolean sendEvent, boolean removeFromDb)
+    public CompletableFuture<Void> unregister(IProcedureDriver proc)
     {
         Asserts.checkNotNull(proc, IProcedureDriver.class);
-
-        lock.writeLock().lock();
-        String uid = proc.getUniqueIdentifier();
-        log.debug("Unregistering procedure {}", uid);
-
-        try
-        {
-            // if entity group, unregister members recursively
-            if (proc instanceof IProcedureGroupDriver)
-            {
-                for (IProcedureDriver member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
-                    cleanup(member, false, removeFromDb);
-            }
-
-            // remove from shadow map
-            ProcedureShadow shadow = procedureShadows.remove(uid);
-            if (shadow != null)
-                shadow.disconnectLiveProcedure(proc);
-
-            // remove from state database
-            if (removeFromDb)
-                procStateDb.getProcedureStore().remove(uid);
-
-            // publish procedure disabled event
-            if (removeFromDb && sendEvent)
-                eventPublisher.publish(new ProcedureRemovedEvent(System.currentTimeMillis(), shadow.getProcedureID(), shadow.getParentGroupID()));
-        }
-        finally
-        {
-            lock.writeLock().unlock();
-        }
+        String procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
+        
+        getProxy(procUID); // just to check procedure was registered before
+        var proxy = procedureListeners.remove(procUID);
+        return proxy.unregister(proc);
+    }
+    
+    
+    @Override
+    public CompletableFuture<Boolean> register(IStreamingDataInterface dataStream)
+    {
+        Asserts.checkNotNull(dataStream, IStreamingDataInterface.class);
+        var proc = Asserts.checkNotNull(dataStream.getParentProducer(), IProcedureDriver.class);
+        var procUID = Asserts.checkNotNull(proc.getUniqueIdentifier());
+        
+        return getProxy(procUID).register(dataStream);
+    }
+    
+    
+    @Override
+    public CompletableFuture<Boolean> register(IStreamingControlInterface controlStream)
+    {
+        Asserts.checkNotNull(controlStream, IStreamingControlInterface.class);
+        var proc = Asserts.checkNotNull(controlStream.getParentProducer(), IProcedureDriver.class);
+        var procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
+        
+        return getProxy(procUID).register(controlStream);
+    }
+    
+    
+    @Override
+    public CompletableFuture<Boolean> register(IProcedureDriver proc, IGeoFeature foi)
+    {
+        Asserts.checkNotNull(proc, IProcedureDriver.class);
+        Asserts.checkNotNull(foi, IGeoFeature.class);
+        var procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
+        
+        return getProxy(procUID).register(foi);
     }
 
 
     @Override
-    public IProcedureDriver getProcedureShadow(String uid)
+    @SuppressWarnings("unchecked")
+    public <T extends IProcedureDriver> T getProcedure(String uid)
     {
-        lock.readLock().lock();
-
-        try
-        {
-            // look by local ID in the module registry for backward compatibility
-            ModuleRegistry moduleRegistry = hub.getModuleRegistry();
-            if (moduleRegistry.isModuleLoaded(uid))
-            {
-                IModule<?> module = moduleRegistry.getModuleById(uid);
-                if (!(module instanceof IProcedureDriver))
-                    throw new IllegalArgumentException("Module " + MsgUtils.moduleString(module) + " is not a procedure");
-                return getProcedureShadow(((IProcedureDriver)module).getUniqueIdentifier());
-            }
-
-            return procedureShadows.get(uid);
-        }
-        catch (SensorHubException e)
-        {
-            throw new IllegalArgumentException(e.getMessage());
-        }
-        finally
-        {
-            lock.readLock().unlock();
-        }
+        return (T)getProxy(uid).driverRef.get();
     }
 
 
@@ -289,18 +209,15 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
 
     @Override
-    public ProcedureId getProcedureId(String uid)
+    public IProcedureStateDatabase getProcedureStateDatabase()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return (IProcedureStateDatabase)procStateDb.db;
     }
 
 
-    @Override
-    public IProcedureStateDatabase getProcedureStateDatabase()
+    protected IEventPublisher getEventPublisher()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return eventPublisher;
     }
 
 }

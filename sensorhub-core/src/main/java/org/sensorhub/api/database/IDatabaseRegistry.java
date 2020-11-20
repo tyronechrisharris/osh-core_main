@@ -48,6 +48,9 @@ public interface IDatabaseRegistry
      * @param db
      *
     void setDefaultDatabase(IHistoricalObsDatabase db);*/
+    
+    
+    void register(IDatabase db);
 
 
     /**
@@ -116,7 +119,7 @@ public interface IDatabaseRegistry
      * @return The database instance or null if none has been registered
      * for the specified procedure
      */
-    IProcedureObsDatabase getDatabase(String procedureUID);
+    IProcedureObsDatabase getObsDatabase(String procedureUID);
 
 
     /**

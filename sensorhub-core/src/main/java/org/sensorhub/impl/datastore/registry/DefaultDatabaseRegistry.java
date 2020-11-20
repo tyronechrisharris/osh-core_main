@@ -24,11 +24,14 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -89,28 +92,54 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     @Override
     public synchronized void register(String procedureUID, IProcedureObsDatabase db)
     {
-        int databaseID = registerDatabase(db);
+        int databaseID = registerObsDatabase(db);
         registerMapping(procedureUID, databaseID);
+    }
+    
+    
+    @Override
+    public synchronized void register(IDatabase db)
+    {
+        log.info("Registering database {} with ID {}", db.getClass().getSimpleName(), db.getDatabaseID());
+        
+        if (db instanceof IProcedureObsDatabase)
+            registerObsDatabase((IProcedureObsDatabase)db);
+        else if (db instanceof IFeatureDatabase)
+            registerFeatureDatabase((IFeatureDatabase)db);
     }
 
 
     @Override
     public synchronized void register(Collection<String> procedureUIDs, IProcedureObsDatabase db)
     {
-        int databaseID = registerDatabase(db);
+        int databaseID = registerObsDatabase(db);
         for (String uid: procedureUIDs)
             registerMapping(uid, databaseID);
     }
     
     
-    protected int registerDatabase(IProcedureObsDatabase db)
+    protected int registerObsDatabase(IProcedureObsDatabase db)
     {
         int databaseID = db.getDatabaseID();
         Asserts.checkArgument(databaseID < MAX_NUM_DB, "Database ID must be less than " + MAX_NUM_DB);
         
         // add to Id->DB instance map only if not already present        
         obsDatabases.putIfAbsent(databaseID, db);
+        
+        // case of database w/ event handler
+        if (db instanceof IProcedureEventHandlerDatabase)
+        {
+            for (var procUID: ((IProcedureEventHandlerDatabase) db).getHandledProcedures())
+                registerMapping(procUID, databaseID);
+        }
+        
         return databaseID;
+    }
+    
+    
+    protected int registerFeatureDatabase(IFeatureDatabase db)
+    {
+        return 0;
     }
     
     
@@ -147,7 +176,59 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
             }
         }
     }
+
+
+    @Override
+    public IProcedureObsDatabase getObsDatabase(String procUID)
+    {
+        //Byte dbID = obsDatabaseIDs.get(procUID);
+        Entry<String, Integer> e = obsDatabaseIDs.floorEntry(procUID);
+        if (e == null)
+            return null;
+        
+        Integer dbID = null;
+        String key = e.getKey();
+        
+        // case of wildcard match
+        if (key.endsWith(END_PREFIX_CHAR))
+        {
+            String prefix = key.substring(0, key.length()-1);
+            if (procUID.startsWith(prefix))
+                dbID = e.getValue(); 
+        }
+        
+        // case of exact match
+        else if (key.equals(procUID))
+        {
+            dbID = e.getValue();
+        }
+        
+        return dbID == null ? null : obsDatabases.get(dbID);
+    }
+
+
+    @Override
+    public synchronized void unregister(String uid, IProcedureObsDatabase db)
+    {
+        Asserts.checkNotNull(uid, "procedureUID");
+        
+        if (uid.endsWith("*"))
+            uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
+        
+        obsDatabaseIDs.remove(uid);
+    }
+
+
+    @Override
+    public boolean hasDatabase(String procedureUID)
+    {
+        return obsDatabaseIDs.containsKey(procedureUID);
+    }
     
+    
+    /*
+     * Federated ID management methods
+     */    
     
     @Override
     public long getLocalID(int databaseID, long publicID)
@@ -259,54 +340,6 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         }
         
         return map;
-    }
-
-
-    @Override
-    public synchronized void unregister(String uid, IProcedureObsDatabase db)
-    {
-        Asserts.checkNotNull(uid, "procedureUID");
-        
-        if (uid.endsWith("*"))
-            uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
-        
-        obsDatabaseIDs.remove(uid);
-    }
-
-
-    @Override
-    public IProcedureObsDatabase getDatabase(String procUID)
-    {
-        //Byte dbID = obsDatabaseIDs.get(procedureUID);
-        Entry<String, Integer> e = obsDatabaseIDs.floorEntry(procUID);
-        if (e == null)
-            return null;
-        
-        Integer dbID = null;
-        String key = e.getKey();
-        
-        // case of wildcard match
-        if (key.endsWith(END_PREFIX_CHAR))
-        {
-            String prefix = key.substring(0, key.length()-1);
-            if (procUID.startsWith(prefix))
-                dbID = e.getValue(); 
-        }
-        
-        // case of exact match
-        else if (key.equals(procUID))
-        {
-            dbID = e.getValue();
-        }
-        
-        return dbID == null ? null : obsDatabases.get(dbID);
-    }
-
-
-    @Override
-    public boolean hasDatabase(String procedureUID)
-    {
-        return obsDatabaseIDs.containsKey(procedureUID);
     }
 
 
