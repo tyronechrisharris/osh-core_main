@@ -783,16 +783,9 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
-    public boolean isReadSupported()
+    public boolean isReadOnly()
     {
-        return true;
-    }
-
-
-    @Override
-    public boolean isWriteSupported()
-    {
-        return true;
+        return mvStore.isReadOnly();
     }
     
     

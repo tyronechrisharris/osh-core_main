@@ -49,17 +49,19 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
             if (!FileUtils.isSafeFilePath(config.storagePath))
                 throw new StorageException("Storage path contains illegal characters: " + config.storagePath);
             
-            MVStore.Builder builder = new MVStore.Builder()
-                                      .fileName(config.storagePath);
+            MVStore.Builder builder = new MVStore.Builder().fileName(config.storagePath);
+            
+            if (config.readOnly)
+                builder.readOnly();
             
             if (config.memoryCacheSize > 0)
-                builder = builder.cacheSize(config.memoryCacheSize/1024);
+                builder.cacheSize(config.memoryCacheSize/1024);
                                       
             if (config.autoCommitBufferSize > 0)
-                builder = builder.autoCommitBufferSize(config.autoCommitBufferSize);
+                builder.autoCommitBufferSize(config.autoCommitBufferSize);
             
             if (config.useCompression)
-                builder = builder.compress();
+                builder.compress();
             
             mvStore = builder.open();
             mvStore.setVersionsToKeep(0);
@@ -97,6 +99,7 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
     @Override
     public MVFeatureStoreImpl getFeatureStore()
     {
+        checkStarted();
         return featureStore;
     }
 
@@ -104,14 +107,15 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
     @Override
     public void commit()
     {
-        if (mvStore != null)
-            mvStore.commit();        
+        checkStarted();
+        mvStore.commit();        
     }
     
     
     @Override
     public <T> T executeTransaction(Callable<T> transaction) throws Exception
     {
+        checkStarted();
         synchronized (mvStore)
         {
             long currentVersion = mvStore.getCurrentVersion();
@@ -128,9 +132,18 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
         }
     }
 
+
+    @Override
+    public boolean isReadOnly()
+    {
+        checkStarted();
+        return mvStore.isReadOnly();
+    }
+
     
     public MVStore getMVStore()
     {
+        checkStarted();
         return mvStore;
     }
 

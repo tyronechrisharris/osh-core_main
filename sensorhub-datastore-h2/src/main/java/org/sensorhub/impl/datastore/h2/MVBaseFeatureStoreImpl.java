@@ -384,12 +384,6 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 });
         }
         
-        // if full-text filter is used, use full-text index as primary
-        else if (filter.getFullTextFilter() != null)
-        {
-            fkStream = fullTextIndex.selectKeys(filter.getFullTextFilter());
-        }
-        
         // if spatial filter is used, use spatial index as primary
         else if (filter.getLocationFilter() != null)
         {
@@ -408,6 +402,12 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             // so we can poll each entry directly from main index
             return fkStream.map(fk -> featuresIndex.getEntry(fk))
                 .filter(Objects::nonNull);
+        }
+        
+        // if full-text filter is used, use full-text index as primary
+        else if (filter.getFullTextFilter() != null)
+        {
+            fkStream = fullTextIndex.selectKeys(filter.getFullTextFilter());
         }
         
         // if some procedures were selected by ID
@@ -582,16 +582,9 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
 
 
     @Override
-    public boolean isReadSupported()
+    public boolean isReadOnly()
     {
-        return true;
-    }
-
-
-    @Override
-    public boolean isWriteSupported()
-    {
-        return true;
+        return mvStore.isReadOnly();
     }
 
 
