@@ -23,9 +23,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -206,7 +206,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         // if needed, add a new datastream keyset for the specified procedure
         var procDsKeys = procIdToDsKeys.compute(dsInfo.getProcedureID().getInternalID(), (id, keys) -> {
             if (keys == null)
-                keys = new TreeSet<>();
+                keys = new ConcurrentSkipListSet<>();
             return keys;
         });
         
