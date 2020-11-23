@@ -48,7 +48,9 @@ import org.vast.ogc.gml.IGeoFeature;
 public interface IProcedureRegistry extends IEventSource
 {
     public static final String EVENT_SOURCE_ID = "urn:osh:procedures";
-    public static final IEventSourceInfo EVENT_SOURCE_INFO = new EventSourceInfo(IProcedureRegistry.EVENT_SOURCE_ID);
+    public static final IEventSourceInfo EVENT_SOURCE_INFO = new EventSourceInfo(
+        IProcedureRegistry.EVENT_SOURCE_ID,
+        IProcedureRegistry.EVENT_SOURCE_ID);
 
 
     /**
