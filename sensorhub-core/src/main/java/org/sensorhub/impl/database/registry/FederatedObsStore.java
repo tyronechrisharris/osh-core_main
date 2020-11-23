@@ -16,10 +16,13 @@ package org.sensorhub.impl.database.registry;
 
 import java.math.BigInteger;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
+import java.util.Spliterator;
 import java.util.TreeMap;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -32,6 +35,7 @@ import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.datastore.MergeSortSpliterator;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
 
@@ -274,30 +278,41 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     @Override
     public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
     {
+        final var obsIterators = new ArrayList<Spliterator<Entry<BigInteger, IObsData>>>(100);
+        
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
         var filterDispatchMap = getFilterDispatchMap(filter);
         
         if (filterDispatchMap != null)
         {
-            return filterDispatchMap.values().stream()
-                .flatMap(v -> {
+            filterDispatchMap.values().stream()
+                .forEach(v -> {
                     int dbID = v.databaseID;
-                    return v.db.getObservationStore().selectEntries((ObsFilter)v.filter, fields)
+                    var obsStream = v.db.getObservationStore().selectEntries((ObsFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                })
-                .limit(filter.getLimit());
+                    obsIterators.add(obsStream.spliterator());
+                });
         }
         else
         {
-            return registry.obsDatabases.values().stream()
-                .flatMap(db -> {
+            registry.obsDatabases.values().stream()
+                .forEach(db -> {
                     int dbID = db.getDatabaseID();
-                    return db.getObservationStore().selectEntries(filter, fields)
+                    var obsStream = db.getObservationStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
-                })
-                .limit(filter.getLimit());
+                    obsIterators.add(obsStream.spliterator());
+                });
         }
+        
+        
+        // stream and merge obs from all selected datastreams and time periods
+        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, IObsData>>(obsIterators,
+            (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));         
+               
+        // stream output of merge sort iterator + apply limit        
+        return StreamSupport.stream(mergeSortIt, false)
+            .limit(filter.getLimit());
     }
     
 

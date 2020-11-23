@@ -7,7 +7,7 @@
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.stream;
+package org.sensorhub.impl.datastore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +17,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.junit.Before;
 import org.junit.Test;
-import org.sensorhub.impl.datastore.stream.MergeSortSpliterator;
 import static org.junit.Assert.*;
 
 

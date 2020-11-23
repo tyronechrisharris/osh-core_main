@@ -44,7 +44,7 @@ import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.impl.datastore.DataStoreUtils;
-import org.sensorhub.impl.datastore.stream.MergeSortSpliterator;
+import org.sensorhub.impl.datastore.MergeSortSpliterator;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
@@ -406,7 +406,7 @@ public class MVObsStoreImpl implements IObsStore
         
         // create obs streams for each selected series
         // and keep all spliterators in array list
-        final ArrayList<Spliterator<Entry<BigInteger, IObsData>>> obsIterators = new ArrayList<>(100);
+        final var obsIterators = new ArrayList<Spliterator<Entry<BigInteger, IObsData>>>(100);
         obsIterators.add(obsSeries
             .peek(s -> {
                 // make sure list size cannot go over a threshold

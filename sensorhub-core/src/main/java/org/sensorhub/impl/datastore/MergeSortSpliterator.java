@@ -7,7 +7,7 @@
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.stream;
+package org.sensorhub.impl.datastore;
 
 import java.util.Collection;
 import java.util.Comparator;
