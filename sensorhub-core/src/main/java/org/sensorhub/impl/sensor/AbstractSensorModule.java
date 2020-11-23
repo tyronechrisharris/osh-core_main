@@ -572,9 +572,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
         // send procedure enabled/disabled events
         if (newState == ModuleState.STARTED && uniqueID != null)
-            eventHandler.publish(new ProcedureEnabledEvent(uniqueID));
+            eventHandler.publish(new ProcedureEnabledEvent(uniqueID, getParentGroupUID()));
         else if (newState == ModuleState.STOPPED && uniqueID != null)
-            eventHandler.publish(new ProcedureDisabledEvent(uniqueID));
+            eventHandler.publish(new ProcedureDisabledEvent(uniqueID, getParentGroupUID()));
     }
 
 
