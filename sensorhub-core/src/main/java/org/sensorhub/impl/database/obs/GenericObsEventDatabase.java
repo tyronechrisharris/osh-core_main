@@ -194,7 +194,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     
     protected IDataProducer getDataSource(String procUID)
     {
-        IProcedureDriver proc = getParentHub().getProcedureRegistry().getProcedure(procUID);
+        IProcedureDriver proc = getParentHub().getProcedureRegistry().getProcedure(procUID).get();
         if (proc == null || !(proc instanceof IDataProducer))
             return null;
         return (IDataProducer)proc;

@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -197,9 +198,9 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T extends IProcedureDriver> T getProcedure(String uid)
+    public <T extends IProcedureDriver> WeakReference<T> getProcedure(String uid)
     {
-        return (T)getProxy(uid).driverRef.get();
+        return (WeakReference<T>)getProxy(uid).driverRef;
     }
 
 

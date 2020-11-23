@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
+import java.lang.ref.WeakReference;
 import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.data.IDataProducer;
@@ -116,11 +117,12 @@ public interface IProcedureRegistry extends IEventSource
     
     
     /**
-     * Retrieves the procedure driver with the given unique ID.
+     * Retrieves a handle to the procedure driver with the given unique ID.
      * @param uid The procedure unique ID
-     * @return The procedure driver instance
+     * @return A weak reference to the procedure driver instance, or a proxy if the
+     * driver is not directly accessible
      */
-    public <T extends IProcedureDriver> T getProcedure(String uid);
+    public <T extends IProcedureDriver> WeakReference<T> getProcedure(String uid);
     
     
     /**
