@@ -24,23 +24,38 @@ package org.sensorhub.api.procedure;
  */
 public class ProcedureDisabledEvent extends ProcedureEvent
 {
+    String parentGroupUID;
+
 
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param procUID Unique ID of disabled procedure
+     * @param parentGroupUID ID of parent procedure group (or null if procedure
+     * is not a member of any group)
      */
-    public ProcedureDisabledEvent(long timeStamp, String procUID)
+    public ProcedureDisabledEvent(long timeStamp, String procUID, String parentGroupUID)
     {
         super(timeStamp, procUID);
+        this.parentGroupUID = parentGroupUID;
     }
     
     
     /**
-     * Helper constructor that sets the timestamp to current system time
+     * Helper constructor that sets the timestamp to current system time.
      */
     @SuppressWarnings("javadoc")
-    public ProcedureDisabledEvent(String procUID)
+    public ProcedureDisabledEvent(String procUID, String parentGroupUID)
     {
         super(procUID);
+        this.parentGroupUID = parentGroupUID;
+    }
+
+
+    /**
+     * @return Unique ID of parent procedure group
+     */
+    public String getParentGroupUID()
+    {
+        return parentGroupUID;
     }
 }

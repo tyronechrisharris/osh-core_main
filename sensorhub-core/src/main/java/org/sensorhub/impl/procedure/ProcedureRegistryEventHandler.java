@@ -22,12 +22,14 @@ import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
-import org.sensorhub.api.obs.DataStreamRemovedEvent;
+import org.sensorhub.api.obs.DataStreamDisabledEvent;
+import org.sensorhub.api.obs.DataStreamEnabledEvent;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
-import org.sensorhub.api.procedure.ProcedureRemovedEvent;
+import org.sensorhub.api.procedure.ProcedureDisabledEvent;
+import org.sensorhub.api.procedure.ProcedureEnabledEvent;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 
@@ -87,7 +89,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
         {
             getParentPublisher(proc).publish(new ProcedureAddedEvent(
                 System.currentTimeMillis(),
-                proc.getUniqueIdentifier(),
+                procUID,
                 proc.getParentGroupUID()));
         }
         
@@ -95,6 +97,15 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
         else if (saveLastUpdated < latestDescriptionUpdate)
         {
             eventPublisher.publish(new ProcedureChangedEvent(System.currentTimeMillis(), procUID));
+        }
+        
+        // else send enabled event if description has changed   
+        else
+        {
+            getParentPublisher(proc).publish(new ProcedureEnabledEvent(
+                System.currentTimeMillis(),
+                procUID,
+                proc.getParentGroupUID()));
         }
         
         return isNew;
@@ -105,12 +116,9 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
     public CompletableFuture<Void> unregister(IProcedureDriver proc)
     {
         return super.unregister(proc).thenRun(() -> {
-            var event = new ProcedureRemovedEvent(
-                System.currentTimeMillis(),
-                proc.getUniqueIdentifier(),
-                proc.getParentGroupUID());        
-            //eventPublisher.publish(event);
-            getParentPublisher(proc).publish(event);
+            getParentPublisher(proc).publish(new ProcedureDisabledEvent(
+                procUID,
+                proc.getParentGroupUID()));
         });
     }
 
@@ -120,12 +128,19 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
     {
         boolean isNew = super.doRegister(dataStream);
         
-        // send event if dataStream wasn't registered before
+        // send event if datastream wasn't registered before
         if (isNew)
         {
             eventPublisher.publish(new DataStreamAddedEvent(
-                System.currentTimeMillis(),
                 procUID,
+                dataStream.getName()));
+        }
+        
+        // else send enabled event   
+        else
+        {
+            eventPublisher.publish(new DataStreamEnabledEvent(
+                procUID, 
                 dataStream.getName()));
         }
         
@@ -137,8 +152,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
     public CompletableFuture<Void> unregister(IStreamingDataInterface dataStream)
     {
         return super.unregister(dataStream).thenRun(() -> {
-            eventPublisher.publish(new DataStreamRemovedEvent(
-                System.currentTimeMillis(),
+            eventPublisher.publish(new DataStreamDisabledEvent(
                 procUID,
                 dataStream.getName()));
         });

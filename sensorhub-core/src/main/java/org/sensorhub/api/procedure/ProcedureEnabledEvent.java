@@ -24,14 +24,19 @@ package org.sensorhub.api.procedure;
  */
 public class ProcedureEnabledEvent extends ProcedureEvent
 {
-
+    String parentGroupUID;
+    
+    
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param procUID Unique ID of enabled procedure
+     * @param parentGroupUID ID of parent procedure group (or null if procedure
+     * is not a member of any group)
      */
-    public ProcedureEnabledEvent(long timeStamp, String procUID)
+    public ProcedureEnabledEvent(long timeStamp, String procUID, String parentGroupUID)
     {
         super(timeStamp, procUID);
+        this.parentGroupUID = parentGroupUID;
     }
     
     
@@ -39,8 +44,18 @@ public class ProcedureEnabledEvent extends ProcedureEvent
      * Helper constructor that sets the timestamp to current system time
      */
     @SuppressWarnings("javadoc")
-    public ProcedureEnabledEvent(String procUID)
+    public ProcedureEnabledEvent(String procUID, String parentGroupUID)
     {
         super(procUID);
+        this.parentGroupUID = parentGroupUID;
+    }
+
+
+    /**
+     * @return Unique ID of parent procedure group
+     */
+    public String getParentGroupUID()
+    {
+        return parentGroupUID;
     }
 }

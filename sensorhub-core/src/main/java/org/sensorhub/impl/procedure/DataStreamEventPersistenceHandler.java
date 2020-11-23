@@ -25,13 +25,13 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.ObsData;
+import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataBlock;
-import net.opengis.swe.v20.DataComponent;
 
 
 public class DataStreamEventPersistenceHandler implements IEventListener
@@ -76,20 +76,27 @@ public class DataStreamEventPersistenceHandler implements IEventListener
         }
         else
         {
+            // if an output with the same name already existed
             dsKey = dsEntry.getKey();
             IDataStreamInfo dsInfo = dsEntry.getValue();
             
-            if (hasOutputChanged(dsInfo.getRecordStructure(), dataStream.getRecordDescription()))
-            {
-                // version existing data stream
-                dsInfo = new DataStreamInfo.Builder()
-                    .withProcedure(procId)
-                    .withRecordDescription(dataStream.getRecordDescription())
-                    .withRecordEncoding(dataStream.getRecommendedEncoding())
-                    .withValidTime(TimeExtent.endNow(Instant.now()))
-                    .build();
+            dsInfo = new DataStreamInfo.Builder()
+                .withProcedure(procId)
+                .withRecordDescription(dataStream.getRecordDescription())
+                .withRecordEncoding(dataStream.getRecommendedEncoding())
+                .withValidTime(TimeExtent.endNow(Instant.now()))
+                .build();
+            
+            // 2 cases
+            // if structure has changed, create a new datastream
+            if (!DataComponentChecks.checkStructCompatible(dsInfo.getRecordStructure(), dataStream.getRecordDescription()))
                 dsKey = dataStreamStore.add(dsInfo);
-            }
+            
+            // if something else has changed, update existing datastream
+            else if (!DataComponentChecks.checkStructEquals(dsInfo.getRecordStructure(), dataStream.getRecordDescription()))
+                dataStreamStore.put(dsKey, dsInfo); 
+            
+            // else don't update and return existing key
             else
                 isNew = false;
         }
@@ -100,13 +107,6 @@ public class DataStreamEventPersistenceHandler implements IEventListener
             dataStream.registerListener(this);
         
         return isNew;
-    }
-    
-    
-    protected boolean hasOutputChanged(DataComponent liveVersion, DataComponent storedVersion)
-    {
-        // TODO detect if data stream versioning is needed
-        return false;
     }
     
     
@@ -150,6 +150,5 @@ public class DataStreamEventPersistenceHandler implements IEventListener
                 procedure.getDatabase().getObservationStore().add(obs);
             }
         }
-        
     }
 }

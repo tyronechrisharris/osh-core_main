@@ -17,7 +17,7 @@ package org.sensorhub.api.obs;
 
 /**
  * <p>
- * Event sent when a datastream (i.e. output) is added by a procedure
+ * Event sent when a datastream (i.e. output) is added to a procedure
  * </p>
  *
  * @author Alex Robin

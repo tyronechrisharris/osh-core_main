@@ -29,7 +29,7 @@ public class ProcedureAddedEvent extends ProcedureEvent
 
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID ID of added procedure
+     * @param procUID Unique ID of added procedure
      * @param parentGroupUID ID of parent procedure group (or null if procedure
      * is not a member of any group)
      */

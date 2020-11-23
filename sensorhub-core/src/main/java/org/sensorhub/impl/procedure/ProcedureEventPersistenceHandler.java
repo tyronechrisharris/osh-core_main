@@ -28,6 +28,7 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
+import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
@@ -294,9 +295,10 @@ public class ProcedureEventPersistenceHandler implements IEventListener
                 {
                     var outputs = ((IDataProducer)proc).getOutputs();
                     
-                    if (e instanceof DataStreamAddedEvent)
+                    if (e instanceof DataStreamAddedEvent || e instanceof DataStreamChangedEvent)
                         register(outputs.get(((DataStreamAddedEvent)e).getOutputName()));
-                    
+                    else if (e instanceof DataStreamAddedEvent)
+                        register(outputs.get(((DataStreamAddedEvent)e).getOutputName()));
                     // TODO handle all event types and redirect to register methods when appropriate
                 }
             }
