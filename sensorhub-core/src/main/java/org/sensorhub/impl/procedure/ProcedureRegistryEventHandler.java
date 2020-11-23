@@ -30,6 +30,9 @@ import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureDisabledEvent;
 import org.sensorhub.api.procedure.ProcedureEnabledEvent;
+import org.sensorhub.api.task.CommandStreamAddedEvent;
+import org.sensorhub.api.task.CommandStreamDisabledEvent;
+import org.sensorhub.api.task.CommandStreamEnabledEvent;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 
@@ -160,16 +163,38 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
 
 
     @Override
-    public boolean doRegister(IStreamingControlInterface controlStream)
+    public boolean doRegister(IStreamingControlInterface commandStream)
     {
-        return super.doRegister(controlStream);
+        boolean isNew = super.doRegister(commandStream);
+        
+        // send event if command stream wasn't registered before
+        if (isNew)
+        {
+            eventPublisher.publish(new CommandStreamAddedEvent(
+                procUID,
+                commandStream.getName()));
+        }
+        
+        // else send enabled event   
+        else
+        {
+            eventPublisher.publish(new CommandStreamEnabledEvent(
+                procUID, 
+                commandStream.getName()));
+        }
+        
+        return isNew;
     }
 
 
     @Override
-    public CompletableFuture<Void> unregister(IStreamingControlInterface controlStream)
+    public CompletableFuture<Void> unregister(IStreamingControlInterface commandStream)
     {
-        return super.unregister(controlStream);
+        return super.unregister(commandStream).thenRun(() -> {
+            eventPublisher.publish(new CommandStreamDisabledEvent(
+                procUID,
+                commandStream.getName()));
+        });
     }
 
 
