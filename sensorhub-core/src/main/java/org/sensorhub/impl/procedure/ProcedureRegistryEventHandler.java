@@ -63,7 +63,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
     {
         // if adding to a parent group, publish event to parent group channel
         if (proc.getParentGroupUID() != null)
-            return registry.getProxy(proc.getParentGroupUID()).eventPublisher;
+            return registry.getDriverHandler(proc.getParentGroupUID()).eventPublisher;
         
         // else publish in registry channel
         else       
@@ -127,7 +127,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
 
 
     @Override
-    public boolean doRegister(IStreamingDataInterface dataStream)
+    protected boolean doRegister(IStreamingDataInterface dataStream)
     {
         boolean isNew = super.doRegister(dataStream);
         
@@ -152,18 +152,18 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
 
 
     @Override
-    public CompletableFuture<Void> unregister(IStreamingDataInterface dataStream)
+    protected void doUnregister(IStreamingDataInterface dataStream)
     {
-        return super.unregister(dataStream).thenRun(() -> {
-            eventPublisher.publish(new DataStreamDisabledEvent(
-                procUID,
-                dataStream.getName()));
-        });
+        super.doUnregister(dataStream);
+        
+        eventPublisher.publish(new DataStreamDisabledEvent(
+            procUID,
+            dataStream.getName()));
     }
 
 
     @Override
-    public boolean doRegister(IStreamingControlInterface commandStream)
+    protected boolean doRegister(IStreamingControlInterface commandStream)
     {
         boolean isNew = super.doRegister(commandStream);
         
@@ -188,18 +188,18 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
 
 
     @Override
-    public CompletableFuture<Void> unregister(IStreamingControlInterface commandStream)
+    public void doUnregister(IStreamingControlInterface commandStream)
     {
-        return super.unregister(commandStream).thenRun(() -> {
-            eventPublisher.publish(new CommandStreamDisabledEvent(
-                procUID,
-                commandStream.getName()));
-        });
+        super.doUnregister(commandStream);
+        
+        eventPublisher.publish(new CommandStreamDisabledEvent(
+            procUID,
+            commandStream.getName()));
     }
 
 
     @Override
-    public boolean doRegister(IGeoFeature foi)
+    protected boolean doRegister(IGeoFeature foi)
     {
         boolean isNew = super.doRegister(foi);
         
@@ -225,7 +225,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
     }
     
     
-    protected ProcedureEventPersistenceHandler createMemberHandler(IProcedureDriver childProc)
+    protected ProcedureRegistryEventHandler createMemberProcedureHandler(IProcedureDriver childProc)
     {
         var parent = this;
         return new ProcedureRegistryEventHandler(registry, childProc, getDatabase()) {

@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import java.lang.ref.WeakReference;
 import java.time.Instant;
 import java.util.Map.Entry;
 import org.sensorhub.api.data.DataEvent;
@@ -38,6 +39,7 @@ import net.opengis.swe.v20.DataBlock;
 public class DataStreamEventPersistenceHandler implements IEventListener
 {
     ProcedureEventPersistenceHandler procedureHandler;
+    protected WeakReference<IStreamingDataInterface> outputRef; // reference to live procedure output
     ScalarIndexer timeStampIndexer;
     long dataStreamID;
     
@@ -52,9 +54,10 @@ public class DataStreamEventPersistenceHandler implements IEventListener
     }
     
     
-    protected boolean register(IStreamingDataInterface dataStream)
+    protected boolean connect(IStreamingDataInterface dataStream)
     {
         Asserts.checkNotNull(dataStream, IStreamingDataInterface.class);
+        outputRef = new WeakReference<IStreamingDataInterface>(dataStream);
         
         var procId = procedureHandler.procID;
         var procUID = procedureHandler.procUID;
@@ -108,6 +111,15 @@ public class DataStreamEventPersistenceHandler implements IEventListener
             dataStream.registerListener(this);
         
         return isNew;
+    }
+    
+    
+    protected void unregister(IStreamingDataInterface dataStream)
+    {
+        var output = outputRef.get();
+        Asserts.checkArgument(dataStream == output);
+        if (output != null)
+            output.unregisterListener(this);
     }
     
     

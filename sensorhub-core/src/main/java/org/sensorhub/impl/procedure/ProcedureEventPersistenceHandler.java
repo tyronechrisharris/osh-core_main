@@ -65,26 +65,10 @@ public class ProcedureEventPersistenceHandler implements IEventListener
     {
         this.procUID = Asserts.checkNotNull(proc.getUniqueIdentifier());
         this.dbRef = new WeakReference<>(Asserts.checkNotNull(db, IProcedureEventHandlerDatabase.class));
-        this.driverRef = new WeakReference<>(Asserts.checkNotNull(proc, IProcedureDriver.class));
-    }
-
-
-    public void connectLiveProcedure(IProcedureDriver proc)
-    {
-        this.driverRef = new WeakReference<>(Asserts.checkNotNull(proc, IProcedureDriver.class));
-        DefaultProcedureRegistry.log.debug("Procedure {} connected", procUID);
-    }
-
-
-    public void disconnectLiveProcedure(IProcedureDriver proc)
-    {
-        proc.unregisterListener(this);
-        driverRef.clear();
-        DefaultProcedureRegistry.log.debug("Procedure {} disconnected", procUID);
     }
     
     
-    protected CompletableFuture<Boolean> register(IProcedureDriver proc)
+    protected CompletableFuture<Boolean> connect(IProcedureDriver proc)
     {
         Asserts.checkNotNull(proc, IProcedureDriver.class);
         OshAsserts.checkValidUID(proc.getUniqueIdentifier());
@@ -97,6 +81,7 @@ public class ProcedureEventPersistenceHandler implements IEventListener
     
     protected boolean doRegister(IProcedureDriver proc)
     {
+        this.driverRef = new WeakReference<>(Asserts.checkNotNull(proc, IProcedureDriver.class));
         return doRegister(0L, proc);
     }
     
@@ -122,7 +107,8 @@ public class ProcedureEventPersistenceHandler implements IEventListener
         
         this.procID = new ProcedureId(procKey.getInternalID(), procUID);
         if (proc.isEnabled())
-            proc.registerListener(this);
+            DefaultProcedureRegistry.log.debug("Procedure {} connected", procUID);
+        proc.registerListener(this);
         
         // if data producer, register fois and datastreams
         if (proc instanceof IDataProducer)
@@ -136,37 +122,37 @@ public class ProcedureEventPersistenceHandler implements IEventListener
                 doRegister(dataStream);
         }
         
-        // if command sink, register control streams
+        // if command sink, register command streams
         if (proc instanceof ICommandReceiver)
         {
             var taskableSource = (ICommandReceiver)proc;
-            for (var controlStream: taskableSource.getCommandInputs().values())
-                doRegister(controlStream);            
+            for (var commanStream: taskableSource.getCommandInputs().values())
+                doRegister(commanStream);            
         }
         
         // if group, also register members recursively
         if (proc instanceof IProcedureGroupDriver)
         {
             for (var member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
-                doRegisterMember(this, member);
+                doRegisterMember(member);
         }
         
         return isNew;
     }
     
     
-    protected boolean doRegisterMember(ProcedureEventPersistenceHandler parentHandler, IProcedureDriver proc)
+    protected boolean doRegisterMember(IProcedureDriver proc)
     {
         Asserts.checkNotNull(proc, IProcedureDriver.class);
         OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
         var proxy = memberListeners.compute(proc.getUniqueIdentifier(), (k,v) -> {
             if (v == null)
-                v = createMemberHandler(proc);
+                v = createMemberProcedureHandler(proc);
             return v;
         });
         
-        return proxy.doRegister(parentHandler.procID.getInternalID(), proc);
+        return proxy.doRegister(procID.getInternalID(), proc);
     }
 
 
@@ -174,14 +160,39 @@ public class ProcedureEventPersistenceHandler implements IEventListener
     {
         Asserts.checkNotNull(proc, IProcedureDriver.class);
         
-        unregisterListener(proc);        
+        doUnregister(proc);      
         return CompletableFuture.completedFuture(null);
     }
     
     
-    private void unregisterListener(IProcedureDriver proc)
+    protected void doUnregister(IProcedureDriver proc)
     {
         proc.unregisterListener(this);
+        driverRef.clear();
+        DefaultProcedureRegistry.log.debug("Procedure {} disconnected", procUID);
+        
+        // if data producer, unregister datastreams
+        if (proc instanceof IDataProducer)
+        {
+            var dataSource = (IDataProducer)proc;
+            for (var dataStream: dataSource.getOutputs().values())
+                doUnregister(dataStream);
+        }
+        
+        // if command sink, unregister command streams
+        if (proc instanceof ICommandReceiver)
+        {
+            var taskableSource = (ICommandReceiver)proc;
+            for (var commanStream: taskableSource.getCommandInputs().values())
+                doUnregister(commanStream);            
+        }
+        
+        // if group, also unregister members recursively
+        if (proc instanceof IProcedureGroupDriver)
+        {
+            for (var member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
+                doUnregister(member);
+        }
     }
 
 
@@ -201,24 +212,23 @@ public class ProcedureEventPersistenceHandler implements IEventListener
             return createDataStreamHandler(dataStream);
         });
         
-        return dsHandler.register(dataStream);
+        return dsHandler.connect(dataStream);
     }
 
 
     protected CompletableFuture<Void> unregister(IStreamingDataInterface dataStream)
     {
         Asserts.checkNotNull(dataStream, IStreamingDataInterface.class);
-        
-        unregisterListener(dataStream);        
+        doUnregister(dataStream);
         return CompletableFuture.completedFuture(null);
     }
     
     
-    private void unregisterListener(IStreamingDataInterface dataStream)
+    protected void doUnregister(IStreamingDataInterface dataStream)
     {
-        var listener = dataStreamListeners.remove(dataStream.getName());
-        if (listener != null)
-            dataStream.unregisterListener(listener);
+        var dsHandler = dataStreamListeners.remove(dataStream.getName());
+        if (dsHandler != null)
+            dsHandler.unregister(dataStream);
     }
 
 
@@ -232,15 +242,23 @@ public class ProcedureEventPersistenceHandler implements IEventListener
     }
     
     
-    protected boolean doRegister(IStreamingControlInterface controlStream)
+    protected boolean doRegister(IStreamingControlInterface commandStream)
     {
-        throw new UnsupportedOperationException("Control streams not implemented yet");
+        throw new UnsupportedOperationException("Command streams register not implemented yet");
     }
 
 
-    protected CompletableFuture<Void> unregister(IStreamingControlInterface controlStream)
+    protected CompletableFuture<Void> unregister(IStreamingControlInterface commandStream)
     {
-        throw new UnsupportedOperationException("Control streams not implemented yet");
+        Asserts.checkNotNull(commandStream, IStreamingControlInterface.class);
+        doUnregister(commandStream);
+        return CompletableFuture.completedFuture(null);
+    }
+    
+    
+    protected void doUnregister(IStreamingControlInterface proc)
+    {
+        throw new UnsupportedOperationException("Command streams unregister not implemented yet");
     }
 
 
@@ -306,7 +324,7 @@ public class ProcedureEventPersistenceHandler implements IEventListener
     }
     
     
-    protected ProcedureEventPersistenceHandler createMemberHandler(IProcedureDriver childProc)
+    protected ProcedureEventPersistenceHandler createMemberProcedureHandler(IProcedureDriver childProc)
     {
         var parent = this;
         return new ProcedureEventPersistenceHandler(childProc, getDatabase()) {

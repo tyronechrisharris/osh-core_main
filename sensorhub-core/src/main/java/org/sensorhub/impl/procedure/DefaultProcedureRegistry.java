@@ -60,7 +60,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     ProcedureObsEventDatabase procStateDb;
     IProcedureObsDatabase federatedDb;
     ReadWriteLock lock = new ReentrantReadWriteLock();
-    Map<String, ProcedureRegistryEventHandler> procedureListeners = new ConcurrentSkipListMap<>();
+    Map<String, ProcedureRegistryEventHandler> driverListeners = new ConcurrentSkipListMap<>();
 
 
     public DefaultProcedureRegistry(ISensorHub hub, DatabaseConfig stateDbConfig)
@@ -94,7 +94,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
     
     
-    protected ProcedureRegistryEventHandler createProxy(IProcedureDriver proc)
+    protected ProcedureRegistryEventHandler createDriverHandler(IProcedureDriver proc)
     {
         var procUID = proc.getUniqueIdentifier();
         
@@ -119,33 +119,38 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         
         // create listener or simply reconnect to it
         // use compute() to do it atomatically
-        var proxy = procedureListeners.compute(procUID, (k,v) -> {
+        var handler = driverListeners.compute(procUID, (k,v) -> {
             if (v != null)
             {
                 IProcedureDriver liveProc = v.driverRef.get();
                 if (liveProc != null && liveProc != proc)
                     throw new IllegalArgumentException("A procedure with UID " + procUID + " is already registered");
+                return v;
+            }
+            else if (proc.getParentGroupUID() != null)
+            {
+                // create handler within parent handler
+                var parentHandler = getDriverHandler(proc.getParentGroupUID());
+                return parentHandler.createMemberProcedureHandler(proc);
             }
             else
-                v = createProxy(proc);    
-            return v;
+                return createDriverHandler(proc);
         });
         
         // connect and register procedure
         // callee will take care of double registrations
-        synchronized (proxy)
+        synchronized (handler)
         {
-            proxy.connectLiveProcedure(proc);
-            return proxy.register(proc);
+            return handler.connect(proc);
         }
     }
     
     
-    protected ProcedureRegistryEventHandler getProxy(String procUID)
+    protected ProcedureRegistryEventHandler getDriverHandler(String procUID)
     {
-        var handler = procedureListeners.get(procUID);
+        var handler = driverListeners.get(procUID);
         if (handler == null)
-            throw new IllegalStateException("Procedure " + procUID + " hasn't been registered");        
+            throw new IllegalStateException("Procedure " + procUID + " is not registered");        
         
         return handler;
     }
@@ -157,8 +162,8 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         Asserts.checkNotNull(proc, IProcedureDriver.class);
         String procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
-        getProxy(procUID); // just to check procedure was registered before
-        var proxy = procedureListeners.remove(procUID);
+        getDriverHandler(procUID); // just to check procedure was registered before
+        var proxy = driverListeners.remove(procUID);
         return proxy.unregister(proc);
     }
     
@@ -170,7 +175,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         var proc = Asserts.checkNotNull(dataStream.getParentProducer(), IProcedureDriver.class);
         var procUID = Asserts.checkNotNull(proc.getUniqueIdentifier());
         
-        return getProxy(procUID).register(dataStream);
+        return getDriverHandler(procUID).register(dataStream);
     }
     
     
@@ -181,7 +186,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         var proc = Asserts.checkNotNull(controlStream.getParentProducer(), IProcedureDriver.class);
         var procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
-        return getProxy(procUID).register(controlStream);
+        return getDriverHandler(procUID).register(controlStream);
     }
     
     
@@ -192,7 +197,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         Asserts.checkNotNull(foi, IGeoFeature.class);
         var procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
-        return getProxy(procUID).register(foi);
+        return getDriverHandler(procUID).register(foi);
     }
 
 
@@ -200,7 +205,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     @SuppressWarnings("unchecked")
     public <T extends IProcedureDriver> WeakReference<T> getProcedure(String uid)
     {
-        return (WeakReference<T>)getProxy(uid).driverRef;
+        return (WeakReference<T>)getDriverHandler(uid).driverRef;
     }
 
 

@@ -155,7 +155,12 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         // add location output if a location is provided
         if (config.getLocation() != null && locationOutput == null)
             addLocationOutput(Double.NaN);
-        
+    }
+    
+    
+    @Override
+    protected void beforeStart() throws SensorHubException
+    {
         // register sensor with registry if attached to a hub
         try
         {
@@ -166,16 +171,27 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         {
             throw new SensorException("Error registering driver", e.getCause());
         }
-    }
-    
-    
-    @Override
-    protected void beforeStart() throws SensorHubException
-    {
+        
         // send new location event
         var loc = config.getLocation();
         if (locationOutput != null && loc != null)
             locationOutput.updateLocation(System.currentTimeMillis()/1000., loc.lon, loc.lat, loc.alt, false);
+    }
+    
+    
+    @Override
+    protected void afterStop() throws SensorHubException
+    {
+        // unregister sensor if attached to a hub
+        try
+        {
+            if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
+                getParentHub().getProcedureRegistry().unregister(this).get();
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            throw new SensorException("Error unregistering driver", e.getCause());
+        }
     }
 
 

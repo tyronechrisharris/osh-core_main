@@ -18,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -28,7 +29,18 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.event.Event;
+import org.sensorhub.api.obs.DataStreamAddedEvent;
+import org.sensorhub.api.obs.DataStreamDisabledEvent;
+import org.sensorhub.api.obs.DataStreamEnabledEvent;
+import org.sensorhub.api.obs.DataStreamEvent;
+import org.sensorhub.api.obs.DataStreamRemovedEvent;
 import org.sensorhub.api.procedure.IProcedureRegistry;
+import org.sensorhub.api.procedure.ProcedureAddedEvent;
+import org.sensorhub.api.procedure.ProcedureDisabledEvent;
+import org.sensorhub.api.procedure.ProcedureEnabledEvent;
+import org.sensorhub.api.procedure.ProcedureEvent;
+import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.sensor.FakeSensor;
@@ -94,7 +106,7 @@ public class TestProcedureRegistry
             assertEquals(sensor.getOutputs().get(NAME_OUTPUT2).getRecordDescription().getLabel(), ds2.getName());   
             
         })
-        .thenCompose(v -> {
+        .thenCompose(nil -> {
             // check data is forwarded to event bus
             var eventSrcInfo = sensor.getOutputs().get(NAME_OUTPUT1).getEventSourceInfo();
             System.out.println("Subscribe to channel " + eventSrcInfo);
@@ -330,6 +342,128 @@ public class TestProcedureRegistry
             
             assertEquals(expectedCount, sampleCountEntry.getValue());
         }
+    }
+    
+    
+    @Test
+    public void testRegisterAndCheckPublishedEvents() throws Exception
+    {
+        // configure and init sensor
+        FakeSensor sensor = new FakeSensor();
+        sensor.setConfiguration(new SensorConfig());
+        sensor.setDataInterfaces(
+            new FakeSensorData(sensor, NAME_OUTPUT1, 0.1, NUM_GEN_SAMPLES),
+            new FakeSensorData2(sensor, NAME_OUTPUT2, 0.05, NUM_GEN_SAMPLES));
+        sensor.requestInit(true);
+        
+        
+        // subscribe to events
+        var receivedEvents = new ArrayList<Event>();
+        hub.getEventBus().newSubscription(ProcedureEvent.class)
+            .withSource(registry)
+            .withSource(sensor)
+            .consume(e -> {
+                System.out.println("Received " + e.getClass().getSimpleName() +
+                    " from " + e.getProcedureUID() +
+                    ((e instanceof DataStreamEvent) ? ", output=" + ((DataStreamEvent)e).getOutputName() : "") );
+                receivedEvents.add(e);
+            });
+        
+        
+        // register
+        registry.register(sensor).join();
+        Thread.sleep(100);
+                    
+        // check that we received all "added" events
+        assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
+            .filter(e -> e instanceof DataStreamAddedEvent)
+            .count());
+        
+        assertEquals(1, receivedEvents.stream()
+            .filter(e -> e instanceof ProcedureAddedEvent)
+            .count());
+        
+        assertEquals(sensor.getOutputs().size()+1, receivedEvents.size());
+        
+        
+        // register again and check that we receive only "enabled" event
+        receivedEvents.clear();
+        registry.register(sensor).join();
+        Thread.sleep(100);
+        
+        assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
+            .filter(e -> e instanceof DataStreamEnabledEvent)
+            .count());
+        
+        assertEquals(1, receivedEvents.stream()
+            .filter(e -> e instanceof ProcedureEnabledEvent)
+            .count());
+        
+        assertEquals(0, receivedEvents.stream()
+            .filter(e -> e instanceof DataStreamAddedEvent)
+            .count());
+        
+        assertEquals(0, receivedEvents.stream()
+            .filter(e -> e instanceof ProcedureAddedEvent)
+            .count());
+        
+        assertEquals(sensor.getOutputs().size()+1, receivedEvents.size());
+    }
+    
+    
+    @Test
+    public void testUnregisterAndCheckPublishedEvents() throws Exception
+    {
+        // configure and init sensor
+        FakeSensor sensor = new FakeSensor();
+        sensor.setConfiguration(new SensorConfig());
+        sensor.setDataInterfaces(
+            new FakeSensorData(sensor, NAME_OUTPUT1, 0.1, NUM_GEN_SAMPLES),
+            new FakeSensorData(sensor, NAME_OUTPUT1 + "_bis", 0.1, NUM_GEN_SAMPLES),
+            new FakeSensorData2(sensor, NAME_OUTPUT2, 0.05, NUM_GEN_SAMPLES));
+        sensor.requestInit(true);
+        
+        
+        // subscribe to events
+        var receivedEvents = new ArrayList<Event>();
+        hub.getEventBus().newSubscription(ProcedureEvent.class)
+            .withSource(registry)
+            .withSource(sensor)
+            .consume(e -> {
+                System.out.println("Received " + e.getClass().getSimpleName() +
+                    " from " + e.getProcedureUID() +
+                    ((e instanceof DataStreamEvent) ? ", output=" + ((DataStreamEvent)e).getOutputName() : "") );
+                receivedEvents.add(e);
+            });
+        
+        
+        // register
+        registry.register(sensor).join();
+        Thread.sleep(100);
+        
+        // unregister and check that we received "disabled" events
+        receivedEvents.clear();
+        registry.unregister(sensor).join();
+        Thread.sleep(100);
+        
+        // check that we receive only "enabled" event
+        assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
+            .filter(e -> e instanceof DataStreamDisabledEvent)
+            .count());
+        
+        assertEquals(1, receivedEvents.stream()
+            .filter(e -> e instanceof ProcedureDisabledEvent)
+            .count());
+        
+        assertEquals(0, receivedEvents.stream()
+            .filter(e -> e instanceof DataStreamRemovedEvent)
+            .count());
+        
+        assertEquals(0, receivedEvents.stream()
+            .filter(e -> e instanceof ProcedureRemovedEvent)
+            .count());
+        
+        assertEquals(sensor.getOutputs().size()+1, receivedEvents.size());        
     }
 
 }
