@@ -287,8 +287,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         
         // register to module registry events
         hub.getEventBus().newSubscription()
-            .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
-            .withSourceID(ModuleRegistry.EVENT_GROUP_ID)
+            .withTopicID(ModuleRegistry.EVENT_GROUP_ID)
             .consume(this::handleEvent)
             .thenAccept(s -> moduleEventsSub = s);
     }

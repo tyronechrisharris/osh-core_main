@@ -26,7 +26,6 @@ import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.data.MyBeanItem;
-import org.vast.ogc.gml.IGeoFeature;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
@@ -83,10 +82,13 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
             sectionLabel.addStyleName(STYLE_COLORED);
             addComponent(sectionLabel);
             addComponent(new Label("<b>Unique ID:</b> " + module.getUniqueIdentifier(), ContentMode.HTML));
-            IGeoFeature foi = module.getCurrentFeatureOfInterest();
-            if (foi != null)
-                addComponent(new Label("<b>FOI ID:</b> " + foi.getUniqueIdentifier(), ContentMode.HTML));
-                               
+            var fois = module.getCurrentFeaturesOfInterest().keySet();
+            if (fois != null && !fois.isEmpty())
+            {
+                for (var foi: fois)
+                    addComponent(new Label("<b>FOI ID:</b> " + foi, ContentMode.HTML));
+            }
+            
             // outputs section
             if (!module.getOutputs().isEmpty())
             {
