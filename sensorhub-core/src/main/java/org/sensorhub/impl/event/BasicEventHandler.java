@@ -106,8 +106,13 @@ public class BasicEventHandler implements IEventHandler
                     }
                     catch (Throwable ex)
                     {
-                        String srcName = e.getSource().getClass().getSimpleName();
+                        String srcName = e.getSource() != null ? e.getSource().getClass().getSimpleName() : e.getSourceID();
                         String destName = listener.getClass().getSimpleName();
+                        if (destName.isEmpty()) // case of anonymous class
+                        {
+                            destName = listener.getClass().getName();
+                            destName = destName.substring(destName.lastIndexOf('.')+1);
+                        }
                         log.error("Uncaught exception while dispatching event from {} to {}", srcName, destName, ex);
                     }                    
                 }
