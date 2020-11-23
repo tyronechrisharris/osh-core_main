@@ -145,7 +145,7 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
                 if (sampleCount >= maxSampleCount)
                 {
                     cancel();
-                    future.complete(sampleCount-1);
+                    future.complete(sampleCount);
                 }
             }                
         };
