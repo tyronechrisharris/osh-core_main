@@ -200,7 +200,9 @@ public class EventBus implements IEventBus
     <E extends Event> void subscribeMulti(String groupID, Set<String> topicIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
         //  create filter with list of sources
-        Predicate<? super E> groupFilter = e -> topicIDs.contains(e.getSourceID()) && filter.test(e);
+        Predicate<? super E> groupFilter = filter != null ?
+            e -> topicIDs.contains(e.getSourceID()) && filter.test(e) :
+            e -> topicIDs.contains(e.getSourceID());
         
         // subscribe to entire group with filter
         subscribe(groupID, groupFilter, subscriber);
