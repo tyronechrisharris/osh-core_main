@@ -139,4 +139,11 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
     {
         return uniqueID + ":foi";
     }
+    
+    
+    @Override
+    public String getName()
+    {
+        return getClass().getSimpleName();
+    }
 }
