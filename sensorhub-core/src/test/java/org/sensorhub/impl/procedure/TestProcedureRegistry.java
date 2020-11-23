@@ -20,6 +20,7 @@ import static org.junit.Assert.assertTrue;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +36,7 @@ import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.sensor.FakeSensorData2;
 import org.sensorhub.impl.sensor.FakeSensorNetOnlyFois;
 import org.sensorhub.impl.sensor.FakeSensorNetWithMembers;
+import com.google.common.collect.Sets;
 
 
 public class TestProcedureRegistry
@@ -43,6 +45,7 @@ public class TestProcedureRegistry
     static final String NAME_OUTPUT2 = "image";
     static final double SAMPLING_PERIOD = 0.1;
     static final int NUM_GEN_SAMPLES = 5;
+    static final String NO_FOI = "none";
     
     ISensorHub hub;
     IProcedureRegistry registry;
@@ -226,17 +229,26 @@ public class TestProcedureRegistry
     @Test
     public void testRegisterSensorArray() throws Exception
     {
-        int numFois = 50;
+        int numFois = 5;
+        int numObs = 24;
+        var obsFoiMap = new TreeMap<Integer, Integer>();
+        obsFoiMap.put(3, 1);
+        obsFoiMap.put(5, 3);
+        obsFoiMap.put(8, 2);
+        obsFoiMap.put(12, 4);
+        obsFoiMap.put(15, 2);
+        obsFoiMap.put(17, 3);
+        obsFoiMap.put(19, 5);
         FakeSensorNetOnlyFois sensorNet = new FakeSensorNetOnlyFois();
         sensorNet.setConfiguration(new SensorConfig());
-        sensorNet.setDataInterfaces(new FakeSensorData(sensorNet, NAME_OUTPUT1, 1.0, 10));
+        sensorNet.setDataInterfaces(new FakeSensorData2(sensorNet, NAME_OUTPUT1, 0.05, numObs, obsFoiMap));
         sensorNet.addFois(numFois);
         sensorNet.requestInit(true);
         
         assertEquals(0, stateDb.getProcedureStore().size());
         assertEquals(0, stateDb.getFoiStore().size());
         
-        Map<String, Integer> sampleCounters = new HashMap<>();
+        Map<String, Integer> sampleCountsPerFoi = new TreeMap<>();
         registry.register(sensorNet).thenRun(() -> {
             
             // check parent procedure is in DB
@@ -274,9 +286,11 @@ public class TestProcedureRegistry
                 .withEventType(DataEvent.class)
                 .withSourceInfo(eventSrcInfo)                     
                 .consume(e -> {
-                    System.out.println("Record received from " + e.getSourceID() + ", ts=" +
-                        Instant.ofEpochMilli(e.getTimeStamp()));
-                    sampleCounters.compute(e.getProcedureUID(), (k, v) -> {
+                    var foiStr = e.getFoiUID() != null ? e.getFoiUID() : NO_FOI;
+                    System.out.println("Record received from " + e.getSourceID() +
+                        ", ts=" + Instant.ofEpochMilli(e.getTimeStamp()) +
+                        ", foi=" + foiStr);
+                    sampleCountsPerFoi.compute(foiStr, (k, v) -> {
                         if (v == null)
                             return 1;
                         else
@@ -287,14 +301,35 @@ public class TestProcedureRegistry
             return sensorNet.startSendingData(false);
         })
         .thenRun(() -> {            
-            // check latest records are in DB
-            assertEquals(numFois, stateDb.getObservationStore().size());            
+            // check latest records are in DB (one per foi)
+            var observedFois = Sets.newHashSet(obsFoiMap.values());
+            assertEquals(observedFois.size()+1, stateDb.getObservationStore().size());
         })
         .join();
         
-        /*// check we received all records from event bus
-        for (String uid: sensorNet.getMembers().keySet())
-            assertEquals(NUM_GEN_SAMPLES, (int)sampleCounters.get(uid));*/
+        // check we received all records from event bus
+        for (var sampleCountEntry: sampleCountsPerFoi.entrySet())
+        {
+            Integer expectedCount;
+            var foiUID = sampleCountEntry.getKey();
+            if (NO_FOI.equals(foiUID))
+                expectedCount = obsFoiMap.ceilingKey(0)-1;
+            else
+            {
+                expectedCount = obsFoiMap.entrySet().stream()
+                    .filter(e -> {
+                        var uid = sensorNet.getFoiUID(e.getValue());
+                        return uid.equals(sampleCountEntry.getKey());  
+                    })
+                    .map(e -> {
+                        var nextKey = obsFoiMap.higherKey(e.getKey());
+                        return (nextKey != null ? nextKey : numObs+1)- e.getKey();
+                    })
+                    .reduce(0, Integer::sum);
+            }
+            
+            assertEquals(expectedCount, sampleCountEntry.getValue());
+        }
     }
 
 }

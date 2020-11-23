@@ -17,6 +17,7 @@ package org.sensorhub.impl.procedure;
 import java.time.Instant;
 import java.util.Map.Entry;
 import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -36,7 +37,7 @@ import net.opengis.swe.v20.DataBlock;
 
 public class DataStreamEventPersistenceHandler implements IEventListener
 {
-    ProcedureEventPersistenceHandler procedure;
+    ProcedureEventPersistenceHandler procedureHandler;
     ScalarIndexer timeStampIndexer;
     long dataStreamID;
     
@@ -47,7 +48,7 @@ public class DataStreamEventPersistenceHandler implements IEventListener
 
     public DataStreamEventPersistenceHandler(ProcedureEventPersistenceHandler procedure)
     {
-        this.procedure = Asserts.checkNotNull(procedure, ProcedureEventPersistenceHandler.class);        
+        this.procedureHandler = Asserts.checkNotNull(procedure, ProcedureEventPersistenceHandler.class);        
     }
     
     
@@ -55,12 +56,12 @@ public class DataStreamEventPersistenceHandler implements IEventListener
     {
         Asserts.checkNotNull(dataStream, IStreamingDataInterface.class);
         
-        var procId = procedure.procID;
-        var procUID = procedure.procUID;
+        var procId = procedureHandler.procID;
+        var procUID = procedureHandler.procUID;
         boolean isNew = true;
         
         // try to retrieve existing data stream
-        IDataStreamStore dataStreamStore = procedure.getDatabase().getDataStreamStore();
+        IDataStreamStore dataStreamStore = procedureHandler.getDatabase().getDataStreamStore();
         Entry<DataStreamKey, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procUID, dataStream.getName());
         DataStreamKey dsKey;
         
@@ -122,7 +123,7 @@ public class DataStreamEventPersistenceHandler implements IEventListener
             var foiId = ObsData.NO_FOI;
             if (foiUID != null)
             {
-                var fid = procedure.fois.get(foiUID);
+                var fid = procedureHandler.fois.get(foiUID);
                 if (fid != null)
                     foiId = fid;
                 else
@@ -147,8 +148,14 @@ public class DataStreamEventPersistenceHandler implements IEventListener
                     .withResult(record)
                     .build();
                 
-                procedure.getDatabase().getObservationStore().add(obs);
+                procedureHandler.getDatabase().getObservationStore().add(obs);
             }
+        }
+        
+        else if (e instanceof FoiEvent)
+        {
+            if (((FoiEvent) e).getFoi() != null)
+                procedureHandler.register(((FoiEvent) e).getFoi());
         }
     }
 }

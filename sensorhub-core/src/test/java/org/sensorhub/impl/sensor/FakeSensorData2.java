@@ -15,7 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import java.time.Instant;
-import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
@@ -56,7 +56,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     int maxSampleCount;
     int sampleCount;
     double samplingPeriod; // seconds
-    Map<Integer, Integer> obsFoiMap;
+    NavigableMap<Integer, Integer> obsFoiMap;
     Timer timer;
     TimerTask sendTask;
     boolean started;
@@ -69,13 +69,13 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     }
     
     
-    public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, Map<Integer, Integer> obsFoiMap)
+    public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, NavigableMap<Integer, Integer> obsFoiMap)
     {
         this(sensor, name, samplingPeriod, maxSampleCount, obsFoiMap, null);
     }
     
     
-    public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, Map<Integer, Integer> obsFoiMap, IEventSourceInfo eventSrcInfo)
+    public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, NavigableMap<Integer, Integer> obsFoiMap, IEventSourceInfo eventSrcInfo)
     {
         super(name, sensor, eventSrcInfo);
         this.samplingPeriod = samplingPeriod;
@@ -175,15 +175,16 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
                 IDataProducer producer = FakeSensorData2.this.getParentProducer();
                 if (obsFoiMap != null && producer instanceof IMultiSourceDataProducer)
                 {
-                    Integer foiNum = obsFoiMap.get(sampleCount);
-                    if (foiNum != null)
+                    var foiEntry = obsFoiMap.floorEntry(sampleCount);
+                    if (foiEntry != null)
                     {
+                        Integer foiNum = foiEntry.getValue();
                         foiUID = ((FakeSensor)producer).getFoiUID(foiNum);
                         var foi = producer.getCurrentFeaturesOfInterest().get(foiUID);
                         if (foi != null)
                         {
                             eventHandler.publish(new FoiEvent(latestRecordTime, getParentProducer(), foi, Instant.ofEpochMilli(latestRecordTime)));
-                            System.out.println("Observing FOI #" + foiNum);
+                            System.out.println("Observing FOI #" + foiNum + " (" + foiUID + ")");
                         }
                     }
                 }

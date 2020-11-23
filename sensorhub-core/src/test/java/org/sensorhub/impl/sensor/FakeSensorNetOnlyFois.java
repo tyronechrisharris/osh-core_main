@@ -62,7 +62,7 @@ public class FakeSensorNetOnlyFois extends FakeSensor implements IMultiSourceDat
         for (int foiIdx = 1; foiIdx <= numFois; foiIdx++)
         {
             QName fType = new QName("http://myNsUri", "MyFeature");
-            String foiUID = FOI_UID_PREFIX + foiIdx;
+            String foiUID = getFoiUID(foiIdx);
             var foi = new GenericFeatureImpl(fType);
             foi.setId("F" + foiIdx);
             foi.setUniqueIdentifier(foiUID);
