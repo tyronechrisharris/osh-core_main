@@ -15,7 +15,13 @@ Copyright (C) 2012-2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.utils;
 
 import org.vast.data.DataIterator;
+import org.vast.swe.SWEUtils;
 import org.vast.util.Asserts;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
+import com.google.common.hash.HashingOutputStream;
+import com.google.common.io.ByteStreams;
 import net.opengis.swe.v20.BlockComponent;
 import net.opengis.swe.v20.DataComponent;
 
@@ -30,9 +36,13 @@ import net.opengis.swe.v20.DataComponent;
  */
 public class DataComponentChecks
 {
-
+    static HashFunction hf = Hashing.goodFastHash(32);
+    
+    
     /**
-     * Check if two data components have compatible structures
+     * Check if two data components have compatible structures.<br/>
+     * Two components have compatible structures if the component names, types
+     * and order are the same at all depth levels.
      * @param rec1
      * @param rec2
      * @return True if structures are compatible, false otherwise
@@ -42,29 +52,62 @@ public class DataComponentChecks
         Asserts.checkNotNull(rec1, DataComponent.class);
         Asserts.checkNotNull(rec2, DataComponent.class);
         
-        StringBuilder buf1 = structCompatString(rec1);
-        StringBuilder buf2 = structCompatString(rec2);
-        System.out.printf("%s\n%s\n", buf1.toString(), buf2.toString());
-        return buf1.toString().equals(buf2.toString());
+        var hc1 = getStructCompatibilityHashCode(rec1);
+        var hc2 = getStructCompatibilityHashCode(rec2);
+        return hc1.equals(hc2);
     }
     
     
-    private static StringBuilder structCompatString(DataComponent root)
+    public static HashCode getStructCompatibilityHashCode(DataComponent root)
     {
-        StringBuilder buf = new StringBuilder();
+        var hasher = hf.newHasher();
         
         DataIterator it = new DataIterator(root);
         while (it.hasNext())
         {
             DataComponent c = it.next();
-            buf.append(c.getName()).append(':');
-            buf.append(getComponentType(c.getClass()));
+            if (c != root)
+                hasher.putUnencodedChars(c.getName());
+            hasher.putUnencodedChars(getComponentType(c.getClass()));
             if (c instanceof BlockComponent)
-                buf.append('[').append(c.getComponentCount()).append(']');
-            buf.append('|');
+                hasher.putInt(c.getComponentCount());
         }
         
-        return buf;
+        return hasher.hash();
+    }
+    
+    
+    /**
+     * Check if two data components are equal to each other.<br/>
+     * Two components are equal if their structures are compatible and all metadata is
+     * identical, including semantics, labels, descriptions and constraints.
+     * @param rec1
+     * @param rec2
+     * @return True if structures are equal, false otherwise
+     */
+    public static boolean checkStructEquals(DataComponent rec1, DataComponent rec2)
+    {
+        Asserts.checkNotNull(rec1, DataComponent.class);
+        Asserts.checkNotNull(rec2, DataComponent.class);
+        
+        var hc1 = getStructEqualsHashCode(rec1);
+        var hc2 = getStructEqualsHashCode(rec2);
+        return hc1.equals(hc2);
+    }
+    
+    
+    public static HashCode getStructEqualsHashCode(DataComponent root)
+    {        
+        try
+        {
+            var hashOs = new HashingOutputStream(hf, ByteStreams.nullOutputStream());
+            new SWEUtils(SWEUtils.V2_0).writeComponent(hashOs, root, false, false);
+            return hashOs.hash();
+        }
+        catch (Exception e)
+        {
+            throw new IllegalArgumentException("Error computing hashcode. Invalid data component");
+        }
     }
     
     
