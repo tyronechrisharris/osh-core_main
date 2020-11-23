@@ -20,17 +20,16 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.SensorHub;
-import org.sensorhub.impl.persistence.InMemoryStorageConfig;
 
 
 public class TestModuleRegistry
@@ -101,13 +100,13 @@ public class TestModuleRegistry
         assertTrue(clone2.autoStart = config2.autoStart);
         assertTrue(Arrays.deepEquals(clone2.hiddenIO, config2.hiddenIO));
         
-        StorageConfig config4 = new InMemoryStorageConfig();
+        DatabaseConfig config4 = new DatabaseConfig();
         config4.id = UUID.randomUUID().toString();
         config4.name = "DB1";
         config4.moduleClass = "org.sensorhub.persistence.FeatureStorage";
         config4.autoStart = true;
         
-        StorageConfig clone4 = (StorageConfig)config4.clone();
+        DatabaseConfig clone4 = (DatabaseConfig)config4.clone();
         assertTrue(clone4.id.equals(config4.id));
         assertTrue(clone4.name.equals(config4.name));
         assertTrue(clone4.moduleClass.equals(config4.moduleClass));

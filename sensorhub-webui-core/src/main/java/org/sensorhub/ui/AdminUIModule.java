@@ -31,7 +31,6 @@ import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.module.AbstractModule;
-import org.sensorhub.impl.persistence.StreamStorageConfig;
 import org.sensorhub.impl.security.BasicSecurityRealmConfig;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
@@ -93,7 +92,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
                     
             // default form builders
             customForms.put(HttpServerConfig.class.getCanonicalName(), HttpServerConfigForm.class);
-            customForms.put(StreamStorageConfig.class.getCanonicalName(), GenericStorageConfigForm.class);
+            //customForms.put(StreamStorageConfig.class.getCanonicalName(), GenericStorageConfigForm.class);
             customForms.put(CommProviderConfig.class.getCanonicalName(), CommProviderConfigForm.class);
             customForms.put(BasicSecurityRealmConfig.UserConfig.class.getCanonicalName(), BasicSecurityConfigForm.class);
             customForms.put(BasicSecurityRealmConfig.RoleConfig.class.getCanonicalName(), BasicSecurityConfigForm.class);
