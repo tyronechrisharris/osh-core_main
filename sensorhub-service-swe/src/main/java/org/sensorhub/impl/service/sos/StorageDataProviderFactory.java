@@ -297,8 +297,8 @@ public class StorageDataProviderFactory implements ISOSDataProviderFactory, IEve
                 String defUri = it.next().getDefinition();
                 if (defUri != null && !defUri.equals(SWEConstants.DEF_SAMPLING_TIME))
                     caps.getObservableProperties().add(defUri);
+            }
         }
-    }
     
         // if multisource, call recursively on child data stores
         if (dataStore instanceof IMultiSourceStorage)

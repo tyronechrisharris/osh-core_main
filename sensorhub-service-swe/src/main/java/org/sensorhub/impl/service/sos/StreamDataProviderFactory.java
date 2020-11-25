@@ -223,7 +223,7 @@ public class StreamDataProviderFactory implements ISOSDataProviderFactory, IEven
     protected void getObsPropertiesAndTypesFromProducer()
     {
         caps.getObservationTypes().add(IObservation.OBS_TYPE_GENERIC);
-        caps.getObservationTypes().add(IObservation.OBS_TYPE_SCALAR);        
+        caps.getObservationTypes().add(IObservation.OBS_TYPE_SCALAR);
         getObsPropertiesAndTypesFromProducer(producer);
     }
     

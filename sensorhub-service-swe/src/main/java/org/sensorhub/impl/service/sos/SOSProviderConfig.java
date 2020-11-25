@@ -16,20 +16,30 @@ package org.sensorhub.impl.service.sos;
 
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.FieldType;
+import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.impl.service.swe.OfferingConfig;
+import org.vast.ows.OWSRequest;
 
 
 public abstract class SOSProviderConfig extends OfferingConfig
 {
-
+    
+    @DisplayInfo(desc="Unique ID of procedure that this configuration applies to")
+    @FieldType(Type.PROCEDURE_UID)
+    public String procedureUID;
+    
+    
     @DisplayInfo(desc="Maximum number of FoI IDs listed in capabilities")
     public int maxFois = 10;
     
     
     /**
-     * Retrieves the factory associated with this type of data provider
+     * Creates a new data provider for handling an SOS request
      * @param service Parent SOS service
-     * @return
+     * @param request SOS request
+     * @return The data provider instance corresponding to this config class
+     * @throws SensorHubException 
      */
-    protected abstract ISOSDataProviderFactory getFactory(SOSServlet service) throws SensorHubException;
+    public abstract ISOSAsyncDataProvider createProvider(SOSService service, OWSRequest request) throws SensorHubException;
 }

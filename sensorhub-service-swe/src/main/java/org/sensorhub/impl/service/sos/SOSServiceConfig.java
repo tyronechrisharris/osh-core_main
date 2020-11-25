@@ -18,10 +18,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.config.DisplayInfo.FieldType;
-import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.security.SecurityConfig;
+import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseViewConfig;
 import org.sensorhub.impl.sensor.VirtualProcedureGroupConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig;
 
@@ -36,29 +35,33 @@ import org.sensorhub.impl.service.ogc.OGCServiceConfig;
  */
 public class SOSServiceConfig extends OGCServiceConfig
 {
-
-    @DisplayInfo(label="Database ID", desc="ID of database module used for persisting data received by this service."
-        + "If none is provided, new procedures are still registered on the hub but observations are only pushed to the event bus, "
-        + "without any persistence guarantee.")
-    public String databaseID = null;
-
-
     @Required
     @DisplayInfo(desc="Metadata of procedure group that will be created to contain all sensors "
         + "registered through this service. Only sensors in this group will be modifiable by this service")
     public VirtualProcedureGroupConfig virtualSensorGroup = null;
+    
+    
+    @DisplayInfo(label="Database ID", desc="ID of database module used for persisting data received by this service. "
+        + "If none is provided, new procedures registered through this service will be available on the hub, but "
+        + "with no persistence guarantee across restarts. Only the latest observation from each datastream will be "
+        + "available and older observations will be discarded")
+    public String databaseID = null;
 
 
-    @FieldType(Type.PROCEDURE_UID)
-    @DisplayInfo(desc="Unique IDs of procedures to expose through this service. "
-        + "Each item in the list can also be a prefix with a trailing wildcard to match multiple procedures.")
-    public LinkedHashSet<String> exposedProcedures = new LinkedHashSet<>();
+    @DisplayInfo(desc="Filtered view to select procedures exposed as read-only through this service")
+    public ProcedureObsDatabaseViewConfig exposedResources = null;
 
 
-    @FieldType(Type.PROCEDURE_UID)
-    @DisplayInfo(desc="Unique IDs of procedures to exclude. "
-        + "Each item in the list can also be a prefix with a trailing wildcard to match multiple procedures.")
-    public LinkedHashSet<String> excludedProcedures = null;
+    @DisplayInfo(desc="Custom provider configurations. ")
+    public LinkedHashSet<SOSProviderConfig> providerConfigurations = new LinkedHashSet<>();
+
+
+    @DisplayInfo(desc="Mapping of custom formats mime-types to custom serializer classes")
+    public List<SOSCustomFormatConfig> customFormats = new ArrayList<>();
+
+
+    @DisplayInfo(desc="Security related options")
+    public SecurityConfig security = new SecurityConfig();
 
 
     @DisplayInfo(desc="Set to true to enable transactional operation support")
@@ -85,18 +88,6 @@ public class SOSServiceConfig extends OGCServiceConfig
     @DisplayInfo(desc="Time-out period after which a template ID reserved using InsertResultTemplate "
         + "will expire if not used in InsertResult requests (in seconds)")
     public int templateTimeout = 600;
-
-
-    @DisplayInfo(desc="Custom provider configurations. ")
-    public LinkedHashSet<SOSProviderConfig> providerConfigurations = new LinkedHashSet<>();
-
-
-    @DisplayInfo(desc="Mapping of custom formats mime-types to custom serializer classes")
-    public List<SOSCustomFormatConfig> customFormats = new ArrayList<>();
-
-
-    @DisplayInfo(desc="Security related options")
-    public SecurityConfig security = new SecurityConfig();
 
 
     public SOSServiceConfig()

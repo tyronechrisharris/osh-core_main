@@ -8,7 +8,7 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
@@ -19,35 +19,24 @@ import java.util.List;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.FieldType;
-import org.sensorhub.api.config.DisplayInfo.ModuleType;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
-import org.sensorhub.api.persistence.IStorageModule;
 
 
 /**
  * <p>
- * Configuration class for SOS data providers using the streaming data API.
- * A storage can also be associated to the provider so that archive requests
- * can be handled through the same offering.
+ * Configuration class for SOS data providers obtaining their data in a
+ * streaming fashion from data producers and the event bus.
  * </p>
  *
  * @author Alex Robin
- * @since Feb 20, 2015
+ * @since Apr 10, 2020
  */
-public class StreamDataProviderConfig extends SOSProviderConfig
+public class StreamingDataProviderConfig extends SOSProviderConfig
 {
-    public enum DataSource
-    {
-        STREAM,
-        STORAGE,
-        AUTO
-    }
-    
     
     @DisplayInfo(desc="Unique ID of procedure to use as data source")
-    @FieldType(Type.MODULE_ID)
-    @ModuleType(IStorageModule.class)
+    @FieldType(Type.PROCEDURE_UID)
     public String procedureUID;
     
 
@@ -59,10 +48,6 @@ public class StreamDataProviderConfig extends SOSProviderConfig
             + "measurements are received (in seconds). Real-time is reactivated as soon as "
             + "new records start being received again")
     public double liveDataTimeout = 10.0;
-    
-    
-    @DisplayInfo(desc="Data source used to obtain latest record values")
-    public DataSource latestRecordSource = DataSource.STREAM;
 
 
     @Override

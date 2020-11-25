@@ -71,19 +71,15 @@ public class SOSSecurity extends ModuleSecurity
         // do it at this point so we don't include specific offering permissions
         ModulePermissions wildcardPerm = rootPerm.cloneAsTemplatePermission("SOS Services");
         sos.getParentHub().getSecurityManager().registerModulePermissions(wildcardPerm);
-                
-        // create permissions for each offering
-        for (SOSProviderConfig offering: sos.getConfiguration().dataProviders)
-            addOfferingPermissions(offering.offeringID);
         
         // register permission tree
         sos.getParentHub().getSecurityManager().registerModulePermissions(rootPerm);
     }
     
     
-    protected void addOfferingPermissions(String offeringUri)
+    protected void addProcedurePermissions(String procedureUID)
     {
-        String permName = getOfferingPermissionName(offeringUri);
+        String permName = getProcedurePermissionName(procedureUID);
         new ItemPermission(sos_read_caps, permName);
         new ItemPermission(sos_read_sensor, permName);
         new ItemPermission(sos_read_foi, permName);
@@ -96,17 +92,17 @@ public class SOSSecurity extends ModuleSecurity
     }
     
     
-    public void checkPermission(String offeringUri, IPermission perm) throws SecurityException
+    public void checkPermission(String procedureUID, IPermission perm) throws SecurityException
     {
-        String permName = getOfferingPermissionName(offeringUri);
+        /*String permName = getProcedurePermissionName(procedureUID);
         IPermission offPerm = perm.getChildren().get(permName);
         Asserts.checkNotNull(offPerm, "Invalid permission check");
-        checkPermission(offPerm);
+        checkPermission(offPerm);*/
     }
     
     
-    protected String getOfferingPermissionName(String offeringUri)
+    protected String getProcedurePermissionName(String procedureUID)
     {
-        return "offering[" + offeringUri + "]";
+        return "procedure[" + procedureUID + "]";
     }
 }

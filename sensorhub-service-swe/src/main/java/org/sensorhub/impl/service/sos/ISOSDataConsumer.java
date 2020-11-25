@@ -28,7 +28,7 @@ import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import java.io.IOException;
-import org.sensorhub.impl.service.swe.Template;
+import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.OWSException;
 
@@ -46,12 +46,6 @@ import org.vast.ows.OWSException;
  * */
 public interface ISOSDataConsumer
 {     
-    
-    /**
-     * @return the configuration of this consumer 
-     */
-    public SOSConsumerConfig getConfig();
-    
     
     /**
      * Requests consumer to update sensor description
@@ -101,7 +95,7 @@ public interface ISOSDataConsumer
      * @throws IOException 
      * @throws OWSException 
      */
-    public Template getTemplate(String templateID) throws IOException, OWSException;
+    public RecordTemplate getTemplate(String templateID) throws IOException, OWSException;
     
     
     /**
