@@ -24,6 +24,7 @@ import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensorDriver;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
+import org.sensorhub.impl.module.AbstractModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -59,10 +60,19 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
      * @param name output name
      * @param parentSensor parent sensor instance
      */
-    @SuppressWarnings("unchecked")
-    public AbstractSensorOutput(String name, IDataProducer parentSensor)
+    public AbstractSensorOutput(String name, T parentSensor)
     {
-        this(name, (T)parentSensor, null);
+        this(name, (T)parentSensor, null, null);
+    }
+    
+    
+    /**
+     * @see #AbstractSensorOutput(String, T)
+     */
+    @SuppressWarnings("javadoc")
+    public AbstractSensorOutput(String name, T parentSensor, Logger log)
+    {
+        this(name, (T)parentSensor, null, log);
     }
     
     
@@ -108,7 +118,12 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
         
         // setup logger
         if (log == null)
-            this.log = LoggerFactory.getLogger(getClass().getCanonicalName());
+        {
+            if (log == null && parentSensor instanceof AbstractModule)
+                this.log = ((AbstractModule<?>)parentSensor).getLogger();
+            else
+                this.log = LoggerFactory.getLogger(getClass().getCanonicalName());
+        }
         else
             this.log = log;
     }
@@ -173,6 +188,12 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
     public IEventSourceInfo getEventSourceInfo()
     {
         return eventSrcInfo;
+    }
+    
+    
+    protected Logger getLogger()
+    {
+        return log; 
     }
 
 }
