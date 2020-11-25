@@ -596,19 +596,6 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
 
 
         /**
-         * Keep only observations of the specified features of interests
-         * @param foiUIDs Unique IDs of one or more fois
-         * @return This builder for chaining
-         */
-        public B withFois(String... foiUIDs)
-        {
-            return withFois(new FoiFilter.Builder()
-                .withUniqueIDs(foiUIDs)
-                .build());
-        }
-
-
-        /**
          * Keep only the observations whose data matches the predicate
          * @param valuePredicate The predicate to test the observation data
          * @return This builder for chaining

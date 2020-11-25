@@ -125,7 +125,8 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         Asserts.checkArgument(databaseID < MAX_NUM_DB, "Database ID must be less than " + MAX_NUM_DB);
         
         // add to Id->DB instance map only if not already present        
-        obsDatabases.putIfAbsent(databaseID, db);
+        if (obsDatabases.putIfAbsent(databaseID, db) != null)
+            throw new IllegalStateException("A database with ID " + databaseID + " was already registered");
         
         // case of database w/ event handler
         if (db instanceof IProcedureEventHandlerDatabase)
