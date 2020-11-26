@@ -34,11 +34,11 @@ import com.google.common.collect.Range;
 public class TemporalFilter extends RangeFilter<Instant>
 {
     public static final Duration CURRENT_TIME_TOLERANCE_DEFAULT = Duration.ofMillis(1000);
+    private static final Range<Instant> CURRENT_TIME_MARKER = Range.singleton(Instant.MIN);
     
     protected boolean timeRangeBeginsNow; // now = current time at the time of query evaluation
     protected boolean timeRangeEndsNow; // now = current time at the time of query evaluation
     protected boolean latestTime; // latest available time (can be in future)
-    protected Duration currentTimeTolerance; // in millis
     
     
     public boolean isCurrentTime()
@@ -74,22 +74,23 @@ public class TemporalFilter extends RangeFilter<Instant>
     @Override
     public Range<Instant> getRange()
     {
-        if (isCurrentTime())
+        if (range == CURRENT_TIME_MARKER)
         {
-            var now = Instant.now();
-            range = Range.closed(
-                now.minus(currentTimeTolerance),
-                now.plus(currentTimeTolerance));
-        }
-        else if (timeRangeBeginsNow)
-        {
-            var now = Instant.now();
-            range = Range.closed(now, range.upperEndpoint());
-        }
-        else if (timeRangeEndsNow)
-        {
-            var now = Instant.now();
-            range = Range.closed(range.lowerEndpoint(), now);
+            if (isCurrentTime())
+            {
+                var now = Instant.now();
+                range = Range.singleton(now);
+            }
+            else if (timeRangeBeginsNow)
+            {
+                var now = Instant.now();
+                range = Range.closed(now, range.upperEndpoint());
+            }
+            else if (timeRangeEndsNow)
+            {
+                var now = Instant.now();
+                range = Range.closed(range.lowerEndpoint(), now);
+            }
         }
         
         return range;
@@ -110,26 +111,26 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
-    public Duration getCurrentTimeTolerance()
-    {
-        return currentTimeTolerance;
-    }
-    
-    
     @Override
     public boolean test(Instant val)
     {
-        // we always return true if set to latest time since we cannot maintain
-        // state of other possibly selected records here. It means that the caller
-        // must enforce the latestTime filter contract via other means
-        return latestTime || getRange().contains(val);
+        // we always return true if set to latestTime or currentTime since
+        // the outcome depends on other elements in the time series for which
+        // we cannot maintain state here. It means that the caller must
+        // enforce the latestTime/currentTime filter contract via other means
+        if (latestTime || isCurrentTime())
+            return true;        
+        
+        return getRange().contains(val);
     }
     
     
     public boolean test(TimeExtent te)
     {
-        // always pass when latestTime is selected because it depends on other
-        // elements in the time series and cannot be processed here
+        // we always return true if set to latest time it depends on other
+        // elements in the time series and we cannot maintain state here.
+        // It means that the caller must enforce the latestTime filter
+        // contract via other means
         if (latestTime)
             return true;
         
@@ -163,11 +164,11 @@ public class TemporalFilter extends RangeFilter<Instant>
         
         // handle current time special case
         if (otherFilter.isCurrentTime() && isCurrentTime())
-            return builder.withCurrentTime(currentTimeTolerance.compareTo(otherFilter.currentTimeTolerance));
+            return builder.withCurrentTime();
         if (otherFilter.isCurrentTime() && isAllTimes())
-            return builder.withCurrentTime(otherFilter.currentTimeTolerance);
+            return builder.withCurrentTime();
         if (otherFilter.isAllTimes() && isCurrentTime())
-            return builder.withCurrentTime(currentTimeTolerance);
+            return builder.withCurrentTime();
         
         // need to call getRange() to compute current time dynamically in case
         // we need to AND it with a fixed time period
@@ -250,46 +251,20 @@ public class TemporalFilter extends RangeFilter<Instant>
             instance.timeRangeBeginsNow = base.timeRangeBeginsNow;
             instance.timeRangeEndsNow = base.timeRangeEndsNow;
             instance.latestTime = base.latestTime;
-            instance.currentTimeTolerance = base.currentTimeTolerance;
             return (B)this;
         }
         
         
         /**
-         * Match time stamps that are within 1 sec of the current time as
-         * provided by {@link Instant#now}
+         * Match the first record of each selected time series that
+         * has a timestamp at or before the current time
          * @return This builder for chaining
          */
         public B withCurrentTime()
         {
-            return withCurrentTime(CURRENT_TIME_TOLERANCE_DEFAULT);
-        }
-        
-        
-        /**
-         * Match time stamps that are within the specified time window
-         * around the current time as provided by {@link Instant#now}
-         * @param toleranceMillis Half window size in milliseconds
-         * @return This builder for chaining
-         */
-        public B withCurrentTime(int toleranceMillis)
-        {
-            return withCurrentTime(Duration.ofMillis(toleranceMillis));
-        }
-        
-        
-        /**
-         * Match time stamps that are within the specified time window
-         * around the current time as provided by {@link Instant#now}
-         * @param tolerance Half window size as a duration
-         * @return This builder for chaining
-         */
-        public B withCurrentTime(Duration tolerance)
-        {
             instance.timeRangeBeginsNow = instance.timeRangeEndsNow = true;
             instance.latestTime = false;
-            instance.currentTimeTolerance = tolerance;
-            instance.getRange(); // precompute time range
+            instance.range = CURRENT_TIME_MARKER;
             return (B)this;
         }
         
@@ -353,7 +328,7 @@ public class TemporalFilter extends RangeFilter<Instant>
         public B fromTimeExtent(TimeExtent te)
         {
             if (te.isNow())
-                return withCurrentTime(0);
+                return withCurrentTime();
             else if (te.beginsNow())
                 return withRangeBeginningNow(te.end());
             else if (te.endsNow())

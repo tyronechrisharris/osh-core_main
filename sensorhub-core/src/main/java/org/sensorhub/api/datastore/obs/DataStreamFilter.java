@@ -444,7 +444,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         public B withCurrentVersion()
         {
             instance.validTime = new TemporalFilter.Builder()
-                .withCurrentTime(0)
+                .withCurrentTime()
                 .build();
             return (B)this;
         }

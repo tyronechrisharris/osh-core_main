@@ -263,15 +263,16 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsStream(MVObsSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean latestResultOnly)
+    Stream<Entry<BigInteger, IObsData>> getObsStream(MVObsSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean currentTimeOnly)
     {
         // if series is a special case where all obs have resultTime = phenomenonTime
         if (series.key.resultTime == Instant.MIN)
         {
-            // if request is for latest result only, get the obs with latest phenomenon time
-            if (latestResultOnly)
+            // if request is for current time only, get only the obs with
+            // phenomenon time right before current time
+            if (currentTimeOnly)
             {
-                MVObsKey maxKey = new MVObsKey(series.id, Instant.MAX);      
+                MVObsKey maxKey = new MVObsKey(series.id, Instant.now());      
                 Entry<MVObsKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
                 if (e.getKey().seriesID == series.id)
                     return Stream.of(mapToPublicEntry(e));
@@ -343,6 +344,7 @@ public class MVObsStoreImpl implements IObsStore
         var resultTimeFilter = filter.getResultTime() != null ?
             filter.getResultTime().getRange() : H2Utils.ALL_TIMES_RANGE;
         boolean latestResultOnly = filter.getResultTime() != null && filter.getResultTime().isLatestTime();
+        boolean currentTimeOnly = filter.getPhenomenonTime() != null && filter.getPhenomenonTime().isCurrentTime();
         
         // stream obs directly in case of filtering by internal IDs
         if (filter.getInternalIDs() != null)
@@ -417,7 +419,7 @@ public class MVObsStoreImpl implements IObsStore
                 Stream<Entry<BigInteger, IObsData>> obsStream = getObsStream(series, 
                     resultTimeFilter,
                     phenomenonTimeFilter,
-                    latestResultOnly);
+                    currentTimeOnly);
                 return getPostFilteredResultStream(obsStream, filter);
             })
             .spliterator());        

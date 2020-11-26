@@ -6,21 +6,13 @@
               "2020-10-08T16:15:56Z"
             ]
         },
-        "withFois": {
-            "location": {
-                "within_distance": {
-                    "center": {
-                        "type": "Point",
-                        "coordinates": [10.0, 23.0]
-                    },
-                    "distance": 23.5
-                }
-            },
-            "withSampledFeatures": {
-                "validTime": {
-                    "indeterminate": "latest"
+        "location": {
+            "within_distance": {
+                "center": {
+                    "type": "Point",
+                    "coordinates": [10.0, 23.0]
                 },
-                "predicate": "f => f.properties.area < 50 && f.properties.head_count > 26"
+                "distance": 23.5
             }
         },
         "predicate": "obs => obs.result.temp > 27.5"
@@ -34,25 +26,14 @@
             "urn:osh:sim:gps",
             "urn:osh:temp*",
             "urn:sensia:test:*"
-        ],        
-        "withFois": {
-            "location": {
-                "intersects": {
-                    "roi": {
-                        "type": "Polygon",
-                        "coordinates": [[-50.0,-10.0],[-50.0,10.0],[50.0,10.0],[50.0,-10.0],[-50.0,-10.0]]
-                    }
-                }
-            }            
-        },
+        ],
         "withDatastreams": {
             "observedProperties": ["http://blabla/air_temperature"]
         }
     },
     {
         "validTime": {
-            "indeterminate": "current",
-            "tolerance": 15000
+            "indeterminate": "current"
         },
         "withParents": {
             "uniqueIDs": [
@@ -65,8 +46,7 @@
     },
     {
         "validTime": {
-            "indeterminate": "current",
-            "tolerance": "PT5M"
+            "indeterminate": "current"
         },
         "withParents": {
             "internalIDs": [1235]

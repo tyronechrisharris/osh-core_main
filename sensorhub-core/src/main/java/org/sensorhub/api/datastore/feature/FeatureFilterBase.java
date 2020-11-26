@@ -273,7 +273,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         public B withCurrentVersion()
         {
             instance.validTime = new TemporalFilter.Builder()
-                .withCurrentTime(0)
+                .withCurrentTime()
                 .build();
             return (B)this;
         }

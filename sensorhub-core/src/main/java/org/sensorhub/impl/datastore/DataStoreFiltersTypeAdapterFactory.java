@@ -219,14 +219,11 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
     public class TemporalFilterTypeAdapter extends TypeAdapter<TemporalFilter>
     {
         private final TypeAdapter<Range<Instant>> timeRangeType;
-        private final TypeAdapter<Duration> durationType;
         
         TemporalFilterTypeAdapter(Gson gson)
         {
             this.timeRangeType = (TypeAdapter<Range<Instant>>) gson.getAdapter(
                 TypeToken.getParameterized(Range.class, Instant.class));
-            
-            this.durationType = (TypeAdapter<Duration>) gson.getAdapter(Duration.class);
         }
         
         @Override
@@ -236,14 +233,7 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
             if (filter.isLatestTime())
                 writer.name("indeterminate").value("latest");
             else if (filter.isCurrentTime())
-            {
                 writer.name("indeterminate").value("current");
-                if (!TemporalFilter.CURRENT_TIME_TOLERANCE_DEFAULT.equals(filter.getCurrentTimeTolerance()))
-                {
-                    writer.name("tolerance");
-                    durationType.write(writer, filter.getCurrentTimeTolerance());
-                }
-            }
             else
             {
                 writer.name("during");
@@ -270,11 +260,6 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
                         builder.withCurrentTime();
                     else
                         throw new JsonIOException("Invalid indeterminate value: " + val);
-                }
-                else if ("tolerance".equals(name))
-                {
-                    var duration = durationType.read(reader);
-                    builder.withCurrentTime(duration);
                 }
                 else if ("during".equals(name))
                 {
