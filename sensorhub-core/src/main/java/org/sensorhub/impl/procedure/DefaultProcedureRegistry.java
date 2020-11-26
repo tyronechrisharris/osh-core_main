@@ -146,6 +146,12 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
     
     
+    public boolean isRegistered(String uid)
+    {
+        return driverListeners.containsKey(uid);
+    }
+    
+    
     protected ProcedureRegistryEventHandler getDriverHandler(String procUID)
     {
         var handler = driverListeners.get(procUID);
@@ -162,9 +168,11 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         Asserts.checkNotNull(proc, IProcedureDriver.class);
         String procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
-        getDriverHandler(procUID); // just to check procedure was registered before
-        var proxy = driverListeners.remove(procUID);
-        return proxy.unregister(proc);
+        var handler = driverListeners.remove(procUID);
+        if (handler != null)
+            return handler.unregister(proc);
+        else
+            return CompletableFuture.completedFuture(null);
     }
     
     

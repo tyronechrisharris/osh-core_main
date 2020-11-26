@@ -119,6 +119,15 @@ public interface IProcedureRegistry extends IEventSource
     
     
     /**
+     * Checks if the given procedure is registered on this hub
+     * @param uid
+     * @return True if a driver has previously registered a procedure with the
+     * given UID, false otherwise
+     */
+    public boolean isRegistered(String uid);
+    
+    
+    /**
      * Retrieves a handle to the procedure driver with the given unique ID.
      * @param uid The procedure unique ID
      * @return A weak reference to the procedure driver instance, or a proxy if the
