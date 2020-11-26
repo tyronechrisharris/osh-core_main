@@ -60,7 +60,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     ProcedureObsEventDatabase procStateDb;
     IProcedureObsDatabase federatedDb;
     ReadWriteLock lock = new ReentrantReadWriteLock();
-    Map<String, ProcedureRegistryEventHandler> driverListeners = new ConcurrentSkipListMap<>();
+    Map<String, ProcedureRegistryEventHandler> driverHandlers = new ConcurrentSkipListMap<>();
 
 
     public DefaultProcedureRegistry(ISensorHub hub, DatabaseConfig stateDbConfig)
@@ -119,7 +119,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         
         // create listener or simply reconnect to it
         // use compute() to do it atomatically
-        var handler = driverListeners.compute(procUID, (k,v) -> {
+        var handler = driverHandlers.compute(procUID, (k,v) -> {
             if (v != null)
             {
                 IProcedureDriver liveProc = v.driverRef.get();
@@ -148,13 +148,13 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     
     public boolean isRegistered(String uid)
     {
-        return driverListeners.containsKey(uid);
+        return driverHandlers.containsKey(uid);
     }
     
     
     protected ProcedureRegistryEventHandler getDriverHandler(String procUID)
     {
-        var handler = driverListeners.get(procUID);
+        var handler = driverHandlers.get(procUID);
         if (handler == null)
             throw new IllegalStateException("Procedure " + procUID + " is not registered");        
         
@@ -168,7 +168,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         Asserts.checkNotNull(proc, IProcedureDriver.class);
         String procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
-        var handler = driverListeners.remove(procUID);
+        var handler = driverHandlers.remove(procUID);
         if (handler != null)
             return handler.unregister(proc);
         else
