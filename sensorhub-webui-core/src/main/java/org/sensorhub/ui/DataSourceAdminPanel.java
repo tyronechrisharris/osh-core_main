@@ -39,6 +39,7 @@ import com.vaadin.ui.Layout;
 import com.vaadin.ui.Panel;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.v7.ui.ListSelect;
 
 
 /**
@@ -82,11 +83,18 @@ public class DataSourceAdminPanel<ModuleType extends IDataProducerModule<?>> ext
             sectionLabel.addStyleName(STYLE_COLORED);
             addComponent(sectionLabel);
             addComponent(new Label("<b>Unique ID:</b> " + module.getUniqueIdentifier(), ContentMode.HTML));
+            
+            // display list of FOIs
             var fois = module.getCurrentFeaturesOfInterest().keySet();
             if (fois != null && !fois.isEmpty())
             {
+                addComponent(new Label("<b>FOI IDs:</b>", ContentMode.HTML)); 
+                ListSelect list = new ListSelect();
+                list.setRows(4);
+                list.setNullSelectionAllowed(false);
                 for (var foi: fois)
-                    addComponent(new Label("<b>FOI ID:</b> " + foi, ContentMode.HTML));
+                    list.addItem(foi);
+                addComponent(list);
             }
             
             // outputs section
