@@ -14,14 +14,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.Queue;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Flow.Subscriber;
-import java.util.concurrent.Flow.Subscription;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -45,7 +40,9 @@ import org.vast.util.Asserts;
  */
 public class HistoricalDataProvider extends ProcedureDataProvider
 {
+    private static final String TOO_MANY_OBS_MSG = "Too many observations requested. Please further restrict your filtering options";
 
+    
     public HistoricalDataProvider(final SOSService service, final ProcedureDataProviderConfig config)
     {
         super(service.getServlet(),
@@ -60,7 +57,6 @@ public class HistoricalDataProvider extends ProcedureDataProvider
     {
         // build equivalent GetResult request
         var grReq = new GetResultRequest();
-        req.getOfferings().forEach(id -> grReq.getProcedures().add(getProcedureUID(id)));
         grReq.getProcedures().addAll(req.getProcedures());
         grReq.getObservables().addAll(req.getObservables());
         grReq.getFoiIDs().addAll(req.getFoiIDs());
@@ -96,7 +92,7 @@ public class HistoricalDataProvider extends ProcedureDataProvider
     @Override
     public void getResults(GetResultRequest req, Subscriber<DataEvent> consumer) throws SOSException
     {
-        Asserts.checkState(selectedDataStream != null);
+        Asserts.checkState(selectedDataStream != null, "getResultTemplate hasn't been called");
         String procUID = getProcedureUID(req.getOffering());
         
         try
@@ -123,76 +119,6 @@ public class HistoricalDataProvider extends ProcedureDataProvider
         {
             throw new CompletionException(e);
         }
-    }
-    
-    
-    protected ObsFilter getObsFilter(GetResultRequest req, Long dataStreamId) throws SOSException
-    {
-        double replaySpeedFactor = SOSProviderUtils.getReplaySpeed(req);
-        long requestSystemTime = System.currentTimeMillis();
-        
-        // build obs query filter
-        var obsFilter = new ObsFilter.Builder();
-        
-        // select datastream(s)
-        if (dataStreamId == null)
-        {
-            var dsFilter = new DataStreamFilter.Builder()
-                .withProcedures()
-                    .withUniqueIDs(req.getProcedures())
-                    .done();
-            
-            // observables
-            if (req.getObservables() != null && !req.getObservables().isEmpty())
-                dsFilter.withObservedProperties(req.getObservables());
-            
-            obsFilter.withDataStreams(dsFilter.build());
-        }
-        else
-            obsFilter.withDataStreams(dataStreamId);
-                
-        // FOIs by ID
-        if (req.getFoiIDs() != null && !req.getFoiIDs().isEmpty())
-        {
-            obsFilter.withFois()
-                .withUniqueIDs(req.getFoiIDs())
-                .done();
-        }
-        
-        // or FOI spatial filter
-        else if (req.getSpatialFilter() != null)
-        {
-            obsFilter.withFois()
-                .withLocation(toDbFilter(req.getSpatialFilter()))
-                .done();
-        }
-        
-        // phenomenon time filter
-        TemporalFilter phenomenonTimeFilter;     
-        if (req.getTime() == null)
-        {
-            // all records case
-            phenomenonTimeFilter = new TemporalFilter.Builder()
-                .withAllTimes()
-                .build();
-        }
-        else if (req.getTime().isNow())
-        {
-            // latest record case
-            phenomenonTimeFilter = new TemporalFilter.Builder()
-                .withCurrentTime()
-                .build();
-        }
-        else
-        {
-            // time range case
-            phenomenonTimeFilter = new TemporalFilter.Builder()
-                .withRange(req.getTime().begin(), req.getTime().end())
-                .build();
-        }            
-        obsFilter.withPhenomenonTime(phenomenonTimeFilter);
-        
-        return obsFilter.build();
     }
     
 

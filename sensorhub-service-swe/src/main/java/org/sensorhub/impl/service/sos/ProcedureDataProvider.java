@@ -23,10 +23,12 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.SpatialFilter;
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -38,6 +40,7 @@ import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.JTSUtils;
 import org.vast.ogc.om.IProcedure;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
+import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.GetResultTemplateRequest;
 import org.vast.ows.sos.SOSException;
 import org.vast.ows.swe.DescribeSensorRequest;
@@ -55,8 +58,6 @@ import net.opengis.swe.v20.DataComponent;
 
 public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
 {
-    private static final String TOO_MANY_OBS_MSG = "Too many observations requested. Please further restrict your filtering options";
-
     protected final SOSServlet servlet;
     protected final IProcedureObsDatabase database;
     protected final ProcedureDataProviderConfig config;
@@ -79,14 +80,17 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
         }
     }
     
-    protected static class StreamSubscription<T> implements Subscription
+    protected class StreamSubscription<T> implements Subscription
     {
         Subscriber<T> subscriber;
         Spliterator<T> spliterator;
         Queue<T> itemQueue;
         int batchSize;
+        volatile boolean streamDone = false;
+        volatile boolean canceled = false;
+        AtomicBoolean onCompleteCalled = new AtomicBoolean(false);
         AtomicLong requested = new AtomicLong();
-
+        
         StreamSubscription(Subscriber<T> subscriber, int batchSize, Stream<T> itemStream)
         {
             this.subscriber = Asserts.checkNotNull(subscriber, Subscriber.class);
@@ -98,43 +102,72 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
         @Override
         public void request(long n)
         {
-            //requested.addAndGet(n);
-            boolean more = false;
-            
+            Asserts.checkArgument(n > 0);
+            /*boolean more = false;
             for (int i = 0; i < n && !more; i++)
                 more = spliterator.tryAdvance(e -> subscriber.onNext(e));
             
             if (!more)
-                subscriber.onComplete();
-            //maybeReadFromStorage();
+                subscriber.onComplete();*/
+            
+            requested.addAndGet(n);
+            maybeReadFromStorage();
         }
 
-        void maybeReadFromStorage()
+        synchronized void maybeReadFromStorage()
         {
             try
             {
-                do
+                // fetch more from DB if needed
+                if (!streamDone && itemQueue.size() < requested.get())
                 {
-                    long numRequested = requested.get();
-                    if (itemQueue.size() < numRequested)
-                    {
-                        int count = batchSize;
-                        while (count-- > 0 && spliterator.tryAdvance(e -> itemQueue.offer(e)));
-                    }
-
-                    subscriber.onNext(itemQueue.poll());
+                    //servlet.getLogger().debug("Only {} items left", requested.get());
+                    CompletableFuture.runAsync(() -> {
+                        int count = 0;
+                        while (spliterator.tryAdvance(e -> itemQueue.offer(e)) && ++count < batchSize);
+                        //servlet.getLogger().debug("Loaded new batch of {} items", count);
+                        streamDone = count < batchSize;
+                    }, threadPool)
+                    .thenRun(() -> {
+                        maybeSendItem();
+                        maybeCallOnComplete();
+                    });
                 }
-                while (requested.decrementAndGet() > 0);
+                
+                while (requested.get() > 0 && !onCompleteCalled.get())
+                {
+                    maybeSendItem();
+                    maybeCallOnComplete();                                            
+                }                
             }
             catch (Throwable e)
             {
                 subscriber.onError(e);
             }
         }
+        
+        void maybeCallOnComplete()
+        {
+            if (!canceled && streamDone && itemQueue.isEmpty())
+            {
+                if (onCompleteCalled.compareAndSet(false, true))
+                    subscriber.onComplete();
+            }
+        }
+        
+        void maybeSendItem()
+        {
+            if (!canceled && !itemQueue.isEmpty() && requested.get() > 0)
+            {
+                subscriber.onNext(itemQueue.poll());
+                requested.decrementAndGet();
+            }
+        }
 
         @Override
         public void cancel()
         {
+            canceled = true;
         }
     }
 
@@ -151,37 +184,33 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
     @Override
     public CompletableFuture<RecordTemplate> getResultTemplate(GetResultTemplateRequest req) throws SOSException
     {
-        if (selectedDataStream == null)
-        {
-            String procUID = getProcedureUID(req.getOffering());
+        String procUID = getProcedureUID(req.getOffering());
 
-            return CompletableFuture.supplyAsync(() -> {
-                // get datastream entry from obs store
-                var dsEntry = database.getDataStreamStore()
-                    .selectEntries(new DataStreamFilter.Builder()
-                        .withProcedures().withUniqueIDs(procUID).done()
-                        .withObservedProperties(req.getObservables())
-                        .withCurrentVersion()
-                        .build())
-                    .findFirst()
-                    .orElseThrow(() -> new CompletionException(new SOSException("No data found for observables " + req.getObservables())));
+        return CompletableFuture.supplyAsync(() -> {
+            // get datastream entry from obs store
+            var dsEntry = database.getDataStreamStore()
+                .selectEntries(new DataStreamFilter.Builder()
+                    .withProcedures().withUniqueIDs(procUID).done()
+                    .withObservedProperties(req.getObservables())
+                    .withCurrentVersion()
+                    .build())
+                .findFirst()
+                .orElseThrow(() -> new CompletionException(new SOSException("No data found for observables " + req.getObservables())));
 
-                // extract record template
-                selectedDataStream = new DataStreamInfoCache(
-                    dsEntry.getKey().getInternalID(),
-                    dsEntry.getValue());
-                return selectedDataStream.resultTemplate;
+            // save datastream info for reuse in getResults()
+            selectedDataStream = new DataStreamInfoCache(
+                dsEntry.getKey().getInternalID(),
+                dsEntry.getValue());
+            return selectedDataStream.resultTemplate;
 
-            }, threadPool);
-        }
-        else
-            return CompletableFuture.completedFuture(selectedDataStream.resultTemplate);
+        }, threadPool);
     }
 
 
     @Override
     public void getProcedureDescriptions(DescribeSensorRequest req, Subscriber<IProcedure> consumer) throws SOSException, IOException
     {
+        // build filter
         var procFilter = new ProcedureFilter.Builder()
             .withUniqueIDs(req.getProcedureID());
         if (req.getTime() != null)
@@ -204,6 +233,7 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
     @Override
     public void getFeaturesOfInterest(GetFeatureOfInterestRequest req, Subscriber<IGeoFeature> consumer) throws SOSException, IOException
     {
+        // build filter
         var foiFilter = new FoiFilter.Builder();
         if (req.getFoiIDs() != null && !req.getFoiIDs().isEmpty())
             foiFilter.withUniqueIDs(req.getFoiIDs());
@@ -225,6 +255,80 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
                 database.getFoiStore().select(foiFilter.build())
             )
         );
+    }
+    
+    
+    protected ObsFilter getObsFilter(GetResultRequest req, Long dataStreamId) throws SOSException
+    {
+        double replaySpeedFactor = SOSProviderUtils.getReplaySpeed(req);
+        long requestSystemTime = System.currentTimeMillis();
+        
+        // build obs query filter
+        var obsFilter = new ObsFilter.Builder();
+        
+        // select datastream(s)
+        if (dataStreamId == null)
+        {
+            var dsFilter = new DataStreamFilter.Builder();
+            
+            if (req.getProcedures() != null && !req.getProcedures().isEmpty())
+            {
+                dsFilter.withProcedures()
+                    .withUniqueIDs(req.getProcedures())
+                    .done();
+            }
+            
+            // observables
+            if (req.getObservables() != null && !req.getObservables().isEmpty())
+                dsFilter.withObservedProperties(req.getObservables());
+            
+            obsFilter.withDataStreams(dsFilter.build());
+        }
+        else
+            obsFilter.withDataStreams(dataStreamId);
+                
+        // FOIs by ID
+        if (req.getFoiIDs() != null && !req.getFoiIDs().isEmpty())
+        {
+            obsFilter.withFois()
+                .withUniqueIDs(req.getFoiIDs())
+                .done();
+        }
+        
+        // or FOI spatial filter
+        else if (req.getSpatialFilter() != null)
+        {
+            obsFilter.withFois()
+                .withLocation(toDbFilter(req.getSpatialFilter()))
+                .done();
+        }
+        
+        // phenomenon time filter
+        TemporalFilter phenomenonTimeFilter;     
+        if (req.getTime() == null)
+        {
+            // all records case
+            phenomenonTimeFilter = new TemporalFilter.Builder()
+                .withAllTimes()
+                .build();
+        }
+        else if (req.getTime().isNow())
+        {
+            // latest record case
+            phenomenonTimeFilter = new TemporalFilter.Builder()
+                .withCurrentTime()
+                .build();
+        }
+        else
+        {
+            // time range case
+            phenomenonTimeFilter = new TemporalFilter.Builder()
+                .withRange(req.getTime().begin(), req.getTime().end())
+                .build();
+        }            
+        obsFilter.withPhenomenonTime(phenomenonTimeFilter);
+        
+        return obsFilter.build();
     }
 
 
@@ -302,6 +406,13 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
     public String getProcedureUID(String offeringID)
     {
         return servlet.getProcedureUID(offeringID);
+    }
+
+
+    @Override
+    public long getTimeout()
+    {
+        return (long)(config.liveDataTimeout * 1000);
     }
 
 }

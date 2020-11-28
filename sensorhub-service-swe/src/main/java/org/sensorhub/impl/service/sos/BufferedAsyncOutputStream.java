@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
+import org.sensorhub.impl.service.swe.IAsyncOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -32,7 +33,7 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @since Nov 25, 2020
  */
-public class BufferedAsyncOutputStream extends OutputStream implements WriteListener
+public class BufferedAsyncOutputStream extends OutputStream implements IAsyncOutputStream, WriteListener
 {
     static Logger log = LoggerFactory.getLogger(BufferedAsyncOutputStream.class);
     
@@ -47,19 +48,6 @@ public class BufferedAsyncOutputStream extends OutputStream implements WriteList
     {
         this.out = out;
         this.buffer = new byte[bufferSize];
-    }
-    
-    
-    public void setWriteListener(WriteListener listener)
-    {
-        this.listener = Asserts.checkNotNull(listener, WriteListener.class);
-        out.setWriteListener(this);
-    }
-    
-    
-    public boolean isReady()
-    {
-        return out.isReady();
     }
 
 
@@ -100,31 +88,55 @@ public class BufferedAsyncOutputStream extends OutputStream implements WriteList
     {
         if (out.isReady())
         {
-            out.flush();
             //log.debug("Direct flush");
+            flushBuffer();
+            flushUnderlyingStream();            
         }
         else
             flushRequested = true;
     }
-
+    
     
     @Override
-    public void onWritePossible() throws IOException
+    public void close() throws IOException
     {
-        // flush our buffer
+        flushBuffer();
+        out.close();
+    }
+    
+    
+    protected void flushBuffer() throws IOException
+    {
+        // flush all bytes from buffer
         if (bytesToWrite > 0)
         {
             out.write(buffer, 0, bytesToWrite);
             //log.debug("Deferred write: " + bytesToWrite + " bytes");
             bytesToWrite = 0;
             
-            if (flushRequested && out.isReady())
+            if (flushRequested)
             {
-                out.flush();
                 //log.debug("Deferred flush");
-                flushRequested = false;
-            }
+                flushUnderlyingStream();
+            }   
         }
+    }
+    
+    
+    protected void flushUnderlyingStream() throws IOException
+    {
+        if (out.isReady())
+        {
+            out.flush();
+            flushRequested = false;
+        }
+    }
+
+    
+    @Override
+    public void onWritePossible() throws IOException
+    {
+        flushBuffer();
         
         if (listener != null)
             listener.onWritePossible();
@@ -135,7 +147,30 @@ public class BufferedAsyncOutputStream extends OutputStream implements WriteList
     public void onError(Throwable t)
     {
         if (listener != null)
-            listener.onError(t);        
+            listener.onError(t);
+    }
+
+
+    @Override
+    public boolean isClosed()
+    {
+        // cannot detect it here, we have to wait for EOFException
+        return false;
+    }
+    
+    
+    @Override
+    public boolean isReady()
+    {
+        return out.isReady();
+    }
+    
+    
+    @Override
+    public void setWriteListener(WriteListener listener)
+    {
+        this.listener = Asserts.checkNotNull(listener, WriteListener.class);
+        out.setWriteListener(this);
     }
 
 }

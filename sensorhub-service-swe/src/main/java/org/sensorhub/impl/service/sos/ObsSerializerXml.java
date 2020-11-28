@@ -79,6 +79,8 @@ public class ObsSerializerXml extends AbstractObsSerializerStax implements ISOSA
             // wrap all observations inside response
             writer.writeStartElement(SOS_PREFIX, "GetObservationResponse", SOS_NS_URI);
             writer.writeNamespace(SOS_PREFIX, SOS_NS_URI);
+            
+            firstObs = true;
         }
         catch (XMLStreamException e)
         {

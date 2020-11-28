@@ -44,7 +44,8 @@ public class WebSocketUtils
     {
         if (session != null && session.isOpen())
         {
-            log.info(CLOSE_BY_SERVER_MSG, getSessionID(session), statusCode, reason);
+            if (log != null)
+                log.debug(CLOSE_BY_SERVER_MSG, getSessionID(session), statusCode, reason);
             session.close(statusCode, reason);
         }
     }
@@ -52,19 +53,19 @@ public class WebSocketUtils
     
     public static void logOpen(Session session, Logger log)
     {
-        if (log.isInfoEnabled())
+        if (log.isDebugEnabled())
         {
             String remoteIp = session.getRemoteAddress().getAddress().getHostAddress();
             Principal user = session.getUpgradeRequest().getUserPrincipal();
             String userID = user != null ? user.getName() : OWSUtils.ANONYMOUS_USER;
-            log.info(CONNECT_MSG, getSessionID(session), remoteIp, userID);
+            log.debug(CONNECT_MSG, getSessionID(session), remoteIp, userID);
         }
     }
     
     
     public static void logClose(Session session, int statusCode, String reason, Logger log)
     {
-        log.info(CLOSE_BY_CLIENT_MSG, getSessionID(session), statusCode, reason);
+        log.debug(CLOSE_BY_CLIENT_MSG, getSessionID(session), statusCode, reason);
     }
     
     

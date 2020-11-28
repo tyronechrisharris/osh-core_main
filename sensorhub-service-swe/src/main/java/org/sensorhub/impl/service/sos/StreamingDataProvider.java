@@ -14,55 +14,26 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
-import net.opengis.gml.v32.AbstractGeometry;
-import net.opengis.gml.v32.Envelope;
-import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataBlock;
-import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataRecord;
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.data.DataEvent;
-import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.data.IMultiSourceDataProducer;
-import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.event.IEventSource;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.impl.event.DelegatingSubscriber;
-import org.sensorhub.impl.event.DelegatingSubscriberAdapter;
 import org.sensorhub.impl.event.DelegatingSubscription;
-import org.sensorhub.impl.service.swe.RecordTemplate;
-import org.sensorhub.utils.DataStructureHash;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.vast.data.DataIterator;
-import org.vast.ogc.gml.GMLUtils;
-import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.om.IObservation;
-import org.vast.ogc.om.IProcedure;
-import org.vast.ows.sos.GetFeatureOfInterestRequest;
 import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.GetResultRequest;
-import org.vast.ows.sos.GetResultTemplateRequest;
 import org.vast.ows.sos.SOSException;
-import org.vast.ows.sos.SOSOfferingCapabilities;
-import org.vast.ows.swe.DescribeSensorRequest;
-import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
-import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
+import com.google.common.collect.ImmutableSet;
 
 
 /**
@@ -79,8 +50,6 @@ public class StreamingDataProvider extends ProcedureDataProvider
     final IEventBus eventBus;
     final TimeOutMonitor timeOutMonitor;
     final Map<String, String> procedureFois;
-    IStreamingDataInterface selectedOutput;
-    DataStructureHash resultStructureHash;
 
 
     public StreamingDataProvider(final SOSService service, final ProcedureDataProviderConfig config)
@@ -99,7 +68,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
     @Override
     public void getObservations(GetObservationRequest req, Subscriber<IObservation> consumer) throws SOSException
     {
-        // build equivalent GetResult request
+        /*// build equivalent GetResult request
         GetResultRequest grReq = new GetResultRequest();
         grReq.getObservables().addAll(req.getObservables());
         grReq.getFoiIDs().addAll(req.getFoiIDs());
@@ -115,59 +84,43 @@ public class StreamingDataProvider extends ProcedureDataProvider
                     // transform each record into a separate observation
                     DataComponent result = selectedOutput.getRecordDescription().copy();
                     result.setData(data);
-                    IObservation obs = SOSProviderUtils.buildObservation(item.getProcedureID().getUniqueID(), item.getFoiUID(), result);
+                    IObservation obs = SOSProviderUtils.buildObservation(item.getProcedureUID(), item.getFoiUID(), result);
                     consumer.onNext(obs);
                 }
             }
-        });
+        });*/
     }
 
 
     @Override
     public void getResults(GetResultRequest req, Subscriber<DataEvent> consumer) throws SOSException
     {
-        // TODO could improve performance here by wrapping everything into
-        // a CompletableFuture.runAsync() call (i.e. even findOuput would run async)
-
-        // find selected output
-        findOutput(dataSource, config.excludedOutputs, req.getObservables());
-        if (selectedOutput == null)
-            throw new SOSException("Could not find output with observables " + req.getObservables());
-
-        // build list of selected procedures
-        if (dataSource instanceof IMultiSourceDataProducer)
-        {
-            IMultiSourceDataProducer multiProducer = (IMultiSourceDataProducer)dataSource;
-            for (String foi: req.getFoiIDs())
-            {
-                for (ProcedureId procID: multiProducer.getProceduresWithFoi(foi))
-                    procedureFois.put(procID.getUniqueID(), foi);
-            }
-        }
-        else
-        {
-            IGeoFeature foi = dataSource.getCurrentFeatureOfInterest();
-            String foiID = foi != null ? foi.getUniqueIdentifier() : null;
-            procedureFois.put(dataSource.getUniqueIdentifier(), foiID);
-        }
-
-        // collect event sources from all procedure outputs
-        Set<IEventSource> eventSources = new LinkedHashSet<>();
-        getEventSources(dataSource, selectedOutput.getName(), req.getFoiIDs(), eventSources);
-
+        Asserts.checkState(selectedDataStream != null, "getResultTemplate hasn't been called");
+        String procUID = getProcedureUID(req.getOffering());
+        
+        // generate obs filter for current records
+        var timeFilter = req.getTime();
+        req.setTime(TimeExtent.now());
+        var obsFilter = getObsFilter(req, selectedDataStream.internalId);
+        
+        // select all event sources
+        var eventSrc = EventUtils.getProcedureOutputSourceID(
+            selectedDataStream.procUID,
+            selectedDataStream.resultStruct.getName());
+        var eventSources = ImmutableSet.of(eventSrc);
+        
         // subscribe for data events only if continuous live stream was requested
-        final TimeExtent timeRange = req.getTime() == null ? TimeExtent.allTimes() : req.getTime();
-        if (!timeRange.isNow())
+        if (timeFilter != null && !timeFilter.isNow())
         {
             long timeOut = (long)(config.liveDataTimeout * 1000.);
 
             // prepare time indexer so we can check against request stop time
             ScalarIndexer timeIndexer;
             double stopTime;
-            if (timeRange.hasEnd())
+            if (timeFilter.hasEnd())
             {
-                timeIndexer = SWEHelper.getTimeStampIndexer(selectedOutput.getRecordDescription());
-                stopTime = timeRange.end().toEpochMilli() / 1000.0;
+                timeIndexer = SWEHelper.getTimeStampIndexer(selectedDataStream.resultStruct);
+                stopTime = timeFilter.end().toEpochMilli() / 1000.0;
             }
             else
             {
@@ -178,76 +131,103 @@ public class StreamingDataProvider extends ProcedureDataProvider
             // subscribe to event bus
             // wrap subscriber to handle timeout and end time
             eventBus.newSubscription(DataEvent.class)
-                .withSources(eventSources)
+                .withTopicIDs(eventSources)
                 .withEventType(DataEvent.class)
                 .subscribe(new DelegatingSubscriber<DataEvent>(consumer) {
-                    Subscription sub;
-                    boolean latestRecordsSent = false;
-                    long lastRecordTimestamp;
+                    Subscription wrappedSub;
+                    boolean currentTimeRecordsSent = false;
+                    volatile boolean canceled = false;
+                    long latestRecordTimestamp;
 
                     @Override
                     public void onSubscribe(Subscription sub)
                     {
-                        this.sub = sub;
-
+                        latestRecordTimestamp = System.currentTimeMillis();
+                        
                         // wrap subscription so we can send latest records before we actually
                         // start streaming real-time records from event bus
-                        super.onSubscribe(new DelegatingSubscription(sub) {
+                        var delegatingSubscriber = this;
+                        this.wrappedSub = new DelegatingSubscription(sub) {
                             @Override
                             public void request(long n)
                             {
-                                // always send latest record of each producer (if available)
-                                // synchronously before any other records
-                                if (!latestRecordsSent)
+                                // always send current time record of each producer (if available)
+                                // synchronously if available
+                                if (!currentTimeRecordsSent)
                                 {
                                     // TODO send only n records, not all of them
-                                    latestRecordsSent = true;
-                                    sendLatestRecords(eventSources, consumer);
+                                    currentTimeRecordsSent = true;
+                                    sendLatestRecords(obsFilter, delegatingSubscriber);
+                                    
+                                    // stop here if there was nothing since timeout period
+                                    if (System.currentTimeMillis() - latestRecordTimestamp > timeOut)
+                                    {
+                                        onComplete();
+                                        return;
+                                    }
+                                    
+                                    timeOutMonitor.register(delegatingSubscriber::checkTimeOut);
                                 }
-
+                                
                                 super.request(n);
                             }
-                        });
 
-                        lastRecordTimestamp = System.currentTimeMillis();
-                        timeOutMonitor.register(this::checkTimeOut);
+                            @Override
+                            public void cancel()
+                            {
+                                servlet.getLogger().debug("Canceling subscription: " + eventSources);
+                                super.cancel();
+                                canceled = true;
+                            }
+                        };
+            
+                        super.onSubscribe(wrappedSub);
                     }
 
-                    protected void checkTimeOut()
+                    protected boolean checkTimeOut()
                     {
-                        if (System.currentTimeMillis() - lastRecordTimestamp > timeOut)
+                        if (canceled)
+                            return true;
+                        
+                        if (System.currentTimeMillis() - latestRecordTimestamp > timeOut)
                         {
-                            sub.cancel();
+                            servlet.getLogger().debug("Data provider timeout");
+                            wrappedSub.cancel();
                             onComplete();
+                            return true;
                         }
+                        
+                        return false;
                     }
 
                     @Override
                     public void onNext(DataEvent item)
                     {
-                        lastRecordTimestamp = item.getTimeStamp();
+                        latestRecordTimestamp = item.getTimeStamp();
+                        servlet.getLogger().debug("Event ts={}", latestRecordTimestamp);
                         DataBlock[] data = item.getRecords();
                         if (timeIndexer != null && timeIndexer.getDoubleValue(data[data.length-1]) > stopTime)
-                            super.onComplete();
-                        else
+                            onComplete();
+                        else if (req.getFoiIDs().isEmpty() || req.getFoiIDs().contains(item.getFoiUID()))
                             super.onNext(item);
                     }
                 });
         }
 
-        // otherwise just send latest records synchronously
+        // otherwise just send current time records synchronously
         else
         {
             consumer.onSubscribe(new Subscription() {
-                boolean latestRecordsSent = false;
+                boolean currentTimeRecordsSent = false;
+                
                 @Override
                 public void request(long n)
                 {
-                    if (!latestRecordsSent)
+                    if (!currentTimeRecordsSent)
                     {
                         // TODO send only n records, not all of them
-                        latestRecordsSent = true;
-                        sendLatestRecords(eventSources, consumer);
+                        currentTimeRecordsSent = true;
+                        sendLatestRecords(obsFilter, consumer);
                         consumer.onComplete();
                     }
                 }
@@ -257,128 +237,24 @@ public class StreamingDataProvider extends ProcedureDataProvider
                 {
                 }
             });
-        }
-    }
-
-
-    /*
-     * Find the output corresponding to the selected observables
-     * TODO support selecting multiple outputs since it is possible with GetObservation
-     */
-    protected IStreamingDataInterface findOutput(IDataProducer producer, List<String> excludedOutputs, Set<String> defUris)
-    {
-        // return the output we already found
-        if (selectedOutput != null)
-            return selectedOutput;
-
-        for (IStreamingDataInterface output: producer.getOutputs().values())
-        {
-            // skip hidden outputs
-            if (excludedOutputs != null && excludedOutputs.contains(output.getName()))
-                continue;
-
-            // select it if we can find one of the observables or any observable is accepted
-            if (!defUris.isEmpty())
-            {
-                DataIterator it = new DataIterator(output.getRecordDescription());
-                while (it.hasNext() && selectedOutput == null)
-                {
-                    String defUri = it.next().getDefinition();
-                    if (defUris.contains(defUri))
-                        selectedOutput = output;
-                }
-            }
-            else
-                selectedOutput = output;
-
-            if (selectedOutput != null)
-            {
-                resultStructureHash = new DataStructureHash(selectedOutput.getRecordDescription());
-                log.debug("Selected output: {}", selectedOutput.getName());
-                return selectedOutput;
-            }
-        }
-
-        // if multi producer, try to find output in any of the nested producers
-        if (selectedOutput == null && producer instanceof IMultiSourceDataProducer)
-        {
-            IMultiSourceDataProducer multiSource = (IMultiSourceDataProducer)producer;
-            for (IDataProducer member: multiSource.getMembers().values())
-            {
-                // return the first one we find
-                IStreamingDataInterface output = findOutput(member, excludedOutputs, defUris);
-                if (output != null)
-                    return output;
-            }
-        }
-
-        return null;
-    }
-
-
-    /*
-     * Recursively get output event sources from the main producer
-     * and all selected sub-producers if it is a group
-     */
-    protected void getEventSources(IDataProducer dataSource, String outputName, Set<String> foiIDs, Set<IEventSource> eventSources)
-    {
-        if (dataSource instanceof IMultiSourceDataProducer)
-        {
-            IMultiSourceDataProducer multiProducer = (IMultiSourceDataProducer)dataSource;
-
-            if (foiIDs != null && !foiIDs.isEmpty())
-            {
-                for (String foiID: foiIDs)
-                {
-                    for (ProcedureId procID: multiProducer.getProceduresWithFoi(foiID))
-                    {
-                        procedureFois.put(procID.getUniqueID(), foiID);
-                        IDataProducer proc = multiProducer.getMembers().get(procID);
-                        getEventSources(proc, outputName, foiIDs, eventSources);
-                    }
-                }
-            }
-            else
-            {
-                for (IDataProducer proc: multiProducer.getMembers().values())
-                {
-                    IGeoFeature foi = proc.getCurrentFeatureOfInterest();
-                    String foiUID = foi == null ? null : foi.getUniqueIdentifier();
-                    procedureFois.put(proc.getUniqueIdentifier(), foiUID);
-                    getEventSources(proc, outputName, foiIDs, eventSources);
-                }
-            }
-        }
-        else
-        {
-            // get selected output
-            IStreamingDataInterface output = dataSource.getOutputs().get(outputName);
-            if (output == null)
-                return;
-
-            // only use output if structure is compatible with selected output
-            // needed in case there is an output with the same name but different structure
-            if (!resultStructureHash.equals(new DataStructureHash(output.getRecordDescription())))
-                return;
-
-            log.debug("Selected data source: {}", output.getEventSourceInfo());
-            eventSources.add(output);
-        }
+        }  
     }
 
 
     /*
      * Send the latest record of each data source to the consumer
      */
-    protected void sendLatestRecords(Set<IEventSource> eventSources, Subscriber<DataEvent> consumer)
+    protected void sendLatestRecords(ObsFilter obsFilter, Subscriber<DataEvent> consumer)
     {
-        for (IEventSource eventSrc: eventSources)
-        {
-            IStreamingDataInterface output = (IStreamingDataInterface)eventSrc;
-            DataBlock data = output.getLatestRecord();
-            if (data != null)
-                consumer.onNext(new DataEvent(System.currentTimeMillis(), output, data));
-        }
+        database.getObservationStore().select(obsFilter)
+            .forEach(obs -> {
+                consumer.onNext(new DataEvent(
+                    obs.getResultTime().toEpochMilli(),
+                    selectedDataStream.procUID,
+                    selectedDataStream.resultStruct.getName(),
+                    obs.getFoiID().getUniqueID(),
+                    obs.getResult()));
+            });
     }
 
 

@@ -43,7 +43,8 @@ public class ResultSerializerJson extends AbstractResultSerializerSwe
         resultTemplate = new RecordTemplate(resultTemplate.getDataStructure(), new JSONEncodingImpl());
         super.init(servlet, asyncCtx, req, resultTemplate);
         
-        asyncCtx.getResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
+        if (asyncCtx != null)
+            asyncCtx.getResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
     }
     
     

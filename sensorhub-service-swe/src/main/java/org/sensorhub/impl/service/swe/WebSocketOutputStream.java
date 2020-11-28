@@ -18,7 +18,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import javax.servlet.WriteListener;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.StatusCode;
+import org.slf4j.Logger;
 
 
 /**
@@ -30,18 +33,28 @@ import org.eclipse.jetty.websocket.api.Session;
  * @author Alex Robin
  * @since Feb 19, 2015
  */
-public class WebSocketOutputStream extends ByteArrayOutputStream
+public class WebSocketOutputStream extends ByteArrayOutputStream implements IAsyncOutputStream
 {
+    Logger log;
     ByteBuffer buffer;
     Session session;
+    boolean autoSendOnFlush;
     boolean closed;
     
     
     public WebSocketOutputStream(Session session, int bufferSize)
     {
+        this(session, bufferSize, true, null);
+    }
+    
+    
+    public WebSocketOutputStream(Session session, int bufferSize, boolean autoSendOnFlush, Logger log)
+    {
         super(bufferSize);
         this.session = session;
         this.buffer = ByteBuffer.wrap(this.buf);
+        this.autoSendOnFlush = autoSendOnFlush;
+        this.log = log;
     }
     
     
@@ -49,13 +62,20 @@ public class WebSocketOutputStream extends ByteArrayOutputStream
     public void close()
     {
         if (session.isOpen())
-            session.close();
+            WebSocketUtils.closeSession(session, StatusCode.NORMAL, "Data provider done", log);
         closed = true;
     }
     
 
     @Override
     public void flush() throws IOException
+    {
+        if (autoSendOnFlush)
+            send();
+    }
+    
+    
+    public void send() throws IOException
     {
         if (closed)
             throw new EOFException();
@@ -75,6 +95,26 @@ public class WebSocketOutputStream extends ByteArrayOutputStream
         // reset so we can write again in same buffer
         this.reset();
         buffer.rewind();
+    }
+    
+    
+    @Override
+    public boolean isClosed()
+    {
+        return !session.isOpen();
+    }
+    
+    
+    @Override
+    public boolean isReady()
+    {
+        return true;
+    }
+    
+    
+    @Override
+    public void setWriteListener(WriteListener listener)
+    {
     }
 
 }

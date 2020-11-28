@@ -15,13 +15,16 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.servlet.AsyncContext;
+import javax.servlet.AsyncEvent;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.sensorhub.impl.service.swe.IAsyncOutputStream;
 import org.vast.ows.OWSRequest;
 import org.vast.util.Asserts;
 
@@ -37,57 +40,80 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Apr 16, 2020
  */
-public abstract class AbstractAsyncSerializer<R, T> implements IAsyncResponseSerializer<R, T>
+public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implements IAsyncResponseSerializer<R, T>
 {
     protected SOSServlet servlet;
-    protected AsyncContext asyncCtx;
     protected R request;
-    //protected ServletOutputStream os;
-    protected BufferedAsyncOutputStream os;
+    protected AsyncContext asyncCtx;
+    protected OutputStream os;
+    protected IAsyncOutputStream asyncOs;
     protected Queue<T> recordQueue;
     protected Subscription subscription;
     volatile boolean done = false;
     volatile boolean beforeRecordsCalled = false;
     volatile boolean onCompleteCalled = false;
     volatile boolean writing = false;
-    
+
     // atomic synchronization flags
     final static int READY = 0;
     final static int WRITING = 1;
     final static int MORE_TO_WRITE = 2;
     AtomicInteger cas = new AtomicInteger(READY);
 
-    
     protected abstract void beforeRecords() throws IOException;
+
+
     protected abstract void afterRecords() throws IOException;
+
+
     protected abstract void writeRecord(T item) throws IOException;
-    
-    
+
+
     public void init(SOSServlet servlet, AsyncContext asyncCtx, R request) throws IOException
     {
         this.servlet = Asserts.checkNotNull(servlet, SOSServlet.class);
-        this.asyncCtx = Asserts.checkNotNull(asyncCtx, AsyncContext.class);
         this.request = Asserts.checkNotNull(request, OWSRequest.class);
-        this.os = new BufferedAsyncOutputStream(asyncCtx.getResponse().getOutputStream(), 16*1024);
         this.recordQueue = new ConcurrentLinkedQueue<>();
+
+        // init output stream with either:
+        // - async context servlet output stream
+        // - websocket output stream
+        Asserts.checkArgument(asyncCtx != null || request.getResponseStream() instanceof IAsyncOutputStream, "invalid output stream");
+        if (asyncCtx != null)
+        {
+            this.asyncCtx = asyncCtx;
+            asyncCtx.addListener(this);
+            this.os = new BufferedAsyncOutputStream(asyncCtx.getResponse().getOutputStream(), 16 * 1024);            
+        }
+        else
+            this.os = request.getResponseStream();
+        this.asyncOs = (IAsyncOutputStream) os;
     }
-    
-    
+
+
     @Override
     public void onSubscribe(Subscription subscription)
     {
-        this.subscription = subscription;
-        os.setWriteListener(this);
+        this.subscription = Asserts.checkNotNull(subscription, Subscription.class);
+        asyncOs.setWriteListener(this);
         subscription.request(1);
     }
-    
-    
+
+
     @Override
     public void onWritePossible() throws IOException
     {
+        // cancel subscription if output stream was closed asynchronously
+        // i.e. if websocket session was closed by client
+        if (asyncOs.isClosed())
+        {
+            close();
+            return;
+        }
+
         // write everything we can while servlet output stream is ready
         // otherwise we'll be called back later
-        if (os.isReady() && cas.compareAndSet(READY, WRITING))
+        if (asyncOs.isReady() && cas.compareAndSet(READY, WRITING))
         {
             do
             {
@@ -96,25 +122,25 @@ public abstract class AbstractAsyncSerializer<R, T> implements IAsyncResponseSer
                     beforeRecords();
                     beforeRecordsCalled = true;
                 }
-                
-                while (!recordQueue.isEmpty() && os.isReady())
+
+                while (!recordQueue.isEmpty() && asyncOs.isReady())
                 {
                     writeRecord(recordQueue.remove());
                     subscription.request(1);
                 }
-                
+
                 if (recordQueue.isEmpty() && onCompleteCalled)
                 {
                     afterRecords();
-                    asyncCtx.complete();
+                    close();
                     done = true;
                 }
             }
             while (!done && cas.getAndUpdate(s -> s == MORE_TO_WRITE ? WRITING : READY) == MORE_TO_WRITE);
         }
     }
-    
-    
+
+
     @Override
     public void onNext(T item)
     {
@@ -125,7 +151,8 @@ public abstract class AbstractAsyncSerializer<R, T> implements IAsyncResponseSer
             {
                 if (!recordQueue.offer(item))
                     onError(new IllegalStateException("Write queue is full"));
-                if (!cas.compareAndSet(WRITING, MORE_TO_WRITE))         
+
+                if (!cas.compareAndSet(WRITING, MORE_TO_WRITE))
                     onWritePossible();
             }
         }
@@ -134,11 +161,11 @@ public abstract class AbstractAsyncSerializer<R, T> implements IAsyncResponseSer
             onError(e);
         }
     }
-    
+
 
     @Override
     public void onComplete()
-    {        
+    {
         try
         {
             //System.out.println("onComplete()");
@@ -154,16 +181,63 @@ public abstract class AbstractAsyncSerializer<R, T> implements IAsyncResponseSer
             onError(e);
         }
     }
-    
+
 
     @Override
     public void onError(Throwable e)
     {
-        servlet.handleError(
-            (HttpServletRequest)asyncCtx.getRequest(),
-            (HttpServletResponse)asyncCtx.getResponse(),
-            null, e);
-        asyncCtx.complete();
+        if (asyncCtx != null)
+        {
+            servlet.handleError(
+                (HttpServletRequest) asyncCtx.getRequest(),
+                (HttpServletResponse) asyncCtx.getResponse(),
+                null, e);
+        }
+
+        try
+        {
+            close();
+        }
+        catch (IOException e1)
+        {
+        }
+    }
+
+
+    protected void close() throws IOException
+    {
+        os.close();
+        if (asyncCtx != null)
+            asyncCtx.complete();
+        subscription.cancel();
+    }
+
+
+    @Override
+    public void onTimeout(AsyncEvent event) throws IOException
+    {
+        close();
+        servlet.getLogger().debug("Connection closed on idle timeout");
+    }
+
+
+    @Override
+    public void onError(AsyncEvent event) throws IOException
+    {
+        servlet.getLogger().debug("Async error", event.getThrowable());
+    }
+
+
+    @Override
+    public void onComplete(AsyncEvent event) throws IOException
+    {
+        servlet.getLogger().debug("Asynchronous connection complete");
+    }
+
+
+    @Override
+    public void onStartAsync(AsyncEvent event) throws IOException
+    {
     }
 
 }

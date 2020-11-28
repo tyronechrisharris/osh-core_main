@@ -46,7 +46,8 @@ public class ResultSerializerBinary extends AbstractResultSerializerSwe
         
         super.init(servlet, asyncCtx, req, resultTemplate);
         
-        asyncCtx.getResponse().setContentType(OWSUtils.BINARY_MIME_TYPE);
+        if (asyncCtx != null)
+            asyncCtx.getResponse().setContentType(OWSUtils.BINARY_MIME_TYPE);
     }
     
     

@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sos;
 import java.io.IOException;
 import javax.servlet.AsyncContext;
 import javax.xml.stream.XMLStreamWriter;
+import org.vast.ows.OWSRequest;
 
 
 /**
@@ -30,7 +31,7 @@ import javax.xml.stream.XMLStreamWriter;
  * @author Alex Robin
  * @date Apr 5, 2020
  */
-public abstract class AbstractAsyncSerializerStax<R, T> extends AbstractAsyncSerializer<R, T>
+public abstract class AbstractAsyncSerializerStax<R extends OWSRequest, T> extends AbstractAsyncSerializer<R, T>
 {
     protected XMLStreamWriter writer;
     

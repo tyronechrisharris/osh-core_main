@@ -14,32 +14,31 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.swe;
 
-import org.sensorhub.api.config.DisplayInfo;
+import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataEncoding;
 
 
-/**
- * <p>
- * Base class for offering configurations (e.g. providers, connectors, etc.)
- * </p>
- *
- * @author Alex Robin
- * @since Dec 20, 2016
- */
-public abstract class OfferingConfig
+public class RecordTemplate
 {
-    
-    @DisplayInfo(desc="Offering URI as exposed in capabilities. (if null, the procedure UID is used)")
-    public String offeringID;
-    
-    
-    @DisplayInfo(desc="Offering name (if null, the procedure name is used)")
-    public String name;
+    DataComponent dataStruct;
+    DataEncoding encoding;
     
     
-    @DisplayInfo(desc="Offering description (if null, it will be auto-generated)")
-    public String description;
+    public RecordTemplate(DataComponent dataStruct, DataEncoding encoding)
+    {
+        this.dataStruct = dataStruct;
+        this.encoding = encoding;
+    }
     
     
-    @DisplayInfo(desc="Set if offering is enabled, unset if disabled")
-    public boolean enabled;    
+    public DataComponent getDataStructure()
+    {
+        return dataStruct;
+    }
+    
+    
+    public DataEncoding getDataEncoding()
+    {
+        return encoding;
+    }
 }

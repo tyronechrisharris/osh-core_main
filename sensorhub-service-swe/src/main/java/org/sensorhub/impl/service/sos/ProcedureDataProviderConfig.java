@@ -35,6 +35,12 @@ import org.vast.ows.sos.GetResultRequest;
 public class ProcedureDataProviderConfig extends SOSProviderConfig
 {
     
+    @DisplayInfo(desc="Time-out after which real-time requests are disabled if no more "
+        + "measurements are received (in seconds). Real-time is reactivated as soon as "
+        + "new records start being received again")
+    public double liveDataTimeout = 10.0;
+    
+    
     @DisplayInfo(desc="Names of datastreams whose data will be hidden from the SOS. " +
             "If this is null, all streams produced by the procedure are exposed")
     public List<String> excludedOutputs = new ArrayList<>();

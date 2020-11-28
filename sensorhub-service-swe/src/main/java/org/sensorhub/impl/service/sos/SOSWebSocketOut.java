@@ -44,7 +44,7 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
     OWSRequest request;
     String userID;
     WebSocketOutputStream respOutputStream;
-    Executor threadPool;
+    //Executor threadPool;
     
     
     public SOSWebSocketOut(SOSServlet parentService, OWSRequest request, String userID, Logger log)
@@ -52,7 +52,7 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
         this.parentService = parentService;
         this.request = request;
         this.userID = userID;
-        this.threadPool = Executors.newSingleThreadExecutor();
+        //this.threadPool = Executors.newSingleThreadExecutor();
         this.log = log;
         
         // enforce no XML wrapper to GetResult response
@@ -69,11 +69,12 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
         
         try
         {
-            respOutputStream = new WebSocketOutputStream(session, 1024);
+            respOutputStream = new WebSocketOutputStream(session, 1024, true, log);
             request.setResponseStream(respOutputStream);
             
             // launch processing in separate thread
-            threadPool.execute(this);
+            //threadPool.execute(this);
+            run();
         }
         catch (Exception e)
         {
@@ -126,8 +127,9 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
             // handle request using same servlet logic as for HTTP
             parentService.handleRequest(request);
             
-            if (session != null)
-                WebSocketUtils.closeSession(session, StatusCode.NORMAL, "Data provider done", log);
+            // cannot close here since request handling is now asynchronous
+            //if (session != null)
+            //    WebSocketUtils.closeSession(session, StatusCode.NORMAL, "Data provider done", log);
         }
         catch (OWSException e)
         {

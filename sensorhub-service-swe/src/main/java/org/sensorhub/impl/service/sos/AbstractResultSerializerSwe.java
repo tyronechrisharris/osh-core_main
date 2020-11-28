@@ -78,6 +78,7 @@ public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerialize
             {
                 // always keep sampling time
                 request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
+                request.getObservables().add(SWEConstants.DEF_PHENOMENON_TIME);
     
                 // temporary hack to switch btw old and new writer architecture
                 if (writer instanceof AbstractDataWriter)

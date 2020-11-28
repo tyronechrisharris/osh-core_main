@@ -14,9 +14,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.util.Collections;
 import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
- * TODO TimeOutMonitor type description
+ * Time out monitor providing a unique thread for monitoring all connection
+ * timeouts
  * </p>
  *
  * @author Alex Robin
@@ -33,8 +34,7 @@ import java.util.concurrent.TimeUnit;
 public class TimeOutMonitor
 {
     ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
-    Set<Runnable> triggers = Collections.synchronizedSet(
-        Collections.newSetFromMap(new WeakHashMap<>()));
+    Set<Callable<Boolean>> triggers = ConcurrentHashMap.newKeySet();
     
     
     public TimeOutMonitor()
@@ -55,18 +55,28 @@ public class TimeOutMonitor
     
     protected void triggerAll()
     {
-        for (Runnable trigger: triggers)
-            trigger.run();
+        for (var trigger: triggers)
+        {
+            try
+            {
+                if (trigger.call())
+                    triggers.remove(trigger);
+            }
+            catch (Exception e)
+            {
+                triggers.remove(trigger);
+            }
+        }
     }
     
     
-    public void register(Runnable trigger)
+    public void register(Callable<Boolean> trigger)
     {
         triggers.add(trigger);
     }
     
     
-    public void unregister(Runnable trigger)
+    public void unregister(Callable<Boolean> trigger)
     {
         triggers.remove(trigger);
     }

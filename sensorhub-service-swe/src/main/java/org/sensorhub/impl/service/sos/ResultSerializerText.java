@@ -51,10 +51,13 @@ public class ResultSerializerText extends AbstractResultSerializerSwe
         
         super.init(servlet, asyncCtx, req, resultTemplate);        
         
-        if (request.isXmlWrapper())
-            asyncCtx.getResponse().setContentType(OWSUtils.XML_MIME_TYPE);
-        else
-            asyncCtx.getResponse().setContentType(OWSUtils.TEXT_MIME_TYPE);
+        if (asyncCtx != null)
+        {
+            if (request.isXmlWrapper())
+                asyncCtx.getResponse().setContentType(OWSUtils.XML_MIME_TYPE);
+            else
+                asyncCtx.getResponse().setContentType(OWSUtils.TEXT_MIME_TYPE);
+        }
     }
     
     
@@ -76,10 +79,10 @@ public class ResultSerializerText extends AbstractResultSerializerSwe
     {
         // close xml wrapper if needed
         if (request.isXmlWrapper())
+        {
             os.write("\n</resultValues>\n</GetResultResponse>".getBytes());
-        
-        writer.endStream();
-        writer.flush();
+            os.flush();
+        }
     }
 
 }

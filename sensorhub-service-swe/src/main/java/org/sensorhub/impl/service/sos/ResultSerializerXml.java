@@ -45,7 +45,8 @@ public class ResultSerializerXml extends AbstractResultSerializerSwe
         resultTemplate = new RecordTemplate(resultTemplate.getDataStructure(), new XMLEncodingImpl());
         super.init(servlet, asyncCtx, req, resultTemplate);
         
-        asyncCtx.getResponse().setContentType(OWSUtils.XML_MIME_TYPE);
+        if (asyncCtx != null)
+            asyncCtx.getResponse().setContentType(OWSUtils.XML_MIME_TYPE);
     }
     
     

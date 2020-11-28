@@ -12,28 +12,17 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sos;
+package org.sensorhub.impl.service.swe;
 
-import java.io.IOException;
-import java.util.concurrent.Flow.Subscriber;
-import javax.servlet.AsyncContext;
-import javax.servlet.AsyncListener;
 import javax.servlet.WriteListener;
 
 
-/**
- * <p>
- * Base interface for all asynchronous response serializers
- * </p>
- * 
- * @param <R> The service request type
- * @param <T> The serialized item type
- *
- * @author Alex Robin
- * @date Apr 28, 2020
- */
-public interface IAsyncResponseSerializer<R, T> extends Subscriber<T>, WriteListener, AsyncListener
+public interface IAsyncOutputStream
 {
+        
+    public void setWriteListener(WriteListener listener);
+
+    public boolean isReady();
     
-    public void init(SOSServlet servlet, AsyncContext asyncCtx, R request) throws IOException;
+    public boolean isClosed();
 }

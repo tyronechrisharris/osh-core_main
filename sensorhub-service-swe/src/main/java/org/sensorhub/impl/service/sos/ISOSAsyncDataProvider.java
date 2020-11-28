@@ -99,6 +99,14 @@ public interface ISOSAsyncDataProvider
      * @return true if this provider aggregates data from several producers
      */
     public boolean hasMultipleProducers();
+    
+    
+    /**
+     * Gets the timeout after which the connection should be closed if no more records
+     * are provided 
+     * @return Recommended timeout in milliseconds
+     */
+    public long getTimeout();
 
 
     /**
