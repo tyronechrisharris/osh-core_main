@@ -67,7 +67,8 @@ public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerialize
         
         try
         {
-            multipleRecords = !servlet.isWebSocketRequest(request);
+            multipleRecords = !SOSProviderUtils.isWebSocketRequest(request) &&
+                              !SOSProviderUtils.isStreamingRequest(request);
                         
             // prepare writer for selected encoding
             writer = SWEHelper.createDataWriter(resultEncoding);
@@ -88,7 +89,7 @@ public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerialize
             }
             
             writer.setDataComponents(resultStructure);
-            writer.setOutput(os);            
+            writer.setOutput(os);
         }
         catch (IOException e)
         {

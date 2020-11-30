@@ -105,8 +105,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 {
     private static final String INVALID_RESPONSE_FORMAT = "Unsupported response format: ";
     private static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";
-    private static final QName EXT_REPLAY = new QName("replayspeed"); // kvp params are always lower case
-    private static final QName EXT_WS = new QName("websocket");
     private static final long GET_CAPS_MIN_REFRESH_PERIOD = 1000; // 1s
     static final String DEFAULT_PROVIDER_KEY = "%%%_DEFAULT_";
 
@@ -343,7 +341,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
                     if (owsReq != null)
                     {
-                        owsReq.getExtensions().put(EXT_WS, true);
+                        owsReq.getExtensions().put(SOSProviderUtils.EXT_WS, true);
 
                         if (owsReq instanceof GetResultRequest)
                         {
@@ -637,14 +635,14 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
         // start async or websocket response
         final AsyncContext asyncCtx;
-        if (!isWebSocketRequest(request))
+        if (!SOSProviderUtils.isWebSocketRequest(request))
         {
             asyncCtx = request.getHttpRequest().startAsync();
             
             // disable async timeout to allow long-lived streaming connections 
             if (dataProvider instanceof StreamingDataProvider ||
-                request.getExtensions().containsKey(EXT_REPLAY))
-                asyncCtx.setTimeout(0);           
+                SOSProviderUtils.isReplayRequest(request))
+                asyncCtx.setTimeout(0);
         }
         else
             asyncCtx = null;
@@ -1166,15 +1164,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             return true;
 
         return false;
-    }
-
-
-    /*
-     * Check if request is through websocket protocol
-     */
-    protected boolean isWebSocketRequest(OWSRequest request)
-    {
-        return request.getExtensions().containsKey(EXT_WS);
     }
     
     

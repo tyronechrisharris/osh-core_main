@@ -56,15 +56,13 @@ public class ProcedureDataProviderConfig extends SOSProviderConfig
     {
         if (request instanceof GetResultRequest)
         {
-            var timeFilter = ((GetResultRequest)request).getTime();
-            if (timeFilter != null && timeFilter.beginsNow() && !timeFilter.isNow())
+            if (SOSProviderUtils.isFutureTimePeriod(((GetResultRequest)request).getTime()))
                 return new StreamingDataProvider(service, this);
         }
         
         else if (request instanceof GetObservationRequest)
         {
-            var timeFilter = ((GetObservationRequest)request).getTime();
-            if (timeFilter != null && timeFilter.beginsNow() && !timeFilter.isNow())
+            if (SOSProviderUtils.isFutureTimePeriod(((GetObservationRequest)request).getTime()))
                 return new StreamingDataProvider(service, this);
         }
             

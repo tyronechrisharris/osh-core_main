@@ -30,6 +30,7 @@ import org.vast.ogc.om.ObservationImpl;
 import org.vast.ogc.om.ProcedureRef;
 import org.vast.ows.OWSRequest;
 import org.vast.ows.fes.FESRequestUtils;
+import org.vast.ows.sos.GetResultRequest;
 import org.vast.swe.SWEConstants;
 import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
@@ -40,21 +41,48 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class SOSProviderUtils
 {
-    private static final QName EXT_REPLAY = new QName("replayspeed"); // kvp params are always lower case
+    static final QName EXT_REPLAY = new QName("replayspeed"); // kvp params are always lower case
+    static final QName EXT_WS = new QName("websocket");
     
     
     private SOSProviderUtils() {}
     
     
-    public static double getReplaySpeed(OWSRequest request)
+    public static boolean isWebSocketRequest(OWSRequest request)
     {
-        if (request.getExtensions().containsKey(EXT_REPLAY))
+        return request.getExtensions().containsKey(EXT_WS);
+    }
+    
+    
+    public static boolean isStreamingRequest(GetResultRequest request)
+    {
+        return isReplayRequest(request) || isFutureTimePeriod(request.getTime());
+    }
+    
+    
+    public static boolean isReplayRequest(GetResultRequest request)
+    {
+        return request.getExtensions().containsKey(EXT_REPLAY);
+    }
+    
+    
+    public static double getReplaySpeed(GetResultRequest request)
+    {
+        if (isReplayRequest(request))
         {
             String replaySpeed = (String)request.getExtensions().get(EXT_REPLAY);
             return Double.parseDouble(replaySpeed);
         }
         
         return Double.NaN;
+    }
+    
+    
+    public static boolean isFutureTimePeriod(TimeExtent timeFilter)
+    {
+        return timeFilter != null &&
+               timeFilter.beginsNow() &&
+               !timeFilter.isNow();
     }
     
     

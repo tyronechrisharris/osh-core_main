@@ -54,7 +54,7 @@ public class ResultSerializerXml extends AbstractResultSerializerSwe
     protected void beforeRecords() throws IOException
     {
         // write small xml wrapper if requested
-        if (request.isXmlWrapper())
+        if (multipleRecords && request.isXmlWrapper())
         {
             String nsUri = OGCRegistry.getNamespaceURI(SOSUtils.SOS, request.getVersion());
             os.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n".getBytes());
@@ -69,7 +69,7 @@ public class ResultSerializerXml extends AbstractResultSerializerSwe
         writer.flush();
         
         // close xml wrapper if needed
-        if (request.isXmlWrapper())
+        if (multipleRecords && request.isXmlWrapper())
         {
             os.write("\n</resultValues>\n</GetResultResponse>\n".getBytes());
             os.flush();
