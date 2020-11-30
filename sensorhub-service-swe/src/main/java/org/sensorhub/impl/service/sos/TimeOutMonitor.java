@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sos;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -33,23 +32,25 @@ import java.util.concurrent.TimeUnit;
  */
 public class TimeOutMonitor
 {
-    ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor();
+    ScheduledExecutorService threadPool;
     Set<Callable<Boolean>> triggers = ConcurrentHashMap.newKeySet();
     
     
-    public TimeOutMonitor()
+    public TimeOutMonitor(ScheduledExecutorService threadPool)
     {
         // schedule to run all triggers every 10 seconds by default
-        this(10000);
+        this(threadPool, 10000);
     }
     
     
     /**
+     * @param threadPool Thread pool to schedule monitoring task on
      * @param resolution resolution of timeout detection in millis
      */
-    public TimeOutMonitor(int resolution)
+    public TimeOutMonitor(ScheduledExecutorService threadPool, int resolution)
     {
-        timer.scheduleWithFixedDelay(this::triggerAll, 0, resolution, TimeUnit.MILLISECONDS);
+        this.threadPool = threadPool;
+        threadPool.scheduleWithFixedDelay(this::triggerAll, 0, resolution, TimeUnit.MILLISECONDS);
     }
     
     

@@ -15,8 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import org.sensorhub.api.event.Event;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.event.IEventListener;
@@ -42,7 +42,7 @@ import org.vast.ows.sos.SOSServiceCapabilities;
 public class SOSService extends AbstractModule<SOSServiceConfig> implements IServiceModule<SOSServiceConfig>, IEventListener
 {
     protected SOSServlet servlet;
-    ExecutorService threadPool;
+    ScheduledExecutorService threadPool;
     TimeOutMonitor timeOutMonitor;
     IProcedureObsDatabase readDatabase;
     IProcedureObsDatabase writeDatabase;
@@ -91,12 +91,15 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
             readDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
 
         // init thread pool
-        threadPool = Executors.newFixedThreadPool(
+        var threadPool = new ScheduledThreadPoolExecutor(
             Runtime.getRuntime().availableProcessors(),
             new NamedThreadFactory("SOSPool"));
+        threadPool.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+        threadPool.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+        this.threadPool = threadPool;        
 
         // init timeout monitor
-        timeOutMonitor = new TimeOutMonitor();
+        timeOutMonitor = new TimeOutMonitor(threadPool);
 
         // deploy servlet
         servlet = new SOSServlet(this, (SOSSecurity)this.securityHandler, getLogger());
@@ -114,6 +117,10 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
         if (servlet != null)
             servlet.stop();
         servlet = null;
+        
+        // stop thread pool
+        if (threadPool != null)
+            threadPool.shutdown();
 
         setState(ModuleState.STOPPED);
     }
@@ -198,7 +205,7 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
     }
 
 
-    public ExecutorService getThreadPool()
+    public ScheduledExecutorService getThreadPool()
     {
         return threadPool;
     }

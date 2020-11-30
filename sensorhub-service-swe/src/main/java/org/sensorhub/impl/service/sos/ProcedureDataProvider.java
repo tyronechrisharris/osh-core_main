@@ -23,6 +23,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -40,7 +41,7 @@ import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.JTSUtils;
 import org.vast.ogc.om.IProcedure;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
-import org.vast.ows.sos.GetResultRequest;
+import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.GetResultTemplateRequest;
 import org.vast.ows.sos.SOSException;
 import org.vast.ows.swe.DescribeSensorRequest;
@@ -61,7 +62,7 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
     protected final SOSServlet servlet;
     protected final IProcedureObsDatabase database;
     protected final ProcedureDataProviderConfig config;
-    protected final ExecutorService threadPool;
+    protected final ScheduledExecutorService threadPool;
     DataStreamInfoCache selectedDataStream;
 
     class DataStreamInfoCache
@@ -88,6 +89,7 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
         int batchSize;
         volatile boolean streamDone = false;
         volatile boolean canceled = false;
+        AtomicBoolean readingFromDb = new AtomicBoolean(false);
         AtomicBoolean onCompleteCalled = new AtomicBoolean(false);
         AtomicLong requested = new AtomicLong();
         
@@ -104,63 +106,67 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
         {
             Asserts.checkArgument(n > 0);
             /*boolean more = false;
-            for (int i = 0; i < n && !more; i++)
+            for (int i = 0; i < n && more; i++)
                 more = spliterator.tryAdvance(e -> subscriber.onNext(e));
             
             if (!more)
                 subscriber.onComplete();*/
             
             requested.addAndGet(n);
-            maybeReadFromStorage();
-        }
-
-        synchronized void maybeReadFromStorage()
-        {
+            
             try
             {
-                // fetch more from DB if needed
-                if (!streamDone && itemQueue.size() < requested.get())
-                {
-                    //servlet.getLogger().debug("Only {} items left", requested.get());
-                    CompletableFuture.runAsync(() -> {
-                        int count = 0;
-                        while (spliterator.tryAdvance(e -> itemQueue.offer(e)) && ++count < batchSize);
-                        //servlet.getLogger().debug("Loaded new batch of {} items", count);
-                        streamDone = count < batchSize;
-                    }, threadPool)
-                    .thenRun(() -> {
-                        maybeSendItem();
-                        maybeCallOnComplete();
-                    });
-                }
-                
-                while (requested.get() > 0 && !onCompleteCalled.get())
-                {
-                    maybeSendItem();
-                    maybeCallOnComplete();                                            
-                }                
+                maybeSendItems();
+                maybeFetchFromStorage();
             }
             catch (Throwable e)
             {
                 subscriber.onError(e);
+            }            
+        }
+
+        void maybeFetchFromStorage()
+        {
+            var fetchNextBatch = itemQueue.size() < Math.max(1, requested.get()/2);
+            
+            // fetch more from DB if needed
+            if (fetchNextBatch && !streamDone && !canceled && readingFromDb.compareAndSet(false, true))
+            {
+                servlet.getLogger().debug("Only {} items left", requested.get());
+                CompletableFuture.runAsync(() -> {
+                    int count = 0;
+                    while (spliterator.tryAdvance(e -> itemQueue.offer(e)) && ++count < batchSize);
+                    servlet.getLogger().debug("Loaded new batch of {} items", count);
+                    streamDone = count < batchSize;
+                    readingFromDb.compareAndSet(true, false);
+                }, threadPool)
+                .thenRun(() -> {
+                    maybeSendItems();
+                })
+                .exceptionally(e -> {
+                    subscriber.onError(e);
+                    return null;
+                });
             }
+        }
+        
+        void maybeSendItems()
+        {
+            while (requested.get() > 0 && !itemQueue.isEmpty() && !canceled && !onCompleteCalled.get())
+            {
+                subscriber.onNext(itemQueue.poll());
+                requested.decrementAndGet();
+            }
+            
+            maybeCallOnComplete();
         }
         
         void maybeCallOnComplete()
         {
-            if (!canceled && streamDone && itemQueue.isEmpty())
+            if (streamDone && itemQueue.isEmpty() && !canceled)
             {
                 if (onCompleteCalled.compareAndSet(false, true))
                     subscriber.onComplete();
-            }
-        }
-        
-        void maybeSendItem()
-        {
-            if (!canceled && !itemQueue.isEmpty() && requested.get() > 0)
-            {
-                subscriber.onNext(itemQueue.poll());
-                requested.decrementAndGet();
             }
         }
 
@@ -172,7 +178,7 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
     }
 
     
-    public ProcedureDataProvider(final SOSServlet servlet, final IProcedureObsDatabase database, final ExecutorService threadPool, final ProcedureDataProviderConfig config)
+    public ProcedureDataProvider(final SOSServlet servlet, final IProcedureObsDatabase database, final ScheduledExecutorService threadPool, final ProcedureDataProviderConfig config)
     {
         this.servlet = Asserts.checkNotNull(servlet, SOSServlet.class);
         this.database = Asserts.checkNotNull(database, IProcedureObsDatabase.class);
@@ -258,35 +264,30 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
     }
     
     
-    protected ObsFilter getObsFilter(GetResultRequest req, Long dataStreamId) throws SOSException
+    protected ObsFilter getObsFilter(GetObservationRequest req, Long dataStreamId) throws SOSException
     {
-        double replaySpeedFactor = SOSProviderUtils.getReplaySpeed(req);
-        long requestSystemTime = System.currentTimeMillis();
-        
         // build obs query filter
         var obsFilter = new ObsFilter.Builder();
         
         // select datastream(s)
+        var dsFilter = new DataStreamFilter.Builder();
         if (dataStreamId == null)
         {
-            var dsFilter = new DataStreamFilter.Builder();
-            
             if (req.getProcedures() != null && !req.getProcedures().isEmpty())
             {
                 dsFilter.withProcedures()
                     .withUniqueIDs(req.getProcedures())
                     .done();
             }
-            
-            // observables
-            if (req.getObservables() != null && !req.getObservables().isEmpty())
-                dsFilter.withObservedProperties(req.getObservables());
-            
-            obsFilter.withDataStreams(dsFilter.build());
         }
         else
-            obsFilter.withDataStreams(dataStreamId);
-                
+            dsFilter.withInternalIDs(dataStreamId);
+            
+        // observables
+        if (req.getObservables() != null && !req.getObservables().isEmpty())
+            dsFilter.withObservedProperties(req.getObservables());
+        obsFilter.withDataStreams(dsFilter.build());
+        
         // FOIs by ID
         if (req.getFoiIDs() != null && !req.getFoiIDs().isEmpty())
         {

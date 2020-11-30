@@ -14,8 +14,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import net.opengis.swe.v20.DataBlock;
@@ -24,6 +25,7 @@ import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.impl.event.DelegatingSubscriber;
+import org.sensorhub.impl.event.DelegatingSubscriberAdapter;
 import org.sensorhub.impl.event.DelegatingSubscription;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.GetObservationRequest;
@@ -33,7 +35,7 @@ import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -49,7 +51,6 @@ public class StreamingDataProvider extends ProcedureDataProvider
 {
     final IEventBus eventBus;
     final TimeOutMonitor timeOutMonitor;
-    final Map<String, String> procedureFois;
 
 
     public StreamingDataProvider(final SOSService service, final ProcedureDataProviderConfig config)
@@ -61,34 +62,51 @@ public class StreamingDataProvider extends ProcedureDataProvider
         
         this.eventBus = service.getParentHub().getEventBus();
         this.timeOutMonitor = Asserts.checkNotNull(service.getTimeOutMonitor(), TimeOutMonitor.class);
-        this.procedureFois = new TreeMap<>();
     }
 
 
     @Override
     public void getObservations(GetObservationRequest req, Subscriber<IObservation> consumer) throws SOSException
     {
-        /*// build equivalent GetResult request
-        GetResultRequest grReq = new GetResultRequest();
-        grReq.getObservables().addAll(req.getObservables());
-        grReq.getFoiIDs().addAll(req.getFoiIDs());
-        grReq.setTemporalFilter(req.getTemporalFilter());
+        var originalTimeFilter = req.getTime();
+        
+        // build obs filter from request but using 'now' for time
+        req.setTime(TimeExtent.now());
+        var obsFilter = getObsFilter(req, null);
+        
+        // cache of datastreams info
+        var dataStreams = new HashMap<Long, DataStreamInfoCache>();
+        var dataStreamsBySource = new HashMap<String, DataStreamInfoCache>();
+        
+        // query selected datastreams and create event source for each of them
+        var dsFilter = obsFilter.getDataStreamFilter();
+        database.getDataStreamStore().selectEntries(dsFilter)
+            .forEach(dsEntry -> {
+                var dsKey = dsEntry.getKey();
+                var dsInfo = dsEntry.getValue();
+                var dsInfoCache = new DataStreamInfoCache(dsKey.getInternalID(), dsInfo);
+                dataStreams.put(dsInfoCache.internalId, dsInfoCache);
+                var eventSrc = EventUtils.getProcedureOutputSourceID(
+                    dsInfoCache.procUID,
+                    dsInfoCache.resultStruct.getName());
+                dataStreamsBySource.put(eventSrc, dsInfoCache);
+            });
 
         // call getResults and transform DataEvents to Observation objects
-        getResults(grReq, new DelegatingSubscriberAdapter<DataEvent, IObservation>(consumer) {
-            @Override
-            public void onNext(DataEvent item)
+        subscribeAndProcessDataEvents(dataStreams, originalTimeFilter, obsFilter, new DelegatingSubscriberAdapter<DataEvent, IObservation>(consumer) {
+            public void onNext(DataEvent e)
             {
-                for (DataBlock data: item.getRecords())
+                var dsInfoCache = dataStreamsBySource.get(e.getSourceID());
+                
+                for (DataBlock data: e.getRecords())
                 {
-                    // transform each record into a separate observation
-                    DataComponent result = selectedOutput.getRecordDescription().copy();
+                    // can reuse same structure since we are running in a single thread
+                    var result = dsInfoCache.resultStruct;
                     result.setData(data);
-                    IObservation obs = SOSProviderUtils.buildObservation(item.getProcedureUID(), item.getFoiUID(), result);
-                    consumer.onNext(obs);
+                    consumer.onNext(SOSProviderUtils.buildObservation(dsInfoCache.procUID, e.getFoiUID(), result));
                 }
             }
-        });*/
+        });
     }
 
 
@@ -97,17 +115,37 @@ public class StreamingDataProvider extends ProcedureDataProvider
     {
         Asserts.checkState(selectedDataStream != null, "getResultTemplate hasn't been called");
         String procUID = getProcedureUID(req.getOffering());
+                
+        // build obs filter for current records (i.e. 'now')
+        // Use equivalent GetObs request
+        var getObsReq = new GetObservationRequest();
+        getObsReq.getProcedures().add(procUID);
+        getObsReq.getObservables().addAll(req.getObservables());
+        getObsReq.getFoiIDs().addAll(req.getFoiIDs());
+        getObsReq.setSpatialFilter(req.getSpatialFilter());
+        getObsReq.setTemporalFilter(req.getTemporalFilter());
+        getObsReq.setTime(TimeExtent.now());
+        var obsFilter = getObsFilter(getObsReq, selectedDataStream.internalId);
         
-        // generate obs filter for current records
-        var timeFilter = req.getTime();
-        req.setTime(TimeExtent.now());
-        var obsFilter = getObsFilter(req, selectedDataStream.internalId);
+        // select a single datastream
+        var dataStreams = ImmutableMap.of(selectedDataStream.internalId, selectedDataStream);
         
-        // select all event sources
-        var eventSrc = EventUtils.getProcedureOutputSourceID(
-            selectedDataStream.procUID,
-            selectedDataStream.resultStruct.getName());
-        var eventSources = ImmutableSet.of(eventSrc);
+        // subscribe to event bus and forward all matching events
+        subscribeAndProcessDataEvents(dataStreams, req.getTime(), obsFilter, consumer);
+    }
+    
+    
+    protected void subscribeAndProcessDataEvents(Map<Long, DataStreamInfoCache> dataStreams, TimeExtent timeFilter, ObsFilter obsFilter, Subscriber<DataEvent> consumer)
+    {        
+        // create set of event sources
+        var eventSources = new HashSet<String>();
+        for (var dsInfoCache: dataStreams.values())
+        {
+            var eventSrc = EventUtils.getProcedureOutputSourceID(
+                dsInfoCache.procUID,
+                dsInfoCache.resultStruct.getName());
+            eventSources.add(eventSrc);
+        }        
         
         // subscribe for data events only if continuous live stream was requested
         if (timeFilter != null && !timeFilter.isNow())
@@ -115,9 +153,10 @@ public class StreamingDataProvider extends ProcedureDataProvider
             long timeOut = (long)(config.liveDataTimeout * 1000.);
 
             // prepare time indexer so we can check against request stop time
+            // this only works for GetResult for now
             ScalarIndexer timeIndexer;
             double stopTime;
-            if (timeFilter.hasEnd())
+            if (timeFilter.hasEnd() && selectedDataStream != null)
             {
                 timeIndexer = SWEHelper.getTimeStampIndexer(selectedDataStream.resultStruct);
                 stopTime = timeFilter.end().toEpochMilli() / 1000.0;
@@ -157,7 +196,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
                                 {
                                     // TODO send only n records, not all of them
                                     currentTimeRecordsSent = true;
-                                    sendLatestRecords(obsFilter, delegatingSubscriber);
+                                    sendLatestRecords(dataStreams, obsFilter, delegatingSubscriber);
                                     
                                     // stop here if there was nothing since timeout period
                                     if (System.currentTimeMillis() - latestRecordTimestamp > timeOut)
@@ -208,50 +247,67 @@ public class StreamingDataProvider extends ProcedureDataProvider
                         DataBlock[] data = item.getRecords();
                         if (timeIndexer != null && timeIndexer.getDoubleValue(data[data.length-1]) > stopTime)
                             onComplete();
-                        else if (req.getFoiIDs().isEmpty() || req.getFoiIDs().contains(item.getFoiUID()))
+                        //else if (req.getFoiIDs().isEmpty() || req.getFoiIDs().contains(item.getFoiUID()))
+                        if (acceptEvent(obsFilter, item))
                             super.onNext(item);
                     }
                 });
         }
-
-        // otherwise just send current time records synchronously
         else
+            sendLatestRecordsOnly(dataStreams, obsFilter, consumer);
+    }
+    
+    
+    protected boolean acceptEvent(ObsFilter filter, DataEvent e)
+    {
+        var foiFilter = filter.getFoiFilter();
+        if (foiFilter != null && foiFilter.getUniqueIDs() != null)
         {
-            consumer.onSubscribe(new Subscription() {
-                boolean currentTimeRecordsSent = false;
-                
-                @Override
-                public void request(long n)
+            if (e.getFoiUID() == null || !foiFilter.getUniqueIDs().contains(e.getFoiUID()))
+                return false;
+        }
+        
+        return true;        
+    }
+    
+    
+    protected void sendLatestRecordsOnly(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<DataEvent> consumer)
+    {
+        consumer.onSubscribe(new Subscription() {
+            boolean currentTimeRecordsSent = false;
+            
+            @Override
+            public void request(long n)
+            {
+                if (!currentTimeRecordsSent)
                 {
-                    if (!currentTimeRecordsSent)
-                    {
-                        // TODO send only n records, not all of them
-                        currentTimeRecordsSent = true;
-                        sendLatestRecords(obsFilter, consumer);
-                        consumer.onComplete();
-                    }
+                    // TODO send only n records, not all of them
+                    currentTimeRecordsSent = true;
+                    sendLatestRecords(dataStreams, obsFilter, consumer);
+                    consumer.onComplete();
                 }
+            }
 
-                @Override
-                public void cancel()
-                {
-                }
-            });
-        }  
+            @Override
+            public void cancel()
+            {
+            }
+        });
     }
 
 
     /*
      * Send the latest record of each data source to the consumer
      */
-    protected void sendLatestRecords(ObsFilter obsFilter, Subscriber<DataEvent> consumer)
+    protected void sendLatestRecords(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<DataEvent> consumer)
     {
         database.getObservationStore().select(obsFilter)
             .forEach(obs -> {
+                var dsInfoCache = dataStreams.get(obs.getDataStreamID());
                 consumer.onNext(new DataEvent(
                     obs.getResultTime().toEpochMilli(),
-                    selectedDataStream.procUID,
-                    selectedDataStream.resultStruct.getName(),
+                    dsInfoCache.procUID,
+                    dsInfoCache.resultStruct.getName(),
                     obs.getFoiID().getUniqueID(),
                     obs.getResult()));
             });
@@ -261,7 +317,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
     @Override
     public boolean hasMultipleProducers()
     {
-        return procedureFois.size() > 1;
+        return false;
     }
 
 
