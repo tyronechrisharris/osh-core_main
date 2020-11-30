@@ -15,22 +15,13 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 import javax.xml.namespace.QName;
 import net.opengis.fes.v20.BBOX;
-import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.SimpleComponent;
 import net.opengis.swe.v20.Vector;
-import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.data.IMultiSourceDataProducer;
-import org.sensorhub.api.persistence.IFoiFilter;
-import org.sensorhub.impl.persistence.StorageUtils;
-import org.sensorhub.impl.persistence.FilteredIterator;
 import org.vast.ogc.def.DefinitionRef;
 import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.gml.IGeoFeature;
@@ -63,7 +54,7 @@ public class SOSProviderUtils
             return Double.parseDouble(replaySpeed);
         }
         
-        return 1.0;
+        return Double.NaN;
     }
     
     
@@ -77,36 +68,6 @@ public class SOSProviderUtils
            new Coordinate(bbox.getMaxX(), bbox.getMinY()),
            new Coordinate(bbox.getMinX(), bbox.getMinY())
         });
-    }
-    
-    
-    @SuppressWarnings("unchecked")
-    public static Iterator<AbstractFeature> getFilteredFoiIterator(IDataProducer producer, final IFoiFilter filter)
-    {
-        // get all fois from producer
-        Iterator<? extends IGeoFeature> allFois;
-        if (producer instanceof IMultiSourceDataProducer)
-            allFois = ((IMultiSourceDataProducer)producer).getFeaturesOfInterest().values().iterator();
-        else if (producer.getCurrentFeatureOfInterest() != null)
-            allFois = Arrays.asList(producer.getCurrentFeatureOfInterest()).iterator();
-        else
-            allFois = Collections.emptyIterator();
-        
-        // return all features if no filter is used
-        if ((filter.getFeatureIDs() == null || filter.getFeatureIDs().isEmpty()) && filter.getRoi() == null)
-            return (Iterator<AbstractFeature>)allFois;
-        
-        return new FilteredIterator<AbstractFeature>((Iterator<AbstractFeature>)allFois)
-        {
-            @Override
-            protected boolean accept(AbstractFeature f)
-        {        
-                if (StorageUtils.isFeatureSelected(filter, f))
-                    return true;
-                else
-                    return false;
-        }
-        };
     }
     
     
