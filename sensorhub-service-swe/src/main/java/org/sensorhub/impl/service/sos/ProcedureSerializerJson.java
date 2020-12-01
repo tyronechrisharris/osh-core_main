@@ -76,7 +76,7 @@ public class ProcedureSerializerJson extends AbstractAsyncSerializerStax<Describ
         }
         catch (XMLStreamException e)
         {
-            throw new IOException("Error writing procedure", e);
+            throw new IOException("Error writing JSON procedure description", e);
         }
     }
     

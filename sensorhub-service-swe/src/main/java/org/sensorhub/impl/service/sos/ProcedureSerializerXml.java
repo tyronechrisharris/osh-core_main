@@ -89,7 +89,7 @@ public class ProcedureSerializerXml extends AbstractAsyncSerializerStax<Describe
         }
         catch (XMLStreamException e)
         {
-            throw new IOException("Error starting XML document", e);
+            throw new IOException("Error starting XML response", e);
         }
     }
     
@@ -111,7 +111,7 @@ public class ProcedureSerializerXml extends AbstractAsyncSerializerStax<Describe
         }
         catch (XMLStreamException e)
         {
-            throw new IOException("Error writing procedure", e);
+            throw new IOException("Error writing XML procedure description", e);
         }
     }
     
@@ -127,7 +127,7 @@ public class ProcedureSerializerXml extends AbstractAsyncSerializerStax<Describe
         }
         catch (XMLStreamException e)
         {
-            throw new IOException("Error ending XML document", e);
+            throw new IOException("Error ending XML response", e);
         }
     }
 }
