@@ -14,10 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -28,6 +25,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.servlet.AsyncContext;
@@ -47,7 +45,6 @@ import net.opengis.fes.v20.TemporalCapabilities;
 import net.opengis.fes.v20.TemporalOperator;
 import net.opengis.fes.v20.TemporalOperatorName;
 import net.opengis.fes.v20.impl.FESFactory;
-import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.BinaryBlock;
 import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.BinaryMember;
@@ -64,7 +61,6 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.security.ISecurityManager;
-import org.sensorhub.api.service.ServiceException;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
@@ -83,9 +79,6 @@ import org.vast.ows.swe.DeleteSensorRequest;
 import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.ows.swe.UpdateSensorRequest;
-import org.vast.swe.SWEConstants;
-import org.vast.swe.SWEStaxBindings;
-import org.vast.swe.json.SWEJsonStreamWriter;
 import org.vast.util.TimeExtent;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
@@ -300,27 +293,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    /*
-     * Retrieves SensorML object for the given procedure unique ID
-     */
-    protected AbstractProcess generateSensorML(String uri, TimeExtent timeExtent) throws ServiceException
-    {
-        /*try
-        {
-            ProcedureProxyImpl proxy = getProcedureProxyByOfferingID(uri);
-            double time = Double.NaN;
-            if (timeExtent != null)
-                time = timeExtent.getBaseTime();
-            return factory.generateSensorMLDescription(time);
-        }
-        catch (Exception e)
-        {
-            throw new ServiceException("Error while retrieving SensorML description for sensor " + uri, e);
-        }*/
-        return null;
-    }
-
-
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
@@ -524,22 +496,16 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 format, INVALID_RESPONSE_FORMAT + format));
         report.process();
                 
-        // start async response
-        final AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-        serializer.init(this, asyncCtx, request);
-
         // get all selected providers
         var dataProviders = getDataProviders(selectedProcedures, request);
         
+        // start async response
+        final AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+                
         // retrieve and serialize obs collection from each provider in sequence
+        serializer.init(this, asyncCtx, request);
         request.getProcedures().addAll(selectedProcedures);
         new GetObsMultiProviderSubscriber(dataProviders, request, serializer).start();
-    }
-    
-    
-    protected void callNextProvider()
-    {
-        
     }
 
 
@@ -548,55 +514,57 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         // security check
         securityHandler.checkPermission(securityHandler.sos_read_obs);
-
-        // get data provider
+        
+        // check query parameters
+        OWSExceptionReport report = new OWSExceptionReport();
         String procUID = getProcedureUID(request.getOffering());
+        checkQueryProcedure(procUID, report);
+
+        // choose serializer according to output format
+        String format = request.getFormat();
+        ISOSAsyncResultTemplateSerializer serializer;
+        if (format == null || isXmlMimeType(format))
+            serializer = new ResultTemplateSerializerXml();
+        else if (OWSUtils.JSON_MIME_TYPE.equals(format))
+            serializer = new ResultTemplateSerializerJson();
+        else
+        {
+            serializer = null;
+            report.add(new SOSException(SOSException.invalid_param_code, "responseFormat",
+                format, INVALID_RESPONSE_FORMAT + format));
+        }
+        report.process(); // will throw exception it report contains one
+        
+        // get data provider
         ISOSAsyncDataProvider dataProvider = getDataProvider(procUID, request);
         
         // start async response
         final AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+        
+        // fetch result template
+        serializer.init(this, asyncCtx, request);
         dataProvider.getResultTemplate(request).thenAccept(resultTemplate -> {
             try
             {
-                // build filtered component tree, always keeping sampling time
-                DataComponent filteredStruct = resultTemplate.getDataStructure().copy();
-                request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
-                request.getObservables().add(SWEConstants.DEF_PHENOMENON_TIME);
-                filteredStruct.accept(new DataStructFilter(request.getObservables()));
+                // create simple subscription
+                serializer.onSubscribe(new Subscription() {
+                    boolean done = false;
+                    public void request(long n)
+                    {
+                        if (!done)
+                        {
+                            // send back result template synchronously
+                            done = true;
+                            serializer.onNext(resultTemplate);
+                            serializer.onComplete();                            
+                        }
+                    }
 
-                // also add producer ID if needed
-                if (dataProvider.hasMultipleProducers())
-                    addProducerID(filteredStruct, "");
-                
-                // build and send response in the requested format
-                String format = request.getFormat();
-                if (format == null || isXmlMimeType(format))
-                {
-                    GetResultTemplateResponse resp = new GetResultTemplateResponse();
-                    resp.setResultStructure(filteredStruct);
-                    resp.setResultEncoding(resultTemplate.getDataEncoding());
-
-                    // write response to response stream
-                    OutputStream os = new BufferedOutputStream(asyncCtx.getResponse().getOutputStream());
-                    owsUtils.writeXMLResponse(os, resp, request.getVersion(), request.getSoapVersion());
-                    os.flush();
-                }
-                else if (OWSUtils.JSON_MIME_TYPE.equals(format))
-                {
-                    OutputStream os = new BufferedOutputStream(asyncCtx.getResponse().getOutputStream());
-                    SWEJsonStreamWriter writer = new SWEJsonStreamWriter(os, StandardCharsets.UTF_8.name());
-                    request.getHttpResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
-                    SWEStaxBindings sweBindings = new SWEStaxBindings();
-                    writer.writeStartDocument();
-                    sweBindings.writeDataComponent(writer, filteredStruct, false);
-                    writer.writeEndDocument();
-                    writer.close();
-                }
-                else
-                    throw new SOSException(SOSException.invalid_param_code, "responseFormat",
-                        format, INVALID_RESPONSE_FORMAT + format);
-                
-                asyncCtx.complete();
+                    @Override
+                    public void cancel()
+                    {                        
+                    }
+                });
             }
             catch (Exception e)
             {
@@ -665,7 +633,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 else
                     serializer = getDefaultSerializer(request, resultTemplate);
 
-                // subcribe and stream results asynchronously
+                // subscribe and stream results asynchronously
                 serializer.init(this, asyncCtx, request, resultTemplate);
                 dataProvider.getResults(request, serializer);
             }
