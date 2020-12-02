@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.JarURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
@@ -36,8 +37,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * Custom class loader for finding native libraries anywhere on the
- * classpath.<br/>
+ * Custom class loader for finding native libraries anywhere on the classpath.
+ * </p><p>
  * Native libraries must be stored in a folder named "lib/native/{os.name}/{os.arch}/"
  * (e.g. lib/native/linux/x86_64/libsomething.so)
  * </p>
@@ -47,10 +48,9 @@ import org.slf4j.LoggerFactory;
  */
 public class NativeClassLoader extends URLClassLoader
 {
-    private static final URL[] EMPTY_URLS = new URL[] {};
     private Logger log; // cannot be a static logger in case it is used as system classloader
     private Map<String, String> loadedLibraries = new HashMap<>();
-    private List<File> tmpFolders = new ArrayList<>(); 
+    private List<File> tmpFolders = new ArrayList<>();
     
 
     public NativeClassLoader()
@@ -61,7 +61,7 @@ public class NativeClassLoader extends URLClassLoader
 
     public NativeClassLoader(ClassLoader parent)
     {
-        super(EMPTY_URLS, parent);
+        super("NativeClassLoader", new URL[0], parent);
         parseClasspath();
         setupShutdownHook();
     }
@@ -70,6 +70,7 @@ public class NativeClassLoader extends URLClassLoader
     protected void parseClasspath()
     {
         String classPath = System.getProperty("java.class.path");
+        //System.out.println(classPath);
          
         try
         {
@@ -78,12 +79,15 @@ public class NativeClassLoader extends URLClassLoader
                 String url = "file:" + filePath;
                 if (filePath.toLowerCase().endsWith(".jar"))
                     url = "jar:" + url + "!/";
+                else if (!url.endsWith("/"))
+                    url += "/";
+                    
                 this.addURL(new URL(url));
             }
         }
         catch (Exception e)
         {
-            System.err.println("Cannot parse classpath:\n" + classPath);
+            log.error("Cannot parse classpath:\n{}", classPath);
             e.printStackTrace();
         }
     }
@@ -244,7 +248,7 @@ public class NativeClassLoader extends URLClassLoader
     }
 
 
-    /*@Override
+    @Override
     protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException
     {
         Class<?> c = findLoadedClass(name);
@@ -268,7 +272,7 @@ public class NativeClassLoader extends URLClassLoader
         }
         
         return c;
-    }*/
+    }
     
     
     private void ensureLogger()
@@ -276,5 +280,22 @@ public class NativeClassLoader extends URLClassLoader
         // setup logger cause it doesn't work the static way when used as system class loader
         if (log == null)
             log = LoggerFactory.getLogger(NativeClassLoader.class);
+    }
+
+    /**
+     * Called by the VM to support dynamic additions to the class path
+     *
+     * @see java.lang.instrument.Instrumentation#appendToSystemClassLoaderSearch
+     */
+    void appendToClassPathForInstrumentation(String path) {
+        try
+        {
+            addURL(new URL("file:" + path));
+        }
+        catch (MalformedURLException e)
+        {
+            System.err.println("Error adding instrumentation to classpath");
+            e.printStackTrace();
+        }
     }
 }
