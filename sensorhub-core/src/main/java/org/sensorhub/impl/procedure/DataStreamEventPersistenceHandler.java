@@ -24,6 +24,7 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.ObsData;
@@ -42,10 +43,6 @@ public class DataStreamEventPersistenceHandler implements IEventListener
     protected WeakReference<IStreamingDataInterface> outputRef; // reference to live procedure output
     ScalarIndexer timeStampIndexer;
     long dataStreamID;
-    
-    // TODO optimize for case where procedure has a single FOI
-    // but account for the fact that it can change in time (notify foi change from parent)
-    // FeatureId singleFoiID; 
         
 
     public DataStreamEventPersistenceHandler(ProcedureEventPersistenceHandler procedure)
@@ -129,10 +126,10 @@ public class DataStreamEventPersistenceHandler implements IEventListener
         if (e instanceof DataEvent)
         {
             DataEvent dataEvent = (DataEvent)e;
-            String foiUID = dataEvent.getFoiUID();
+            FeatureId foiId;
             
-            // lookup FOI full ID
-            var foiId = ObsData.NO_FOI;
+            // if event carries an FOI UID, try to fetch the full Id object
+            String foiUID = dataEvent.getFoiUID();
             if (foiUID != null)
             {
                 var fid = procedureHandler.fois.get(foiUID);
@@ -141,6 +138,16 @@ public class DataStreamEventPersistenceHandler implements IEventListener
                 else
                     throw new IllegalStateException("Unknown FOI: " + foiUID);
             }
+            
+            // else use the single FOI if there is one
+            else if (procedureHandler.fois.size() == 1)
+            {
+                foiId = procedureHandler.fois.values().iterator().next();
+            }
+            
+            // else don't associate to any FOI
+            else
+                foiId = ObsData.NO_FOI;
             
             // store all records
             for (DataBlock record: dataEvent.getRecords())
