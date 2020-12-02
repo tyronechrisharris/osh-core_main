@@ -60,6 +60,7 @@ import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
+import org.vast.util.Asserts;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -100,9 +101,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected static final String STATE_UNIQUE_ID = "UniqueID";
     protected static final String STATE_LAST_SML_UPDATE = "LastUpdatedSensorDescription";
 
-    private Map<String, IStreamingDataInterface> obsOutputs = new LinkedHashMap<>();
-    private Map<String, IStreamingDataInterface> statusOutputs = new LinkedHashMap<>();
-    private Map<String, IStreamingControlInterface> controlInputs = new LinkedHashMap<>();
+    private Map<String, IStreamingDataInterface> obsOutputs = Collections.synchronizedMap(new LinkedHashMap<>());
+    private Map<String, IStreamingDataInterface> statusOutputs = Collections.synchronizedMap(new LinkedHashMap<>());
+    private Map<String, IStreamingControlInterface> controlInputs = Collections.synchronizedMap(new LinkedHashMap<>());
 
     protected DefaultLocationOutput locationOutput;
     protected AbstractProcess sensorDescription = new PhysicalSystemImpl();
@@ -200,12 +201,25 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      * @param dataInterface interface to add as sensor output
      * @param isStatus set to true when registering a status output
      */
-    protected void addOutput(IStreamingDataInterface dataInterface, boolean isStatus)
+    protected synchronized void addOutput(IStreamingDataInterface dataInterface, boolean isStatus)
     {
+        Asserts.checkNotNull(dataInterface, IStreamingDataInterface.class);
+        
         if (isStatus)
             statusOutputs.put(dataInterface.getName(), dataInterface);
         else
             obsOutputs.put(dataInterface.getName(), dataInterface);
+        
+        try
+        {
+            // if output is added after init(), register it now
+            if (isInitialized())
+                getParentHub().getProcedureRegistry().register(dataInterface).get();
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            throw new IllegalStateException("Error registering sensor output", e.getCause());
+        }
     }
 
 
@@ -214,11 +228,14 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      * in a consistent manner.
      * @param updatePeriod estimated location update period or NaN if sensor is mostly static
      */
-    protected void addLocationOutput(double updatePeriod)
+    protected synchronized void addLocationOutput(double updatePeriod)
     {
-        // TODO deal with other CRS than 4979
-        locationOutput = new DefaultLocationOutputLLA(this, getLocalFrameID(), updatePeriod);
-        addOutput(locationOutput, true);
+        if (locationOutput == null)
+        {
+            // TODO deal with other CRS than 4979
+            locationOutput = new DefaultLocationOutputLLA(this, getLocalFrameID(), updatePeriod);
+            addOutput(locationOutput, true);
+        }
     }
 
 
@@ -238,7 +255,20 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      */
     protected void addControlInput(IStreamingControlInterface controlInterface)
     {
+        Asserts.checkNotNull(controlInterface, IStreamingControlInterface.class);
+        
         controlInputs.put(controlInterface.getName(), controlInterface);
+        
+        try
+        {
+            // if output is added after init(), register it now
+            if (isInitialized())
+                getParentHub().getProcedureRegistry().register(controlInterface).get();
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            throw new IllegalStateException("Error registering command input", e.getCause());
+        }
     }
 
 
@@ -259,7 +289,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public IEventSourceInfo getEventSourceInfo()
+    public synchronized IEventSourceInfo getEventSourceInfo()
     {
         if (eventSrcInfo == null)
         {
@@ -538,7 +568,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
+    public synchronized Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
     {
         if (foiMap == null)
         {
@@ -569,7 +599,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public void updateConfig(ConfigType config) throws SensorHubException
+    public synchronized void updateConfig(ConfigType config) throws SensorHubException
     {
         super.updateConfig(config);
         if (config.sensorML != null)
@@ -595,7 +625,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public void loadState(IModuleStateManager loader) throws SensorHubException
+    public synchronized void loadState(IModuleStateManager loader) throws SensorHubException
     {
         super.loadState(loader);
 
@@ -614,7 +644,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public void saveState(IModuleStateManager saver) throws SensorHubException
+    public synchronized void saveState(IModuleStateManager saver) throws SensorHubException
     {
         super.saveState(saver);
 

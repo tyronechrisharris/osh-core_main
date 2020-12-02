@@ -22,7 +22,6 @@ import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensorDriver;
-import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.module.AbstractModule;
@@ -127,24 +126,6 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
         }
         else
             this.log = log;
-    }
-    
-    
-    protected void init() throws SensorException
-    {
-        // do nothing by default
-    }
-    
-    
-    protected void start() throws SensorException
-    {
-        // do nothing by default
-    }
-    
-    
-    protected void stop()
-    {
-        // do nothing by default
     }
     
     
