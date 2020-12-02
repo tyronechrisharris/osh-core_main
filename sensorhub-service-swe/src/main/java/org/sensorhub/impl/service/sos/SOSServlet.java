@@ -111,7 +111,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     final IProcedureObsDatabase writeDatabase;
     final transient Cache<String, String> templateToProcedureMap;
 
-    final transient Map<String, ISOSAsyncResultSerializer> customFormats = new HashMap<>();
+    final transient Map<String, SOSCustomFormatConfig> customFormats = new HashMap<>();
     WebSocketServletFactory wsFactory;
     
     AtomicLong lastGetCapsRequest = new AtomicLong();
@@ -127,7 +127,10 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
         this.readDatabase = service.readDatabase;
         this.writeDatabase = service.writeDatabase;
+        
         this.providerConfigs = new TreeMap<>();
+        for (var config: service.getConfiguration().customDataProviders)
+            providerConfigs.put(config.procedureUID, config);
         
         this.templateToProcedureMap = CacheBuilder.newBuilder()
             .expireAfterAccess(config.templateTimeout, TimeUnit.SECONDS)
@@ -273,20 +276,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         spatialFilterCaps.getSpatialOperators().add(spatialOp);
         filterCaps.setSpatialCapabilities(spatialFilterCaps);
 
-        // preload custom format serializers
-        ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
-        for (SOSCustomFormatConfig allowedFormat: config.customFormats)
-        {
-            /*try
-            {
-                ISOSAsyncResultSerializer serializer = (ISOSAsyncResultSerializer)moduleReg.loadClass(allowedFormat.className);
-                customFormats.put(allowedFormat.mimeType, serializer);
-            }
-            catch (Exception e)
-            {
-                log.error("Error while initializing custom " + allowedFormat.mimeType + " serializer", e);
-            }*/
-        }
+        // build map of custom format serializers
+        for (SOSCustomFormatConfig format: config.customFormats)
+            customFormats.put(format.mimeType, format);
         
         // update offerings
         updateCapabilities();
@@ -628,9 +620,11 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                     serializer = new ResultSerializerJson();
                 else if (OWSUtils.BINARY_MIME_TYPE.equals(format))
                     serializer = new ResultSerializerBinary();
-                else if (format != null)
-                    serializer = getCustomFormatSerializer(request, resultTemplate);
                 else
+                    serializer = getCustomFormatSerializer(request, resultTemplate);
+                
+                // if no specific format was requested or auto-detected, use default
+                if (serializer == null)
                     serializer = getDefaultSerializer(request, resultTemplate);
 
                 // subscribe and stream results asynchronously
@@ -1207,12 +1201,25 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                         format = "video/x-motion-jpeg";
                 }
             }
+            
+            if (format == null)
+                return null;
         }
 
         // try to find a matching implementation for selected format
-        ISOSAsyncResultSerializer serializer;
-        if (format != null && (serializer = customFormats.get(format)) != null)
-            return serializer;
+        SOSCustomFormatConfig formatConfig;
+        if (format != null && (formatConfig = customFormats.get(format)) != null)
+        {
+            try
+            {
+                ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
+                return (ISOSAsyncResultSerializer)moduleReg.loadClass(formatConfig.className);
+            }
+            catch (Exception e)
+            {
+                log.error("Error while initializing custom serializer for " + formatConfig.mimeType + " serializer", e);
+            }
+        }
 
         throw new SOSException(SOSException.invalid_param_code, "format",
             format, INVALID_RESPONSE_FORMAT + format);
