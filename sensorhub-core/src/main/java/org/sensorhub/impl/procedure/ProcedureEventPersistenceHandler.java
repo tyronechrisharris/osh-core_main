@@ -135,6 +135,18 @@ public class ProcedureEventPersistenceHandler implements IEventListener
         {
             for (var member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
                 doRegisterMember(member);
+        }        
+
+        if (DefaultProcedureRegistry.log.isDebugEnabled())
+        {
+            DefaultProcedureRegistry.log.debug(
+                String.format("Procedure %s registered (%d FOIs, %d datastreams, %d command inputs, %d members)",
+                    procUID,
+                    proc instanceof IDataProducer ? ((IDataProducer)proc).getCurrentFeaturesOfInterest().size() : 0,
+                    proc instanceof IDataProducer ? ((IDataProducer)proc).getOutputs().size() : 0,
+                    proc instanceof ICommandReceiver ? ((ICommandReceiver)proc).getCommandInputs().size() : 0,
+                    proc instanceof IProcedureGroupDriver ? ((IProcedureGroupDriver<?>)proc).getMembers().size() : 0)
+            );
         }
         
         return isNew;
