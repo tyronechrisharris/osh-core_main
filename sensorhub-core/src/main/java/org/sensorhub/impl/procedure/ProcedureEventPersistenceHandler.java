@@ -256,7 +256,8 @@ public class ProcedureEventPersistenceHandler implements IEventListener
     
     protected boolean doRegister(IStreamingControlInterface commandStream)
     {
-        throw new UnsupportedOperationException("Command streams register not implemented yet");
+        DefaultProcedureRegistry.log.warn("Command streams register not implemented yet");
+        return true;
     }
 
 
@@ -270,7 +271,7 @@ public class ProcedureEventPersistenceHandler implements IEventListener
     
     protected void doUnregister(IStreamingControlInterface proc)
     {
-        throw new UnsupportedOperationException("Command streams unregister not implemented yet");
+        DefaultProcedureRegistry.log.warn("Command streams unregister not implemented yet");
     }
 
 
