@@ -468,7 +468,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 try
                 {
                     // if forced, try to stop first
-                    if (force)
+                    if (force && module.isInitialized())
                         module.requestStop();
                 }
                 catch (Exception e)
