@@ -1,7 +1,7 @@
 [
     {
         "phenomenonTime": {
-            "during": ["2019-03-25", "2019-04-17"]
+            "during": ["2019-03-25Z", "2019-04-17Z"]
         },
         "resultTime": {
             "indeterminate": "latest"
@@ -32,7 +32,7 @@
             "indeterminate": "current"
         },
         "resultTime": {
-            "during": ["2020-01-01T01:00:00Z", "2020-10-07"]
+            "during": ["2020-01-01T01:00:00Z", "2020-10-07Z"]
         },
         "internalIDs": [100, 200, 300],
         "withFois": {

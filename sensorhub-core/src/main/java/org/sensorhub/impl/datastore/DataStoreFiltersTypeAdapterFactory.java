@@ -20,12 +20,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
@@ -35,6 +32,7 @@ import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.VersionFilter;
 import org.sensorhub.api.datastore.func.JavascriptPredicate;
+import org.vast.util.DateTimeFormat;
 import org.sensorhub.api.datastore.FullTextFilter;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
 import com.google.common.collect.Range;
@@ -97,27 +95,13 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
     
     public static class InstantTypeAdapter extends TypeAdapter<Instant>
     {
-        static DateTimeFormatter formatter = new DateTimeFormatterBuilder()
-            .append(DateTimeFormatter.ISO_LOCAL_DATE)
-            .optionalStart()
-            .appendLiteral('T')
-            .append(DateTimeFormatter.ISO_LOCAL_TIME)
-            .appendOffsetId()
-            .optionalEnd()
-            .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-            .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-            .parseDefaulting(ChronoField.OFFSET_SECONDS, 0)
-            .toFormatter();
+        static DateTimeFormatter formatter = DateTimeFormat.ISO_DATE_OR_TIME_FORMAT;
         
         @Override
         public void write(JsonWriter writer, Instant instant) throws IOException
         {
-            String timeStr;
-            if (instant.getEpochSecond() % 86400 == 0)
-                timeStr = LocalDate.ofInstant(instant, ZoneOffset.UTC).format(formatter);
-            else
-                timeStr = OffsetDateTime.ofInstant(instant, ZoneOffset.UTC).format(formatter);
-            writer.value(timeStr);
+            String timeStr = OffsetDateTime.ofInstant(instant, ZoneOffset.UTC).format(formatter);
+            writer.value(timeStr.replace("T00:00:00", ""));
         }
 
         @Override
