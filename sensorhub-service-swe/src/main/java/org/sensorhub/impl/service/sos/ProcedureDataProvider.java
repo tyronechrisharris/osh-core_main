@@ -89,8 +89,8 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
         int batchSize;
         volatile boolean streamDone = false;
         volatile boolean canceled = false;
-        AtomicBoolean readingFromDb = new AtomicBoolean(false);
-        AtomicBoolean onCompleteCalled = new AtomicBoolean(false);
+        volatile boolean complete = false;
+        AtomicBoolean reading = new AtomicBoolean(false);
         AtomicLong requested = new AtomicLong();
         
         StreamSubscription(Subscriber<T> subscriber, int batchSize, Stream<T> itemStream)
@@ -104,44 +104,51 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
         @Override
         public void request(long n)
         {
-            Asserts.checkArgument(n > 0);
+            if (complete || canceled)
+                return;
+            
+            if (n <= 0L)
+            {
+                canceled = true;
+                subscriber.onError(new IllegalArgumentException("bad request, n <= 0"));
+            }
+            
             /*boolean more = false;
             for (int i = 0; i < n && more; i++)
-                more = spliterator.tryAdvance(e -> subscriber.onNext(e));
-            
+                more = spliterator.tryAdvance(e -> subscriber.onNext(e));            
             if (!more)
                 subscriber.onComplete();*/
             
-            requested.addAndGet(n);
-            
-            try
-            {
-                maybeSendItems();
-                maybeFetchFromStorage();
-            }
-            catch (Throwable e)
-            {
-                subscriber.onError(e);
-            }            
+            long u = requested.addAndGet(n);
+            servlet.getLogger().debug("Requested {} items", n);
+            maybeSendItems(u);            
         }
 
         void maybeFetchFromStorage()
         {
-            var fetchNextBatch = itemQueue.size() < Math.max(1, requested.get()/2);
+            if (complete || canceled)
+                return;
+            
+            //servlet.getLogger().debug("maybeFetch");
+            long u = requested.get();
+            var fetchNextBatch = itemQueue.size() < batchSize/3;//itemQueue.size() < Math.ceil(u/2.0);
             
             // fetch more from DB if needed
-            if (fetchNextBatch && !streamDone && !canceled && readingFromDb.compareAndSet(false, true))
+            if (fetchNextBatch && !streamDone && !canceled && reading.compareAndSet(false, true))
             {
-                servlet.getLogger().debug("Only {} items left", requested.get());
+                servlet.getLogger().debug("Need {} items, queue={}", u, itemQueue.size());
                 CompletableFuture.runAsync(() -> {
                     int count = 0;
-                    while (spliterator.tryAdvance(e -> itemQueue.offer(e)) && ++count < batchSize);
+                    while (spliterator.tryAdvance(e -> itemQueue.add(e)) && ++count < batchSize);
                     servlet.getLogger().debug("Loaded new batch of {} items", count);
+                    /*try { Thread.sleep(200); }
+                    catch (InterruptedException e1) { }*/
                     streamDone = count < batchSize;
-                    readingFromDb.compareAndSet(true, false);
+                    reading.compareAndSet(true, false);
                 }, threadPool)
                 .thenRun(() -> {
-                    maybeSendItems();
+                    servlet.getLogger().debug("Send After Fetch");
+                    maybeSendItems(requested.get());
                 })
                 .exceptionally(e -> {
                     subscriber.onError(e);
@@ -150,23 +157,43 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
             }
         }
         
-        void maybeSendItems()
+        void maybeSendItems(long n)
         {
-            while (requested.get() > 0 && !itemQueue.isEmpty() && !canceled && !onCompleteCalled.get())
+            try
             {
-                subscriber.onNext(itemQueue.poll());
-                requested.decrementAndGet();
+                if (complete || canceled)
+                    return;
+                
+                //servlet.getLogger().debug("maybeSend");
+                
+                long s = Math.min(n, itemQueue.size());
+                long numSent = s;
+                if (requested.compareAndSet(n, n-s))
+                {
+                    servlet.getLogger().debug("Before send: req={}, queue={}, canceled={}",
+                        n, itemQueue.size(), canceled);                
+                    
+                    while (s > 0 && !canceled)
+                    {
+                        subscriber.onNext(itemQueue.poll());
+                        s--;
+                    }
+                    
+                    if (streamDone && itemQueue.isEmpty() && !canceled)
+                    {
+                        subscriber.onComplete();
+                        complete = true;
+                    }
+                    
+                    servlet.getLogger().debug("After send: req={}, sent={}, queue={}, canceled={}",
+                        requested.get(), numSent, itemQueue.size(), canceled);
+                }
+                
+                maybeFetchFromStorage();
             }
-            
-            maybeCallOnComplete();
-        }
-        
-        void maybeCallOnComplete()
-        {
-            if (streamDone && itemQueue.isEmpty() && !canceled)
+            catch (Exception e)
             {
-                if (onCompleteCalled.compareAndSet(false, true))
-                    subscriber.onComplete();
+                subscriber.onError(e);
             }
         }
 
@@ -201,7 +228,8 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
                     .withCurrentVersion()
                     .build())
                 .findFirst()
-                .orElseThrow(() -> new CompletionException(new SOSException("No data found for observables " + req.getObservables())));
+                .orElseThrow(() -> new CompletionException(
+                    new SOSException("No data found for observables " + req.getObservables())));
 
             // save datastream info for reuse in getResults()
             selectedDataStream = new DataStreamInfoCache(

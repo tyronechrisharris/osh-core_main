@@ -67,7 +67,15 @@ public class HistoricalDataProvider extends ProcedureDataProvider
         @Override
         public void request(long n)
         {
-            Asserts.checkArgument(n > 0);
+            if (complete || canceled)
+                return;
+            
+            if (n <= 0L)
+            {
+                canceled = true;
+                subscriber.onError(new IllegalArgumentException("bad request, n <= 0"));
+            }
+            
             requested.addAndGet(n);
             
             if (replayTimer == null)
@@ -75,34 +83,51 @@ public class HistoricalDataProvider extends ProcedureDataProvider
                 requestSystemTime = System.currentTimeMillis();
                 
                 replayTimer = threadPool.scheduleWithFixedDelay(() -> {
-                    maybeSendItems();
-                    maybeFetchFromStorage();
+                    maybeSendItems(requested.get());
                 }, 0, 10, TimeUnit.MILLISECONDS);
             }
         }
         
         @Override
-        void maybeSendItems()
+        void maybeSendItems(long n)
         {
-            while (requested.get() > 0 && !itemQueue.isEmpty() && !canceled && !onCompleteCalled.get())
+            try
             {
-                // slow down item dispatch at required replay speed
-                var nextItem = itemQueue.peek();
-                var deltaClockTime = (System.currentTimeMillis() - requestSystemTime) * replaySpeedFactor;
-                var deltaObsTime = nextItem.getPhenomenonTime().toEpochMilli() - requestStartTime;
-                //servlet.getLogger().debug("delta clock time = {}ms", deltaClockTime);
-                //servlet.getLogger().debug("{} -> {}, delta={}ms", Instant.ofEpochMilli(requestStartTime), nextItem.getPhenomenonTime(), deltaObsTime);
-                
-                // skip if it's not time to send this record yet
-                if (deltaObsTime > deltaClockTime)
+                if (complete || canceled)
                     return;
                 
-                //servlet.getLogger().debug("Sending record with ts="+ nextItem.getPhenomenonTime());
-                subscriber.onNext(itemQueue.poll());
-                requested.decrementAndGet();
+                while (requested.get() > 0 && !itemQueue.isEmpty() && requested.compareAndSet(n, n-1) && !canceled &&  !complete)
+                {
+                    // slow down item dispatch at required replay speed
+                    var nextItem = itemQueue.peek();
+                    var deltaClockTime = (System.currentTimeMillis() - requestSystemTime) * replaySpeedFactor;
+                    var deltaObsTime = nextItem.getPhenomenonTime().toEpochMilli() - requestStartTime;
+                    //servlet.getLogger().debug("delta clock time = {}ms", deltaClockTime);
+                    //servlet.getLogger().debug("{} -> {}, delta={}ms", Instant.ofEpochMilli(requestStartTime), nextItem.getPhenomenonTime(), deltaObsTime);
+                    
+                    // skip if it's not time to send this record yet
+                    if (deltaObsTime > deltaClockTime)
+                    {
+                        requested.incrementAndGet();
+                        return;
+                    }
+                    
+                    subscriber.onNext(itemQueue.poll());
+                    n--;
+                    
+                    if (streamDone && itemQueue.isEmpty() && !canceled)
+                    {
+                        subscriber.onComplete();
+                        complete = true;
+                    }
+                }
+                
+                maybeFetchFromStorage();
             }
-            
-            maybeCallOnComplete();
+            catch (Exception e)
+            {
+                subscriber.onError(e);
+            }
         }
 
         @Override
