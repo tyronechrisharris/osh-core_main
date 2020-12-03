@@ -17,16 +17,20 @@ package org.sensorhub.impl.service.sos;
 import org.sensorhub.api.event.Event;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.stream.Collectors;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
+import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseView;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.utils.NamedThreadFactory;
 import org.vast.ows.sos.SOSServiceCapabilities;
+import com.google.common.base.Strings;
 
 
 /**
@@ -67,9 +71,23 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
 
 
     @Override
-    public void setConfiguration(SOSServiceConfig config)
+    public void init() throws SensorHubException
     {
-        super.setConfiguration(config);
+        super.init();
+        
+        // validate config
+        for (var providerConfig: config.customDataProviders)
+        {
+            if (Strings.isNullOrEmpty(providerConfig.procedureUID))
+                throw new SensorHubException("Provider configuration must specify a procedure unique ID");
+        }
+        
+        for (var formatConfig: config.customFormats)
+        {
+            if (Strings.isNullOrEmpty(formatConfig.mimeType))
+                throw new SensorHubException("Custum format must specify a mime type");
+        }        
+        
         this.securityHandler = new SOSSecurity(this, config.security.enableAccessControl);
     }
 
@@ -84,9 +102,29 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
                 .getModuleById(config.databaseID);
         }
         
-        // get existing or create new FilteredView from config
+        // if exposed resource filter is set, get FilteredView from config
         if (config.exposedResources != null)
+        {
             readDatabase = config.exposedResources.getFilteredView(getParentHub());
+        }
+        
+        // else if some providers are configured, expose these only
+        else if (config.customDataProviders != null && !config.customDataProviders.isEmpty())
+        {
+            var procUIDs = config.customDataProviders.stream()
+                .map(config -> config.procedureUID)
+                .collect(Collectors.toSet());
+            
+            var includeFilter = new ObsFilter.Builder()
+                .withProcedures().withUniqueIDs(procUIDs).done()
+                .build();
+            
+            readDatabase = new ProcedureObsDatabaseView(
+                getParentHub().getDatabaseRegistry().getFederatedObsDatabase(),
+                includeFilter);
+        }
+        
+        // else expose all procedures on this hub
         else
             readDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
 

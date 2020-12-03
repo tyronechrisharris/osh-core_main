@@ -243,11 +243,10 @@ public class StreamingDataProvider extends ProcedureDataProvider
                     public void onNext(DataEvent item)
                     {
                         latestRecordTimestamp = item.getTimeStamp();
-                        servlet.getLogger().debug("Event ts={}", latestRecordTimestamp);
+                        //servlet.getLogger().debug("Event ts={}", latestRecordTimestamp);
                         DataBlock[] data = item.getRecords();
                         if (timeIndexer != null && timeIndexer.getDoubleValue(data[data.length-1]) > stopTime)
                             onComplete();
-                        //else if (req.getFoiIDs().isEmpty() || req.getFoiIDs().contains(item.getFoiUID()))
                         if (acceptEvent(obsFilter, item))
                             super.onNext(item);
                     }

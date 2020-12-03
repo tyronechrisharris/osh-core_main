@@ -417,7 +417,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected SOSServiceCapabilities updateCapabilities()
     {
-        new CapabilitiesUpdater(service, readDatabase).updateOfferings(capabilities);
+        new CapabilitiesUpdater().updateOfferings(capabilities, readDatabase, providerConfigs);
         getLogger().debug("Updating capabilities");
         return capabilities;
     }   
@@ -680,12 +680,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     @Override
     protected void handleRequest(InsertSensorRequest request) throws IOException, OWSException
     {
-        /*checkTransactionalSupport(request);
+        checkTransactionalSupport(request);
 
         // security check
         securityHandler.checkPermission(securityHandler.sos_insert_sensor);
 
-        // check query parameters
+        /*// check query parameters
         OWSExceptionReport report = new OWSExceptionReport();
         TransactionUtils.checkSensorML(request.getProcedureDescription(), report);
         report.process();
@@ -796,9 +796,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     @Override
     protected void handleRequest(UpdateSensorRequest request) throws IOException, OWSException
     {
-        /*checkTransactionalSupport(request);
+        checkTransactionalSupport(request);
 
-        // check query parameters
+        /*// check query parameters
         String procUID = request.getProcedureId();
         OWSExceptionReport report = new OWSExceptionReport();
         checkQueryProcedure(procUID, report);
@@ -828,9 +828,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     @Override
     protected void handleRequest(InsertObservationRequest request) throws IOException, OWSException
     {
-        /*checkTransactionalSupport(request);
+        checkTransactionalSupport(request);
 
-        // retrieve proxy for selected offering
+        /*// retrieve proxy for selected offering
         ProcedureProxyImpl proxy = getProcedureProxyByOfferingID(request.getOffering());
 
         // security check
@@ -849,9 +849,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     @Override
     protected void handleRequest(InsertResultTemplateRequest request) throws IOException, OWSException
     {
-        /*checkTransactionalSupport(request);
+        checkTransactionalSupport(request);
 
-        // retrieve proxy for selected offering
+        /*// retrieve proxy for selected offering
         ProcedureProxyImpl proxy = getProcedureProxyByOfferingID(request.getOffering());
         SensorDataConsumer consumer = new SensorDataConsumer(proxy);
 
@@ -883,10 +883,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     @Override
     protected void handleRequest(InsertResultRequest request) throws IOException, OWSException
     {
-        /*DataStreamParser parser = null;
-
         checkTransactionalSupport(request);
+        
+        // security check
+        securityHandler.checkPermission(securityHandler.sos_insert_obs);
 
+        /*DataStreamParser parser = null;
         // retrieve consumer based on template id
         String templateID = request.getTemplateId();
         ProcedureProxyImpl proxy = getProcedureProxyByTemplateID(templateID);
@@ -979,7 +981,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             return;
         
         // reject if startTime > stopTime
-        if (requestTime.end().isBefore(requestTime.begin()))
+        if (requestTime.begin().isAfter(requestTime.end()))
             report.add(new SOSException("The requested period must begin before it ends"));            
     }
     
@@ -1120,9 +1122,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         if (userAgent == null)
             return false;
 
-        if (userAgent.contains("Firefox"))
-            return true;
-        if (userAgent.contains("Chrome"))
+        if (userAgent.contains("Firefox") ||
+            userAgent.contains("Chrome") ||
+            userAgent.contains("Safari"))
             return true;
 
         return false;

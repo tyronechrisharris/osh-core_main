@@ -53,7 +53,7 @@ public class SOSServiceConfig extends OGCServiceConfig
 
 
     @DisplayInfo(desc="Custom provider configurations. ")
-    public LinkedHashSet<SOSProviderConfig> providerConfigurations = new LinkedHashSet<>();
+    public LinkedHashSet<SOSProviderConfig> customDataProviders = new LinkedHashSet<>();
 
 
     @DisplayInfo(desc="Mapping of custom formats mime-types to custom serializer classes")

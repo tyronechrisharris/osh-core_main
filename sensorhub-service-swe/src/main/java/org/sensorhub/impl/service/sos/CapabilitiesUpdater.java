@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sos;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.NavigableMap;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
@@ -30,16 +31,8 @@ import org.vast.util.TimeExtent;
 
 public class CapabilitiesUpdater
 {
-    IProcedureObsDatabase obsDb;
     
-    
-    public CapabilitiesUpdater(final SOSService service, final IProcedureObsDatabase obsDb)
-    {
-        this.obsDb = obsDb;
-    }
-    
-    
-    public void updateOfferings(SOSServiceCapabilities caps)
+    public void updateOfferings(final SOSServiceCapabilities caps, final IProcedureObsDatabase obsDb, final NavigableMap<String, SOSProviderConfig> providerConfigs)
     {
         Map<String, SOSOfferingCapabilities> offerings = new LinkedHashMap<>();
         
@@ -53,11 +46,13 @@ public class CapabilitiesUpdater
                 SOSOfferingCapabilities offering = offerings.get(procUID);
                 if (offering == null)
                 {
-                    offering = new SOSOfferingCapabilities();                                        
+                    var customConfig = providerConfigs.get(procUID);
+                    
+                    offering = new SOSOfferingCapabilities();
                     offering.setIdentifier(procUID);
                     offering.getProcedures().add(procUID);
-                    offering.setTitle(proc.getName());
-                    offering.setDescription(proc.getDescription());
+                    offering.setTitle(customConfig != null ? customConfig.name : proc.getName() + " Data");
+                    offering.setDescription(customConfig != null ? customConfig.description : "Observation data from " + proc.getDescription());
                     
                     // add supported formats
                     offering.getResponseFormats().add(SWESOfferingCapabilities.FORMAT_OM2);
