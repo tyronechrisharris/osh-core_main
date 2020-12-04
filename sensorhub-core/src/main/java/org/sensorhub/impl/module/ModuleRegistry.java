@@ -121,16 +121,17 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             }
         }
         
-        // First load all datastore modules to ensure they are registered with database
-        // registry and ready to record data before any other module start producing data.
-        // This is necessary to avoid missing data if it is published to the bus before
-        // datastores are ready.
+        // First load/start all datastore modules marked as "autostart" to ensure they
+        // are registered with database registry and ready to record data before any
+        // other module start producing data. This is necessary to avoid missing data
+        // if it is published to the bus before datastores are ready.
         log.info("Loading datastore connectors");
         for (ModuleConfig config: dataStoreConfs)
         {
             try
             {
-                loadModuleAsync(config.clone(), null);
+                if (config.autoStart)
+                    loadModuleAsync(config.clone(), null);
             }
             catch (Exception e)
             {
@@ -166,13 +167,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             {
                 throw new IllegalStateException("Could not start all datastores", e);
             }
-        }
-                
-        // register all database modules
-        for (IModule<?> m: loadedModules.values())
-        {
-            if (m instanceof IDatabase)
-                getParentHub().getDatabaseRegistry().register((IDatabase)m);
         }
         
         // then load all other modules
