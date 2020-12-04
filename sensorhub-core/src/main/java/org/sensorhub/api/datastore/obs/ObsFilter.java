@@ -509,7 +509,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          */
         public B withProcedures(long... procIDs)
         {
-            return withDataStreams(Longs.asList(procIDs));
+            return withProcedures(Longs.asList(procIDs));
         }
 
 
