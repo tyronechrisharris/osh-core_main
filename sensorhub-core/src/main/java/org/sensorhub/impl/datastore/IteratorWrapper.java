@@ -12,7 +12,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.persistence;
+package org.sensorhub.impl.datastore;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

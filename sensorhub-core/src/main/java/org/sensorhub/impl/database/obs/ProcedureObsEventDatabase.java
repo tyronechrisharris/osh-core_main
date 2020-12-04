@@ -23,12 +23,12 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.impl.module.AbstractModule;
 import org.vast.util.Asserts;
@@ -45,7 +45,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     public void start() throws SensorHubException
     {
         if (config.dbConfig == null)
-            throw new StorageException("Underlying storage configuration must be provided");
+            throw new DataStoreException("Underlying database configuration must be provided");
         
         // instantiate and start underlying storage
         DatabaseConfig dbConfig = null;
@@ -58,7 +58,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             
             @SuppressWarnings("unchecked")
             IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
-            dbModule.setParentHub(getParentHub());
+            //dbModule.setParentHub(getParentHub());
             dbModule.setConfiguration(dbConfig);
             dbModule.requestInit(true);
             dbModule.requestStart();
@@ -71,7 +71,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
         }
         catch (Exception e)
         {
-            throw new StorageException("Cannot instantiate underlying database " + dbConfig.moduleClass, e);
+            throw new DataStoreException("Cannot instantiate underlying database " + dbConfig.moduleClass, e);
         }
         
         // start auto-purge timer thread if policy is specified and enabled
@@ -88,6 +88,14 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             
             autoPurgeTimer.schedule(task, 0, (long)(config.autoPurgeConfig.purgePeriod*1000));
         }
+    }
+    
+    
+    @Override
+    protected void afterStart()
+    {
+        if (hasParentHub() && config.databaseID > 0)
+            getParentHub().getDatabaseRegistry().register(this);
     }
     
     
@@ -121,7 +129,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
 
     public int getDatabaseID()
     {
-        return db.getDatabaseID();
+        return config.databaseID;
     }
 
 

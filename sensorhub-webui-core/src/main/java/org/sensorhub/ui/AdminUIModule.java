@@ -27,7 +27,6 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.module.AbstractModule;
@@ -119,8 +118,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             customPanels.clear();
             
             // load default panel builders
-            customPanels.put(SensorConfig.class.getCanonicalName(), SensorAdminPanel.class);        
-            customPanels.put(StorageConfig.class.getCanonicalName(), StorageAdminPanel.class);
+            customPanels.put(SensorConfig.class.getCanonicalName(), SensorAdminPanel.class);
             customPanels.put(ProcessConfig.class.getCanonicalName(), ProcessAdminPanel.class);        
             customPanels.put(NetworkConfig.class.getCanonicalName(), NetworkAdminPanel.class);
             customPanels.put(SOSServiceConfig.class.getCanonicalName(), SOSAdminPanel.class);

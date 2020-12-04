@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IFeatureDatabase;
-import org.sensorhub.api.persistence.StorageException;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
 
@@ -47,7 +47,7 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
         {
             // check file path is valid
             if (!FileUtils.isSafeFilePath(config.storagePath))
-                throw new StorageException("Storage path contains illegal characters: " + config.storagePath);
+                throw new DataStoreException("Storage path contains illegal characters: " + config.storagePath);
             
             MVStore.Builder builder = new MVStore.Builder().fileName(config.storagePath);
             
@@ -73,8 +73,16 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
         }
         catch (Exception e)
         {
-            throw new StorageException("Error while starting MVStore", e);
+            throw new DataStoreException("Error while starting MVStore", e);
         }
+    }
+    
+    
+    @Override
+    protected void afterStart()
+    {
+        if (hasParentHub() && config.databaseID > 0)
+            getParentHub().getDatabaseRegistry().register(this);
     }
 
 

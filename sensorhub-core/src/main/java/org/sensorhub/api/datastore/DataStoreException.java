@@ -34,4 +34,10 @@ public class DataStoreException extends SensorHubException
     {
         super(msg);
     }
+    
+    
+    public DataStoreException(String msg, Throwable e)
+    {
+        super(msg, e);
+    }
 }

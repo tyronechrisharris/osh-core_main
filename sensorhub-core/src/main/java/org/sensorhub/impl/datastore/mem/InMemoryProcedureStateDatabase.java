@@ -16,11 +16,11 @@ package org.sensorhub.impl.datastore.mem;
 
 import java.util.concurrent.Callable;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureStateDatabase;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.persistence.StorageConfig;
 import org.sensorhub.impl.module.AbstractModule;
 
 
@@ -33,7 +33,7 @@ import org.sensorhub.impl.module.AbstractModule;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryProcedureStateDatabase extends AbstractModule<StorageConfig> implements IProcedureStateDatabase
+public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfig> implements IProcedureStateDatabase
 {
     byte databaseID = 0;
     IProcedureStore procStore;

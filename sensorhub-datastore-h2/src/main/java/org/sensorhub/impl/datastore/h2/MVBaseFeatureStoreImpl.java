@@ -415,7 +415,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         {
             return fkStream
                 .filter(Objects::nonNull)
-                .flatMap(id -> getFeatureCursor(id, timeFilter).entryStream());
+                .flatMap(fk -> getFeatureCursor(fk, timeFilter).entryStream());
         }
         
         return null;

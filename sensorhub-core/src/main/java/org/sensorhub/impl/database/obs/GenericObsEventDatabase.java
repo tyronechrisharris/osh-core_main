@@ -37,6 +37,7 @@ import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -50,7 +51,6 @@ import org.sensorhub.api.obs.DataStreamEvent;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.ObsData;
-import org.sensorhub.api.persistence.StorageException;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
@@ -123,7 +123,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     public void start() throws SensorHubException
     {
         if (config.dbConfig == null)
-            throw new StorageException("Underlying storage configuration must be provided");
+            throw new DataStoreException("Underlying storage configuration must be provided");
         
         processEvents = config.processEvents;
         
@@ -138,7 +138,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
             
             @SuppressWarnings("unchecked")
             IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
-            dbModule.setParentHub(getParentHub());
+            //dbModule.setParentHub(getParentHub());
             dbModule.setConfiguration(dbConfig);
             dbModule.requestInit(true);
             dbModule.requestStart();
@@ -150,7 +150,7 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
         }
         catch (Exception e)
         {
-            throw new StorageException("Cannot instantiate underlying database " + dbConfig.moduleClass, e);
+            throw new DataStoreException("Cannot instantiate underlying database " + dbConfig.moduleClass, e);
         }
         
         // start auto-purge timer thread if policy is specified and enabled
