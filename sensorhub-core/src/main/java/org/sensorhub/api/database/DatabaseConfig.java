@@ -32,5 +32,5 @@ public class DatabaseConfig extends ModuleConfig
     @Required
     @DisplayInfo(label="Database ID", desc="Numerical identifier of the database. Each database "
         + "must have a unique integer ID on the sensor hub")
-    public int databaseID = 1;
+    public Integer databaseID = null;
 }
