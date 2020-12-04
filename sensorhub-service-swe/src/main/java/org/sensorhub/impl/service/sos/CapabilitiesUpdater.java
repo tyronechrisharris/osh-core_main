@@ -21,16 +21,23 @@ import java.util.NavigableMap;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.vast.data.DataIterator;
 import org.vast.ows.sos.SOSOfferingCapabilities;
 import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.swe.SWEConstants;
 import org.vast.util.TimeExtent;
+import com.google.common.base.Strings;
 
 
 public class CapabilitiesUpdater
 {
+    public static final String OFFERING_NAME_PLACEHOLDER = "{%offering_name%}";
+    public static final String PROC_UID_PLACEHOLDER = "{%procedure_uid%}";
+    public static final String PROC_NAME_PLACEHOLDER = "{%procedure_name%}";
+    public static final String PROC_DESC_PLACEHOLDER = "{%procedure_description%}";
+    
     
     public void updateOfferings(final SOSServiceCapabilities caps, final IProcedureObsDatabase obsDb, final NavigableMap<String, SOSProviderConfig> providerConfigs)
     {
@@ -49,10 +56,15 @@ public class CapabilitiesUpdater
                     var customConfig = providerConfigs.get(procUID);
                     
                     offering = new SOSOfferingCapabilities();
-                    offering.setIdentifier(procUID);
+                    offering.setIdentifier(procUID); // use procedure UID as offering ID
                     offering.getProcedures().add(procUID);
-                    offering.setTitle(customConfig != null ? customConfig.name : proc.getName() + " Data");
-                    offering.setDescription(customConfig != null ? customConfig.description : "Observation data from " + proc.getDescription());
+                    
+                    // use name and description from custom config if set
+                    // otherwise default to name and description of procedure 
+                    offering.setTitle(customConfig != null && !Strings.isNullOrEmpty(customConfig.name) ?
+                        replaceVariables(customConfig.name, proc, customConfig) : proc.getName());
+                    offering.setDescription(customConfig != null && !Strings.isNullOrEmpty(customConfig.description) ?
+                        replaceVariables(customConfig.description, proc, customConfig) : proc.getDescription());
                     
                     // add supported formats
                     offering.getResponseFormats().add(SWESOfferingCapabilities.FORMAT_OM2);
@@ -103,5 +115,24 @@ public class CapabilitiesUpdater
         
         caps.getLayers().clear();
         caps.getLayers().addAll(offerings.values());
+    }
+    
+    
+    protected String replaceVariables(String textField, IProcedureWithDesc proc, SOSProviderConfig config)
+    {
+        textField.replace(PROC_UID_PLACEHOLDER, proc.getUniqueIdentifier());
+        
+        if (config.name != null)
+            textField = textField.replace(OFFERING_NAME_PLACEHOLDER, config.name);
+        else if (proc.getName() != null)
+            textField = textField.replace(OFFERING_NAME_PLACEHOLDER, proc.getName());
+        
+        if (proc.getName() != null)
+            textField = textField.replace(PROC_NAME_PLACEHOLDER, proc.getName());
+        
+        if (proc.getDescription() != null)
+            textField = textField.replace(PROC_DESC_PLACEHOLDER, proc.getDescription());
+        
+        return textField;
     }
 }

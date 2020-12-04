@@ -34,6 +34,12 @@ public abstract class SOSProviderConfig extends OfferingConfig
     public int maxFois = 10;
     
     
+    public SOSProviderConfig()
+    {
+        this.enabled = true;
+    }
+    
+    
     /**
      * Creates a new data provider for handling an SOS request
      * @param service Parent SOS service
