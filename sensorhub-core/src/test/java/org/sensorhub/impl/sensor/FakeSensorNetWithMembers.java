@@ -48,7 +48,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSourceDataProducer
 {
-    static String SENSORNET_UID = "urn:mysensornet-001";
+    static String SENSORNET_UID = "urn:sensors:mysensornet:001";
     static String SENSOR_UID_PREFIX = SENSORNET_UID + ":sensors:";
     GMLFactory gmlFac = new GMLFactory(true);
     Map<String, IDataProducer> members = new LinkedHashMap<>();
@@ -174,18 +174,14 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
             return eventSrcInfo;
         }
     };
-    
-    
-    public FakeSensorNetWithMembers()
-    {
-        this.uniqueID = "urn:sensors:mysensornetwork:001";
-        this.xmlID = "SENSORNET";
-    }
 
 
     @Override
-    public void init()
+    public void init() throws SensorHubException
     {
+        super.init();
+        this.uniqueID = SENSORNET_UID;
+        this.xmlID = "SENSORNET1";
     }
     
     

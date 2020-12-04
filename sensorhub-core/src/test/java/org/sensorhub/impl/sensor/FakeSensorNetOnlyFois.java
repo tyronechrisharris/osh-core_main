@@ -23,6 +23,7 @@ import javax.xml.namespace.QName;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.impl.GMLFactory;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.vast.ogc.gml.GenericFeature;
@@ -38,16 +39,12 @@ public class FakeSensorNetOnlyFois extends FakeSensor implements IMultiSourceDat
     Map<String, AbstractFeature> fois = new LinkedHashMap<>();
     
     
-    public FakeSensorNetOnlyFois()
-    {
-        this.uniqueID = SENSORNET_UID;
-        this.xmlID = "SENSORNET";
-    }
-
-
     @Override
-    public void init()
+    public void init() throws SensorHubException
     {
+        super.init();
+        this.uniqueID = SENSORNET_UID;
+        this.xmlID = "SENSORNET1";
     }
     
     

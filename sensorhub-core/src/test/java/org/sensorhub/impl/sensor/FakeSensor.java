@@ -30,12 +30,6 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
 {
     public static final String SENSOR_UID = "urn:sensors:mysensor:001";
     
-    public FakeSensor()
-    {
-        this.uniqueID = SENSOR_UID;
-        this.xmlID = "SENSOR1";
-    }
-    
     
     public void setSensorUID(String sensorUID)
     {
@@ -61,11 +55,14 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
     public void updateConfig(SensorConfig config) throws SensorHubException
     {
     }
-    
-    
+
+
     @Override
     public void init() throws SensorHubException
     {
+        super.init();
+        this.uniqueID = SENSOR_UID;
+        this.xmlID = "SENSOR1";
     }
 
 
