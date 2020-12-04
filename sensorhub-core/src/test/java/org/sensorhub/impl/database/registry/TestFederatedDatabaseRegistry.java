@@ -55,25 +55,25 @@ public class TestFederatedDatabaseRegistry
     @Test
     public void testRegister()
     {
-        registry.register(Sets.newHashSet("sensor1", "sensor2"), new InMemoryProcedureStateDatabase());
-        registry.register(Sets.newHashSet("sensor3", "sensor4"), new InMemoryProcedureStateDatabase((byte)1));
+        registry.register(Sets.newHashSet("sensor001", "sensor002"), new InMemoryProcedureStateDatabase((byte)1));
+        registry.register(Sets.newHashSet("sensor003", "sensor004"), new InMemoryProcedureStateDatabase((byte)2));
     }
     
     
     @Test
     public void testRegisterDuplicateProcUIDs()
     {
-        registry.register(Sets.newHashSet("sensor1", "sensor2"), new InMemoryProcedureStateDatabase((byte)1));
+        registry.register(Sets.newHashSet("sensor001", "sensor002"), new InMemoryProcedureStateDatabase((byte)1));
         errors.expect(IllegalStateException.class);
-        registry.register(Sets.newHashSet("sensor2", "sensor4"), new InMemoryProcedureStateDatabase((byte)2));
+        registry.register(Sets.newHashSet("sensor002", "sensor004"), new InMemoryProcedureStateDatabase((byte)2));
     }
     
     
     @Test
     public void testEmptyDatabases()
     {
-        registry.register(Sets.newHashSet("sensor1", "sensor2"), new InMemoryProcedureStateDatabase());
-        registry.register(Sets.newHashSet("sensor3", "sensor4"), new InMemoryProcedureStateDatabase((byte)1));
+        registry.register(Sets.newHashSet("sensor001", "sensor002"), new InMemoryProcedureStateDatabase((byte)3));
+        registry.register(Sets.newHashSet("sensor003", "sensor004"), new InMemoryProcedureStateDatabase((byte)4));
         
         assertEquals(0, mainObsDatabase.getProcedureStore().getNumFeatures());
         assertEquals(0, mainObsDatabase.getProcedureStore().getNumRecords());
@@ -114,21 +114,21 @@ public class TestFederatedDatabaseRegistry
     {
         IProcedureObsDatabase db1 = new InMemoryProcedureStateDatabase((byte)1);
         IProcedureObsDatabase db2 = new InMemoryProcedureStateDatabase((byte)2);
-        registry.register(Sets.newHashSet("sensor1", "sensor2"), db1);
-        registry.register(Sets.newHashSet("sensor3", "sensor4"), db2);
+        registry.register(Sets.newHashSet("sensor001", "sensor002"), db1);
+        registry.register(Sets.newHashSet("sensor003", "sensor004"), db2);
         
         AbstractProcess proc1 = new SimpleProcessImpl();
-        proc1.setUniqueIdentifier("sensor1");
+        proc1.setUniqueIdentifier("sensor001");
         FeatureKey fk1 = db1.getProcedureStore().add(proc1);
     
         AbstractProcess proc3 = new SimpleProcessImpl();
-        proc3.setUniqueIdentifier("sensor3");
+        proc3.setUniqueIdentifier("sensor003");
         FeatureKey fk3 = db2.getProcedureStore().add(proc3);
         
-        FeatureKey id1 = mainObsDatabase.getProcedureStore().getCurrentVersionKey("sensor1");
+        FeatureKey id1 = mainObsDatabase.getProcedureStore().getCurrentVersionKey("sensor001");
         assertTrue(fk1.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db1.getDatabaseID() == id1.getInternalID());
         
-        FeatureKey id3 = mainObsDatabase.getProcedureStore().getCurrentVersionKey("sensor3");
+        FeatureKey id3 = mainObsDatabase.getProcedureStore().getCurrentVersionKey("sensor003");
         assertTrue(fk3.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db2.getDatabaseID() == id3.getInternalID());
         
         assertEquals(2, mainObsDatabase.getProcedureStore().keySet().size());        
