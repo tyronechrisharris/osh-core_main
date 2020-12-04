@@ -48,6 +48,7 @@ import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.sensor.FakeSensorData2;
 import org.sensorhub.impl.sensor.FakeSensorNetOnlyFois;
 import org.sensorhub.impl.sensor.FakeSensorNetWithMembers;
+import org.sensorhub.test.AsyncTests;
 import com.google.common.collect.Sets;
 
 
@@ -109,7 +110,7 @@ public class TestProcedureRegistry
         .thenCompose(nil -> {
             // check data is forwarded to event bus
             var eventSrcInfo = sensor.getOutputs().get(NAME_OUTPUT1).getEventSourceInfo();
-            System.out.println("Subscribe to channel " + eventSrcInfo);
+            System.out.println("Subscribing to channel " + eventSrcInfo);
             hub.getEventBus().newSubscription(DataEvent.class)
                 .withEventType(DataEvent.class)
                 .withSourceInfo(eventSrcInfo)
@@ -117,7 +118,7 @@ public class TestProcedureRegistry
                     System.out.println("Record received from " + e.getSourceID() + ", ts=" +
                         Instant.ofEpochMilli(e.getTimeStamp()));
                     sampleCounter.incrementAndGet();
-                });                 
+                });
             
             return sensor.startSendingData();
             //return ((IFakeSensorOutput)sensor.getOutputs().get(NAME_OUTPUT1)).start(false);
@@ -129,6 +130,7 @@ public class TestProcedureRegistry
         .join();
         
         // check we received all records from event bus
+        AsyncTests.waitForCondition(() -> sampleCounter.get() >= NUM_GEN_SAMPLES, 1000L);
         assertEquals(NUM_GEN_SAMPLES, sampleCounter.get());
     }
     
@@ -141,6 +143,7 @@ public class TestProcedureRegistry
         sensor.setConfiguration(new SensorConfig());
         sensor.setDataInterfaces(new FakeSensorData(sensor, NAME_OUTPUT1, 1.0, 10));
         sensor.requestInit(true);
+        sensor.requestStart();
         
         // check procedure is in DB
         assertEquals(1, stateDb.getProcedureStore().size());
@@ -165,7 +168,8 @@ public class TestProcedureRegistry
         assertEquals(0, stateDb.getProcedureStore().size());
         assertEquals(0, stateDb.getFoiStore().size());
         
-        Map<String, Integer> sampleCounters = new HashMap<>();
+        AtomicInteger sampleCounter = new AtomicInteger();
+        Map<String, Integer> sampleCountsPerMember = new HashMap<>();
         registry.register(sensorNet).thenRun(() -> {
             
             // check parent procedure is in DB
@@ -216,7 +220,8 @@ public class TestProcedureRegistry
             subBuilder.consume(e -> {
                 System.out.println("Record received from " + e.getSourceID() + ", ts=" +
                     Instant.ofEpochMilli(e.getTimeStamp()));
-                sampleCounters.compute(e.getProcedureUID(), (k, v) -> {
+                sampleCounter.incrementAndGet();
+                sampleCountsPerMember.compute(e.getProcedureUID(), (k, v) -> {
                     if (v == null)
                         return 1;
                     else
@@ -233,8 +238,9 @@ public class TestProcedureRegistry
         .join();
         
         // check we received all records from event bus
+        AsyncTests.waitForCondition(() -> sampleCounter.get() >= numMembers*NUM_GEN_SAMPLES, 1000L);
         for (String uid: sensorNet.getMembers().keySet())
-            assertEquals(NUM_GEN_SAMPLES, (int)sampleCounters.get(uid));
+            assertEquals(NUM_GEN_SAMPLES, (int)sampleCountsPerMember.get(uid));
     }
         
         
@@ -260,6 +266,7 @@ public class TestProcedureRegistry
         assertEquals(0, stateDb.getProcedureStore().size());
         assertEquals(0, stateDb.getFoiStore().size());
         
+        AtomicInteger sampleCounter = new AtomicInteger();
         Map<String, Integer> sampleCountsPerFoi = new TreeMap<>();
         registry.register(sensorNet).thenRun(() -> {
             
@@ -302,6 +309,7 @@ public class TestProcedureRegistry
                     System.out.println("Record received from " + e.getSourceID() +
                         ", ts=" + Instant.ofEpochMilli(e.getTimeStamp()) +
                         ", foi=" + foiStr);
+                    sampleCounter.incrementAndGet();
                     sampleCountsPerFoi.compute(foiStr, (k, v) -> {
                         if (v == null)
                             return 1;
@@ -320,6 +328,7 @@ public class TestProcedureRegistry
         .join();
         
         // check we received all records from event bus
+        AsyncTests.waitForCondition(() -> sampleCounter.get() >= numObs, 1000L);
         for (var sampleCountEntry: sampleCountsPerFoi.entrySet())
         {
             Integer expectedCount;
