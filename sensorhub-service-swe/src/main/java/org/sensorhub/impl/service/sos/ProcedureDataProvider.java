@@ -229,7 +229,8 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
                     .build())
                 .findFirst()
                 .orElseThrow(() -> new CompletionException(
-                    new SOSException("No data found for observables " + req.getObservables())));
+                    new SOSException(SOSException.invalid_param_code, "observedProperty", null, 
+                        "No data found for observed properties " + req.getObservables())));
 
             // save datastream info for reuse in getResults()
             selectedDataStream = new DataStreamInfoCache(

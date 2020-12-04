@@ -463,17 +463,18 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         // security check
         securityHandler.checkPermission(securityHandler.sos_read_obs);
-                
+
+        // check query parameters
+        OWSExceptionReport report = new OWSExceptionReport();
+        checkQueryOffering(request.getOffering(), report);
+        
         // build procedure UID set
         Set<String> selectedProcedures = new HashSet<>();
         selectedProcedures.addAll(request.getProcedures());
         if (selectedProcedures.isEmpty())
             selectedProcedures.addAll(request.getOfferings());
         else if (!request.getOfferings().isEmpty())
-            selectedProcedures.retainAll(request.getOfferings());
-
-        // check query parameters
-        OWSExceptionReport report = new OWSExceptionReport();
+            selectedProcedures.retainAll(request.getOfferings());        
         checkQueryProcedures(selectedProcedures, report);
         
         // choose serializer according to output format
@@ -509,8 +510,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
         // check query parameters
         OWSExceptionReport report = new OWSExceptionReport();
-        String procUID = getProcedureUID(request.getOffering());
-        checkQueryProcedure(procUID, report);
+        checkQueryOffering(request.getOffering(), report);
 
         // choose serializer according to output format
         String format = request.getFormat();
@@ -528,6 +528,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         report.process(); // will throw exception it report contains one
         
         // get data provider
+        var procUID = getProcedureUID(request.getOffering());
         ISOSAsyncDataProvider dataProvider = getDataProvider(procUID, request);
         
         // start async response
@@ -580,7 +581,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         
         // check query parameters
         OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryProcedures(request.getProcedures(), report);
+        checkQueryOffering(request.getOffering(), report);
         checkQueryTime(request.getTime(), report);
         report.process();
 
@@ -950,13 +951,21 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             if (parser != null)
                 parser.close();
         }*/
-    }    
-
-
-    protected void checkQueryProcedures(Set<String> procedures, OWSExceptionReport report) throws SOSException
+    }
+    
+    
+    protected void checkQueryOffering(String offeringID, OWSExceptionReport report) throws SOSException
     {
-        for (String procUID: procedures)
-            checkQueryProcedure(procUID, report);
+        var procUID = getProcedureUID(offeringID);
+        if (procUID == null || !readDatabase.getProcedureStore().contains(procUID))
+            report.add(new SOSException(SOSException.invalid_param_code, "offering", offeringID, "Unknown offering: " + offeringID));
+    }
+
+
+    protected void checkQueryOfferings(Set<String> offerings, OWSExceptionReport report) throws SOSException
+    {
+        for (String offeringID: offerings)
+            checkQueryOffering(offeringID, report);
     }
 
 
@@ -964,6 +973,13 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         if (procUID == null || !readDatabase.getProcedureStore().contains(procUID))
             report.add(new SOSException(SOSException.invalid_param_code, "procedure", procUID, "Unknown procedure: " + procUID));
+    }
+
+
+    protected void checkQueryProcedures(Set<String> procedures, OWSExceptionReport report) throws SOSException
+    {
+        for (String procUID: procedures)
+            checkQueryProcedure(procUID, report);
     }
 
 
