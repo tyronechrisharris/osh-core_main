@@ -41,7 +41,8 @@ public class ResultSerializerText extends AbstractResultSerializerSwe
     public void init(SOSServlet servlet, AsyncContext asyncCtx, GetResultRequest req, RecordTemplate resultTemplate) throws SOSException, IOException
     {
         if (!allowNonBinaryFormat(resultTemplate))
-            throw new SOSException(SOSException.invalid_param_code, "responseFormat", req.getFormat(), UNSUPPORTED_FORMAT);
+            throw new SOSException(SOSException.invalid_param_code, "responseFormat",
+                req.getFormat(), UNSUPPORTED_FORMAT + req.getFormat());
         
         if (!(resultTemplate.getDataEncoding() instanceof TextEncoding))
         {

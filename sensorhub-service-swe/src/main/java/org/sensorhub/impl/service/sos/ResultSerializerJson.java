@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sos;
 
 import java.io.IOException;
 import javax.servlet.AsyncContext;
+import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.vast.data.JSONEncodingImpl;
 import org.vast.ows.OWSUtils;
@@ -38,7 +39,8 @@ public class ResultSerializerJson extends AbstractResultSerializerSwe
     public void init(SOSServlet servlet, AsyncContext asyncCtx, GetResultRequest req, RecordTemplate resultTemplate) throws SOSException, IOException
     {
         if (!allowNonBinaryFormat(resultTemplate))
-            throw new SOSException(SOSException.invalid_param_code, "responseFormat", req.getFormat(), UNSUPPORTED_FORMAT);
+            throw new SOSException(SOSException.invalid_param_code, "responseFormat",
+                req.getFormat(), UNSUPPORTED_FORMAT + req.getFormat());
         
         resultTemplate = new RecordTemplate(resultTemplate.getDataStructure(), new JSONEncodingImpl());
         super.init(servlet, asyncCtx, req, resultTemplate);
@@ -52,6 +54,15 @@ public class ResultSerializerJson extends AbstractResultSerializerSwe
     protected void beforeRecords() throws IOException
     {
         writer.startStream(multipleRecords);
+    }
+    
+    
+    @Override
+    protected void writeRecord(DataEvent item) throws IOException
+    {
+        super.writeRecord(item);        
+        if (!multipleRecords)
+            os.write('\n');
     }
     
 

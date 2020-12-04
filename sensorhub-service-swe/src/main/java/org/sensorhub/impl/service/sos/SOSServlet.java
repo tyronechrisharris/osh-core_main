@@ -96,9 +96,9 @@ import com.google.common.cache.CacheBuilder;
 @SuppressWarnings("serial")
 public class SOSServlet extends org.vast.ows.sos.SOSServlet
 {
-    private static final String INVALID_RESPONSE_FORMAT = "Unsupported response format: ";
-    private static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";
-    private static final long GET_CAPS_MIN_REFRESH_PERIOD = 1000; // 1s
+    static final String INVALID_RESPONSE_FORMAT = "Unsupported response format: ";
+    static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";
+    static final long GET_CAPS_MIN_REFRESH_PERIOD = 1000; // 1s
     static final String DEFAULT_PROVIDER_KEY = "%%%_DEFAULT_";
 
     final transient SOSService service;
@@ -617,6 +617,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 ISOSAsyncResultSerializer serializer;
                 if (isXmlMimeType(format))
                     serializer = new ResultSerializerXml();
+                else if (OWSUtils.TEXT_MIME_TYPE.equals(format))
+                    serializer = new ResultSerializerText();
                 else if (OWSUtils.JSON_MIME_TYPE.equals(format))
                     serializer = new ResultSerializerJson();
                 else if (OWSUtils.BINARY_MIME_TYPE.equals(format))

@@ -44,7 +44,7 @@ import net.opengis.swe.v20.DataEncoding;
  */
 public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerializer<GetResultRequest, DataEvent> implements ISOSAsyncResultSerializer
 {
-    static final String UNSUPPORTED_FORMAT = "Unsupported format";
+    static final String UNSUPPORTED_FORMAT = SOSServlet.INVALID_RESPONSE_FORMAT;
     
     DataStreamWriter writer;
     boolean multipleRecords;
