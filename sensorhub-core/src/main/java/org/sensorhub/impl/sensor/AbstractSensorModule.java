@@ -93,27 +93,24 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     public static final String DEFAULT_XMLID_PREFIX = "SENSOR_";
     protected static final String LOCATION_OUTPUT_ID = "SENSOR_LOCATION";
     protected static final String LOCATION_OUTPUT_NAME = "sensorLocation";
-    protected static final String ERROR_NO_UPDATE = "Sensor Description update is not supported by driver ";
-    protected static final String ERROR_NO_HISTORY = "History of sensor description is not supported by driver ";
-    protected static final String ERROR_NO_ENTITIES = "Multiple entities are not supported by driver ";
 
     protected static final String UUID_URI_PREFIX = "urn:uuid:";
     protected static final String STATE_UNIQUE_ID = "UniqueID";
     protected static final String STATE_LAST_SML_UPDATE = "LastUpdatedSensorDescription";
 
-    private Map<String, IStreamingDataInterface> obsOutputs = Collections.synchronizedMap(new LinkedHashMap<>());
-    private Map<String, IStreamingDataInterface> statusOutputs = Collections.synchronizedMap(new LinkedHashMap<>());
-    private Map<String, IStreamingControlInterface> controlInputs = Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Map<String, IStreamingDataInterface> obsOutputs = new LinkedHashMap<>();
+    private final Map<String, IStreamingDataInterface> statusOutputs = new LinkedHashMap<>();
+    private final Map<String, IStreamingControlInterface> controlInputs = new LinkedHashMap<>();
 
-    protected DefaultLocationOutput locationOutput;
-    protected AbstractProcess sensorDescription = new PhysicalSystemImpl();
-    protected long lastUpdatedSensorDescription = Long.MIN_VALUE;
-    protected Object sensorDescLock = new Object();
+    protected volatile DefaultLocationOutput locationOutput;
+    protected volatile AbstractProcess sensorDescription = new PhysicalSystemImpl();
+    protected volatile long lastUpdatedSensorDescription = Long.MIN_VALUE;
+    protected final Object sensorDescLock = new Object();
 
-    protected String xmlID;
-    protected String uniqueID;
     protected boolean randomUniqueID;
-    protected Map<String, IGeoFeature> foiMap;
+    protected volatile String xmlID;
+    protected volatile String uniqueID;
+    protected volatile Map<String, IGeoFeature> foiMap;
 
 
     @Override
@@ -124,7 +121,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         // reset internal state
         this.uniqueID = null;
         this.xmlID = null;
-        this.foiMap = null;
+        this.foiMap = Collections.emptyMap();
         this.locationOutput = null;
         this.sensorDescription = new PhysicalSystemImpl();
         removeAllOutputs();
@@ -132,6 +129,20 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     }
 
 
+    /**
+     * This method generates the following information:
+     * <ul>
+     * <li>A default unique ID and XML ID if none were provided by driver</li>
+     * <li>A default event source information object. If the procedure is member
+     * of a group, all events are published to the parent group by default</li>
+     * <li>The sensor description latest updated flag is set to the value 
+     * provided in the driver configuration</li>
+     * <li>If location is provided in config, a generic feature interest
+     * and a location output</li>
+     * </ul>
+     * In most cases, derived classes overriding this method must call it
+     * using the super keyword.
+     */
     @Override
     protected void afterInit() throws SensorHubException
     {
@@ -149,16 +160,59 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             this.randomUniqueID = true;
         }
         
+        // generate default event source info
+        if (eventSrcInfo == null)
+        {
+            var procUID = getUniqueIdentifier();
+            var groupUID = getParentGroupUID();
+            var groupID = groupUID != null ? groupUID : procUID;
+            String sourceID = EventUtils.getProcedureSourceID(procUID);
+            eventSrcInfo = new EventSourceInfo(groupID, sourceID);
+        }
+        
         // set last description update time if provided in config
         if (config.lastUpdated != null)
             this.lastUpdatedSensorDescription = config.lastUpdated.getTime();
 
-        // add location output if a location is provided
-        if (config.getLocation() != null && locationOutput == null)
-            addLocationOutput(Double.NaN);
+        // add location output and foi if a location is set in config
+        if (config.getLocation() != null)
+        {
+            LLALocation loc = config.getLocation();
+            
+            if (locationOutput == null)
+                addLocationOutput(Double.NaN);
+        
+            if (foiMap == null || foiMap.isEmpty())
+            {
+                // add 
+                SamplingPoint sf = new SamplingPoint();
+                sf.setId("FOI_" + xmlID);
+                sf.setUniqueIdentifier(uniqueID + "-foi");
+                if (config.name != null)
+                    sf.setName(config.name);
+                sf.setDescription("Sampling point for " + config.name);
+                sf.setHostedProcedureUID(uniqueID);
+                Point point = new GMLFactory(true).newPoint();
+                point.setSrsName(SWEConstants.REF_FRAME_4979);
+                point.setSrsDimension(3);
+                point.setPos(new double[] {loc.lat, loc.lon, loc.alt});
+                sf.setShape(point);                
+                foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
+            }
+        }
     }
     
     
+    /**
+     * This methods does the following:
+     * <ul>
+     * <li>Register the driver with the procedure registry if the driver is
+     * connected to a hub (i.e. setParentHub() has been called)</li>
+     * <li>Send a location data event if a location output has been created</li>
+     * </ul>
+     * In most cases, derived classes overriding this method must call it
+     * using the super keyword.
+     */
     @Override
     protected void beforeStart() throws SensorHubException
     {
@@ -201,24 +255,27 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      * @param dataInterface interface to add as sensor output
      * @param isStatus set to true when registering a status output
      */
-    protected synchronized void addOutput(IStreamingDataInterface dataInterface, boolean isStatus)
+    protected void addOutput(IStreamingDataInterface dataInterface, boolean isStatus)
     {
         Asserts.checkNotNull(dataInterface, IStreamingDataInterface.class);
         
-        if (isStatus)
-            statusOutputs.put(dataInterface.getName(), dataInterface);
-        else
-            obsOutputs.put(dataInterface.getName(), dataInterface);
-        
-        try
+        synchronized(obsOutputs)
         {
-            // if output is added after init(), register it now
-            if (isInitialized())
-                getParentHub().getProcedureRegistry().register(dataInterface).get();
-        }
-        catch (ExecutionException | InterruptedException e)
-        {
-            throw new IllegalStateException("Error registering sensor output", e.getCause());
+            if (isStatus)
+                statusOutputs.put(dataInterface.getName(), dataInterface);
+            else
+                obsOutputs.put(dataInterface.getName(), dataInterface);
+            
+            try
+            {
+                // if output is added after init(), register it now
+                if (isInitialized())
+                    getParentHub().getProcedureRegistry().register(dataInterface).get();
+            }
+            catch (ExecutionException | InterruptedException e)
+            {
+                throw new IllegalStateException("Error registering sensor output", e.getCause());
+            }
         }
     }
 
@@ -228,13 +285,16 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      * in a consistent manner.
      * @param updatePeriod estimated location update period or NaN if sensor is mostly static
      */
-    protected synchronized void addLocationOutput(double updatePeriod)
+    protected void addLocationOutput(double updatePeriod)
     {
-        if (locationOutput == null)
+        synchronized(obsOutputs)
         {
-            // TODO deal with other CRS than 4979
-            locationOutput = new DefaultLocationOutputLLA(this, getLocalFrameID(), updatePeriod);
-            addOutput(locationOutput, true);
+            if (locationOutput == null)
+            {
+                // TODO deal with other CRS than 4979
+                locationOutput = new DefaultLocationOutputLLA(this, getLocalFrameID(), updatePeriod);
+                addOutput(locationOutput, true);
+            }
         }
     }
 
@@ -244,8 +304,11 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      */
     protected void removeAllOutputs()
     {
-        statusOutputs.clear();
-        obsOutputs.clear();
+        synchronized(obsOutputs)
+        {
+            statusOutputs.clear();
+            obsOutputs.clear();
+        }
     }
 
 
@@ -257,17 +320,20 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         Asserts.checkNotNull(controlInterface, IStreamingControlInterface.class);
         
-        controlInputs.put(controlInterface.getName(), controlInterface);
-        
-        try
+        synchronized(controlInputs)
         {
-            // if output is added after init(), register it now
-            if (isInitialized())
-                getParentHub().getProcedureRegistry().register(controlInterface).get();
-        }
-        catch (ExecutionException | InterruptedException e)
-        {
-            throw new IllegalStateException("Error registering command input", e.getCause());
+            controlInputs.put(controlInterface.getName(), controlInterface);
+            
+            try
+            {
+                // if output is added after init(), register it now
+                if (isInitialized())
+                    getParentHub().getProcedureRegistry().register(controlInterface).get();
+            }
+            catch (ExecutionException | InterruptedException e)
+            {
+                throw new IllegalStateException("Error registering command input", e.getCause());
+            }
         }
     }
 
@@ -277,7 +343,10 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
      */
     protected void removeAllControlInputs()
     {
-        controlInputs.clear();
+        synchronized(controlInputs)
+        {
+            controlInputs.clear();
+        }
     }
 
 
@@ -289,15 +358,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public synchronized IEventSourceInfo getEventSourceInfo()
+    public IEventSourceInfo getEventSourceInfo()
     {
-        if (eventSrcInfo == null)
-        {
-            String groupID = getUniqueIdentifier();
-            String sourceID = EventUtils.getProcedureSourceID(getUniqueIdentifier());
-            eventSrcInfo = new EventSourceInfo(groupID, sourceID);
-        }
-
         return eventSrcInfo;
     }
 
@@ -568,32 +630,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public synchronized Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
+    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
     {
-        if (foiMap == null)
-        {
-            // add default feature of interest if location is set in config
-            LLALocation loc = config.getLocation();
-            if (loc != null)
-            {
-                SamplingPoint sf = new SamplingPoint();
-                sf.setId("FOI_" + xmlID);
-                sf.setUniqueIdentifier(uniqueID + "-foi");
-                if (config.name != null)
-                    sf.setName(config.name);
-                sf.setDescription("Sampling point for " + config.name);
-                sf.setHostedProcedureUID(uniqueID);
-                Point point = new GMLFactory(true).newPoint();
-                point.setSrsName(SWEConstants.REF_FRAME_4979);
-                point.setSrsDimension(3);
-                point.setPos(new double[] {loc.lat, loc.lon, loc.alt});
-                sf.setShape(point);                
-                foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
-            }
-            else
-                foiMap = Collections.emptyMap();
-        }
-
         return foiMap;            
     }
 
