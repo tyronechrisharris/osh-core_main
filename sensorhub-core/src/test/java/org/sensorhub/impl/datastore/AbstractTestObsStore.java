@@ -269,8 +269,6 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         checkMapKeySet(obsStore.keySet());
 
         dsKey = addSimpleDataStream(10, "out2");
-        dsKey = new DataStreamKey(36589L);
-        obsStore.getDataStreams().put(dsKey, obsStore.getDataStreams().get(dsKey));
         addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.MIN.plusSeconds(1), 11);
         addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.MAX.minus(10, ChronoUnit.DAYS), 11);
         checkMapKeySet(obsStore.keySet());
