@@ -48,7 +48,10 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
         SWEHelper fac = new SWEHelper();
         
         // param
-        producerURI = fac.newText(SWEHelper.getPropertyUri("ProducerUID"), "Producer Unique ID", null);
+        producerURI = fac.createText()
+            .definition(SWEHelper.getPropertyUri("ProducerUID"))
+            .label("Producer Unique ID")
+            .build();
         paramData.add(PRODUCER_URI_PARAM, producerURI);
         
         // output cannot be created until source URI param is set
@@ -62,7 +65,8 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
         
         if (producerUri != null)
         {
-            IDataProducer producer = (IDataProducer)hub.getProcedureRegistry().get(producerUri);
+            dataSourceRef = hub.getProcedureRegistry().getProcedure(producerUri);
+            var producer = dataSourceRef.get();
             
             // set process info
             ProcessInfo instanceInfo = new ProcessInfo(
@@ -76,8 +80,6 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
             outputData.clear();
             for (IStreamingDataInterface output: producer.getOutputs().values())
                 outputData.add(output.getName(), output.getRecordDescription().copy());
-            
-            dataSourceRef = new WeakReference<>(producer);
         }
     }
     
@@ -90,6 +92,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
         {
             started = true;
             
+            // TODO listen on event bus instead!!!
             // start listening to events on all connected outputs
             for (String outputName: outputConnections.keySet())
                 producer.getOutputs().get(outputName).registerListener(this);
@@ -146,7 +149,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
             // process each data block
             for (DataBlock dataBlk: ((DataEvent) e).getRecords())
             {
-                String outputName = ((DataEvent) e).getChannelID();
+                String outputName = ((DataEvent) e).getOutputName();
                 outputData.getComponent(outputName).setData(dataBlk);            
             
                 try

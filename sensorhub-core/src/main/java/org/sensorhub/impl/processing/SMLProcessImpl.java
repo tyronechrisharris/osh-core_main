@@ -38,6 +38,7 @@ import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.processing.ProcessingException;
 import org.sensorhub.impl.module.AbstractModule;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.process.ProcessException;
 import org.vast.sensorML.AggregateProcessImpl;
 import org.vast.sensorML.SMLException;
@@ -209,20 +210,6 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public void pause()
-    {
-        
-    }
-
-
-    @Override
-    public void resume()
-    {
-        
-    }
-
-
-    @Override
     public Map<String, DataComponent> getInputs()
     {
         return Collections.unmodifiableMap(inputs);
@@ -249,28 +236,6 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     public Map<String, ? extends IStreamingControlInterface> getCommandInputs()
     {
         return Collections.unmodifiableMap(controlInterfaces);
-    }
-
-
-    @Override
-    public synchronized void commit()
-    {
-        // pause processing
-        pause();
-        
-        // transfer parameters to running process
-                
-        
-        // resume processing
-        resume();
-    }
-
-
-    @Override
-    public ProcedureId getProcedureID()
-    {
-        // TODO Register with registry and get full ID so it can retrieved here
-        throw new UnsupportedOperationException("Need to be implemented");
     }
     
     
@@ -300,17 +265,10 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     {
         return null;
     }
-    
-    
-    @Override
-    public ProcedureId getParentGroupID()
-    {
-        return null;
-    }
 
 
     @Override
-    public AbstractFeature getCurrentFeatureOfInterest()
+    public String getParentGroupUID()
     {
         return null;
     }
@@ -330,8 +288,33 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public Map<QName, Object> getProperties()
+    public Map<String, ? extends IStreamingDataInterface> getStatusOutputs()
     {
-        return wrapperProcess.getProperties();
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+
+    @Override
+    public Map<String, ? extends IStreamingDataInterface> getObservationOutputs()
+    {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+
+    @Override
+    public boolean isConnected()
+    {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+
+    @Override
+    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
+    {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
