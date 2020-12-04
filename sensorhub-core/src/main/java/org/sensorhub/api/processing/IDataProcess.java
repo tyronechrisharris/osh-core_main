@@ -39,44 +39,27 @@ public interface IDataProcess extends IDataProducer, ICommandReceiver
 {
     
     /**
-     * Gets the list of all inputs exposed by this process.<br/>
+     * Gets the list of all input descriptors.
+     * <br/><br/>
      * Note that only inputs that are not connected to data sources will be
      * available for external trigger via the command interface
-     * @return map of input descriptors
+     * @return Read-only map of input name -> input descriptor
      */
     public Map<String, DataComponent> getInputs();
     
     
     /**
-     * Gets the list of parameters for this process.<br/>
-     * Values should be changed directly inside the objects returned in the map.<br/>
-     * For stream processing, parameters that can be changed during processing
-     * must be marked as 'updatable'. Changing the value during processing of
-     * parameters that are not updatable is either silently ignored or can result
-     * in a processing exception.
-     * @return map of parameter descriptors
+     * Gets the list of all parameter descriptors.
+     * <br/><br/>
+     * The list contains both fixed and taskable parameters. Parameters that
+     * are taskable (i.e. that can be changed after the process is started)
+     * must be marked as 'updatable'. Such parameters can be changed using
+     * the command interface (see {@link IStreamingControlInterface}).
+     * <br/><br/>
+     * Note that changing the value of components in the parameter descriptors
+     * (even when they are marked as 'updatable') has no effect.
+     * @return Read-only map of parameter name -> parameter descriptor
      */
     public Map<String, DataComponent> getParameters();
     
-    
-    /**
-     * Commit new values of parameters<br/>
-     * New values are taken into account ASAP by the running process after the call
-     * to this method.
-     */
-    public void commit();
-    
-    
-    /**
-     * Pauses process execution.<br/>
-     * Incoming events are simply discarded and won't be processed when the process is resumed.
-     */
-    public void pause();
-    
-    
-    /**
-     * Resumes normal process execution.<br/>
-     * Processing may actually resume only when the next event is received.
-     */
-    public void resume();
 }

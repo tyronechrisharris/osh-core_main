@@ -25,7 +25,6 @@ package org.sensorhub.api.processing;
  * </p>
  *
  * @author Alex Robin
- * @param <ConfigType> Type of configuration class
  * @since Feb 20, 2015
  */
 public interface IParallelProcess extends IDataProcess
