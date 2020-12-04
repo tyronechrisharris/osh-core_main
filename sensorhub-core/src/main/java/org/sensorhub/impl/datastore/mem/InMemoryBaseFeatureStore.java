@@ -284,6 +284,15 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             return entryStream(idStream);
         }
         
+        else if (filter.getUniqueIDs() != null)
+        {
+            var idStream = filter.getUniqueIDs().stream()
+                .map(uid -> uidMap.get(uid))
+                .filter(Objects::nonNull)
+                .map(fk -> fk.getInternalID());
+            return entryStream(idStream);
+        }
+        
         else if (filter.getLocationFilter() != null)
         {
             synchronized (spatialIndex)
