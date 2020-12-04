@@ -14,23 +14,16 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.util.AbstractMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Stream;
-import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterInfo;
-import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.ogc.gml.IGeoFeature;
-import org.vast.util.Asserts;
-import org.vast.util.Bbox;
 
 
 /**
@@ -42,162 +35,18 @@ import org.vast.util.Bbox;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature, FoiField, FoiFilter> implements IFoiStore
+public class FederatedFoiStore extends FederatedBaseFeatureStore<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
-    DefaultDatabaseRegistry registry;
-    FederatedObsDatabase db;
-    
-    
+        
     FederatedFoiStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
     {
-        this.registry = registry;
-        this.db = db;
-    }
-
-
-    @Override
-    public String getDatastoreName()
-    {
-        return getClass().getSimpleName();
+        super(registry, db);
     }
     
     
-    @Override
-    public long getNumFeatures()
+    protected IFoiStore getFeatureStore(IProcedureObsDatabase db)
     {
-        long count = 0;
-        for (var db: registry.obsDatabases.values())
-            count += db.getFoiStore().getNumFeatures();
-        return count;
-    }
-
-
-    @Override
-    public long getNumRecords()
-    {
-        long count = 0;
-        for (var db: registry.obsDatabases.values())
-            count += db.getFoiStore().getNumRecords();
-        return count;
-    }
-
-
-    @Override
-    public Bbox getFeaturesBbox()
-    {
-        Bbox bbox = new Bbox();
-        for (var db: registry.obsDatabases.values())
-            bbox.add(db.getFoiStore().getFeaturesBbox());
-        return bbox;
-    }
-    
-    
-    protected FeatureKey ensureFeatureKey(Object obj)
-    {
-        Asserts.checkArgument(obj instanceof FeatureKey, "key must be a FeatureKey");
-        return (FeatureKey)obj;
-    }
-
-
-    @Override
-    public boolean containsKey(Object obj)
-    {
-        FeatureKey key = ensureFeatureKey(obj);
-        
-        if (key.getInternalID() > 0)
-        {
-            // lookup in selected database
-            var dbInfo = registry.getLocalDbInfo(key.getInternalID());
-            if (dbInfo == null)
-                return false;
-            else
-                return dbInfo.db.getFoiStore().containsKey(new FeatureKey(dbInfo.entryID));
-        }
-        else
-        {
-            for (var db: registry.obsDatabases.values())
-            {
-                if (db.getFoiStore().containsKey(key) == true)
-                    return true;
-            }
-            
-            return false;
-        }
-    }
-
-
-    @Override
-    public boolean containsValue(Object value)
-    {
-        for (var db: registry.obsDatabases.values())
-        {
-            if (db.getFoiStore().containsValue(value))
-                return true;
-        }
-        
-        return false;
-    }
-    
-    
-    /*
-     * Convert to public IDs on the way out
-     */
-    protected FeatureId toPublicID(int databaseID, FeatureId id)
-    {
-        if (id == null)
-            return null;
-        
-        long publicID = registry.getPublicID(databaseID, id.getInternalID());
-        return new FeatureId(publicID, id.getUniqueID());
-    }
-    
-    
-    /*
-     * Convert to public keys on the way out
-     */
-    protected FeatureKey toPublicKey(int databaseID, FeatureKey k)
-    {
-        long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return new FeatureKey(publicID, k.getValidStartTime());
-    }
-    
-    
-    /*
-     * Convert to public entries on the way out
-     */
-    protected Entry<FeatureKey, IGeoFeature> toPublicEntry(int databaseID, Entry<FeatureKey, IGeoFeature> e)
-    {
-        return new AbstractMap.SimpleEntry<>(
-            toPublicKey(databaseID, e.getKey()),
-            e.getValue());
-    }
-
-
-    @Override
-    public IGeoFeature get(Object obj)
-    {
-        FeatureKey key = ensureFeatureKey(obj);
-        
-        if (key.getInternalID() > 0)
-        {
-            // lookup in selected database
-            var dbInfo = registry.getLocalDbInfo(key.getInternalID());
-            if (dbInfo == null)
-                return null;
-            else
-                return dbInfo.db.getFoiStore().get(new FeatureKey(dbInfo.entryID));
-        }
-        else
-        {
-            for (var db: registry.obsDatabases.values())
-            {
-                IGeoFeature f = db.getFoiStore().get(key);
-                if (f != null)
-                    return f;
-            }
-            
-            return null;
-        }
+        return db.getFoiStore();
     }
     
     
@@ -236,50 +85,6 @@ public class FederatedFoiStore extends ReadOnlyDataStore<FeatureKey, IGeoFeature
         }
         
         return null;
-    }
-
-
-    @Override
-    public Stream<Entry<FeatureKey, IGeoFeature>> selectEntries(FoiFilter filter, Set<FoiField> fields)
-    {
-        // if any kind of internal IDs are used, we need to dispatch the correct filter
-        // to the corresponding DB so we create this map
-        var filterDispatchMap = getFilterDispatchMap(filter);
-        
-        if (filterDispatchMap != null)
-        {
-            return filterDispatchMap.values().stream()
-                .flatMap(v -> {
-                    int dbID = v.databaseID;
-                    return v.db.getFoiStore().selectEntries((FoiFilter)v.filter, fields)
-                        .map(e -> toPublicEntry(dbID, e));
-                })
-                .limit(filter.getLimit());
-        }
-        else
-        {
-            return registry.obsDatabases.values().stream()
-                .flatMap(db -> {
-                    int dbID = db.getDatabaseID();
-                    return db.getFoiStore().selectEntries(filter, fields)
-                        .map(e -> toPublicEntry(dbID, e));
-                })
-                .limit(filter.getLimit());
-        }
-    }
-    
-    
-    @Override
-    public FeatureKey add(IGeoFeature feature)
-    {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
-    }
-
-
-    @Override
-    public FeatureKey add(long parentId, IGeoFeature value)
-    {
-        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
     
     
