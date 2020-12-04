@@ -278,7 +278,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
 
 
     @Override
-    public CompletableFuture<Void> startSendingData(boolean waitForListeners)
+    public CompletableFuture<Void> startSendingData()
     {
         var outputFutures = new ArrayList<CompletableFuture<?>>();
         
@@ -286,7 +286,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
         {
             for (IStreamingDataInterface o: sensor.getOutputs().values())
             {
-                var f = ((IFakeSensorOutput)o).start(waitForListeners);
+                var f = ((IFakeSensorOutput)o).start();
                 outputFutures.add(f);
             }
         }
@@ -295,7 +295,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
     }
     
     
-    public CompletableFuture<Void> startSendingData(boolean waitForListeners, String... memberUIDs)
+    public CompletableFuture<Void> startSendingData(String... memberUIDs)
     {
         var outputFutures = new ArrayList<CompletableFuture<?>>();
         
@@ -304,7 +304,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
             var sensor = members.get(uid);
             for (IStreamingDataInterface o: sensor.getOutputs().values())
             {
-                var f = ((IFakeSensorOutput)o).start(waitForListeners);
+                var f = ((IFakeSensorOutput)o).start();
                 outputFutures.add(f);
             }
         }

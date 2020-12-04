@@ -18,6 +18,12 @@ import java.util.concurrent.CompletableFuture;
 
 public interface IFakeSensorOutput
 {
-    public CompletableFuture<Integer> start(boolean waitForListeners);
+    public default CompletableFuture<Integer> start()
+    {
+        return start(0L);
+    }
+    
+    public CompletableFuture<Integer> start(long delay);
+    
     public void stop();
 }

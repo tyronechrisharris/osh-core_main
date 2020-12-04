@@ -12,11 +12,10 @@ Copyright (C) 2012-2019 Sensia Software LLC. All Rights Reserved.
 
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.utils;
+package org.sensorhub.utils;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
-import org.sensorhub.utils.SWEDataUtils;
 import org.sensorhub.utils.SWEDataUtils.VectorIndexer;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.ScalarIndexer;

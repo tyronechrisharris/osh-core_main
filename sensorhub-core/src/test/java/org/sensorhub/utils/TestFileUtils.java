@@ -12,12 +12,11 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.utils;
+package org.sensorhub.utils;
 
 import static org.junit.Assert.*;
 import java.io.File;
 import org.junit.Test;
-import org.sensorhub.utils.FileUtils;
 
 
 public class TestFileUtils

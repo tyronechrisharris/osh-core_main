@@ -32,8 +32,8 @@ import com.google.common.collect.ImmutableList;
 
 public class FakeSensorNetOnlyFois extends FakeSensor implements IMultiSourceDataProducer
 {
-    static String SENSORNET_UID = "urn:mysensornet-001";
-    static String FOI_UID_PREFIX = SENSORNET_UID + ":fois:";
+    public static final String SENSORNET_UID = "urn:sensors:mysensornet:001";
+    public static final String FOI_UID_PREFIX = SENSORNET_UID + ":fois:";
     GMLFactory gmlFac = new GMLFactory(true);
     Map<String, AbstractFeature> fois = new LinkedHashMap<>();
     

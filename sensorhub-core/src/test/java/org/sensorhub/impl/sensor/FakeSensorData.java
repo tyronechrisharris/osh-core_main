@@ -22,7 +22,6 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.data.DataEvent;
 import org.vast.data.DataBlockDouble;
@@ -53,7 +52,6 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     Timer timer;
     TimerTask sendTask;
     boolean started;
-    boolean hasListeners;
     
     
     public FakeSensorData(FakeSensor sensor, String name)
@@ -109,7 +107,7 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
 
 
     @Override
-    public CompletableFuture<Integer> start(boolean waitForListeners)
+    public CompletableFuture<Integer> start(long delay)
     {
         var future = new CompletableFuture<Integer>();
         
@@ -150,22 +148,11 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
             }                
         };
         
-        // we start sending only if we have listeners
-        if (hasListeners || !waitForListeners)
-            startSending();
+        timer = new Timer(name, true);
+        timer.scheduleAtFixedRate(sendTask, delay, (long)(samplingPeriod * 1000));
         started = true;
         
         return future;
-    }
-    
-    
-    protected void startSending()
-    {
-        if (timer == null)
-        {
-            timer = new Timer(name, true);
-            timer.scheduleAtFixedRate(sendTask, 0, (long)(samplingPeriod * 1000));
-        }
     }
 
 
@@ -216,19 +203,6 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     public DataEncoding getRecommendedEncoding()
     {
         return outputEncoding;
-    }
-
-
-    @Override
-    public void registerListener(IEventListener listener)
-    {
-        super.registerListener(listener);
-        
-        // we start sending only if start has been called
-        if (started)
-            startSending();
-        
-        hasListeners = true;
     }
 
 }

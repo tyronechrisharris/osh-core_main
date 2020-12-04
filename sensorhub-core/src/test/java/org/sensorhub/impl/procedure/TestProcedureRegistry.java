@@ -119,7 +119,7 @@ public class TestProcedureRegistry
                     sampleCounter.incrementAndGet();
                 });                 
             
-            return sensor.startSendingData(false);
+            return sensor.startSendingData();
             //return ((IFakeSensorOutput)sensor.getOutputs().get(NAME_OUTPUT1)).start(false);
         })
         .thenRun(() -> {            
@@ -224,7 +224,7 @@ public class TestProcedureRegistry
                 });
             });
             
-            return sensorNet.startSendingData(false);
+            return sensorNet.startSendingData();
         })
         .thenRun(() -> {            
             // check latest records are in DB
@@ -310,7 +310,7 @@ public class TestProcedureRegistry
                     });
                 });
             
-            return sensorNet.startSendingData(false);
+            return sensorNet.startSendingData();
         })
         .thenRun(() -> {            
             // check latest records are in DB (one per foi)

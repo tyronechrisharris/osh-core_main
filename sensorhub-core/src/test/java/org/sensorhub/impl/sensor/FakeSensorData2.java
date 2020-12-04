@@ -30,7 +30,6 @@ import net.opengis.swe.v20.DataType;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
-import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.data.DataEvent;
 import org.vast.data.BinaryComponentImpl;
@@ -49,7 +48,7 @@ import org.vast.swe.SWEHelper;
 public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> implements IFakeSensorOutput
 {
     public static final String URI_OUTPUT1 = "urn:blabla:image";
-    static int ARRAY_SIZE = 12000;
+    public static int ARRAY_SIZE = 1024;
     
     DataComponent outputStruct;
     DataEncoding outputEncoding;
@@ -60,7 +59,6 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     Timer timer;
     TimerTask sendTask;
     boolean started;
-    boolean hasListeners;
     
     
     public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount)
@@ -94,7 +92,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
             .name(this.name)
             .label("Image Data")
             .definition(URI_OUTPUT1)
-            .withFixedSize(1024)
+            .withFixedSize(ARRAY_SIZE)
             .withElement("pixel", fac.createRecord()
                 .addField("red", fac.createCount()
                     .definition("urn:blabla:RedChannel")
@@ -148,7 +146,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
 
 
     @Override
-    public CompletableFuture<Integer> start(boolean waitForListeners)
+    public CompletableFuture<Integer> start(long delay)
     {   
         var future = new CompletableFuture<Integer>();
         
@@ -205,9 +203,8 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
             }                
         };
         
-        // start sending only if we have listeners
-        if (hasListeners || !waitForListeners)
-            startSending();
+        timer = new Timer(name, true);
+        timer.scheduleAtFixedRate(sendTask, delay, (long)(samplingPeriod * 1000));
         started = true;
         
         return future;
@@ -218,8 +215,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     {
         if (timer == null)
         {
-            timer = new Timer(name, true);
-            timer.scheduleAtFixedRate(sendTask, 0, (long)(samplingPeriod * 1000));
+            
         }
     }
     
@@ -228,7 +224,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     public DataBlock getLatestRecord()
     {
         // make sure the first record is produced
-        if (!hasListeners & sendTask != null)
+        if (sendTask != null)
             sendTask.run();
         
         return latestRecord;
@@ -254,18 +250,5 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
             return false;
         else
             return true;
-    } 
-    
-    
-    @Override
-    public void registerListener(IEventListener listener)
-    {
-        super.registerListener(listener);
-        
-        // we start sending only if start has been called
-        if (started)
-            startSending();
-        
-        hasListeners = true;
     }
 }

@@ -29,8 +29,6 @@ import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.processing.SMLProcessConfig;
-import org.sensorhub.impl.processing.SMLProcessImpl;
 import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorData;
 import org.vast.cdm.common.DataStreamWriter;
@@ -85,7 +83,7 @@ public class TestStreamProcess implements IEventListener
         //new SMLUtils(SMLUtils.V2_0).writeProcess(System.out, process.getCurrentDescription(), true);
         for (IStreamingDataInterface output: process.getOutputs().values())
             output.registerListener(this);
-        ((FakeSensor)registry.getModuleById(FAKE_SENSOR1_ID)).startSendingData(false);
+        ((FakeSensor)registry.getModuleById(FAKE_SENSOR1_ID)).startSendingData();
                 
         long t0 = System.currentTimeMillis();
         synchronized (this) 

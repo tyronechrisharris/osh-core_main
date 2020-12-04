@@ -12,37 +12,34 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service;
+package org.sensorhub.test;
+
+import java.util.function.Supplier;
 
 
-public abstract class WaitForCondition
+public class AsyncTests
 {
     
-    public WaitForCondition(long timeout)
-    {
-        loop(timeout);
-    }
-    
-    
-    protected synchronized void loop(long timeout)
+    public static void waitForCondition(Supplier<Boolean> condition, long timeout)
     {
         try
         {
             long t0 = System.currentTimeMillis();
-            while (!check())
+            
+            synchronized(condition)
             {
-                if (System.currentTimeMillis() > t0+timeout)
-                    throw new IllegalStateException("Timeout reached");
-                wait(100L);
-            }                
+                while (!condition.get())
+                {
+                    if (System.currentTimeMillis() > t0+timeout)
+                        throw new IllegalStateException("Timeout reached");
+                    condition.wait(100L);
+                }
+            }
         }
         catch (InterruptedException e)
         {
             Thread.currentThread().interrupt();
         }
     }
-    
-    
-    public abstract boolean check();
     
 }

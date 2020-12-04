@@ -12,11 +12,10 @@ Copyright (C) 2012-2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.test.utils;
+package org.sensorhub.utils;
 
 import static org.junit.Assert.*;
 import org.junit.Test;
-import org.sensorhub.utils.DataComponentChecks;
 import org.vast.swe.helper.GeoPosHelper;
 import org.vast.swe.helper.RasterHelper;
 import net.opengis.swe.v20.DataComponent;

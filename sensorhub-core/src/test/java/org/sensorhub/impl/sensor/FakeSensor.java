@@ -28,10 +28,11 @@ import org.sensorhub.api.sensor.SensorException;
 
 public class FakeSensor extends AbstractSensorModule<SensorConfig>
 {
+    public static final String SENSOR_UID = "urn:sensors:mysensor:001";
     
     public FakeSensor()
     {
-        this.uniqueID = "urn:sensors:mysensor:001";
+        this.uniqueID = SENSOR_UID;
         this.xmlID = "SENSOR1";
     }
     
@@ -110,14 +111,20 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
     }
 
 
-    public CompletableFuture<Void> startSendingData(boolean waitForListeners)
+    public CompletableFuture<Void> startSendingData()
+    {
+        return startSendingData(0L);
+    }
+    
+    
+    public CompletableFuture<Void> startSendingData(long delay)
     {
         var outputFutures = new ArrayList<CompletableFuture<?>>();
             
         for (IStreamingDataInterface o: getObservationOutputs().values())
         {
             o.getLatestRecord();
-            var f = ((IFakeSensorOutput)o).start(waitForListeners);
+            var f = ((IFakeSensorOutput)o).start(delay);
             outputFutures.add(f);
         }
         
