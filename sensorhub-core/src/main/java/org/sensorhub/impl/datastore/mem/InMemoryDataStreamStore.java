@@ -85,7 +85,10 @@ public class InMemoryDataStreamStore implements IDataStreamStore
                         end = t;
                 }
                 
-                phenomenonTimeRange = TimeExtent.period(begin, end);
+                if (begin == Instant.MAX || end == Instant.MIN)
+                    phenomenonTimeRange = null;
+                else
+                    phenomenonTimeRange = TimeExtent.period(begin, end);
             }
             
             return phenomenonTimeRange;
