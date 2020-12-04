@@ -400,11 +400,11 @@ public class TestEventBus
             });
 
         String procUID = "source001";
-        String foiUID = "foi";
+        String foiUID = "foi123-658";
         for (int i = 0; i < 10; i++)
         {
             if (i % 2 == 0)
-                pub.publish(new TestEvent("source", "test", 0));
+                pub.publish(new TestEvent(procUID, "test", 0));
             else
                 pub.publish(new FoiEvent(System.currentTimeMillis(), procUID, foiUID, Instant.now()));
         }
