@@ -14,13 +14,14 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.test;
 
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 
 public class AsyncTests
 {
     
-    public static void waitForCondition(Supplier<Boolean> condition, long timeout)
+    public static void waitForCondition(Supplier<Boolean> condition, long timeout) throws TimeoutException
     {
         try
         {
@@ -31,7 +32,7 @@ public class AsyncTests
                 while (!condition.get())
                 {
                     if (System.currentTimeMillis() > t0+timeout)
-                        throw new IllegalStateException("Timeout reached");
+                        throw new TimeoutException();
                     condition.wait(100L);
                 }
             }
