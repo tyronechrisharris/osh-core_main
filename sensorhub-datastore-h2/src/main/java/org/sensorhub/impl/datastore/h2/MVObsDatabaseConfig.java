@@ -30,4 +30,10 @@ public class MVObsDatabaseConfig extends MVDatabaseConfig
     
     @DisplayInfo(desc="Set to enable spatial indexing of individual observations sampling locations (when provided)")
     public boolean indexObsLocation = false;
+    
+    
+    public MVObsDatabaseConfig()
+    {
+        this.moduleClass = MVObsDatabase.class.getCanonicalName();
+    }
 }
