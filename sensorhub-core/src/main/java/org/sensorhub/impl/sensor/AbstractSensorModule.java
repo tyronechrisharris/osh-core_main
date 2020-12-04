@@ -268,8 +268,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             
             try
             {
-                // if output is added after init(), register it now
-                if (isInitialized())
+                // if output is added after start(), register it now
+                if (isStarted() && hasParentHub() && getParentHub().getProcedureRegistry() != null)
                     getParentHub().getProcedureRegistry().register(dataInterface).get();
             }
             catch (ExecutionException | InterruptedException e)
