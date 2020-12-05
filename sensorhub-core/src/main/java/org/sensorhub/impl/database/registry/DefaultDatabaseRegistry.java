@@ -33,6 +33,8 @@ import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
+import org.sensorhub.api.utils.OshAsserts;
+import org.sensorhub.utils.MapWithWildcards;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -51,6 +53,7 @@ import org.vast.util.Asserts;
 public class DefaultDatabaseRegistry implements IDatabaseRegistry
 {
     static final Logger log = LoggerFactory.getLogger(DefaultDatabaseRegistry.class);
+    static final Integer DEFAULT_DB_ID = Integer.valueOf(0);
     static final int MAX_NUM_DB = 100;
     static final BigInteger MAX_NUM_DB_BIGINT = BigInteger.valueOf(MAX_NUM_DB);
     static final String END_PREFIX_CHAR = "\n";
@@ -84,9 +87,24 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public DefaultDatabaseRegistry(ISensorHub hub)
     {
         this.hub = hub;
-        this.obsDatabaseIDs = new ConcurrentSkipListMap<>();
+        this.obsDatabaseIDs = new MapWithWildcards<>();
         this.obsDatabases = new ConcurrentSkipListMap<>();
         this.globalObsDatabase = new FederatedObsDatabase(this);
+    }
+    
+    
+    @Override
+    public synchronized void register(IDatabase db)
+    {
+        Asserts.checkNotNull(db, IDatabase.class);
+        Asserts.checkArgument(db.getDatabaseID() >= 0 && db.getDatabaseID() < MAX_NUM_DB, "Database ID must be > 0 and < " + MAX_NUM_DB);
+        
+        log.info("Registering database {} with ID {}", db.getClass().getSimpleName(), db.getDatabaseID());
+        
+        if (db instanceof IProcedureObsDatabase)
+            registerObsDatabase((IProcedureObsDatabase)db);
+        else if (db instanceof IFeatureDatabase)
+            registerFeatureDatabase((IFeatureDatabase)db);
     }
 
 
@@ -95,18 +113,6 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     {
         int databaseID = registerObsDatabase(db);
         registerMapping(procedureUID, databaseID);
-    }
-    
-    
-    @Override
-    public synchronized void register(IDatabase db)
-    {
-        log.info("Registering database {} with ID {}", db.getClass().getSimpleName(), db.getDatabaseID());
-        
-        if (db instanceof IProcedureObsDatabase)
-            registerObsDatabase((IProcedureObsDatabase)db);
-        else if (db instanceof IFeatureDatabase)
-            registerFeatureDatabase((IFeatureDatabase)db);
     }
 
 
@@ -122,7 +128,6 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     protected int registerObsDatabase(IProcedureObsDatabase db)
     {
         int databaseID = db.getDatabaseID();
-        Asserts.checkArgument(databaseID < MAX_NUM_DB, "Database ID must be less than " + MAX_NUM_DB);
         
         // add to Id->DB instance map only if not already present        
         if (obsDatabases.putIfAbsent(databaseID, db) != null)
@@ -150,19 +155,13 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     
     protected void registerMapping(String uid, int databaseID)
     {
-        Asserts.checkNotNull(uid, "procedureUID");
-        
-        if (uid.endsWith("*"))
-            uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
+        OshAsserts.checkValidUID(uid);
+        Asserts.checkArgument(databaseID > 0, "Database ID must be > 0");        
         
         // only insert mapping if not already registered by another database
         // or if registered in state database only (ID 0)
-        final var finalUid = uid;
-        obsDatabaseIDs.compute(uid, (k, v) -> {
-            if (v == null || v == 0 || v == databaseID)
-                return databaseID;
-            throw new IllegalStateException("Procedure " + finalUid + " is already handled by another database");
-        });
+        if (obsDatabaseIDs.putIfAbsent(uid, databaseID) != null)
+            throw new IllegalStateException("Procedure " + uid + " is already handled by another database");
         
         // remove all entries from default state DB (DB 0) since it's now handled by another DB
         if (databaseID != 0)
@@ -208,7 +207,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
             dbID = e.getValue();
         }
         
-        return dbID == null ? null : obsDatabases.get(dbID);
+        return dbID == null ? obsDatabases.get(DEFAULT_DB_ID) : obsDatabases.get(dbID);
     }
     
     

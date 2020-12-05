@@ -78,6 +78,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         try
         {
             ProcedureObsEventDatabaseConfig dbListenerConfig = new ProcedureObsEventDatabaseConfig();
+            dbListenerConfig.databaseID = 0;
             dbListenerConfig.dbConfig = stateDbConfig;
 
             procStateDb = new ProcedureObsEventDatabase();
@@ -85,7 +86,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             procStateDb.init(dbListenerConfig);
             procStateDb.start();
             
-            hub.getDatabaseRegistry().register(procStateDb.getWrappedDatabase());            
+            hub.getDatabaseRegistry().register(procStateDb);            
         }
         catch (Exception e)
         {
@@ -98,10 +99,9 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     {
         var procUID = proc.getUniqueIdentifier();
         
-        // use dedicated DB if available, otherwise use default state DB
+        // get DB handling this procedure
+        // this call with return the dedicated DB if available, or the default state DB
         IProcedureObsDatabase db = hub.getDatabaseRegistry().getObsDatabase(procUID);
-        if (db == null)
-            db = procStateDb;
         
         // error if DB is not an event handler DB
         if (!(db instanceof IProcedureEventHandlerDatabase))
