@@ -48,13 +48,13 @@ public class CapabilitiesUpdater
                 var procID = entry.getKey().getInternalID();
                 var proc = entry.getValue();
                 
-                // retrieve or create new offering
                 String procUID = proc.getUniqueIdentifier();
+                var customConfig = providerConfigs.get(procUID);
+                
+                // retrieve or create new offering
                 SOSOfferingCapabilities offering = offerings.get(procUID);
                 if (offering == null)
                 {
-                    var customConfig = providerConfigs.get(procUID);
-                    
                     offering = new SOSOfferingCapabilities();
                     offering.setIdentifier(procUID); // use procedure UID as offering ID
                     offering.getProcedures().add(procUID);
@@ -108,8 +108,14 @@ public class CapabilitiesUpdater
                    });
                                 
                 var phenTimeRange = offering.getPhenomenonTime();
+                
+                // set end to 'now' if timeout not reached yet
+                var timeOut = ProcedureDataProviderConfig.DEFAULT_TIME_OUT;
+                if (customConfig instanceof ProcedureDataProviderConfig)
+                    timeOut = (long)((ProcedureDataProviderConfig) customConfig).liveDataTimeout * 1000;                
+                
                 if (phenTimeRange != null &&
-                    phenTimeRange.end().isAfter(Instant.now().minusSeconds(10)))
+                    phenTimeRange.end().isAfter(Instant.now().minusMillis(timeOut)))
                     offering.setPhenomenonTime(TimeExtent.endNow(phenTimeRange.begin()));
             });
         
