@@ -170,8 +170,8 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
         {
             if (range.lowerEndpoint() instanceof Integer)
             {
-                if ((int)range.lowerEndpoint() == Integer.MAX_VALUE &&
-                    (int)range.upperEndpoint() == Integer.MAX_VALUE)
+                if ((Integer)range.lowerEndpoint() == Integer.MAX_VALUE &&
+                    (Integer)range.upperEndpoint() == Integer.MAX_VALUE)
                 {
                     writer.beginObject()
                           .name("indeterminate").value("latest")
