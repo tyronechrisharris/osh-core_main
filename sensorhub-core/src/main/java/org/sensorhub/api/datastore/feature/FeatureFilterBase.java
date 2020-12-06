@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore.feature;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
@@ -56,6 +57,8 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     protected TemporalFilter validTime;
     protected SpatialFilter location;
     
+    protected transient SortedSet<String> uidPrefixes;
+    
     
     /*
      * this class can only be instantiated using builder
@@ -95,8 +98,10 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     
     public boolean testUniqueIDs(IFeature f)
     {
+        var uid = f.getUniqueIdentifier();
         return (uniqueIDs == null ||
-                uniqueIDs.contains(f.getUniqueIdentifier()));
+                uniqueIDs.contains(uid) ||
+                (uidPrefixes != null && uidPrefixes.stream().anyMatch(prefix -> uid.startsWith(prefix))));
     }
     
     
@@ -122,7 +127,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     {
         super.and(otherFilter, builder);
         
-        var uniqueIDs = FilterUtils.intersect(this.uniqueIDs, otherFilter.uniqueIDs);
+        var uniqueIDs = FilterUtils.intersectWithWildcards(this.uniqueIDs, otherFilter.uniqueIDs);
         if (uniqueIDs != null)
             builder.withUniqueIDs(uniqueIDs);
         
@@ -172,7 +177,8 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         
         /**
          * Keep only features with specific unique IDs.
-         * @param uids One or more unique IDs of features to select
+         * @param uids One or more unique IDs of features to select.
+         * UID strings can include a trailing wildcard to select multiple at once.
          * @return This builder for chaining
          */
         public B withUniqueIDs(String... uids)
@@ -183,12 +189,24 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         
         /**
          * Keep only features with specific unique IDs.
-         * @param uids Collection of unique IDs
+         * @param uids Collection of unique IDs.
+         * UID strings can include a trailing wildcard to select multiple at once.
          * @return This builder for chaining
          */
         public B withUniqueIDs(Collection<String> uids)
         {
-            instance.uniqueIDs = ImmutableSortedSet.copyOf(uids);            
+            instance.uniqueIDs = ImmutableSortedSet.copyOf(uids);
+            
+            // also build prefix list if needed
+            var prefixList = new ArrayList<String>();
+            for (String uid: uids)
+            {
+                if (uid.endsWith(FilterUtils.WILDCARD_CHAR))
+                    prefixList.add(uid.substring(0, uid.length()-1));
+            }            
+            if (!prefixList.isEmpty())
+                instance.uidPrefixes = ImmutableSortedSet.copyOf(prefixList);
+            
             return (B)this;
         }
 

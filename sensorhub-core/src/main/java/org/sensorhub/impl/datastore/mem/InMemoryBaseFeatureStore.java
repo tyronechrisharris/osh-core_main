@@ -32,6 +32,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
@@ -276,6 +277,28 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     }
     
     
+    protected Stream<Long> getKeyStreamForUniqueIdOrPrefix(String uid)
+    {
+        // case of wildcard
+        if (uid.endsWith(FilterUtils.WILDCARD_CHAR))
+        {
+            var from = uid.substring(0, uid.length()-1);
+            var to = from + '\uffff';
+            return uidMap.subMap(from, to).values().stream()
+                .map(fk -> fk.getInternalID());
+        }
+        
+        // case of exact UID
+        else
+        {
+            var fk = uidMap.get(uid);
+            if (fk == null)
+                return Stream.empty(); // return empty stream if uid is not found 
+            return Stream.of(fk.getInternalID());
+        }
+    }
+    
+    
     protected Stream<Entry<FeatureKey, T>> getIndexedStream(F filter)
     {
         if (filter.getInternalIDs() != null)
@@ -287,9 +310,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         else if (filter.getUniqueIDs() != null)
         {
             var idStream = filter.getUniqueIDs().stream()
-                .map(uid -> uidMap.get(uid))
-                .filter(Objects::nonNull)
-                .map(fk -> fk.getInternalID());
+                .flatMap(this::getKeyStreamForUniqueIdOrPrefix);
             return entryStream(idStream);
         }
         

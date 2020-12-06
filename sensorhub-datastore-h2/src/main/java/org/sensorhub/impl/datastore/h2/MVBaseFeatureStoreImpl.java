@@ -38,6 +38,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.SpliteratorWrapper;
+import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
@@ -356,6 +357,27 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     }
     
     
+    protected Stream<MVFeatureParentKey> getKeyStreamForUniqueIdOrPrefix(String uid)
+    {
+        // case of wildcard
+        if (uid.endsWith(FilterUtils.WILDCARD_CHAR))
+        {
+            var first = uid.substring(0, uid.length()-1);
+            var last = first + '\uffff';
+            return new RangeCursor<>(uidsIndex, first, last).valueStream();
+        }
+        
+        // case of exact UID
+        else
+        {
+            var fk = uidsIndex.get(uid);
+            if (fk == null)
+                return Stream.empty(); // return empty stream if uid is not found 
+            return Stream.of(fk);
+        }
+    }
+    
+    
     protected Stream<Entry<MVFeatureParentKey, V>> getIndexedStream(F filter)
     {
         Stream<MVFeatureParentKey> fkStream = null;
@@ -376,12 +398,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         {
             // concatenate streams for each selected feature UID
             fkStream = filter.getUniqueIDs().stream()
-                .map(uid -> {
-                    var fk = uidsIndex.get(uid);
-                    if (fk == null)
-                        return null; // return null if uid is not found 
-                    return fk;
-                });
+                .flatMap(this::getKeyStreamForUniqueIdOrPrefix);
         }
         
         // if spatial filter is used, use spatial index as primary

@@ -549,7 +549,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             System.out.println("\nSelect with " + filter);
         
         Map<FeatureKey, IGeoFeature> resultMap = resultStream
-            .peek(e -> System.out.println(e.getKey()))
+            .peek(e -> System.out.println(e.getKey() + ": " + e.getValue().getUniqueIdentifier()))
             .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         System.out.println("Selected " + resultMap.size() + " entries");
         
@@ -630,7 +630,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         uids = Sets.newHashSet(UID_PREFIX+"F10", UID_PREFIX+"F31");
         timeRange = Range.closed(Instant.MIN, Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(uids.toArray(new String[0]))
+                .withUniqueIDs(uids)
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
         checkSelectedEntries(resultStream, uids, timeRange);
@@ -639,7 +639,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         uids = Sets.newHashSet(UID_PREFIX+"F25", UID_PREFIX+"F49");
         timeRange = Range.closed(Instant.parse("2000-04-08T08:59:59Z"), Instant.parse("2000-06-08T07:59:59Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(uids.toArray(new String[0]))
+                .withUniqueIDs(uids)
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
         checkSelectedEntries(resultStream, uids, timeRange);
@@ -650,7 +650,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         uids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.closed(Instant.MIN, Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(uids.toArray(new String[0]))
+                .withUniqueIDs(uids)
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
         checkSelectedEntries(resultStream, uids, timeRange);
@@ -659,7 +659,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         uids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.closed(Instant.parse("2000-04-08T08:59:59Z"), Instant.parse("2000-06-08T07:59:59Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(uids.toArray(new String[0]))
+                .withUniqueIDs(uids)
                 .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
                 .build());
         checkSelectedEntries(resultStream, uids, timeRange);
@@ -668,7 +668,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         uids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
         timeRange = Range.singleton(Instant.parse("2001-04-08T07:59:59Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(uids.toArray(new String[0]))
+                .withUniqueIDs(uids)
                 .validAtTime(timeRange.lowerEndpoint())
                 .build());
         checkSelectedEntries(resultStream, uids, timeRange);
@@ -677,7 +677,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         uids = Sets.newHashSet(UID_PREFIX+"FT300", UID_PREFIX+"FT201");
         timeRange = Range.singleton(Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(uids.toArray(new String[0]))
+                .withUniqueIDs(uids)
                 .withCurrentVersion()
                 .build());
         checkSelectedEntries(resultStream, uids, timeRange);
@@ -686,10 +686,32 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         uids = Sets.newHashSet(UID_PREFIX+"FT300", UID_PREFIX+"FT301");
         timeRange = Range.singleton(Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-                .withUniqueIDs(uids.toArray(new String[0]))
+                .withUniqueIDs(uids)
                 .withCurrentVersion()
                 .build());
         checkSelectedEntries(resultStream, uids, timeRange);
+    }
+    
+    
+    @Test
+    public void testSelectByUIDWithWildcard() throws Exception
+    {
+        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
+        
+        addNonGeoFeatures(0, 50);
+        
+        // correct UIDs and all times
+        var uidsWithWildcard = Sets.newHashSet(UID_PREFIX+"F1*", UID_PREFIX+"F3*");
+        var expectedUids = Sets.newHashSet(UID_PREFIX+"F1", UID_PREFIX+"F3");
+        for (int i=0; i<10; i++) {
+            expectedUids.add(UID_PREFIX+"F1"+i);
+            expectedUids.add(UID_PREFIX+"F3"+i);
+        }
+        resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
+                .withUniqueIDs(uidsWithWildcard)
+                .withAllVersions()
+                .build());
+        checkSelectedEntries(resultStream, expectedUids, Range.closed(Instant.MIN, Instant.MAX));
     }
     
     
