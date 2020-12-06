@@ -39,7 +39,7 @@ public class TimeOutMonitor
     public TimeOutMonitor(ScheduledExecutorService threadPool)
     {
         // schedule to run all triggers every 10 seconds by default
-        this(threadPool, 10000);
+        this(threadPool, 1000);
     }
     
     
