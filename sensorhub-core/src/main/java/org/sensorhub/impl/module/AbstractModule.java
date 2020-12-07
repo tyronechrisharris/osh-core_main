@@ -52,6 +52,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected ModuleSecurity securityHandler;
     protected final Object stateLock = new Object();
     protected boolean startRequested;
+    protected boolean startAsync;
     protected Throwable lastError;
     protected String statusMsg;
     
@@ -499,7 +500,8 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 beforeStart();
                 start();
                 afterStart();
-                setState(ModuleState.STARTED);
+                if (!startAsync)
+                    setState(ModuleState.STARTED);
             }
             catch (Exception e)
             {
