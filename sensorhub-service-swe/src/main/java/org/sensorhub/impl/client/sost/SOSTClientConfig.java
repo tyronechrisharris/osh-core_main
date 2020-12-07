@@ -14,17 +14,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.client.sost;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.sensorhub.api.client.ClientConfig;
 import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.config.DisplayInfo.FieldType;
-import org.sensorhub.api.config.DisplayInfo.ModuleType;
 import org.sensorhub.api.config.DisplayInfo.Required;
-import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
-import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.impl.comm.HTTPConfig;
 import org.sensorhub.impl.comm.RobustIPConnectionConfig;
+import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseViewConfig;
 
 
 /**
@@ -37,15 +32,9 @@ import org.sensorhub.impl.comm.RobustIPConnectionConfig;
  */
 public class SOSTClientConfig extends ClientConfig
 {
-    @DisplayInfo(desc="Local ID of data source to register with remote SOS")
-    @FieldType(Type.MODULE_ID)
-    @ModuleType(ISensorModule.class)
+    @DisplayInfo(desc="Filtered view to select procedures/datastreams to register with remote SOS")
     @Required
-    public String dataSourceID;
-    
-    
-    @DisplayInfo(desc="Names of outputs that should not be pushed to remote SOS server")
-    public List<String> excludedOutputs = new ArrayList<>();
+    public ProcedureObsDatabaseViewConfig dataSourceSelector;
     
     
     @DisplayInfo(label="SOS Endpoint", desc="SOS endpoint where the requests are sent")
