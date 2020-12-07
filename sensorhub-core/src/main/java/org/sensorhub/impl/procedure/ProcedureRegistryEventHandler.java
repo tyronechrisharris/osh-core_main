@@ -87,28 +87,24 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
         boolean isNew = super.doRegister(parentID, proc);
         latestDescriptionUpdate = proc.getLastDescriptionUpdate();
         
-        // send procedure added event if procedure wasn't registered before
-        if (isNew)
-        {
-            getParentPublisher(proc).publish(new ProcedureAddedEvent(
+        // send ProcedureAdded or ProcedureEnabled event depending if
+        // procedure was registered before or not
+        var newProcEvent = isNew ? 
+            new ProcedureAddedEvent(
                 System.currentTimeMillis(),
                 procUID,
-                proc.getParentGroupUID()));
-        }
+                proc.getParentGroupUID()) :
+            new ProcedureEnabledEvent(
+                System.currentTimeMillis(),
+                procUID,
+                proc.getParentGroupUID());
+        getParentPublisher(proc).publish(newProcEvent);
         
-        // or send procedure changed event if description has changed   
-        else if (saveLastUpdated < latestDescriptionUpdate)
+        // also send procedure changed event if description has changed
+        // TODO check if it has actually changed?
+        if (saveLastUpdated < latestDescriptionUpdate)
         {
             eventPublisher.publish(new ProcedureChangedEvent(System.currentTimeMillis(), procUID));
-        }
-        
-        // else send enabled event if description has changed   
-        else
-        {
-            getParentPublisher(proc).publish(new ProcedureEnabledEvent(
-                System.currentTimeMillis(),
-                procUID,
-                proc.getParentGroupUID()));
         }
         
         return isNew;
