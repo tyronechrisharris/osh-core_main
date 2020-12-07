@@ -314,6 +314,36 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         return StreamSupport.stream(mergeSortIt, false)
             .limit(filter.getLimit());
     }
+
+
+    @Override
+    public Stream<Long> selectObservedFois(ObsFilter filter)
+    {
+        // if any kind of internal IDs are used, we need to dispatch the correct filter
+        // to the corresponding DB so we create this map
+        var filterDispatchMap = getFilterDispatchMap(filter);
+        
+        if (filterDispatchMap != null)
+        {
+            return filterDispatchMap.values().stream()
+                .flatMap(v -> {
+                    int dbID = v.databaseID;
+                    return v.db.getObservationStore().selectObservedFois((ObsFilter)v.filter)
+                        .map(id -> registry.getPublicID(dbID, id));
+                })
+                .limit(filter.getLimit());
+        }
+        else
+        {
+            return registry.obsDatabases.values().stream()
+                .flatMap(db -> {
+                    int dbID = db.getDatabaseID();
+                    return db.getObservationStore().selectObservedFois(filter)
+                        .map(id -> registry.getPublicID(dbID, id));
+                })
+                .limit(filter.getLimit());
+        }
+    }
     
 
     @Override

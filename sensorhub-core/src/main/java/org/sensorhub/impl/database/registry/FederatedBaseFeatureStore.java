@@ -158,40 +158,6 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         
         return false;
     }
-    
-    
-    /*
-     * Convert to public IDs on the way out
-     */
-    protected FeatureId toPublicID(int databaseID, FeatureId id)
-    {
-        if (id == null)
-            return null;
-        
-        long publicID = registry.getPublicID(databaseID, id.getInternalID());
-        return new FeatureId(publicID, id.getUniqueID());
-    }
-    
-    
-    /*
-     * Convert to public keys on the way out
-     */
-    protected FeatureKey toPublicKey(int databaseID, FeatureKey k)
-    {
-        long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return new FeatureKey(publicID, k.getValidStartTime());
-    }
-    
-    
-    /*
-     * Convert to public entries on the way out
-     */
-    protected Entry<FeatureKey, T> toPublicEntry(int databaseID, Entry<FeatureKey, T> e)
-    {
-        return new AbstractMap.SimpleEntry<>(
-            toPublicKey(databaseID, e.getKey()),
-            e.getValue());
-    }
 
 
     @Override
@@ -238,6 +204,40 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
                 })
                 .limit(filter.getLimit());
         }
+    }
+    
+    
+    /*
+     * Convert to public IDs on the way out
+     */
+    protected FeatureId toPublicID(int databaseID, FeatureId id)
+    {
+        if (id == null)
+            return null;
+        
+        long publicID = registry.getPublicID(databaseID, id.getInternalID());
+        return new FeatureId(publicID, id.getUniqueID());
+    }
+    
+    
+    /*
+     * Convert to public keys on the way out
+     */
+    protected FeatureKey toPublicKey(int databaseID, FeatureKey k)
+    {
+        long publicID = registry.getPublicID(databaseID, k.getInternalID());
+        return new FeatureKey(publicID, k.getValidStartTime());
+    }
+    
+    
+    /*
+     * Convert to public entries on the way out
+     */
+    protected Entry<FeatureKey, T> toPublicEntry(int databaseID, Entry<FeatureKey, T> e)
+    {
+        return new AbstractMap.SimpleEntry<>(
+            toPublicKey(databaseID, e.getKey()),
+            e.getValue());
     }
     
     
