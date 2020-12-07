@@ -263,7 +263,7 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsStream(MVObsSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean currentTimeOnly)
+    Stream<Entry<BigInteger, IObsData>> getObsStream(MVObsSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean currentTimeOnly, boolean latestResultOnly)
     {
         // if series is a special case where all obs have resultTime = phenomenonTime
         if (series.key.resultTime == Instant.MIN)
@@ -273,6 +273,17 @@ public class MVObsStoreImpl implements IObsStore
             if (currentTimeOnly)
             {
                 MVObsKey maxKey = new MVObsKey(series.id, Instant.now());      
+                Entry<MVObsKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
+                if (e.getKey().seriesID == series.id)
+                    return Stream.of(mapToPublicEntry(e));
+                else
+                    return Stream.empty();
+            }
+            
+            // if request if for latest result only, get only the latest obs in series
+            if (latestResultOnly)
+            {
+                MVObsKey maxKey = new MVObsKey(series.id, Instant.MAX);      
                 Entry<MVObsKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
                 if (e.getKey().seriesID == series.id)
                     return Stream.of(mapToPublicEntry(e));
@@ -419,7 +430,8 @@ public class MVObsStoreImpl implements IObsStore
                 Stream<Entry<BigInteger, IObsData>> obsStream = getObsStream(series, 
                     resultTimeFilter,
                     phenomenonTimeFilter,
-                    currentTimeOnly);
+                    currentTimeOnly,
+                    latestResultOnly);
                 return getPostFilteredResultStream(obsStream, filter);
             })
             .spliterator());        
