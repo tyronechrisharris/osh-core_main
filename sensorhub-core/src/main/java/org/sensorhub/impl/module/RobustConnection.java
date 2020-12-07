@@ -15,6 +15,8 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.module;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.common.SensorHubException;
 
@@ -65,7 +67,7 @@ public abstract class RobustConnection
     
     
     /**
-     * Waits until the client is connected<br/>
+     * Attempts to connect and waits until the connection is established.<br/>
      * If connection is detected by another thread, this method can also be notified
      * by calling stateLock.notify()
      * @throws SensorHubException on error preventing further attempts or max number of attempts reached
@@ -139,6 +141,21 @@ public abstract class RobustConnection
                 waitThread = null;
             }
         }
+    }
+    
+    
+    /**
+     * Asynchronous flavor of {@link #waitForConnection()}.<br/>
+     * Any exception thrown will be wrapped into a CompletionException
+     * @return A future that will be completed when the connection has been successfully established
+     * (which can be after several retries)
+     */
+    public CompletableFuture<Boolean> waitForConnectionAsync()
+    {
+        return CompletableFuture.supplyAsync(() -> {
+            try { return tryConnect(); }
+            catch (Exception e) {throw new CompletionException(e); }
+        });
     }
     
     
