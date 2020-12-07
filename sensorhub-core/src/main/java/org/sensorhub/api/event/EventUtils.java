@@ -14,7 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
+import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.event.EventSourceInfo;
+import org.vast.util.Asserts;
 
 public class EventUtils
 {
@@ -28,19 +30,24 @@ public class EventUtils
     
     public static final String getProcedureSourceID(String procedureUID)
     {
+        OshAsserts.checkValidUID(procedureUID);
         return procedureUID + PROCEDURE_MAIN_CHANNEL;
     }
     
     
     public static final String getProcedureOutputSourceID(String procedureUID, String outputName)
     {
+        OshAsserts.checkValidUID(procedureUID);
+        Asserts.checkNotNullOrEmpty(outputName, "outputName");
         return procedureUID + PROCEDURE_OUTPUT_CHANNELS + outputName;
     }
     
     
-    public static final String getProcedureControlSourceID(String procedureUID, String outputName)
+    public static final String getProcedureControlSourceID(String procedureUID, String commandName)
     {
-        return procedureUID + PROCEDURE_CONTROL_CHANNELS + outputName;
+        OshAsserts.checkValidUID(procedureUID);
+        Asserts.checkNotNullOrEmpty(commandName, "commandName");
+        return procedureUID + PROCEDURE_CONTROL_CHANNELS + commandName;
     }
     
     
