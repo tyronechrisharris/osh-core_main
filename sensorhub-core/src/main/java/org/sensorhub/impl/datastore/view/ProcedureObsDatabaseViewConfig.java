@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore.view;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 
@@ -46,10 +47,20 @@ public class ProcedureObsDatabaseViewConfig
         var srcDatabase = sourceDatabaseId != null ?
             hub.getDatabaseRegistry().getObsDatabase(sourceDatabaseId) :
             hub.getDatabaseRegistry().getFederatedObsDatabase();
+            
+        if (includeFilter == null)
+            return srcDatabase;
         
         if (includeFilter instanceof ObsFilter)
         {
             return new ProcedureObsDatabaseView(srcDatabase, (ObsFilter)includeFilter);
+        }
+        else if (includeFilter instanceof DataStreamFilter)
+        {
+            var obsFilter = new ObsFilter.Builder()
+                .withDataStreams((DataStreamFilter)includeFilter)
+                .build();
+            return new ProcedureObsDatabaseView(srcDatabase, obsFilter);
         }
         else if (includeFilter instanceof ProcedureFilter)
         {
@@ -59,7 +70,7 @@ public class ProcedureObsDatabaseViewConfig
             return new ProcedureObsDatabaseView(srcDatabase, obsFilter);
         }
         else
-            return srcDatabase;
+            throw new IllegalStateException("Invalid filtered view configuration");
     }
            
 }
