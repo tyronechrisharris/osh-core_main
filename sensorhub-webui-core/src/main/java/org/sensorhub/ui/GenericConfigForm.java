@@ -824,7 +824,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         listBox.setBuffered(true);
         listBox.setNullSelectionAllowed(false);
         listBox.setDescription(prop.getDescription());
-        listBox.setWidth(250, Unit.PIXELS);
+        //listBox.setWidth(250, Unit.PIXELS);
         listBox.setRows(Math.max(2, Math.min(5, container.size())));
         
         return new FieldWrapper<Object>(listBox) {

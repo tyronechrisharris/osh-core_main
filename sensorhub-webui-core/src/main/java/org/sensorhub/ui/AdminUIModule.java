@@ -23,6 +23,7 @@ import org.sensorhub.api.comm.CommProviderConfig;
 import org.sensorhub.api.comm.NetworkConfig;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent;
@@ -119,7 +120,8 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             
             // load default panel builders
             customPanels.put(SensorConfig.class.getCanonicalName(), SensorAdminPanel.class);
-            customPanels.put(ProcessConfig.class.getCanonicalName(), ProcessAdminPanel.class);        
+            customPanels.put(ProcessConfig.class.getCanonicalName(), ProcessAdminPanel.class);
+            customPanels.put(DatabaseConfig.class.getCanonicalName(), DatabaseAdminPanel.class);
             customPanels.put(NetworkConfig.class.getCanonicalName(), NetworkAdminPanel.class);
             customPanels.put(SOSServiceConfig.class.getCanonicalName(), SOSAdminPanel.class);
             

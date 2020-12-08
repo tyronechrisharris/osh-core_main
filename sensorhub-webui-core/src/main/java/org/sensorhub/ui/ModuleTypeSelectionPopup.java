@@ -189,6 +189,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         {
             // add clear button
             Button clearButton = new Button("Select None");
+            clearButton.addStyleName(UIConstants.STYLE_SMALL);
             clearButton.addClickListener(new Button.ClickListener() {
                 private static final long serialVersionUID = 1L;
                 
