@@ -113,4 +113,18 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfi
     {        
     }
 
+
+    @Override
+    public boolean isOpen()
+    {
+        return true;
+    }
+
+
+    @Override
+    public boolean isReadOnly()
+    {
+        return false;
+    }
+
 }

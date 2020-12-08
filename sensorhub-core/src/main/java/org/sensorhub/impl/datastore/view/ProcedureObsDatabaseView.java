@@ -21,6 +21,7 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
+import org.vast.util.Asserts;
 
 
 public class ProcedureObsDatabaseView implements IProcedureObsDatabase
@@ -33,7 +34,7 @@ public class ProcedureObsDatabaseView implements IProcedureObsDatabase
     
     public ProcedureObsDatabaseView(IProcedureObsDatabase delegate, ObsFilter obsFilter)
     {
-        this.delegate = delegate;
+        this.delegate = Asserts.checkNotNull(delegate, IProcedureObsDatabase.class);
         this.procStoreView = new ProcedureStoreView(delegate.getProcedureStore(), 
             obsFilter.getDataStreamFilter() != null ? obsFilter.getDataStreamFilter().getProcedureFilter() : null);
         this.foiStoreView = new FoiStoreView(delegate.getFoiStore(), obsFilter.getFoiFilter());
@@ -82,6 +83,20 @@ public class ProcedureObsDatabaseView implements IProcedureObsDatabase
     public void commit()
     {
         throw new UnsupportedOperationException(ReadOnlyDataStore.READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public boolean isOpen()
+    {
+        return delegate.isOpen();
+    }
+
+
+    @Override
+    public boolean isReadOnly()
+    {
+        return true;
     }
 
 }

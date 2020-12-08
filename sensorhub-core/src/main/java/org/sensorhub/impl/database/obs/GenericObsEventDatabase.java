@@ -671,4 +671,11 @@ public class GenericObsEventDatabase extends AbstractModule<GenericObsEventDatab
     {
         return db != null && db.isOpen();
     }
+
+
+    @Override
+    public boolean isReadOnly()
+    {
+        return db.isReadOnly();
+    }
 }

@@ -77,4 +77,18 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     {
         throw new UnsupportedOperationException("This method should not be called on the federated database");
     }
+
+
+    @Override
+    public boolean isOpen()
+    {
+        return true;
+    }
+
+
+    @Override
+    public boolean isReadOnly()
+    {
+        return true;
+    }
 }

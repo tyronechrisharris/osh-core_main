@@ -43,7 +43,7 @@ public interface IDatabase
      * @return The result of the transaction
      * @throws Exception Any exception thrown by the callable itself
      */
-    public <T> T executeTransaction(Callable<T> transaction) throws Exception;
+    <T> T executeTransaction(Callable<T> transaction) throws Exception;
     
     
     /**
@@ -56,16 +56,12 @@ public interface IDatabase
     /**
      * @return True if the database is open, false otherwise
      */
-    public boolean isOpen();
+    boolean isOpen();
     
     
     /**
      * @return True if the database is open as read-only, false otherwise
      */
-    default boolean isReadOnly()
-    {
-        return true;
-    }
-    
+    boolean isReadOnly();    
     
 }
