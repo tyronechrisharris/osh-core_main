@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.service.sos.SOSService;
 import org.sensorhub.ui.api.IModuleAdminPanel;
@@ -25,7 +27,6 @@ import org.vast.ows.sos.SOSServiceCapabilities;
 import com.vaadin.v7.data.Property;
 import com.vaadin.server.ExternalResource;
 import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.ui.ComponentContainer;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Link;
@@ -97,13 +98,25 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
             
             VerticalLayout parent = new VerticalLayout();
             configTabs.addTab(parent, "Test Links");
-            
-            // link to capabilities
+            LinkItem linkItem;
             baseUrl += "?service=SOS&version=2.0&request=";
+            
+            VerticalLayout topLevelLinks = new VerticalLayout();
+            topLevelLinks.setSpacing(false);
+            topLevelLinks.setMargin(false);
+            parent.addComponent(topLevelLinks);
+            
+            // link to capabilities            
             String href = baseUrl + "GetCapabilities";
-            Link link = new Link("Service Capabilities", new ExternalResource(href), LINK_TARGET, 0, 0, null);
-            link.setWidthUndefined();
-            parent.addComponent(link);
+            linkItem = new LinkItem("Service Capabilities", "XML", href);
+            topLevelLinks.addComponent(linkItem);
+            
+            // all fois
+            href = baseUrl + "GetFeatureOfInterest";
+            linkItem = new LinkItem("All Features of Interest", "XML", href);
+            href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
+            linkItem.addLinkItem("JSON", href);
+            topLevelLinks.addComponent(linkItem);
             
             // offering links in tabs
             TabSheet linkTabs = new TabSheet();
@@ -116,7 +129,7 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                 tabLayout.setSpacing(false);
                 Tab tab = linkTabs.addTab(tabLayout, offering.getTitle());
                 tab.setDescription(offering.getDescription());
-                LinkItem linkItem;
+                
                 
                 // sensor description
                 href = baseUrl + "DescribeSensor&procedure=" + offering.getMainProcedure();
@@ -128,8 +141,8 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                 // fois
                 href = baseUrl + "GetFeatureOfInterest&procedure=" + offering.getMainProcedure();
                 linkItem = new LinkItem("Features of Interest", "XML", href);
-                //href += "&procedureDescriptionFormat=" + SOSOfferingCapabilities.FORMAT_SML2_JSON;
-                //linkItem.addLinkItem("JSON", href);
+                href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
+                linkItem.addLinkItem("JSON", href);
                 tabLayout.addComponent(linkItem);
                 
                 for (String obs: offering.getObservableProperties())
@@ -155,6 +168,22 @@ public class SOSAdminPanel extends DefaultModulePanel<SOSService> implements IMo
                     href = baseUrl + "GetResult&offering=" + offering.getIdentifier() + "&observedProperty=" + obs +
                                      "&temporalFilter=phenomenonTime,now";
                     linkItem = new LinkItem("Latest Measurements", "RAW", href);
+                    href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
+                    linkItem.addLinkItem("JSON", href);
+                    tabLayout.addComponent(linkItem);
+                    
+                    // live feed
+                    href = baseUrl + "GetResult&offering=" + offering.getIdentifier() + "&observedProperty=" + obs +
+                                     "&temporalFilter=phenomenonTime,now/" + Instant.now().plus(1, ChronoUnit.HOURS);
+                    linkItem = new LinkItem("Live Feed", "RAW", href);
+                    href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
+                    linkItem.addLinkItem("JSON", href);
+                    tabLayout.addComponent(linkItem);
+                    
+                    // historical data
+                    href = baseUrl + "GetResult&offering=" + offering.getIdentifier() + "&observedProperty=" + obs +
+                                     "&temporalFilter=phenomenonTime," + Instant.now().minus(1, ChronoUnit.MINUTES) + "/now";
+                    linkItem = new LinkItem("Historical Data", "RAW", href);
                     href += "&responseFormat=" + OWSUtils.JSON_MIME_TYPE;
                     linkItem.addLinkItem("JSON", href);
                     tabLayout.addComponent(linkItem);
