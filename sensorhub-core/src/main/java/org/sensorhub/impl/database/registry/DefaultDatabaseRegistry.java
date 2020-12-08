@@ -134,11 +134,20 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         // case of database w/ event handler
         if (db instanceof IProcedureEventHandlerDatabase)
         {
-            if (db.isReadOnly())
-                throw new IllegalStateException("Cannot use a read-only database to collect procedure & obs data");
-            
-            for (var procUID: ((IProcedureEventHandlerDatabase) db).getHandledProcedures())
-                registerMapping(procUID, databaseID);
+            try
+            {
+                if (db.isReadOnly())
+                    throw new IllegalStateException("Cannot use a read-only database to collect procedure & obs data");
+                            
+                for (var procUID: ((IProcedureEventHandlerDatabase) db).getHandledProcedures())
+                    registerMapping(procUID, databaseID);
+            }
+            catch (IllegalStateException e)
+            {
+                // remove database if 2nd registration step failed
+                obsDatabases.remove(databaseID);
+                throw e;
+            }
         }
         
         return databaseID;
