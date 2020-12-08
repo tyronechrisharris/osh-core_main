@@ -142,6 +142,15 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
 
 
     @Override
+    public boolean isOpen()
+    {
+        return mvStore != null &&
+            !mvStore.isClosed() &&
+            isStarted();
+    }
+
+
+    @Override
     public boolean isReadOnly()
     {
         checkStarted();

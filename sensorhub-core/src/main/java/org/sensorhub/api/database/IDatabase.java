@@ -54,11 +54,18 @@ public interface IDatabase
     
     
     /**
-     * @return True if the database is read-only, false otherwise
+     * @return True if the database is open, false otherwise
+     */
+    public boolean isOpen();
+    
+    
+    /**
+     * @return True if the database is open as read-only, false otherwise
      */
     default boolean isReadOnly()
     {
-        return false;
+        return true;
     }
+    
     
 }

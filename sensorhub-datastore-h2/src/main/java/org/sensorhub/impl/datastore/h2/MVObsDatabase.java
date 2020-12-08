@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore.h2;
 import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -36,7 +37,7 @@ import org.sensorhub.utils.FileUtils;
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implements IProcedureObsDatabase
+public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implements IProcedureObsDatabase, IProcedureObsDatabaseModule<MVObsDatabaseConfig>
 {
     final static String PROCEDURE_STORE_NAME = "proc_store";
     final static String FOI_STORE_NAME = "foi_store";
@@ -177,6 +178,15 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
                 throw e;
             }
         }
+    }
+
+
+    @Override
+    public boolean isOpen()
+    {
+        return mvStore != null &&
+            !mvStore.isClosed() &&
+            isStarted();
     }
 
 

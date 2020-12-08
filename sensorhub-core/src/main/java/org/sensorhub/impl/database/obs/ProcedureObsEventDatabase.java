@@ -22,6 +22,7 @@ import java.util.concurrent.Callable;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -34,7 +35,8 @@ import org.sensorhub.impl.module.AbstractModule;
 import org.vast.util.Asserts;
 
 
-public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventDatabaseConfig> implements IProcedureEventHandlerDatabase
+public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventDatabaseConfig>
+    implements IProcedureEventHandlerDatabase, IProcedureObsDatabaseModule<ProcedureObsEventDatabaseConfig>
 {
     IProcedureObsDatabase db;
     long lastCommitTime = Long.MIN_VALUE;
@@ -154,6 +156,20 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     public void commit()
     {
         db.commit();
+    }
+
+
+    @Override
+    public boolean isOpen()
+    {
+        return db.isOpen();
+    }
+
+
+    @Override
+    public boolean isReadOnly()
+    {
+        return db.isReadOnly();
     }
 
 
