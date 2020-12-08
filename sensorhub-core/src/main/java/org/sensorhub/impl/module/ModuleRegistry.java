@@ -19,6 +19,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ServiceConfigurationError;
@@ -33,6 +34,7 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.event.IEventListener;
@@ -103,12 +105,21 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         var allModuleConfs = configRepo.getAllModulesConfigurations();
         
         // separate datastore/database modules from other modules
-        ArrayList<ModuleConfig> dataStoreConfs = new ArrayList<>();
-        ArrayList<ModuleConfig> otherModuleConfs = new ArrayList<>();
+        var dbIds = new HashSet<Integer>();
+        var dataStoreConfs = new ArrayList<ModuleConfig>();
+        var otherModuleConfs = new ArrayList<ModuleConfig>();
         for (ModuleConfig config: allModuleConfs)
         {
             try
             {
+                // check database ID is unique
+                if (config instanceof DatabaseConfig)
+                {
+                    var dbID = ((DatabaseConfig) config).databaseID;
+                    if (!dbIds.add(dbID))
+                        throw new IllegalStateException("Duplicate database ID #" + dbID + ". Check your configuration");
+                }
+                
                 if (isDataStoreModule(config) && config.autoStart)
                     dataStoreConfs.add(config);
                 else
