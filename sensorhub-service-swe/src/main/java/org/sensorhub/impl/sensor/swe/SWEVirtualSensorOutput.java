@@ -19,21 +19,27 @@ import net.opengis.swe.v20.ByteEncoding;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.impl.client.sos.SOSClient;
+import org.sensorhub.impl.client.sos.SOSClient.SOSRecordListener;
 import org.sensorhub.impl.sensor.VarRateSensorOutput;
+import org.vast.util.Asserts;
 
 
 public class SWEVirtualSensorOutput extends VarRateSensorOutput<SWEVirtualSensor>
 {
     DataComponent recordStructure;
     DataEncoding recordEncoding;
+    SOSClient sosClient;
     
     
-    public SWEVirtualSensorOutput(SWEVirtualSensor sensor, DataComponent recordStructure, DataEncoding recordEncoding)
+    public SWEVirtualSensorOutput(SWEVirtualSensor sensor, DataComponent recordStructure, DataEncoding recordEncoding, SOSClient sosClient)
     {
         super(recordStructure.getName(), sensor, 1.0);
-        this.recordStructure = recordStructure;
-        this.recordEncoding = recordEncoding;
+        this.recordStructure = Asserts.checkNotNull(recordStructure, DataComponent.class);
+        this.recordEncoding = Asserts.checkNotNull(recordEncoding, DataEncoding.class);
+        this.sosClient = Asserts.checkNotNull(sosClient, SOSClient.class);
         
         // force raw binary encoding (no reason to recommend base64)
         // switching to base64 is automatic when writing or parsing from XML
@@ -65,5 +71,23 @@ public class SWEVirtualSensorOutput extends VarRateSensorOutput<SWEVirtualSensor
         latestRecord = dataBlock;
         latestRecordTime = now;
         eventHandler.publish(new DataEvent(latestRecordTime, this, dataBlock));
+    }
+    
+    
+    public void start() throws SensorHubException
+    {
+        sosClient.startStream(new SOSRecordListener() {
+            @Override
+            public void newRecord(DataBlock data)
+            {
+                publishNewRecord(data);
+            }
+        });
+    }
+    
+    
+    public void stop()
+    {
+        sosClient.stopStream();
     }
 }

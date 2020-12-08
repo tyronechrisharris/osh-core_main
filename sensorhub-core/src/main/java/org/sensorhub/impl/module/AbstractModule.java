@@ -52,7 +52,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected ModuleSecurity securityHandler;
     protected final Object stateLock = new Object();
     protected boolean startRequested;
-    protected boolean startAsync;
+    protected boolean initAsync, startAsync, stopAsync;
     protected Throwable lastError;
     protected String statusMsg;
     
@@ -408,7 +408,8 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 beforeInit();
                 init();
                 afterInit();
-                setState(ModuleState.INITIALIZED);
+                if (!initAsync)
+                    setState(ModuleState.INITIALIZED);
             }
             catch (Exception e)
             {
@@ -572,7 +573,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 // make sure we reset to LOADED if we didn't initialize correctly
                 if (oldState == ModuleState.INITIALIZING)
                     setState(ModuleState.LOADED);
-                else
+                else if (!stopAsync)
                     setState(ModuleState.STOPPED);
             }
             catch (Exception e)
