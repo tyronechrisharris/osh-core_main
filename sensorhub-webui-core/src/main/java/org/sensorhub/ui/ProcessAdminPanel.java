@@ -16,6 +16,7 @@ package org.sensorhub.ui;
 
 import net.opengis.gml.v32.impl.ReferenceImpl;
 import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.sensorml.v20.AggregateProcess;
 import net.opengis.sensorml.v20.Link;
 import net.opengis.sensorml.v20.Settings;
 import net.opengis.sensorml.v20.SimpleProcess;
@@ -211,7 +212,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
     
     protected void saveProcessChain() throws ProcessingException
     {
-        AggregateProcessImpl processChain = null;
+        AggregateProcess processChain = null;
         
         try
         {
@@ -224,27 +225,35 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             
             // convert diagram state to SensorML process chain
             String uid = module.getUniqueIdentifier();
-            SMLHelper sml = SMLHelper.createAggregateProcess(uid);
-            processChain = (AggregateProcessImpl)sml.getDescription();
+            SMLHelper sml = new SMLHelper();
+                
+            processChain = sml.createAggregateProcess()
+                .uniqueID(uid)
+                .build();
             
             // data sources            
             for (ProcessBlock block: state.dataSources.values())
             {
-                SimpleProcess p = sml.newSimpleProcess();
-                p.setUniqueIdentifier(block.id);
-                p.setTypeOf(new ReferenceImpl(block.uri));
-                Settings settings = sml.newSettings();
+                SimpleProcess p = sml.createSimpleProcess()
+                    .uniqueID(block.id)
+                    .typeOf(block.uri)
+                    .build();
+                Settings settings = sml.getFactory().newSettings();
                 settings.addSetValue("parameters/"+StreamDataSource.PRODUCER_URI_PARAM, block.id);
                 p.setConfiguration(settings);
                 saveShape(block, p);
+                
                 processChain.addComponent(block.name, p);
             }
             
             // process blocks
             for (ProcessBlock block: state.processBlocks.values())
             {
-                SimpleProcess p = sml.newSimpleProcess();
-                p.setTypeOf(new ReferenceImpl(block.uri));
+                SimpleProcess p = sml.createSimpleProcess()
+                    .uniqueID(block.id)
+                    .typeOf(block.uri)
+                    .build();
+                
                 saveShape(block, p);
                 processChain.addComponent(block.name, p);                
                 processChain.addOutput("test", new SWEHelper().newQuantity());
@@ -253,7 +262,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             // connections
             for (Connection c: state.connections.values())
             {
-                Link link = sml.newLink();
+                Link link = sml.getFactory().newLink();
                 link.setSource(c.src);
                 link.setDestination(c.dest);
                 processChain.addConnection(link);
