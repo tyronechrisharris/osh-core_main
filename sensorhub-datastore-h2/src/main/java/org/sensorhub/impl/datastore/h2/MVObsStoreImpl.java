@@ -19,11 +19,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.AbstractSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -84,6 +86,30 @@ public class MVObsStoreImpl implements IObsStore
     
     protected IFoiStore foiStore;
     protected int maxSelectedSeriesOnJoin = 200;
+    
+    
+    static class TimeParams
+    {
+        Range<Instant> phenomenonTimeRange;
+        Range<Instant> resultTimeRange;
+        boolean currentTimeOnly;
+        boolean latestResultOnly;
+        
+        
+        TimeParams(ObsFilter filter)
+        {
+            // get phenomenon time range
+            phenomenonTimeRange = filter.getPhenomenonTime() != null ?
+                filter.getPhenomenonTime().getRange() : H2Utils.ALL_TIMES_RANGE;
+            
+            // get result time range
+            resultTimeRange = filter.getResultTime() != null ?
+                filter.getResultTime().getRange() : H2Utils.ALL_TIMES_RANGE;
+                
+            latestResultOnly = filter.getResultTime() != null && filter.getResultTime().isLatestTime();
+            currentTimeOnly = filter.getPhenomenonTime() != null && filter.getPhenomenonTime().isCurrentTime();
+        }
+    }
     
     
     private MVObsStoreImpl()
@@ -342,39 +368,20 @@ public class MVObsStoreImpl implements IObsStore
         BigInteger obsID = mapToPublicKey(internalEntry.getKey());
         return new DataUtils.MapEntry<>(obsID, internalEntry.getValue());
     }
-
-
-    @Override
-    public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
-    {        
-        // get phenomenon time filter
-        var phenomenonTimeFilter = filter.getPhenomenonTime() != null ?
-            filter.getPhenomenonTime().getRange() : H2Utils.ALL_TIMES_RANGE;
-        
-        // get result time filter
-        var resultTimeFilter = filter.getResultTime() != null ?
-            filter.getResultTime().getRange() : H2Utils.ALL_TIMES_RANGE;
-        boolean latestResultOnly = filter.getResultTime() != null && filter.getResultTime().isLatestTime();
-        boolean currentTimeOnly = filter.getPhenomenonTime() != null && filter.getPhenomenonTime().isCurrentTime();
-        
-        // stream obs directly in case of filtering by internal IDs
-        if (filter.getInternalIDs() != null)
-        {
-            var obsStream = filter.getInternalIDs().stream()
-                .map(k -> mapToInternalKey(k))
-                .map(k -> obsRecordsIndex.getEntry(k))
-                .map(e -> mapToPublicEntry(e));
-            
-            return getPostFilteredResultStream(obsStream, filter);
-        }
-        
+    
+    
+    /*
+     * Select all obs series matching the filter
+     */
+    protected Stream<MVObsSeriesInfo> selectObsSeries(ObsFilter filter, TimeParams timeParams)
+    {
         // otherwise prepare stream of matching obs series
         Stream<MVObsSeriesInfo> obsSeries = null;
         
         // if no datastream nor FOI filter used, scan all obs
         if (filter.getDataStreamFilter() == null && filter.getFoiFilter() == null)
         {
-            obsSeries = getAllObsSeries(resultTimeFilter);
+            obsSeries = getAllObsSeries(timeParams.resultTimeRange);
         }
         
         // only datastream filter used
@@ -382,7 +389,7 @@ public class MVObsStoreImpl implements IObsStore
         {
             // stream directly from list of selected datastreams
             obsSeries = DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
-                .flatMap(id -> getObsSeriesByDataStream(id, resultTimeFilter, latestResultOnly));
+                .flatMap(id -> getObsSeriesByDataStream(id, timeParams.resultTimeRange, timeParams.latestResultOnly));
         }
         
         // only FOI filter used
@@ -390,7 +397,7 @@ public class MVObsStoreImpl implements IObsStore
         {
             // stream directly from list of selected fois
             obsSeries = DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
-                .flatMap(id -> getObsSeriesByFoi(id, resultTimeFilter, latestResultOnly));
+                .flatMap(id -> getObsSeriesByFoi(id, timeParams.resultTimeRange, timeParams.latestResultOnly));
         }
         
         // both datastream and FOI filters used
@@ -402,7 +409,7 @@ public class MVObsStoreImpl implements IObsStore
                 .peek(s -> {
                     // make sure set size cannot go over a threshold
                     if (counter.incrementAndGet() >= 100*maxSelectedSeriesOnJoin)
-                        throw new IllegalStateException("Too many datastreams selected. Please refine your filter");                    
+                        throw new IllegalStateException("Too many datastreams selected. Please refine your filter");
                 })
                 .collect(Collectors.toSet());
 
@@ -412,10 +419,32 @@ public class MVObsStoreImpl implements IObsStore
             // stream from fois and filter on datastream IDs
             obsSeries = DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
                 .flatMap(id -> {
-                    return getObsSeriesByFoi(id, resultTimeFilter, latestResultOnly)
+                    return getObsSeriesByFoi(id, timeParams.resultTimeRange, timeParams.latestResultOnly)
                         .filter(s -> dataStreamIDs.contains(s.key.dataStreamID));
                 });
         }
+        
+        return obsSeries;
+    }
+
+
+    @Override
+    public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
+    {        
+        // stream obs directly in case of filtering by internal IDs
+        if (filter.getInternalIDs() != null)
+        {
+            var obsStream = filter.getInternalIDs().stream()
+                .map(k -> mapToInternalKey(k))
+                .map(k -> obsRecordsIndex.getEntry(k))
+                .map(e -> mapToPublicEntry(e));
+            
+            return getPostFilteredResultStream(obsStream, filter);
+        }
+        
+        // select obs series matching the filter
+        var timeParams = new TimeParams(filter);
+        var obsSeries = selectObsSeries(filter, timeParams);
         
         // create obs streams for each selected series
         // and keep all spliterators in array list
@@ -428,10 +457,10 @@ public class MVObsStoreImpl implements IObsStore
             })
             .flatMap(series -> {
                 Stream<Entry<BigInteger, IObsData>> obsStream = getObsStream(series, 
-                    resultTimeFilter,
-                    phenomenonTimeFilter,
-                    currentTimeOnly,
-                    latestResultOnly);
+                    timeParams.resultTimeRange,
+                    timeParams.phenomenonTimeRange,
+                    timeParams.currentTimeOnly,
+                    timeParams.latestResultOnly);
                 return getPostFilteredResultStream(obsStream, filter);
             })
             .spliterator());        
@@ -460,23 +489,16 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public Stream<Long> selectObservedFois(ObsFilter filter)
     {
-        // get phenomenon time filter
-        var phenomenonTimeFilter = filter.getPhenomenonTime() != null ?
-            filter.getPhenomenonTime().getRange() : H2Utils.ALL_TIMES_RANGE;
-            
-        // get result time filter
-        var resultTimeRange = filter.getResultTime() != null ?
-            filter.getResultTime().getRange() : H2Utils.ALL_TIMES_RANGE;
-        boolean latestResultOnly = filter.getResultTime() != null && filter.getResultTime().isLatestTime();
+        var timeParams = new TimeParams(filter);
         
         if (filter.getDataStreamFilter() != null)
         {
             return DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
                 .flatMap(dsID -> {
-                    return getObsSeriesByDataStream(dsID, resultTimeRange, latestResultOnly)
+                    return getObsSeriesByDataStream(dsID, timeParams.resultTimeRange, timeParams.latestResultOnly)
                         .filter(s -> {
                             var timeRange = getObsSeriesPhenomenonTimeRange(s.id);
-                            return timeRange.isConnected(phenomenonTimeFilter);
+                            return timeRange.isConnected(timeParams.phenomenonTimeRange);
                         })
                         .map(s -> s.key.foiID)
                         .distinct();
@@ -535,13 +557,86 @@ public class MVObsStoreImpl implements IObsStore
         MVObsKey lastKey = obsRecordsIndex.floorKey(new MVObsKey(seriesID, Instant.MAX));
         return Range.closed(firstKey.phenomenonTime, lastKey.phenomenonTime);
     }
+    
+    
+    long getObsSeriesCount(long seriesID, Range<Instant> phenomenonTimeRange)
+    {
+        MVObsKey firstKey = obsRecordsIndex.ceilingKey(new MVObsKey(seriesID, phenomenonTimeRange.lowerEndpoint()));
+        MVObsKey lastKey = obsRecordsIndex.floorKey(new MVObsKey(seriesID, phenomenonTimeRange.upperEndpoint()));
+        return obsRecordsIndex.getKeyIndex(lastKey) - obsRecordsIndex.getKeyIndex(firstKey);
+    }
+    
+    
+    int[] getObsSeriesHistogram(long seriesID, Range<Instant> phenomenonTimeRange, Duration binSize)
+    {
+        long start = phenomenonTimeRange.lowerEndpoint().getEpochSecond();
+        long end = phenomenonTimeRange.upperEndpoint().getEpochSecond();
+        long dt = binSize.getSeconds();
+        long t = start;
+        int numBins = (int)((end - start)/dt);
+        int[] counts = new int[numBins];
+        
+        for (int i = 0; i < counts.length; i++)
+        {
+            MVObsKey k1 = obsRecordsIndex.ceilingKey(new MVObsKey(seriesID, Instant.ofEpochSecond(t)));
+            t += dt;
+            MVObsKey k2 = obsRecordsIndex.floorKey(new MVObsKey(seriesID, Instant.ofEpochSecond(t)));
+            
+            if (k1 != null && k2 != null && k1.seriesID == seriesID && k2.seriesID == seriesID)
+            {
+                long idx1 = obsRecordsIndex.getKeyIndex(k1);
+                long idx2 = obsRecordsIndex.getKeyIndex(k2);
+                counts[i] = (int)Math.max(0, idx2-idx1);
+            }
+            else
+                counts[i] = 0;
+        }
+        
+        return counts;
+    }
 
 
     @Override
     public Stream<ObsStats> getStatistics(ObsStatsQuery query)
     {
-        // TODO Auto-generated method stub
-        return null;
+        var filter = query.getObsFilter();
+        var timeParams = new TimeParams(filter);
+        
+        /*if (query.isAggregateFois())
+        {
+            return null;
+        }
+        else*/
+        {
+            return selectObsSeries(filter, timeParams)
+                .map(series -> {
+                   var dsID = series.key.dataStreamID;
+                   
+                   var obsCount = getObsSeriesCount(series.id, timeParams.phenomenonTimeRange);
+                   var phenTimeRange = timeParams.phenomenonTimeRange;
+                   if (phenTimeRange.lowerEndpoint() == Instant.MIN || phenTimeRange.upperEndpoint() == Instant.MAX)
+                       phenTimeRange = getObsSeriesPhenomenonTimeRange(series.id);
+                   
+                   var resultTimeRange = series.key.resultTime != Instant.MIN ?
+                       Range.singleton(series.key.resultTime) : phenTimeRange;
+                       
+                   var obsStats = new ObsStats.Builder()
+                       .withDataStreamID(dsID)
+                       .withPhenomenonTimeRange(TimeExtent.period(phenTimeRange))
+                       .withResultTimeRange(TimeExtent.period(resultTimeRange))
+                       .withTotalObsCount(obsCount);
+                       
+                   // compute histogram
+                   if (query.getHistogramBinSize() != null)
+                   {
+                       obsStats.withObsCountByTime(getObsSeriesHistogram(series.id,
+                           phenTimeRange, query.getHistogramBinSize()));
+                   }
+                   
+                   return obsStats.build();
+                })
+                .filter(Objects::nonNull);
+        }
     }
 
 
@@ -684,7 +779,7 @@ public class MVObsStoreImpl implements IObsStore
                     obs.getFoiID() == null ? 0 : obs.getFoiID().getInternalID(),
                     obs.getResultTime().equals(obs.getPhenomenonTime()) ? Instant.MIN : obs.getResultTime());
                 
-                MVObsSeriesInfo series = obsSeriesMainIndex.computeIfAbsent(seriesKey, k -> {                    
+                MVObsSeriesInfo series = obsSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
                     // also update the FOI to procedure mapping if needed
                     if (obs.getFoiID() != null)
                         obsSeriesByFoiIndex.putIfAbsent(seriesKey, Boolean.TRUE);

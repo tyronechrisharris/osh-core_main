@@ -30,7 +30,7 @@ class MVObsSeriesKey
 {
     long dataStreamID;
     long foiID;
-    Instant resultTime;
+    Instant resultTime; // Instant.MIN if resultTime=phenomenonTime for all obs in series
     
     
     MVObsSeriesKey(long dataStreamID, long foiID, Instant resultTime)
