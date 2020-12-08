@@ -774,7 +774,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 getStateManager(moduleID).cleanup();
                 module.cleanup();
                 
-                if (module instanceof IProcedureDriver)
+                if (module.isInitialized() && module instanceof IProcedureDriver)
                     hub.getProcedureRegistry().unregister((IProcedureDriver)module);
             }
             
