@@ -23,15 +23,15 @@ import org.sensorhub.ui.data.BaseProperty;
 public class SOSConfigForm extends GenericConfigForm
 {
     protected static final String SOS_PACKAGE = "org.sensorhub.impl.service.sos.";
-    protected static final String PROP_DATAPROVIDERS = "dataProviders";
-    protected static final String PROP_DATACONSUMERS = "dataConsumers";
+    protected static final String PROP_DATAPROVIDERS = "customDataProviders";
     protected static final String PROP_ENDPOINT = "endPoint";
     
     
     @Override
     public boolean isFieldVisible(String propId)
     {
-        if (propId.equals(PROP_DATACONSUMERS))
+        // hide offeringID since we cannot configure it manually anymore
+        if (propId.equals("offeringID"))
             return false;
         
         return super.isFieldVisible(propId);
@@ -46,9 +46,9 @@ public class SOSConfigForm extends GenericConfigForm
             Map<String, Class<?>> classList = new LinkedHashMap<>();
             try
             {
-                classList.put("Sensor Data Source", Class.forName(SOS_PACKAGE + "SensorDataProviderConfig"));
-                classList.put("Stream Process Data Source", Class.forName(SOS_PACKAGE + "StreamProcessProviderConfig"));
-                classList.put("Storage Data Source", Class.forName(SOS_PACKAGE + "StorageDataProviderConfig"));                
+                classList.put("Streaming Data Source", Class.forName(SOS_PACKAGE + "ProcedureDataProviderConfig"));
+                classList.put("Historical Data Source", Class.forName(SOS_PACKAGE + "ProcedureDataProviderConfig"));
+                //classList.put("On-demand Data Source", Class.forName(SOS_PACKAGE + "ProcedureDataProviderConfig"));                
             }
             catch (ClassNotFoundException e)
             {
