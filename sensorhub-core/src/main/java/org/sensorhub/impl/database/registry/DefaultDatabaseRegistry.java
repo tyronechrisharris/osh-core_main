@@ -19,8 +19,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -59,7 +57,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     static final String END_PREFIX_CHAR = "\n";
     
     ISensorHub hub;
-    NavigableMap<String, Integer> obsDatabaseIDs;
+    MapWithWildcards<Integer> obsDatabaseIDs;
     Map<Integer, IProcedureObsDatabase> obsDatabases;
     FederatedObsDatabase globalObsDatabase;
     
@@ -185,29 +183,10 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     @Override
     public IProcedureObsDatabase getObsDatabase(String procUID)
     {
-        //Byte dbID = obsDatabaseIDs.get(procUID);
-        Entry<String, Integer> e = obsDatabaseIDs.floorEntry(procUID);
-        if (e == null)
-            return null;
-        
-        Integer dbID = null;
-        String key = e.getKey();
-        
-        // case of wildcard match
-        if (key.endsWith(END_PREFIX_CHAR))
-        {
-            String prefix = key.substring(0, key.length()-1);
-            if (procUID.startsWith(prefix))
-                dbID = e.getValue(); 
-        }
-        
-        // case of exact match
-        else if (key.equals(procUID))
-        {
-            dbID = e.getValue();
-        }
-        
-        return dbID == null ? obsDatabases.get(DEFAULT_DB_ID) : obsDatabases.get(dbID);
+        Integer dbID = obsDatabaseIDs.get(procUID);
+        if (dbID == null)
+            dbID = DEFAULT_DB_ID;
+        return obsDatabases.get(dbID);
     }
     
     
