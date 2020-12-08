@@ -64,7 +64,7 @@ public class SWECommonForm extends VerticalLayout
             l.addStyleName(UIConstants.STYLE_SMALL);
             l.setContentMode(ContentMode.HTML);
             l.setValue(getCaption(dataComponent, false));
-            l.setDescription(getTooltip(dataComponent));
+            l.setDescription(getTooltip(dataComponent), ContentMode.HTML);
             layout.addComponent(l);
             
             VerticalLayout form = new VerticalLayout();
@@ -87,12 +87,13 @@ public class SWECommonForm extends VerticalLayout
             DataArray dataArray = (DataArray)dataComponent;
             VerticalLayout layout = new VerticalLayout();
             layout.setMargin(false);
+            layout.setSpacing(addSpacing);
             
             Label l = new Label();
             l.addStyleName(UIConstants.STYLE_SMALL);
             l.setContentMode(ContentMode.HTML);
             l.setValue(getCaption(dataComponent, false));
-            l.setDescription(getTooltip(dataComponent));
+            l.setDescription(getTooltip(dataComponent), ContentMode.HTML);
             layout.addComponent(l);
             
             VerticalLayout form = new VerticalLayout();
@@ -109,12 +110,13 @@ public class SWECommonForm extends VerticalLayout
             DataChoice dataChoice = (DataChoice)dataComponent;
             VerticalLayout layout = new VerticalLayout();
             layout.setMargin(false);
+            layout.setSpacing(addSpacing);
             
             Label l = new Label();
             l.addStyleName(UIConstants.STYLE_SMALL);
             l.setContentMode(ContentMode.HTML);
             l.setValue(getCaption(dataChoice, false));
-            l.setDescription(getTooltip(dataChoice));
+            l.setDescription(getTooltip(dataChoice), ContentMode.HTML);
             layout.addComponent(l);
             
             VerticalLayout form = new VerticalLayout();
@@ -138,7 +140,7 @@ public class SWECommonForm extends VerticalLayout
             l.addStyleName(UIConstants.STYLE_SMALL);
             l.setContentMode(ContentMode.HTML);
             l.setValue(getCaption(dataComponent, showValues));
-            l.setDescription(getTooltip(dataComponent));
+            l.setDescription(getTooltip(dataComponent), ContentMode.HTML);
             return l;
         }
         
