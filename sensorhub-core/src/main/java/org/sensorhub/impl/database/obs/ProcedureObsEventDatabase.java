@@ -162,7 +162,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     @Override
     public boolean isOpen()
     {
-        return db.isOpen();
+        return db != null && db.isOpen();
     }
 
 
