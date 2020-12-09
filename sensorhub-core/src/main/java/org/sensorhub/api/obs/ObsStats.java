@@ -14,16 +14,12 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
-import java.time.Instant;
-import java.util.Collection;
-import java.util.SortedSet;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.Bbox;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Range;
+import org.vast.util.TimeExtent;
 
 
 /**
@@ -39,9 +35,8 @@ public class ObsStats
 {
     protected Long dataStreamID;
     protected FeatureId foiID;
-    protected Range<Instant> phenomenonTimeRange;
-    protected Range<Instant> resultTimeRange;
-    protected SortedSet<Instant> resultTimeSet; // computed if obs are grouped by discrete result times (e.g. model runs)
+    protected TimeExtent phenomenonTimeRange;
+    protected TimeExtent resultTimeRange;
     protected Bbox phenomenonBbox = null;
     protected long totalObsCount = 0;
     protected int[] obsCountsByTime = null;
@@ -78,7 +73,7 @@ public class ObsStats
     /**
      * @return The range of phenomenon times in this series
      */
-    public Range<Instant> getPhenomenonTimeRange()
+    public TimeExtent getPhenomenonTimeRange()
     {
         return phenomenonTimeRange;
     }
@@ -96,17 +91,11 @@ public class ObsStats
      * <li>A time instant is returned if all observation in the series share
      * the same result time (e.g. model run).</li>
      */
-    public Range<Instant> getResultTimeRange()
+    public TimeExtent getResultTimeRange()
     {
         if (resultTimeRange == null)
             return phenomenonTimeRange;
         return resultTimeRange;
-    }
-
-
-    public SortedSet<Instant> getResultTimeSet()
-    {
-        return resultTimeSet;
     }
 
 
@@ -179,7 +168,6 @@ public class ObsStats
             instance.totalObsCount = base.totalObsCount;
             instance.phenomenonTimeRange = base.phenomenonTimeRange;
             instance.resultTimeRange = base.resultTimeRange;
-            instance.resultTimeSet = base.resultTimeSet;
             instance.phenomenonBbox = base.phenomenonBbox;
             instance.obsCountsByTime = base.obsCountsByTime;
             return (B)this;
@@ -200,23 +188,16 @@ public class ObsStats
         }
 
 
-        public B withPhenomenonTimeRange(Range<Instant> timeRange)
+        public B withPhenomenonTimeRange(TimeExtent timeRange)
         {
             instance.phenomenonTimeRange = timeRange;
             return (B)this;
         }
 
 
-        public B withResultTimeRange(Range<Instant> timeRange)
+        public B withResultTimeRange(TimeExtent timeRange)
         {
             instance.resultTimeRange = timeRange;
-            return (B)this;
-        }
-
-
-        public B withResultTimes(Collection<Instant> resultTimes)
-        {
-            instance.resultTimeSet = ImmutableSortedSet.copyOf(resultTimes);
             return (B)this;
         }
 
@@ -228,7 +209,7 @@ public class ObsStats
         }
 
 
-        public B withTotalObsCount(int count)
+        public B withTotalObsCount(long count)
         {
             instance.totalObsCount = count;
             return (B)this;
