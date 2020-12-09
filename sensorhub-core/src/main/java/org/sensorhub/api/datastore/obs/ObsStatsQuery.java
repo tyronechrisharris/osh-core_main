@@ -14,10 +14,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.obs;
 
+import java.time.Duration;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
-import ch.qos.logback.core.util.Duration;
 
 
 /**
@@ -32,7 +32,7 @@ public class ObsStatsQuery implements IQueryFilter
 {
     protected ObsFilter obsFilter;
     protected boolean aggregateFois = true;
-    protected Duration histogramBinSize = Duration.buildByDays(1);
+    protected Duration histogramBinSize;
     protected long limit = Long.MAX_VALUE;
     
     
@@ -127,6 +127,13 @@ public class ObsStatsQuery implements IQueryFilter
                     return (B)ObsStatsQueryBuilder.this;
                 }                
             };
+        }
+        
+        
+        public B aggregateFois(boolean aggregate)
+        {
+            instance.aggregateFois = aggregate;
+            return (B)this;
         }
         
         
