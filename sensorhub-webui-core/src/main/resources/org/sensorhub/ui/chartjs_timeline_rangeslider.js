@@ -2,15 +2,18 @@ var config = {
   type: 'line',
   data: {
     datasets: [{
-      backgroundColor: '#197de1aa',
-      borderColor: '#197de1aa',
+      //backgroundColor: '#197de1aa',
+      backgroundColor: '#ccccccaa',
+      //borderColor: '#197de1aa',
+      borderColor: '#222222aa',
       data: data,
-      type: 'line',
-      pointRadius: 0,
+      type: 'bar',
+      //pointRadius: 0,
       fill: false,
-      lineTension: 0.5,
+      //lineTension: 0.5,
       //steppedLine: 'middle',
-      borderWidth: 2
+      //borderWidth: 2
+      borderWidth: 1
     }]
   },
   options: {
@@ -28,7 +31,7 @@ var config = {
         //offset: true,
         time: {
             displayFormats: {
-                hour: 'h:mm a'
+                hour: 'hh:mm'
             }
         },
         distribution: 'linear',
@@ -46,11 +49,12 @@ var config = {
           }
         },
         gridLines: {
-          display: false,
+          display: true,
           tickMarkLength: 8
         }
       }],
       yAxes: [{
+        bounds: 'data',
         display: false,
         ticks: {
           beginAtZero: true

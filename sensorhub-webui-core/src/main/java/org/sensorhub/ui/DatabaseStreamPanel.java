@@ -34,12 +34,19 @@ import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.chartjs.Chart;
 import org.sensorhub.ui.chartjs.Chart.SliderChangeListener;
+import org.sensorhub.ui.table.PagedTableControls;
+import org.sensorhub.ui.table.LazyLoadingObsContainer;
+import org.sensorhub.ui.table.PagedTable;
+import org.sensorhub.ui.table.PagedTable.PageChangeListener;
+import org.sensorhub.ui.table.PagedTable.PagedTableChangeEvent;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.DateTimeFormat;
 import org.vast.util.TimeExtent;
 import com.google.common.io.Resources;
 import com.vaadin.v7.data.Item;
+import com.vaadin.v7.data.util.IndexedContainer;
 import com.vaadin.v7.data.util.converter.Converter;
+import com.vaadin.v7.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.shared.ui.ContentMode;
@@ -79,13 +86,13 @@ public class DatabaseStreamPanel extends VerticalLayout
     
     Chart detailChart;
     Chart navigatorChart;
-    Table table;
+    PagedTable table;
     
     IProcedureObsDatabase db;
     long dataStreamID;
     TimeExtent fullTimeRange;
     TimeExtent timeRange;
-    Set<String> producerIDs = null;
+    LazyLoadingObsContainer obsDataContainer;
         
     
     public DatabaseStreamPanel(IProcedureObsDatabase db, IDataStreamInfo dsInfo, long dataStreamID)
@@ -409,44 +416,51 @@ public class DatabaseStreamPanel extends VerticalLayout
     
     protected void updateTable()
     {
-        List<ScalarIndexer> indexers = (List<ScalarIndexer>)table.getData();
-        table.removeAllItems();
-        
-        AtomicInteger count = new AtomicInteger();
-        db.getObservationStore().select(new ObsFilter.Builder()
-                .withDataStreams(dataStreamID)
-                .withPhenomenonTime().fromTimeExtent(timeRange).done()
-                .build())
-            .forEach(obs -> {
-                var dataBlk = obs.getResult();
-                Item item = table.addItem(count.incrementAndGet());
-                int i = 0;
-                for (Object colId: table.getContainerPropertyIds())
-                {
-                    String value = indexers.get(i).getStringValue(dataBlk);
-                    item.getItemProperty(colId).setValue(value);
-                    i++;
-                } 
-            });
+        obsDataContainer.updateTimeRange(timeRange);
+        table.setContainerDataSource(obsDataContainer);
+        table.setCurrentPage(1);
     }
     
     
     protected Component buildTable(IDataStreamInfo dsInfo)
     {
-        table = new Table();
+        VerticalLayout tableLayout = new VerticalLayout();
+        tableLayout.setMargin(false);
+        tableLayout.setSpacing(true);
+        
+        table = new PagedTable();
         table.setWidth(100, Unit.PERCENTAGE);
         table.setPageLength(10);
+        tableLayout.addComponent(table);
         
-        // add column names
+        PagedTableControls controls = table.createControls();
+        controls.getItemsPerPageLabel().setValue("Items");
+        controls.getBtnFirst().setCaption("First");
+        controls.getBtnLast().setCaption("Last");
+        controls.getBtnNext().setCaption("Next");
+        controls.getBtnPrevious().setCaption("Previous");
+        //controls.getPageLabel().setValue("Current:");
+        tableLayout.addComponent(controls);
+        
+        // add custom container for lazy loading from DB
         List<ScalarIndexer> indexers = new ArrayList<>();
+        obsDataContainer = new LazyLoadingObsContainer(db, dataStreamID, indexers);
+        obsDataContainer.updateTimeRange(timeRange);
+        table.setContainerDataSource(obsDataContainer);
+        table.addListener(new PageChangeListener() {
+            @Override
+            public void pageChanged(PagedTableChangeEvent event)
+            {
+                obsDataContainer.onPageChanged();
+            }            
+        });
+        
+        // add column names and indexers 
         DataComponent recordDef = dsInfo.getRecordStructure();
         addColumns(recordDef, recordDef, table, indexers);
-        table.setData(indexers);
         
-        // populate table data
         updateTable();
-        
-        return table;
+        return tableLayout;
     }
     
     
