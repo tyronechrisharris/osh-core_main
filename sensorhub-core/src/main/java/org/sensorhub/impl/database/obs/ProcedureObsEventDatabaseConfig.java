@@ -17,6 +17,8 @@ package org.sensorhub.impl.database.obs;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.FieldType;
+import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.database.DatabaseConfig;
 
@@ -38,12 +40,9 @@ public class ProcedureObsEventDatabaseConfig extends DatabaseConfig
     
     
     @Required
-    @DisplayInfo(label="Procedure UIDs", desc="Unique IDs of streaming data sources whose data will be stored")
+    @FieldType(Type.PROCEDURE_UID)
+    @DisplayInfo(label="Procedure UIDs", desc="Unique IDs of streaming data sources managed by this database")
     public Set<String> procedureUIDs = new TreeSet<>();
-    
-    
-    //@DisplayInfo(desc="Names of data source outputs that should not be saved to storage")
-    //public List<String> excludedOutputs = new ArrayList<>();
     
     
     @DisplayInfo(label="Automatic Purge Policy", desc="Policy for automatically purging historical data")
