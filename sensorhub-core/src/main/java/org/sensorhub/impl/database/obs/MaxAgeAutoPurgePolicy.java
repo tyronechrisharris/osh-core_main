@@ -15,6 +15,12 @@ Copyright (C) 2012-2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.database.obs;
 
 import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
+import org.sensorhub.api.datastore.RangeFilter.RangeOp;
+import org.sensorhub.api.datastore.TemporalFilter;
+import org.sensorhub.api.datastore.feature.FoiFilter;
+import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import java.time.Instant;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.slf4j.Logger;
 import org.vast.util.DateTimeFormat;
@@ -34,6 +40,7 @@ public class MaxAgeAutoPurgePolicy implements IProcedureObsDbAutoPurgePolicy
     MaxAgeAutoPurgeConfig config;
     DateTimeFormat df = new DateTimeFormat();
     
+    
     MaxAgeAutoPurgePolicy(MaxAgeAutoPurgeConfig config)
     {
         this.config = config;
@@ -43,46 +50,30 @@ public class MaxAgeAutoPurgePolicy implements IProcedureObsDbAutoPurgePolicy
     @Override
     public int trimStorage(IProcedureObsDatabase db, Logger log)
     {
-        return 0;
-        /*int numDeletedRecords = 0;
+        var oldestRecordTime = Instant.now().minusSeconds((long)config.maxRecordAge);
         
-        for (IRecordStoreInfo streamInfo: storage.getRecordStores().values())
-        {
-            double[] timeRange = storage.getRecordsTimeRange(streamInfo.getName());
-            double beginTime = timeRange[0];
-            double endTime = timeRange[1];
-            
-            if (beginTime < endTime - config.maxRecordAge)
-            {
-                final double[] obsoleteTimeRange = new double[] {beginTime, endTime - config.maxRecordAge};
-                
-                if (log.isInfoEnabled())
-                {
-                    log.info("Purging {} data for period {}/{}",
-                             streamInfo.getName(),
-                             df.formatIso(obsoleteTimeRange[0], 0),
-                             df.formatIso(obsoleteTimeRange[1], 0));
-                }
-
-                // remove records
-                numDeletedRecords += storage.removeRecords(new DataFilter(streamInfo.getName())
-                {
-                    @Override
-                    public double[] getTimeStampRange()
-                    {
-                        return obsoleteTimeRange;
-                    }                    
-                });
-                
-                log.info("{} records deleted", numDeletedRecords);
-                
-                // remove data source descriptions
-                storage.removeDataSourceDescriptionHistory(obsoleteTimeRange[0], obsoleteTimeRange[1]);
-            }
-        }        
+        db.getProcedureStore().removeEntries(new ProcedureFilter.Builder()
+            .withValidTime(new TemporalFilter.Builder()
+                .withOperator(RangeOp.CONTAINS)
+                .withRange(Instant.MIN, oldestRecordTime)
+                .build())
+            .build());
         
-        storage.commit();
-        return numDeletedRecords;*/
+        db.getFoiStore().removeEntries(new FoiFilter.Builder()
+            .withValidTime(new TemporalFilter.Builder()
+                .withOperator(RangeOp.CONTAINS)
+                .withRange(Instant.MIN, oldestRecordTime)
+                .build())
+            .build());
+                
+        var numObsRemoved = (int)db.getObservationStore().removeEntries(new ObsFilter.Builder()
+            .withResultTimeDuring(Instant.MIN, oldestRecordTime)
+            .build());
+                
+        if (log.isInfoEnabled())
+            log.info("Purging data up to {}. Removed {} observation records", oldestRecordTime, numObsRemoved);
+        
+        return numObsRemoved;
     }
 
 }

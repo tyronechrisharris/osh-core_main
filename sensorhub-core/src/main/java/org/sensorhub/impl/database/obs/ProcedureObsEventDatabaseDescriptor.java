@@ -25,14 +25,14 @@ public class ProcedureObsEventDatabaseDescriptor extends JarModuleProvider imple
     @Override
     public String getModuleName()
     {
-        return "Generic Observation Event Database";
+        return "Real-Time Observation Database";
     }
     
 
     @Override
     public String getModuleDescription()
     {
-        return "Generic database that records all observation events from the selected procedures";
+        return "Generic database that records all procedure and observation events to the configured database";
     }
     
 

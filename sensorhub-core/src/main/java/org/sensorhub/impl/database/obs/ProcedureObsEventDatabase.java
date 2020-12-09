@@ -84,7 +84,8 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             TimerTask task = new TimerTask() {
                 public void run()
                 {
-                    policy.trimStorage(db, logger);
+                    if (!db.isReadOnly())
+                        policy.trimStorage(db, logger);
                 }
             };
             
@@ -98,6 +99,14 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     {
         if (hasParentHub() && config.databaseID > 0)
             getParentHub().getDatabaseRegistry().register(this);
+    }
+    
+    
+    @Override
+    protected void beforeStop()
+    {
+        if (hasParentHub() && config.databaseID > 0)
+            getParentHub().getDatabaseRegistry().unregister(this);
     }
     
     
