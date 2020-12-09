@@ -15,24 +15,16 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.ui;
 
 import java.util.ArrayList;
-import java.util.List;
-import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
-import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.MyBeanItem;
-import org.vast.swe.ScalarIndexer;
 import com.vaadin.server.FontAwesome;
-import com.vaadin.server.Sizeable.Unit;
 import com.vaadin.ui.Alignment;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Button.ClickEvent;
-import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.v7.data.Item;
 import com.vaadin.v7.data.Property.ValueChangeEvent;
 import com.vaadin.v7.data.Property.ValueChangeListener;
@@ -40,11 +32,9 @@ import com.vaadin.v7.event.ItemClickEvent;
 import com.vaadin.v7.event.ItemClickEvent.ItemClickListener;
 import com.vaadin.v7.ui.Table;
 import com.vaadin.v7.ui.TextField;
-import net.opengis.swe.v20.DataComponent;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
-import com.vaadin.ui.Panel;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.VerticalLayout;
 
@@ -93,23 +83,6 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
             titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
-            
-            /*// refresh button to show latest record
-            Button refreshButton = new Button("Refresh");
-            refreshButton.setDescription("Reload data from database");
-            refreshButton.setIcon(REFRESH_ICON);
-            refreshButton.addStyleName(STYLE_SMALL);
-            refreshButton.addStyleName(STYLE_QUIET);
-            titleBar.addComponent(refreshButton);
-            titleBar.setComponentAlignment(refreshButton, Alignment.MIDDLE_LEFT);
-            refreshButton.addClickListener(new ClickListener() {
-                private static final long serialVersionUID = 1L;
-                @Override
-                public void buttonClick(ClickEvent event)
-                {
-                    buildDataPanel(form, db);
-                }
-            });*/
                     
             layout.addComponent(titleBar);
             buildProcedureSelectionPanel(db);
@@ -218,26 +191,17 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
     
     protected void showProcedureData(final IProcedureObsDatabase db, String procUID)
     {
-        // show in tabs
+        // remove previous tabs
         dataStreamTabs.removeAllComponents();
-                
-        /*// remove previous panels
-        var it = layout.getComponentIterator();
-        for (int i=0; i<layout.getComponentCount(); i++)
-        {
-            var comp = layout.getComponent(i);
-            if (comp instanceof StorageStreamPanel)
-                layout.removeComponent(comp);
-        */
         
+        // show in tabs
         db.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
                 .withProcedures().withUniqueIDs(procUID).done()
                 .build())
             .forEach(dsEntry -> {
                 var dsID = dsEntry.getKey().getInternalID();
                 var dsInfo = dsEntry.getValue();
-                var dsPanel = new DatabaseDataStreamPanel(db, dsInfo, dsID);
-                //layout.addComponent(dsPanel);                
+                var dsPanel = new DatabaseStreamPanel(db, dsInfo, dsID);
                 dataStreamTabs.addTab(dsPanel, dsPanel.getCaption(), FontAwesome.DATABASE);
             });
     }
