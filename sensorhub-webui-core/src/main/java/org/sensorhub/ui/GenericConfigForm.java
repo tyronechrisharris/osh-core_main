@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.comm.ICommNetwork;
 import org.sensorhub.api.comm.ICommNetwork.NetworkType;
@@ -377,6 +378,10 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         field = makeModuleSelectField((Field<Object>)field, moduleClass);
                         break;
                         
+                    case PROCEDURE_UID:
+                        field = makeProcedureSelectField((Field<Object>)field);
+                        break;
+                        
                     case REMOTE_ADDRESS:
                         NetworkType addressType = advProp.getAddressType();
                         if (addressType == null)
@@ -411,6 +416,13 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         }
         
         return field;
+    }
+    
+    
+    @SuppressWarnings("rawtypes")
+    protected Field<Object> makeProcedureSelectField(Field<Object> field)
+    {
+        return null;
     }
     
     
@@ -783,7 +795,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         // use simple list for string lists
         if (!(prop instanceof MapProperty) && BeanUtils.isSimpleType(eltType))
         {
-            Component list = buildSimpleList((String)propId, prop, eltType);
+            Component list = (prop.getFieldType() == Type.PROCEDURE_UID) ?
+                buildProcedureList((String)propId, prop) :
+                buildSimpleList((String)propId, prop, eltType);
             if (list == null)
                 return;
             fieldGroup.bind((Field<?>)list, propId);
@@ -810,7 +824,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
-    protected Component buildSimpleList(final String propId, final ContainerProperty prop, final Class<?> eltType)
+    protected Component buildSimpleList(final String propId, final ContainerProperty prop, final Class<?> eltType, final Consumer<ValueCallback> valueProvider)
     {
         String label = prop.getLabel();
         if (label == null)
@@ -825,6 +839,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         listBox.setNullSelectionAllowed(false);
         listBox.setDescription(prop.getDescription());
         //listBox.setWidth(250, Unit.PIXELS);
+        listBox.addStyleName(UIConstants.STYLE_SMALL);
         listBox.setRows(Math.max(2, Math.min(5, container.size())));
         
         return new FieldWrapper<Object>(listBox) {
@@ -852,8 +867,6 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     @Override
                     public void buttonClick(ClickEvent event)
                     {
-                        List<Object> valueList = GenericConfigForm.this.getPossibleValues(propId);
-                        
                         // create callback to add new value
                         ValueCallback callback = new ValueCallback() {
                             @Override
@@ -864,15 +877,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                                 listBox.setRows(Math.max(2, Math.min(5, container.size())));
                             }
                         };
-                
-                        Window popup;
-                        if (Enum.class.isAssignableFrom(eltType))
-                            popup = new ValueEnumPopup(500, callback, ((Class<Enum<?>>)eltType).getEnumConstants());
-                        else
-                            popup = new ValueEntryPopup(500, callback, valueList);
-                                    
-                        popup.setModal(true);
-                        getUI().addWindow(popup);
+                        
+                        valueProvider.accept(callback);
                     }
                 });
                 
@@ -901,6 +907,33 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 prop.setValue(container);
             }             
         };
+    }
+    
+    
+    protected Component buildSimpleList(final String propId, final ContainerProperty prop, final Class<?> eltType)
+    {
+        return buildSimpleList(propId, prop, eltType, callback -> {
+            List<Object> valueList = GenericConfigForm.this.getPossibleValues(propId);
+            
+            Window popup;
+            if (Enum.class.isAssignableFrom(eltType))
+                popup = new ValueEnumPopup(500, callback, ((Class<Enum<?>>)eltType).getEnumConstants());
+            else
+                popup = new ValueEntryPopup(500, callback, valueList);
+                        
+            popup.setModal(true);
+            getUI().addWindow(popup); 
+        });
+    }
+    
+    
+    protected Component buildProcedureList(final String propId, final ContainerProperty prop)
+    {
+        return buildSimpleList(propId, prop, String.class, callback -> {
+            var popup = new ProcedureSelectionPopup(800, callback, getParentHub().getDatabaseRegistry().getFederatedObsDatabase());
+            popup.setModal(true);
+            getUI().addWindow(popup); 
+        });
     }
     
     
