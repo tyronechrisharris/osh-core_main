@@ -578,18 +578,31 @@ public class MVObsStoreImpl implements IObsStore
         
         for (int i = 0; i < counts.length; i++)
         {
-            MVObsKey k1 = obsRecordsIndex.ceilingKey(new MVObsKey(seriesID, Instant.ofEpochSecond(t)));
+            var beginBin = Instant.ofEpochSecond(t);
+            MVObsKey k1 = obsRecordsIndex.ceilingKey(new MVObsKey(seriesID, beginBin));
+            
             t += dt;
-            MVObsKey k2 = obsRecordsIndex.floorKey(new MVObsKey(seriesID, Instant.ofEpochSecond(t)));
+            var endBin = Instant.ofEpochSecond(t);
+            MVObsKey k2 = obsRecordsIndex.floorKey(new MVObsKey(seriesID, endBin));
             
             if (k1 != null && k2 != null && k1.seriesID == seriesID && k2.seriesID == seriesID)
             {
                 long idx1 = obsRecordsIndex.getKeyIndex(k1);
                 long idx2 = obsRecordsIndex.getKeyIndex(k2);
-                counts[i] = (int)Math.max(0, idx2-idx1);
+                
+                // only compute count if key2 is after key1
+                // otherwise it means there was no matching key inside this bin
+                if (idx2 >= idx1)
+                {
+                    int count = (int)(idx2-idx1);
+                    
+                    // need to add one unless end of bin falls exactly on a key 
+                    if (!endBin.equals(k2.phenomenonTime))
+                        count++;
+                    
+                    counts[i] = count;
+                }
             }
-            else
-                counts[i] = 0;
         }
         
         return counts;
@@ -612,25 +625,35 @@ public class MVObsStoreImpl implements IObsStore
                 .map(series -> {
                    var dsID = series.key.dataStreamID;
                    
-                   var obsCount = getObsSeriesCount(series.id, timeParams.phenomenonTimeRange);
-                   var phenTimeRange = timeParams.phenomenonTimeRange;
-                   if (phenTimeRange.lowerEndpoint() == Instant.MIN || phenTimeRange.upperEndpoint() == Instant.MAX)
-                       phenTimeRange = getObsSeriesPhenomenonTimeRange(series.id);
+                   var seriesTimeRange = getObsSeriesPhenomenonTimeRange(series.id);
+                   
+                   // skip if requested phenomenon time range doesn't intersect series time range
+                   var statsTimeRange = timeParams.phenomenonTimeRange;
+                   if (!statsTimeRange.isConnected(seriesTimeRange))
+                       return null;
+                   
+                   statsTimeRange = seriesTimeRange.intersection(seriesTimeRange);
                    
                    var resultTimeRange = series.key.resultTime != Instant.MIN ?
-                       Range.singleton(series.key.resultTime) : phenTimeRange;
+                       Range.singleton(series.key.resultTime) : statsTimeRange;
+                   
+                   var obsCount = getObsSeriesCount(series.id, statsTimeRange);
                        
                    var obsStats = new ObsStats.Builder()
                        .withDataStreamID(dsID)
-                       .withPhenomenonTimeRange(TimeExtent.period(phenTimeRange))
+                       .withPhenomenonTimeRange(TimeExtent.period(statsTimeRange))
                        .withResultTimeRange(TimeExtent.period(resultTimeRange))
                        .withTotalObsCount(obsCount);
-                       
+                   
                    // compute histogram
                    if (query.getHistogramBinSize() != null)
                    {
+                       var histogramTimeRange = timeParams.phenomenonTimeRange;
+                       if (histogramTimeRange.lowerEndpoint() == Instant.MIN || histogramTimeRange.upperEndpoint() == Instant.MAX)
+                           histogramTimeRange = seriesTimeRange;                       
+                       
                        obsStats.withObsCountByTime(getObsSeriesHistogram(series.id,
-                           phenTimeRange, query.getHistogramBinSize()));
+                           histogramTimeRange, query.getHistogramBinSize()));
                    }
                    
                    return obsStats.build();
@@ -643,11 +666,23 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public long countMatchingEntries(ObsFilter filter)
     {
-        // TODO implement faster method for some special cases
-        // i.e. when no predicates are used
-        // can make use of H2 index counting feature
+        var timeParams = new TimeParams(filter);
         
-        return selectEntries(filter).limit(filter.getLimit()).count();
+        // if no predicate or spatial query is used, we can optimize
+        // by scanning only observation series
+        if (filter.getValuePredicate() == null && filter.getPhenomenonLocation() == null)
+        {
+            // special case to count per series
+            return selectObsSeries(filter, timeParams)
+                .mapToLong(series -> {
+                    return getObsSeriesCount(series.id, timeParams.phenomenonTimeRange);
+                })
+                .sum();
+        }
+        
+        // else use full select and count items
+        else
+            return selectKeys(filter).limit(filter.getLimit()).count();
     }
 
 
