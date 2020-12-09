@@ -149,6 +149,7 @@ public class DatabaseStreamPanel extends VerticalLayout
         String timeRangeText = timeRange.isoStringUTC(false);
         Label timeRangeLabel = new Label(timeRangeText);
         timeRangeLabel.setContentMode(ContentMode.HTML);
+        timeRangeLabel.addStyleName(UIConstants.STYLE_SMALL);
         layout.addComponent(timeRangeLabel);
         layout.setCaption("Time Range");
         
@@ -431,6 +432,7 @@ public class DatabaseStreamPanel extends VerticalLayout
         table = new PagedTable();
         table.setWidth(100, Unit.PERCENTAGE);
         table.setPageLength(10);
+        table.addStyleName(UIConstants.STYLE_SMALL);
         tableLayout.addComponent(table);
         
         PagedTableControls controls = table.createControls();

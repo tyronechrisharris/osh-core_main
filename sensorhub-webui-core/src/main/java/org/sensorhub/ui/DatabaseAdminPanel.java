@@ -14,25 +14,16 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import java.util.ArrayList;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.ui.api.IModuleAdminPanel;
-import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.ui.Alignment;
-import com.vaadin.v7.data.Item;
-import com.vaadin.v7.data.Property.ValueChangeEvent;
-import com.vaadin.v7.data.Property.ValueChangeListener;
 import com.vaadin.v7.event.ItemClickEvent;
 import com.vaadin.v7.event.ItemClickEvent.ItemClickListener;
-import com.vaadin.v7.ui.Table;
-import com.vaadin.v7.ui.TextField;
-import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TabSheet;
@@ -52,12 +43,8 @@ import com.vaadin.ui.VerticalLayout;
 @SuppressWarnings("serial")
 public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabaseModule<?>> implements IModuleAdminPanel<IProcedureObsDatabaseModule<?>>
 {
-    private final static String PROC_UID_PROP = "uid";
-    private final static String PROC_NAME_PROP = "name";
-    private final static String PROC_DESC_PROP = "desc";
-    
     VerticalLayout layout;
-    Table table;
+    ProcedureSearchList procedureTable;
     TabSheet dataStreamTabs;
     
     
@@ -83,109 +70,31 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
             titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
-                    
             layout.addComponent(titleBar);
-            buildProcedureSelectionPanel(db);
+            
+            procedureTable = new ProcedureSearchList(db, new ItemClickListener() {
+                @Override
+                public void itemClick(ItemClickEvent event)
+                {
+                    try
+                    {
+                        // select and open module configuration
+                        String procUID = (String)event.getItem().getItemProperty(ProcedureSearchList.PROC_UID_PROP).getValue();
+                        showProcedureData(db, procUID);
+                    }
+                    catch (Exception e)
+                    {
+                        DisplayUtils.showErrorPopup("Unexpected error when selecting procedure", e);
+                    }
+                }
+            });
+            layout.addComponent(procedureTable);
             
             dataStreamTabs = new TabSheet();
             layout.addComponent(dataStreamTabs);
             
             addComponent(layout);
         }
-    }
-    
-    
-    protected void buildProcedureSelectionPanel(final IProcedureObsDatabase db)
-    {        
-        // procedure uid / search box
-        final TextField searchBox = new TextField("Search Procedures");
-        searchBox.addStyleName(UIConstants.STYLE_SMALL);
-        searchBox.setDescription("UID prefix or keywords to search for procedures");
-        searchBox.setValue("*");
-        layout.addComponent(searchBox);
-        searchBox.addValueChangeListener(new ValueChangeListener() {
-            @Override
-            public void valueChange(ValueChangeEvent event)
-            {
-                String txt = searchBox.getValue().trim();
-                
-                // build lists of uids and keywords
-                var tokens = txt.split(" |,");
-                var uids = new ArrayList<String>();
-                var keywords = new ArrayList<String>();
-                for (var t: tokens)
-                {
-                    if (txt.startsWith("urn:") || txt.equals("*"))
-                        uids.add(t);
-                    else if (t.length() > 0)
-                        keywords.add(t);
-                }
-                
-                var procFilter = new ProcedureFilter.Builder();
-                if (!uids.isEmpty())
-                    procFilter.withUniqueIDs(uids);
-                if (!keywords.isEmpty())
-                    procFilter.withKeywords(keywords);
-                
-                // update table
-                updateTable(db, procFilter.build());
-            }
-        });
-        
-        // procedure table
-        layout.addComponent(buildProcedureTable(db));
-        
-        // populate table with 10 first results
-        updateTable(db, new ProcedureFilter.Builder()
-            .withLimit(10)
-            .build());
-    }
-    
-    
-    protected Component buildProcedureTable(final IProcedureObsDatabase db)
-    {
-        table = new Table();
-        table.setWidth(100, Unit.PERCENTAGE);
-        table.setPageLength(5);
-        table.setSelectable(true);
-        
-        // add column names
-        table.addContainerProperty(PROC_UID_PROP, String.class, null, "Procedure UID", null, null);
-        table.addContainerProperty(PROC_NAME_PROP, String.class, null, "Name", null, null);
-        table.addContainerProperty(PROC_DESC_PROP, String.class, null, "Description", null, null);
-        
-        table.addItemClickListener(new ItemClickListener()
-        {
-            @Override
-            public void itemClick(ItemClickEvent event)
-            {
-                try
-                {
-                    // select and open module configuration
-                    String procUID = (String)event.getItem().getItemProperty(PROC_UID_PROP).getValue();
-                    showProcedureData(db, procUID);
-                }
-                catch (Exception e)
-                {
-                    DisplayUtils.showErrorPopup("Unexpected error when selecting module", e);
-                }
-            }
-        });
-        
-        return table;
-    }
-    
-    
-    protected void updateTable(final IProcedureObsDatabase db, final ProcedureFilter procFilter)
-    {
-        table.removeAllItems();
-        db.getProcedureStore().select(procFilter)
-            .forEach(proc -> {
-                Item item = table.addItem(proc.getUniqueIdentifier());
-                item.getItemProperty(PROC_UID_PROP).setValue(proc.getUniqueIdentifier());
-                item.getItemProperty(PROC_NAME_PROP).setValue(proc.getName());
-                item.getItemProperty(PROC_DESC_PROP).setValue(proc.getDescription());                        
-            });
     }
     
     

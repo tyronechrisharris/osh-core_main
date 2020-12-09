@@ -63,7 +63,7 @@ public class LazyLoadingObsContainer extends IndexedContainer
         if (startIndexCache != startIndex)
         {
             startIndexCache = startIndex;
-            System.out.println("Loading from " + startIndex + ", count=" + numberOfIds);
+            //System.out.println("Loading from " + startIndex + ", count=" + numberOfIds);
             
             // prefetch range from DB
             AtomicInteger count = new AtomicInteger(startIndex);

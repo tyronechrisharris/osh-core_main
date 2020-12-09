@@ -36,29 +36,29 @@ public class PagedTableControls extends HorizontalLayout {
         itemsPerPageSelect.setNullSelectionAllowed(false);
         itemsPerPageSelect.setWidth(60, Unit.PIXELS);
         itemsPerPageSelect.select("10");
-        itemsPerPageSelect.setStyleName(UIConstants.STYLE_SMALL);
-        itemsPerPageLabel.setStyleName(UIConstants.STYLE_SMALL);
+        itemsPerPageSelect.addStyleName(UIConstants.STYLE_SMALL);
+        itemsPerPageLabel.addStyleName(UIConstants.STYLE_SMALL);
         
         currentPageTextField.setValue(String.valueOf(table.getCurrentPage()));
         currentPageTextField.setConverter(Integer.class);
         final IntegerRangeValidator validator = new IntegerRangeValidator("Wrong page number", 1, table.getTotalAmountOfPages());
         currentPageTextField.addValidator(validator);
         currentPageTextField.setWidth(50, Unit.PIXELS);
-        currentPageTextField.setStyleName(UIConstants.STYLE_SMALL);
+        currentPageTextField.addStyleName(UIConstants.STYLE_SMALL);
         currentPageTextField.setImmediate(true);
         
         Label separatorLabel = new Label("&nbsp;/&nbsp;", ContentMode.HTML);
         final Label totalPagesLabel = new Label(
                 String.valueOf(table.getTotalAmountOfPages()), ContentMode.HTML);
         separatorLabel.setWidth(null);
-        separatorLabel.setStyleName(UIConstants.STYLE_SMALL);
+        separatorLabel.addStyleName(UIConstants.STYLE_SMALL);
         totalPagesLabel.setWidth(null);
-        totalPagesLabel.setStyleName(UIConstants.STYLE_SMALL);
+        totalPagesLabel.addStyleName(UIConstants.STYLE_SMALL);
         
-        btnFirst.setStyleName(UIConstants.STYLE_LINK + " " + UIConstants.STYLE_SMALL);
-        btnPrevious.setStyleName(UIConstants.STYLE_LINK + " " + UIConstants.STYLE_SMALL);
-        btnNext.setStyleName(UIConstants.STYLE_LINK + " " + UIConstants.STYLE_SMALL);
-        btnLast.setStyleName(UIConstants.STYLE_LINK + " " + UIConstants.STYLE_SMALL);
+        btnFirst.addStyleName(UIConstants.STYLE_LINK + " " + UIConstants.STYLE_SMALL);
+        btnPrevious.addStyleName(UIConstants.STYLE_LINK + " " + UIConstants.STYLE_SMALL);
+        btnNext.addStyleName(UIConstants.STYLE_LINK + " " + UIConstants.STYLE_SMALL);
+        btnLast.addStyleName(UIConstants.STYLE_LINK + " " + UIConstants.STYLE_SMALL);
         
         //pageLabel.setWidth(null);
         HorizontalLayout pageSize = new HorizontalLayout();
