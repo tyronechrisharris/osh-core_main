@@ -71,19 +71,33 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    public boolean isSingleValue()
+    {
+        if (timeRangeBeginsNow ^ timeRangeEndsNow)
+            return false;
+        
+        return isCurrentTime() || isLatestTime() || super.isSingleValue();
+    }
+    
+    
     @Override
     public Range<Instant> getRange()
     {
-        if (range == CURRENT_TIME_MARKER)
+        // handle cases of ranges relative to current time
+        if (isCurrentTime() && range == CURRENT_TIME_MARKER)
         {
             var now = Instant.now();
-            
-            if (isCurrentTime())
-                range = Range.singleton(now);
-            else if (timeRangeBeginsNow)
-                range = Range.closed(now, range.upperEndpoint());
-            else if (timeRangeEndsNow)
-                range = Range.closed(range.lowerEndpoint(), now);
+            range = Range.singleton(now);
+        }        
+        else if (timeRangeBeginsNow && range.lowerEndpoint() == Instant.MIN)
+        {
+            var now = Instant.now();
+            range = Range.closed(now, range.upperEndpoint());
+        }        
+        else if (timeRangeEndsNow && range.upperEndpoint() == Instant.MAX)
+        {
+            var now = Instant.now();
+            range = Range.closed(range.lowerEndpoint(), now);
         }
         
         return range;
@@ -312,7 +326,7 @@ public class TemporalFilter extends RangeFilter<Instant>
         public B withRangeEndingNow(Instant begin)
         {
             instance.timeRangeEndsNow = true;
-            withRange(begin, Instant.EPOCH);
+            instance.range = Range.closed(begin, Instant.MAX);
             return (B)this;
         }
         
@@ -325,7 +339,7 @@ public class TemporalFilter extends RangeFilter<Instant>
         public B withRangeBeginningNow(Instant end)
         {
             instance.timeRangeBeginsNow = true;
-            withRange(Instant.EPOCH, end);
+            instance.range = Range.closed(Instant.MIN, end);
             return (B)this;
         }
         
