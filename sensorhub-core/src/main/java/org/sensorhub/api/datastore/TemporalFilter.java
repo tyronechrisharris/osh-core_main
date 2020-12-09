@@ -76,21 +76,14 @@ public class TemporalFilter extends RangeFilter<Instant>
     {
         if (range == CURRENT_TIME_MARKER)
         {
+            var now = Instant.now();
+            
             if (isCurrentTime())
-            {
-                var now = Instant.now();
                 range = Range.singleton(now);
-            }
             else if (timeRangeBeginsNow)
-            {
-                var now = Instant.now();
                 range = Range.closed(now, range.upperEndpoint());
-            }
             else if (timeRangeEndsNow)
-            {
-                var now = Instant.now();
                 range = Range.closed(range.lowerEndpoint(), now);
-            }
         }
         
         return range;
@@ -121,22 +114,40 @@ public class TemporalFilter extends RangeFilter<Instant>
         if (latestTime || isCurrentTime())
             return true;        
         
-        return getRange().contains(val);
+        var range = getRange();               
+        switch (op)
+        {
+            case EQUALS:
+                return range.lowerEndpoint().equals(val) &&
+                       range.upperEndpoint().equals(val);
+            default:
+                return range.contains(val);
+        }
     }
     
     
     public boolean test(TimeExtent te)
     {
-        // we always return true if set to latest time it depends on other
-        // elements in the time series and we cannot maintain state here.
+        // we always return true if set to Time since the outcome depends on
+        // other elements in the time series and we cannot maintain state here.
         // It means that the caller must enforce the latestTime filter
         // contract via other means
         if (latestTime)
             return true;
         
-        var range = getRange();
-        return range.lowerEndpoint().compareTo(te.end()) <= 0 &&
-               range.upperEndpoint().compareTo(te.begin()) >= 0;
+        var range = getRange();               
+        switch (op)
+        {
+            case CONTAINS:
+                return range.lowerEndpoint().compareTo(te.begin()) <= 0 &&
+                       range.upperEndpoint().compareTo(te.end()) >= 0;
+            case EQUALS:
+                return range.lowerEndpoint().equals(te.begin()) &&
+                       range.upperEndpoint().equals(te.end());
+            default:
+                return range.lowerEndpoint().compareTo(te.end()) <= 0 &&
+                       range.upperEndpoint().compareTo(te.begin()) >= 0;
+        }
     }
     
     
