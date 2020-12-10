@@ -54,6 +54,13 @@ public interface IDatabaseRegistry
      * @param db
      */
     void register(IDatabase db);
+    
+    
+    /**
+     * Unregister a database and all its mappings
+     * @param db
+     */
+    void unregister(IDatabase db);
 
 
     /**

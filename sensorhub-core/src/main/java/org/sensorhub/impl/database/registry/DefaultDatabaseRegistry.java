@@ -123,6 +123,21 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     }
     
     
+    @Override
+    public synchronized void unregister(IDatabase db)
+    {
+        var it = obsDatabaseIDs.values().iterator();
+        while (it.hasNext())
+        {
+            var dbID = it.next();
+            if (dbID == db.getDatabaseID())
+                it.remove();
+        }
+            
+        obsDatabases.remove(db.getDatabaseID());
+    }
+    
+    
     protected int registerObsDatabase(IProcedureObsDatabase db)
     {
         int databaseID = db.getDatabaseID();
