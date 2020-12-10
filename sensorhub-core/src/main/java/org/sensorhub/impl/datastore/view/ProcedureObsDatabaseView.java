@@ -43,11 +43,11 @@ public class ProcedureObsDatabaseView implements IProcedureObsDatabase
     
     
     @Override
-    public int getDatabaseID()
+    public Integer getDatabaseNum()
     {
-        // need to return the underlying database ID so public IDs are
+        // need to return the underlying database num so public IDs are
         // computed correctly
-        return delegate.getDatabaseID();
+        return delegate.getDatabaseNum();
     }
 
 

@@ -116,7 +116,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 if (config instanceof DatabaseConfig)
                 {
                     var dbID = ((DatabaseConfig) config).databaseNum;
-                    if (!dbIds.add(dbID))
+                    if (dbID != null && !dbIds.add(dbID))
                         throw new IllegalStateException("Duplicate database number: " + dbID + ". Check your configuration");
                 }
                 

@@ -254,7 +254,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         {
             return registry.obsDatabases.values().stream()
                 .flatMap(db -> {
-                    int dbID = db.getDatabaseID();
+                    int dbID = db.getDatabaseNum();
                     return db.getObservationStore().getDataStreams().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 })

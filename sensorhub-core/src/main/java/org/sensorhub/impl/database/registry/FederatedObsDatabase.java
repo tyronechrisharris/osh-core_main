@@ -73,9 +73,10 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
 
 
     @Override
-    public int getDatabaseID()
+    public Integer getDatabaseNum()
     {
-        throw new UnsupportedOperationException("This method should not be called on the federated database");
+        // should never be called on the federated database
+        throw new UnsupportedOperationException();
     }
 
 

@@ -107,7 +107,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         if (!(db instanceof IProcedureEventHandlerDatabase))
             throw new IllegalStateException("Another database already contains a procedure with UID " + procUID);
         
-        log.info("Procedure " + procUID + " handled by DB #" + db.getDatabaseID());
+        log.info("Procedure " + procUID + " handled by DB #" + db.getDatabaseNum());
         return new ProcedureRegistryEventHandler(this, proc, (IProcedureEventHandlerDatabase)db);
     }
 

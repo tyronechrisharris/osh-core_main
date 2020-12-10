@@ -130,7 +130,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
 
 
     @Override
-    public int getDatabaseID()
+    public Integer getDatabaseNum()
     {
         return config.databaseNum;
     }

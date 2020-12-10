@@ -95,9 +95,9 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public synchronized void register(IDatabase db)
     {
         Asserts.checkNotNull(db, IDatabase.class);
-        Asserts.checkArgument(db.getDatabaseID() >= 0 && db.getDatabaseID() < MAX_NUM_DB, "Database ID must be > 0 and < " + MAX_NUM_DB);
+        Asserts.checkArgument(db.getDatabaseNum() != null && db.getDatabaseNum() < MAX_NUM_DB, "Database number must be > 0 and < " + MAX_NUM_DB);
         
-        log.info("Registering database {} with ID {}", db.getClass().getSimpleName(), db.getDatabaseID());
+        log.info("Registering database {} with ID {}", db.getClass().getSimpleName(), db.getDatabaseNum());
         
         if (db instanceof IProcedureObsDatabase)
             registerObsDatabase((IProcedureObsDatabase)db);
@@ -130,17 +130,17 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         while (it.hasNext())
         {
             var dbID = it.next();
-            if (dbID == db.getDatabaseID())
+            if (dbID == db.getDatabaseNum())
                 it.remove();
         }
             
-        obsDatabases.remove(db.getDatabaseID());
+        obsDatabases.remove(db.getDatabaseNum());
     }
     
     
     protected int registerObsDatabase(IProcedureObsDatabase db)
     {
-        int databaseID = db.getDatabaseID();
+        int databaseID = db.getDatabaseNum();
         
         // add to Id->DB instance map only if not already present        
         if (obsDatabases.putIfAbsent(databaseID, db) != null)

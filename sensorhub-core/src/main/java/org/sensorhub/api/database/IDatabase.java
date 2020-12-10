@@ -30,10 +30,10 @@ public interface IDatabase
 {
     
     /**
-     * @return The internal ID of the database. All database instances attached
-     * to the same hub must have different IDs.
+     * @return The number assigned to this database, or null if none is set.
+     * Database instances attached to the same hub must have different numbers.
      */
-    int getDatabaseID();    
+    Integer getDatabaseNum();
     
     
     /**

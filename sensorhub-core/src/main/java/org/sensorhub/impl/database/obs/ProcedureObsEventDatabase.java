@@ -138,7 +138,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     }
     
 
-    public int getDatabaseID()
+    public Integer getDatabaseNum()
     {
         return config.databaseNum;
     }

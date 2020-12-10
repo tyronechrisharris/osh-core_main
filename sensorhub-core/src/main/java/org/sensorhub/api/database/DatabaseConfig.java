@@ -31,7 +31,8 @@ public class DatabaseConfig extends ModuleConfig
 {
     @Required
     @DisplayInfo(label="Database Number", desc="Numerical identifier of the database. " +
-        "Each database that needs to be exposed via the federated database API must have a " +
-        "unique number on the sensor hub. Otherwise it can be omitted (i.e. set to null)")
+        "Each database that should be exposed via the federated database API must have a " +
+        "unique number on the sensor hub. If visibility through the federated database is " +
+        "not desired, it can be omitted.")
     public Integer databaseNum = null;
 }

@@ -35,7 +35,7 @@ import org.sensorhub.impl.module.AbstractModule;
  */
 public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfig> implements IProcedureStateDatabase
 {
-    byte databaseID = 0;
+    int databaseNum = 0;
     IProcedureStore procStore;
     IFoiStore foiStore;
     IObsStore obsStore;
@@ -47,9 +47,9 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfi
     }
     
     
-    public InMemoryProcedureStateDatabase(byte id)
+    public InMemoryProcedureStateDatabase(int databaseNum)
     {
-        this.databaseID = id;
+        this.databaseNum = databaseNum;
         
         this.procStore = new InMemoryProcedureStore();
         this.foiStore = new InMemoryFoiStore();
@@ -84,9 +84,9 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfi
 
 
     @Override
-    public int getDatabaseID()
+    public Integer getDatabaseNum()
     {
-        return databaseID;
+        return databaseNum;
     }
     
     

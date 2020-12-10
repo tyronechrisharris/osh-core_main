@@ -198,7 +198,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
             // otherwise scan all DBs
             return registry.obsDatabases.values().stream()
                 .flatMap(db -> {
-                    int dbID = db.getDatabaseID();
+                    int dbID = db.getDatabaseNum();
                     return getFeatureStore(db).selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                 })

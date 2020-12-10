@@ -298,7 +298,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         {
             registry.obsDatabases.values().stream()
                 .forEach(db -> {
-                    int dbID = db.getDatabaseID();
+                    int dbID = db.getDatabaseNum();
                     var obsStream = db.getObservationStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbID, e));
                     obsIterators.add(obsStream.spliterator());
@@ -337,7 +337,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         {
             return registry.obsDatabases.values().stream()
                 .flatMap(db -> {
-                    int dbID = db.getDatabaseID();
+                    int dbID = db.getDatabaseNum();
                     return db.getObservationStore().selectObservedFois(filter)
                         .map(id -> registry.getPublicID(dbID, id));
                 })

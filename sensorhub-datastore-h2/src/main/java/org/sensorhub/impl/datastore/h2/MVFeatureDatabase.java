@@ -106,7 +106,7 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
 
 
     @Override
-    public int getDatabaseID()
+    public Integer getDatabaseNum()
     {
         return config.databaseNum;
     }
