@@ -888,6 +888,29 @@ public class MVObsStoreImpl implements IObsStore
             }
         }        
     }
+    
+
+    protected void removeAllObsAndSeries(long datastreamID)
+    {
+        // remove all series and obs
+        MVObsSeriesKey first = new MVObsSeriesKey(datastreamID, 0, Instant.MIN);
+        MVObsSeriesKey last = new MVObsSeriesKey(datastreamID, Long.MAX_VALUE, Instant.MAX);
+        
+        new RangeCursor<>(obsSeriesMainIndex, first, last).entryStream().forEach(entry -> {
+
+            // remove all obs in series
+            var seriesId = entry.getValue().id;
+            MVObsKey k1 = new MVObsKey(seriesId, Instant.MIN);
+            MVObsKey k2 = new MVObsKey(seriesId, Instant.MAX);
+            new RangeCursor<>(obsRecordsIndex, k1, k2).keyStream().forEach(k -> {
+                obsRecordsIndex.remove(k);
+            });
+            
+            // remove series from index
+            obsSeriesMainIndex.remove(entry.getKey());
+            obsSeriesByFoiIndex.remove(entry.getKey());
+        });
+    }
 
 
     @Override

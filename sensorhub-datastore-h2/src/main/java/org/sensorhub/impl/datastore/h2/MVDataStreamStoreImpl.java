@@ -33,7 +33,6 @@ import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
-import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.obs.IDataStreamInfo;
@@ -461,7 +460,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 fullTextIndex.remove(dsKey.getInternalID(), oldValue);
 
                 // remove all obs
-                removeAllObsAndSeries(dsKey.getInternalID());
+                if (obsStore != null)
+                    obsStore.removeAllObsAndSeries(dsKey.getInternalID());
 
                 return oldValue;
             }
@@ -470,26 +470,6 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 mvStore.rollbackTo(currentVersion);
                 throw e;
             }
-        }
-    }
-
-
-    protected void removeAllObsAndSeries(long dsID)
-    {
-        // first remove all associated observations
-        obsStore.removeEntries(new ObsFilter.Builder()
-            .withDataStreams(dsID)
-            .build());
-
-        // also remove series
-        MVObsSeriesKey first = new MVObsSeriesKey(dsID, 0, Instant.MIN);
-        MVObsSeriesKey last = new MVObsSeriesKey(dsID, Long.MAX_VALUE, Instant.MAX);
-        if (first.dataStreamID == dsID)
-        {
-            new RangeCursor<>(obsStore.obsSeriesMainIndex, first, last).keyStream().forEach(k -> {
-                obsStore.obsSeriesMainIndex.remove(k);
-                obsStore.obsSeriesByFoiIndex.remove(k);
-            });
         }
     }
 
