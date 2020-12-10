@@ -105,8 +105,16 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     @Override
     protected void afterStart()
     {
-        if (hasParentHub() && config.databaseID > 0)
+        if (hasParentHub() && config.databaseNum != null)
             getParentHub().getDatabaseRegistry().register(this);
+    }
+    
+    
+    @Override
+    protected void beforeStop()
+    {
+        if (hasParentHub() && config.databaseNum != null)
+            getParentHub().getDatabaseRegistry().unregister(this);
     }
 
 
@@ -124,7 +132,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     @Override
     public int getDatabaseID()
     {
-        return config.databaseID;
+        return config.databaseNum;
     }
 
 

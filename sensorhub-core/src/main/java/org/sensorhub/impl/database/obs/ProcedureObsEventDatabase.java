@@ -97,7 +97,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     @Override
     protected void afterStart()
     {
-        if (hasParentHub() && config.databaseID > 0)
+        if (hasParentHub() && config.databaseNum != null)
             getParentHub().getDatabaseRegistry().register(this);
     }
     
@@ -105,7 +105,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     @Override
     protected void beforeStop()
     {
-        if (hasParentHub() && config.databaseID > 0)
+        if (hasParentHub() && config.databaseNum != null)
             getParentHub().getDatabaseRegistry().unregister(this);
     }
     
@@ -140,7 +140,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
 
     public int getDatabaseID()
     {
-        return config.databaseID;
+        return config.databaseNum;
     }
 
 

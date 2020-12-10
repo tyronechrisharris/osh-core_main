@@ -81,8 +81,16 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
     @Override
     protected void afterStart()
     {
-        if (hasParentHub() && config.databaseID > 0)
+        if (hasParentHub() && config.databaseNum != null)
             getParentHub().getDatabaseRegistry().register(this);
+    }
+    
+    
+    @Override
+    protected void beforeStop()
+    {
+        if (hasParentHub() && config.databaseNum != null)
+            getParentHub().getDatabaseRegistry().unregister(this);
     }
 
 
@@ -100,7 +108,7 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
     @Override
     public int getDatabaseID()
     {
-        return config.databaseID;
+        return config.databaseNum;
     }
     
 

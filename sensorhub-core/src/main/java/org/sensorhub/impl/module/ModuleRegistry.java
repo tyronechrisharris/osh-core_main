@@ -115,9 +115,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 // check database ID is unique
                 if (config instanceof DatabaseConfig)
                 {
-                    var dbID = ((DatabaseConfig) config).databaseID;
+                    var dbID = ((DatabaseConfig) config).databaseNum;
                     if (!dbIds.add(dbID))
-                        throw new IllegalStateException("Duplicate database ID #" + dbID + ". Check your configuration");
+                        throw new IllegalStateException("Duplicate database number: " + dbID + ". Check your configuration");
                 }
                 
                 if (isDataStoreModule(config) && config.autoStart)

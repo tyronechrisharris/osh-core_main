@@ -78,7 +78,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         try
         {
             ProcedureObsEventDatabaseConfig dbListenerConfig = new ProcedureObsEventDatabaseConfig();
-            dbListenerConfig.databaseID = 0;
+            dbListenerConfig.databaseNum = 0;
             dbListenerConfig.dbConfig = stateDbConfig;
 
             procStateDb = new ProcedureObsEventDatabase();

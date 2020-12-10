@@ -30,7 +30,8 @@ import org.sensorhub.api.module.ModuleConfig;
 public class DatabaseConfig extends ModuleConfig
 {
     @Required
-    @DisplayInfo(label="Database ID", desc="Numerical identifier of the database. Each database "
-        + "must have a unique integer ID on the sensor hub")
-    public Integer databaseID = null;
+    @DisplayInfo(label="Database Number", desc="Numerical identifier of the database. " +
+        "Each database that needs to be exposed via the federated database API must have a " +
+        "unique number on the sensor hub. Otherwise it can be omitted (i.e. set to null)")
+    public Integer databaseNum = null;
 }
