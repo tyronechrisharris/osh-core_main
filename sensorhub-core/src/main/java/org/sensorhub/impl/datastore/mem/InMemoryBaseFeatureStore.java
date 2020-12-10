@@ -26,6 +26,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -102,17 +103,10 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             this.validStartTime = validStartTime;
         }
     }
-    
-    
-    @Override
-    public synchronized FeatureKey add(T feature)
-    {
-        return add(0L, feature);
-    }
 
 
     @Override
-    public synchronized FeatureKey add(long parentID, T feature)
+    public synchronized FeatureKey add(long parentID, T feature) throws DataStoreException
     {        
         var uid = DataStoreUtils.checkFeatureObject(feature);
         DataStoreUtils.checkParentFeatureExists(this, parentID);

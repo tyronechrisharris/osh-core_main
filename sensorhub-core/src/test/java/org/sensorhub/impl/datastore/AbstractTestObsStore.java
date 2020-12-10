@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
@@ -80,15 +81,22 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
     protected DataStreamKey addDataStream(long procID, DataComponent recordStruct)
     {
-        var dsInfo = new DataStreamInfo.Builder()
-            .withProcedure(new ProcedureId(procID, PROC_UID_PREFIX+procID))
-            .withRecordDescription(recordStruct)
-            .withRecordEncoding(new TextEncodingImpl())
-            .build();
-        
-        var dsID = obsStore.getDataStreams().add(dsInfo);
-        allDataStreams.put(dsID, dsInfo);
-        return dsID;
+        try
+        {
+            var dsInfo = new DataStreamInfo.Builder()
+                .withProcedure(new ProcedureId(procID, PROC_UID_PREFIX+procID))
+                .withRecordDescription(recordStruct)
+                .withRecordEncoding(new TextEncodingImpl())
+                .build();
+            
+            var dsID = obsStore.getDataStreams().add(dsInfo);
+            allDataStreams.put(dsID, dsInfo);
+            return dsID;
+        }
+        catch (DataStoreException e)
+        {
+            throw new IllegalStateException(e);
+        }
     }
 
 

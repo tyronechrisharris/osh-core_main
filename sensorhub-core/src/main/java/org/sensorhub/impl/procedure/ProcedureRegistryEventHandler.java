@@ -19,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
@@ -72,7 +73,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
     
     
     @Override
-    protected boolean doRegister(long parentID, IProcedureDriver proc)
+    protected boolean doRegister(long parentID, IProcedureDriver proc) throws DataStoreException
     {
         var saveLastUpdated = latestDescriptionUpdate;
         
@@ -123,7 +124,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
 
 
     @Override
-    protected boolean doRegister(IStreamingDataInterface dataStream)
+    protected boolean doRegister(IStreamingDataInterface dataStream) throws DataStoreException
     {
         boolean isNew = super.doRegister(dataStream);
         
@@ -195,7 +196,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
 
 
     @Override
-    protected boolean doRegister(IGeoFeature foi)
+    protected boolean doRegister(IGeoFeature foi) throws DataStoreException
     {
         boolean isNew = super.doRegister(foi);
         

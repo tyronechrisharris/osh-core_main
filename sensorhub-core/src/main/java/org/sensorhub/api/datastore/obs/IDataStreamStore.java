@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore.obs;
 
 import java.util.Optional;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -62,8 +63,10 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
      * of the parent procedure.
      * @param dsInfo The data stream info object to be stored
      * @return The key associated with the new data stream
+     * @throws DataStoreException if a datastream with the same parent procedure,
+     * output name and valid time already exists, or if the parent procedure is unknown.
      */
-    public DataStreamKey add(IDataStreamInfo dsInfo);
+    public DataStreamKey add(IDataStreamInfo dsInfo) throws DataStoreException;
     
     
     /**

@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IStreamingDataInterface;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.Event;
@@ -51,7 +52,7 @@ public class DataStreamEventPersistenceHandler implements IEventListener
     }
     
     
-    protected boolean connect(IStreamingDataInterface dataStream)
+    protected boolean connect(IStreamingDataInterface dataStream) throws DataStoreException
     {
         Asserts.checkNotNull(dataStream, IStreamingDataInterface.class);
         outputRef = new WeakReference<IStreamingDataInterface>(dataStream);

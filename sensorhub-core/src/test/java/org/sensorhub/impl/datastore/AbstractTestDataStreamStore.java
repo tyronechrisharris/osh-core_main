@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -74,18 +75,25 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
 
     protected DataStreamKey addDataStream(ProcedureId procID, DataComponent recordStruct, TimeExtent validTime)
     {
-        var builder = new DataStreamInfo.Builder()
-            .withProcedure(procID)
-            .withRecordDescription(recordStruct)
-            .withRecordEncoding(new TextEncodingImpl());
-        
-        if (validTime != null)
-            builder.withValidTime(validTime);
-                
-        var dsInfo = builder.build();
-        var key = dataStreamStore.add(dsInfo);
-        allDataStreams.put(key, dsInfo);
-        return key;
+        try
+        {
+            var builder = new DataStreamInfo.Builder()
+                .withProcedure(procID)
+                .withRecordDescription(recordStruct)
+                .withRecordEncoding(new TextEncodingImpl());
+            
+            if (validTime != null)
+                builder.withValidTime(validTime);
+                    
+            var dsInfo = builder.build();
+            var key = dataStreamStore.add(dsInfo);
+            allDataStreams.put(key, dsInfo);
+            return key;
+        }
+        catch (DataStoreException e)
+        {
+            throw new IllegalStateException(e);
+        }
     }
     
     

@@ -110,7 +110,7 @@ public class TestFederatedDatabaseRegistry
     
     
     @Test
-    public void testPublicKeys()
+    public void testPublicKeys() throws Exception
     {
         IProcedureObsDatabase db1 = new InMemoryProcedureStateDatabase((byte)1);
         IProcedureObsDatabase db2 = new InMemoryProcedureStateDatabase((byte)2);

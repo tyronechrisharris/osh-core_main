@@ -18,11 +18,13 @@ import java.lang.ref.WeakReference;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sensorhub.api.data.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
@@ -74,19 +76,20 @@ public class ProcedureEventPersistenceHandler implements IEventListener
         OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
         return CompletableFuture.supplyAsync(() -> {
-            return doRegister(proc);
+            try { return doRegister(proc); }
+            catch (DataStoreException e) { throw new CompletionException(e); }
         });
     }
     
     
-    protected boolean doRegister(IProcedureDriver proc)
+    protected boolean doRegister(IProcedureDriver proc) throws DataStoreException
     {
         this.driverRef = new WeakReference<>(Asserts.checkNotNull(proc, IProcedureDriver.class));
         return doRegister(0L, proc);
     }
     
     
-    protected boolean doRegister(long parentID, IProcedureDriver proc)
+    protected boolean doRegister(long parentID, IProcedureDriver proc) throws DataStoreException
     {
         var db = getDatabase();
         FeatureKey procKey = db.getProcedureStore().getCurrentVersionKey(procUID);
@@ -153,7 +156,7 @@ public class ProcedureEventPersistenceHandler implements IEventListener
     }
     
     
-    protected boolean doRegisterMember(IProcedureDriver proc)
+    protected boolean doRegisterMember(IProcedureDriver proc) throws DataStoreException
     {
         Asserts.checkNotNull(proc, IProcedureDriver.class);
         OshAsserts.checkValidUID(proc.getUniqueIdentifier());
@@ -213,12 +216,13 @@ public class ProcedureEventPersistenceHandler implements IEventListener
         Asserts.checkNotNull(dataStream, IStreamingDataInterface.class);
         
         return CompletableFuture.supplyAsync(() -> {
-            return doRegister(dataStream);
+            try { return doRegister(dataStream); }
+            catch (DataStoreException e) { throw new CompletionException(e); }
         });
     }
     
     
-    protected boolean doRegister(IStreamingDataInterface dataStream)
+    protected boolean doRegister(IStreamingDataInterface dataStream) throws DataStoreException
     {
         var dsHandler = dataStreamListeners.computeIfAbsent(dataStream.getName(), k -> {
             return createDataStreamHandler(dataStream);
@@ -281,12 +285,13 @@ public class ProcedureEventPersistenceHandler implements IEventListener
         OshAsserts.checkValidUID(foi.getUniqueIdentifier());
         
         return CompletableFuture.supplyAsync(() -> {
-            return doRegister(foi);
+            try { return doRegister(foi); }
+            catch (DataStoreException e) { throw new CompletionException(e); }
         });
     }
     
     
-    protected boolean doRegister(IGeoFeature foi)
+    protected boolean doRegister(IGeoFeature foi) throws DataStoreException
     {
         var db = getDatabase();
         var uid = foi.getUniqueIdentifier();

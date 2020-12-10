@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Stream;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -103,7 +104,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     
     
     @Override
-    public synchronized DataStreamKey add(IDataStreamInfo dsInfo)
+    public synchronized DataStreamKey add(IDataStreamInfo dsInfo) throws DataStoreException
     {
         DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
         
@@ -199,7 +200,8 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     public IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo)
     {
         DataStoreUtils.checkDataStreamKey(key);
-        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);        
+        try { DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo); }
+        catch (DataStoreException e) { throw new IllegalArgumentException(e); }
         return put(key, dsInfo, true);
     }
     

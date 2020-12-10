@@ -9,6 +9,7 @@
 
 package org.sensorhub.api.resource;
 
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
@@ -34,8 +35,9 @@ public interface IResourceStore<K extends Comparable<K>, V extends IResource, VF
      * Add a new resource to the store, generating a new key for it
      * @param value New resource object
      * @return The newly allocated key (internal ID)
+     * @throws DataStoreException if the resource already exists
      */
-    K add(V value);
+    K add(V value) throws DataStoreException;
     
     
     /**

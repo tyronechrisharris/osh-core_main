@@ -30,6 +30,7 @@ import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.rtree.SpatialKey;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
@@ -198,17 +199,10 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     {
         return spatialIndex.getFullExtent();
     }
-
-
-    @Override
-    public synchronized FeatureKey add(V feature)
-    {
-        return add(0L, feature);
-    }
     
     
     @Override
-    public synchronized FeatureKey add(long parentID, V feature)
+    public synchronized FeatureKey add(long parentID, V feature) throws DataStoreException
     {
         DataStoreUtils.checkFeatureObject(feature);
         DataStoreUtils.checkParentFeatureExists(this, parentID);

@@ -27,6 +27,7 @@ import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVVarLongDataType;
 import org.h2.mvstore.RangeCursor;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -179,7 +180,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     
     
     @Override
-    public synchronized DataStreamKey add(IDataStreamInfo dsInfo)
+    public synchronized DataStreamKey add(IDataStreamInfo dsInfo) throws DataStoreException
     {
         DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
         
@@ -368,12 +369,19 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     public IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo)
     {
         DataStoreUtils.checkDataStreamKey(key);
-        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);        
-        return put(key, dsInfo, true);
+        try {
+            
+            DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
+            return put(key, dsInfo, true);
+        }
+        catch (DataStoreException e) 
+        {
+            throw new IllegalStateException(e);
+        }
     }
     
     
-    protected synchronized IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo, boolean replace)
+    protected synchronized IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo, boolean replace) throws DataStoreException
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -407,7 +415,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                     dsInfo.getValidTime().begin().getEpochSecond());
                 var oldProcKey = dataStreamByProcIndex.put(procKey, Boolean.TRUE);
                 if (oldProcKey != null && !replace)
-                    throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
+                    throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
                 // update full-text index
                 if (isNewEntry)

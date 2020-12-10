@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.procedure;
 
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
@@ -55,8 +56,10 @@ public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, P
      * This method delegates to {@link IFeatureStoreBase#add(T)}
      * @param desc The full procedure description
      * @return The newly allocated key (internal ID)
+     * @throws DataStoreException if a procedure with the same UID already exists
+     * in this store
      */
-    public default FeatureKey add(AbstractProcess desc)
+    public default FeatureKey add(AbstractProcess desc) throws DataStoreException
     {
         return add(new ProcedureWrapper(desc));
     }
@@ -68,8 +71,10 @@ public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, P
      * @param parentID Internal ID of parent procedure
      * @param desc The full procedure description
      * @return The newly allocated key (internal ID)
+     * @throws DataStoreException if a procedure with the same UID already exists
+     * in this store, or if the parent ID is unknown
      */
-    public default FeatureKey add(long parentID, AbstractProcess desc)
+    public default FeatureKey add(long parentID, AbstractProcess desc) throws DataStoreException
     {
         return add(parentID, new ProcedureWrapper(desc));
     }

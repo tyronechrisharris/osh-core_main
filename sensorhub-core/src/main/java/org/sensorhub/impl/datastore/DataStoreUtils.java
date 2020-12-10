@@ -16,6 +16,7 @@ package org.sensorhub.impl.datastore;
 
 import java.time.Instant;
 import java.util.stream.Stream;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
@@ -80,10 +81,10 @@ public class DataStoreUtils
         return OshAsserts.checkValidUID(uid);
     }
     
-    public static void checkParentFeatureExists(IFeatureStoreBase<?,?,?> dataStore, long parentID)
+    public static void checkParentFeatureExists(IFeatureStoreBase<?,?,?> dataStore, long parentID) throws DataStoreException
     {
         if (parentID != 0 && !dataStore.contains(parentID))
-            throw new IllegalArgumentException(DataStoreUtils.ERROR_UNKNOWN_PARENT_FEATURE + parentID);
+            throw new DataStoreException(DataStoreUtils.ERROR_UNKNOWN_PARENT_FEATURE + parentID);
     }
     
     
@@ -99,7 +100,7 @@ public class DataStoreUtils
     }
     
     
-    public static void checkDataStreamInfo(IProcedureStore procedureStore, IDataStreamInfo dsInfo)
+    public static void checkDataStreamInfo(IProcedureStore procedureStore, IDataStreamInfo dsInfo) throws DataStoreException
     {
         Asserts.checkNotNull(dsInfo, IDataStreamInfo.class);
         Asserts.checkNotNull(dsInfo.getProcedureID(), "procedureID");
@@ -108,11 +109,11 @@ public class DataStoreUtils
     }
     
     
-    public static void checkParentProcedureExists(IProcedureStore procedureStore, IDataStreamInfo dsInfo)
+    public static void checkParentProcedureExists(IProcedureStore procedureStore, IDataStreamInfo dsInfo) throws DataStoreException
     {
         var procID = dsInfo.getProcedureID().getInternalID();
         if (procedureStore != null && procedureStore.getCurrentVersionKey(procID) == null)
-            throw new IllegalArgumentException("Unknown parent procedure: " + procID);
+            throw new DataStoreException("Unknown parent procedure: " + procID);
     }
     
     

@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -64,18 +65,25 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
     
     protected long[] addProcedures(int... uidSuffixes)
     {
-        long[] internalIDs = new long[uidSuffixes.length];
-
-        for (int i = 0 ; i < uidSuffixes.length; i++)
+        try
         {
-            AbstractProcess p = new SMLHelper().createPhysicalComponent()
-                .uniqueID(PROC_UID_PREFIX + uidSuffixes[i])
-                .name("Procedure #" + (char)(uidSuffixes[i]+65))
-                .build();
-            internalIDs[i] = obsDb.getProcedureStore().add(p).getInternalID();
-        }
+            long[] internalIDs = new long[uidSuffixes.length];
 
-        return internalIDs;
+            for (int i = 0 ; i < uidSuffixes.length; i++)
+            {
+                AbstractProcess p = new SMLHelper().createPhysicalComponent()
+                    .uniqueID(PROC_UID_PREFIX + uidSuffixes[i])
+                    .name("Procedure #" + (char)(uidSuffixes[i]+65))
+                    .build();
+                internalIDs[i] = obsDb.getProcedureStore().add(p).getInternalID();
+            }
+
+            return internalIDs;
+        }
+        catch (DataStoreException e)
+        {
+            throw new IllegalStateException(e);
+        }
     }
     
     
