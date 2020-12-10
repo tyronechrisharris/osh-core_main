@@ -16,7 +16,7 @@ package org.sensorhub.api.data;
 
 import java.time.Instant;
 import org.sensorhub.api.event.EventUtils;
-import org.sensorhub.api.procedure.ProcedureEvent;
+import org.sensorhub.api.obs.DataStreamEvent;
 import org.vast.util.Asserts;
 import net.opengis.swe.v20.DataBlock;
 
@@ -30,9 +30,8 @@ import net.opengis.swe.v20.DataBlock;
  * @author Alex Robin
  * @since Feb 20, 2015
  */
-public class DataEvent extends ProcedureEvent
+public class DataEvent extends DataStreamEvent
 {
-    protected String outputName;
     protected String foiUID;
     protected Instant resultTime;
     protected DataBlock[] records;
@@ -47,12 +46,8 @@ public class DataEvent extends ProcedureEvent
      */
     public DataEvent(long timeStamp, String procUID, String outputName, DataBlock ... records)
     {
-        super(timeStamp, procUID);
-
-        Asserts.checkNotNullOrEmpty(outputName, "outputName");
+        super(timeStamp, procUID, outputName);
         Asserts.checkNotNullOrEmpty(records, "records must be provided");
-
-        this.outputName = outputName;
         this.records = records;
     }
 
@@ -136,15 +131,6 @@ public class DataEvent extends ProcedureEvent
         if (sourceID == null)
             sourceID = EventUtils.getProcedureOutputSourceID(procedureUID, outputName);
         return sourceID;
-    }
-
-
-    /**
-     * @return Name of channel the event was produced on (e.g. output name)
-     */
-    public String getOutputName()
-    {
-        return outputName;
     }
 
 

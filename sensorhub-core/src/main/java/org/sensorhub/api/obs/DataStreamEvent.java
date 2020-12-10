@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.obs;
 
 import org.sensorhub.api.procedure.ProcedureEvent;
+import org.vast.util.Asserts;
 
 
 /**
@@ -27,7 +28,7 @@ import org.sensorhub.api.procedure.ProcedureEvent;
  */
 public abstract class DataStreamEvent extends ProcedureEvent
 {
-    String outputName;
+    protected String outputName;
 
 
     /**
@@ -38,7 +39,7 @@ public abstract class DataStreamEvent extends ProcedureEvent
     public DataStreamEvent(long timeStamp, String procUID, String outputName)
     {
         super(timeStamp, procUID);
-        this.outputName = outputName;
+        this.outputName = Asserts.checkNotNullOrEmpty(outputName, "outputName");
     }
     
     
@@ -49,8 +50,7 @@ public abstract class DataStreamEvent extends ProcedureEvent
      */
     public DataStreamEvent(String procUID, String outputName)
     {
-        super(procUID);
-        this.outputName = outputName;
+        this(System.currentTimeMillis(), procUID, outputName);
     }
 
 
