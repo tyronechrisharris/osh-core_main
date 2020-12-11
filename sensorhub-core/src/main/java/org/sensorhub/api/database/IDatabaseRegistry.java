@@ -135,6 +135,16 @@ public interface IDatabaseRegistry
 
 
     /**
+     * Provides direct (potentially read/write) access to the database with
+     * the specified number
+     * @param databaseNum Database number (unique on a given hub instance)
+     * @return The database instance or null if none has been assigned
+     * the specified number
+     */
+    IProcedureObsDatabase getObsDatabase(int databaseNum);
+
+
+    /**
      * @return This hub's federated observation database.<br/>
      * See class description for more information about the federated DB
      */
@@ -145,7 +155,7 @@ public interface IDatabaseRegistry
      * @return a read-only collection of all procedure/obs databases registered
      * on the hub
      */
-    Collection<IProcedureObsDatabase> getProcedureObsDatabases();
+    Collection<IProcedureObsDatabase> getRegisteredObsDatabases();
     
     
     //Collection<IProcedureObsDatabase> getProcedureObsDatabaseViews();   
@@ -153,22 +163,22 @@ public interface IDatabaseRegistry
 
     /**
      * Convert from a local DB entry ID to the public ID
-     * @param databaseID ID of database as registered in this registry
+     * @param dbNum Database number (unique on a given hub instance)
      * @param dbLocalID Internal ID of database entry
      * @return The public ID exposed by the registry
      */
-    long getPublicID(int databaseID, long dbLocalID);
-    BigInteger getPublicID(int databaseID, BigInteger dbLocalID);
+    long getPublicID(int dbNum, long dbLocalID);
+    BigInteger getPublicID(int dbNum, BigInteger dbLocalID);
 
 
     /**
      * Convert from a public registry ID to a local DB entry ID
-     * @param databaseID ID of database as registered in this registry
+     * @param dbNum Database number (unique on a given hub instance)
      * @param publicID Public ID of entry
      * @return The entry ID used internally by the database
      */
-    long getLocalID(int databaseID, long publicID);
-    BigInteger getLocalID(int databaseID, BigInteger publicID);
+    long getLocalID(int dbNum, long publicID);
+    BigInteger getLocalID(int dbNum, BigInteger publicID);
 
 
     /**
@@ -176,5 +186,6 @@ public interface IDatabaseRegistry
      * @param publicID Public ID of entry
      * @return The database ID
      */
-    int getDatabaseID(long publicID);
+    int getDatabaseNum(long publicID);
+    int getDatabaseNum(BigInteger publicID);
 }

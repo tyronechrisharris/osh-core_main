@@ -14,8 +14,16 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -27,13 +35,111 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     FederatedProcedureStore procStore;
     FederatedFoiStore foiStore;
     FederatedObsStore obsStore;
+    IDatabaseRegistry registry;
+    
+    
+    public static class LocalDatabaseInfo
+    {
+        IProcedureObsDatabase db;
+        int databaseID;
+        long entryID;
+        BigInteger bigEntryID;
+    }
+    
+    
+    public static class LocalFilterInfo
+    {
+        IProcedureObsDatabase db;
+        int databaseNum;
+        Set<Long> internalIds = new TreeSet<>();
+        Set<BigInteger> bigInternalIds = new TreeSet<>();
+        IQueryFilter filter;
+    }
     
 
-    public FederatedObsDatabase(DefaultDatabaseRegistry registry)
+    public FederatedObsDatabase(IDatabaseRegistry registry)
     {
+        this.registry = registry;
         this.procStore = new FederatedProcedureStore(registry, this);
         this.foiStore = new FederatedFoiStore(registry, this);
         this.obsStore = new FederatedObsStore(registry, this);
+    }
+    
+    
+    /*
+     * Convert from the public ID to the local database ID
+     */
+    protected LocalDatabaseInfo getLocalDbInfo(long publicID)
+    {
+        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
+        dbInfo.databaseID = registry.getDatabaseNum(publicID);
+        dbInfo.db = registry.getObsDatabase(dbInfo.databaseID);
+        dbInfo.entryID = registry.getLocalID(dbInfo.databaseID, publicID);
+        
+        if (dbInfo.db == null)
+            return null;
+        
+        return dbInfo;
+    }
+    
+    
+    /*
+     * Convert from the public ID to the local database ID
+     */
+    protected LocalDatabaseInfo getLocalDbInfo(BigInteger publicID)
+    {
+        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
+        dbInfo.databaseID = registry.getDatabaseNum(publicID);
+        dbInfo.db = registry.getObsDatabase(dbInfo.databaseID);
+        dbInfo.bigEntryID = registry.getLocalID(dbInfo.databaseID, publicID);
+        
+        if (dbInfo.db == null)
+            return null;
+        
+        return dbInfo;
+    }
+    
+    
+    /*
+     * Get map with an entry for each DB ID extracted from public IDs
+     */
+    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(Set<Long> publicIDs)
+    {
+        Map<Integer, LocalFilterInfo> map = new LinkedHashMap<>();
+        
+        for (long publicID: publicIDs)
+        {
+            LocalDatabaseInfo dbInfo = getLocalDbInfo(publicID);
+            if (dbInfo == null)
+                continue;
+                
+            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseID, k -> new LocalFilterInfo());
+            filterInfo.db = dbInfo.db;
+            filterInfo.databaseNum = dbInfo.databaseID;
+            filterInfo.internalIds.add(dbInfo.entryID);
+        }
+        
+        return map;
+    }
+    
+    
+    protected Map<Integer, LocalFilterInfo> getFilterDispatchMapBigInt(Set<BigInteger> publicIDs)
+    {
+        Map<Integer, LocalFilterInfo> map = new LinkedHashMap<>();
+        
+        for (BigInteger publicID: publicIDs)
+        {
+            LocalDatabaseInfo dbInfo = getLocalDbInfo(publicID);
+            if (dbInfo == null)
+                continue;
+                
+            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseID, k -> new LocalFilterInfo());
+            filterInfo.db = dbInfo.db;
+            filterInfo.databaseNum = dbInfo.databaseID;
+            filterInfo.bigInternalIds.add(dbInfo.bigEntryID);
+        }
+        
+        return map;
     }
     
     
@@ -55,6 +161,12 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     public IFoiStore getFoiStore()
     {
         return foiStore;
+    }
+    
+    
+    protected Collection<IProcedureObsDatabase> getAllDatabases()
+    {
+        return registry.getRegisteredObsDatabases();
     }
 
 

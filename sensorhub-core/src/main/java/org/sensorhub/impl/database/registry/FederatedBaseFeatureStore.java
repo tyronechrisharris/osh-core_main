@@ -18,13 +18,14 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.ogc.gml.IFeature;
@@ -46,14 +47,14 @@ import org.vast.util.Bbox;
  */
 public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>> extends ReadOnlyDataStore<FeatureKey, T, VF, F> implements IFeatureStoreBase<T, VF, F>
 {
-    DefaultDatabaseRegistry registry;
-    FederatedObsDatabase db;
+    IDatabaseRegistry registry;
+    FederatedObsDatabase parentDb;
     
     
-    FederatedBaseFeatureStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedBaseFeatureStore(IDatabaseRegistry registry, FederatedObsDatabase db)
     {
         this.registry = registry;
-        this.db = db;
+        this.parentDb = db;
     }
     
     
@@ -78,7 +79,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     public long getNumFeatures()
     {
         long count = 0;
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
             count += getFeatureStore(db).getNumFeatures();
         return count;
     }
@@ -88,7 +89,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     public long getNumRecords()
     {
         long count = 0;
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
             count += getFeatureStore(db).getNumRecords();
         return count;
     }
@@ -98,7 +99,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     public Bbox getFeaturesBbox()
     {
         Bbox bbox = new Bbox();
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
             bbox.add(getFeatureStore(db).getFeaturesBbox());
         return bbox;
     }
@@ -110,7 +111,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         DataStoreUtils.checkInternalID(internalID);
         
         // use public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(internalID);
+        var dbInfo = parentDb.getLocalDbInfo(internalID);
         if (dbInfo == null)
             return false;
         else
@@ -123,7 +124,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     {
         DataStoreUtils.checkUniqueID(uid);
         
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
         {
             if (getFeatureStore(db).contains(uid))
                 return true;
@@ -139,7 +140,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         FeatureKey key = DataStoreUtils.checkFeatureKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key.getInternalID());
+        var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
         if (dbInfo == null)
             return false;
         else
@@ -150,7 +151,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     @Override
     public boolean containsValue(Object value)
     {
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
         {
             if (getFeatureStore(db).containsValue(value))
                 return true;
@@ -166,7 +167,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         FeatureKey key = DataStoreUtils.checkFeatureKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key.getInternalID());
+        var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
         if (dbInfo == null)
             return null;
         else
@@ -187,20 +188,21 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         {
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
-                    int dbID = v.databaseID;
+                    int dbNum = v.databaseNum;
                     return getFeatureStore(v.db).selectEntries((F)v.filter, fields)
-                        .map(e -> toPublicEntry(dbID, e));
+                        .map(e -> toPublicEntry(dbNum, e));
                 })
                 .limit(filter.getLimit());
         }
+        
+        // otherwise scan all DBs
         else
         {
-            // otherwise scan all DBs
-            return registry.obsDatabases.values().stream()
+            return parentDb.getAllDatabases().stream()
                 .flatMap(db -> {
-                    int dbID = db.getDatabaseNum();
+                    int dbNum = db.getDatabaseNum();
                     return getFeatureStore(db).selectEntries(filter, fields)
-                        .map(e -> toPublicEntry(dbID, e));
+                        .map(e -> toPublicEntry(dbNum, e));
                 })
                 .limit(filter.getLimit());
         }

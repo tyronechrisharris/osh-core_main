@@ -17,17 +17,13 @@ package org.sensorhub.impl.database.registry;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabase;
-import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
@@ -62,25 +58,6 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     FederatedObsDatabase globalObsDatabase;
     
     
-    public static class LocalDatabaseInfo
-    {
-        IProcedureObsDatabase db;
-        int databaseID;
-        long entryID;
-        BigInteger bigEntryID;
-    }
-    
-    
-    public static class LocalFilterInfo
-    {
-        IProcedureObsDatabase db;
-        int databaseID;
-        Set<Long> internalIds = new TreeSet<>();
-        Set<BigInteger> bigInternalIds = new TreeSet<>();
-        IQueryFilter filter;
-    }
-    
-    
     
     public DefaultDatabaseRegistry(ISensorHub hub)
     {
@@ -109,6 +86,8 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     @Override
     public synchronized void register(String procedureUID, IProcedureObsDatabase db)
     {
+        Asserts.checkNotNull(db, IProcedureObsDatabase.class);
+        
         int databaseID = registerObsDatabase(db);
         registerMapping(procedureUID, databaseID);
     }
@@ -123,28 +102,13 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     }
     
     
-    @Override
-    public synchronized void unregister(IDatabase db)
-    {
-        var it = obsDatabaseIDs.values().iterator();
-        while (it.hasNext())
-        {
-            var dbID = it.next();
-            if (dbID == db.getDatabaseNum())
-                it.remove();
-        }
-            
-        obsDatabases.remove(db.getDatabaseNum());
-    }
-    
-    
     protected int registerObsDatabase(IProcedureObsDatabase db)
     {
-        int databaseID = db.getDatabaseNum();
+        int dbNum = db.getDatabaseNum();
         
         // add to Id->DB instance map only if not already present        
-        if (obsDatabases.putIfAbsent(databaseID, db) != null)
-            throw new IllegalStateException("A database with ID " + databaseID + " was already registered");
+        if (obsDatabases.putIfAbsent(dbNum, db) != null)
+            throw new IllegalStateException("A database with number " + dbNum + " was already registered");
         
         // case of database w/ event handler
         if (db instanceof IProcedureEventHandlerDatabase)
@@ -155,17 +119,17 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
                     throw new IllegalStateException("Cannot use a read-only database to collect procedure & obs data");
                             
                 for (var procUID: ((IProcedureEventHandlerDatabase) db).getHandledProcedures())
-                    registerMapping(procUID, databaseID);
+                    registerMapping(procUID, dbNum);
             }
             catch (IllegalStateException e)
             {
                 // remove database if 2nd registration step failed
-                obsDatabases.remove(databaseID);
+                obsDatabases.remove(dbNum);
                 throw e;
             }
         }
         
-        return databaseID;
+        return dbNum;
     }
     
     
@@ -175,18 +139,18 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     }
     
     
-    protected void registerMapping(String uid, int databaseID)
+    protected void registerMapping(String uid, int dbNum)
     {
         OshAsserts.checkValidUID(uid);
-        Asserts.checkArgument(databaseID > 0, "Database ID must be > 0");        
+        Asserts.checkArgument(dbNum > 0, "Database number must be > 0");        
         
         // only insert mapping if not already registered by another database
         // or if registered in state database only (ID 0)
-        if (obsDatabaseIDs.putIfAbsent(uid, databaseID) != null)
+        if (obsDatabaseIDs.putIfAbsent(uid, dbNum) != null)
             throw new IllegalStateException("Procedure " + uid + " is already handled by another database");
         
         // remove all entries from default state DB (DB 0) since it's now handled by another DB
-        if (databaseID != 0)
+        if (dbNum != 0)
         {
             IProcedureObsDatabase defaultDB = obsDatabases.get(0);
             if (defaultDB != null)
@@ -194,7 +158,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
                 FeatureKey key = defaultDB.getProcedureStore().remove(uid);
                 if (key != null)
                 {
-                    log.info("Database #{} now handles procedure {}. Removing all records from state DB", databaseID, uid);
+                    log.info("Database #{} now handles procedure {}. Removing all records from state DB", dbNum, uid);
                     defaultDB.getObservationStore().getDataStreams().removeEntries(new DataStreamFilter.Builder()
                         .withProcedures(key.getInternalID())
                         .build());
@@ -202,22 +166,22 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
             }
         }
     }
-
-
-    @Override
-    public IProcedureObsDatabase getObsDatabase(String procUID)
-    {
-        Integer dbID = obsDatabaseIDs.get(procUID);
-        if (dbID == null)
-            dbID = DEFAULT_DB_ID;
-        return obsDatabases.get(dbID);
-    }
     
     
     @Override
-    public Collection<IProcedureObsDatabase> getProcedureObsDatabases()
+    public synchronized void unregister(IDatabase db)
     {
-        return Collections.unmodifiableCollection(obsDatabases.values());
+        Asserts.checkNotNull(db, IDatabase.class);
+        
+        var it = obsDatabaseIDs.values().iterator();
+        while (it.hasNext())
+        {
+            var dbNum = it.next();
+            if (dbNum == db.getDatabaseNum())
+                it.remove();
+        }
+            
+        obsDatabases.remove(db.getDatabaseNum());
     }
 
 
@@ -230,6 +194,31 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
             uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
         
         obsDatabaseIDs.remove(uid);
+    }
+    
+    
+    @Override
+    public IProcedureObsDatabase getObsDatabase(int dbNum)
+    {
+        Asserts.checkArgument(dbNum >= 0);
+        return obsDatabases.get(dbNum);
+    }
+
+
+    @Override
+    public IProcedureObsDatabase getObsDatabase(String procUID)
+    {
+        Integer dbNum = obsDatabaseIDs.get(procUID);
+        if (dbNum == null)
+            dbNum = DEFAULT_DB_ID;
+        return getObsDatabase(dbNum);
+    }
+    
+    
+    @Override
+    public Collection<IProcedureObsDatabase> getRegisteredObsDatabases()
+    {
+        return Collections.unmodifiableCollection(obsDatabases.values());
     }
 
 
@@ -245,115 +234,45 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
      */    
     
     @Override
-    public long getLocalID(int databaseID, long publicID)
+    public long getLocalID(int dbNum, long publicID)
     {
         return publicID / MAX_NUM_DB;
     }
     
     
     @Override
-    public BigInteger getLocalID(int databaseID, BigInteger publicID)
+    public BigInteger getLocalID(int dbNum, BigInteger publicID)
     {
         return publicID.divide(MAX_NUM_DB_BIGINT);
     }
     
     
     @Override
-    public long getPublicID(int databaseID, long entryID)
+    public long getPublicID(int dbNum, long entryID)
     {
-        return entryID * MAX_NUM_DB + (long)databaseID;
+        return entryID * MAX_NUM_DB + (long)dbNum;
     }
     
     
     @Override
-    public BigInteger getPublicID(int databaseID, BigInteger entryID)
+    public BigInteger getPublicID(int dbNum, BigInteger entryID)
     {
         return entryID.multiply(MAX_NUM_DB_BIGINT)
-            .add(BigInteger.valueOf(databaseID));
+            .add(BigInteger.valueOf(dbNum));
     }
     
     
     @Override
-    public int getDatabaseID(long publicID)
+    public int getDatabaseNum(long publicID)
     {
         return (int)(publicID % MAX_NUM_DB);
     }
     
     
-    /*
-     * Convert from the public ID to the local database ID
-     */
-    protected LocalDatabaseInfo getLocalDbInfo(long publicID)
+    @Override
+    public int getDatabaseNum(BigInteger publicID)
     {
-        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
-        dbInfo.databaseID = (int)(publicID % MAX_NUM_DB);
-        dbInfo.db = obsDatabases.get(dbInfo.databaseID);
-        dbInfo.entryID = getLocalID(dbInfo.databaseID, publicID);
-        
-        if (dbInfo.db == null)
-            return null;
-        
-        return dbInfo;
-    }
-    
-    
-    /*
-     * Convert from the public ID to the local database ID
-     */
-    protected LocalDatabaseInfo getLocalDbInfo(BigInteger publicID)
-    {
-        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
-        dbInfo.databaseID = publicID.mod(MAX_NUM_DB_BIGINT).intValue();
-        dbInfo.db = obsDatabases.get(dbInfo.databaseID);
-        dbInfo.bigEntryID = getLocalID(dbInfo.databaseID, publicID);
-        
-        if (dbInfo.db == null)
-            return null;
-        
-        return dbInfo;
-    }
-    
-    
-    /*
-     * Get map with an entry for each DB ID extracted from public IDs
-     */
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(Set<Long> publicIDs)
-    {
-        Map<Integer, LocalFilterInfo> map = new LinkedHashMap<>();
-        
-        for (long publicID: publicIDs)
-        {
-            LocalDatabaseInfo dbInfo = getLocalDbInfo(publicID);
-            if (dbInfo == null)
-                continue;
-                
-            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseID, k -> new LocalFilterInfo());
-            filterInfo.db = dbInfo.db;
-            filterInfo.databaseID = dbInfo.databaseID;
-            filterInfo.internalIds.add(dbInfo.entryID);
-        }
-        
-        return map;
-    }
-    
-    
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMapBigInt(Set<BigInteger> publicIDs)
-    {
-        Map<Integer, LocalFilterInfo> map = new LinkedHashMap<>();
-        
-        for (BigInteger publicID: publicIDs)
-        {
-            LocalDatabaseInfo dbInfo = getLocalDbInfo(publicID);
-            if (dbInfo == null)
-                continue;
-                
-            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseID, k -> new LocalFilterInfo());
-            filterInfo.db = dbInfo.db;
-            filterInfo.databaseID = dbInfo.databaseID;
-            filterInfo.bigInternalIds.add(dbInfo.bigEntryID);
-        }
-        
-        return map;
+        return publicID.mod(MAX_NUM_DB_BIGINT).intValue();
     }
 
 

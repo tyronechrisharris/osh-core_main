@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.database.registry;
 
 import java.util.Map;
+import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
@@ -22,7 +23,7 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 import org.vast.ogc.gml.IGeoFeature;
 
 
@@ -38,7 +39,7 @@ import org.vast.ogc.gml.IGeoFeature;
 public class FederatedFoiStore extends FederatedBaseFeatureStore<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
         
-    FederatedFoiStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedFoiStore(IDatabaseRegistry registry, FederatedObsDatabase db)
     {
         super(registry, db);
     }
@@ -54,7 +55,7 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IGeoFeature, Fo
     {
         if (filter.getInternalIDs() != null)
         {
-            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());
+            var filterDispatchMap = parentDb.getFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = FoiFilter.Builder
@@ -69,7 +70,7 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IGeoFeature, Fo
         else if (filter.getObservationFilter() != null)
         {
             // delegate to proc store handle procedure filter dispatch map
-            var filterDispatchMap = db.obsStore.getFilterDispatchMap(filter.getObservationFilter());
+            var filterDispatchMap = parentDb.obsStore.getFilterDispatchMap(filter.getObservationFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())

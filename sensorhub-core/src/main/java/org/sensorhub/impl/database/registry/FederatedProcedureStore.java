@@ -16,6 +16,7 @@ package org.sensorhub.impl.database.registry;
 
 import java.util.Map;
 import java.util.TreeMap;
+import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -23,7 +24,7 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 
 
 /**
@@ -38,7 +39,7 @@ import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterI
 public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
 {
     
-    FederatedProcedureStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedProcedureStore(IDatabaseRegistry registry, FederatedObsDatabase db)
     {
         super(registry, db);
     }
@@ -58,7 +59,7 @@ public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedur
         
         if (filter.getInternalIDs() != null)
         {
-            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());
+            var filterDispatchMap = parentDb.getFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = ProcedureFilter.Builder
@@ -72,7 +73,7 @@ public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedur
         
         // otherwise get dispatch map for datastreams and parent procedures
         if (filter.getDataStreamFilter() != null)
-            dataStreamFilterDispatchMap = db.obsStore.dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
+            dataStreamFilterDispatchMap = parentDb.obsStore.dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
         
         if (filter.getParentFilter() != null)
             parentFilterDispatchMap = getFilterDispatchMap(filter.getParentFilter());
@@ -93,7 +94,7 @@ public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedur
                     builder.withParents((ProcedureFilter)parentfilterInfo.filter);
                     
                 var filterInfo = new LocalFilterInfo();
-                filterInfo.databaseID = dataStreamFilterInfo.databaseID;
+                filterInfo.databaseNum = dataStreamFilterInfo.databaseNum;
                 filterInfo.db = dataStreamFilterInfo.db;
                 filterInfo.filter = builder.build();
                 procFilterDispatchMap.put(entry.getKey(), filterInfo);
@@ -110,7 +111,7 @@ public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedur
                 if (!procFilterDispatchMap.containsKey(entry.getKey()))
                 {
                     var filterInfo = new LocalFilterInfo();
-                    filterInfo.databaseID = parentFilterInfo.databaseID;
+                    filterInfo.databaseNum = parentFilterInfo.databaseNum;
                     filterInfo.db = parentFilterInfo.db;
                     filterInfo.filter = ProcedureFilter.Builder.from(filter)
                         .withParents((ProcedureFilter)parentFilterInfo.filter)

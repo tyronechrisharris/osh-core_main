@@ -18,6 +18,7 @@ import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -27,7 +28,7 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.ProcedureId;
-import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
@@ -44,8 +45,8 @@ import org.vast.util.Asserts;
  */
 public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {
-    DefaultDatabaseRegistry registry;
-    FederatedObsDatabase db;
+    IDatabaseRegistry registry;
+    FederatedObsDatabase parentDb;
     
     
     class DataStreamInfoWithPublicId extends DataStreamInfoWrapper
@@ -66,10 +67,10 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     }
     
     
-    FederatedDataStreamStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedDataStreamStore(IDatabaseRegistry registry, FederatedObsDatabase db)
     {
         this.registry = registry;
-        this.db = db;
+        this.parentDb = db;
     }
 
 
@@ -84,7 +85,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     public long getNumRecords()
     {
         long count = 0;
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
             count += db.getObservationStore().getDataStreams().getNumRecords();
         return count;
     }
@@ -103,7 +104,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         var key = ensureDataStreamKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key.getInternalID());
+        var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
         if (dbInfo == null)
             return false;
         else
@@ -114,7 +115,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     @Override
     public boolean containsValue(Object value)
     {
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
         {
             if (db.getObservationStore().getDataStreams().containsValue(value))
                 return true;
@@ -130,7 +131,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         var key = ensureDataStreamKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key.getInternalID());
+        var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
         if (dbInfo != null)
         {
             IDataStreamInfo dsInfo = dbInfo.db.getObservationStore().getDataStreams().get(new DataStreamKey(dbInfo.entryID));
@@ -181,7 +182,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     {
         if (filter.getInternalIDs() != null)
         {
-            var filterDispatchMap = registry.getFilterDispatchMap(filter.getInternalIDs());
+            var filterDispatchMap = parentDb.getFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = DataStreamFilter.Builder
@@ -196,7 +197,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         else if (filter.getProcedureFilter() != null)
         {
             // delegate to proc store handle procedure filter dispatch map
-            var filterDispatchMap = db.procStore.getFilterDispatchMap(filter.getProcedureFilter());
+            var filterDispatchMap = parentDb.procStore.getFilterDispatchMap(filter.getProcedureFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())
@@ -214,7 +215,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         else if (filter.getObservationFilter() != null)
         {
             // delegate to proc store handle procedure filter dispatch map
-            var filterDispatchMap = db.obsStore.getFilterDispatchMap(filter.getObservationFilter());
+            var filterDispatchMap = parentDb.obsStore.getFilterDispatchMap(filter.getObservationFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())
@@ -244,19 +245,21 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         {
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
-                    int dbID = v.databaseID;
+                    int dbNum = v.databaseNum;
                     return v.db.getObservationStore().getDataStreams().selectEntries((DataStreamFilter)v.filter, fields)
-                        .map(e -> toPublicEntry(dbID, e));
+                        .map(e -> toPublicEntry(dbNum, e));
                 })
                 .limit(filter.getLimit());
         }
+        
+        // otherwise scan all DBs
         else
         {
-            return registry.obsDatabases.values().stream()
+            return parentDb.getAllDatabases().stream()
                 .flatMap(db -> {
-                    int dbID = db.getDatabaseNum();
+                    int dbNum = db.getDatabaseNum();
                     return db.getObservationStore().getDataStreams().selectEntries(filter, fields)
-                        .map(e -> toPublicEntry(dbID, e));
+                        .map(e -> toPublicEntry(dbNum, e));
                 })
                 .limit(filter.getLimit());
         }

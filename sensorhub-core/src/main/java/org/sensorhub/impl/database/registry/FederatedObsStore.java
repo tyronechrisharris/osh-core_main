@@ -23,6 +23,7 @@ import java.util.Spliterator;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -34,7 +35,7 @@ import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsStats;
-import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 import org.sensorhub.impl.datastore.MergeSortSpliterator;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
@@ -51,15 +52,15 @@ import org.vast.util.Asserts;
  */
 public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, ObsField, ObsFilter> implements IObsStore
 {
-    DefaultDatabaseRegistry registry;
+    IDatabaseRegistry registry;
+    FederatedObsDatabase parentDb;
     FederatedDataStreamStore dataStreamStore;
-    FederatedObsDatabase db;
     
     
-    FederatedObsStore(DefaultDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedObsStore(IDatabaseRegistry registry, FederatedObsDatabase db)
     {
         this.registry = registry;
-        this.db = db;
+        this.parentDb = db;
         this.dataStreamStore = new FederatedDataStreamStore(registry, db);
     }
 
@@ -75,7 +76,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     public long getNumRecords()
     {
         long count = 0;
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
             count += db.getObservationStore().getNumRecords();
         return count;
     }
@@ -157,7 +158,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         BigInteger key = ensureObsKey(obj);
         
         // use datastream public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key);
+        var dbInfo = parentDb.getLocalDbInfo(key);
         if (dbInfo == null)
             return false;
         else
@@ -169,7 +170,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     @Override
     public boolean containsValue(Object value)
     {
-        for (var db: registry.obsDatabases.values())
+        for (var db: parentDb.getAllDatabases())
         {
             if (db.getObservationStore().containsValue(value))
                 return true;
@@ -185,7 +186,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         BigInteger key = ensureObsKey(obj);
         
         // use datastream public key to lookup database and local key
-        var dbInfo = registry.getLocalDbInfo(key);
+        var dbInfo = parentDb.getLocalDbInfo(key);
         if (dbInfo == null)
             return null;
         
@@ -206,7 +207,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         // use internal IDs if present
         if (filter.getInternalIDs() != null)
         {
-            var filterDispatchMap = registry.getFilterDispatchMapBigInt(filter.getInternalIDs());
+            var filterDispatchMap = parentDb.getFilterDispatchMapBigInt(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = ObsFilter.Builder
@@ -223,7 +224,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
             dataStreamFilterDispatchMap = dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
         
         if (filter.getFoiFilter() != null)
-            foiFilterDispatchMap = db.foiStore.getFilterDispatchMap(filter.getFoiFilter());
+            foiFilterDispatchMap = parentDb.foiStore.getFilterDispatchMap(filter.getFoiFilter());
         
         // merge both maps
         if (dataStreamFilterDispatchMap != null)
@@ -241,7 +242,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                     builder.withFois((FoiFilter)foifilterInfo.filter);
                     
                 var filterInfo = new LocalFilterInfo();
-                filterInfo.databaseID = dataStreamFilterInfo.databaseID;
+                filterInfo.databaseNum = dataStreamFilterInfo.databaseNum;
                 filterInfo.db = dataStreamFilterInfo.db;
                 filterInfo.filter = builder.build();
                 obsFilterDispatchMap.put(entry.getKey(), filterInfo);
@@ -258,7 +259,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                 if (!obsFilterDispatchMap.containsKey(entry.getKey()))
                 {
                     var filterInfo = new LocalFilterInfo();
-                    filterInfo.databaseID = foiFilterInfo.databaseID;
+                    filterInfo.databaseNum = foiFilterInfo.databaseNum;
                     filterInfo.db = foiFilterInfo.db;
                     filterInfo.filter = ObsFilter.Builder.from(filter)
                         .withFois((FoiFilter)foiFilterInfo.filter)
@@ -288,19 +289,19 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         {
             filterDispatchMap.values().stream()
                 .forEach(v -> {
-                    int dbID = v.databaseID;
+                    int dbNum = v.databaseNum;
                     var obsStream = v.db.getObservationStore().selectEntries((ObsFilter)v.filter, fields)
-                        .map(e -> toPublicEntry(dbID, e));
+                        .map(e -> toPublicEntry(dbNum, e));
                     obsIterators.add(obsStream.spliterator());
                 });
         }
         else
         {
-            registry.obsDatabases.values().stream()
+            parentDb.getAllDatabases().stream()
                 .forEach(db -> {
-                    int dbID = db.getDatabaseNum();
+                    int dbNum = db.getDatabaseNum();
                     var obsStream = db.getObservationStore().selectEntries(filter, fields)
-                        .map(e -> toPublicEntry(dbID, e));
+                        .map(e -> toPublicEntry(dbNum, e));
                     obsIterators.add(obsStream.spliterator());
                 });
         }
@@ -327,19 +328,19 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         {
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
-                    int dbID = v.databaseID;
+                    int dbNum = v.databaseNum;
                     return v.db.getObservationStore().selectObservedFois((ObsFilter)v.filter)
-                        .map(id -> registry.getPublicID(dbID, id));
+                        .map(id -> registry.getPublicID(dbNum, id));
                 })
                 .limit(filter.getLimit());
         }
         else
         {
-            return registry.obsDatabases.values().stream()
+            return parentDb.getAllDatabases().stream()
                 .flatMap(db -> {
-                    int dbID = db.getDatabaseNum();
+                    int dbNum = db.getDatabaseNum();
                     return db.getObservationStore().selectObservedFois(filter)
-                        .map(id -> registry.getPublicID(dbID, id));
+                        .map(id -> registry.getPublicID(dbNum, id));
                 })
                 .limit(filter.getLimit());
         }
