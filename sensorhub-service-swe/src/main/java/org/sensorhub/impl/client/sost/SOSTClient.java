@@ -526,7 +526,11 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             var procInfo = procedures.get(dsInfo.getProcedureID().getUniqueID());
             if (procInfo == null)
                 throw new IllegalStateException("Unknown procedure: " + dsInfo.getProcedureID().getUniqueID());
-                        
+            
+            // assign ID to record struct so we can use it to retain the output name
+            var dsInfoWithId = dsInfo.getRecordStructure().copy();
+            dsInfoWithId.setId(dsInfo.getOutputName());
+            
             // otherwise register result template
             // create request object
             InsertResultTemplateRequest req = new InsertResultTemplateRequest();
@@ -534,7 +538,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             req.setPostServer(getSosEndpointUrl());
             req.setVersion("2.0");
             req.setOffering(procInfo.offeringId);
-            req.setResultStructure(dsInfo.getRecordStructure());
+            req.setResultStructure(dsInfoWithId);
             req.setResultEncoding(dsInfo.getRecordEncoding());
             ObservationImpl obsTemplate = new ObservationImpl();
             req.setObservationTemplate(obsTemplate);
