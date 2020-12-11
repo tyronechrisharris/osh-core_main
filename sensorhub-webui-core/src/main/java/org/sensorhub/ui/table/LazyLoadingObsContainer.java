@@ -60,7 +60,7 @@ public class LazyLoadingObsContainer extends IndexedContainer
     @Override
     public List<Object> getItemIds(int startIndex, int numberOfIds)
     {
-        if (startIndexCache != startIndex)
+        if (timeRange != null && startIndexCache != startIndex)
         {
             startIndexCache = startIndex;
             //System.out.println("Loading from " + startIndex + ", count=" + numberOfIds);
@@ -96,6 +96,9 @@ public class LazyLoadingObsContainer extends IndexedContainer
     @Override
     public int size()
     {
+        if (timeRange == null)
+            return 0;
+        
         if (size < 0)
         {
             size = (int)db.getObservationStore().countMatchingEntries(new ObsFilter.Builder()

@@ -72,7 +72,9 @@ public class ProcedureSearchList extends VerticalLayout
                     procFilter.withKeywords(keywords);
                 
                 // update table
-                updateTable(db, procFilter.build());
+                updateTable(db, procFilter
+                    .withCurrentVersion()
+                    .build());
             }
         });
         
@@ -81,6 +83,7 @@ public class ProcedureSearchList extends VerticalLayout
         
         // populate table with 10 first results
         updateTable(db, new ProcedureFilter.Builder()
+            .withCurrentVersion()
             .withLimit(10)
             .build());
     }

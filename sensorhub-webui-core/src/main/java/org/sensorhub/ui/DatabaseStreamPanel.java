@@ -23,9 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -43,10 +40,7 @@ import org.vast.swe.ScalarIndexer;
 import org.vast.util.DateTimeFormat;
 import org.vast.util.TimeExtent;
 import com.google.common.io.Resources;
-import com.vaadin.v7.data.Item;
-import com.vaadin.v7.data.util.IndexedContainer;
 import com.vaadin.v7.data.util.converter.Converter;
-import com.vaadin.v7.data.util.sqlcontainer.SQLContainer;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.shared.ui.ContentMode;
@@ -91,7 +85,7 @@ public class DatabaseStreamPanel extends VerticalLayout
     IProcedureObsDatabase db;
     long dataStreamID;
     TimeExtent fullTimeRange;
-    TimeExtent timeRange;
+    TimeExtent zoomTimeRange;
     LazyLoadingObsContainer obsDataContainer;
         
     
@@ -117,6 +111,13 @@ public class DatabaseStreamPanel extends VerticalLayout
         
         // top level info
         addComponent(buildHeaderInfo(dsInfo));
+        
+        // add histogram if it was open before
+        if (detailChart != null)
+        {
+            Component timeline = buildHistogram(dsInfo);
+            addComponent(timeline);
+        }
         
         // grid layout for data structure and table
         GridLayout grid = new GridLayout(2, 2);
@@ -145,16 +146,24 @@ public class DatabaseStreamPanel extends VerticalLayout
         layout.setSpacing(true);
         layout.setDefaultComponentAlignment(Alignment.MIDDLE_LEFT);
         
-        timeRange = dsInfo.getPhenomenonTimeRange();
-        String timeRangeText = timeRange.isoStringUTC(false);
+        var timeRange = dsInfo.getPhenomenonTimeRange();
+        zoomTimeRange = timeRange;
+        String timeRangeText = "- NO DATA -";
+        if (timeRange != null)
+        {
+            Instant begin = timeRange.begin().truncatedTo(ChronoUnit.SECONDS);
+            Instant end = timeRange.end().truncatedTo(ChronoUnit.SECONDS);
+            timeRangeText = begin + " - " + end;
+        }
         Label timeRangeLabel = new Label(timeRangeText);
         timeRangeLabel.setContentMode(ContentMode.HTML);
         timeRangeLabel.addStyleName(UIConstants.STYLE_SMALL);
         layout.addComponent(timeRangeLabel);
-        layout.setCaption("Time Range");
+        layout.setCaption("Time Range:");
         
         final Button btn = new Button(FontAwesome.BAR_CHART);
-        btn.setDescription("Show Histogram");
+        btn.setDescription(detailChart == null ? "Show Histogram" : "Hide Histogram");
+        btn.setEnabled(timeRange != null);
         btn.addStyleName(UIConstants.STYLE_SMALL);
         btn.addStyleName(UIConstants.STYLE_QUIET);
         layout.addComponent(btn);
@@ -264,7 +273,7 @@ public class DatabaseStreamPanel extends VerticalLayout
         
         try
         {
-            fullTimeRange = timeRange = dsInfo.getPhenomenonTimeRange();
+            fullTimeRange = zoomTimeRange = dsInfo.getPhenomenonTimeRange();
             fullTimeRange = roundTimePeriod(fullTimeRange);
             String fullRangeData = getHistogramData(fullTimeRange);
             
@@ -288,11 +297,11 @@ public class DatabaseStreamPanel extends VerticalLayout
                 @Override
                 public void onSliderChange(double min, double max)
                 {
-                    timeRange = TimeExtent.period(
+                    zoomTimeRange = TimeExtent.period(
                         Instant.ofEpochSecond(Math.round(min)),
                         Instant.ofEpochSecond(Math.round(max)));
                     updateTable();
-                    updateHistogram(detailChart, timeRange);
+                    updateHistogram(detailChart, zoomTimeRange);
                 }
             });
             
@@ -417,7 +426,7 @@ public class DatabaseStreamPanel extends VerticalLayout
     
     protected void updateTable()
     {
-        obsDataContainer.updateTimeRange(timeRange);
+        obsDataContainer.updateTimeRange(zoomTimeRange);
         table.setContainerDataSource(obsDataContainer);
         table.setCurrentPage(1);
     }
@@ -447,7 +456,7 @@ public class DatabaseStreamPanel extends VerticalLayout
         // add custom container for lazy loading from DB
         List<ScalarIndexer> indexers = new ArrayList<>();
         obsDataContainer = new LazyLoadingObsContainer(db, dataStreamID, indexers);
-        obsDataContainer.updateTimeRange(timeRange);
+        obsDataContainer.updateTimeRange(zoomTimeRange);
         table.setContainerDataSource(obsDataContainer);
         table.addListener(new PageChangeListener() {
             @Override
