@@ -25,7 +25,7 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
-import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseView;
+import org.sensorhub.impl.database.registry.FilteredFederatedObsDatabase;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.utils.NamedThreadFactory;
@@ -95,33 +95,43 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
     @Override
     public void start() throws SensorHubException
     {
-        // get handle to database
+        // get handle to write database
         if (config.databaseID != null)
         {
             writeDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
                 .getModuleById(config.databaseID);
         }
         
-        // if exposed resource filter is set, get FilteredView from config
+        // if exposed resource filter is set
+        ObsFilter obsFilter = null;
         if (config.exposedResources != null)
         {
-            readDatabase = config.exposedResources.getFilteredView(getParentHub());
+            obsFilter = config.exposedResources.getObsFilter();
         }
         
-        // else if some providers are configured, expose these only
+        // else if some providers are configured, build a filter to expose these only
         else if (config.customDataProviders != null && !config.customDataProviders.isEmpty())
         {
             var procUIDs = config.customDataProviders.stream()
                 .map(config -> config.procedureUID)
                 .collect(Collectors.toSet());
             
-            var includeFilter = new ObsFilter.Builder()
+            obsFilter = new ObsFilter.Builder()
                 .withProcedures().withUniqueIDs(procUIDs).done()
                 .build();
-            
-            readDatabase = new ProcedureObsDatabaseView(
-                getParentHub().getDatabaseRegistry().getFederatedObsDatabase(),
-                includeFilter);
+        }
+        
+        // if a filter was provided, use a filtered db implementation
+        if (obsFilter != null)
+        {
+            if (writeDatabase != null)
+            {
+                readDatabase = new FilteredFederatedObsDatabase(
+                    getParentHub().getDatabaseRegistry(),
+                    obsFilter, writeDatabase.getDatabaseNum());
+            }
+            else
+                readDatabase = config.exposedResources.getFilteredView(getParentHub());
         }
         
         // else expose all procedures on this hub

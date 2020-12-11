@@ -52,7 +52,7 @@ public class SOSServiceConfig extends OGCServiceConfig
     public ProcedureObsDatabaseViewConfig exposedResources = null;
 
 
-    @DisplayInfo(desc="Custom provider configurations. ")
+    @DisplayInfo(desc="Custom provider configurations")
     public LinkedHashSet<SOSProviderConfig> customDataProviders = new LinkedHashSet<>();
 
 

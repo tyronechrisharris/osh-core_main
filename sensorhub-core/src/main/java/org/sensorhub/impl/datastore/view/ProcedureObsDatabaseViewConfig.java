@@ -47,30 +47,37 @@ public class ProcedureObsDatabaseViewConfig
         var srcDatabase = sourceDatabaseId != null ?
             hub.getDatabaseRegistry().getObsDatabase(sourceDatabaseId) :
             hub.getDatabaseRegistry().getFederatedObsDatabase();
-            
+         
+        var obsFilter = getObsFilter();
         if (includeFilter == null)
             return srcDatabase;
         
+        return new ProcedureObsDatabaseView(srcDatabase, obsFilter);
+    }
+    
+    
+    public ObsFilter getObsFilter()
+    {
+        if (includeFilter == null)
+            return null;
+        
         if (includeFilter instanceof ObsFilter)
         {
-            return new ProcedureObsDatabaseView(srcDatabase, (ObsFilter)includeFilter);
+            return (ObsFilter)includeFilter;
         }
         else if (includeFilter instanceof DataStreamFilter)
         {
-            var obsFilter = new ObsFilter.Builder()
+            return new ObsFilter.Builder()
                 .withDataStreams((DataStreamFilter)includeFilter)
                 .build();
-            return new ProcedureObsDatabaseView(srcDatabase, obsFilter);
         }
         else if (includeFilter instanceof ProcedureFilter)
         {
-            var obsFilter = new ObsFilter.Builder()
+            return new ObsFilter.Builder()
                 .withProcedures((ProcedureFilter)includeFilter)
                 .build();
-            return new ProcedureObsDatabaseView(srcDatabase, obsFilter);
         }
         else
             throw new IllegalStateException("Invalid filtered view configuration");
     }
-           
 }
