@@ -20,6 +20,7 @@ import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
@@ -53,15 +54,16 @@ public class SensorHub implements ISensorHub
     private static final Logger log = LoggerFactory.getLogger(SensorHub.class);    
     private static final String ERROR_MSG = "Fatal error during sensorhub execution";
     
-    private ISensorHubConfig config;
-    private ModuleRegistry moduleRegistry;
-    private IEventBus eventBus;
-    private IProcedureRegistry procedureRegistry;
-    private IDatabaseRegistry databaseRegistry;
-    private INetworkManager networkManager;
-    private ISecurityManager securityManager;
-    private IProcessingManager processingManager;
-    private volatile boolean stopped;
+    protected ISensorHubConfig config;
+    protected ModuleRegistry moduleRegistry;
+    protected IEventBus eventBus;
+    protected IEventPublisher eventPublisher;
+    protected IProcedureRegistry procedureRegistry;
+    protected IDatabaseRegistry databaseRegistry;
+    protected INetworkManager networkManager;
+    protected ISecurityManager securityManager;
+    protected IProcessingManager processingManager;
+    protected volatile boolean stopped;
     
     
     public SensorHub()
@@ -86,6 +88,7 @@ public class SensorHub implements ISensorHub
     {
         this.config = config;
         this.eventBus = eventBus;
+        this.eventPublisher = eventBus.getPublisher(ISensorHub.EVENT_SOURCE_ID);
         this.moduleRegistry = registry;
         this.databaseRegistry = new DefaultDatabaseRegistry(this);
         this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
@@ -202,6 +205,13 @@ public class SensorHub implements ISensorHub
         if (processingManager == null)
             processingManager = new ProcessingManagerImpl(this);
         return processingManager;
+    }
+
+
+    @Override
+    public IEventPublisher getEventPublisher()
+    {
+        return eventPublisher;
     }
     
     

@@ -68,7 +68,7 @@ public class ProcedureRegistryEventHandler extends ProcedureEventPersistenceHand
         
         // else publish in registry channel
         else       
-            return registry.getEventPublisher();
+            return registry.getParentHub().getEventPublisher();
     }
     
     

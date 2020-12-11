@@ -26,7 +26,6 @@ import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureStateDatabase;
-import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
@@ -56,7 +55,6 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     static final Logger log = LoggerFactory.getLogger(DefaultProcedureRegistry.class);
     
     ISensorHub hub;
-    IEventPublisher eventPublisher;
     ProcedureObsEventDatabase procStateDb;
     IProcedureObsDatabase federatedDb;
     ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -66,7 +64,6 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     public DefaultProcedureRegistry(ISensorHub hub, DatabaseConfig stateDbConfig)
     {
         this.hub = Asserts.checkNotNull(hub, ISensorHub.class);
-        this.eventPublisher = hub.getEventBus().getPublisher(IProcedureRegistry.EVENT_SOURCE_ID);
         initDatabase(stateDbConfig);
     }
 
@@ -229,12 +226,6 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     public IProcedureStateDatabase getProcedureStateDatabase()
     {
         return (IProcedureStateDatabase)procStateDb.getWrappedDatabase();
-    }
-
-
-    protected IEventPublisher getEventPublisher()
-    {
-        return eventPublisher;
     }
 
 }

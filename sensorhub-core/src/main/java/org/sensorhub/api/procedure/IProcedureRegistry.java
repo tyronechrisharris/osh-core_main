@@ -21,9 +21,6 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.IProcedureStateDatabase;
-import org.sensorhub.api.event.IEventSource;
-import org.sensorhub.api.event.IEventSourceInfo;
-import org.sensorhub.impl.event.EventSourceInfo;
 import org.vast.ogc.gml.IGeoFeature;
 
 
@@ -45,14 +42,9 @@ import org.vast.ogc.gml.IGeoFeature;
  * @since Feb 18, 2019
  * @see IProcedureDriver IProcedure
  */
-public interface IProcedureRegistry extends IEventSource
+public interface IProcedureRegistry
 {
-    public static final String EVENT_SOURCE_ID = "urn:osh:procedures";
-    public static final IEventSourceInfo EVENT_SOURCE_INFO = new EventSourceInfo(
-        IProcedureRegistry.EVENT_SOURCE_ID,
-        IProcedureRegistry.EVENT_SOURCE_ID);
-
-
+    
     /**
      * Asynchronously registers a procedure driver (e.g. sensor driver, etc.)
      * with this registry. Implementation of this method must take take care of
@@ -143,16 +135,6 @@ public interface IProcedureRegistry extends IEventSource
      * read-only through the federated hub database.
      */
     public IProcedureStateDatabase getProcedureStateDatabase();
-    
-
-    /**
-     * @return The event source information for this registry
-     */
-    @Override
-    public default IEventSourceInfo getEventSourceInfo()
-    {
-        return EVENT_SOURCE_INFO;
-    }
 
 
     /**

@@ -368,7 +368,7 @@ public class TestProcedureRegistry
         // subscribe to events
         var receivedEvents = new ArrayList<Event>();
         hub.getEventBus().newSubscription(ProcedureEvent.class)
-            .withSource(registry)
+            .withSource(hub)
             .withSource(sensor)
             .consume(e -> {
                 System.out.println("Received " + e.getClass().getSimpleName() +
@@ -433,7 +433,7 @@ public class TestProcedureRegistry
         // subscribe to events
         var receivedEvents = new ArrayList<Event>();
         hub.getEventBus().newSubscription(ProcedureEvent.class)
-            .withSource(registry)
+            .withSource(hub)
             .withSource(sensor)
             .consume(e -> {
                 System.out.println("Received " + e.getClass().getSimpleName() +

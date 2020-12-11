@@ -28,6 +28,7 @@ import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import net.opengis.swe.v20.DataBlock;
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.client.IClientModule;
 import org.sensorhub.api.event.EventUtils;
@@ -44,7 +45,6 @@ import org.sensorhub.api.obs.DataStreamEnabledEvent;
 import org.sensorhub.api.obs.DataStreamRemovedEvent;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
-import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
@@ -310,13 +310,13 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     
     
     /*
-     * Subscribe to procedure registry events to get notified when
+     * Subscribe to this hub events to get notified when
      * procedures are added or removed
      */
     protected void subscribeToRegistryEvents()
     {
         getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
-            .withTopicID(IProcedureRegistry.EVENT_SOURCE_ID)
+            .withTopicID(ISensorHub.EVENT_SOURCE_ID)
             .withEventType(ProcedureEvent.class)
             .subscribe(e -> {
                 handleEvent(e);
