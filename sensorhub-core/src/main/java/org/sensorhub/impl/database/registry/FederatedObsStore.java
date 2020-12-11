@@ -346,6 +346,68 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         }
     }
     
+    
+    /*
+     * Convert to public values on the way out
+     */
+    protected ObsStats toPublicStats(int databaseID, ObsStats stats)
+    {
+        long dsPublicID = registry.getPublicID(databaseID, stats.getDataStreamID());
+        
+        FeatureId foiId = null;
+        if (stats.getFoiID() != null)
+        {
+            if (stats.getFoiID().getInternalID() == 0)
+                foiId = FeatureId.NULL_FEATURE;
+            else
+            {
+                long foiPublicId = registry.getPublicID(databaseID, stats.getFoiID().getInternalID());
+                foiId = new FeatureId(foiPublicId, stats.getFoiID().getUniqueID());
+            }
+        }
+            
+        // create stats object with public IDs
+        return ObsStats.Builder.from(stats)
+            .withDataStreamID(dsPublicID)
+            .withFoiID(foiId)
+            .build();
+    }
+
+
+    @Override
+    public Stream<ObsStats> getStatistics(ObsStatsQuery query)
+    {
+        var filter = query.getObsFilter();
+        
+        // if any kind of internal IDs are used, we need to dispatch the correct filter
+        // to the corresponding DB so we create this map
+        var filterDispatchMap = getFilterDispatchMap(filter);
+        
+        if (filterDispatchMap != null)
+        {
+            return filterDispatchMap.values().stream()
+                .flatMap(v -> {
+                    int dbNum = v.databaseNum;
+                    var dbQuery = ObsStatsQuery.Builder.from(query)
+                        .selectObservations((ObsFilter)v.filter)
+                        .build();
+                    return v.db.getObservationStore().getStatistics(dbQuery)
+                        .map(stats -> toPublicStats(dbNum, stats));
+                })
+                .limit(filter.getLimit());
+        }
+        else
+        {
+            return parentDb.getAllDatabases().stream()
+                .flatMap(db -> {
+                    int dbNum = db.getDatabaseNum();
+                    return db.getObservationStore().getStatistics(query)
+                        .map(stats -> toPublicStats(dbNum, stats));
+                })
+                .limit(filter.getLimit());
+        }
+    }
+    
 
     @Override
     public IDataStreamStore getDataStreams()
@@ -358,14 +420,6 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     public BigInteger add(IObsData obs)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
-    }
-
-
-    @Override
-    public Stream<ObsStats> getStatistics(ObsStatsQuery query)
-    {
-        // TODO Auto-generated method stub
-        return null;
     }
 
 
