@@ -136,7 +136,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         {
             IDataStreamInfo dsInfo = dbInfo.db.getObservationStore().getDataStreams().get(new DataStreamKey(dbInfo.entryID));
             if (dsInfo != null)
-                return toPublicValue(dbInfo.databaseID, dsInfo);
+                return toPublicValue(dbInfo.databaseNum, dsInfo);
         }
         
         return null;

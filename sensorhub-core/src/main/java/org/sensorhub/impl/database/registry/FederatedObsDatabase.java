@@ -41,7 +41,7 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     public static class LocalDatabaseInfo
     {
         IProcedureObsDatabase db;
-        int databaseID;
+        int databaseNum;
         long entryID;
         BigInteger bigEntryID;
     }
@@ -72,9 +72,9 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     protected LocalDatabaseInfo getLocalDbInfo(long publicID)
     {
         LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
-        dbInfo.databaseID = registry.getDatabaseNum(publicID);
-        dbInfo.db = registry.getObsDatabase(dbInfo.databaseID);
-        dbInfo.entryID = registry.getLocalID(dbInfo.databaseID, publicID);
+        dbInfo.databaseNum = registry.getDatabaseNum(publicID);
+        dbInfo.db = registry.getObsDatabase(dbInfo.databaseNum);
+        dbInfo.entryID = registry.getLocalID(dbInfo.databaseNum, publicID);
         
         if (dbInfo.db == null)
             return null;
@@ -89,9 +89,9 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     protected LocalDatabaseInfo getLocalDbInfo(BigInteger publicID)
     {
         LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
-        dbInfo.databaseID = registry.getDatabaseNum(publicID);
-        dbInfo.db = registry.getObsDatabase(dbInfo.databaseID);
-        dbInfo.bigEntryID = registry.getLocalID(dbInfo.databaseID, publicID);
+        dbInfo.databaseNum = registry.getDatabaseNum(publicID);
+        dbInfo.db = registry.getObsDatabase(dbInfo.databaseNum);
+        dbInfo.bigEntryID = registry.getLocalID(dbInfo.databaseNum, publicID);
         
         if (dbInfo.db == null)
             return null;
@@ -113,9 +113,9 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
             if (dbInfo == null)
                 continue;
                 
-            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseID, k -> new LocalFilterInfo());
+            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new LocalFilterInfo());
             filterInfo.db = dbInfo.db;
-            filterInfo.databaseNum = dbInfo.databaseID;
+            filterInfo.databaseNum = dbInfo.databaseNum;
             filterInfo.internalIds.add(dbInfo.entryID);
         }
         
@@ -133,9 +133,9 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
             if (dbInfo == null)
                 continue;
                 
-            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseID, k -> new LocalFilterInfo());
+            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new LocalFilterInfo());
             filterInfo.db = dbInfo.db;
-            filterInfo.databaseNum = dbInfo.databaseID;
+            filterInfo.databaseNum = dbInfo.databaseNum;
             filterInfo.bigInternalIds.add(dbInfo.bigEntryID);
         }
         

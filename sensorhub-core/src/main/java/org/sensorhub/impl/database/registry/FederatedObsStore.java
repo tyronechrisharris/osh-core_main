@@ -163,7 +163,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
             return false;
         else
             return dbInfo.db.getObservationStore().containsKey(
-                toLocalKey(dbInfo.databaseID, key));
+                toLocalKey(dbInfo.databaseNum, key));
     }
 
 
@@ -190,11 +190,11 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         if (dbInfo == null)
             return null;
         
-        IObsData obs = dbInfo.db.getObservationStore().get(toLocalKey(dbInfo.databaseID, key));
+        IObsData obs = dbInfo.db.getObservationStore().get(toLocalKey(dbInfo.databaseNum, key));
         if (obs == null)
             return null;
         
-        return toPublicValue(dbInfo.databaseID, obs);
+        return toPublicValue(dbInfo.databaseNum, obs);
     }
     
     
