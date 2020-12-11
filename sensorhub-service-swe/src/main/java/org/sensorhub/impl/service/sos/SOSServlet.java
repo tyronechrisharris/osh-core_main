@@ -15,19 +15,21 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Flow.Subscription;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -60,11 +62,22 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.obs.DataStreamInfo;
+import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.RecordTemplate;
+import org.sensorhub.impl.service.swe.TransactionUtils;
+import org.sensorhub.utils.DataComponentChecks;
+import org.sensorhub.utils.SWEDataUtils;
 import org.slf4j.Logger;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.om.IObservation;
@@ -76,13 +89,13 @@ import org.vast.ows.OWSRequest;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.*;
 import org.vast.ows.swe.DeleteSensorRequest;
+import org.vast.ows.swe.DeleteSensorResponse;
 import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.ows.swe.UpdateSensorRequest;
+import org.vast.ows.swe.UpdateSensorResponse;
 import org.vast.util.TimeExtent;
 import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 
 
 /**
@@ -109,7 +122,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
     final IProcedureObsDatabase readDatabase;
     final IProcedureObsDatabase writeDatabase;
-    final transient Cache<String, String> templateToProcedureMap;
 
     final transient Map<String, SOSCustomFormatConfig> customFormats = new HashMap<>();
     WebSocketServletFactory wsFactory;
@@ -131,10 +143,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         this.providerConfigs = new TreeMap<>();
         for (var config: service.getConfiguration().customDataProviders)
             providerConfigs.put(config.procedureUID, config);
-        
-        this.templateToProcedureMap = CacheBuilder.newBuilder()
-            .expireAfterAccess(config.templateTimeout, TimeUnit.SECONDS)
-            .build();
 
         generateCapabilities();
     }
@@ -187,7 +195,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
      */
     protected void generateCapabilities() throws SensorHubException
     {
-        templateToProcedureMap.cleanUp();
         customFormats.clear();
 
         // get main capabilities info from config
@@ -684,115 +691,75 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     protected void handleRequest(InsertSensorRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
-
+        
         // security check
         securityHandler.checkPermission(securityHandler.sos_insert_sensor);
 
-        /*// check query parameters
+        // check query parameters
         OWSExceptionReport report = new OWSExceptionReport();
         TransactionUtils.checkSensorML(request.getProcedureDescription(), report);
         report.process();
 
         // get sensor UID
-        String sensorUID = request.getProcedureDescription().getUniqueIdentifier();
-        log.info("Registering new sensor {}", sensorUID);
+        String procUID = request.getProcedureDescription().getUniqueIdentifier();
+        getLogger().info("Registering new sensor {}", procUID);
 
-        // offering name is derived from sensor UID
-        String offeringID = sensorUID + "-sos";
-
-        ///////////////////////////////////////////////////////////////////////////////////////
-        // we configure things step by step so we can fix config if it was partially altered //
-        ///////////////////////////////////////////////////////////////////////////////////////
-        HashSet<ModuleConfig> configSaveList = new HashSet<>();
-        IProcedureRegistry procReg = service.getParentHub().getProcedureRegistry();
-
-        // create new virtual sensor module if needed
-        IProcedureWithState proc = procReg.get(sensorUID);
-        if (proc == null)
+        // add description to DB
+        try
         {
-            proc = new ProcedureProxyImpl(request.getProcedureDescription());//, groupUID);
-            procReg.register(proc);
+            writeDatabase.getProcedureStore().add(request.getProcedureDescription());
         }
-        // else simply update description
-        else
-            ((ProcedureProxyImpl)proc).updateDescription(request.getProcedureDescription());
-
-        // add new provider if needed
-        ISOSDataProviderFactory provider = dataProviders.get(offeringID);
-        if (provider == null)
+        catch (DataStoreException e)
         {
-            // generate new provider config
-            SensorDataProviderConfig providerConfig = new SensorDataProviderConfig();
-            providerConfig.enabled = true;
-            providerConfig.sensorID = sensorUID;
-            providerConfig.storageID = (storageModule != null) ? storageModule.getLocalID() : null;
-            providerConfig.offeringID = offeringID;
-            providerConfig.liveDataTimeout = config.defaultLiveTimeout;
-            OfferingUtils.replaceOrAddOfferingConfig(config.dataProviders, providerConfig);
-
-            // instantiate and register provider
-            try
-            {
-                provider = providerConfig.getFactory(this);
-                dataProviders.put(offeringID, provider);
-            }
-            catch (SensorHubException e)
-            {
-                throw new IOException("Cannot create new provider", e);
-            }
-
-            // add new permissions for this offering
-            securityHandler.addOfferingPermissions(offeringID);
-
-            configSaveList.add(config);
+            throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
+                "Procedure " + procUID + " is already registered on this server");
         }
-
-        // update capabilities
-        showProviderCaps(provider);
 
         // build and send response
         InsertSensorResponse resp = new InsertSensorResponse();
-        resp.setAssignedOffering(offeringID);
-        resp.setAssignedProcedureId(sensorUID);
-        sendResponse(request, resp);*/
+        resp.setAssignedOffering(getOfferingID(procUID));
+        resp.setAssignedProcedureId(procUID);
+        sendResponse(request, resp);
     }
 
 
     @Override
     protected void handleRequest(DeleteSensorRequest request) throws IOException, OWSException
     {
-        /*checkTransactionalSupport(request);
-
-        // check query parameters
-        String sensorUID = request.getProcedureId();
-        OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryProcedure(sensorUID, report);
-        report.process();
+        checkTransactionalSupport(request);
 
         // security check
-        securityHandler.checkPermission(sensorUID, securityHandler.sos_delete_sensor);
+        securityHandler.checkPermission(securityHandler.sos_delete_sensor);
 
-        // destroy associated virtual sensor
+        // check query parameters
+        String procUID = request.getProcedureId();
+        OWSExceptionReport report = new OWSExceptionReport();
+        checkQueryProcedure(procUID, report);
+        report.process();
+        
+        // delete complete procedure history + all datastreams and obs from DB
         try
         {
-            // unregister procedure
-            ProcedureProxyImpl proxy = getProcedureProxyByUID(sensorUID);
-            service.getParentHub().getProcedureRegistry().unregister(proxy);
-
-            // delete all data from databaseID
-
+            writeDatabase.executeTransaction(() -> {
+                
+                writeDatabase.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
+                    .withProcedures().withUniqueIDs(procUID).done()
+                    .build());
+                
+                writeDatabase.getProcedureStore().remove(procUID);
+                
+                return null;
+            });            
         }
-        catch (SensorHubException e)
+        catch (Exception e)
         {
-            throw new IOException("Cannot delete virtual sensor " + sensorUID, e);
+            throw new IOException("Cannot delete procedure " + procUID, e);
         }
-
-        // TODO also destroy storage if requested in config
 
         // build and send response
         DeleteSensorResponse resp = new DeleteSensorResponse(SOSUtils.SOS);
-        resp.setDeletedProcedure(sensorUID);
-        sendResponse(request, resp);*/
+        resp.setDeletedProcedure(procUID);
+        sendResponse(request, resp);
     }
 
 
@@ -801,30 +768,40 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         checkTransactionalSupport(request);
 
-        /*// check query parameters
-        String procUID = request.getProcedureId();
-        OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryProcedure(procUID, report);
-        report.process();
-
         // security check
-        securityHandler.checkPermission(procUID, securityHandler.sos_update_sensor);
-
-        // check that format is supported
-        checkQueryProcedureFormat(procUID, request.getProcedureDescriptionFormat(), report);
-
-        // check that SensorML contains correct unique ID
-        TransactionUtils.checkSensorML(request.getProcedureDescription(), report);
+        securityHandler.checkPermission(securityHandler.sos_update_sensor);
+        
+        // check query parameters
+        String procUID = request.getProcedureId();
+        var procDesc = request.getProcedureDescription();
+        OWSExceptionReport report = new OWSExceptionReport();
+        var fk = checkQueryProcedure(procUID, report);
+        TransactionUtils.checkSensorML(procDesc, report);
         report.process();
 
-        // get consumer and update
-        ProcedureProxyImpl proc = getProcedureProxyByUID(procUID);
-        proc.updateDescription(request.getProcedureDescription());
+        // version or replace description in DB
+        var validTime = procDesc.getValidTime();
+        try
+        {
+            procDesc.setUniqueIdentifier(procUID);
+            if (validTime == null || validTime.begin().equals(fk.getValidStartTime()))
+                writeDatabase.getProcedureStore().put(fk, new ProcedureWrapper(procDesc));
+            else if (validTime.begin().isAfter(fk.getValidStartTime()))
+                writeDatabase.getProcedureStore().add(request.getProcedureDescription());
+            else
+                throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
+                    "The procedure description's validity time period must start at the same time " + 
+                    "or after the currently valid description");
+        }
+        catch (DataStoreException e)
+        {
+            throw new IOException("Cannot update procedure", e);
+        }
 
         // build and send response
         UpdateSensorResponse resp = new UpdateSensorResponse(SOSUtils.SOS);
         resp.setUpdatedProcedure(procUID);
-        sendResponse(request, resp);*/
+        sendResponse(request, resp);
     }
 
 
@@ -854,32 +831,138 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         checkTransactionalSupport(request);
 
-        /*// retrieve proxy for selected offering
-        ProcedureProxyImpl proxy = getProcedureProxyByOfferingID(request.getOffering());
-        SensorDataConsumer consumer = new SensorDataConsumer(proxy);
-
         // security check
-        securityHandler.checkPermission(proxy.getUniqueIdentifier(), securityHandler.sos_insert_obs);
-
-        // get template ID
-        // the same template ID is always returned for a given observable
-        String templateID = consumer.newResultTemplate(request.getResultStructure(),
-                                                       request.getResultEncoding(),
-                                                       request.getObservationTemplate());
-
-        // update caps only if template was not already registered
-        if (!templateToProcedureMap.containsKey(templateID))
+        securityHandler.checkPermission(securityHandler.sos_insert_obs);
+        
+        // check query parameters
+        String procUID = getProcedureUID(request.getOffering());
+        OWSExceptionReport report = new OWSExceptionReport();
+        var procKey = checkQueryProcedure(procUID, report);
+        report.process();
+                
+        var resultStruct = request.getResultStructure();
+        var resultEncoding = request.getResultEncoding();
+        
+        // get procedure internal key
+        var procID = getParentHub().getDatabaseRegistry().getLocalID(
+            writeDatabase.getDatabaseNum(), procKey.getInternalID());
+        
+        // get existing datastreams of this procedure
+        var outputs = writeDatabase.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
+                .withProcedures(procID)
+                .withCurrentVersion()
+                .build())
+            .collect(Collectors.toMap(
+                dsEntry -> dsEntry.getValue().getOutputName(),
+                dsEntry -> dsEntry));
+        
+        // use hash to check if a datastream with exact same description exists
+        var sameOutput = findIdenticalDatastream(resultStruct, outputs.values());
+        String outputName = null;
+        
+        // continue only if datastream is different from any previously registered datastream
+        if (sameOutput == null)
         {
-            templateToProcedureMap.put(templateID, proxy.getUniqueIdentifier());
-
-            // update offering capabilities
-            showProviderCaps(proxy);
+            var existingOutput = findCompatibleDatastream(resultStruct, outputs.values());
+            
+            // if output with same structure already exists, replace it
+            if (existingOutput != null)
+            {
+                outputName = existingOutput.getValue().getOutputName();
+                resultStruct.setName(outputName);
+                
+                var dsKey = existingOutput.getKey();
+                writeDatabase.getDataStreamStore().put(dsKey, new DataStreamInfo.Builder()
+                    .withProcedure(new ProcedureId(procID, procUID))
+                    .withRecordDescription(resultStruct)
+                    .withRecordEncoding(resultEncoding)
+                    .build());
+            }
+            
+            // else add it or version it
+            else
+            {
+                // generate output name
+                outputName = generateOutputName(resultStruct, outputs.size());
+                resultStruct.setName(outputName);
+                
+                try
+                {
+                    writeDatabase.getDataStreamStore().add(new DataStreamInfo.Builder()
+                        .withProcedure(new ProcedureId(procID, procUID))
+                        .withRecordDescription(resultStruct)
+                        .withRecordEncoding(resultEncoding)
+                        .build());
+                }
+                catch (DataStoreException e)
+                {
+                    throw new IllegalStateException("Cannot add new datastream", e);
+                }
+            }
         }
-
+        else
+            outputName = sameOutput.getValue().getOutputName();
+        
         // build and send response
+        String templateID = generateTemplateID(procUID, outputName);
         InsertResultTemplateResponse resp = new InsertResultTemplateResponse();
         resp.setAcceptedTemplateId(templateID);
-        sendResponse(request, resp);*/
+        sendResponse(request, resp);
+    }
+    
+    
+    protected Entry<DataStreamKey, IDataStreamInfo> findIdenticalDatastream(DataComponent resultStruct, Collection<Entry<DataStreamKey, IDataStreamInfo>> outputList)
+    {
+        var newHc = DataComponentChecks.getStructEqualsHashCode(resultStruct);
+        for (var output: outputList)
+        {
+            var recordStruct = output.getValue().getRecordStructure();
+            var oldHc = DataComponentChecks.getStructEqualsHashCode(recordStruct);
+            if (newHc.equals(oldHc))
+                return output;
+        }
+        
+        return null;
+    }
+    
+    
+    protected Entry<DataStreamKey, IDataStreamInfo> findCompatibleDatastream(DataComponent resultStruct, Collection<Entry<DataStreamKey, IDataStreamInfo>> outputList)
+    {
+        var newHc = DataComponentChecks.getStructCompatibilityHashCode(resultStruct);
+        for (var output: outputList)
+        {
+            var recordStruct = output.getValue().getRecordStructure();
+            var oldHc = DataComponentChecks.getStructCompatibilityHashCode(recordStruct);
+            if (newHc.equals(oldHc))
+                return output;
+        }
+        
+        return null;
+    }
+    
+    
+    protected String generateOutputName(DataComponent resultStructure, int numOutputs)
+    {
+        // use ID or label if provided in result template
+        if (resultStructure.getId() != null)
+            return SWEDataUtils.toNCName(resultStructure.getId());
+        else if (resultStructure.getLabel() != null)
+            return SWEDataUtils.toNCName(resultStructure.getLabel());
+        
+        // otherwise generate an output name with numeric index
+        return String.format("output%02d", numOutputs+1);
+    }
+    
+    
+    protected final String generateTemplateID(String procUID, String outputName)
+    {
+        return procUID + '#' + outputName;
+    }
+    
+    
+    protected final String getOutputNameFromTemplateID(String templateID)
+    {
+        return templateID.substring(templateID.lastIndexOf('#')+1);
     }
 
 
@@ -971,10 +1054,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    protected void checkQueryProcedure(String procUID, OWSExceptionReport report) throws SOSException
+    protected FeatureKey checkQueryProcedure(String procUID, OWSExceptionReport report) throws SOSException
     {
-        if (procUID == null || !readDatabase.getProcedureStore().contains(procUID))
+        FeatureKey fk = null;
+        if (procUID == null || (fk = readDatabase.getProcedureStore().getCurrentVersionKey(procUID)) == null)
             report.add(new SOSException(SOSException.invalid_param_code, "procedure", procUID, "Unknown procedure: " + procUID));
+        return fk;
     }
 
 
@@ -982,13 +1067,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         for (String procUID: procedures)
             checkQueryProcedure(procUID, report);
-    }
-
-
-    protected void checkQueryFormat(String format, OWSExceptionReport report) throws SOSException
-    {
-        if (!getFirstOffering().getResponseFormats().contains(format))
-            report.add(new SOSException(SOSException.invalid_param_code, "format", format, "Unsupported format: " + format));
     }
     
     
@@ -1001,15 +1079,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         // reject if startTime > stopTime
         if (requestTime.begin().isAfter(requestTime.end()))
             report.add(new SOSException("The requested period must begin before it ends"));            
-    }
-    
-    
-    protected SOSOfferingCapabilities getFirstOffering() throws SOSException
-    {
-        var offering = capabilities.getLayers().get(0);
-        if (offering == null)
-            throw new SOSException("No data available on this server");
-        return offering;
     }
 
 
@@ -1080,7 +1149,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
     protected void checkTransactionalSupport(OWSRequest request) throws SOSException
     {
-        if (!config.enableTransactional)
+        if (!config.enableTransactional || writeDatabase == null)
             throw new SOSException(SOSException.invalid_param_code, "request", request.getOperation(), request.getOperation() + " operation is not supported on this endpoint");
     }
 
@@ -1250,6 +1319,13 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         // for now, assume offerings have same URI as procedures
         return offeringID;
+    }
+
+
+    public String getOfferingID(String procedureUID)
+    {
+        // for now, assume offerings have same URI as procedures
+        return procedureUID;
     }
 
 
