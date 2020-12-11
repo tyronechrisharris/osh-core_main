@@ -80,9 +80,9 @@ public class DataStreamEventPersistenceHandler implements IEventListener
         {
             // if an output with the same name already existed
             dsKey = dsEntry.getKey();
-            IDataStreamInfo dsInfo = dsEntry.getValue();
+            IDataStreamInfo oldDsInfo = dsEntry.getValue();
             
-            dsInfo = new DataStreamInfo.Builder()
+            var newDsInfo = new DataStreamInfo.Builder()
                 .withProcedure(procId)
                 .withRecordDescription(dataStream.getRecordDescription())
                 .withRecordEncoding(dataStream.getRecommendedEncoding())
@@ -91,12 +91,12 @@ public class DataStreamEventPersistenceHandler implements IEventListener
             
             // 2 cases
             // if structure has changed, create a new datastream
-            if (!DataComponentChecks.checkStructCompatible(dsInfo.getRecordStructure(), dataStream.getRecordDescription()))
-                dsKey = dataStreamStore.add(dsInfo);
+            if (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), newDsInfo.getRecordStructure()))
+                dsKey = dataStreamStore.add(newDsInfo);
             
             // if something else has changed, update existing datastream
-            else if (!DataComponentChecks.checkStructEquals(dsInfo.getRecordStructure(), dataStream.getRecordDescription()))
-                dataStreamStore.put(dsKey, dsInfo); 
+            else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), newDsInfo.getRecordStructure()))
+                dataStreamStore.put(dsKey, newDsInfo); 
             
             // else don't update and return existing key
             else
