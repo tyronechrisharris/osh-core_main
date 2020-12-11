@@ -47,8 +47,8 @@ import org.vast.util.Bbox;
  */
 public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>> extends ReadOnlyDataStore<FeatureKey, T, VF, F> implements IFeatureStoreBase<T, VF, F>
 {
-    IDatabaseRegistry registry;
-    FederatedObsDatabase parentDb;
+    final IDatabaseRegistry registry;
+    final FederatedObsDatabase parentDb;
     
     
     FederatedBaseFeatureStore(IDatabaseRegistry registry, FederatedObsDatabase db)

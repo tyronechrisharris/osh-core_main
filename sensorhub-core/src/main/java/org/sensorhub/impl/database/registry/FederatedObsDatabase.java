@@ -32,10 +32,10 @@ import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 
 public class FederatedObsDatabase implements IProcedureObsDatabase
 {
-    FederatedProcedureStore procStore;
-    FederatedFoiStore foiStore;
-    FederatedObsStore obsStore;
-    IDatabaseRegistry registry;
+    final FederatedProcedureStore procStore;
+    final FederatedFoiStore foiStore;
+    final FederatedObsStore obsStore;
+    final IDatabaseRegistry registry;
     
     
     public static class LocalDatabaseInfo

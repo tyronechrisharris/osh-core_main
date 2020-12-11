@@ -52,9 +52,9 @@ import org.vast.util.Asserts;
  */
 public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, ObsField, ObsFilter> implements IObsStore
 {
-    IDatabaseRegistry registry;
-    FederatedObsDatabase parentDb;
-    FederatedDataStreamStore dataStreamStore;
+    final IDatabaseRegistry registry;
+    final FederatedObsDatabase parentDb;
+    final FederatedDataStreamStore dataStreamStore;
     
     
     FederatedObsStore(IDatabaseRegistry registry, FederatedObsDatabase db)

@@ -45,8 +45,8 @@ import org.vast.util.Asserts;
  */
 public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {
-    IDatabaseRegistry registry;
-    FederatedObsDatabase parentDb;
+    final IDatabaseRegistry registry;
+    final FederatedObsDatabase parentDb;
     
     
     class DataStreamInfoWithPublicId extends DataStreamInfoWrapper
