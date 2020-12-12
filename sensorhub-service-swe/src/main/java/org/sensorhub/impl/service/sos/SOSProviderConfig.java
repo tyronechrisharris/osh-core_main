@@ -25,7 +25,8 @@ import org.vast.ows.OWSRequest;
 public abstract class SOSProviderConfig extends OfferingConfig
 {
     
-    @DisplayInfo(desc="Unique ID of procedure that this configuration applies to")
+    @DisplayInfo(desc="Unique ID of a procedure that this configuration applies to.\n"
+        + "Can include a trailing wildcard '*' to match several procedures at once.")
     @FieldType(Type.PROCEDURE_UID)
     public String procedureUID;
     

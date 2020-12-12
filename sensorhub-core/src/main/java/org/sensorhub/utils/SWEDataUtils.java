@@ -110,4 +110,10 @@ public class SWEDataUtils
         int nanos = (int)((julianTime*1000. - epochSeconds*1000L)*1e6);
         return Instant.ofEpochSecond(epochSeconds, nanos);
     }
+    
+    
+    public static String toNCName(String str)
+    {
+        return str.toLowerCase().replaceAll("\\s+", "_");
+    }
 }

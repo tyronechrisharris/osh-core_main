@@ -14,7 +14,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +31,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletConfig;
@@ -50,6 +55,7 @@ import net.opengis.fes.v20.impl.FESFactory;
 import net.opengis.swe.v20.BinaryBlock;
 import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.BinaryMember;
+import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import org.eclipse.jetty.websocket.api.WebSocketBehavior;
@@ -61,14 +67,23 @@ import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.event.EventUtils;
+import org.sensorhub.api.obs.DataStreamAddedEvent;
+import org.sensorhub.api.obs.DataStreamEnabledEvent;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.obs.ObsData;
+import org.sensorhub.api.procedure.ProcedureAddedEvent;
+import org.sensorhub.api.procedure.ProcedureChangedEvent;
+import org.sensorhub.api.procedure.ProcedureEnabledEvent;
 import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.module.ModuleRegistry;
@@ -79,6 +94,8 @@ import org.sensorhub.impl.service.swe.TransactionUtils;
 import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.slf4j.Logger;
+import org.vast.cdm.common.DataSource;
+import org.vast.cdm.common.DataStreamParser;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.SamplingPoint;
@@ -94,6 +111,9 @@ import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.ows.swe.UpdateSensorRequest;
 import org.vast.ows.swe.UpdateSensorResponse;
+import org.vast.swe.DataSourceDOM;
+import org.vast.swe.SWEHelper;
+import org.vast.util.ReaderException;
 import org.vast.util.TimeExtent;
 import com.google.common.base.Strings;
 
@@ -113,6 +133,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";
     static final long GET_CAPS_MIN_REFRESH_PERIOD = 1000; // 1s
     static final String DEFAULT_PROVIDER_KEY = "%%%_DEFAULT_";
+    static final char TEMPLATE_ID_SEPARATOR = '#';
+    static final Pattern TEMPLATE_ID_REGEX = Pattern.compile("(.+)" + TEMPLATE_ID_SEPARATOR + "(.+)");
 
     final transient SOSService service;
     final transient SOSServiceConfig config;
@@ -651,7 +673,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 (HttpServletResponse)asyncCtx.getResponse(),
                 request, ex);
             return null;
-        });;
+        });
     }
 
 
@@ -700,26 +722,58 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         TransactionUtils.checkSensorML(request.getProcedureDescription(), report);
         report.process();
 
-        // get sensor UID
-        String procUID = request.getProcedureDescription().getUniqueIdentifier();
-        getLogger().info("Registering new sensor {}", procUID);
+        // start async response
+        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+        CompletableFuture.runAsync(() -> {
+            try
+            {
+                String procUID = request.getProcedureDescription().getUniqueIdentifier();
+                
+                // add or replace description in DB
+                try
+                {
+                    var procKey = writeDatabase.getProcedureStore().getCurrentVersionKey(procUID);
+                    
+                    // we don't support versioning here, this is done in UpdateSensor
+                    if (procKey == null)
+                        writeDatabase.getProcedureStore().add(request.getProcedureDescription());
+                    //else
+                    //    writeDatabase.getProcedureStore().put(procKey, new ProcedureWrapper(request.getProcedureDescription()));
+                                
+                    // publish event
+                    var publisher = getParentHub().getEventPublisher();
+                    if (procKey == null)
+                        publisher.publish(new ProcedureAddedEvent(procUID, null));
+                    else
+                        publisher.publish(new ProcedureEnabledEvent(procUID, null));
+                    
+                    getLogger().info("Registered new procedure {}", procUID);
+                }
+                catch (DataStoreException e)
+                {
+                    throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
+                        "Procedure " + procUID + " is already registered on this server");
+                }
 
-        // add description to DB
-        try
-        {
-            writeDatabase.getProcedureStore().add(request.getProcedureDescription());
-        }
-        catch (DataStoreException e)
-        {
-            throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
-                "Procedure " + procUID + " is already registered on this server");
-        }
-
-        // build and send response
-        InsertSensorResponse resp = new InsertSensorResponse();
-        resp.setAssignedOffering(getOfferingID(procUID));
-        resp.setAssignedProcedureId(procUID);
-        sendResponse(request, resp);
+                // build and send response
+                InsertSensorResponse resp = new InsertSensorResponse();
+                resp.setAssignedOffering(getOfferingID(procUID));
+                resp.setAssignedProcedureId(procUID);
+                sendResponse(request, resp);
+                asyncCtx.complete();
+            }
+            catch (Exception e)
+            {
+                throw new CompletionException(e);
+            }            
+        }, service.getThreadPool())
+        .exceptionally(ex -> {
+            handleError(
+                (HttpServletRequest)asyncCtx.getRequest(),
+                (HttpServletResponse)asyncCtx.getResponse(),
+                request, ex);
+            return null;
+        });
     }
 
 
@@ -737,29 +791,54 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         checkQueryProcedure(procUID, report);
         report.process();
         
-        // delete complete procedure history + all datastreams and obs from DB
-        try
-        {
-            writeDatabase.executeTransaction(() -> {
-                
-                writeDatabase.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
-                    .withProcedures().withUniqueIDs(procUID).done()
-                    .build());
-                
-                writeDatabase.getProcedureStore().remove(procUID);
-                
-                return null;
-            });            
-        }
-        catch (Exception e)
-        {
-            throw new IOException("Cannot delete procedure " + procUID, e);
-        }
-
-        // build and send response
-        DeleteSensorResponse resp = new DeleteSensorResponse(SOSUtils.SOS);
-        resp.setDeletedProcedure(procUID);
-        sendResponse(request, resp);
+        // start async response
+        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+        CompletableFuture.runAsync(() -> {
+            try
+            {
+                // delete complete procedure history + all datastreams and obs from DB
+                try
+                {
+                    writeDatabase.executeTransaction(() -> {
+                        
+                        writeDatabase.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
+                            .withProcedures().withUniqueIDs(procUID).done()
+                            .build());
+                        
+                        writeDatabase.getProcedureStore().remove(procUID);
+                        
+                        return null;
+                    });
+                    
+                    // publish event
+                    var publisher = getParentHub().getEventPublisher();
+                    publisher.publish(new ProcedureRemovedEvent(procUID, null));
+                    
+                    getLogger().info("Deleted procedure {}", procUID);
+                }
+                catch (Exception e)
+                {
+                    throw new IOException("Cannot delete procedure " + procUID, e);
+                }
+        
+                // build and send response
+                DeleteSensorResponse resp = new DeleteSensorResponse(SOSUtils.SOS);
+                resp.setDeletedProcedure(procUID);
+                sendResponse(request, resp);
+                asyncCtx.complete();
+            }
+            catch (Exception e)
+            {
+                throw new CompletionException(e);
+            }            
+        }, service.getThreadPool())
+        .exceptionally(ex -> {
+            handleError(
+                (HttpServletRequest)asyncCtx.getRequest(),
+                (HttpServletResponse)asyncCtx.getResponse(),
+                request, ex);
+            return null;
+        });
     }
 
 
@@ -779,29 +858,55 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         TransactionUtils.checkSensorML(procDesc, report);
         report.process();
 
-        // version or replace description in DB
-        var validTime = procDesc.getValidTime();
-        try
-        {
-            procDesc.setUniqueIdentifier(procUID);
-            if (validTime == null || validTime.begin().equals(fk.getValidStartTime()))
-                writeDatabase.getProcedureStore().put(fk, new ProcedureWrapper(procDesc));
-            else if (validTime.begin().isAfter(fk.getValidStartTime()))
-                writeDatabase.getProcedureStore().add(request.getProcedureDescription());
-            else
-                throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
-                    "The procedure description's validity time period must start at the same time " + 
-                    "or after the currently valid description");
-        }
-        catch (DataStoreException e)
-        {
-            throw new IOException("Cannot update procedure", e);
-        }
-
-        // build and send response
-        UpdateSensorResponse resp = new UpdateSensorResponse(SOSUtils.SOS);
-        resp.setUpdatedProcedure(procUID);
-        sendResponse(request, resp);
+        // start async response
+        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+        CompletableFuture.runAsync(() -> {
+            try
+            {
+                // version or replace description in DB
+                var validTime = procDesc.getValidTime();
+                try
+                {
+                    procDesc.setUniqueIdentifier(procUID);
+                    if (validTime == null || validTime.begin().equals(fk.getValidStartTime()))
+                        writeDatabase.getProcedureStore().put(fk, new ProcedureWrapper(procDesc));
+                    else if (validTime.begin().isAfter(fk.getValidStartTime()))
+                        writeDatabase.getProcedureStore().add(request.getProcedureDescription());
+                    else
+                        throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
+                            "The procedure description's validity time period must start at the same time " + 
+                            "or after the currently valid description");
+                    
+                    // publish event
+                    var topicId = EventUtils.getProcedureSourceID(procUID);
+                    var publisher = getParentHub().getEventBus().getPublisher(topicId);
+                    publisher.publish(new ProcedureChangedEvent(procUID));
+                    
+                    getLogger().info("Updated procedure {}", procUID);
+                }
+                catch (DataStoreException e)
+                {
+                    throw new IOException("Cannot update procedure", e);
+                }
+        
+                // build and send response
+                UpdateSensorResponse resp = new UpdateSensorResponse(SOSUtils.SOS);
+                resp.setUpdatedProcedure(procUID);
+                sendResponse(request, resp);
+                asyncCtx.complete();
+            }
+            catch (Exception e)
+            {
+                throw new CompletionException(e);
+            }            
+        }, service.getThreadPool())
+        .exceptionally(ex -> {
+            handleError(
+                (HttpServletRequest)asyncCtx.getRequest(),
+                (HttpServletResponse)asyncCtx.getResponse(),
+                request, ex);
+            return null;
+        });
     }
 
 
@@ -810,19 +915,16 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         checkTransactionalSupport(request);
 
-        /*// retrieve proxy for selected offering
-        ProcedureProxyImpl proxy = getProcedureProxyByOfferingID(request.getOffering());
-
         // security check
-        securityHandler.checkPermission(proxy.getUniqueIdentifier(), securityHandler.sos_insert_obs);
+        securityHandler.checkPermission(securityHandler.sos_insert_obs);
 
         // TODO send new observation
         throw new SOSException(SOSException.invalid_request_code, null, null,
             "InsertObservation not supported yet. Please use InsertResult.");
 
         // build and send response
-        //InsertObservationResponse resp = new InsertObservationResponse();
-        //sendResponse(request, resp);*/
+        /*InsertObservationResponse resp = new InsertObservationResponse();
+        sendResponse(request, resp);*/
     }
 
 
@@ -843,81 +945,212 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         var resultStruct = request.getResultStructure();
         var resultEncoding = request.getResultEncoding();
         
-        // get procedure internal key
-        var procID = getParentHub().getDatabaseRegistry().getLocalID(
-            writeDatabase.getDatabaseNum(), procKey.getInternalID());
-        
-        // get existing datastreams of this procedure
-        var outputs = writeDatabase.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
-                .withProcedures(procID)
-                .withCurrentVersion()
-                .build())
-            .collect(Collectors.toMap(
-                dsEntry -> dsEntry.getValue().getOutputName(),
-                dsEntry -> dsEntry));
-        
-        // use hash to check if a datastream with exact same description exists
-        var sameOutput = findIdenticalDatastream(resultStruct, outputs.values());
-        String outputName = null;
-        
-        // continue only if datastream is different from any previously registered datastream
-        if (sameOutput == null)
-        {
-            var existingOutput = findCompatibleDatastream(resultStruct, outputs.values());
-            
-            // if output with same structure already exists, replace it
-            if (existingOutput != null)
+        // start async response
+        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+        CompletableFuture.runAsync(() -> {
+            try
             {
-                outputName = existingOutput.getValue().getOutputName();
-                resultStruct.setName(outputName);
+                // get procedure internal key
+                var procID = getParentHub().getDatabaseRegistry().getLocalID(
+                    writeDatabase.getDatabaseNum(), procKey.getInternalID());
                 
-                var dsKey = existingOutput.getKey();
-                writeDatabase.getDataStreamStore().put(dsKey, new DataStreamInfo.Builder()
-                    .withProcedure(new ProcedureId(procID, procUID))
-                    .withRecordDescription(resultStruct)
-                    .withRecordEncoding(resultEncoding)
-                    .build());
+                // get existing datastreams of this procedure
+                var outputs = writeDatabase.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
+                        .withProcedures(procID)
+                        .withCurrentVersion()
+                        .build())
+                    .collect(Collectors.toMap(
+                        dsEntry -> dsEntry.getValue().getOutputName(),
+                        dsEntry -> dsEntry));
+                
+                // use hash to check if a datastream with exact same description exists
+                var sameOutput = findIdenticalDatastream(resultStruct, resultEncoding, outputs.values());
+                String outputName = null;
+                
+                // continue only if datastream is different from any previously registered datastream
+                if (sameOutput == null)
+                {
+                    var existingOutput = findCompatibleDatastream(resultStruct, outputs.values());
+                    
+                    // if output with same structure already exists, replace it
+                    if (existingOutput != null)
+                    {
+                        outputName = existingOutput.getValue().getOutputName();
+                        resultStruct.setName(outputName);
+                        
+                        var dsKey = existingOutput.getKey();
+                        writeDatabase.getDataStreamStore().put(dsKey, new DataStreamInfo.Builder()
+                            .withProcedure(new ProcedureId(procID, procUID))
+                            .withRecordDescription(resultStruct)
+                            .withRecordEncoding(resultEncoding)
+                            .withValidTime(existingOutput.getValue().getValidTime())
+                            .build());
+                    }
+                    
+                    // else add it or version it
+                    else
+                    {
+                        // generate output name
+                        outputName = generateOutputName(resultStruct, outputs.size());
+                        resultStruct.setName(outputName);
+                        
+                        try
+                        {
+                            writeDatabase.getDataStreamStore().add(new DataStreamInfo.Builder()
+                                .withProcedure(new ProcedureId(procID, procUID))
+                                .withRecordDescription(resultStruct)
+                                .withRecordEncoding(resultEncoding)
+                                .build());
+                        }
+                        catch (DataStoreException e)
+                        {
+                            throw new IllegalStateException("Cannot add new datastream", e);
+                        }
+                    }
+                    
+                    // publish event
+                    var topicId = EventUtils.getProcedureOutputSourceID(procUID, outputName);
+                    var publisher = getParentHub().getEventBus().getPublisher(topicId);
+                    if (existingOutput == null)
+                        publisher.publish(new DataStreamAddedEvent(procUID, outputName));
+                    else
+                        publisher.publish(new DataStreamEnabledEvent(procUID, outputName));
+                    
+                    getLogger().info("Registered output {} on procedure {}", outputName, procUID); 
+                }
+                else
+                    outputName = sameOutput.getValue().getOutputName();
+                
+                // build and send response
+                String templateID = generateTemplateID(procUID, outputName);
+                InsertResultTemplateResponse resp = new InsertResultTemplateResponse();
+                resp.setAcceptedTemplateId(templateID);
+                sendResponse(request, resp);
+                asyncCtx.complete();
             }
+            catch (Exception e)
+            {
+                throw new CompletionException(e);
+            }            
+        }, service.getThreadPool())
+        .exceptionally(ex -> {
+            handleError(
+                (HttpServletRequest)asyncCtx.getRequest(),
+                (HttpServletResponse)asyncCtx.getResponse(),
+                request, ex);
+            return null;
+        });
+    }
+
+
+    @Override
+    protected void handleRequest(InsertResultRequest request) throws IOException, OWSException
+    {
+        checkTransactionalSupport(request);
+        
+        // security check
+        securityHandler.checkPermission(securityHandler.sos_insert_obs);
+        
+        // retrieve datastream info
+        var templateID = request.getTemplateId();
+        OWSExceptionReport report = new OWSExceptionReport();
+        var dsEntry = getDataStreamFromTemplateID(templateID, report);
+        report.process();
+        
+        var dsInfo = dsEntry.getValue();
+        var dsID = dsEntry.getKey().getInternalID();
+        var procUID = dsInfo.getProcedureID().getUniqueID();
+        var dataStruct = dsInfo.getRecordStructure();
+        var encoding = dsInfo.getRecordEncoding();
+        DataStreamParser parser = null;
+        
+        try
+        {
+            InputStream resultStream;
+
+            // select data source (either inline XML or in POST body for KVP)
+            DataSource dataSrc = request.getResultDataSource();
+            if (dataSrc instanceof DataSourceDOM) // inline XML
+            {
+                encoding = SWEHelper.ensureXmlCompatible(encoding);
+                resultStream = dataSrc.getDataStream();
+            }
+            else // POST body
+            {
+                resultStream = new BufferedInputStream(request.getHttpRequest().getInputStream());
+            }
+
+            // create parser
+            parser = SWEHelper.createDataParser(encoding);
+            parser.setDataComponents(dataStruct);
+            parser.setInput(resultStream);
             
-            // else add it or version it
+            // get event publisher
+            var eventSrcId = EventUtils.getOutputEventSourceInfo(procUID, dsInfo.getOutputName());
+            var eventPublisher = getParentHub().getEventBus().getPublisher(eventSrcId);
+            
+            // create consumer
+            var obsStore = writeDatabase.getObservationStore();
+            var timeStampIndexer = SWEHelper.getTimeStampIndexer(dataStruct);
+            Consumer<DataBlock> dataConsumer = rec -> {
+                
+                // first publish on event bus to minimize latency
+                eventPublisher.publish(new DataEvent(
+                    System.currentTimeMillis(), procUID, dsInfo.getOutputName(), rec));
+                
+                // compute time stamp
+                double timeStamp;
+                if (timeStampIndexer != null)
+                    timeStamp = timeStampIndexer.getDoubleValue(rec);
+                else
+                    timeStamp = System.currentTimeMillis() / 1000.;
+                
+                // write to DB
+                obsStore.add(new ObsData.Builder()
+                    .withDataStream(dsID)
+                    .withPhenomenonTime(SWEDataUtils.toInstant(timeStamp))
+                    .withResult(rec)
+                    .build());
+            };
+
+            // if websocket, parse records in the callback
+            if (SOSProviderUtils.isWebSocketRequest(request))
+            {
+                WebSocketListener socket = new SOSWebSocketIn(parser, dataConsumer, log);
+                this.acceptWebSocket(request, socket);
+            }
             else
             {
-                // generate output name
-                outputName = generateOutputName(resultStruct, outputs.size());
-                resultStruct.setName(outputName);
-                
-                try
-                {
-                    writeDatabase.getDataStreamStore().add(new DataStreamInfo.Builder()
-                        .withProcedure(new ProcedureId(procID, procUID))
-                        .withRecordDescription(resultStruct)
-                        .withRecordEncoding(resultEncoding)
-                        .build());
-                }
-                catch (DataStoreException e)
-                {
-                    throw new IllegalStateException("Cannot add new datastream", e);
-                }
+                // parse each record and send it to consumer
+                DataBlock nextBlock = null;
+                while ((nextBlock = parser.parseNextBlock()) != null)
+                    dataConsumer.accept(nextBlock);
+
+                // build and send response
+                InsertResultResponse resp = new InsertResultResponse();
+                sendResponse(request, resp);
             }
         }
-        else
-            outputName = sameOutput.getValue().getOutputName();
-        
-        // build and send response
-        String templateID = generateTemplateID(procUID, outputName);
-        InsertResultTemplateResponse resp = new InsertResultTemplateResponse();
-        resp.setAcceptedTemplateId(templateID);
-        sendResponse(request, resp);
+        catch (ReaderException e)
+        {
+            throw new SOSException("Error in SWE encoded data", e);
+        }
+        finally
+        {
+            if (parser != null)
+                parser.close();
+        }
     }
     
     
-    protected Entry<DataStreamKey, IDataStreamInfo> findIdenticalDatastream(DataComponent resultStruct, Collection<Entry<DataStreamKey, IDataStreamInfo>> outputList)
+    protected Entry<DataStreamKey, IDataStreamInfo> findIdenticalDatastream(DataComponent resultStruct, DataEncoding resultEncoding, Collection<Entry<DataStreamKey, IDataStreamInfo>> outputList)
     {
-        var newHc = DataComponentChecks.getStructEqualsHashCode(resultStruct);
+        var newHc = DataComponentChecks.getStructEqualsHashCode(resultStruct, resultEncoding);
         for (var output: outputList)
         {
             var recordStruct = output.getValue().getRecordStructure();
-            var oldHc = DataComponentChecks.getStructEqualsHashCode(recordStruct);
+            var recordEncoding = output.getValue().getRecordEncoding();
+            var oldHc = DataComponentChecks.getStructEqualsHashCode(recordStruct, recordEncoding);
             if (newHc.equals(oldHc))
                 return output;
         }
@@ -943,11 +1176,14 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected String generateOutputName(DataComponent resultStructure, int numOutputs)
     {
+        var id = resultStructure.getId();
+        var label = resultStructure.getLabel();
+        
         // use ID or label if provided in result template
-        if (resultStructure.getId() != null)
-            return SWEDataUtils.toNCName(resultStructure.getId());
-        else if (resultStructure.getLabel() != null)
-            return SWEDataUtils.toNCName(resultStructure.getLabel());
+        if (id != null)
+            return SWEDataUtils.toNCName(id);
+        else if (label != null)
+            return SWEDataUtils.toNCName(label);
         
         // otherwise generate an output name with numeric index
         return String.format("output%02d", numOutputs+1);
@@ -956,86 +1192,32 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected final String generateTemplateID(String procUID, String outputName)
     {
-        return procUID + '#' + outputName;
+        return procUID + TEMPLATE_ID_SEPARATOR + outputName;
     }
     
     
-    protected final String getOutputNameFromTemplateID(String templateID)
+    protected final Entry<DataStreamKey, IDataStreamInfo> getDataStreamFromTemplateID(String templateID, OWSExceptionReport report)
     {
-        return templateID.substring(templateID.lastIndexOf('#')+1);
-    }
-
-
-    @Override
-    protected void handleRequest(InsertResultRequest request) throws IOException, OWSException
-    {
-        checkTransactionalSupport(request);
-        
-        // security check
-        securityHandler.checkPermission(securityHandler.sos_insert_obs);
-
-        /*DataStreamParser parser = null;
-        // retrieve consumer based on template id
-        String templateID = request.getTemplateId();
-        ProcedureProxyImpl proxy = getProcedureProxyByTemplateID(templateID);
-        SensorDataConsumer consumer = new SensorDataConsumer(proxy);
-
-        // security check
-        securityHandler.checkPermission(proxy.getUniqueIdentifier(), securityHandler.sos_insert_obs);
-
-        // get template info
-        RecordTemplate template = consumer.getTemplate(templateID);
-        DataComponent dataStructure = template.getDataStructure();
-        DataEncoding encoding = template.getDataEncoding();
-
         try
         {
-            InputStream resultStream;
-
-            // select data source (either inline XML or in POST body for KVP)
-            DataSource dataSrc = request.getResultDataSource();
-            if (dataSrc instanceof DataSourceDOM) // inline XML
-            {
-                encoding = SWEHelper.ensureXmlCompatible(encoding);
-                resultStream = dataSrc.getDataStream();
-            }
-            else // POST body
-            {
-                resultStream = new BufferedInputStream(request.getHttpRequest().getInputStream());
-            }
-
-            // create parser
-            parser = SWEHelper.createDataParser(encoding);
-            parser.setDataComponents(dataStructure);
-            parser.setInput(resultStream);
-
-            // if websocket, parse records in the callback
-            if (isWebSocketRequest(request))
-            {
-                WebSocketListener socket = new SOSWebSocketIn(parser, consumer, templateID, log);
-                this.acceptWebSocket(request, socket);
-            }
-            else
-            {
-                // parse each record and send it to consumer
-                DataBlock nextBlock = null;
-                while ((nextBlock = parser.parseNextBlock()) != null)
-                    consumer.newResultRecord(templateID, nextBlock);
-
-                // build and send response
-                InsertResultResponse resp = new InsertResultResponse();
-                sendResponse(request, resp);
-            }
+            Matcher m;;
+            if (templateID == null || !(m = TEMPLATE_ID_REGEX.matcher(templateID)).matches())
+                throw new SOSException("");
+            
+            var procUID = m.group(1);
+            var outputName = m.group(2);
+            
+            var dsEntry = writeDatabase.getDataStreamStore().getLatestVersionEntry(procUID, outputName);
+            if (dsEntry == null)
+                throw new SOSException("");
+            
+            return dsEntry;
         }
-        catch (ReaderException e)
+        catch (SOSException e)
         {
-            throw new SOSException("Error in SWE encoded data", e);
+            report.add(new SOSException(SOSException.invalid_param_code, "template", templateID, "Unknown template ID: " + templateID));
+            return null;
         }
-        finally
-        {
-            if (parser != null)
-                parser.close();
-        }*/
     }
     
     
@@ -1283,10 +1465,11 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
                 if (videoFrameSpec != null)
                 {
-                    if (isRequestFromBrowser(request) && videoFrameSpec.getCompression().equals("H264"))
+                    var codec = videoFrameSpec.getCompression();
+                    if (isRequestFromBrowser(request) && "H264".equalsIgnoreCase(codec))// || "H265".equalsIgnoreCase(codec)))
                         format = "video/mp4";
 
-                    else if (isRequestFromBrowser(request) && videoFrameSpec.getCompression().equals("JPEG"))
+                    else if (isRequestFromBrowser(request) && "JPEG".equalsIgnoreCase(codec))
                         format = "video/x-motion-jpeg";
                 }
             }

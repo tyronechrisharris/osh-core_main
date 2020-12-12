@@ -96,20 +96,27 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
     public void start() throws SensorHubException
     {
         // get handle to write database
+        // use the configured database
         if (config.databaseID != null)
         {
             writeDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
                 .getModuleById(config.databaseID);
         }
         
-        // if exposed resource filter is set
+        // or default to the procedure state DB
+        else
+        {
+            writeDatabase = getParentHub().getProcedureRegistry().getProcedureStateDatabase();
+        }
+        
+        // if exposed resource filter is set, use it
         ObsFilter obsFilter = null;
         if (config.exposedResources != null)
         {
             obsFilter = config.exposedResources.getObsFilter();
         }
         
-        // else if some providers are configured, build a filter to expose these only
+        // else if some custom providers are configured, build a filter to expose them (and nothing else)
         else if (config.customDataProviders != null && !config.customDataProviders.isEmpty())
         {
             var procUIDs = config.customDataProviders.stream()

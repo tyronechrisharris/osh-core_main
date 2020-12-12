@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import java.io.ByteArrayInputStream;
+import java.util.function.Consumer;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
@@ -37,15 +38,13 @@ public class SOSWebSocketIn implements WebSocketListener
     Logger log;
     Session session;
     DataStreamParser parser;
-    ISOSDataConsumer consumer;
-    String templateID;
+    Consumer<DataBlock> consumer;
     
     
-    public SOSWebSocketIn(DataStreamParser parser, ISOSDataConsumer consumer, String templateID, Logger log)
+    public SOSWebSocketIn(DataStreamParser parser, Consumer<DataBlock> consumer, Logger log)
     {
         this.parser = parser;
         this.consumer = consumer;
-        this.templateID = templateID;
         this.log = log;
     }
     
@@ -69,7 +68,7 @@ public class SOSWebSocketIn implements WebSocketListener
             ByteArrayInputStream is = new ByteArrayInputStream(payload, offset, len);
             parser.setInput(is);
             DataBlock data = parser.parseNextBlock();
-            consumer.newResultRecord(templateID, data);
+            consumer.accept(data);
         }
         catch (Exception e)
         {

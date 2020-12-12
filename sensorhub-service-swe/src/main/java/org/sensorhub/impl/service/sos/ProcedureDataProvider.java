@@ -120,7 +120,7 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
                 subscriber.onComplete();*/
             
             long u = requested.addAndGet(n);
-            servlet.getLogger().debug("Requested {} items", n);
+            //servlet.getLogger().debug("Requested {} items", n);
             maybeSendItems(u);            
         }
 
@@ -136,18 +136,18 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
             // fetch more from DB if needed
             if (fetchNextBatch && !streamDone && !canceled && reading.compareAndSet(false, true))
             {
-                servlet.getLogger().debug("Need {} items, queue={}", u, itemQueue.size());
+                //servlet.getLogger().debug("Need {} items, queue={}", u, itemQueue.size());
                 CompletableFuture.runAsync(() -> {
                     int count = 0;
                     while (spliterator.tryAdvance(e -> itemQueue.add(e)) && ++count < batchSize);
-                    servlet.getLogger().debug("Loaded new batch of {} items", count);
+                    //servlet.getLogger().debug("Loaded new batch of {} items", count);
                     /*try { Thread.sleep(200); }
                     catch (InterruptedException e1) { }*/
                     streamDone = count < batchSize;
                     reading.compareAndSet(true, false);
                 }, threadPool)
                 .thenRun(() -> {
-                    servlet.getLogger().debug("Send After Fetch");
+                    //servlet.getLogger().debug("Send After Fetch");
                     maybeSendItems(requested.get());
                 })
                 .exceptionally(e -> {
@@ -170,8 +170,8 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
                 long numSent = s;
                 if (requested.compareAndSet(n, n-s))
                 {
-                    servlet.getLogger().debug("Before send: req={}, queue={}, canceled={}",
-                        n, itemQueue.size(), canceled);                
+                    //servlet.getLogger().debug("Before send: req={}, queue={}, canceled={}",
+                    //    n, itemQueue.size(), canceled);                
                     
                     while (s > 0 && !canceled)
                     {
@@ -185,8 +185,8 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
                         complete = true;
                     }
                     
-                    servlet.getLogger().debug("After send: req={}, sent={}, queue={}, canceled={}",
-                        requested.get(), numSent, itemQueue.size(), canceled);
+                    //servlet.getLogger().debug("After send: req={}, sent={}, queue={}, canceled={}",
+                    //    requested.get(), numSent, itemQueue.size(), canceled);
                 }
                 
                 maybeFetchFromStorage();

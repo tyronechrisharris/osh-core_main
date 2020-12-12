@@ -24,6 +24,7 @@ import com.google.common.hash.HashingOutputStream;
 import com.google.common.io.ByteStreams;
 import net.opengis.swe.v20.BlockComponent;
 import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataEncoding;
 
 
 /**
@@ -102,6 +103,22 @@ public class DataComponentChecks
         {
             var hashOs = new HashingOutputStream(hf, ByteStreams.nullOutputStream());
             new SWEUtils(SWEUtils.V2_0).writeComponent(hashOs, root, false, false);
+            return hashOs.hash();
+        }
+        catch (Exception e)
+        {
+            throw new IllegalArgumentException("Error computing hashcode. Invalid data component");
+        }
+    }
+    
+    
+    public static HashCode getStructEqualsHashCode(DataComponent root, DataEncoding enc)
+    {        
+        try
+        {
+            var hashOs = new HashingOutputStream(hf, ByteStreams.nullOutputStream());
+            new SWEUtils(SWEUtils.V2_0).writeComponent(hashOs, root, false, false);
+            new SWEUtils(SWEUtils.V2_0).writeEncoding(hashOs, enc, false);
             return hashOs.hash();
         }
         catch (Exception e)

@@ -78,7 +78,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
         var dataStreams = new HashMap<Long, DataStreamInfoCache>();
         var dataStreamsBySource = new HashMap<String, DataStreamInfoCache>();
         
-        // query selected datastreams and create event source for each of them
+        // query selected datastreams
         var dsFilter = obsFilter.getDataStreamFilter();
         database.getDataStreamStore().selectEntries(dsFilter)
             .forEach(dsEntry -> {

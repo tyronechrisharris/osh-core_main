@@ -59,12 +59,11 @@ public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implement
     final static int WRITING = 1;
     final static int MORE_TO_WRITE = 2;
     AtomicInteger cas = new AtomicInteger(READY);
+    
 
     protected abstract void beforeRecords() throws IOException;
 
-
     protected abstract void afterRecords() throws IOException;
-
 
     protected abstract void writeRecord(T item) throws IOException;
 
