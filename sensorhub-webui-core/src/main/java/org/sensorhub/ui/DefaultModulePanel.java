@@ -71,12 +71,12 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
         // header = module name + spinner
         header = new HorizontalLayout();
         header.setSpacing(true);
-        String moduleName = beanItem.getBean().name;
-        String className = beanItem.getBean().getClass().getSimpleName();
+        String moduleName = module.getName();
+        //String className = beanItem.getBean().getClass().getSimpleName();
         Label title = new Label(moduleName);
-        title.setDescription(className);
+        title.setDescription(module.getDescription());
         title.addStyleName(STYLE_H2);
-        header.addComponent(title);        
+        header.addComponent(title);
         addComponent(header);
         Label hr = new Label("<hr/>", ContentMode.HTML);
         hr.setWidth(100.0f, Unit.PERCENTAGE);
@@ -87,50 +87,53 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
         refreshStatusMessage();
         refreshErrorMessage();
         
-        // apply changes button
-        Button applyButton = new Button("Apply Changes");
-        applyButton.setIcon(APPLY_ICON);
-        applyButton.addStyleName(STYLE_SMALL);
-        applyButton.addStyleName("apply-button");
-        addComponent(applyButton);
-        
-        // config forms
-        final IModuleConfigForm form = getConfigForm(beanItem);
-        TabbedConfigForms tabbedConfigForm = new TabbedConfigForms(form);
-        configTabs = tabbedConfigForm.configTabs;
-        addComponent(tabbedConfigForm);
-        
-        // apply button action
-        applyButton.addClickListener(new Button.ClickListener() {
-            @Override
-            public void buttonClick(ClickEvent event)
-            {
-                AdminUI ui = (AdminUI)UI.getCurrent();
-                ui.logAction("Update Config", module);
-                
-                // security check
-                if (!ui.securityHandler.hasPermission(ui.securityHandler.module_update))
+        if (!module.getLocalID().startsWith("$$"))
+        {
+            // apply changes button
+            Button applyButton = new Button("Apply Changes");
+            applyButton.setIcon(APPLY_ICON);
+            applyButton.addStyleName(STYLE_SMALL);
+            applyButton.addStyleName("apply-button");
+            addComponent(applyButton);
+            
+            // config forms
+            final IModuleConfigForm form = getConfigForm(beanItem);
+            TabbedConfigForms tabbedConfigForm = new TabbedConfigForms(form);
+            configTabs = tabbedConfigForm.configTabs;
+            addComponent(tabbedConfigForm);
+            
+            // apply button action
+            applyButton.addClickListener(new Button.ClickListener() {
+                @Override
+                public void buttonClick(ClickEvent event)
                 {
-                    DisplayUtils.showUnauthorizedAccess(ui.securityHandler.module_update.getErrorMessage());
-                    return;
-                }
-                
-                try
-                {
-                    form.commit();
-                    if (module != null)
+                    AdminUI ui = (AdminUI)UI.getCurrent();
+                    ui.logAction("Update Config", module);
+                    
+                    // security check
+                    if (!ui.securityHandler.hasPermission(ui.securityHandler.module_update))
                     {
-                        beforeUpdateConfig();
-                        getParentHub().getModuleRegistry().updateModuleConfigAsync(module, beanItem.getBean());
-                        DisplayUtils.showOperationSuccessful("Module Configuration Updated");
+                        DisplayUtils.showUnauthorizedAccess(ui.securityHandler.module_update.getErrorMessage());
+                        return;
+                    }
+                    
+                    try
+                    {
+                        form.commit();
+                        if (module != null)
+                        {
+                            beforeUpdateConfig();
+                            getParentHub().getModuleRegistry().updateModuleConfigAsync(module, beanItem.getBean());
+                            DisplayUtils.showOperationSuccessful("Module Configuration Updated");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DisplayUtils.showErrorPopup(IModule.CANNOT_UPDATE_MSG, e);
                     }
                 }
-                catch (Exception e)
-                {
-                    DisplayUtils.showErrorPopup(IModule.CANNOT_UPDATE_MSG, e);
-                }
-            }
-        });
+            });
+        }
     }
     
     

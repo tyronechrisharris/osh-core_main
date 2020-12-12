@@ -548,6 +548,10 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
     {
         ArrayList<IModule<?>> moduleList = new ArrayList<>();
         
+        // add federated database
+        if (configType == DatabaseConfig.class)
+            moduleList.add(new FederatedDbModuleAdapter(getParentHub().getDatabaseRegistry().getFederatedObsDatabase()));
+        
         // add selected modules to list
         for (IModule<?> module: moduleRegistry.getLoadedModules())
         {
