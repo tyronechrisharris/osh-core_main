@@ -970,7 +970,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // continue only if datastream is different from any previously registered datastream
                 if (sameOutput == null)
                 {
-                    var existingOutput = findCompatibleDatastream(resultStruct, outputs.values());
+                    var existingOutput = findCompatibleDatastream(resultStruct, resultEncoding, outputs.values());
                     
                     // if output with same structure already exists, replace it
                     if (existingOutput != null)
@@ -985,6 +985,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                             .withRecordEncoding(resultEncoding)
                             .withValidTime(existingOutput.getValue().getValidTime())
                             .build());
+                        
+                        getLogger().info("Updated datastream {} on procedure {}", outputName, procUID);
                     }
                     
                     // else add it or version it
@@ -1001,6 +1003,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                                 .withRecordDescription(resultStruct)
                                 .withRecordEncoding(resultEncoding)
                                 .build());
+                            
+                            getLogger().info("Added datastream {} on procedure {}", outputName, procUID);
                         }
                         catch (DataStoreException e)
                         {
@@ -1015,11 +1019,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                         publisher.publish(new DataStreamAddedEvent(procUID, outputName));
                     else
                         publisher.publish(new DataStreamEnabledEvent(procUID, outputName));
-                    
-                    getLogger().info("Registered output {} on procedure {}", outputName, procUID); 
                 }
                 else
+                {
                     outputName = sameOutput.getValue().getOutputName();
+                    getLogger().info("Found existing output {} on procedure {}", outputName, procUID);                    
+                }
                 
                 // build and send response
                 String templateID = generateTemplateID(procUID, outputName);
@@ -1145,13 +1150,16 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected Entry<DataStreamKey, IDataStreamInfo> findIdenticalDatastream(DataComponent resultStruct, DataEncoding resultEncoding, Collection<Entry<DataStreamKey, IDataStreamInfo>> outputList)
     {
-        var newHc = DataComponentChecks.getStructEqualsHashCode(resultStruct, resultEncoding);
+        var newHc = DataComponentChecks.getStructEqualsHashCode(resultStruct);
+        var newEncHc = DataComponentChecks.getEncodingEqualsHashCode(resultEncoding);
+        
         for (var output: outputList)
         {
             var recordStruct = output.getValue().getRecordStructure();
             var recordEncoding = output.getValue().getRecordEncoding();
-            var oldHc = DataComponentChecks.getStructEqualsHashCode(recordStruct, recordEncoding);
-            if (newHc.equals(oldHc))
+            
+            var oldHc = DataComponentChecks.getStructEqualsHashCode(recordStruct);
+            if (newHc.equals(oldHc) && newEncHc.equals(DataComponentChecks.getEncodingEqualsHashCode(recordEncoding)))
                 return output;
         }
         
@@ -1159,14 +1167,18 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected Entry<DataStreamKey, IDataStreamInfo> findCompatibleDatastream(DataComponent resultStruct, Collection<Entry<DataStreamKey, IDataStreamInfo>> outputList)
+    protected Entry<DataStreamKey, IDataStreamInfo> findCompatibleDatastream(DataComponent resultStruct, DataEncoding resultEncoding, Collection<Entry<DataStreamKey, IDataStreamInfo>> outputList)
     {
         var newHc = DataComponentChecks.getStructCompatibilityHashCode(resultStruct);
+        var newEncHc = DataComponentChecks.getEncodingEqualsHashCode(resultEncoding);
+        
         for (var output: outputList)
         {
             var recordStruct = output.getValue().getRecordStructure();
+            var recordEncoding = output.getValue().getRecordEncoding();
+            
             var oldHc = DataComponentChecks.getStructCompatibilityHashCode(recordStruct);
-            if (newHc.equals(oldHc))
+            if (newHc.equals(oldHc) && newEncHc.equals(DataComponentChecks.getEncodingEqualsHashCode(recordEncoding)))
                 return output;
         }
         
