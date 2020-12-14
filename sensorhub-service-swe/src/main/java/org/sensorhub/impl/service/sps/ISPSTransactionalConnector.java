@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.sps;
 
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.impl.sensor.swe.ITaskingCallback;
-import org.sensorhub.impl.service.swe.Template;
+import org.sensorhub.impl.service.swe.RecordTemplate;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -52,7 +52,7 @@ public interface ISPSTransactionalConnector extends ISPSConnector
      * @return command message description (structure + encoding)
      * @throws SensorHubException 
      */
-    public Template getTemplate(String templateID) throws SensorHubException;
+    public RecordTemplate getTemplate(String templateID) throws SensorHubException;
     
     
     /**

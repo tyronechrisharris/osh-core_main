@@ -22,7 +22,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.sensor.ISensor;
+import org.sensorhub.api.sensor.ISensorDriver;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.sensor.SensorException;
@@ -54,7 +54,7 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
 {
     final SPSServlet servlet;
     final SensorConnectorConfig config;
-    final ISensor sensor;
+    final ISensorDriver sensor;
     final String procedureID;
     DataChoice commandChoice;
     String uniqueInterfaceName;
@@ -67,7 +67,7 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
         this.config = config;
         
         // get handle to sensor instance using sensor manager
-        this.sensor = (ISensor)servlet.getParentHub().getModuleRegistry().getModuleById(config.sensorID);
+        this.sensor = (ISensorDriver)servlet.getParentHub().getModuleRegistry().getModuleById(config.sensorID);
         this.procedureID = sensor.getUniqueIdentifier();
         
         // listen to sensor lifecycle events

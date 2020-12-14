@@ -24,7 +24,6 @@ import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
 
 
 /**
@@ -54,9 +53,9 @@ public class SensorConnectorConfig extends SPSConnectorConfig
     {
         IModule<?> sensor = servlet.getParentHub().getModuleRegistry().getModuleById(sensorID);
         
-        if (sensor instanceof SWETransactionalSensor)
+        /*if (sensor instanceof SWETransactionalSensor)
             return new TransactionalSensorConnector(servlet, this);
-        else
+        else*/
             return new DirectSensorConnector(servlet, this);
     }
 }

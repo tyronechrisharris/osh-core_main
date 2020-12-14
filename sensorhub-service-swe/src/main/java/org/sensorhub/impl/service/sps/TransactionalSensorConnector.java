@@ -17,9 +17,7 @@ package org.sensorhub.impl.service.sps;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.api.service.ServiceException;
-import org.sensorhub.impl.sensor.swe.SWETransactionalSensor;
-import org.sensorhub.impl.sensor.swe.SWETransactionalSensorControl;
-import org.sensorhub.impl.service.swe.Template;
+import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.sensorhub.impl.sensor.swe.ITaskingCallback;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -46,7 +44,7 @@ public class TransactionalSensorConnector extends DirectSensorConnector implemen
     @Override
     public String newTaskingTemplate(DataComponent component, DataEncoding encoding) throws SensorHubException
     {
-        try
+        /*try
         {
             // get new/existing control input
             String inputName = ((SWETransactionalSensor)sensor).newControlInput(component, encoding);
@@ -57,30 +55,30 @@ public class TransactionalSensorConnector extends DirectSensorConnector implemen
         catch (SensorException e)
         {
             throw new ServiceException("Invalid template", e);
-        }
+        }*/
+        return null;
     }
 
 
     @Override
     public void registerCallback(String templateID, ITaskingCallback callback)
     {
-        String inputName = getInputNameFromTemplateID(templateID);
+        /*String inputName = getInputNameFromTemplateID(templateID);
         SWETransactionalSensorControl input = (SWETransactionalSensorControl)sensor.getCommandInputs().get(inputName);
-        input.registerCallback(callback);
+        input.registerCallback(callback);*/
     }
     
     
-    public Template getTemplate(String templateID) throws SensorHubException
+    public RecordTemplate getTemplate(String templateID) throws SensorHubException
     {
         String paramName = getInputNameFromTemplateID(templateID);
         DataStream param = (DataStream)sensor.getCurrentDescription().getParameter(paramName);
         if (param == null)
             throw new ServiceException("Invalid tasking parameter: " + templateID);
         
-        Template template = new Template();
-        template.component = param.getElementType();
-        template.encoding = param.getEncoding();
-        return template;
+        return new RecordTemplate(
+            param.getElementType(),
+            param.getEncoding());
     }
     
     
