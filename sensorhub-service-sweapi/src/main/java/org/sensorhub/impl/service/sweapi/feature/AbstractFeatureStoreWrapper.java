@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.feature;
 
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
@@ -35,7 +36,7 @@ public abstract class AbstractFeatureStoreWrapper<V extends IFeature, VF extends
 
 
     @Override
-    public FeatureKey add(long parentId, V value)
+    public FeatureKey add(long parentId, V value) throws DataStoreException
     {
         return getWriteStore().add(parentId, value);
     }

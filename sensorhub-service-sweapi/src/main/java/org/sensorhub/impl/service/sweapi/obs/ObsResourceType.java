@@ -41,6 +41,7 @@ public class ObsResourceType extends ResourceType<BigInteger, IObsData>
 {
     public static final int EXTERNAL_ID_SEED = 918742953;
     private static final byte[] RESULT_INDENT;
+    private static final byte[] RESULT_PROP_NAME;
     
     IObsStore obsStore;
     
@@ -48,6 +49,7 @@ public class ObsResourceType extends ResourceType<BigInteger, IObsData>
     {
         RESULT_INDENT = new byte[INDENT.length()*2];
         Arrays.fill(RESULT_INDENT, (byte)' ');
+        RESULT_PROP_NAME = (",\n" + INDENT + INDENT + "\"result\": ").getBytes();
     }
     
     
@@ -91,7 +93,7 @@ public class ObsResourceType extends ResourceType<BigInteger, IObsData>
     {
         var writer = getJsonWriter(os, propFilter);
         var resultWriter = getSweJsonWriter(obs.getDataStreamID(), os, propFilter);
-        serializeAsJson(key, obs, writer, resultWriter);
+        serializeAsJson(key, obs, writer, resultWriter, os);
         writer.flush();
     }
 
@@ -118,7 +120,7 @@ public class ObsResourceType extends ResourceType<BigInteger, IObsData>
                     resultWriter = getSweJsonWriter(dsID, os, propFilter);
                 }
                 
-                serializeAsJson(entry.getKey(), obs, writer, resultWriter);
+                serializeAsJson(entry.getKey(), obs, writer, resultWriter, os);
             }
             catch (IOException e)
             {
@@ -162,7 +164,7 @@ public class ObsResourceType extends ResourceType<BigInteger, IObsData>
     }
     
     
-    protected void serializeAsJson(BigInteger key, IObsData obs, JsonWriter writer, JsonDataWriter resultWriter) throws IOException
+    protected void serializeAsJson(BigInteger key, IObsData obs, JsonWriter writer, JsonDataWriter resultWriter, OutputStream os) throws IOException
     {
         writer.beginObject();
         
@@ -180,8 +182,8 @@ public class ObsResourceType extends ResourceType<BigInteger, IObsData>
         writer.name("phenomenonTime").value(obs.getPhenomenonTime().toString());
         writer.name("resultTime").value(obs.getResultTime().toString());
         
-        writer.name("result").jsonValue("");
         writer.flush();
+        os.write(RESULT_PROP_NAME);
         resultWriter.write(obs.getResult());
         resultWriter.flush();
         

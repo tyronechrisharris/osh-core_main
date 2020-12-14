@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.resource;
 
 import java.util.Map;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
@@ -100,7 +101,7 @@ public abstract class ResourceHandler<
         if (paramValues != null)
         {
             var keywords = parseMultiValuesArg(paramValues);
-            builder.withFullText().withKeywords(keywords).done();
+            builder.withKeywords(keywords);
         }
         
         // limit
@@ -127,17 +128,24 @@ public abstract class ResourceHandler<
     @Override
     protected String addToDataStore(final ResourceContext ctx, final V resource)
     {
-        K k = dataStore.add(resource);
-        
-        if (k != null)
+        try
         {
-            long externalID = resourceType.getExternalID(k.getInternalID());
-            String id = Long.toString(externalID, ResourceType.ID_RADIX);
-            String url = getCanonicalResourceUrl(id, ctx.req);
-            ctx.getLogger().info("Added resource {}={}, URL={}", id, k.getInternalID(), url);
-            return url;
+            K k = dataStore.add(resource);
+            
+            if (k != null)
+            {
+                long externalID = resourceType.getExternalID(k.getInternalID());
+                String id = Long.toString(externalID, ResourceType.ID_RADIX);
+                String url = getCanonicalResourceUrl(id, ctx.req);
+                ctx.getLogger().info("Added resource {}={}, URL={}", id, k.getInternalID(), url);
+                return url;
+            }
+            
+            return null;
         }
-        
-        return null;
+        catch (DataStoreException e)
+        {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
     }
 }

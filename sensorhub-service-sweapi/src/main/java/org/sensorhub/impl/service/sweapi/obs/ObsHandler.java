@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.obs;
 
 import java.math.BigInteger;
 import java.util.Map;
+import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -96,14 +97,22 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
                 .build());
         }
         
+        // foi param
+        paramValues = queryParams.get("foi");
+        if (paramValues != null)
+        {
+            var foiIDs = parseResourceIds(paramValues);
+            builder.withFois(foiIDs);
+        }
+        
         // use opensearch bbox param to filter spatially
         paramValues = queryParams.get("bbox");
         if (paramValues != null)
         {
             var bbox = parseBboxArg(paramValues);
-            builder.withPhenomenonLocation()
+            builder.withPhenomenonLocation(new SpatialFilter.Builder()
                 .withBbox(bbox)
-                .done();
+                .build());
         }
         
         // geom param
@@ -111,9 +120,9 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         if (paramValues != null)
         {
             var geom = parseGeomArg(paramValues);
-            builder.withPhenomenonLocation()
+            builder.withPhenomenonLocation(new SpatialFilter.Builder()
                 .withRoi(geom)
-                .done();
+                .build());
         }
         
         // limit

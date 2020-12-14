@@ -1,9 +1,9 @@
 openapi: 3.0.0
 info:
   version: 1.0.0
-  title: OSH SWE REST API
+  title: OGC Sensor Web API
   description: |-
-    This is the API documentation for OSH SWE API.
+    This is the OpenAPI documentation for OGC Sensor Web API.
     
     All resource and resource collection paths also support websocket and MQTT connections
     to receive events via server push. For MQTT, the path is used as the topic. Events
@@ -488,10 +488,10 @@ paths:
         5XX:
           $ref: '#/components/responses/5XX'
           
-  '/procedures/{pid}/samplingFeatures':
+  '/procedures/{pid}/featuresOfInterest':
     get:
-      summary: List or search sampling features of a procedure. Individual features
-        can be retrieved by ID directly on the root "features" collection
+      summary: List or search features of interest of a procedure. Individual features
+        can be retrieved by ID directly on the root "featuresOfInterest" collection
       tags:
         - Procedures
       parameters:
@@ -524,7 +524,7 @@ paths:
         5XX:
           $ref: '#/components/responses/5XX'
     post:
-      summary: Add a new sampling feature to a procedure or procedure group
+      summary: Add a new feature of interest to a procedure or procedure group
       tags:
         - Procedures
       parameters:
@@ -1351,7 +1351,7 @@ components:
       description: |-
         ISO 8601 encoded time instant or special value.
         Examples:
-          * A time instant: "2020-02-12T23:20:50Z" or "2020-01-15"
+          * A time instant: "2020-02-12T23:20:50Z" or "2020-01-15Z"
           * Special indeterminate value: "now", "oldest", "latest"
       oneOf:
         - type: string
@@ -1364,7 +1364,7 @@ components:
       description: |-
         ISO 8601 encoded time period that can include special values.
         Examples:
-          * A closed interval: "2020-02-12T00:00:00Z/2020-03-18T12:31:12Z" or "2020-01-15/2020-02-16"
+          * A closed interval: "2020-02-12T00:00:00Z/2020-03-18T12:31:12Z" or "2020-01-15Z/2020-02-16Z"
           * An open interval: "2020-02-12T00:00:00Z/.." or "../2020-03-18T12:31:12Z"
           * An interval with indeterminate value: "2020-02-12T00:00:00Z/now" or "now/.."
       

@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.resource;
 
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
@@ -39,7 +40,7 @@ public abstract class AbstractResourceStoreWrapper<
     
     
     @Override
-    public K add(V value)
+    public K add(V value) throws DataStoreException
     {
         return getWriteStore().add(value);
     }
@@ -48,7 +49,7 @@ public abstract class AbstractResourceStoreWrapper<
     @Override
     public ResourceFilterBuilder<?,?,F> filterBuilder()
     {
-        return isReadSupported() ? getReadStore().filterBuilder() : getWriteStore().filterBuilder();
+        return getReadStore().filterBuilder();
     }
 
 }

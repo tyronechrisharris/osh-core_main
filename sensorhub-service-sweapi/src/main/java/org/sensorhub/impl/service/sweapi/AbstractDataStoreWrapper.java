@@ -306,14 +306,8 @@ public abstract class AbstractDataStoreWrapper<
     }
 
 
-    public boolean isReadSupported()
+    public boolean isReadOnly()
     {
-        return readStore != null && getReadStore().isReadSupported();
-    }
-
-
-    public boolean isWriteSupported()
-    {
-        return writeStore != null && getWriteStore().isWriteSupported();
+        return writeStore == null || getWriteStore().isReadOnly();
     }
 }
