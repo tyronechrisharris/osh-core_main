@@ -112,6 +112,32 @@ public class DataComponentChecks
     }
     
     
+    public static boolean checkEncodingEquals(DataEncoding enc1, DataEncoding enc2)
+    {
+        Asserts.checkNotNull(enc1, DataEncoding.class);
+        Asserts.checkNotNull(enc2, DataEncoding.class);
+        
+        var hc1 = getEncodingEqualsHashCode(enc1);
+        var hc2 = getEncodingEqualsHashCode(enc2);
+        return hc1.equals(hc2);
+    }
+    
+    
+    public static HashCode getEncodingEqualsHashCode(DataEncoding enc)
+    {        
+        try
+        {
+            var hashOs = new HashingOutputStream(hf, ByteStreams.nullOutputStream());
+            new SWEUtils(SWEUtils.V2_0).writeEncoding(hashOs, enc, false);
+            return hashOs.hash();
+        }
+        catch (Exception e)
+        {
+            throw new IllegalArgumentException("Error computing hashcode. Invalid data encoding");
+        }
+    }
+    
+    
     public static HashCode getStructEqualsHashCode(DataComponent root, DataEncoding enc)
     {        
         try
