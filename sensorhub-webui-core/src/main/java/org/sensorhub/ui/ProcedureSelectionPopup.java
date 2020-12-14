@@ -60,7 +60,7 @@ public class ProcedureSelectionPopup extends Window
             public void itemClick(ItemClickEvent event)
             {
                 // select procedure UID
-                procUID = (String)event.getItem().getItemProperty(ProcedureSearchList.PROC_UID_PROP).getValue();
+                procUID = (String)event.getItem().getItemProperty(ProcedureSearchList.PROP_PROC_UID).getValue();
                 manualEntry.setValue(procUID);
             }
         });        

@@ -79,8 +79,9 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
                     try
                     {
                         // select and open module configuration
-                        String procUID = (String)event.getItem().getItemProperty(ProcedureSearchList.PROC_UID_PROP).getValue();
-                        showProcedureData(db, procUID);
+                        String procUID = (String)event.getItem().getItemProperty(ProcedureSearchList.PROP_PROC_UID).getValue();
+                        if (procUID != null)
+                            showProcedureData(db, procUID);
                     }
                     catch (Exception e)
                     {
@@ -98,7 +99,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
     }
     
     
-    protected void showProcedureData(final IProcedureObsDatabase db, String procUID)
+    protected synchronized void showProcedureData(final IProcedureObsDatabase db, String procUID)
     {
         // remove previous tabs
         dataStreamTabs.removeAllComponents();

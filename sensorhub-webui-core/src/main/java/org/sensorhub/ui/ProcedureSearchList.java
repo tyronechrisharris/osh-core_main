@@ -14,10 +14,14 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Objects;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.ui.api.UIConstants;
+import org.vast.util.TimeExtent;
 import com.vaadin.ui.Component;
 import com.vaadin.v7.data.Item;
 import com.vaadin.v7.data.Property.ValueChangeEvent;
@@ -25,16 +29,18 @@ import com.vaadin.v7.data.Property.ValueChangeListener;
 import com.vaadin.v7.event.ItemClickEvent.ItemClickListener;
 import com.vaadin.v7.ui.Table;
 import com.vaadin.v7.ui.TextField;
+import com.vaadin.v7.ui.TreeTable;
 import com.vaadin.ui.VerticalLayout;
 
 
 public class ProcedureSearchList extends VerticalLayout
 {
-    final static String PROC_UID_PROP = "uid";
-    final static String PROC_NAME_PROP = "name";
-    final static String PROC_DESC_PROP = "desc";
+    final static String PROP_PROC_UID = "uid";
+    final static String PROP_PROC_NAME = "name";
+    final static String PROP_PROC_VALID = "valid";
+    final static String PROP_PROC_DESC = "desc";
     
-    Table table;
+    TreeTable table;
     
     
     public ProcedureSearchList(final IProcedureObsDatabase db, final ItemClickListener selectionListener)
@@ -91,16 +97,17 @@ public class ProcedureSearchList extends VerticalLayout
     
     protected Component buildProcedureTable(final IProcedureObsDatabase db, final ItemClickListener selectionListener)
     {
-        table = new Table();
+        table = new TreeTable();
         table.setWidth(100, Unit.PERCENTAGE);
         table.setPageLength(5);
         table.setSelectable(true);
         table.addStyleName(UIConstants.STYLE_SMALL);
         
         // add column names
-        table.addContainerProperty(PROC_UID_PROP, String.class, null, "Procedure UID", null, null);
-        table.addContainerProperty(PROC_NAME_PROP, String.class, null, "Name", null, null);
-        table.addContainerProperty(PROC_DESC_PROP, String.class, null, "Description", null, null);
+        table.addContainerProperty(PROP_PROC_UID, String.class, null, "Procedure UID", null, null);
+        table.addContainerProperty(PROP_PROC_NAME, String.class, null, "Name", null, null);
+        table.addContainerProperty(PROP_PROC_VALID, String.class, null, "Validity", null, null);
+        table.addContainerProperty(PROP_PROC_DESC, String.class, null, "Description", null, null);
         
         table.addItemClickListener(selectionListener);
         
@@ -113,10 +120,45 @@ public class ProcedureSearchList extends VerticalLayout
         table.removeAllItems();
         db.getProcedureStore().select(procFilter)
             .forEach(proc -> {
-                Item item = table.addItem(proc.getUniqueIdentifier());
-                item.getItemProperty(PROC_UID_PROP).setValue(proc.getUniqueIdentifier());
-                item.getItemProperty(PROC_NAME_PROP).setValue(proc.getName());
-                item.getItemProperty(PROC_DESC_PROP).setValue(proc.getDescription());                        
+                String itemId = proc.getUniqueIdentifier();
+                Item item = table.addItem(itemId);
+                item.getItemProperty(PROP_PROC_UID).setValue(proc.getUniqueIdentifier());
+                item.getItemProperty(PROP_PROC_NAME).setValue(proc.getName());
+                item.getItemProperty(PROP_PROC_VALID).setValue(getValidTimeString(proc));
+                item.getItemProperty(PROP_PROC_DESC).setValue(proc.getDescription());
+                table.setChildrenAllowed(itemId, false);
+                
+                // also show all historical version as children
+                db.getProcedureStore().select(new ProcedureFilter.Builder()
+                        .withUniqueIDs(proc.getUniqueIdentifier())
+                        .withAllVersions()
+                        .build())
+                    .forEach(histProc -> {
+                        
+                        if (!Objects.equals(histProc.getValidTime(), proc.getValidTime()))
+                        {
+                            table.setChildrenAllowed(itemId, true);
+                            String childId = histProc.getUniqueIdentifier() + "_" + histProc.getValidTime();
+                            Item childItem = table.addItem(childId);
+                            childItem.getItemProperty(PROP_PROC_NAME).setValue(histProc.getName());
+                            childItem.getItemProperty(PROP_PROC_VALID).setValue(getValidTimeString(histProc));
+                            childItem.getItemProperty(PROP_PROC_DESC).setValue(histProc.getDescription());
+                            table.setParent(childId, itemId);
+                            table.setChildrenAllowed(childId, false);
+                        }
+                    });
+                
             });
+    }
+    
+    
+    protected String getValidTimeString(IProcedureWithDesc proc)
+    {
+        var validTime = proc.getValidTime();
+        if (validTime == null)
+            return "ALWAYS";
+        
+        return validTime.begin().truncatedTo(ChronoUnit.SECONDS) + " / " +
+               (validTime.endsNow() ? "now" : validTime.end().truncatedTo(ChronoUnit.SECONDS));
     }
 }
