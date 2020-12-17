@@ -38,11 +38,7 @@ public class SensorConfig extends ModuleConfig
     
     
     @DisplayInfo(desc="Time at which the SensorML description was last updated")
-    public Date lastUpdated = new Date(); 
-    
-    
-    @DisplayInfo(desc="List of hidden sensor interfaces")    
-    public String[] hiddenIO;
+    public Date lastUpdated = new Date();
     
     
     /**

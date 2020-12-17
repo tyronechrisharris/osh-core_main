@@ -15,7 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.module;
 
 import static org.junit.Assert.*;
-import java.util.Arrays;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -91,14 +90,12 @@ public class TestModuleRegistry
         config2.name = "sensor1";
         config2.moduleClass = "org.sensorhub.sensor.SensorDriver";
         config2.autoStart = true;
-        config2.hiddenIO = new String[] {"input1", "input3"};
         
         SensorConfig clone2 = (SensorConfig)config2.clone();
         assertTrue(clone2.id.equals(config2.id));
         assertTrue(clone2.name.equals(config2.name));
         assertTrue(clone2.moduleClass.equals(config2.moduleClass));
         assertTrue(clone2.autoStart = config2.autoStart);
-        assertTrue(Arrays.deepEquals(clone2.hiddenIO, config2.hiddenIO));
         
         DatabaseConfig config4 = new DatabaseConfig();
         config4.id = UUID.randomUUID().toString();
