@@ -13,5 +13,13 @@
             "indeterminate": "current"
         },
         "internalIDs": [100, 200, 300]
+    },
+    {
+        "validTime": {
+            "indeterminate": "current"
+        },
+        "observedProperties": [
+            "urn1", "urn2", "urn3"
+        ]
     }
 ]
