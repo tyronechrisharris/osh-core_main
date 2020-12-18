@@ -21,21 +21,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.client.ClientException;
-import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.client.sost.SOSTClient;
 import org.sensorhub.impl.client.sost.SOSTClientConfig;
+import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseViewConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.service.HttpServer;
-import org.sensorhub.impl.service.sos.SOSProviderConfig;
-import org.sensorhub.impl.service.sos.SOSService;
-import org.sensorhub.impl.service.sos.SensorDataProviderConfig;
 import org.vast.ows.GetCapabilitiesRequest;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.SOSOfferingCapabilities;
@@ -45,7 +43,7 @@ import org.vast.ows.sos.SOSUtils;
 
 public class TestSOSTClient
 {
-    static final int TIMEOUT = 10000;
+    static final long TIMEOUT = 5000L;
     static final String SENSOR_UID = "urn:test:newsensor:0002";
     static final double SAMPLING_PERIOD = 0.2;
     static final int NUM_GEN_SAMPLES = 4;
@@ -74,31 +72,34 @@ public class TestSOSTClient
         // create test sensor
         SensorConfig sensorCfg = new SensorConfig();
         sensorCfg.autoStart = false;
-        sensorCfg.moduleClass = FakeSensorNetWithFoi.class.getCanonicalName();
+        sensorCfg.moduleClass = FakeSensor.class.getCanonicalName();
         sensorCfg.name = "Sensor1";
         FakeSensor sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
+        sensor.requestInit(false);
         sensor.setSensorUID(SENSOR_UID);
         sensor.setDataInterfaces(new FakeSensorData(sensor, TestSOSService.NAME_OUTPUT1, SAMPLING_PERIOD, numSamples));
-        sensor.requestInit(false);
         sensor.requestStart();
         return sensor;
     }
     
     
-    protected void startClient(String sensorID, boolean async) throws Exception
+    protected SOSTClient startClient(String sensorID, boolean async) throws Exception
     {
-        startClient(sensorID, async, false, 4);
+        return startClient(sensorID, async, false, 4);
     }
     
     
-    protected SOSTClient startClient(String sensorID, boolean async, boolean persistent, int maxAttempts) throws Exception
+    protected SOSTClient startClient(String sensorUID, boolean async, boolean persistent, int maxAttempts) throws Exception
     {
         URL sosUrl = new URL(TestSOSService.HTTP_ENDPOINT);
         
         SOSTClientConfig config = new SOSTClientConfig();
         config.id = "SOST";
         config.name = "SOS-T Client";
-        config.dataSourceID = sensorID;
+        config.dataSourceSelector = new ProcedureObsDatabaseViewConfig();
+        config.dataSourceSelector.includeFilter = new ProcedureFilter.Builder()
+            .withUniqueIDs(sensorUID)
+            .build();
         config.sos.remoteHost = sosUrl.getHost();
         config.sos.remotePort = (sosUrl.getPort() > 0) ? sosUrl.getPort() : 80;
         config.sos.resourcePath = sosUrl.getPath();
@@ -111,31 +112,16 @@ public class TestSOSTClient
         
         final SOSTClient client = (SOSTClient)moduleRegistry.loadModule(config);
         client.requestInit(false);
+        client.requestStart();
         
-        if (async)
-        {
-            new Thread() {
-                public void run()
-                {
-                    try
-                    {
-                        client.requestStart();
-                    }
-                    catch (SensorHubException e)
-                    {
-                        asyncError = e;
-                    }
-                }
-            }.start();
-        }
-        else
-            client.start();
+        if (!async)
+            client.waitForState(ModuleState.STARTED, TIMEOUT);
         
         return client;
     }
     
     
-    protected SOSOfferingCapabilities getCapabilities(int offeringIndex, int waitTimeOut) throws Exception
+    protected SOSOfferingCapabilities getCapabilities(int offeringIndex, long waitTimeOut) throws Exception
     {
         OWSUtils utils = new OWSUtils();
         
@@ -173,7 +159,8 @@ public class TestSOSTClient
      
         // start client
         ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
-        startClient(sensor.getLocalID(), false);
+        startClient(sensor.getUniqueIdentifier(), false);
+        Thread.sleep(TestSOSService.CAPS_REFRESH_PERIOD);
         
         // check capabilities content
         SOSOfferingCapabilities newOffering = getCapabilities(0, 0);
@@ -181,7 +168,7 @@ public class TestSOSTClient
     }
     
     
-    @Test(expected = ClientException.class)
+    @Test
     public void testRegisterErrorNoTransactionalServer() throws Exception
     {
         // start service w/o SOS-T support
@@ -189,7 +176,10 @@ public class TestSOSTClient
         
         // start client
         ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
-        startClient(sensor.getLocalID(), false);
+        var client = startClient(sensor.getUniqueIdentifier(), false);
+        
+        assertFalse(client.isStarted());
+        assertTrue(client.getCurrentError() instanceof ClientException);
     }
     
     
@@ -198,7 +188,7 @@ public class TestSOSTClient
     {
         // start client
         ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
-        startClient(sensor.getLocalID(), true);
+        startClient(sensor.getUniqueIdentifier(), true);
         Thread.sleep(100);
         
         // start service
@@ -215,7 +205,7 @@ public class TestSOSTClient
     {
         // start client
         ISensorModule<?> sensor = buildSensor1(NUM_GEN_SAMPLES);
-        SOSTClient client = startClient(sensor.getLocalID(), true, false, 3);
+        SOSTClient client = startClient(sensor.getUniqueIdentifier(), true, false, 3);
         
         // wait for exception
         long maxWait = System.currentTimeMillis() + TIMEOUT;
@@ -232,51 +222,41 @@ public class TestSOSTClient
     public void testInsertResultPost() throws Exception
     {
         // start service with SOS-T support
-        SOSService sos = sosTest.deployService(true, new SOSProviderConfig[0]);
+        sosTest.deployService(true, new SOSProviderConfig[0]);
         
         // start client
         FakeSensor sensor = buildSensor1(NUM_GEN_SAMPLES);
-        startClient(sensor.getLocalID(), false, false, 1);
-        
-        // reduce liveDataTimeout of new provider
-        SensorDataProviderConfig provider = (SensorDataProviderConfig)sos.getConfiguration().dataProviders.get(0);
-        provider.liveDataTimeout = 1.0;
+        startClient(sensor.getUniqueIdentifier(), false, false, 1);
         
         // send getResult request
-        Future<String[]> f = sosTest.sendGetResultAsync(SENSOR_UID + "-sos", 
+        Future<String[]> f = sosTest.sendGetResultAsync(SENSOR_UID, 
                 TestSOSService.URI_PROP1, TestSOSService.TIMERANGE_FUTURE, false);
         
         // start sensor
-        sensor.startSendingData(true);
-        
+        sensor.startSendingData(200);        
         sosTest.checkGetResultResponse(f.get(), NUM_GEN_SAMPLES, 4);
     }
     
     
     @Test
-    public void testInsertResultPersistent() throws Exception
+    public void testInsertResultPersistentHttp() throws Exception
     {
         // start service with SOS-T support
-        SOSService sos = sosTest.deployService(true, new SOSProviderConfig[0]);
+        sosTest.deployService(true, new SOSProviderConfig[0]);
         
         // start client
         FakeSensor sensor = buildSensor1(NUM_GEN_SAMPLES);
-        startClient(sensor.getLocalID(), false, true, 1);
-        
-        // reduce liveDataTimeout of new provider
-        SensorDataProviderConfig provider = (SensorDataProviderConfig)sos.getConfiguration().dataProviders.get(0);
-        provider.liveDataTimeout = 1.0;
+        var client = startClient(sensor.getUniqueIdentifier(), false, true, 1);
         
         // send getResult request
-        Future<String[]> f = sosTest.sendGetResultAsync(SENSOR_UID + "-sos", 
+        Future<String[]> f = sosTest.sendGetResultAsync(SENSOR_UID, 
                 TestSOSService.URI_PROP1, TestSOSService.TIMERANGE_FUTURE, false);
         
         // start sensor
-        sensor.startSendingData(true);
-        
+        sensor.startSendingData(200);        
         sosTest.checkGetResultResponse(f.get(), NUM_GEN_SAMPLES, 4);
         
-        //client.stop();
+        client.requestStop();
     }
     
     
@@ -288,10 +268,11 @@ public class TestSOSTClient
         
         // start client
         FakeSensor sensor = buildSensor1(25);
-        SOSTClient client = startClient(sensor.getLocalID(), false, true, 2);
+        SOSTClient client = startClient(sensor.getUniqueIdentifier(), false, true, 2);
         
         // start sensor
-        sensor.startSendingData(true);
+        sensor.startSendingData();
+        Thread.sleep(500);
         
         // stop server
         HttpServer.getInstance().stop();
