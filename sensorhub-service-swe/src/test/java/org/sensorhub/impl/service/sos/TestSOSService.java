@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -393,7 +394,7 @@ public class TestSOSService
         {
             ByteArrayInputStream bis = new ByteArrayInputStream(os.toByteArray());
             OGCExceptionReader.parseException(bis);
-            assertFalse("Expected service exception", true); // we should never be here
+            fail("Expected service exception"); // we should never be here
         }
         catch (OGCException e)
         {
@@ -410,28 +411,21 @@ public class TestSOSService
     }
     
     
-    @Test
+    @Test(expected=OWSException.class)
     public void testNoTransactional() throws Exception
     {
         deployService(buildSensorProvider1());
         
-        try
-        {
-            InsertResultRequest req = new InsertResultRequest();
-            req.setPostServer(HTTP_ENDPOINT);
-            req.setVersion("2.0");
-            req.setTemplateId("template01");
-            SWEData sweData = new SWEData();
-            sweData.setElementType(new QuantityImpl());
-            sweData.setEncoding(new TextEncodingImpl(",", " "));
-            sweData.addData(new DataBlockDouble(1));
-            req.setResultData(sweData);
-            new OWSUtils().sendRequest(req, false);
-        }
-        catch (OWSException e)
-        {
-            assertTrue(e.getLocator().equals("request"));
-        }
+        InsertResultRequest req = new InsertResultRequest();
+        req.setPostServer(HTTP_ENDPOINT);
+        req.setVersion("2.0");
+        req.setTemplateId("template01");
+        SWEData sweData = new SWEData();
+        sweData.setElementType(new QuantityImpl());
+        sweData.setEncoding(new TextEncodingImpl(",", " "));
+        sweData.addData(new DataBlockDouble(1));
+        req.setResultData(sweData);
+        new OWSUtils().sendRequest(req, false);
     }
 
     
@@ -907,12 +901,13 @@ public class TestSOSService
     {
         deployService(buildSensorProvider1(), buildSensorProvider2());
         
-        InputStream is = new URL(HTTP_ENDPOINT + 
+        var conn = (HttpURLConnection)new URL(HTTP_ENDPOINT + 
                 "?service=SOS&version=2.0&request=GetResult"
                 + "&offering=urn:mysos:wrong"
-                + "&observedProperty=urn:blabla:temperature").openStream();
+                + "&observedProperty=urn:blabla:temperature").openConnection();
         
-        checkServiceException(is, "offering");
+        conn.getResponseCode(); // force connection and read
+        checkServiceException(conn.getErrorStream(), "offering");
     }
     
     
@@ -921,12 +916,13 @@ public class TestSOSService
     {
         deployService(buildSensorProvider1(), buildSensorProvider2());
         
-        InputStream is = new URL(HTTP_ENDPOINT + 
+        var conn = (HttpURLConnection)new URL(HTTP_ENDPOINT + 
                 "?service=SOS&version=2.0&request=GetResult"
                 + "&offering=" + URI_OFFERING1
-                + "&observedProperty=urn:blabla:wrong").openStream();
-                        
-        checkServiceException(is, "observedProperty");
+                + "&observedProperty=urn:blabla:wrong").openConnection();
+
+        conn.getResponseCode(); // force connection and read
+        checkServiceException(conn.getErrorStream(), "observedProperty");
     }
     
     
@@ -1102,22 +1098,15 @@ public class TestSOSService
     }
     
     
-    @Test(expected = OGCException.class)
+    @Test
     public void testGetObsWrongFormat() throws Exception
     {
         deployService(buildSensorProvider1());
         
-        InputStream is = new URL(HTTP_ENDPOINT + "?service=SOS&version=2.0&request=GetObservation&offering=urn:mysos:sensor1&observedProperty=urn:blabla:temperature&responseFormat=badformat").openStream();
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        IOUtils.copy(is, os);
+        var conn = (HttpURLConnection)new URL(HTTP_ENDPOINT + "?service=SOS&version=2.0&request=GetObservation&offering=urn:mysos:sensor1&observedProperty=urn:blabla:temperature&responseFormat=badformat").openConnection();
+        conn.getResponseCode(); // force connection and read
         
-        // read back and print
-        ByteArrayInputStream bis = new ByteArrayInputStream(os.toByteArray());
-        IOUtils.copy(bis, System.out);
-        bis.reset();
-        
-        // parse and generate exception
-        OGCExceptionReader.parseException(bis);
+        checkServiceException(conn.getErrorStream(), "responseFormat");
     }
     
     

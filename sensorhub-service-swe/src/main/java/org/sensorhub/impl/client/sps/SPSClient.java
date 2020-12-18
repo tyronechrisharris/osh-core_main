@@ -16,10 +16,10 @@ package org.sensorhub.impl.client.sps;
 
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
+import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.common.SensorHubException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vast.ows.OWSException;
 import org.vast.ows.sps.DescribeTaskingRequest;
 import org.vast.ows.sps.DescribeTaskingResponse;
 import org.vast.ows.sps.SPSUtils;
@@ -76,9 +76,9 @@ public class SPSClient
             submitReq.setPostServer(spsEndpoint);
             submitReq.setProcedureID(sensorUID);
         }
-        catch (OWSException e)
+        catch (Exception e)
         {
-            throw new SensorHubException("Error while retrieving tasking message definition from SPS", e);
+            throw new ClientException("Error while retrieving tasking message definition from SPS", e);
         }
     }
     
@@ -92,9 +92,9 @@ public class SPSClient
             //utils.writeXMLQuery(System.out, submitReq);
             return (SubmitResponse)utils.sendRequest(submitReq, false);
         }
-        catch (OWSException e)
+        catch (Exception e)
         {
-            throw new SensorHubException("Error while sending task to SPS", e);
+            throw new ClientException("Error while sending task to SPS", e);
         }
     }
     

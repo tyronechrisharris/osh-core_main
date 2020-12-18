@@ -30,7 +30,6 @@ import org.sensorhub.impl.sensor.AbstractSensorModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.ows.GetCapabilitiesRequest;
-import org.vast.ows.OWSException;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.SOSOfferingCapabilities;
@@ -141,7 +140,7 @@ public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfi
                     getCap.setGetServer(sosEndpointUrl);
                     caps = owsUtils.<SOSServiceCapabilities>sendRequest(getCap, false);
                 }
-                catch (OWSException e)
+                catch (Exception e)
                 {
                     throw new CompletionException("Cannot retrieve SOS capabilities", e);
                 }
@@ -180,7 +179,7 @@ public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfi
                                 }
                                 catch (SensorHubException e)
                                 {
-                                    throw new CompletionException("Cannot retrieve result template", e);
+                                    throw new CompletionException(e);
                                 }
                                 
                                 // retrieve sensor description from remote SOS if available (first time only)
@@ -222,7 +221,7 @@ public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfi
                 }
                 catch (SensorHubException e)
                 {
-                    throw new CompletionException("Cannot retrieve command description", e);
+                    throw new CompletionException(e);
                 }
                 
                 DataComponent cmdDef = spsClient.getCommandDescription();

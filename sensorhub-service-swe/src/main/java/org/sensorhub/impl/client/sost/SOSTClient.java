@@ -63,7 +63,6 @@ import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.ObservationImpl;
 import org.vast.ows.GetCapabilitiesRequest;
-import org.vast.ows.OWSException;
 import org.vast.ows.sos.InsertResultRequest;
 import org.vast.ows.sos.InsertResultTemplateRequest;
 import org.vast.ows.sos.InsertResultTemplateResponse;
@@ -205,7 +204,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     request.setGetServer(getSosEndpointUrl());
                     caps = sosUtils.sendRequest(request, false);
                 }
-                catch (OWSException e)
+                catch (Exception e)
                 {
                     reportError("Cannot fetch SOS capabilities", e, true);
                     return false;
