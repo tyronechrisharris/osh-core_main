@@ -19,14 +19,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.vast.data.DataIterator;
+import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.SOSOfferingCapabilities;
 import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.swe.SWEConstants;
 import org.vast.util.TimeExtent;
 import com.google.common.base.Strings;
+import net.opengis.swe.v20.DataArray;
+import net.opengis.swe.v20.DataRecord;
 
 
 public class CapabilitiesUpdater
@@ -105,6 +109,12 @@ public class CapabilitiesUpdater
                                finalOffering.getObservableProperties().add(defUri);
                        }
                        
+                       // add obs types
+                       finalOffering.getObservationTypes().add(IObservation.OBS_TYPE_GENERIC);
+                       finalOffering.getObservationTypes().add(IObservation.OBS_TYPE_SCALAR);
+                       finalOffering.getObservationTypes().add(getObservationType(dsInfo));                       
+                                              
+                       // add time range                       
                        var timeRange = dsInfo.getPhenomenonTimeRange();
                        if (timeRange != null)
                        {
@@ -130,6 +140,19 @@ public class CapabilitiesUpdater
         
         caps.getLayers().clear();
         caps.getLayers().addAll(offerings.values());
+    }
+    
+    
+    protected String getObservationType(IDataStreamInfo dsInfo)
+    {
+        // obs type depends on top-level component
+        var recordStruct = dsInfo.getRecordStructure();
+        if (recordStruct instanceof DataRecord)
+            return IObservation.OBS_TYPE_RECORD;
+        else if (recordStruct instanceof DataArray)
+            return IObservation.OBS_TYPE_ARRAY;
+        else
+            return IObservation.OBS_TYPE_SCALAR;
     }
     
     
