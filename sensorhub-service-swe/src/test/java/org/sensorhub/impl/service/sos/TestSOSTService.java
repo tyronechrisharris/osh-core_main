@@ -19,6 +19,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.concurrent.Future;
 import net.opengis.sensorml.v20.PhysicalSystem;
 import net.opengis.swe.v20.DataRecord;
@@ -33,12 +34,6 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sensorhub.api.persistence.StorageConfig;
-import org.sensorhub.impl.persistence.InMemoryBasicStorage;
-import org.sensorhub.impl.persistence.InMemoryStorageConfig;
-import org.sensorhub.impl.service.sos.SOSProviderConfig;
-import org.sensorhub.impl.service.sos.SOSService;
-import org.sensorhub.impl.service.sos.SensorDataProviderConfig;
 import org.vast.data.DataList;
 import org.vast.data.DataRecordImpl;
 import org.vast.data.QuantityImpl;
@@ -64,7 +59,6 @@ import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.sos.SOSUtils;
 import org.vast.sensorML.PhysicalSystemImpl;
 import org.vast.swe.SWEConstants;
-import org.vast.util.DateTimeFormat;
 import org.vast.util.TimeExtent;
 
 
@@ -92,7 +86,7 @@ public class TestSOSTService
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider1() throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider1() throws Exception
     {
         return sosTest.buildSensorProvider1();
     }
@@ -232,12 +226,7 @@ public class TestSOSTService
     @Test
     public void testInsertSensorWithAutoStorage() throws Exception
     {
-        SOSService sos = deployService(buildSensorProvider1());
-        
-        // configure default in-memory storage
-        StorageConfig storageConfig = new InMemoryStorageConfig();
-        storageConfig.moduleClass = InMemoryBasicStorage.class.getCanonicalName();
-        sos.getConfiguration().newStorageConfig = storageConfig;
+        deployService(buildSensorProvider1());
         
         OWSUtils utils = new OWSUtils();
         InsertSensorRequest req = buildInsertSensor();
@@ -254,6 +243,9 @@ public class TestSOSTService
             throw e;
         }
         
+        // wait for capabilities update
+        Thread.sleep(TestSOSService.CAPS_REFRESH_PERIOD);
+        
         // check new offering has correct properties
         SOSOfferingCapabilities newOffering = getCapabilities(1);
         String procUID = req.getProcedureDescription().getUniqueIdentifier();
@@ -261,7 +253,7 @@ public class TestSOSTService
     }
 
     
-    @Test
+    /*@Test
     public void testInsertObservation() throws Exception
     {
         deployService(buildSensorProvider1());
@@ -289,9 +281,9 @@ public class TestSOSTService
         t.start();
         
         // create new observation
-        IObservation obs = new ObservationImpl();
-        obs.setPhenomenonTime(new TimeExtent(System.currentTimeMillis() / 1000.0));
-        obs.setResultTime(obs.getPhenomenonTime());
+        var obs = new ObservationImpl();
+        obs.setPhenomenonTime(TimeExtent.currentTime());
+        obs.setResultTime(obs.getPhenomenonTime().begin());
         obs.setProcedure(new ProcedureRef(SENSOR_UID));
         
         // build and send insert observation
@@ -304,7 +296,7 @@ public class TestSOSTService
         utils.writeXMLQuery(System.out, insObs);
         resp = utils.sendRequest(insObs, false);
         utils.writeXMLResponse(System.out, resp);
-    }
+    }*/
     
     
     @Test
@@ -336,16 +328,13 @@ public class TestSOSTService
     @Test
     public void testInsertResultWebsocket() throws Exception
     {
-        SOSService sos = deployService(new SensorDataProviderConfig[0]);
+        SOSService sos = deployService(new SOSProviderConfig[0]);
+        sos.getConfiguration().defaultLiveTimeout = 2.0;
         OWSUtils utils = new OWSUtils();
         
         // first register sensor
         InsertSensorRequest insertSensorReq = buildInsertSensor();
         InsertSensorResponse insertSensorResp = (InsertSensorResponse)utils.sendRequest(insertSensorReq, false);
-        
-        // reduce liveDataTimeout of new provider
-        SensorDataProviderConfig provider = (SensorDataProviderConfig)sos.getConfiguration().dataProviders.get(0);
-        provider.liveDataTimeout = 1.0;
         
         // send insert template
         DataStream output = (DataStream)insertSensorReq.getProcedureDescription().getOutputList().get(1);
@@ -374,21 +363,20 @@ public class TestSOSTService
             }            
         };
         Future<Session> future = wsClient.connect(socket, wsUri);
-        Session session = future.get();        
+        Session session = future.get();
         assertTrue("Websocket client could not connect", socket.isConnected());
         
         // initiate GetResult request to check retrieved data
-        Future<String[]> f = sosTest.sendGetResultAsync(SENSOR_UID + "-sos", 
+        Future<String[]> f = sosTest.sendGetResultAsync(SENSOR_UID, 
                 URI_OUTPUT2, TestSOSService.TIMERANGE_FUTURE, false);
         
         // send data using websocket
-        DateTimeFormat timeFormat = new DateTimeFormat();
-        double t0 = timeFormat.parseIso("2010-01-01T00:00:00Z");
         for (int i=0; i<NUM_GEN_SAMPLES; i++)
         {
-            String isoTime = timeFormat.formatIso(t0 + i, 0);
-            byte[] data = new String(isoTime + "," + (40.0+i/10.) + "," + (-90.0-i/10.) + ",0.0\n").getBytes();
-            ByteBuffer buf = ByteBuffer.wrap(data);
+            String isoTime = Instant.now().toString();
+            var data = new String(isoTime + "," + (40.0+i/10.) + "," + (-90.0-i/10.) + ",0.0\n");
+            ByteBuffer buf = ByteBuffer.wrap(data.getBytes());
+            System.out.println("Sending data: " + data);
             session.getRemote().sendBytes(buf);
             Thread.sleep(300);
         }
