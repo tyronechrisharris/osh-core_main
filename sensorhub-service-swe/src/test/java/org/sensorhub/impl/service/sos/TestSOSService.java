@@ -30,9 +30,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -152,6 +151,7 @@ public class TestSOSService
         serviceCfg.autoStart = true;
         serviceCfg.name = "SOS";
         serviceCfg.customFormats.clear();
+        serviceCfg.defaultLiveTimeout = 2.0;
         CapabilitiesInfo srvcMetadata = serviceCfg.ogcCapabilitiesInfo;
         srvcMetadata.title = "My SOS Service";
         srvcMetadata.description = "An SOS service automatically deployed by SensorHub";
@@ -770,16 +770,10 @@ public class TestSOSService
     
     protected Future<String[]> sendGetResultAsync(final String offering, final String observables, final String timeRange, final boolean useWebsocket) throws Exception
     {
-        ExecutorService exec = Executors.newSingleThreadExecutor();
-        
-        Future<String[]> result = exec.submit(new Callable<String[]>() {
-            public String[] call() throws Exception
-            {
-                return sendGetResult(offering, observables, timeRange, useWebsocket);
-            }
+        return CompletableFuture.supplyAsync(() -> {
+            try { return sendGetResult(offering, observables, timeRange, useWebsocket); }
+            catch (Exception e) { throw new CompletionException(e); }
         });
-        
-        return result;
     }
     
     
