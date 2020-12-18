@@ -19,17 +19,17 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,22 +44,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.persistence.IRecordStorageModule;
-import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
+import org.sensorhub.impl.database.obs.ProcedureObsEventDatabaseConfig;
+import org.sensorhub.impl.datastore.h2.MVObsDatabaseConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.persistence.InMemoryBasicStorage;
-import org.sensorhub.impl.persistence.InMemoryStorageConfig;
-import org.sensorhub.impl.persistence.StreamStorageConfig;
-import org.sensorhub.impl.persistence.perst.BasicStorageConfig;
-import org.sensorhub.impl.persistence.perst.MultiEntityStorageImpl;
 import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorData;
+import org.sensorhub.impl.sensor.FakeSensorData2;
+import org.sensorhub.impl.sensor.FakeSensorNetOnlyFois;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
-import org.sensorhub.impl.service.WaitForCondition;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
+import org.sensorhub.test.AsyncTests;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.QuantityImpl;
 import org.vast.data.TextEncodingImpl;
@@ -82,17 +79,21 @@ import org.vast.util.TimeExtent;
 import org.vast.xml.DOMHelper;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import com.google.common.collect.Sets;
 
 
 public class TestSOSService
 {
-    static final long TIMEOUT = 10000;
-    static final String NAME_OUTPUT1 = "weatherOut";
-    static final String NAME_OUTPUT2 = "imageOut";
+    static final long TIMEOUT = 5000L;
+    static final long CAPS_REFRESH_PERIOD = 1000L; // time to wait until capabilities are refreshed
+    static final String ID_SENSOR_MODULE1 = "dfc5249b-2e7d-4fcb-8dc2-33186668fbs1";
+    static final String ID_SENSOR_MODULE2 = "26f00c5d-c18f-46dc-ac71-c0c10efc08s2";
     static final String UID_SENSOR1 = "urn:sensors:mysensor:001";
     static final String UID_SENSOR2 = "urn:sensors:mysensornet:002";
-    static final String URI_OFFERING1 = "urn:mysos:sensor1";
-    static final String URI_OFFERING2 = "urn:mysos:sensor2";
+    static final String URI_OFFERING1 = UID_SENSOR1;//"urn:mysos:sensor1";
+    static final String URI_OFFERING2 = UID_SENSOR2;//"urn:mysos:sensor2";
+    static final String NAME_OUTPUT1 = "weatherOut";
+    static final String NAME_OUTPUT2 = "imageOut";
     static final String URI_PROP1 = FakeSensorData.URI_OUTPUT1;
     static final String URI_PROP1_FIELD1 = FakeSensorData.URI_OUTPUT1_FIELD1;
     static final String URI_PROP1_FIELD2 = FakeSensorData.URI_OUTPUT1_FIELD3;
@@ -112,17 +113,19 @@ public class TestSOSService
     static final String TIMERANGE_NOW = "now";
     
     
-    Map<Integer, Integer> obsFoiMap = new HashMap<>();
+    NavigableMap<Integer, Integer> obsFoiMap = new TreeMap<>();
     ModuleRegistry moduleRegistry;
-    File dbFile;
+    File dbFile1, dbFile2;
     
     
     @Before
     public void setup() throws Exception
     {
-        // use temp DB file
-        dbFile = File.createTempFile("osh-db-", ".dat");//new File(DB_PATH);
-        dbFile.deleteOnExit();
+        // use temp DB files
+        dbFile1 = File.createTempFile("osh-db1-", ".dat");//new File(DB_PATH);
+        dbFile1.deleteOnExit();
+        dbFile2 = File.createTempFile("osh-db2-", ".dat");//new File(DB_PATH);
+        dbFile2.deleteOnExit();
         
         // get instance with in-memory DB
         moduleRegistry = new SensorHub().getModuleRegistry();
@@ -148,7 +151,6 @@ public class TestSOSService
         serviceCfg.endPoint = SERVICE_PATH;
         serviceCfg.autoStart = true;
         serviceCfg.name = "SOS";
-        serviceCfg.enableTransactional = enableSOST;
         serviceCfg.customFormats.clear();
         CapabilitiesInfo srvcMetadata = serviceCfg.ogcCapabilitiesInfo;
         srvcMetadata.title = "My SOS Service";
@@ -157,9 +159,27 @@ public class TestSOSService
         srvcMetadata.serviceProvider.setDeliveryPoint("15 MyStreet");
         srvcMetadata.serviceProvider.setCity("MyCity");
         srvcMetadata.serviceProvider.setCountry("MyCountry");
-        serviceCfg.dataProviders.addAll(Arrays.asList(providerConfigs));
+        serviceCfg.customDataProviders.addAll(Arrays.asList(providerConfigs));
         srvcMetadata.fees = "NONE";
         srvcMetadata.accessConstraints = "NONE";
+        
+        // if testing SOS-T, we need a database to write to
+        if (enableSOST)
+        {
+            MVObsDatabaseConfig dbConfig = new MVObsDatabaseConfig();
+            dbConfig.name = "H2 Storage";
+            dbConfig.autoStart = true;
+            dbConfig.databaseNum = 10;
+            dbConfig.storagePath = dbFile1.getAbsolutePath();
+            dbConfig.readOnly = false;
+            
+            // start storage module
+            var storage = moduleRegistry.loadModuleAsync(dbConfig, null);
+            storage.waitForState(ModuleState.STARTED, TIMEOUT);
+            
+            serviceCfg.enableTransactional = true;
+            serviceCfg.databaseID = storage.getLocalID();
+        }
         
         // start module
         SOSService sos = (SOSService)moduleRegistry.loadModule(serviceCfg, TIMEOUT);
@@ -171,167 +191,161 @@ public class TestSOSService
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider1() throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider1() throws Exception
     {
         return buildSensorProvider1(true, true);
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider1(boolean start, boolean startSending) throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider1(boolean start, boolean startSending) throws Exception
     {
         // create test sensor
         SensorConfig sensorCfg = new SensorConfig();
+        sensorCfg.id = ID_SENSOR_MODULE1;
         sensorCfg.autoStart = false;
         sensorCfg.moduleClass = FakeSensor.class.getCanonicalName();
         sensorCfg.name = "Sensor1";
         FakeSensor sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
+        sensor.requestInit(true);
         sensor.setSensorUID(UID_SENSOR1);
         sensor.setDataInterfaces(new FakeSensorData(sensor, NAME_OUTPUT1, SAMPLING_PERIOD, NUM_GEN_SAMPLES));
         if (start)
         {
             moduleRegistry.startModule(sensorCfg.id, TIMEOUT);
             if (startSending)
-                sensor.startSendingData(true);
+                sensor.startSendingData();
         }
         
         // create SOS data provider config
-        SensorDataProviderConfig provCfg = new SensorDataProviderConfig();
+        ProcedureDataProviderConfig provCfg = new ProcedureDataProviderConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING1;
-        provCfg.offeringID = URI_OFFERING1;
-        provCfg.sensorID = sensor.getLocalID();
-        //provCfg.hiddenOutputs
+        provCfg.procedureUID = sensor.getUniqueIdentifier();
+        provCfg.liveDataTimeout = 1.0;
         
         return provCfg;
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider2() throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider2() throws Exception
     {
         return buildSensorProvider2(true, true);
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider2(boolean start, boolean startSending) throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider2(boolean start, boolean startSending) throws Exception
     {
         // create test sensor
         SensorConfig sensorCfg = new SensorConfig();
+        sensorCfg.id = ID_SENSOR_MODULE2;
         sensorCfg.autoStart = false;
-        sensorCfg.moduleClass = FakeSensorNetWithFoi.class.getCanonicalName();
+        sensorCfg.moduleClass = FakeSensorNetOnlyFois.class.getCanonicalName();
         sensorCfg.name = "Sensor2";
-        FakeSensorNetWithFoi sensor = (FakeSensorNetWithFoi)moduleRegistry.loadModule(sensorCfg);
-        sensor.setSensorUID(UID_SENSOR2);
+        var sensorNet = (FakeSensorNetOnlyFois)moduleRegistry.loadModule(sensorCfg);
+        sensorNet.requestInit(true);
+        sensorNet.setSensorUID(UID_SENSOR2);
+        sensorNet.addFois(obsFoiMap.size());
+        sensorNet.setDataInterfaces(new FakeSensorData2(sensorNet, NAME_OUTPUT2, SAMPLING_PERIOD, NUM_GEN_SAMPLES, obsFoiMap));
         if (start)
         {
             moduleRegistry.startModule(sensorCfg.id, TIMEOUT);
             if (startSending)
-                sensor.startSendingData(true);
+                sensorNet.startSendingData();
         }
         
         // create SOS data provider config
-        SensorDataProviderConfig provCfg = new SensorDataProviderConfig();
+        ProcedureDataProviderConfig provCfg = new ProcedureDataProviderConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING2;
-        provCfg.offeringID = URI_OFFERING2;
-        provCfg.sensorID = sensor.getLocalID();
-        //provCfg.hiddenOutputs;
+        provCfg.procedureUID = sensorNet.getUniqueIdentifier();
+        provCfg.liveDataTimeout = 1.0;
         
         return provCfg;
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider1WithStorage() throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider1WithStorage() throws Exception
     {
         return buildSensorProvider1WithStorage(true, true);
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider1WithStorage(boolean start, boolean startSending) throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider1WithStorage(boolean start, boolean startSending) throws Exception
     {
-        SensorDataProviderConfig sosProviderConfig = buildSensorProvider1(start, false);
-                       
-        // configure in-memory storage
-        StreamStorageConfig streamStorageConfig = new StreamStorageConfig();
-        streamStorageConfig.name = "Memory Storage";
+        // configure H2 database
+        ProcedureObsEventDatabaseConfig streamStorageConfig = new ProcedureObsEventDatabaseConfig();
+        streamStorageConfig.name = "H2 Storage";
         streamStorageConfig.autoStart = true;
-        streamStorageConfig.storageConfig = new InMemoryStorageConfig();
-        streamStorageConfig.storageConfig.moduleClass = InMemoryBasicStorage.class.getCanonicalName();
-        streamStorageConfig.dataSourceID = sosProviderConfig.sensorID;
+        streamStorageConfig.databaseNum = 1;
+        streamStorageConfig.procedureUIDs.add(UID_SENSOR1);
+        streamStorageConfig.dbConfig = new MVObsDatabaseConfig();
+        ((MVObsDatabaseConfig)streamStorageConfig.dbConfig).storagePath = dbFile1.getAbsolutePath();
+        ((MVObsDatabaseConfig)streamStorageConfig.dbConfig).readOnly = false;
         
         // start storage module
-        IRecordStorageModule<?> storage = (IRecordStorageModule<?>)moduleRegistry.loadModuleAsync(streamStorageConfig, null);
-        if (start)
-            storage.waitForState(ModuleState.STARTED, TIMEOUT);
-        else
-            storage.waitForState(ModuleState.STARTING, TIMEOUT);
-                
-        // start sending data if requested
-        if (startSending)
-        {
-            FakeSensor sensor = (FakeSensor)moduleRegistry.getModuleById(sosProviderConfig.sensorID);
-            sensor.startSendingData(true);
-        }     
+        var storage = moduleRegistry.loadModuleAsync(streamStorageConfig, null);
+        storage.waitForState(ModuleState.STARTED, TIMEOUT);
         
-        // configure storage for sensor
-        sosProviderConfig.storageID = storage.getLocalID();
+        // create sensor & provider
+        ProcedureDataProviderConfig sosProviderConfig = buildSensorProvider1(start, startSending);
+        
         return sosProviderConfig;
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider2WithObsStorage() throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider2WithObsStorage() throws Exception
     {
         return buildSensorProvider2WithObsStorage(true, true);
     }
     
     
-    protected SensorDataProviderConfig buildSensorProvider2WithObsStorage(boolean start, boolean startSending) throws Exception
+    protected ProcedureDataProviderConfig buildSensorProvider2WithObsStorage(boolean start, boolean startSending) throws Exception
     {
-        SensorDataProviderConfig sosProviderConfig = buildSensorProvider2(start, false);
-                       
-        // configure object DB storage
-        BasicStorageConfig storageConfig = new BasicStorageConfig();
-        storageConfig.moduleClass = MultiEntityStorageImpl.class.getCanonicalName();
-        storageConfig.storagePath = dbFile.getAbsolutePath();
-        StreamStorageConfig streamStorageConfig = new StreamStorageConfig();
-        streamStorageConfig.name = "Obs Storage";
+        // configure H2 database
+        ProcedureObsEventDatabaseConfig streamStorageConfig = new ProcedureObsEventDatabaseConfig();
+        streamStorageConfig.name = "H2 Storage";
         streamStorageConfig.autoStart = true;
-        streamStorageConfig.storageConfig = storageConfig;
-        streamStorageConfig.dataSourceID = sosProviderConfig.sensorID;
+        streamStorageConfig.databaseNum = 2;
+        streamStorageConfig.procedureUIDs.add(UID_SENSOR2);
+        streamStorageConfig.dbConfig = new MVObsDatabaseConfig();
+        ((MVObsDatabaseConfig)streamStorageConfig.dbConfig).storagePath = dbFile2.getAbsolutePath();
+        ((MVObsDatabaseConfig)streamStorageConfig.dbConfig).readOnly = false;
         
         // start storage module
-        IRecordStorageModule<?> storage = (IRecordStorageModule<?>)moduleRegistry.loadModule(streamStorageConfig, TIMEOUT);
-        if (start)
-            storage.waitForState(ModuleState.STARTED, TIMEOUT);
-        else
-            storage.waitForState(ModuleState.STARTING, TIMEOUT);
+        var storage = moduleRegistry.loadModuleAsync(streamStorageConfig, null);
+        storage.waitForState(ModuleState.STARTED, TIMEOUT);
         
-        // start sending data if requested
-        if (startSending)
-        {
-            FakeSensor sensor = (FakeSensor)moduleRegistry.getModuleById(sosProviderConfig.sensorID);
-            sensor.startSendingData(true);
-        }     
-                
-        // configure storage for sensor
-        sosProviderConfig.storageID = storage.getLocalID();
+        // create sensor & provider
+        ProcedureDataProviderConfig sosProviderConfig = buildSensorProvider2(start, startSending);
         
         return sosProviderConfig;
     }
     
     
-    protected FakeSensor startSending(String sensorID) throws Exception
+    protected FakeSensor startSensor(String sensorID) throws Exception
+    {
+        return (FakeSensor)moduleRegistry.startModule(sensorID);        
+    }
+    
+    
+    protected FakeSensor startSendingData(String sensorID) throws Exception
+    {
+        return startSendingData(sensorID, 0L);
+    }
+    
+    
+    protected FakeSensor startSendingData(String sensorID, long delay) throws Exception
     {
         FakeSensor sensor = (FakeSensor)moduleRegistry.getModuleById(sensorID);
-        sensor.startSendingData(false);
+        sensor.startSendingData(delay);
         return sensor;
     }
         
         
     protected FakeSensor startSendingAndWaitForAllRecords(String sensorID) throws Exception
     {
-        FakeSensor sensor = startSending(sensorID);
-        while (sensor.hasMoreData())
-            Thread.sleep(((long)SAMPLING_PERIOD*200));
+        FakeSensor sensor = startSendingData(sensorID);
+        AsyncTests.waitForCondition(() -> !sensor.hasMoreData(), TIMEOUT);
         return sensor;
     }
     
@@ -343,13 +357,13 @@ public class TestSOSService
         
         if (usePost)
         {
-            is = utils.sendPostRequest(request).getInputStream();
             utils.writeXMLQuery(System.out, request);
+            is = utils.sendPostRequest(request).getInputStream();            
         }
         else
         {
-            is = utils.sendGetRequest(request).getInputStream();
             System.out.println(utils.buildURLQuery(request));
+            is = utils.sendGetRequest(request).getInputStream();
         }
         
         DOMHelper dom = new DOMHelper(is, false);
@@ -435,26 +449,14 @@ public class TestSOSService
         NodeList offeringElts = dom.getElements(baseElt, OFFERING_NODES);
         assertEquals("Wrong number of offerings", sensorUIDs.length, offeringElts.getLength());
         
-        int i = 0;
-        for (String sensorUID: sensorUIDs)
+        var sensorUIDSet = Sets.newHashSet(sensorUIDs);
+        for (int i = 0; i < offeringElts.getLength(); i++)
         {
-            String expectedUri = null;
-            String expectedName = null;
-            
-            if (UID_SENSOR1.equals(sensorUID))
-            {
-                expectedUri = URI_OFFERING1;
-                expectedName = NAME_OFFERING1;
-            }
-            else if (UID_SENSOR2.equals(sensorUID))
-            {
-                expectedUri = URI_OFFERING2;
-                expectedName = NAME_OFFERING2;
-            }
-            
-            assertEquals("Wrong offering id", expectedUri, dom.getElementValue((Element)offeringElts.item(i), "identifier"));
-            assertEquals("Wrong offering name", expectedName, dom.getElementValue((Element)offeringElts.item(i), "name"));
-            i++;
+            var offeringElt = (Element)offeringElts.item(i);            
+            var offeringID = dom.getElementValue(offeringElt, "identifier");
+            var procUID = dom.getElementValue(offeringElt, "procedure");
+            assertTrue("Wrong offering: " + offeringID, sensorUIDSet.contains(offeringID));            
+            assertTrue("Wrong procedure: " + procUID, sensorUIDSet.contains(procUID));
         }
     }
     
@@ -511,23 +513,16 @@ public class TestSOSService
     }
     
     
-    @Test
-    public void testGetCapabilitiesMissingSource() throws Exception
-    {
-        // provider with wrong sensorUID
-        SensorDataProviderConfig provider1 = buildSensorProvider1();
-        provider1.sensorID = "bad_ID";
-        deployService(provider1, buildSensorProvider2());
-        
-        InputStream is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
-        checkOfferings(is, new String[] {UID_SENSOR2});
-    }
-    
-    
-    protected void checkOfferingTimeRange(DOMHelper dom, int offeringIndex, String expectedBeginValue, String expectedEndValue) throws ParseException
+    protected void checkOfferingTimeRange(DOMHelper dom, String procUID, String expectedBeginValue, String expectedEndValue) throws ParseException
     {
         NodeList offeringElts = dom.getElements(OFFERING_NODES);
-        Element offeringElt = (Element)offeringElts.item(offeringIndex);
+        Element offeringElt = null;
+        for (int i = 0; i < offeringElts.getLength(); i++)
+        {
+            offeringElt = (Element)offeringElts.item(i);
+            if (procUID.equals(dom.getElementValue(offeringElt, "procedure")))
+                break;
+        }
         
         boolean isBeginIso = Character.isDigit(expectedBeginValue.charAt(0));
         if (isBeginIso)
@@ -556,10 +551,10 @@ public class TestSOSService
     @Test
     public void testGetCapabilitiesLiveTimeRange() throws Exception
     {
-        SensorDataProviderConfig provider1 = buildSensorProvider1(false, false);
-        SensorDataProviderConfig provider2 = buildSensorProvider2(true, true);
-        provider1.liveDataTimeout = 0.5;
-        provider2.liveDataTimeout = 1.0;
+        var provider1 = buildSensorProvider1(false, false);
+        var provider2 = buildSensorProvider2(true, false);
+        provider1.liveDataTimeout = 5.0;
+        provider2.liveDataTimeout = 3.0;
         final SOSService sos = deployService(provider2, provider1);
         
         // wait for timeout
@@ -568,94 +563,98 @@ public class TestSOSService
         // sensor1 is not started, sensor2 is started but not sending data
         InputStream is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
         DOMHelper dom = checkOfferings(is, UID_SENSOR2);
-        checkOfferingTimeRange(dom, 0, "unknown", "unknown");
+        checkOfferingTimeRange(dom, UID_SENSOR2, "unknown", "unknown");
         
         // start sensor1
-        moduleRegistry.startModule(provider1.sensorID);
-        new WaitForCondition(5000L) {
-            public boolean check() { return sos.getCapabilities().getLayers().size() == 2; }
-        };
+        moduleRegistry.startModule(ID_SENSOR_MODULE1);
+        AsyncTests.waitForCondition(() -> sos.getCapabilities().getLayers().size() == 2, TIMEOUT);
+        
         is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
         dom = checkOfferings(is, UID_SENSOR2, UID_SENSOR1);
-        checkOfferingTimeRange(dom, 0, "unknown", "unknown");
-        checkOfferingTimeRange(dom, 1, "unknown", "unknown");
+        checkOfferingTimeRange(dom, UID_SENSOR1, "unknown", "unknown");
+        checkOfferingTimeRange(dom, UID_SENSOR2, "unknown", "unknown");
         
         // trigger measurements from sensor1, wait for measurements and check capabilities again
-        startSending(provider1.sensorID);
+        var sensor1 = startSendingData(ID_SENSOR_MODULE1);
+        var begin1 = Instant.now();
+        AsyncTests.waitForCondition(() -> sensor1.getOutputs().get(NAME_OUTPUT1).getLatestRecord() != null, 1000L);
+        Thread.sleep(CAPS_REFRESH_PERIOD);
         is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
-        dom = checkOfferings(is, UID_SENSOR2, UID_SENSOR1);
-        checkOfferingTimeRange(dom, 0, "unknown", "unknown");
-        checkOfferingTimeRange(dom, 1, "now", "now");
+        dom = checkOfferings(is, UID_SENSOR1, UID_SENSOR2);
+        checkOfferingTimeRange(dom, UID_SENSOR1, begin1.toString(), "now");
+        checkOfferingTimeRange(dom, UID_SENSOR2, "unknown", "unknown");
         
         // trigger measurements from sensor2, wait for measurements and check capabilities again
-        FakeSensor sensor2 = (FakeSensor)startSending(provider2.sensorID);
+        FakeSensor sensor2 = (FakeSensor)startSendingData(ID_SENSOR_MODULE2);
+        var begin2 = Instant.now();
+        AsyncTests.waitForCondition(() -> sensor2.getOutputs().get(NAME_OUTPUT2).getLatestRecord() != null, 1000L);
+        Thread.sleep(CAPS_REFRESH_PERIOD);
         is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
-        dom = checkOfferings(is, UID_SENSOR2, UID_SENSOR1);
-        checkOfferingTimeRange(dom, 0, "now", "now");
-        checkOfferingTimeRange(dom, 1, "now", "now");
+        dom = checkOfferings(is, UID_SENSOR1, UID_SENSOR2);
+        checkOfferingTimeRange(dom, UID_SENSOR2, begin2.toString(), "now");
         
         // wait until timeout
-        while (sensor2.hasMoreData())
-            Thread.sleep((long)(SAMPLING_PERIOD*1000));
+        AsyncTests.waitForCondition(() -> !sensor2.hasMoreData(), TIMEOUT);
+        var end = Instant.now();
         Thread.sleep((long)(provider2.liveDataTimeout*1000));
+        Thread.sleep(CAPS_REFRESH_PERIOD);
         is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
-        dom = checkOfferings(is, UID_SENSOR2, UID_SENSOR1);
-        checkOfferingTimeRange(dom, 0, "unknown", "unknown");
-        checkOfferingTimeRange(dom, 1, "unknown", "unknown");
+        dom = checkOfferings(is, UID_SENSOR1, UID_SENSOR2);
+        checkOfferingTimeRange(dom, UID_SENSOR1, begin1.toString(), end.toString());
+        checkOfferingTimeRange(dom, UID_SENSOR2, begin2.toString(), end.toString());
     }
     
     
     @Test
     public void testGetCapabilitiesLiveAndHistorical() throws Exception
     {
-        SensorDataProviderConfig provider1 = buildSensorProvider1WithStorage(false, false);
-        SensorDataProviderConfig provider2 = buildSensorProvider2WithObsStorage(true, true);
+        var provider1 = buildSensorProvider1WithStorage(false, false);
+        var provider2 = buildSensorProvider2WithObsStorage(true, true);
         provider1.liveDataTimeout = 100.0;
         provider2.liveDataTimeout = 100.0;
-        final SOSService sos = deployService(provider2, provider1);
+        deployService(provider2, provider1);
         
         // wait for at least one record to be in storage
         Thread.sleep(((long)(SAMPLING_PERIOD*1000)));
         
-        // sensor1 is not started, sensor2 is started and sending data
+        // sensor1 not sending, sensor2 sending data
         InputStream is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
         DOMHelper dom = checkOfferings(is, UID_SENSOR2);
         String currentIsoTime = new DateTimeFormat().formatIso(System.currentTimeMillis()/1000., 0);
-        checkOfferingTimeRange(dom, 0, currentIsoTime, "now");
+        checkOfferingTimeRange(dom, UID_SENSOR2, currentIsoTime, "now");
         
         // start sensor1 and wait for at least one record to be in storage
-        moduleRegistry.startModule(provider1.sensorID);
-        new WaitForCondition(5000L) {
-            public boolean check() { return sos.getCapabilities().getLayers().size() == 2; }
-        };
+        startSensor(ID_SENSOR_MODULE1);
+        startSendingData(ID_SENSOR_MODULE1);
+        Thread.sleep(CAPS_REFRESH_PERIOD);
         
         is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
         dom = checkOfferings(is, UID_SENSOR2, UID_SENSOR1);
         currentIsoTime = new DateTimeFormat().formatIso(System.currentTimeMillis()/1000., 0);
-        checkOfferingTimeRange(dom, 0, currentIsoTime, "now");
-        checkOfferingTimeRange(dom, 1, currentIsoTime, "now");
+        checkOfferingTimeRange(dom, UID_SENSOR1, currentIsoTime, "now");
+        checkOfferingTimeRange(dom, UID_SENSOR2, currentIsoTime, "now");
     }
     
     
     @Test
     public void testGetCapabilitiesLiveAndHistoricalAfterTimeOut() throws Exception
     {
-        SensorDataProviderConfig provider1 = buildSensorProvider1WithStorage(true, true);
-        SensorDataProviderConfig provider2 = buildSensorProvider2WithObsStorage(true, true);
+        var provider1 = buildSensorProvider1(true, true);
+        var provider2 = buildSensorProvider2WithObsStorage(true, true);
         provider1.liveDataTimeout = 1.0;
         provider2.liveDataTimeout = 100.0;
         deployService(provider2, provider1);
         
         // wait for time out from sensor1
-        FakeSensor sensor1 = getSensorModule(0);
-        while (sensor1.hasMoreData())
-            Thread.sleep((long)(SAMPLING_PERIOD*500));
-        Thread.sleep((long)((SAMPLING_PERIOD+provider1.liveDataTimeout*2)*1000));
+        FakeSensor sensor1 = getSensorModule(ID_SENSOR_MODULE1);
+        AsyncTests.waitForCondition(() -> !sensor1.hasMoreData(), TIMEOUT);
+        Thread.sleep((long)(provider1.liveDataTimeout*1000));
+        Thread.sleep(CAPS_REFRESH_PERIOD);
         InputStream is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
         DOMHelper dom = checkOfferings(is, UID_SENSOR2, UID_SENSOR1);
         String currentIsoTime = new DateTimeFormat().formatIso(System.currentTimeMillis()/1000., 0);
-        checkOfferingTimeRange(dom, 0, currentIsoTime, "now");
-        checkOfferingTimeRange(dom, 1, currentIsoTime, currentIsoTime);
+        checkOfferingTimeRange(dom, UID_SENSOR1, currentIsoTime, currentIsoTime);
+        checkOfferingTimeRange(dom, UID_SENSOR2, currentIsoTime, "now");
     }
     
     
@@ -719,7 +718,7 @@ public class TestSOSService
                 public void onWebSocketBinary(byte payload[], int offset, int len)
                 {
                     String rec = new String(payload, offset, len);
-                    System.out.print(rec);
+                    System.out.print("Received from WS: " + rec);
                     records.add(rec);
                 }
 
@@ -747,15 +746,24 @@ public class TestSOSService
             System.out.println("Sending HTTP GET request @ " + currentTime);
             InputStream is = new URL(url).openStream();
             
-            StringWriter writer = new StringWriter();
-            IOUtils.copy(is, writer);
-            String respString = writer.toString(); 
-            
+            var os = new ByteArrayOutputStream();
+            IOUtils.copy(is, os);
+            var respString = new String(os.toByteArray());
+                        
             assertFalse("Unexpected XML response received:\n" + respString, respString.startsWith("<?xml"));        
-            assertFalse("Response is empty", respString.trim().length() == 0);
+            assertFalse("Response is empty", os.size() == 0);
             
-            System.out.println(respString);
-            return respString.split("\n");
+            if (URI_PROP2.equals(observables))
+            {
+                var numRecords = os.size() / FakeSensorData2.ARRAY_SIZE / 3;
+                return new String[numRecords];
+            }
+            else
+            {
+                
+                System.out.println("Received from HTTP:\n" + respString);
+                return respString.split("\n");
+            }
         }
     }
     
@@ -781,8 +789,11 @@ public class TestSOSService
         
         for (String rec: records)
         {
-            String[] fields = rec.split(",");
-            assertEquals("Wrong number of record fields", expectedNumFields, fields.length);
+            if (rec != null) // null in case of binary record
+            {
+                String[] fields = rec.split(",");
+                assertEquals("Wrong number of record fields", expectedNumFields, fields.length);
+            }
         }
     }
     
@@ -791,6 +802,8 @@ public class TestSOSService
     public void testGetResultNow() throws Exception
     {
         deployService(buildSensorProvider1());
+        var sensor1 = getSensorModule(ID_SENSOR_MODULE1);
+        AsyncTests.waitForCondition(() -> !sensor1.hasMoreData(), TIMEOUT);
         
         String[] records = sendGetResult(URI_OFFERING1, URI_PROP1_FIELD2, TIMERANGE_NOW);
         checkGetResultResponse(records, 1, 2);
@@ -798,37 +811,39 @@ public class TestSOSService
     
     
     @Test
-    public void testGetResultNowMultiFoi() throws Exception
+    public void testGetResultNowOneFoi() throws Exception
     {
         deployService(buildSensorProvider2());
+        var sensor1 = getSensorModule(ID_SENSOR_MODULE2);
+        AsyncTests.waitForCondition(() -> !sensor1.hasMoreData(), TIMEOUT);
         
-        String[] records = sendGetResult(URI_OFFERING2, URI_PROP1_FIELD2, TIMERANGE_NOW);
-        checkGetResultResponse(records, 3, 2);
+        String[] records = sendGetResult(URI_OFFERING2, URI_PROP2, TIMERANGE_NOW);
+        checkGetResultResponse(records, 1, 1);
     }
     
     
     @Test
-    public void testGetResultRealTimeDisabledSensor() throws Exception
+    public void testGetResultNowMultiFoi() throws Exception
     {
-        SensorDataProviderConfig provider1 = buildSensorProvider1(true, false);
-        provider1.liveDataTimeout = 0;
-        deployService(provider1);
+        obsFoiMap.put(1, 1);
+        obsFoiMap.put(3, 2);
+        obsFoiMap.put(4, 3);
         
-        InputStream is = new URL(HTTP_ENDPOINT + 
-                "?service=SOS&version=2.0&request=GetResult"
-                + "&offering=" + URI_OFFERING1
-                + "&observedProperty=" + URI_PROP1
-                + "&temporalfilter=time," + TIMERANGE_FUTURE).openStream();
-                        
-        checkServiceException(is, "phenomenonTime");
+        deployService(buildSensorProvider2());
+        var sensor1 = getSensorModule(ID_SENSOR_MODULE2);
+        AsyncTests.waitForCondition(() -> !sensor1.hasMoreData(), TIMEOUT);
+        
+        String[] records = sendGetResult(URI_OFFERING2, URI_PROP2, TIMERANGE_NOW);
+        checkGetResultResponse(records, 3, 2);
     }
     
     
     @Test
     public void testGetResultRealTimeAllObservables() throws Exception
     {
-        deployService(buildSensorProvider1());      
+        deployService(buildSensorProvider1(true, false));      
         
+        startSendingData(ID_SENSOR_MODULE1, 100);
         String[] records = sendGetResult(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE);
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
     }
@@ -837,8 +852,9 @@ public class TestSOSService
     @Test
     public void testGetResultRealTimeOneObservable() throws Exception
     {
-        deployService(buildSensorProvider1());
+        deployService(buildSensorProvider1(true, false));
                 
+        startSendingData(ID_SENSOR_MODULE1, 100);
         String[] records = sendGetResult(URI_OFFERING1, URI_PROP1_FIELD1, TIMERANGE_FUTURE);
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 2);
     }
@@ -847,8 +863,9 @@ public class TestSOSService
     @Test
     public void testGetResultRealTimeTwoObservables() throws Exception
     {
-        deployService(buildSensorProvider1());
+        deployService(buildSensorProvider1(true, false));
         
+        startSendingData(ID_SENSOR_MODULE1, 100);
         String[] records = sendGetResult(URI_OFFERING1, URI_PROP1_FIELD1 + "," + URI_PROP1_FIELD2, TIMERANGE_FUTURE);
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 3);
     }
@@ -857,13 +874,15 @@ public class TestSOSService
     @Test
     public void testGetResultRealTimeTwoOfferings() throws Exception
     {
-        deployService(buildSensorProvider1(), buildSensorProvider2());
+        deployService(buildSensorProvider1(true, false), buildSensorProvider2(true, false));
         
+        startSendingData(ID_SENSOR_MODULE1, 100);
         String[] records = sendGetResult(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE);
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
         
-        records = sendGetResult(URI_OFFERING2, URI_PROP1, TIMERANGE_FUTURE);
-        checkGetResultResponse(records, NUM_GEN_SAMPLES*FakeSensorNetWithFoi.MAX_FOIS, 4);
+        startSendingData(ID_SENSOR_MODULE2, 100);
+        records = sendGetResult(URI_OFFERING2, URI_PROP2, TIMERANGE_FUTURE);
+        checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
     }
     
     
@@ -871,13 +890,11 @@ public class TestSOSService
     public void testGetResultBeforeDataIsAvailable() throws Exception
     {
         deployService(buildSensorProvider1(true, false));
-        FakeSensor sensor1 = getSensorModule(0);
         
         Future<String[]> future = sendGetResultAsync(URI_OFFERING1, URI_PROP1_FIELD1, TIMERANGE_FUTURE, false);
         
-        // actually start sending data after only 1s
-        Thread.sleep(1000);
-        sensor1.startSendingData(true);
+        // start sending data after a small pause
+        startSendingData(ID_SENSOR_MODULE1, 500);
 
         try
         {
@@ -922,8 +939,9 @@ public class TestSOSService
     @Test
     public void testGetResultWebSocketAllObservables() throws Exception
     {
-        deployService(buildSensorProvider1());
+        deployService(buildSensorProvider1(true, false));
         
+        startSendingData(ID_SENSOR_MODULE1, 100);
         String[] records = sendGetResult(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE, true);
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
     }
@@ -932,8 +950,9 @@ public class TestSOSService
     @Test
     public void testGetResultWebSocketOneObservable() throws Exception
     {
-        deployService(buildSensorProvider1());
+        deployService(buildSensorProvider1(true, false));
                 
+        startSendingData(ID_SENSOR_MODULE1, 100);
         String[] records = sendGetResult(URI_OFFERING1, URI_PROP1_FIELD1, TIMERANGE_FUTURE, true);
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 2);
     }
@@ -942,8 +961,9 @@ public class TestSOSService
     @Test
     public void testGetResultWebSocketTwoObservables() throws Exception
     {
-        deployService(buildSensorProvider1());
+        deployService(buildSensorProvider1(true, false));
                 
+        startSendingData(ID_SENSOR_MODULE1, 100);
         String[] records = sendGetResult(URI_OFFERING1, URI_PROP1_FIELD1 + "," + URI_PROP1_FIELD2, TIMERANGE_FUTURE, true);
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 3);
     }
@@ -953,13 +973,11 @@ public class TestSOSService
     public void testGetResultWebSocketBeforeDataIsAvailable() throws Exception
     {
         deployService(buildSensorProvider1(true, false));
-        FakeSensor sensor1 = getSensorModule(0);
         
         Future<String[]> future = sendGetResultAsync(URI_OFFERING1, URI_PROP1_FIELD1, TIMERANGE_FUTURE, true);
         
-        // actually start sending data after only 0.5s
-        Thread.sleep(500);
-        sensor1.startSendingData(true);
+        // start sending data after a small pause
+        startSendingData(ID_SENSOR_MODULE1, 500);
 
         try
         {
@@ -968,8 +986,8 @@ public class TestSOSService
         }
         catch (Exception e)
         {
-            assertTrue("No data received before timeout", false);
-        }        
+            fail("No data received before timeout");
+        }
     }
     
     
@@ -983,11 +1001,9 @@ public class TestSOSService
     }
     
     
-    @SuppressWarnings("rawtypes")
-    private FakeSensor getSensorModule(int index)
+    private FakeSensor getSensorModule(String moduleID)
     {
-        Collection<ISensorModule> sensors = moduleRegistry.getLoadedModules(ISensorModule.class);
-        return sensors.toArray(new FakeSensor[0])[index];
+        return (FakeSensor)moduleRegistry.getLoadedModuleById(moduleID);
     }
     
     
@@ -997,11 +1013,10 @@ public class TestSOSService
         deployService(buildSensorProvider1WithStorage());
         
         // wait until data has been produced and archived
-        FakeSensor sensor = getSensorModule(0);
-        while (sensor.hasMoreData())
-            Thread.sleep(((long)SAMPLING_PERIOD*500));
+        FakeSensor sensor = getSensorModule(ID_SENSOR_MODULE1);
+        AsyncTests.waitForCondition(() -> !sensor.hasMoreData(), TIMEOUT);
         
-        DOMHelper dom = sendRequest(generateGetObsEndNow(URI_OFFERING1, URI_PROP1), false);        
+        DOMHelper dom = sendRequest(generateGetObsEndNow(URI_OFFERING1, URI_PROP1), false);
         assertEquals("Wrong number of observations returned", NUM_GEN_SAMPLES, dom.getElements("*/OM_Observation").getLength());
     }
     
@@ -1012,18 +1027,17 @@ public class TestSOSService
         deployService(buildSensorProvider1WithStorage());
         
         // wait until data has been produced and archived
-        FakeSensor sensor = getSensorModule(0);
-        while (sensor.hasMoreData())
-            Thread.sleep(((long)SAMPLING_PERIOD*500));
+        FakeSensor sensor = getSensorModule(ID_SENSOR_MODULE1);
+        AsyncTests.waitForCondition(() -> !sensor.hasMoreData(), TIMEOUT);
                 
         // first get capabilities to know available time range
         SOSServiceCapabilities caps = (SOSServiceCapabilities)new OWSUtils().getCapabilities(HTTP_ENDPOINT, "SOS", "2.0");
         TimeExtent timePeriod = caps.getLayer(URI_OFFERING1).getPhenomenonTime();
-        System.out.println("Available time period is " + timePeriod.getIsoString(0));
+        System.out.println("Available time period is " + timePeriod);
         
         // then get obs
-        double stopTime = System.currentTimeMillis() / 1000.0;
-        DOMHelper dom = sendRequest(generateGetObsTimeRange(URI_OFFERING1, URI_PROP1, timePeriod.getStartTime(), stopTime), false);
+        Instant stopTime = Instant.now();
+        DOMHelper dom = sendRequest(generateGetObsTimeRange(URI_OFFERING1, URI_PROP1, timePeriod.begin(), stopTime), false);
         assertEquals("Wrong number of observations returned", NUM_GEN_SAMPLES, dom.getElements("*/OM_Observation").getLength());
     }
     
@@ -1048,9 +1062,8 @@ public class TestSOSService
         deployService(buildSensorProvider1(), buildSensorProvider2WithObsStorage());
         
         // wait until data has been produced and archived
-        FakeSensor sensor = getSensorModule(1);
-        while (sensor.hasMoreData())
-            Thread.sleep(((long)SAMPLING_PERIOD*500));
+        FakeSensor sensor = getSensorModule(ID_SENSOR_MODULE2);
+        AsyncTests.waitForCondition(() -> !sensor.hasMoreData(), TIMEOUT);
         DOMHelper dom;
         
         dom = sendRequest(generateGetObsByFoi(URI_OFFERING2, URI_PROP2, 1), true);        
@@ -1080,9 +1093,8 @@ public class TestSOSService
         deployService(buildSensorProvider2WithObsStorage());
         
         // wait until data has been produced and archived
-        FakeSensor sensor = getSensorModule(0);
-        while (sensor.getOutputs().get(NAME_OUTPUT2).isEnabled())
-            Thread.sleep(((long)SAMPLING_PERIOD*500));
+        FakeSensor sensor2 = getSensorModule(ID_SENSOR_MODULE2);
+        AsyncTests.waitForCondition(() -> !sensor2.hasMoreData(), TIMEOUT);
         DOMHelper dom;
         
         dom = sendRequest(generateGetObsByBbox(URI_OFFERING2, URI_PROP2, new Bbox(0,0,0,0)), true);        
@@ -1139,8 +1151,8 @@ public class TestSOSService
     protected GetObservationRequest generateGetObsStartNow(String offeringId, String obsProp)
     {
         GetObservationRequest getObs = generateGetObs(offeringId, obsProp);
-        double futureTime = System.currentTimeMillis()/1000.0 + 3600.;
-        getObs.setTime(TimeExtent.getPeriodStartingNow(futureTime));
+        Instant futureTime = Instant.now().plus(1, ChronoUnit.HOURS);
+        getObs.setTime(TimeExtent.beginNow(futureTime));
         return getObs;
     }
     
@@ -1148,17 +1160,24 @@ public class TestSOSService
     protected GetObservationRequest generateGetObsEndNow(String offeringId, String obsProp)
     {
         GetObservationRequest getObs = generateGetObs(offeringId, obsProp);
-        double pastTime = System.currentTimeMillis()/1000.0 - 3600.;
-        getObs.setTime(TimeExtent.getPeriodEndingNow(pastTime));        
+        Instant pastTime = Instant.now().minus(1, ChronoUnit.HOURS);
+        getObs.setTime(TimeExtent.endNow(pastTime));        
         return getObs;
     }
     
     
-    protected GetObservationRequest generateGetObsTimeRange(String offeringId, String obsProp, double beginTime, double endTime)
+    protected GetObservationRequest generateGetObsTimeRange(String offeringId, String obsProp, Instant beginTime, Instant endTime)
     {
         GetObservationRequest getObs = generateGetObs(offeringId, obsProp);
-        getObs.setTime(new TimeExtent(beginTime, endTime));
+        getObs.setTime(TimeExtent.period(beginTime, endTime));
         return getObs;
+    }
+    
+    
+    protected String getFoiUID(int foiNum)
+    {
+        var sensorNet = (FakeSensorNetOnlyFois)moduleRegistry.getLoadedModuleById(ID_SENSOR_MODULE2);
+        return sensorNet.getFoiUID(foiNum);
     }
     
     
@@ -1166,7 +1185,7 @@ public class TestSOSService
     {
         GetObservationRequest getObs = generateGetObs(offeringId, obsProp);
         for (int foiNum: foiNums)
-            getObs.getFoiIDs().add(FakeSensorNetWithFoi.FOI_UID_PREFIX + foiNum);
+            getObs.getFoiIDs().add(getFoiUID(foiNum));
         return getObs;
     }
     
@@ -1189,12 +1208,12 @@ public class TestSOSService
         obsFoiMap.put(3, 2);
         obsFoiMap.put(4, 3);
         
-        SensorDataProviderConfig sensor1 = buildSensorProvider1();
-        SensorDataProviderConfig sensor2 = buildSensorProvider2WithObsStorage();
+        var sensor1 = buildSensorProvider1();
+        var sensor2 = buildSensorProvider2WithObsStorage();
         deployService(sensor1, sensor2);
         
         // wait until data has been produced and archived
-        startSendingAndWaitForAllRecords(sensor2.sensorID);      
+        startSendingAndWaitForAllRecords(ID_SENSOR_MODULE2);      
         
         testGetFoisByID(1);
         testGetFoisByID(2);
@@ -1216,7 +1235,7 @@ public class TestSOSService
         req.setGetServer(HTTP_ENDPOINT);
         req.setVersion("2.0");
         req.setSoapVersion(OWSUtils.SOAP12_URI);
-        req.getFoiIDs().add(FakeSensorNetWithFoi.FOI_UID_PREFIX+1);
+        req.getFoiIDs().add(getFoiUID(1));
         DOMHelper dom = sendSoapRequest(req);
         
         assertEquals(OWSUtils.SOAP12_URI, dom.getBaseElement().getNamespaceURI());
@@ -1230,16 +1249,21 @@ public class TestSOSService
         req.setGetServer(HTTP_ENDPOINT);
         req.setVersion("2.0");
         for (int foiNum: foiNums)
-            req.getFoiIDs().add(FakeSensorNetWithFoi.FOI_UID_PREFIX + foiNum);
+            req.getFoiIDs().add(getFoiUID(foiNum));
         
-        DOMHelper dom = sendRequest(req, false); 
+        DOMHelper dom = sendRequest(req, false);
         assertEquals("Wrong number of features returned", foiNums.length, dom.getElements("*/*").getLength());
         
+        Arrays.sort(foiNums);
         NodeList nodes = dom.getElements("*/*");
         for (int i=0; i<nodes.getLength(); i++)
         {
-            String fid = dom.getAttributeValue((Element)nodes.item(i), "id");
-            assertEquals("F" + foiNums[i], fid);
+            var elt = (Element)nodes.item(i);
+            int id = Integer.parseInt(dom.getAttributeValue(elt, "id").replace("F", ""));
+            assertTrue(Arrays.binarySearch(foiNums, id) >= 0);
+            
+            String uid = dom.getElementValue(elt, "identifier");
+            assertTrue(req.getFoiIDs().contains(uid));
         }
     }
     
@@ -1251,12 +1275,12 @@ public class TestSOSService
         obsFoiMap.put(4, 2);
         obsFoiMap.put(5, 3);
         
-        SensorDataProviderConfig sensor1 = buildSensorProvider1();
-        SensorDataProviderConfig sensor2 = buildSensorProvider2WithObsStorage();
+        var sensor1 = buildSensorProvider1();
+        var sensor2 = buildSensorProvider2WithObsStorage();
         deployService(sensor1, sensor2);
         
         // wait until data has been produced and archived
-        startSendingAndWaitForAllRecords(sensor2.sensorID);
+        startSendingAndWaitForAllRecords(ID_SENSOR_MODULE2);
         
         testGetFoisByBbox(new Bbox(0.5, 0.5, 0.0, 1.5, 1.5, 0.0), 1);
         testGetFoisByBbox(new Bbox(1.5, 1.5, 0.0, 2.5, 2.5, 0.0), 2);
@@ -1291,12 +1315,12 @@ public class TestSOSService
         obsFoiMap.put(4, 2);
         obsFoiMap.put(5, 3);
         
-        SensorDataProviderConfig sensor1 = buildSensorProvider1();
-        SensorDataProviderConfig sensor2 = buildSensorProvider2WithObsStorage();
+        var sensor1 = buildSensorProvider1();
+        var sensor2 = buildSensorProvider2WithObsStorage();
         deployService(sensor1, sensor2);
         
         // wait until data has been produced and archived
-        startSendingAndWaitForAllRecords(sensor2.sensorID);
+        startSendingAndWaitForAllRecords(ID_SENSOR_MODULE2);
         
         testGetFoisByProcedure(Arrays.asList(UID_SENSOR1), new int[0]);
         testGetFoisByProcedure(Arrays.asList(UID_SENSOR2), 1, 2, 3);
@@ -1330,12 +1354,12 @@ public class TestSOSService
         obsFoiMap.put(4, 2);
         obsFoiMap.put(5, 3);
         
-        SensorDataProviderConfig sensor1 = buildSensorProvider1();
-        SensorDataProviderConfig sensor2 = buildSensorProvider2WithObsStorage();
+        var sensor1 = buildSensorProvider1();
+        var sensor2 = buildSensorProvider2WithObsStorage();
         deployService(sensor1, sensor2);
         
         // wait until data has been produced and archived
-        startSendingAndWaitForAllRecords(sensor2.sensorID);
+        startSendingAndWaitForAllRecords(ID_SENSOR_MODULE2);
         
         testGetFoisByObservables(Arrays.asList("urn:blabla:image"), 1, 2, 3);
         testGetFoisByObservables(Arrays.asList("urn:blabla:RedChannel"), 1, 2, 3);
@@ -1379,8 +1403,10 @@ public class TestSOSService
         }
         finally
         {
-            if (dbFile != null)
-                dbFile.delete();
+            if (dbFile1 != null)
+                dbFile1.delete();
+            if (dbFile2 != null)
+                dbFile2.delete();
         }
     }
 }

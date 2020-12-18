@@ -15,6 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import static org.junit.Assert.assertTrue;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import net.opengis.swe.v20.DataBlock;
 import org.junit.After;
 import org.junit.Before;
@@ -47,7 +49,7 @@ public class TestSOSClient implements SOSRecordListener
         req.setVersion("2.0");
         req.setOffering(TestSOSService.URI_OFFERING1);
         req.getObservables().add(TestSOSService.URI_PROP1);
-        req.setTime(TimeExtent.getPeriodStartingNow((System.currentTimeMillis()+60000) / 1000.));
+        req.setTime(TimeExtent.beginNow(Instant.now().plus(1, ChronoUnit.MINUTES)));
         req.setXmlWrapper(false);
         
         SOSClient client = new SOSClient(req, false);
@@ -71,7 +73,7 @@ public class TestSOSClient implements SOSRecordListener
         req.setVersion("2.0");
         req.setOffering(TestSOSService.URI_OFFERING1);
         req.getObservables().add(TestSOSService.URI_PROP1);
-        req.setTime(TimeExtent.getPeriodStartingNow((System.currentTimeMillis()+60000) / 1000.));
+        req.setTime(TimeExtent.beginNow(Instant.now().plus(1, ChronoUnit.MINUTES)));
         req.setXmlWrapper(false);
         
         SOSClient client = new SOSClient(req, true);
