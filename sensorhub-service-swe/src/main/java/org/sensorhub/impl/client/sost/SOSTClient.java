@@ -260,19 +260,21 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                         catch (Exception e) { throw new StreamException(e); }
                     });
             })
-            .exceptionally(err -> {
-                if (err != null)
-                    reportError(err.getMessage(), err.getCause());
-                return null;
-            })
             .thenRun(() -> {                
                 setState(ModuleState.STARTED);
+            })
+            .exceptionally(err -> {
+                if (err != null)
+                    reportError(null, err.getCause());
+                try { requestStop(); }
+                catch (SensorHubException e) {}
+                return null;
             });
     }
     
     
     @Override
-    public void stop() throws SensorHubException
+    public void stop()
     {
         // cancel reconnection loop
         if (connection != null)

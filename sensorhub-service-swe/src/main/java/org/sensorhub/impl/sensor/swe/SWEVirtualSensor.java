@@ -244,12 +244,12 @@ public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfi
                 }
             }
         })
+        .thenRun(() -> {                
+            setState(ModuleState.INITIALIZED);
+        })
         .exceptionally(err -> {
             reportError(err.getMessage(), err.getCause());
             return null;
-        })
-        .thenRun(() -> {                
-            setState(ModuleState.INITIALIZED);
         });
     }
     
