@@ -150,10 +150,10 @@ public abstract class RobustConnection
      * @return A future that will be completed when the connection has been successfully established
      * (which can be after several retries)
      */
-    public CompletableFuture<Boolean> waitForConnectionAsync()
+    public CompletableFuture<Void> waitForConnectionAsync()
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return tryConnect(); }
+        return CompletableFuture.runAsync(() -> {
+            try { waitForConnection(); }
             catch (Exception e) {throw new CompletionException(e); }
         });
     }
