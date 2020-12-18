@@ -17,8 +17,6 @@ package org.sensorhub.impl.service.sos;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.NavigableMap;
-import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
@@ -38,10 +36,21 @@ public class CapabilitiesUpdater
     public static final String PROC_NAME_PLACEHOLDER = "{%procedure_name%}";
     public static final String PROC_DESC_PLACEHOLDER = "{%procedure_description%}";
     
+    SOSServlet servlet;
     
-    public void updateOfferings(final SOSServiceCapabilities caps, final IProcedureObsDatabase obsDb, final NavigableMap<String, SOSProviderConfig> providerConfigs)
+    
+    public CapabilitiesUpdater(SOSServlet servlet)
+    {
+        this.servlet = servlet;
+    }
+    
+    
+    public void updateOfferings(final SOSServiceCapabilities caps)
     {
         Map<String, SOSOfferingCapabilities> offerings = new LinkedHashMap<>();
+        
+        var obsDb = servlet.readDatabase;
+        var providerConfigs = servlet.providerConfigs;
         
         obsDb.getProcedureStore().selectEntries(new ProcedureFilter.Builder().build())
             .forEach(entry -> {
@@ -110,12 +119,12 @@ public class CapabilitiesUpdater
                 var phenTimeRange = offering.getPhenomenonTime();
                 
                 // set end to 'now' if timeout not reached yet
-                var timeOut = ProcedureDataProviderConfig.DEFAULT_TIME_OUT;
-                if (customConfig instanceof ProcedureDataProviderConfig)
-                    timeOut = (long)((ProcedureDataProviderConfig) customConfig).liveDataTimeout * 1000;                
+                var timeOut = servlet.config.defaultLiveTimeout;
+                if (customConfig != null && customConfig instanceof ProcedureDataProviderConfig)
+                    timeOut = ((ProcedureDataProviderConfig)customConfig).liveDataTimeout;
                 
                 if (phenTimeRange != null &&
-                    phenTimeRange.end().isAfter(Instant.now().minusMillis(timeOut)))
+                    phenTimeRange.end().isAfter(Instant.now().minusMillis((long)(timeOut*1000.))))
                     offering.setPhenomenonTime(TimeExtent.endNow(phenTimeRange.begin()));
             });
         

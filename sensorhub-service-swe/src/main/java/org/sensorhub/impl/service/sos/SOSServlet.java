@@ -140,6 +140,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     final transient SOSServiceConfig config;
     final transient SOSSecurity securityHandler;
     final transient SOSServiceCapabilities capabilities = new SOSServiceCapabilities();
+    final transient CapabilitiesUpdater capsUpdater;
     final transient NavigableMap<String, SOSProviderConfig> providerConfigs;
 
     final IProcedureObsDatabase readDatabase;
@@ -158,6 +159,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         this.service = service;
         this.config = service.getConfiguration();
         this.securityHandler = securityHandler;
+        this.capsUpdater = new CapabilitiesUpdater(this);
 
         this.readDatabase = service.readDatabase;
         this.writeDatabase = service.writeDatabase;
@@ -446,7 +448,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     
     protected SOSServiceCapabilities updateCapabilities()
     {
-        new CapabilitiesUpdater().updateOfferings(capabilities, readDatabase, providerConfigs);
+        capsUpdater.updateOfferings(capabilities);
         getLogger().debug("Updating capabilities");
         return capabilities;
     }   
@@ -1332,7 +1334,9 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         try
         {
-            return new ProcedureDataProviderConfig().createProvider(service, request);
+            var defaultConfig = new ProcedureDataProviderConfig();
+            defaultConfig.liveDataTimeout = config.defaultLiveTimeout;
+            return defaultConfig.createProvider(service, request);
         }
         catch (SensorHubException e)
         {

@@ -81,8 +81,8 @@ public class SOSServiceConfig extends OGCServiceConfig
     public int maxFois = 10;
     
     
-    @DisplayInfo(desc="Default live time-out for new offerings created via SOS-T")
-    public double defaultLiveTimeout = 600.0;
+    @DisplayInfo(desc="Default live time-out for all offerings, unless overriden by custom provider settings")
+    public double defaultLiveTimeout = 10.0;
 
 
     @DisplayInfo(desc="Time-out period after which a template ID reserved using InsertResultTemplate "
