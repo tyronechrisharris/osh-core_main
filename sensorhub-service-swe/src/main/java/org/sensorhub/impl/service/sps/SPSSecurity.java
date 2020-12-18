@@ -77,8 +77,8 @@ public class SPSSecurity extends ModuleSecurity
         sps.getParentHub().getSecurityManager().registerModulePermissions(wildcardPerm);
                 
         // create permissions for each offering
-        for (SPSConnectorConfig offering: sps.getConfiguration().connectors)
-            addOfferingPermissions(offering.offeringID);
+        //for (SPSConnectorConfig offering: sps.getConfiguration().connectors)
+        //    addOfferingPermissions(offering.);
         
         // register permission tree
         sps.getParentHub().getSecurityManager().registerModulePermissions(rootPerm);

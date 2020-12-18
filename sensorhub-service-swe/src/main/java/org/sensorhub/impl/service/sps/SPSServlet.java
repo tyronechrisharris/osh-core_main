@@ -221,7 +221,7 @@ public class SPSServlet extends OWSServlet
                 }
                 catch (Exception e)
                 {
-                    log.error("Error while initializing connector " + connectorConf.offeringID, e);
+                    log.error("Error while initializing connector " + connectorConf.procedureUID, e);
                 }
             }
         }
@@ -277,7 +277,7 @@ public class SPSServlet extends OWSServlet
         }
         catch (Exception e)
         {
-            log.error("Cannot generate offering " + config.offeringID, e);
+            log.error("Cannot generate offering " + config.procedureUID, e);
         }
         finally
         {
@@ -331,7 +331,7 @@ public class SPSServlet extends OWSServlet
         Iterator<SPSConnectorConfig> it = config.connectors.iterator();
         while (it.hasNext())
         {
-            if (offeringID.equals(it.next().offeringID))
+            if (offeringID.equals(it.next().procedureUID))
                 it.remove();
         }
     }

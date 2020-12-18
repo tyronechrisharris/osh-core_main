@@ -87,10 +87,7 @@ public class DirectStreamProcessConnector implements ISPSConnector, IEventListen
             SPSOfferingCapabilities caps = new SPSOfferingCapabilities();
             
             // identifier
-            if (config.offeringID != null)
-                caps.setIdentifier(config.offeringID);
-            else
-                caps.setIdentifier(process.getUniqueIdentifier());
+            caps.setIdentifier(process.getUniqueIdentifier());
             
             // name
             if (config.name != null)

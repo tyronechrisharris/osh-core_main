@@ -28,8 +28,8 @@ import org.sensorhub.api.config.DisplayInfo;
 public abstract class OfferingConfig
 {
     
-    @DisplayInfo(desc="Offering URI as exposed in capabilities. (if null, the procedure UID is used)")
-    public String offeringID;
+    //@DisplayInfo(desc="Offering URI as exposed in capabilities. (if null, the procedure UID is used)")
+    //public String offeringID;
     
     
     @DisplayInfo(desc="Offering name (if null, the procedure name is used)")

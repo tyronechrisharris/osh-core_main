@@ -87,10 +87,7 @@ public class DirectSensorConnector implements ISPSConnector, IEventListener
             SPSOfferingCapabilities caps = new SPSOfferingCapabilities();
             
             // identifier
-            if (config.offeringID != null)
-                caps.setIdentifier(config.offeringID);
-            else
-                caps.setIdentifier(sensor.getUniqueIdentifier());
+            caps.setIdentifier(sensor.getUniqueIdentifier());
             
             // name
             if (config.name != null)
