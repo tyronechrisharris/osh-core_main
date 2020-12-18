@@ -36,8 +36,5 @@ public class TransactionUtils
         
         if (smlProcess.getName() == null || smlProcess.getName().length() < 4)
             report.add(new OWSException(OWSException.invalid_param_code, "procedureDescription", sensorUID, INVALID_SML_MSG + "Procedure name is missing or too short"));
-        
-        if (smlProcess.getValidTime() == null)
-            report.add(new OWSException(OWSException.invalid_param_code, "procedureDescription", sensorUID, INVALID_SML_MSG + "Procedure validity period is missing"));
     }
 }
