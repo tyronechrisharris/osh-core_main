@@ -249,6 +249,8 @@ public class StreamingDataProvider extends ProcedureDataProvider
                             onComplete();
                         if (acceptEvent(obsFilter, item))
                             super.onNext(item);
+                        else
+                            wrappedSub.request(1);
                     }
                 });
         }
