@@ -144,7 +144,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         ObsKey fromKey = new ObsKey(dataStreamID, 0, null);        
         ObsKey toKey = new ObsKey(dataStreamID, Long.MAX_VALUE, null);
         
-        return map.subMap(fromKey, toKey).entrySet().stream();
+        return map.subMap(fromKey, true, toKey, true).entrySet().stream();
     }
     
     
@@ -160,7 +160,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         ObsKey fromKey = new ObsKey(dataStreamID, foiID, null);        
         ObsKey toKey = new ObsKey(dataStreamID, foiID, null);
         
-        return map.subMap(fromKey, toKey).entrySet().stream();
+        return map.subMap(fromKey, true, toKey, true).entrySet().stream();
     }
     
     
