@@ -203,6 +203,19 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         DataStoreUtils.checkUniqueID(uid);
         return uidMap.get(uid);
     }
+    
+    
+    @Override
+    public Long getParent(long internalID)
+    {
+        for (var entry: parentChildMap.entrySet())
+        {
+            if (entry.getValue().contains(internalID))
+                return entry.getKey();
+        }
+        
+        return null;
+    }
 
 
     @Override

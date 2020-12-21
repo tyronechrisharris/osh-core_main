@@ -638,6 +638,14 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     {
         return featuresIndex.containsValue(value);
     }
+    
+    
+    @Override
+    public Long getParent(long internalID)
+    {
+        var fk = idsIndex.getFullKey(internalID);
+        return fk != null ? fk.getParentID() : null;
+    }
 
 
     @Override

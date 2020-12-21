@@ -69,8 +69,8 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     
     FederatedDataStreamStore(IDatabaseRegistry registry, FederatedObsDatabase db)
     {
-        this.registry = registry;
-        this.parentDb = db;
+        this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
+        this.parentDb = Asserts.checkNotNull(db, FederatedObsDatabase.class);
     }
 
 

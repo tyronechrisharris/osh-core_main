@@ -118,6 +118,15 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     
     /**
+     * Get a feature's parent ID
+     * @param internalID Internal ID of feature
+     * @return Internal ID of parent feature or null if no feature with
+     * the given ID was found
+     */
+    public Long getParent(long internalID);
+    
+    
+    /**
      * Helper method to retrieve the entry corresponding to the current version
      * of the feature with the given unique ID
      * @param uid The feature unique ID

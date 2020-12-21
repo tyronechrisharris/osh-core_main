@@ -40,6 +40,13 @@ public abstract class AbstractFeatureStoreWrapper<V extends IFeature, VF extends
     {
         return getWriteStore().add(parentId, value);
     }
+    
+    
+    @Override
+    public Long getParent(long internalID)
+    {
+        return getReadStore().getParent(internalID);
+    }
 
 
     @Override

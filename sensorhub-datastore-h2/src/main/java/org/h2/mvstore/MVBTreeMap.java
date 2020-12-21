@@ -43,7 +43,8 @@ public class MVBTreeMap<K, V> extends MVMap<K, V>
 
 
     /*
-     * Same code as binarySearch method but returning full entry
+     * Same code as binarySearch method but returning full key.
+     * This can be used when a partial key is used for retrieval
      */
     @SuppressWarnings({ "unchecked" })
     private K getFullKey(Page p, Object key)

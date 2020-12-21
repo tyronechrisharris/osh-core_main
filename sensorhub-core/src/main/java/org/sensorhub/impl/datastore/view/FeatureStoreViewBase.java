@@ -96,6 +96,16 @@ public abstract class FeatureStoreViewBase<
         var proc = delegate.get(key);
         return viewFilter.test(proc) ? proc : null;
     }
+    
+    
+    @Override
+    public Long getParent(long internalID)
+    {
+        if (contains(internalID))
+            return delegate.getParent(internalID);
+        else
+            return null;
+    }
 
 
     @Override

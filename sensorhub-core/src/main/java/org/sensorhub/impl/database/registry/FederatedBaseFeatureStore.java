@@ -29,6 +29,7 @@ import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.ogc.gml.IFeature;
+import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 
 
@@ -53,8 +54,8 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     
     FederatedBaseFeatureStore(IDatabaseRegistry registry, FederatedObsDatabase db)
     {
-        this.registry = registry;
-        this.parentDb = db;
+        this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
+        this.parentDb = Asserts.checkNotNull(db, FederatedObsDatabase.class);
     }
     
     
@@ -158,6 +159,21 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         }
         
         return false;
+    }
+    
+    
+    @Override
+    public Long getParent(long internalID)
+    {
+        // use public key to lookup database and local key
+        var dbInfo = parentDb.getLocalDbInfo(internalID);
+        if (dbInfo != null)
+        {
+            var parentID = getFeatureStore(dbInfo.db).getParent(dbInfo.entryID);
+            return parentID == null ? null : registry.getPublicID(dbInfo.databaseNum, parentID);
+        }
+        else
+            return null;
     }
 
 
