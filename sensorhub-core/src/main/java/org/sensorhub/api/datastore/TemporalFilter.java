@@ -118,6 +118,25 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
+    public TimeExtent asTimeExtent()
+    {
+        if (latestTime)
+            throw new IllegalStateException("Cannot convert 'latestTime' to a TimeExtent");
+        
+        var begin = getMin();
+        var end = getMax();
+        
+        if (beginsNow() && endsNow())
+            return TimeExtent.now();
+        else if (beginsNow())
+            return TimeExtent.beginNow(end);
+        else if (endsNow())
+            return TimeExtent.endNow(begin);
+        else
+            return TimeExtent.period(begin, end);
+    }
+    
+    
     @Override
     public boolean test(Instant val)
     {
@@ -126,7 +145,7 @@ public class TemporalFilter extends RangeFilter<Instant>
         // we cannot maintain state here. It means that the caller must
         // enforce the latestTime/currentTime filter contract via other means
         if (latestTime || isCurrentTime())
-            return true;        
+            return true;
         
         var range = getRange();               
         switch (op)
@@ -182,26 +201,20 @@ public class TemporalFilter extends RangeFilter<Instant>
     protected <F extends TemporalFilter, B extends TimeFilterBuilder<B, F>> B intersect(F otherFilter, B builder) throws EmptyFilterIntersection
     {
         // handle latest time special case
-        if ((otherFilter.isLatestTime() && isLatestTime()) ||
-            (otherFilter.isLatestTime() && isAllTimes()) ||
-            (otherFilter.isAllTimes() && isLatestTime()))
+        if (otherFilter.isLatestTime() && isLatestTime())
             return builder.withLatestTime();
-        
-        // handle current time special case
-        if (otherFilter.isCurrentTime() && isCurrentTime())
-            return builder.withCurrentTime();
-        if (otherFilter.isCurrentTime() && isAllTimes())
-            return builder.withCurrentTime();
-        if (otherFilter.isAllTimes() && isCurrentTime())
-            return builder.withCurrentTime();
-        
-        // need to call getRange() to compute current time dynamically in case
-        // we need to AND it with a fixed time period
-        var range = getRange();
-        var otherRange = otherFilter.getRange();
-        if (!range.isConnected(otherRange))
+        else if (otherFilter.isLatestTime() && isAllTimes())
+            return builder.withLatestTime();
+        else if (otherFilter.isAllTimes() && isLatestTime())
+            return builder.withLatestTime();
+
+        // otherwise compute time extent intersection
+        var thisTe = asTimeExtent();
+        var otherTe = otherFilter.asTimeExtent();
+        var xTe = TimeExtent.intersection(thisTe, otherTe);
+        if (xTe == null)
             throw new EmptyFilterIntersection();
-        return builder.withRange(range.intersection(otherRange));
+        return builder.fromTimeExtent(xTe);
     }
     
     

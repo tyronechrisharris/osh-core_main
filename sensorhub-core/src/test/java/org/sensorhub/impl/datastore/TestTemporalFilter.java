@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.time.Instant;
 import org.junit.Test;
 import org.sensorhub.api.datastore.TemporalFilter;
+import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.RangeFilter.RangeOp;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
@@ -451,5 +452,121 @@ public class TestTemporalFilter
             .build()
             .test(now));
     }
-
+    
+    
+    @Test
+    public void testIntersectionSameOperator() throws Exception
+    {
+        var t0 = Instant.now();
+        TemporalFilter filter1, filter2, xFilter;
+        
+        // 2 finite ranges w/ instant in common
+        filter1 = new TemporalFilter.Builder()
+            .fromTimeExtent(TimeExtent.period(t0, t0.plusSeconds(10)))
+            .build();        
+        filter2 = new TemporalFilter.Builder()
+            .fromTimeExtent(TimeExtent.period(t0.minusSeconds(10), t0))
+            .build();        
+        xFilter = filter1.intersect(filter2);
+        
+        assertEquals(xFilter.getMin(), t0);
+        System.out.println(xFilter);
+        checkConsistent(xFilter);
+        
+        // 2 finite ranges w/ range in common
+        filter1 = new TemporalFilter.Builder()
+            .fromTimeExtent(TimeExtent.period(t0, t0.plusSeconds(10)))
+            .build();        
+        filter2 = new TemporalFilter.Builder()
+            .fromTimeExtent(TimeExtent.period(t0.minusSeconds(10), t0.plusSeconds(5)))
+            .build();        
+        xFilter = filter1.intersect(filter2);
+        
+        assertEquals(xFilter.getMin(), t0);
+        assertEquals(xFilter.getMax(), t0.plusSeconds(5));
+        System.out.println(xFilter);
+        checkConsistent(xFilter);
+        
+        // ranges with 'now' bound
+        filter1 = new TemporalFilter.Builder()
+            .fromTimeExtent(TimeExtent.beginNow(t0.plusSeconds(10)))
+            .build();        
+        filter2 = new TemporalFilter.Builder()
+            .fromTimeExtent(TimeExtent.period(t0.minusSeconds(1), t0.plusSeconds(1)))
+            .build();        
+        xFilter = filter1.intersect(filter2);
+        
+        assertTrue(Duration.between(xFilter.getMin(), t0).getSeconds() < 1);
+        assertEquals(xFilter.getMax(), t0.plusSeconds(1));
+        System.out.println(xFilter);
+        checkConsistent(xFilter);
+        
+        // 'now' instant and range
+        filter1 = new TemporalFilter.Builder()
+            .withCurrentTime()
+            .build();        
+        filter2 = new TemporalFilter.Builder()
+            .fromTimeExtent(TimeExtent.period(t0.minusSeconds(3600*1000), t0.plusSeconds(3600)))
+            .build();        
+        xFilter = filter1.intersect(filter2);
+        
+        assertTrue(xFilter.isSingleValue());
+        assertTrue(Duration.between(xFilter.getMin(), t0).getSeconds() < 1);
+        System.out.println(xFilter);
+        checkConsistent(xFilter);
+        
+        // 'now' instant and range ending 'now'
+        filter1 = new TemporalFilter.Builder()
+            .withCurrentTime()
+            .build();        
+        filter2 = new TemporalFilter.Builder()
+            .fromTimeExtent(TimeExtent.endNow(t0.minusSeconds(180)))
+            .build();        
+        xFilter = filter1.intersect(filter2);
+        
+        assertTrue(xFilter.isSingleValue());
+        assertTrue(Duration.between(xFilter.getMin(), t0).getSeconds() < 1);
+        System.out.println(xFilter);
+        checkConsistent(xFilter);
+    }
+    
+    
+    @Test
+    public void testErrorEmptyIntersectionSameOperator() throws Exception
+    {
+        var now = Instant.now();        
+        
+        // 2 finite ranges w/ nothing in common
+        assertThrows(EmptyFilterIntersection.class, () -> {
+            var filter1 = new TemporalFilter.Builder()
+                .fromTimeExtent(TimeExtent.period(now.plusSeconds(1), now.plusSeconds(10)))
+                .build();        
+            var filter2 = new TemporalFilter.Builder()
+                .fromTimeExtent(TimeExtent.period(now.minusSeconds(10), now))
+                .build();        
+            filter1.intersect(filter2);
+        });
+        
+        // 1 range + 1 instant w/ nothing in common
+        assertThrows(EmptyFilterIntersection.class, () -> {
+            var filter1 = new TemporalFilter.Builder()
+                .fromTimeExtent(TimeExtent.instant(now.plusMillis(1)))
+                .build();        
+            var filter2 = new TemporalFilter.Builder()
+                .fromTimeExtent(TimeExtent.period(now.minusSeconds(10), now))
+                .build();        
+            filter1.intersect(filter2);
+        });
+        
+        // range not including now
+        assertThrows(EmptyFilterIntersection.class, () -> {
+            var filter1 = new TemporalFilter.Builder()
+                .withCurrentTime()
+                .build();        
+            var filter2 = new TemporalFilter.Builder()
+                .fromTimeExtent(TimeExtent.period(now.minusSeconds(10), now.minusMillis(1)))
+                .build();
+            filter1.intersect(filter2);
+        });
+    }
 }
