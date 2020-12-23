@@ -119,6 +119,23 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
     
     
     /**
+     * Remove all datastreams that are associated to the given procedure output
+     * @param procUID
+     * @param outputName
+     * @return The number of entries actually removed
+     */
+    public default long removeAllVersions(String procUID, String outputName)
+    {
+        return removeEntries(new DataStreamFilter.Builder()
+            .withProcedures()
+                .withUniqueIDs(procUID)
+                .done()
+            .withOutputNames(outputName)
+            .build());
+    }
+    
+    
+    /**
      * Link this store to an procedure store to enable JOIN queries
      * @param procedureStore
      */
