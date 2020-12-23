@@ -29,6 +29,7 @@ import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.utils.OshAsserts;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 
@@ -73,6 +74,12 @@ public class DataStoreUtils
     public static String checkFeatureObject(IFeature f)
     {
         Asserts.checkNotNull(f, IFeature.class);
+        return checkUniqueID(f.getUniqueIdentifier());
+    }
+    
+    public static String checkProcedureObject(IProcedure f)
+    {
+        Asserts.checkNotNull(f, IProcedure.class);
         return checkUniqueID(f.getUniqueIdentifier());
     }
     
