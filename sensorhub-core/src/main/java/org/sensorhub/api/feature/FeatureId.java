@@ -42,13 +42,13 @@ public class FeatureId
 
     private FeatureId(long internalID)
     {
-        this.internalID = OshAsserts.checkValidInternalID(internalID);
+        this.internalID = internalID;
     }
 
 
     public FeatureId(long internalID, String uid)
     {
-        this(internalID);
+        this(OshAsserts.checkValidInternalID(internalID));
         this.uniqueID = OshAsserts.checkValidUID(uid);
     }
 
