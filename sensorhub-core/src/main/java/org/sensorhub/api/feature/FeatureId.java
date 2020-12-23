@@ -15,7 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.feature;
 
 import java.util.Objects;
-import org.vast.util.Asserts;
+import org.sensorhub.api.utils.OshAsserts;
 
 
 /**
@@ -42,15 +42,14 @@ public class FeatureId
 
     private FeatureId(long internalID)
     {
-        this.internalID = internalID;
+        this.internalID = OshAsserts.checkValidInternalID(internalID);
     }
 
 
     public FeatureId(long internalID, String uid)
     {
         this(internalID);
-        Asserts.checkArgument(internalID > 0, "Invalid internal ID");
-        this.uniqueID = Asserts.checkNotNull(uid, "uid");
+        this.uniqueID = OshAsserts.checkValidUID(uid);
     }
 
 
