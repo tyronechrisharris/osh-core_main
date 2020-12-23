@@ -87,7 +87,7 @@ public class TestProcedureSerializers
         XMLStreamWriter syncWriter;
         if (serializer instanceof ProcedureSerializerJson)
         {
-            syncWriter = new SMLJsonStreamWriter(syncWriterOs, StandardCharsets.UTF_8.name());
+            syncWriter = new SMLJsonStreamWriter(syncWriterOs, StandardCharsets.UTF_8);
             ((SMLJsonStreamWriter)syncWriter).beginArray();
         }
         else

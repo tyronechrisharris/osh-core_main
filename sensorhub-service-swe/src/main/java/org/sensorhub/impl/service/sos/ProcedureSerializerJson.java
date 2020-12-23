@@ -46,16 +46,9 @@ public class ProcedureSerializerJson extends AbstractAsyncSerializerStax<Describ
         super.init(servlet, asyncCtx, request);
         
         // init JSON stream writer
-        try
-        {
-            asyncCtx.getResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
-            writer = new SMLJsonStreamWriter(os, StandardCharsets.UTF_8.name());
-            smlBindings = new SMLStaxBindings();
-        }
-        catch (XMLStreamException e)
-        {
-            throw new IOException("Cannot create JSON stream writer", e);
-        }
+        asyncCtx.getResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
+        writer = new SMLJsonStreamWriter(os, StandardCharsets.UTF_8);
+        smlBindings = new SMLStaxBindings();
     }
     
 

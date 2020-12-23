@@ -47,19 +47,11 @@ public class ResultTemplateSerializerJson extends AbstractAsyncSerializerStax<Ge
         super.init(servlet, asyncCtx, request);
         
         // init JSON stream writer
-        try
-        {
-            writer = new SWEJsonStreamWriter(os, StandardCharsets.UTF_8.name());
-            sweBindings = new SWEStaxBindings();
-                
-            if (asyncCtx != null)
-                asyncCtx.getResponse().setContentType(OWSUtils.JSON_MIME_TYPE);
-        }
-        catch (XMLStreamException e)
-        {
-            throw new IOException("Cannot create JSON stream writer", e);
-        }
-        
+        writer = new SWEJsonStreamWriter(os, StandardCharsets.UTF_8);
+        sweBindings = new SWEStaxBindings();
+            
+        if (asyncCtx != null)
+            asyncCtx.getResponse().setContentType(OWSUtils.JSON_MIME_TYPE);        
     }
     
 
