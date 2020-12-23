@@ -53,16 +53,28 @@ public class EventUtils
     
     public static final IEventSourceInfo getProcedureEventSourceInfo(String procedureUID)
     {
+        return getProcedureEventSourceInfo(null, procedureUID);
+    }
+    
+    
+    public static final IEventSourceInfo getProcedureEventSourceInfo(String parentGroupUID, String procedureUID)
+    {
         return new EventSourceInfo(
-            procedureUID,
+            parentGroupUID != null ? parentGroupUID : procedureUID,
             getProcedureSourceID(procedureUID));
     }
     
     
     public static final IEventSourceInfo getOutputEventSourceInfo(String procedureUID, String outputName)
     {
+        return getOutputEventSourceInfo(null, procedureUID, outputName);
+    }
+    
+    
+    public static final IEventSourceInfo getOutputEventSourceInfo(String parentGroupUID, String procedureUID, String outputName)
+    {
         return new EventSourceInfo(
-            procedureUID,
+            parentGroupUID != null ? parentGroupUID : procedureUID,
             getProcedureOutputSourceID(procedureUID, outputName));
     }
 }
