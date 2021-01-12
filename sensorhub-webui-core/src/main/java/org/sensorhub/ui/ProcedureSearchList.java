@@ -89,7 +89,6 @@ public class ProcedureSearchList extends VerticalLayout
         
         // populate table with 10 first results
         updateTable(db, new ProcedureFilter.Builder()
-            .withCurrentVersion()
             .withLimit(10)
             .build());
     }
