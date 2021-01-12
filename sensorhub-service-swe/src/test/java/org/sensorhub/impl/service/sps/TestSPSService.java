@@ -38,11 +38,6 @@ import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
-import org.sensorhub.impl.service.sps.SPSConnectorConfig;
-import org.sensorhub.impl.service.sps.SPSService;
-import org.sensorhub.impl.service.sps.SPSServiceConfig;
-import org.sensorhub.impl.service.sps.SPSWebSocketOut;
-import org.sensorhub.impl.service.sps.SensorConnectorConfig;
 import org.slf4j.LoggerFactory;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.data.DataBlockDouble;
@@ -154,7 +149,6 @@ public class TestSPSService
         SensorConnectorConfig provCfg = new SensorConnectorConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING1;
-        provCfg.offeringID = URI_OFFERING1;
         provCfg.sensorID = sensor1.getLocalID();
         //provCfg.hiddenOutputs
         
@@ -180,7 +174,6 @@ public class TestSPSService
         SensorConnectorConfig provCfg = new SensorConnectorConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING2;
-        provCfg.offeringID = URI_OFFERING2;
         provCfg.sensorID = sensor2.getLocalID();
         //provCfg.hiddenOutputs
         
@@ -256,7 +249,7 @@ public class TestSPSService
         dtReq.setPostServer(HTTP_ENDPOINT);
         dtReq.setVersion("2.0");
         dtReq.setProcedureID(procedureId);
-        dtReq.setTimeSlot(TimeExtent.getNowInstant());
+        dtReq.setTimeSlot(TimeExtent.now());
         dtReq.setEncoding(new TextEncodingImpl());
         return dtReq;
     }

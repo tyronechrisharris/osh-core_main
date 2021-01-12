@@ -49,7 +49,7 @@ import com.google.common.collect.ImmutableMap;
 public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSourceDataProducer
 {
     static String SENSORNET_UID = "urn:sensors:mysensornet:001";
-    static String SENSOR_UID_PREFIX = SENSORNET_UID + ":sensors:";
+    static String MEMBER_UID_PREFIX = ":S";
     GMLFactory gmlFac = new GMLFactory(true);
     Map<String, IDataProducer> members = new LinkedHashMap<>();
     Map<String, AbstractFeature> allFois = new LinkedHashMap<>();
@@ -68,7 +68,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
             p.setPos(new double[] {memberIdx, memberIdx, 0.0});
             
             // create sensor description
-            String memberUID = String.format(SENSOR_UID_PREFIX + "%03d", memberIdx);
+            String memberUID = String.format("%s%s%03d", FakeSensorNetWithMembers.this.uniqueID, MEMBER_UID_PREFIX, memberIdx);
             SMLFactory fac = new SMLFactory();
             sensor = fac.newPhysicalComponent();
             sensor.setUniqueIdentifier(memberUID);
@@ -180,7 +180,8 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
     public void init() throws SensorHubException
     {
         super.init();
-        this.uniqueID = SENSORNET_UID;
+        if (this.uniqueID == SENSOR_UID)
+            this.uniqueID = SENSORNET_UID;
         this.xmlID = "SENSORNET1";
     }
     
@@ -213,7 +214,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
     @Override
     public String getFoiUID(int foiNum)
     {
-        return String.format(SENSOR_UID_PREFIX + "%03d:foi", foiNum);
+        return String.format("%s%s%03d:foi", FakeSensorNetWithMembers.this.uniqueID, MEMBER_UID_PREFIX, foiNum);
     }
 
 

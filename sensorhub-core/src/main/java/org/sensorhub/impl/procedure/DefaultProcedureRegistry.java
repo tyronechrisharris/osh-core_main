@@ -58,7 +58,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     ProcedureObsEventDatabase procStateDb;
     IProcedureObsDatabase federatedDb;
     ReadWriteLock lock = new ReentrantReadWriteLock();
-    Map<String, ProcedureRegistryEventHandler> driverHandlers = new ConcurrentSkipListMap<>();
+    Map<String, ProcedureDriverTransactionHandler> driverHandlers = new ConcurrentSkipListMap<>();
 
 
     public DefaultProcedureRegistry(ISensorHub hub, DatabaseConfig stateDbConfig)
@@ -92,7 +92,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
     
     
-    protected ProcedureRegistryEventHandler createDriverHandler(IProcedureDriver proc)
+    protected ProcedureDriverTransactionHandler createDriverHandler(IProcedureDriver proc)
     {
         var procUID = proc.getUniqueIdentifier();
         
@@ -103,9 +103,9 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         // error if DB is not an event handler DB
         if (!(db instanceof IProcedureEventHandlerDatabase))
             throw new IllegalStateException("Another database already contains a procedure with UID " + procUID);
-        
         log.info("Procedure " + procUID + " handled by DB #" + db.getDatabaseNum());
-        return new ProcedureRegistryEventHandler(this, proc, (IProcedureEventHandlerDatabase)db);
+        
+        return new ProcedureDriverTransactionHandler(getParentHub(), db);
     }
 
 
@@ -115,8 +115,17 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         String procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         log.debug("Registering procedure {}", procUID);
         
+        // if member of a group, parent should have been registered already
+        // so register it as member of the group
+        if (proc.getParentGroupUID() != null)
+        {
+            // get parent handler and register as member
+            var parentHandler = getDriverHandler(proc.getParentGroupUID());
+            return parentHandler.registerMember(proc);
+        }
+        
         // create listener or simply reconnect to it
-        // use compute() to do it atomatically
+        // use compute() to do it atomically
         var handler = driverHandlers.compute(procUID, (k,v) -> {
             if (v != null)
             {
@@ -125,21 +134,15 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
                     throw new IllegalArgumentException("A procedure with UID " + procUID + " is already registered");
                 return v;
             }
-            else if (proc.getParentGroupUID() != null)
-            {
-                // create handler within parent handler
-                var parentHandler = getDriverHandler(proc.getParentGroupUID());
-                return parentHandler.createMemberProcedureHandler(proc);
-            }
             else
                 return createDriverHandler(proc);
         });
         
-        // connect and register procedure
-        // callee will take care of double registrations
+        // register procedure
+        // handler takes care of double registrations
         synchronized (handler)
         {
-            return handler.connect(proc);
+            return handler.register(proc);
         }
     }
     
@@ -150,7 +153,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
     
     
-    protected ProcedureRegistryEventHandler getDriverHandler(String procUID)
+    protected ProcedureDriverTransactionHandler getDriverHandler(String procUID)
     {
         var handler = driverHandlers.get(procUID);
         if (handler == null)

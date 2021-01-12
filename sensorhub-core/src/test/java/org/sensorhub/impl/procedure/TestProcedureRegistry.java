@@ -233,7 +233,7 @@ public class TestProcedureRegistry
         })
         .thenRun(() -> {            
             // check latest records are in DB
-            assertEquals(numMembers*2, stateDb.getObservationStore().size());            
+            assertEquals(numMembers*2, stateDb.getObservationStore().size());
         })
         .join();
         
@@ -386,11 +386,19 @@ public class TestProcedureRegistry
             .filter(e -> e instanceof DataStreamAddedEvent)
             .count());
         
+        assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
+            .filter(e -> e instanceof DataStreamEnabledEvent)
+            .count());
+        
         assertEquals(1, receivedEvents.stream()
             .filter(e -> e instanceof ProcedureAddedEvent)
             .count());
         
-        assertEquals(sensor.getOutputs().size()+1, receivedEvents.size());
+        assertEquals(1, receivedEvents.stream()
+            .filter(e -> e instanceof ProcedureEnabledEvent)
+            .count());
+        
+        assertEquals(sensor.getOutputs().size()*2+2, receivedEvents.size());
         
         
         // register again and check that we receive only "enabled" event
