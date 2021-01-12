@@ -79,7 +79,6 @@ public class ProcedureSearchList extends VerticalLayout
                 
                 // update table
                 updateTable(db, procFilter
-                    .withCurrentVersion()
                     .build());
             }
         });
@@ -89,7 +88,6 @@ public class ProcedureSearchList extends VerticalLayout
         
         // populate table with 10 first results
         updateTable(db, new ProcedureFilter.Builder()
-            .withLimit(10)
             .build());
     }
     
@@ -121,32 +119,29 @@ public class ProcedureSearchList extends VerticalLayout
             .forEach(proc -> {
                 String itemId = proc.getUniqueIdentifier();
                 Item item = table.addItem(itemId);
-                item.getItemProperty(PROP_PROC_UID).setValue(proc.getUniqueIdentifier());
-                item.getItemProperty(PROP_PROC_NAME).setValue(proc.getName());
-                item.getItemProperty(PROP_PROC_VALID).setValue(getValidTimeString(proc));
-                item.getItemProperty(PROP_PROC_DESC).setValue(proc.getDescription());
-                table.setChildrenAllowed(itemId, false);
                 
-                // also show all historical version as children
-                db.getProcedureStore().select(new ProcedureFilter.Builder()
-                        .withUniqueIDs(proc.getUniqueIdentifier())
-                        .withAllVersions()
-                        .build())
-                    .forEach(histProc -> {
-                        
-                        if (!Objects.equals(histProc.getValidTime(), proc.getValidTime()))
-                        {
-                            table.setChildrenAllowed(itemId, true);
-                            String childId = histProc.getUniqueIdentifier() + "_" + histProc.getValidTime();
-                            Item childItem = table.addItem(childId);
-                            childItem.getItemProperty(PROP_PROC_NAME).setValue(histProc.getName());
-                            childItem.getItemProperty(PROP_PROC_VALID).setValue(getValidTimeString(histProc));
-                            childItem.getItemProperty(PROP_PROC_DESC).setValue(histProc.getDescription());
-                            table.setParent(childId, itemId);
-                            table.setChildrenAllowed(childId, false);
-                        }
-                    });
-                
+                if (item != null)
+                {
+                    item.getItemProperty(PROP_PROC_UID).setValue(proc.getUniqueIdentifier());
+                    item.getItemProperty(PROP_PROC_NAME).setValue(proc.getName());
+                    item.getItemProperty(PROP_PROC_VALID).setValue(getValidTimeString(proc));
+                    item.getItemProperty(PROP_PROC_DESC).setValue(proc.getDescription());
+                    table.setChildrenAllowed(itemId, false);
+                }
+                else
+                {
+                    item = table.getItem(itemId);
+                    table.setChildrenAllowed(itemId, true);
+                    
+                    // also show all historical version as children
+                    String childId = proc.getUniqueIdentifier() + "_" + proc.getValidTime();
+                    Item childItem = table.addItem(childId);
+                    childItem.getItemProperty(PROP_PROC_NAME).setValue(proc.getName());
+                    childItem.getItemProperty(PROP_PROC_VALID).setValue(getValidTimeString(proc));
+                    childItem.getItemProperty(PROP_PROC_DESC).setValue(proc.getDescription());
+                    table.setParent(childId, itemId);
+                    table.setChildrenAllowed(childId, false);
+                }
             });
     }
     
