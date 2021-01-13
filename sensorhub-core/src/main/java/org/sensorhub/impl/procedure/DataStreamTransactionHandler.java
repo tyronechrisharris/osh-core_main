@@ -56,7 +56,7 @@ import net.opengis.swe.v20.DataEncoding;
  * @author Alex Robin
  * @date Dec 21, 2020
  */
-public class DataStreamTransactionHelper implements IEventListener
+public class DataStreamTransactionHandler implements IEventListener
 {
     final protected ISensorHub hub;
     final protected IObsStore obsStore;
@@ -70,13 +70,13 @@ public class DataStreamTransactionHelper implements IEventListener
     protected Map<String, FeatureId> featureIdMap;
     
     
-    public DataStreamTransactionHelper(ISensorHub hub, IObsStore obsStore)
+    public DataStreamTransactionHandler(ISensorHub hub, IObsStore obsStore)
     {
         this(hub, obsStore, Collections.emptyMap());
     }
     
     
-    public DataStreamTransactionHelper(ISensorHub hub, IObsStore obsStore, Map<String, FeatureId> featureIdMap)
+    public DataStreamTransactionHandler(ISensorHub hub, IObsStore obsStore, Map<String, FeatureId> featureIdMap)
     {
         this.hub = Asserts.checkNotNull(hub, ISensorHub.class);
         this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);

@@ -47,7 +47,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
 {
     protected WeakReference<IProcedureDriver> driverRef; // reference to live procedure
     
-    protected Map<String, DataStreamTransactionHelper> dataStreamHandlers = new ConcurrentHashMap<>();
+    protected Map<String, DataStreamTransactionHandler> dataStreamHandlers = new ConcurrentHashMap<>();
     protected Map<String, ProcedureDriverTransactionHandler> memberHandlers = new ConcurrentHashMap<>();
     
     
@@ -231,7 +231,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         
         // get or create datastream handler
         var dsHandler = dataStreamHandlers.computeIfAbsent(output.getName(), k -> {
-            var newHandler = new DataStreamTransactionHelper(hub, db.getObservationStore(), foiIdMap);
+            var newHandler = new DataStreamTransactionHandler(hub, db.getObservationStore(), foiIdMap);
             newHandler.parentGroupUID = parentGroupUID;
             return newHandler;
         });

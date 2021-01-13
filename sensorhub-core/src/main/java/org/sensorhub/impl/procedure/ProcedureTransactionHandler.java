@@ -314,11 +314,11 @@ public class ProcedureTransactionHandler
      * Datastream helper methods
      */
     
-    public DataStreamTransactionHelper addOrUpdateDataStream(String outputName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
+    public DataStreamTransactionHandler addOrUpdateDataStream(String outputName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
     {
         checkInitialized();
         
-        var dsHandler = new DataStreamTransactionHelper(hub, db.getObservationStore(), foiIdMap);
+        var dsHandler = new DataStreamTransactionHandler(hub, db.getObservationStore(), foiIdMap);
         dsHandler.parentGroupUID = parentGroupUID;
         var isNew = dsHandler.createOrUpdate(new ProcedureId(internalID, procUID), outputName, dataStruct, dataEncoding);
         
