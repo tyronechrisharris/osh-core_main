@@ -33,8 +33,6 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
  */
 public class ProcedureObsDatabaseViewConfig
 {
-    public String filteredViewId;
-    
     public String sourceDatabaseId; // can be itself a filter view?
     
     public IQueryFilter includeFilter;
