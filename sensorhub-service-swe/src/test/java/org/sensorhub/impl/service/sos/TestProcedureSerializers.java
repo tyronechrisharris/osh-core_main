@@ -125,7 +125,7 @@ public class TestProcedureSerializers
                 if (syncWriter instanceof SMLJsonStreamWriter)
                 {
                     smlBindings.writeAbstractProcess(syncWriter, proc);
-                    ((SMLJsonStreamWriter)syncWriter).nextArrayElt();
+                    ((SMLJsonStreamWriter)syncWriter).resetContext();
                 }
             }
             catch (Exception e)

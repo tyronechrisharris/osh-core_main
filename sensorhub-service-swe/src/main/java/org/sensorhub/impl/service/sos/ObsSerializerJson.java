@@ -60,7 +60,7 @@ public class ObsSerializerJson extends AbstractObsSerializerStax implements ISOS
     {
         dom.writeToStreamWriter(obsElt, writer);
         writer.flush();
-        ((JsonStreamWriter)writer).nextArrayElt();
+        ((JsonStreamWriter)writer).resetContext();
     }
     
 

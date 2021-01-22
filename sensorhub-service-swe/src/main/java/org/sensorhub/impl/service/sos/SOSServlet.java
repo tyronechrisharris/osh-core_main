@@ -72,10 +72,12 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.procedure.DataStreamTransactionHelper;
-import org.sensorhub.impl.procedure.ProcedureTransactionHandler;
+import org.sensorhub.impl.procedure.DataStreamTransactionHandler;
+import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
+import org.sensorhub.impl.procedure.ProcedureUtils;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.RecordTemplate;
@@ -134,6 +136,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
     final IProcedureObsDatabase readDatabase;
     final IProcedureObsDatabase writeDatabase;
+    final ProcedureObsTransactionHandler transactionHandler;
 
     final transient Map<String, SOSCustomFormatConfig> customFormats = new HashMap<>();
     WebSocketServletFactory wsFactory;
@@ -152,6 +155,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
         this.readDatabase = service.readDatabase;
         this.writeDatabase = service.writeDatabase;
+        this.transactionHandler = new ProcedureObsTransactionHandler(service.getParentHub().getEventBus(), writeDatabase);
         
         this.providerConfigs = new TreeMap<>();
         for (var config: service.getConfiguration().customDataProviders)
@@ -710,7 +714,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
         // check query parameters
         OWSExceptionReport report = new OWSExceptionReport();
-        TransactionUtils.checkSensorML(request.getProcedureDescription(), report);
+        var smlProc = request.getProcedureDescription();
+        TransactionUtils.checkSensorML(smlProc, report);
         report.process();
 
         // start async response
@@ -723,12 +728,21 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // add or replace description in DB
                 try
                 {
-                    var transactionHandler = new ProcedureTransactionHandler(getParentHub(), writeDatabase);
-                    transactionHandler.createOrUpdate(0L, request.getProcedureDescription());                    
+                    // extract outputs from SensorML description (no need to store them twice)
+                    var outputs = ProcedureUtils.extractOutputs(smlProc);
+                    
+                    // also default to a validity period starting now if nothing was specified
+                    ProcedureUtils.defaultToValidFromNow(smlProc);
+                    
+                    var procHandler = transactionHandler.addOrUpdateProcedure(new ProcedureWrapper(request.getProcedureDescription()));
                     getLogger().info("Registered new procedure {}", procUID);
+
+                    // also add datastreams if outputs were specified in SML description
+                    ProcedureUtils.addDatastreamsFromOutputs(procHandler, outputs);
                 }
                 catch (DataStoreException e)
                 {
+                    getLogger().error("Error", e);
                     throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
                         "Procedure " + procUID + " is already registered on this server");
                 }
@@ -777,9 +791,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // delete complete procedure history + all datastreams and obs from DB
                 try
                 {
-                    var transactionHandler = new ProcedureTransactionHandler(getParentHub(), writeDatabase);
-                    transactionHandler.connect(procUID);
-                    transactionHandler.delete();                   
+                    transactionHandler.getProcedureHandler(procUID).delete();
                     getLogger().info("Deleted procedure {}", procUID);
                 }
                 catch (Exception e)
@@ -820,7 +832,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         String procUID = request.getProcedureId();
         var procDesc = request.getProcedureDescription();
         OWSExceptionReport report = new OWSExceptionReport();
-        var fk = checkQueryProcedure(procUID, report);
+        checkQueryProcedure(procUID, report);
         TransactionUtils.checkSensorML(procDesc, report);
         report.process();
 
@@ -832,8 +844,8 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // version or replace description in DB
                 try
                 {
-                    var transactionHandler = new ProcedureTransactionHandler(getParentHub(), writeDatabase);
-                    transactionHandler.update(request.getProcedureDescription());
+                    var procHandler = transactionHandler.getProcedureHandler(procUID);
+                    procHandler.update(new ProcedureWrapper(request.getProcedureDescription()));
                     getLogger().info("Updated procedure {}", procUID);
                 }
                 catch (DataStoreException e)
@@ -897,15 +909,14 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         var resultStruct = request.getResultStructure();
         var resultEncoding = request.getResultEncoding();
         
-        // retrieve transaction helper
-        ProcedureTransactionHandler transactionHelper = new ProcedureTransactionHandler(getParentHub(), writeDatabase);
-        transactionHelper.connect(procUID);
-        
         // start async response
         AsyncContext asyncCtx = request.getHttpRequest().startAsync();
         CompletableFuture.runAsync(() -> {
             try
             {
+                // retrieve transaction helper
+                var procHandler = transactionHandler.getProcedureHandler(procUID);
+                
                 // get procedure internal key
                 var procID = getParentHub().getDatabaseRegistry().getLocalID(
                     writeDatabase.getDatabaseNum(), procKey.getInternalID());
@@ -935,7 +946,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                                 
                 // add or update datastream
                 resultStruct.setName(outputName);
-                transactionHelper.addOrUpdateDataStream(outputName, resultStruct, resultEncoding);
+                procHandler.addOrUpdateDataStream(outputName, resultStruct, resultEncoding);
                                 
                 // build and send response
                 String templateID = generateTemplateID(procUID, outputName);
@@ -970,11 +981,10 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         // retrieve datastream info
         var templateID = request.getTemplateId();
         OWSExceptionReport report = new OWSExceptionReport();
-        var dsEntry = getDataStreamFromTemplateID(templateID, report);
+        var dataStreamHandler = getDataStreamFromTemplateID(templateID, report);
         report.process();
         
-        var dsInfo = dsEntry.getValue();
-        var dsID = dsEntry.getKey().getInternalID();
+        var dsInfo = dataStreamHandler.getDataStreamInfo();
         var dataStruct = dsInfo.getRecordStructure();
         var encoding = dsInfo.getRecordEncoding();
         DataStreamParser parser = null;
@@ -982,10 +992,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         try
         {
             InputStream resultStream;
-
-            // retrieve transaction helper
-            DataStreamTransactionHelper transactionHelper = new DataStreamTransactionHelper(getParentHub(), writeDatabase.getObservationStore());
-            transactionHelper.init(dsID, dsInfo);
             
             // select data source (either inline XML or in POST body for KVP)
             DataSource dataSrc = request.getResultDataSource();
@@ -1007,7 +1013,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             // if websocket, parse records in the callback
             if (SOSProviderUtils.isWebSocketRequest(request))
             {
-                WebSocketListener socket = new SOSWebSocketIn(parser, transactionHelper::addObs, log);
+                WebSocketListener socket = new SOSWebSocketIn(parser, dataStreamHandler::addObs, log);
                 this.acceptWebSocket(request, socket);
             }
             else
@@ -1015,7 +1021,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // parse each record and send it to consumer
                 DataBlock nextBlock = null;
                 while ((nextBlock = parser.parseNextBlock()) != null)
-                    transactionHelper.addObs(nextBlock);
+                    dataStreamHandler.addObs(nextBlock);
 
                 // build and send response
                 InsertResultResponse resp = new InsertResultResponse();
@@ -1056,15 +1062,15 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     protected Entry<DataStreamKey, IDataStreamInfo> findCompatibleDatastream(DataComponent resultStruct, DataEncoding resultEncoding, Collection<Entry<DataStreamKey, IDataStreamInfo>> outputList)
     {
         var newHc = DataComponentChecks.getStructCompatibilityHashCode(resultStruct);
-        var newEncHc = DataComponentChecks.getEncodingEqualsHashCode(resultEncoding);
+        //var newEncHc = DataComponentChecks.getEncodingEqualsHashCode(resultEncoding);
         
         for (var output: outputList)
         {
             var recordStruct = output.getValue().getRecordStructure();
-            var recordEncoding = output.getValue().getRecordEncoding();
+            //var recordEncoding = output.getValue().getRecordEncoding();
             
             var oldHc = DataComponentChecks.getStructCompatibilityHashCode(recordStruct);
-            if (newHc.equals(oldHc) && newEncHc.equals(DataComponentChecks.getEncodingEqualsHashCode(recordEncoding)))
+            if (newHc.equals(oldHc))// && newEncHc.equals(DataComponentChecks.getEncodingEqualsHashCode(recordEncoding)))
                 return output;
         }
         
@@ -1094,7 +1100,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
     
     
-    protected final Entry<DataStreamKey, IDataStreamInfo> getDataStreamFromTemplateID(String templateID, OWSExceptionReport report)
+    protected final DataStreamTransactionHandler getDataStreamFromTemplateID(String templateID, OWSExceptionReport report)
     {
         try
         {
@@ -1105,11 +1111,11 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             var procUID = m.group(1);
             var outputName = m.group(2);
             
-            var dsEntry = writeDatabase.getDataStreamStore().getLatestVersionEntry(procUID, outputName);
-            if (dsEntry == null)
+            var dsHandler = transactionHandler.getDataStreamHandler(procUID, outputName);
+            if (dsHandler == null)
                 throw new SOSException("");
             
-            return dsEntry;
+            return dsHandler;
         }
         catch (SOSException e)
         {

@@ -36,6 +36,7 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.impl.procedure.ProcedureUtils;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.JTSUtils;
@@ -258,8 +259,14 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
             new StreamSubscription<>(
                 consumer,
                 100,
-                database.getProcedureStore().select(procFilter.build())
-                    .map(proc -> proc.getFullDescription())
+                database.getProcedureStore().selectEntries(procFilter.build())
+                    .map(entry -> {
+                        var internalID = entry.getKey().getInternalID();
+                        var smlProc = entry.getValue().getFullDescription();
+                        
+                        // add outputs automatically generated from datastreams
+                        return ProcedureUtils.addOutputsFromDatastreams(internalID, smlProc, database.getDataStreamStore()); 
+                    })
             )
         );
     }

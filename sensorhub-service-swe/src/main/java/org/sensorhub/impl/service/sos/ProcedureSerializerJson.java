@@ -65,7 +65,7 @@ public class ProcedureSerializerJson extends AbstractAsyncSerializerStax<Describ
         try
         {
             smlBindings.writeAbstractProcess(writer, (AbstractProcess)proc);
-            ((JsonStreamWriter)writer).nextArrayElt();
+            ((JsonStreamWriter)writer).resetContext();
         }
         catch (XMLStreamException e)
         {
