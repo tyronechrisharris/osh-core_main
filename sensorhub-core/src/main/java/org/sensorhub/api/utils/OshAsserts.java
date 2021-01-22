@@ -14,6 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.utils;
 
+import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
 
 
@@ -31,7 +33,7 @@ public class OshAsserts
     public static String checkValidUID(String uid, String idName)
     {
         Asserts.checkNotNull(uid, idName);
-        Asserts.checkArgument(uid.length() > UID_MIN_CHARS, "{} must be at least {} characters long", idName, UID_MIN_CHARS);
+        Asserts.checkArgument(uid.length() >= UID_MIN_CHARS, "{} must be at least {} characters long", idName, UID_MIN_CHARS);
         return uid;
     }
     
@@ -40,5 +42,19 @@ public class OshAsserts
     {
         Asserts.checkArgument(id > 0, "Internal ID must be > 0");
         return id;
+    }
+    
+    
+    public static String checkFeatureObject(IFeature f)
+    {
+        Asserts.checkNotNull(f, IFeature.class);
+        return checkValidUID(f.getUniqueIdentifier(), "Feature UID");
+    }
+    
+    
+    public static String checkProcedureObject(IProcedure f)
+    {
+        Asserts.checkNotNull(f, IProcedure.class);
+        return checkValidUID(f.getUniqueIdentifier(), "Procedure UID");
     }
 }

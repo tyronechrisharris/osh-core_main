@@ -73,14 +73,12 @@ public class DataStoreUtils
     
     public static String checkFeatureObject(IFeature f)
     {
-        Asserts.checkNotNull(f, IFeature.class);
-        return checkUniqueID(f.getUniqueIdentifier());
+        return OshAsserts.checkFeatureObject(f);
     }
     
     public static String checkProcedureObject(IProcedure f)
     {
-        Asserts.checkNotNull(f, IProcedure.class);
-        return checkUniqueID(f.getUniqueIdentifier());
+        return OshAsserts.checkProcedureObject(f);
     }
     
     public static String checkUniqueID(String uid)
