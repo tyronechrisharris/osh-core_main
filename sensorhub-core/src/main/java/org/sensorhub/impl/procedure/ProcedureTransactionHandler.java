@@ -16,20 +16,27 @@ package org.sensorhub.impl.procedure;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.data.FoiEvent;
-import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.feature.IFoiStore;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
+import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.obs.DataStreamDisabledEvent;
 import org.sensorhub.api.obs.DataStreamEnabledEvent;
+import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.DataStreamRemovedEvent;
+import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
 import org.sensorhub.api.procedure.ProcedureChangedEvent;
@@ -37,232 +44,84 @@ import org.sensorhub.api.procedure.ProcedureDisabledEvent;
 import org.sensorhub.api.procedure.ProcedureEnabledEvent;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.procedure.ProcedureRemovedEvent;
-import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.sensorhub.utils.DataComponentChecks;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
-import net.opengis.sensorml.v20.AbstractProcess;
+import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
 
-/**
- * <p>
- * Helper class for creating/updating/deleting procedures in the associated
- * datastore and publishing the corresponding events.
- * </p>
- *
- * @author Alex Robin
- * @date Dec 21, 2020
- */
 public class ProcedureTransactionHandler
 {
-    final protected ISensorHub hub;
-    final protected IProcedureObsDatabase db;
-    
-    protected long internalID;
-    protected String procUID;
+    protected final ProcedureObsTransactionHandler rootHandler;
+    protected final String procUID;    
+    protected FeatureKey procKey;
     protected String parentGroupUID;
-    protected IEventPublisher eventPublisher;
     protected Map<String, FeatureId> foiIdMap = new ConcurrentHashMap<>();
+    protected boolean newlyCreated;
     
     
-    public ProcedureTransactionHandler(ISensorHub hub, IProcedureObsDatabase db)
+    public ProcedureTransactionHandler(FeatureKey procKey, String procUID, ProcedureObsTransactionHandler rootHandler)
     {
-        this.hub = Asserts.checkNotNull(hub, ISensorHub.class);
-        this.db = Asserts.checkNotNull(db, IProcedureObsDatabase.class);
+        this(procKey, procUID, null, rootHandler);
     }
     
     
-    protected IEventPublisher getEventPublisher()
+    public ProcedureTransactionHandler(FeatureKey procKey, String procUID, String parentGroupUID, ProcedureObsTransactionHandler rootHandler)
     {
-        if (eventPublisher == null)
-        {
-            var eventSrcInfo = EventUtils.getProcedureEventSourceInfo(parentGroupUID, procUID);
-            eventPublisher = hub.getEventBus().getPublisher(eventSrcInfo);
-        }
-        
-        return eventPublisher;
+        this.procKey = Asserts.checkNotNull(procKey, FeatureKey.class);
+        this.procUID = OshAsserts.checkValidUID(procUID);
+        this.parentGroupUID = parentGroupUID;
+        this.rootHandler = Asserts.checkNotNull(rootHandler);
     }
     
     
-    protected IEventPublisher getParentPublisher()
+    public synchronized boolean update(IProcedureWithDesc proc) throws DataStoreException
     {
-        if (parentGroupUID != null)
-        {
-            var eventSrcInfo = EventUtils.getProcedureEventSourceInfo(parentGroupUID, procUID);
-            return hub.getEventBus().getPublisher(eventSrcInfo);
-        }
+        OshAsserts.checkProcedureObject(proc);
         
-        return hub.getEventPublisher();
-    }
-    
-    
-    /**
-     * Connect handler to an existing existing procedure using its internal ID.
-     * @param id Procedure internal ID
-     * @return True if procedure was found, false otherwise
-     */
-    public boolean connect(long id)
-    {
-        OshAsserts.checkValidInternalID(id);
-        
-        // check if it was already initialized
-        if (this.internalID != 0)
-        {
-            if (this.internalID != id)
-                throw new IllegalStateException("Internal IDs don't match");
-            return true;
-        }
-        
-        // if not, load proc object from DB
-        var proc = db.getProcedureStore().getCurrentVersion(id);
-        if (proc == null)
+        if (!getProcedureStore().contains(proc.getUniqueIdentifier()))
             return false;
         
-        // cache IDs in this class
-        this.internalID = id;
-        this.procUID = proc.getUniqueIdentifier();
-        return true;
-    }
-    
-    
-    /**
-     * Connect handler to an existing existing procedure using its unique ID.
-     * @param procUID Procedure unique ID
-     * @return True if procedure was found, false otherwise
-     */
-    public boolean connect(String procUID)
-    {
-        OshAsserts.checkValidUID(procUID);
-        
-        // check if it was already initialized
-        if (this.procUID != null)
+        var validTime = proc.getFullDescription().getValidTime();
+        if (validTime == null || procKey.getValidStartTime().isBefore(validTime.begin()))
         {
-            if (!this.procUID.equals(procUID))
-                throw new IllegalStateException("Unique IDs don't match");
-            return true;
+            procKey = getProcedureStore().add(proc);
+            getEventPublisher().publish(new ProcedureChangedEvent(procUID));
         }
-        
-        // if not, load proc object from DB
-        var procKey = db.getProcedureStore().getCurrentVersionKey(procUID);
-        if (procKey == null)
-            return false;
-        
-        // cache IDs in this class
-        this.internalID = procKey.getInternalID();
-        this.procUID = procUID;
-        return true;
-    }
-    
-    
-    public boolean create(long parentID, IProcedureWithDesc proc) throws DataStoreException
-    {
-        if (db.getProcedureStore().contains(proc.getUniqueIdentifier()))
-            return false;
-        
-        var procKey = db.getProcedureStore().add(parentID, proc);
-        this.internalID = procKey.getInternalID();
-        this.procUID = proc.getUniqueIdentifier();
-        
-        // send event
-        getParentPublisher().publish(new ProcedureAddedEvent(procUID, parentGroupUID));
+        else if (procKey.getValidStartTime().equals(validTime.begin()))
+        {
+            getProcedureStore().put(procKey, proc);
+        }
+        else
+            throw new DataStoreException("A version of the procedure description with a more recent valid time already exists");                
         
         return true;
     }
     
     
-    /**
-     * Update the procedure description if it already exists
-     * @param proc The new procedure description
-     * @return True if the procedure exists and was actually updated, false otherwise
-     * @throws DataStoreException if an error occurs during the update
-     */
-    public boolean update(IProcedureWithDesc proc) throws DataStoreException
+    public boolean delete() throws DataStoreException
     {
-        // parent ID is ignored since we don't allow create
-        return createOrUpdate(0L, proc, false);
-    }
-    
-    
-    public boolean update(AbstractProcess proc) throws DataStoreException
-    {
-        // parent ID is ignored since we don't allow create
-        return createOrUpdate(0L, new ProcedureWrapper(proc), false);
-    }
-    
-    
-    /**
-     * Update the procedure description or create it if needed.
-     * <ul>
-     * <li>If no procedure with the given UID already exists, it is created</li>
-     * <li>If the validTime is the same as the existing procedure, it is updated.</li>
-     * <li>If the validTime is different, a new version of the procedure is created.</li>
-     * </ul>
-     * @param parentID Internal ID of parent procedure (or 0 if no parent)
-     * @param proc The new procedure description
-     * @return True if a new procedure was created, false otherwise
-     * @throws DataStoreException
-     */
-    public boolean createOrUpdate(long parentID, IProcedureWithDesc proc) throws DataStoreException
-    {
-        return createOrUpdate(parentID, proc, true);
-    }
-    
-    
-    public boolean createOrUpdate(long parentID, AbstractProcess proc) throws DataStoreException
-    {
-        return createOrUpdate(parentID, new ProcedureWrapper(proc));
-    }
-    
-    
-    protected boolean createOrUpdate(long parentID, IProcedureWithDesc proc, boolean allowCreate) throws DataStoreException
-    {
-        DataStoreUtils.checkProcedureObject(proc);
+        // check if we have a parent
+        checkParent();
         
-        if (connect(proc.getUniqueIdentifier()))
-        {
-            var procKey = db.getProcedureStore().getCurrentVersionKey(proc.getUniqueIdentifier());
-            
-            var validTime = proc.getFullDescription().getValidTime();
-            if (validTime == null || procKey.getValidStartTime().isBefore(validTime.begin()))
-            {
-                db.getProcedureStore().add(parentID, proc);
-                
-                // send updated event
-                getEventPublisher().publish(new ProcedureChangedEvent(procUID));
-            }
-            else if (procKey.getValidStartTime().equals(validTime.begin()))
-                db.getProcedureStore().put(procKey, proc);
-            else
-                throw new DataStoreException("A procedure version with a more recent valid time already exists");                
-            
-            this.internalID = procKey.getInternalID();
-            this.procUID = proc.getUniqueIdentifier();
-            return false;
-        }
-        else if (allowCreate)
-        {
-            create(parentID, proc);
-            return true;
-        }
+        // error if associated datastreams still exist
+        var procDsFilter = new DataStreamFilter.Builder()
+            .withProcedures(procKey.getInternalID())
+            .build();
+        if (getDataStreamStore().countMatchingEntries(procDsFilter) > 0)
+            throw new DataStoreException("Procedure cannot be deleted because it is referenced by a datastream");
         
-        return false;
-    }
-    
-    
-    public boolean delete()
-    {
-        checkInitialized();
-        
-        var procKey = db.getProcedureStore().remove(procUID);
+        // remove from datastore
+        var procKey = getProcedureStore().remove(procUID);
         if (procKey != null)
         {
             // send deleted event
-            getParentPublisher().publish(new ProcedureRemovedEvent(procUID, parentGroupUID));
-            
+            getParentPublisher().publish(new ProcedureRemovedEvent(procUID, parentGroupUID));            
             return true;
         }
         
@@ -272,14 +131,14 @@ public class ProcedureTransactionHandler
     
     public void enable()
     {
-        checkInitialized();
+        checkParent();
         getParentPublisher().publish(new ProcedureEnabledEvent(procUID, parentGroupUID));
     }
     
     
     public void disable()
     {
-        checkInitialized();
+        checkParent();
         getParentPublisher().publish(new ProcedureDisabledEvent(procUID, parentGroupUID));
     }
     
@@ -289,46 +148,127 @@ public class ProcedureTransactionHandler
      * Member helper methods
      */    
     
-    public ProcedureTransactionHandler addOrUpdateMember(IProcedureWithDesc proc) throws DataStoreException
+    public synchronized ProcedureTransactionHandler addMember(IProcedureWithDesc proc) throws DataStoreException
     {
-        checkInitialized();
+        OshAsserts.checkProcedureObject(proc);
         
-        var memberHandler = new ProcedureTransactionHandler(hub, db);
-        memberHandler.parentGroupUID = procUID;
-        memberHandler.createOrUpdate(internalID, proc);
-        return memberHandler;
+        var parentGroupUID = this.procUID;
+        var parentGroupID = this.procKey.getInternalID();
+        
+        // add to datastore
+        var memberKey = getProcedureStore().add(parentGroupID, proc);
+        var memberUID = proc.getUniqueIdentifier();
+        
+        // send event        
+        getEventPublisher().publish(new ProcedureAddedEvent(memberUID, parentGroupUID));
+        
+        // create the new procedure handler
+        return createMemberProcedureHandler(memberKey, memberUID);
     }
     
     
-    public void deleteMember(String uid)
+    public synchronized ProcedureTransactionHandler addOrUpdateMember(IProcedureWithDesc proc) throws DataStoreException
     {
-        checkInitialized();
+        var uid = OshAsserts.checkProcedureObject(proc);
         
-        var memberHandler = new ProcedureTransactionHandler(hub, db);
-        memberHandler.parentGroupUID = procUID;
-        memberHandler.delete();
+        var memberKey = getProcedureStore().getCurrentVersionKey(uid);        
+        if (memberKey != null)
+        {
+            var memberHandler = createMemberProcedureHandler(memberKey, uid);
+            memberHandler.update(proc);
+            return memberHandler;
+        }
+        else
+            return addMember(proc);
     }
+    
     
     
     /*
      * Datastream helper methods
      */
     
-    public DataStreamTransactionHandler addOrUpdateDataStream(String outputName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
+    public synchronized DataStreamTransactionHandler addOrUpdateDataStream(String outputName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
     {
-        checkInitialized();
+        Asserts.checkNotNullOrEmpty(outputName, "outputName");
+        Asserts.checkNotNull(dataStruct, DataComponent.class);
+        Asserts.checkNotNull(dataEncoding, DataEncoding.class);
         
-        var dsHandler = new DataStreamTransactionHandler(hub, db.getObservationStore(), foiIdMap);
-        dsHandler.parentGroupUID = parentGroupUID;
-        var isNew = dsHandler.createOrUpdate(new ProcedureId(internalID, procUID), outputName, dataStruct, dataEncoding);
+        // check output name == data component name
+        if (dataStruct.getName() == null)
+            dataStruct.setName(outputName);
+        else if (!outputName.equals(dataStruct.getName()))
+            throw new IllegalStateException("Inconsistent output name");
         
-        if (isNew)
+        // try to retrieve existing data stream
+        IDataStreamStore dataStreamStore = rootHandler.db.getDataStreamStore();
+        Entry<DataStreamKey, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procUID, outputName);
+        DataStreamKey newDsKey;
+        IDataStreamInfo newDsInfo;
+        
+        if (dsEntry == null)
         {
-            getEventPublisher().publish(
-                new DataStreamAddedEvent(procUID, outputName));
+            // create new data stream
+            newDsInfo = new DataStreamInfo.Builder()
+                .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
+                .withRecordDescription(dataStruct)
+                .withRecordEncoding(dataEncoding)
+                .build();
+            newDsKey = dataStreamStore.add(newDsInfo);
+            
+            // send event        
+            getEventPublisher().publish(new DataStreamAddedEvent(procUID, outputName));
+        }
+        else
+        {
+            // if an output with the same name already existed
+            newDsKey = dsEntry.getKey();
+            IDataStreamInfo oldDsInfo = dsEntry.getValue();
+            
+            newDsInfo = new DataStreamInfo.Builder()
+                .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
+                .withRecordDescription(dataStruct)
+                .withRecordEncoding(dataEncoding)
+                .withValidTime(TimeExtent.endNow(Instant.now()))
+                .build();
+            
+            // 2 cases
+            // if structure has changed, create a new datastream
+            if (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), newDsInfo.getRecordStructure()))
+            {
+                newDsKey = dataStreamStore.add(newDsInfo);
+                getEventPublisher().publish(new DataStreamAddedEvent(procUID, outputName));
+            }
+            
+            // if something else has changed, update existing datastream
+            else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), newDsInfo.getRecordStructure()) ||
+                     !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), newDsInfo.getRecordEncoding()))
+            {
+                dataStreamStore.put(newDsKey, newDsInfo);
+                getEventPublisher().publish(new DataStreamChangedEvent(procUID, outputName));
+            }
+            
+            // else don't update and return existing key
+            else
+                newDsInfo = oldDsInfo;
         }
         
-        return dsHandler;
+        // create the new procedure handler
+        return new DataStreamTransactionHandler(newDsKey, newDsInfo, foiIdMap, rootHandler);
+    }
+    
+    
+    public synchronized boolean deleteDataStream(String outputName)
+    {
+        Asserts.checkNotNullOrEmpty(outputName, "outputName");
+        disableDataStream(outputName);
+        
+        var isDeleted = getDataStreamStore().removeAllVersions(procUID, outputName) > 0;
+        
+        if (isDeleted)
+            getEventPublisher().publish(new DataStreamRemovedEvent(procUID, outputName));
+        
+        return isDeleted;
     }
     
     
@@ -346,45 +286,29 @@ public class ProcedureTransactionHandler
     }
     
     
-    public boolean deleteDataStream(String outputName)
-    {
-        Asserts.checkNotNullOrEmpty(outputName, "outputName");
-        checkInitialized();
-        
-        IDataStreamStore dataStreamStore = db.getDataStreamStore();
-        var isDeleted = dataStreamStore.removeAllVersions(procUID, outputName) > 0;
-        
-        if (isDeleted)
-            eventPublisher.publish(new DataStreamRemovedEvent(procUID, outputName));
-        
-        return isDeleted;
-    }
-    
-    
     /*
      * FOI helper methods
      */    
     
-    public boolean addOrUpdateFoi(IGeoFeature foi) throws DataStoreException
+    public synchronized FeatureKey addOrUpdateFoi(IGeoFeature foi) throws DataStoreException
     {
         DataStoreUtils.checkFeatureObject(foi);
-        checkInitialized();
         
         var uid = foi.getUniqueIdentifier();
         boolean isNew = true;
         
-        FeatureKey fk = db.getFoiStore().getCurrentVersionKey(uid);
+        FeatureKey fk = rootHandler.db.getFoiStore().getCurrentVersionKey(uid);
         
         // store feature description if none was found
         if (fk == null)
-            fk = db.getFoiStore().add(foi);
+            fk = getFoiStore().add(foi);
         
         // otherwise add it only if its newer than the one already in storage
         else
         {
             var validTime = foi instanceof ITemporalFeature ? ((ITemporalFeature)foi).getValidTime() : null;
             if (validTime != null && fk.getValidStartTime().isBefore(validTime.begin()))
-                fk = db.getFoiStore().add(foi);
+                fk = getFoiStore().add(foi);
             else
                 isNew = false;
         }
@@ -400,30 +324,72 @@ public class ProcedureTransactionHandler
                 Instant.now()));
         }
         
-        return isNew;
+        return fk;
     }
     
     
-    protected void checkInitialized()
+    protected IProcedureStore getProcedureStore()
     {
-        Asserts.checkState(internalID > 0 && procUID != null, "procedure handler is not initialized");
+        return rootHandler.db.getProcedureStore();
     }
     
     
-    public long getInternalID()
+    protected IDataStreamStore getDataStreamStore()
     {
-        return internalID;
+        return rootHandler.db.getDataStreamStore();
+    }
+    
+    
+    protected IFoiStore getFoiStore()
+    {
+        return rootHandler.db.getFoiStore();
+    }
+    
+    
+    protected IEventPublisher getEventPublisher()
+    {
+        var eventSrcInfo = EventUtils.getProcedureEventSourceInfo(parentGroupUID, procUID);
+        return rootHandler.eventBus.getPublisher(eventSrcInfo);
+    }
+    
+    
+    protected IEventPublisher getParentPublisher()
+    {
+        if (parentGroupUID != null)
+        {
+            var eventSrcInfo = EventUtils.getProcedureEventSourceInfo(parentGroupUID, procUID);
+            return rootHandler.eventBus.getPublisher(eventSrcInfo);
+        }
+        
+        return rootHandler.eventBus.getPublisher(ISensorHub.EVENT_SOURCE_INFO);
+    }
+    
+    
+    protected void checkParent()
+    {
+        if (parentGroupUID == null)
+        {
+            var parentID = getProcedureStore().getParent(procKey.getInternalID());
+            if (parentID > 0)
+                parentGroupUID = getProcedureStore().getCurrentVersion(parentID).getUniqueIdentifier();
+        }
+    }
+    
+    
+    protected ProcedureTransactionHandler createMemberProcedureHandler(FeatureKey memberKey, String memberUID)
+    {
+        return new ProcedureTransactionHandler(memberKey, memberUID, procUID, rootHandler);
+    }
+    
+    
+    public FeatureKey getProcedureKey()
+    {
+        return procKey;
     }
 
 
-    protected String getParentGroupUID()
+    public boolean isNew()
     {
-        return parentGroupUID;
-    }
-
-
-    protected void setParentGroupUID(String parentGroupUID)
-    {
-        this.parentGroupUID = parentGroupUID;
+        return newlyCreated;
     }
 }

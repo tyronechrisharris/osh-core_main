@@ -17,6 +17,7 @@ package org.sensorhub.impl.procedure;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -26,9 +27,11 @@ import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureStateDatabase;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
+import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.database.obs.ProcedureObsEventDatabase;
 import org.sensorhub.impl.database.obs.ProcedureObsEventDatabaseConfig;
@@ -90,11 +93,63 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             throw new IllegalStateException("Error initializing procedure state database", e);
         }
     }
-    
-    
-    protected ProcedureDriverTransactionHandler createDriverHandler(IProcedureDriver proc)
+
+
+    public synchronized CompletableFuture<Boolean> register(IProcedureDriver driver)
     {
-        var procUID = proc.getUniqueIdentifier();
+        Asserts.checkNotNull(driver, IProcedureDriver.class);
+        String procUID = OshAsserts.checkValidUID(driver.getUniqueIdentifier());
+        log.debug("Registering procedure {}", procUID);
+        
+        // if member of a group, parent should have been registered already
+        // so register it as member of the group
+        if (driver.getParentGroupUID() != null)
+        {
+            // get parent handler and register as member
+            var parentHandler = getDriverHandler(driver.getParentGroupUID());
+            return parentHandler.registerMember(driver);
+        }
+        
+        // add or replace handler for this procedure
+        return CompletableFuture.supplyAsync(() -> {
+            
+            var oldHandler = driverHandlers.remove(procUID);
+            var isNew = oldHandler == null;
+            if (!isNew)
+            {
+                IProcedureDriver registeredDriver = oldHandler.driver;
+                if (registeredDriver != null && registeredDriver != driver)
+                    throw new IllegalArgumentException("A procedure with UID " + procUID + " is already registered");
+                
+                // cleanup previous handler
+                oldHandler.doUnregister(false);
+            }
+                
+            DefaultProcedureRegistry.log.info("Registering procedure {}", driver.getUniqueIdentifier());
+            var db = getDatabaseForDriver(driver);
+            var baseHandler = new ProcedureRegistryTransactionHandler(getParentHub().getEventBus(), db);
+            
+            // create or update entry in DB
+            try
+            {
+                var proc = new ProcedureWrapper(driver.getCurrentDescription());
+                var newHandler = (ProcedureDriverTransactionHandler)baseHandler.addOrUpdateProcedure(proc);
+                newHandler.doFinishRegister(driver);
+                driverHandlers.put(procUID,  newHandler);
+            }
+            catch (DataStoreException e)
+            {
+                throw new CompletionException("Error registering procedure " + procUID, e);
+            }
+            
+            return isNew;
+        });
+    }
+    
+    
+    protected IProcedureObsDatabase getDatabaseForDriver(IProcedureDriver driver)
+    {
+        var procUID = driver.getUniqueIdentifier();
         
         // get DB handling this procedure
         // this call with return the dedicated DB if available, or the default state DB
@@ -105,45 +160,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             throw new IllegalStateException("Another database already contains a procedure with UID " + procUID);
         log.info("Procedure " + procUID + " handled by DB #" + db.getDatabaseNum());
         
-        return new ProcedureDriverTransactionHandler(getParentHub(), db);
-    }
-
-
-    public CompletableFuture<Boolean> register(IProcedureDriver proc)
-    {
-        Asserts.checkNotNull(proc, IProcedureDriver.class);
-        String procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
-        log.debug("Registering procedure {}", procUID);
-        
-        // if member of a group, parent should have been registered already
-        // so register it as member of the group
-        if (proc.getParentGroupUID() != null)
-        {
-            // get parent handler and register as member
-            var parentHandler = getDriverHandler(proc.getParentGroupUID());
-            return parentHandler.registerMember(proc);
-        }
-        
-        // create listener or simply reconnect to it
-        // use compute() to do it atomically
-        var handler = driverHandlers.compute(procUID, (k,v) -> {
-            if (v != null)
-            {
-                IProcedureDriver liveProc = v.driverRef.get();
-                if (liveProc != null && liveProc != proc)
-                    throw new IllegalArgumentException("A procedure with UID " + procUID + " is already registered");
-                return v;
-            }
-            else
-                return createDriverHandler(proc);
-        });
-        
-        // register procedure
-        // handler takes care of double registrations
-        synchronized (handler)
-        {
-            return handler.register(proc);
-        }
+        return db;
     }
     
     
@@ -171,9 +188,10 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
         
         var handler = driverHandlers.remove(procUID);
         if (handler != null)
-            return handler.unregister(proc);
-        else
-            return CompletableFuture.completedFuture(null);
+            handler.doUnregister(true);
+        DefaultProcedureRegistry.log.debug("Procedure {} disconnected", procUID);
+        
+        return CompletableFuture.completedFuture(null);
     }
     
     
@@ -214,7 +232,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     @SuppressWarnings("unchecked")
     public <T extends IProcedureDriver> WeakReference<T> getProcedure(String uid)
     {
-        return (WeakReference<T>)getDriverHandler(uid).driverRef;
+        return (WeakReference<T>)getDriverHandler(uid).driver;
     }
 
 

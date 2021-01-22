@@ -14,19 +14,17 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
-import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
@@ -34,81 +32,45 @@ import org.sensorhub.api.obs.DataStreamAddedEvent;
 import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.procedure.ProcedureEvent;
-import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.utils.OshAsserts;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 
 
+/* 
+ * Extension of procedure transaction handler with utility methods for
+ * registering/unregistering procedure drivers recursively.
+ * This class is used internally by the procedure registry.
+ */
 public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandler implements IEventListener
 {
-    protected WeakReference<IProcedureDriver> driverRef; // reference to live procedure
+    protected IProcedureDriver driver; // reference to live procedure
+    protected Map<String, DataStreamTransactionHandler> dataStreamHandlers = new HashMap<>();
+    protected Map<String, DataStreamTransactionHandler> commandStreamHandlers = new HashMap<>();
+    protected Map<String, ProcedureDriverTransactionHandler> memberHandlers = new HashMap<>();
     
-    protected Map<String, DataStreamTransactionHandler> dataStreamHandlers = new ConcurrentHashMap<>();
-    protected Map<String, ProcedureDriverTransactionHandler> memberHandlers = new ConcurrentHashMap<>();
     
-    
-    protected ProcedureDriverTransactionHandler(ISensorHub hub, IProcedureObsDatabase db)
+    protected ProcedureDriverTransactionHandler(FeatureKey procKey, String procUID, String parentGroupUID, ProcedureObsTransactionHandler rootHandler)
     {
-        super(hub, db);
-    }
-        
-
-    @Override    
-    protected IEventPublisher getEventPublisher()
-    {
-        // connect to event bus if needed
-        if (eventPublisher == null)
-        {
-            var proc = driverRef.get();
-            if (proc != null)
-            {
-                var eventSrcInfo = proc.getEventSourceInfo();
-                eventPublisher = hub.getEventBus().getPublisher(eventSrcInfo);
-            }
-        }
-        
-        return eventPublisher;
+        super(procKey, procUID, parentGroupUID, rootHandler);
     }
     
     
-    protected CompletableFuture<Boolean> register(IProcedureDriver proc)
+    protected void doFinishRegister(IProcedureDriver driver) throws DataStoreException
     {
-        return CompletableFuture.supplyAsync(() -> {
-            try { return doRegister(proc); }
-            catch (DataStoreException e) { throw new CompletionException(e); }
-        });
-    }
-    
-    
-    protected boolean doRegister(IProcedureDriver proc) throws DataStoreException
-    {
-        return doRegister(0L, proc);
-    }
-    
-    
-    protected boolean doRegister(long parentID, IProcedureDriver proc) throws DataStoreException
-    {
-        Asserts.checkNotNull(proc, IProcedureDriver.class);
-        OshAsserts.checkValidUID(proc.getUniqueIdentifier());
-        DefaultProcedureRegistry.log.info("Registering procedure {}", proc.getUniqueIdentifier());
+        Asserts.checkNotNull(driver, IProcedureDriver.class);
+        this.driver = driver;
         
-        this.driverRef = new WeakReference<>(Asserts.checkNotNull(proc, IProcedureDriver.class));
-        
-        // create or update entry in DB
-        var isNew = createOrUpdate(parentID, new ProcedureWrapper(proc.getCurrentDescription()));
+        // enable and start listening to driver events
         enable();
-        
-        // register to receive driver events
-        proc.registerListener(this);
-        
+        driver.registerListener(this);
+                
         // if data producer, register fois and datastreams
-        if (proc instanceof IDataProducer)
+        if (driver instanceof IDataProducer)
         {
-            var dataSource = (IDataProducer)proc;
+            var dataSource = (IDataProducer)driver;
             
             for (var foi: dataSource.getCurrentFeaturesOfInterest().values())
                 doRegister(foi);
@@ -118,35 +80,68 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         }
         
         // if command sink, register command streams
-        if (proc instanceof ICommandReceiver)
+        if (driver instanceof ICommandReceiver)
         {
-            var taskableSource = (ICommandReceiver)proc;
+            var taskableSource = (ICommandReceiver)driver;
             for (var commanStream: taskableSource.getCommandInputs().values())
                 doRegister(commanStream);            
         }
         
         // if group, also register members recursively
-        if (proc instanceof IProcedureGroupDriver)
+        if (driver instanceof IProcedureGroupDriver)
         {
-            for (var member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
+            for (var member: ((IProcedureGroupDriver<?>)driver).getMembers().values())
                 doRegisterMember(member);
         }
 
         if (DefaultProcedureRegistry.log.isInfoEnabled())
         {
-            var msg = isNew ?
-                String.format("New procedure registered: %s", procUID) :
-                String.format("Existing procedure reconnected: %s", procUID);
-            
+            var msg = String.format("Procedure registered: %s", procUID);            
             DefaultProcedureRegistry.log.info("{} ({} FOIs, {} datastreams, {} command inputs, {} members)",
                     msg,
-                    proc instanceof IDataProducer ? ((IDataProducer)proc).getCurrentFeaturesOfInterest().size() : 0,
-                    proc instanceof IDataProducer ? ((IDataProducer)proc).getOutputs().size() : 0,
-                    proc instanceof ICommandReceiver ? ((ICommandReceiver)proc).getCommandInputs().size() : 0,
-                    proc instanceof IProcedureGroupDriver ? ((IProcedureGroupDriver<?>)proc).getMembers().size() : 0);
+                    driver instanceof IDataProducer ? ((IDataProducer)driver).getCurrentFeaturesOfInterest().size() : 0,
+                    driver instanceof IDataProducer ? ((IDataProducer)driver).getOutputs().size() : 0,
+                    driver instanceof ICommandReceiver ? ((ICommandReceiver)driver).getCommandInputs().size() : 0,
+                    driver instanceof IProcedureGroupDriver ? ((IProcedureGroupDriver<?>)driver).getMembers().size() : 0);
         }
+    }
+    
+    
+    protected void doUnregister(boolean sendEvents)
+    {
+        driver.unregisterListener(this);
+                        
+        // unregister members recursively
+        for (var memberHandler: memberHandlers.values())
+            memberHandler.doUnregister(sendEvents);
+        memberHandlers.clear();
         
-        return isNew;
+        // if data producer, unregister datastreams
+        if (driver instanceof IDataProducer)
+        {
+            for (var dsHandler: dataStreamHandlers.values())
+            {
+                var outputName = dsHandler.getDataStreamInfo().getOutputName();
+                var output = ((IDataProducer)driver).getOutputs().get(outputName);
+                if (output != null)
+                    output.unregisterListener(dsHandler);
+                
+                if (sendEvents)
+                    disableDataStream(outputName);
+            }
+        }
+        dataStreamHandlers.clear();
+        
+        // if taskable procedure, unregister command streams
+        if (driver instanceof ICommandReceiver)
+        {
+            // TODO cleanup command inputs          
+        }
+        commandStreamHandlers.clear();
+        
+        if (sendEvents)
+            disable();
+        driver = null;
     }
     
     
@@ -159,60 +154,51 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
     
     
-    protected boolean doRegisterMember(IProcedureDriver proc) throws DataStoreException
+    protected synchronized boolean doRegisterMember(IProcedureDriver driver) throws DataStoreException
     {
-        Asserts.checkNotNull(proc, IProcedureDriver.class);
-        OshAsserts.checkValidUID(proc.getUniqueIdentifier());
+        Asserts.checkNotNull(driver, IProcedureDriver.class);
+        var uid = OshAsserts.checkValidUID(driver.getUniqueIdentifier());
+        boolean isNew = false;
         
-        var memberHandler = memberHandlers.computeIfAbsent(proc.getUniqueIdentifier(), k -> {
-            var newHandler = new ProcedureDriverTransactionHandler(hub, db);
-            newHandler.parentGroupUID = procUID;
-            return newHandler;
+        var proc = new ProcedureWrapper(driver.getCurrentDescription()); 
+        
+        // add or update existing procedure entry
+        var newMemberHandler = (ProcedureDriverTransactionHandler)addOrUpdateMember(proc);
+        
+        // replace and cleanup old handler
+        var oldMemberHandler = memberHandlers.get(uid);
+        if (oldMemberHandler != null)
+        {
+            driver.unregisterListener(oldMemberHandler);
+            isNew = false;
+        }
+        memberHandlers.put(uid, newMemberHandler);
+
+        // register/update driver sub-components
+        newMemberHandler.doFinishRegister(driver);
+        return isNew;
+    }
+    
+    
+    protected CompletableFuture<Boolean> unregisterMember(IProcedureDriver proc)
+    {
+        return CompletableFuture.supplyAsync(() -> {
+            try { return doUnregisterMember(proc); }
+            catch (DataStoreException e) { throw new CompletionException(e); }
         });
-        
-        return memberHandler.doRegister(internalID, proc);
-    }
-
-
-    protected CompletableFuture<Void> unregister(IProcedureDriver proc)
-    {
-        doUnregister(proc);      
-        return CompletableFuture.completedFuture(null);
     }
     
     
-    protected void doUnregister(IProcedureDriver proc)
+    protected synchronized boolean doUnregisterMember(IProcedureDriver driver) throws DataStoreException
     {
-        Asserts.checkNotNull(proc, IProcedureDriver.class);
+        Asserts.checkNotNull(driver, IProcedureDriver.class);
+        var uid = OshAsserts.checkValidUID(driver.getUniqueIdentifier());
         
-        proc.unregisterListener(this);
-        driverRef.clear();
-        DefaultProcedureRegistry.log.debug("Procedure {} disconnected", procUID);
+        var memberHandler = memberHandlers.remove(uid);
+        if (memberHandler != null)
+            memberHandler.doUnregister(true);
         
-        // if data producer, unregister datastreams
-        if (proc instanceof IDataProducer)
-        {
-            var dataSource = (IDataProducer)proc;
-            for (var dataStream: dataSource.getOutputs().values())
-                doUnregister(dataStream);
-        }
-        
-        // if command sink, unregister command streams
-        if (proc instanceof ICommandReceiver)
-        {
-            var taskableSource = (ICommandReceiver)proc;
-            for (var commanStream: taskableSource.getCommandInputs().values())
-                doUnregister(commanStream);            
-        }
-        
-        // if group, also unregister members recursively
-        if (proc instanceof IProcedureGroupDriver)
-        {
-            for (var member: ((IProcedureGroupDriver<?>)proc).getMembers().values())
-                doUnregister(member);
-        }
-        
-        disable();
+        return true;
     }
 
 
@@ -225,34 +211,30 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
     
     
-    protected boolean doRegister(IStreamingDataInterface output) throws DataStoreException
+    protected synchronized boolean doRegister(IStreamingDataInterface output) throws DataStoreException
     {
         Asserts.checkNotNull(output, IStreamingDataInterface.class);
+        boolean isNew = true;
         
-        // get or create datastream handler
-        var dsHandler = dataStreamHandlers.computeIfAbsent(output.getName(), k -> {
-            var newHandler = new DataStreamTransactionHandler(hub, db.getObservationStore(), foiIdMap);
-            newHandler.parentGroupUID = parentGroupUID;
-            return newHandler;
-        });
-        
-        // add or update metadata
-        var isNew = dsHandler.createOrUpdate(
-            new ProcedureId(internalID, procUID),
+        // add or update existing datastream entry
+        var newDsHandler = addOrUpdateDataStream(
             output.getName(),
             output.getRecordDescription(),
             output.getRecommendedEncoding());
-        
-        // notify if new
-        if (isNew)
+        newDsHandler.parentGroupUID = this.parentGroupUID;
+            
+        // replace and cleanup old handler
+        var oldDsHandler = dataStreamHandlers.get(output.getName());
+        if (oldDsHandler != null)
         {
-            getEventPublisher().publish(
-                new DataStreamAddedEvent(procUID, output.getName()));
+            output.unregisterListener(oldDsHandler);
+            isNew = false;
         }
+        dataStreamHandlers.put(output.getName(), newDsHandler);
         
         // enable and start forwarding events
         enableDataStream(output.getName());
-        output.registerListener(dsHandler);
+        output.registerListener(newDsHandler);
         
         return isNew;
     }
@@ -265,7 +247,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
     
     
-    protected void doUnregister(IStreamingDataInterface output)
+    protected synchronized void doUnregister(IStreamingDataInterface output)
     {
         Asserts.checkNotNull(output, IStreamingDataInterface.class);
         
@@ -279,45 +261,30 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     
     
     @Override
-    public boolean deleteDataStream(String outputName)
+    public synchronized boolean deleteDataStream(String outputName)
     {
-        var driver = driverRef.get();
-        if (driver != null)
+        if (driver != null && driver instanceof IDataProducer)
         {
             var output = ((IDataProducer)driver).getOutputs().get(outputName);
             if (output != null)
                 doUnregister(output);
-        }        
+        }
         
         return super.deleteDataStream(outputName);
     }
-    
-    
-    @Override
-    public void deleteMember(String uid)
-    {
-        checkInitialized();
-        
-        var memberHandler = memberHandlers.remove(uid);
-        if (memberHandler != null)
-        {
-            memberHandler.parentGroupUID = procUID;
-            memberHandler.delete();
-        }
-    }
 
 
-    protected CompletableFuture<Boolean> register(IStreamingControlInterface controlStream)
+    protected CompletableFuture<Boolean> register(IStreamingControlInterface commandStream)
     {
-        Asserts.checkNotNull(controlStream, IStreamingControlInterface.class);
+        Asserts.checkNotNull(commandStream, IStreamingControlInterface.class);
         
         return CompletableFuture.supplyAsync(() -> {
-            return doRegister(controlStream);
+            return doRegister(commandStream);
         });
     }
     
     
-    protected boolean doRegister(IStreamingControlInterface commandStream)
+    protected synchronized boolean doRegister(IStreamingControlInterface commandStream)
     {
         DefaultProcedureRegistry.log.warn("Command streams register not implemented yet");
         return true;
@@ -326,14 +293,15 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
 
     protected CompletableFuture<Void> unregister(IStreamingControlInterface commandStream)
     {
-        Asserts.checkNotNull(commandStream, IStreamingControlInterface.class);
         doUnregister(commandStream);
         return CompletableFuture.completedFuture(null);
     }
     
     
-    protected void doUnregister(IStreamingControlInterface proc)
+    protected synchronized void doUnregister(IStreamingControlInterface commandStream)
     {
+        Asserts.checkNotNull(commandStream, IStreamingControlInterface.class);
+        
         DefaultProcedureRegistry.log.warn("Command streams unregister not implemented yet");
     }
 
@@ -350,16 +318,10 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
     
     
-    protected boolean doRegister(IGeoFeature foi) throws DataStoreException
+    protected synchronized boolean doRegister(IGeoFeature foi) throws DataStoreException
     {
-        return addOrUpdateFoi(foi);
-    }
-    
-    
-    @Override
-    public ProcedureDriverTransactionHandler addOrUpdateMember(IProcedureWithDesc proc) throws DataStoreException
-    {
-        throw new UnsupportedOperationException();
+        addOrUpdateFoi(foi);
+        return false;
     }
 
 
@@ -369,12 +331,11 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         if (e instanceof ProcedureEvent)
         {
             // register item if needed
-            var proc = driverRef.get();
-            if (proc != null && proc.isEnabled())
+            if (driver != null && driver.isEnabled())
             {
-                if (proc instanceof IDataProducer)
+                if (driver instanceof IDataProducer)
                 {
-                    var outputs = ((IDataProducer)proc).getOutputs();
+                    var outputs = ((IDataProducer)driver).getOutputs();
                     
                     if (e instanceof DataStreamAddedEvent || e instanceof DataStreamChangedEvent)
                         register(outputs.get(((DataStreamAddedEvent)e).getOutputName()));
@@ -389,8 +350,21 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         {
             if (((FoiEvent) e).getFoi() != null)
                 register(((FoiEvent) e).getFoi());
-        }
-        
+        }        
+    }
+    
+
+    @Override    
+    protected IEventPublisher getEventPublisher()
+    {
+        var eventSrcInfo = driver.getEventSourceInfo();
+        return rootHandler.eventBus.getPublisher(eventSrcInfo);
+    }
+    
+    
+    protected ProcedureDriverTransactionHandler createMemberProcedureHandler(FeatureKey memberKey, String memberUID)
+    {
+        return new ProcedureDriverTransactionHandler(memberKey, memberUID, procUID, rootHandler);
     }
 
 }

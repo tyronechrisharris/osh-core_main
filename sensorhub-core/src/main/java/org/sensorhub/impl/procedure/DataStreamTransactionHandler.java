@@ -14,33 +14,26 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
-import java.time.Instant;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.data.DataEvent;
-import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
-import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.feature.FeatureId;
+import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.obs.DataStreamInfo;
+import org.sensorhub.api.obs.DataStreamRemovedEvent;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
-import org.sensorhub.api.procedure.ProcedureId;
-import org.sensorhub.api.utils.OshAsserts;
-import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
-import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -58,126 +51,63 @@ import net.opengis.swe.v20.DataEncoding;
  */
 public class DataStreamTransactionHandler implements IEventListener
 {
-    final protected ISensorHub hub;
-    final protected IObsStore obsStore;
-    
-    protected long dataStreamID;
-    protected String procUID;
-    protected String outputName;
+    protected final ProcedureObsTransactionHandler rootHandler;
+    protected final DataStreamKey dsKey;
+    protected IDataStreamInfo dsInfo;
     protected String parentGroupUID;
     protected IEventPublisher eventPublisher;
     protected ScalarIndexer timeStampIndexer;
-    protected Map<String, FeatureId> featureIdMap;
+    protected Map<String, FeatureId> foiIdMap;
     
     
-    public DataStreamTransactionHandler(ISensorHub hub, IObsStore obsStore)
+    public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, ProcedureObsTransactionHandler rootHandler)
     {
-        this(hub, obsStore, Collections.emptyMap());
+        this(dsKey, dsInfo, new HashMap<>(), rootHandler);
     }
     
     
-    public DataStreamTransactionHandler(ISensorHub hub, IObsStore obsStore, Map<String, FeatureId> featureIdMap)
+    public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, Map<String, FeatureId> foiIdMap, ProcedureObsTransactionHandler rootHandler)
     {
-        this.hub = Asserts.checkNotNull(hub, ISensorHub.class);
-        this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);
-        this.featureIdMap = Asserts.checkNotNull(featureIdMap, "featureIdMap");
-    }    
-    
-    
-    /*
-     * Non-static methods to be used when caching an instance of this class
-     */    
-    
-    protected IEventPublisher getEventPublisher()
-    {
-        if (eventPublisher == null)
-        {
-            var eventSrcInfo = EventUtils.getOutputEventSourceInfo(parentGroupUID, procUID, outputName);
-            eventPublisher = hub.getEventBus().getPublisher(eventSrcInfo);
-        }
-        
-        return eventPublisher;
+        this.dsKey = dsKey;
+        this.dsInfo = dsInfo;
+        this.timeStampIndexer = SWEHelper.getTimeStampIndexer(dsInfo.getRecordStructure());
+        this.rootHandler = rootHandler;
+        this.foiIdMap = Asserts.checkNotNull(foiIdMap, "foiIdMap");
     }
     
     
-    /**
-     * Init handler with known datastream info
-     * @param dsID
-     * @param dsInfo
-     */
-    public void init(long dsID, IDataStreamInfo dsInfo)
+    public boolean update(DataComponent dataStruct, DataEncoding dataEncoding)
     {
-        // cache info in this class
-        dataStreamID = dsID;
-        procUID = dsInfo.getProcedureID().getUniqueID();
-        outputName = dsInfo.getOutputName();
-        timeStampIndexer = SWEHelper.getTimeStampIndexer(dsInfo.getRecordStructure());
-    }
-    
-    
-    /**
-     * Connect to an existing datastream with the specified internal ID
-     * @param id Datastream internal ID
-     * @return True if datastream was found, false otherwise 
-     */
-    public boolean connect(long id)
-    {
-        OshAsserts.checkValidInternalID(id);
+        var newDsInfo = new DataStreamInfo.Builder()
+            .withProcedure(dsInfo.getProcedureID())
+            .withRecordDescription(dataStruct)
+            .withRecordEncoding(dataEncoding)
+            .build();
         
-        // check if it was already initialized
-        if (this.dataStreamID != 0)
-        {
-            if (this.dataStreamID != id)
-                throw new IllegalStateException("Internal IDs don't match");
-            return true;
-        }
-        
-        // load datastream info from DB
-        var dsInfo = obsStore.getDataStreams().get(new DataStreamKey(id));
-        if (dsInfo == null)
+        var oldDsInfo = getDataStreamStore().replace(dsKey, newDsInfo);
+        if (oldDsInfo == null)
             return false;
         
-        init(id, dsInfo);
+        this.dsInfo = newDsInfo;
+        getEventPublisher().publish(new DataStreamChangedEvent(
+            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getOutputName()));
+        
         return true;
     }
     
     
-    /**
-     * Connect to an existing datastream with the specified procedure and output.
-     * This connects to the currently valid datastream attached to the given output.
-     * @param procUID Procedure unique ID
-     * @param outputName Output name
-     * @return True if datastream was found, false otherwise 
-     */
-    public boolean connect(String procUID, String outputName)
+    public boolean delete()
     {
-        OshAsserts.checkValidUID(procUID);
-        Asserts.checkNotNullOrEmpty(outputName, "outputName");
-        
-        // load datastream info from DB
-        var dsEntry = obsStore.getDataStreams().getLatestVersionEntry(procUID, outputName);
-        if (dsEntry == null)
+        var oldDsKey = getDataStreamStore().remove(dsKey);
+        if (oldDsKey == null)
             return false;
-        
-        // check if it was already initialized
-        if (this.dataStreamID != 0)
-        {
-            if (this.dataStreamID != dsEntry.getKey().getInternalID())
-                throw new IllegalStateException("Internal IDs don't match");
-            return true;
-        }
-        
-        // cache info in this class
-        init(dsEntry.getKey().getInternalID(), dsEntry.getValue());
+                
+        getEventPublisher().publish(new DataStreamRemovedEvent(
+            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getOutputName()));
+                
         return true;
-    }
-    
-    
-    public void update(IDataStreamInfo dsInfo)
-    {
-        checkInitialized();
-        
-        // detect if structure has really changed
     }
     
     
@@ -187,7 +117,10 @@ public class DataStreamTransactionHandler implements IEventListener
         //Asserts.checkNotNull(rec, DataBlock.class);
         
         addObs(new DataEvent(
-            System.currentTimeMillis(), procUID, outputName, rec));
+            System.currentTimeMillis(),
+            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getOutputName(),
+            rec));
     }
     
     
@@ -205,7 +138,7 @@ public class DataStreamTransactionHandler implements IEventListener
         String foiUID = e.getFoiUID();
         if (foiUID != null)
         {
-            var fid = featureIdMap.get(foiUID);
+            var fid = foiIdMap.get(foiUID);
             if (fid != null)
                 foiId = fid;
             else
@@ -213,9 +146,9 @@ public class DataStreamTransactionHandler implements IEventListener
         }
         
         // else use the single FOI if there is one
-        else if (featureIdMap.size() == 1)
+        else if (foiIdMap.size() == 1)
         {
-            foiId = featureIdMap.values().iterator().next();
+            foiId = foiIdMap.values().iterator().next();
         }
         
         // else don't associate to any FOI
@@ -234,14 +167,14 @@ public class DataStreamTransactionHandler implements IEventListener
         
             // store record with proper key
             ObsData obs = new ObsData.Builder()
-                .withDataStream(dataStreamID)
+                .withDataStream(dsKey.getInternalID())
                 .withFoi(foiId)
                 .withPhenomenonTime(SWEDataUtils.toInstant(time))
                 .withResult(record)
                 .build();
             
             // add to store
-            obsStore.add(obs);
+            rootHandler.db.getObservationStore().add(obs);
         }
     }
     
@@ -253,13 +186,16 @@ public class DataStreamTransactionHandler implements IEventListener
         //checkInitialized();
         
         // first send to event bus to minimize latency
+        var foiID = obs.getFoiID();
         getEventPublisher().publish(new DataEvent(
-            System.currentTimeMillis(), procUID, outputName,
-            obs.getFoiID() == FeatureId.NULL_FEATURE ? null : obs.getFoiID().getUniqueID(),
+            System.currentTimeMillis(),
+            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getOutputName(),
+            foiID == null || foiID == FeatureId.NULL_FEATURE ? null : foiID.getUniqueID(),
             obs.getResult()));        
         
         // add to store
-        obsStore.add(obs);
+        rootHandler.db.getObservationStore().add(obs);
     }
 
 
@@ -272,91 +208,44 @@ public class DataStreamTransactionHandler implements IEventListener
         }
     }
         
-
-    /*
-     * Methods called internally by ProcedureTransactionHandler
-     */
-    
-    protected boolean createOrUpdate(ProcedureId procId, String outputName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
+        
+    protected synchronized IEventPublisher getEventPublisher()
     {
-        Asserts.checkNotNullOrEmpty(outputName, "outputName");
-        Asserts.checkNotNull(dataStruct, DataComponent.class);
-        Asserts.checkNotNull(dataEncoding, DataEncoding.class);
-        
-        if (dataStruct.getName() == null)
-            dataStruct.setName(outputName);
-        else if (!outputName.equals(dataStruct.getName()))
-            throw new IllegalStateException("Inconsistent output name");
-        
-        // try to retrieve existing data stream
-        IDataStreamStore dataStreamStore = obsStore.getDataStreams();
-        Entry<DataStreamKey, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procId.getUniqueID(), outputName);
-        DataStreamKey newDsKey;
-        IDataStreamInfo newDsInfo;
-        boolean isNew = true;
-        
-        if (dsEntry == null)
+        // create event publisher if needed
+        if (eventPublisher == null)
         {
-            // create new data stream
-            newDsInfo = new DataStreamInfo.Builder()
-                .withProcedure(procId)
-                .withRecordDescription(dataStruct)
-                .withRecordEncoding(dataEncoding)
-                .build();
-            newDsKey = dataStreamStore.add(newDsInfo);
+            var procID = dsInfo.getProcedureID();
+            
+            // fetch parent UID if needed
+            if (parentGroupUID == null)
+            {
+                var parentID = rootHandler.db.getProcedureStore().getParent(procID.getInternalID());
+                if (parentID > 0)
+                    parentGroupUID = rootHandler.db.getProcedureStore().getCurrentVersion(parentID).getUniqueIdentifier();
+            }
+            
+            var eventSrcInfo = EventUtils.getOutputEventSourceInfo(parentGroupUID, procID.getUniqueID(), dsInfo.getOutputName());
+            eventPublisher = rootHandler.eventBus.getPublisher(eventSrcInfo);
         }
-        else
-        {
-            // if an output with the same name already existed
-            newDsKey = dsEntry.getKey();
-            IDataStreamInfo oldDsInfo = dsEntry.getValue();
-            
-            newDsInfo = new DataStreamInfo.Builder()
-                .withProcedure(procId)
-                .withRecordDescription(dataStruct)
-                .withRecordEncoding(dataEncoding)
-                .withValidTime(TimeExtent.endNow(Instant.now()))
-                .build();
-            
-            // 2 cases
-            // if structure has changed, create a new datastream
-            if (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), newDsInfo.getRecordStructure()))
-                newDsKey = dataStreamStore.add(newDsInfo);
-            
-            // if something else has changed, update existing datastream
-            else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), newDsInfo.getRecordStructure()))
-                dataStreamStore.put(newDsKey, newDsInfo); 
-            
-            // else don't update and return existing key
-            else
-                isNew = false;
-        }
-        
-        init(newDsKey.getInternalID(), newDsInfo);
-        return isNew;
+         
+        return eventPublisher;
     }
     
     
-    protected void checkInitialized()
+    protected IDataStreamStore getDataStreamStore()
     {
-        Asserts.checkState(dataStreamID > 0 && procUID != null && outputName != null, "datastream handler is not initialized");
+        return rootHandler.db.getDataStreamStore();
     }
     
     
-    public long getDataStreamID()
+    public DataStreamKey getDataStreamKey()
     {
-        return dataStreamID;
+        return dsKey;
     }
-
-
-    protected String getParentGroupUID()
+    
+    
+    public IDataStreamInfo getDataStreamInfo()
     {
-        return parentGroupUID;
-    }
-
-
-    protected void setParentGroupUID(String parentGroupUID)
-    {
-        this.parentGroupUID = parentGroupUID;
+        return dsInfo;
     }
 }

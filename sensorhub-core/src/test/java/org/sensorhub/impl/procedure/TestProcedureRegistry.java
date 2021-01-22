@@ -401,7 +401,7 @@ public class TestProcedureRegistry
         assertEquals(sensor.getOutputs().size()*2+2, receivedEvents.size());
         
         
-        // register again and check that we receive only "enabled" event
+        // register again and check that we receive proper events
         receivedEvents.clear();
         registry.register(sensor).join();
         Thread.sleep(100);
@@ -454,12 +454,11 @@ public class TestProcedureRegistry
         registry.register(sensor).join();
         Thread.sleep(100);
         
-        // unregister and check that we received "disabled" events
+        // unregister and check that we receive proper events
         receivedEvents.clear();
         registry.unregister(sensor).join();
         Thread.sleep(100);
         
-        // check that we receive only "enabled" event
         assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
             .filter(e -> e instanceof DataStreamDisabledEvent)
             .count());
