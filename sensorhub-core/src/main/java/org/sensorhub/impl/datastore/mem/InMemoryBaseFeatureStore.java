@@ -109,7 +109,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     public synchronized FeatureKey add(long parentID, T feature) throws DataStoreException
     {        
         var uid = DataStoreUtils.checkFeatureObject(feature);
-        DataStoreUtils.checkParentFeatureExists(this, parentID);
+        checkParentFeatureExists(parentID);
         
         var existingKey = uidMap.get(uid);
         FeatureKey newKey = generateKey(existingKey, feature);
@@ -131,6 +131,12 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         }
         
         return newKey;
+    }
+    
+    
+    protected void checkParentFeatureExists(long parentID) throws DataStoreException
+    {
+        DataStoreUtils.checkParentFeatureExists(this, parentID);
     }
     
     
@@ -259,19 +265,17 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     }
     
     
-    protected Stream<Entry<FeatureKey, T>> postFilterOnParents(Stream<Entry<FeatureKey, T>> resultStream, F parentFilter)
+    protected Stream<Entry<FeatureKey, T>> postFilterOnParents(Stream<Entry<FeatureKey, T>> resultStream, Stream<Long> parentIDStream)
     {
-        var parentIdStream = DataStoreUtils.selectFeatureIDs(this, parentFilter);
-        
         if (resultStream == null)
         {
-            return parentIdStream.flatMap(id -> getFeaturesByParent(id));
+            return parentIDStream.flatMap(id -> getFeaturesByParent(id));
         }
         else
         {
             // collect child ids from all selected parents
             var allIds = new HashSet<Long>();
-            parentIdStream.forEach(id -> {
+            parentIDStream.forEach(id -> {
                 allIds.addAll(parentChildMap.get(id));
             });
             

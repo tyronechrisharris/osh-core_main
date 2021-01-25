@@ -205,7 +205,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     public synchronized FeatureKey add(long parentID, V feature) throws DataStoreException
     {
         DataStoreUtils.checkFeatureObject(feature);
-        DataStoreUtils.checkParentFeatureExists(this, parentID);
+        checkParentFeatureExists(parentID);
         
         var existingKey = uidsIndex.get(feature.getUniqueIdentifier());
         var newKey = generateKey(parentID, existingKey, feature);                
@@ -213,6 +213,12 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         // add to store
         put(newKey, feature, existingKey == null, false);
         return newKey;       
+    }
+    
+    
+    protected void checkParentFeatureExists(long parentID) throws DataStoreException
+    {
+        DataStoreUtils.checkParentFeatureExists(this, parentID);
     }
     
     
@@ -430,12 +436,6 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         }
         
         return null;
-    }
-    
-    
-    protected Stream<Long> selectParentIDs(F parentFilter)
-    {
-        return DataStoreUtils.selectFeatureIDs(this, parentFilter);
     }
     
     

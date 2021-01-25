@@ -14,7 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.mem;
 
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
@@ -22,6 +24,8 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 
@@ -38,6 +42,7 @@ import org.vast.util.Asserts;
  */
 public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
+    IProcedureStore procStore;
     IObsStore obsStore;
     
     
@@ -54,20 +59,57 @@ public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IGeoFeature, FoiF
     
     
     @Override
+    protected void checkParentFeatureExists(long parentID) throws DataStoreException
+    {
+        if (procStore != null)
+            DataStoreUtils.checkParentFeatureExists(parentID, procStore, this);
+        else
+            DataStoreUtils.checkParentFeatureExists(parentID, this);
+    }
+    
+    
+    @Override
     protected Stream<Entry<FeatureKey, IGeoFeature>> getIndexedStream(FoiFilter filter)
     {
-        if (filter.getObservationFilter() != null)
+        var resultStream = super.getIndexedStream(filter);
+        
+        if (filter.getParentFilter() != null)
         {
-            var idStream = obsStore.selectObservedFois(filter.getObservationFilter());
-            return entryStream(idStream);
+            var parentIDStream = DataStoreUtils.selectProcedureIDs(procStore, filter.getParentFilter());
+            resultStream = postFilterOnParents(resultStream, parentIDStream);
         }
         
-        else if (filter.getSampledFeatureFilter() != null)
+        if (filter.getObservationFilter() != null)
+        {
+            var foiIDs = obsStore.selectObservedFois(filter.getObservationFilter())
+                .collect(Collectors.toSet());
+            
+            if (resultStream == null)
+            {            
+                resultStream = super.getIndexedStream(FoiFilter.Builder.from(filter)
+                    .withInternalIDs(foiIDs)
+                    .build());
+            }
+            else
+            {
+                resultStream = resultStream
+                    .filter(e -> foiIDs.contains(e.getKey().getInternalID()));
+            }
+        }
+        
+        if (filter.getSampledFeatureFilter() != null)
         {
             // TODO
         }
         
-        return super.getIndexedStream(filter);
+        return resultStream;
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procStore)
+    {
+        this.procStore = Asserts.checkNotNull(procStore, IProcedureStore.class);        
     }
     
 

@@ -18,6 +18,7 @@ import static org.junit.Assert.*;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -30,6 +31,7 @@ import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
+@Ignore
 public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDatabase>
 {
     protected static String PROC_UID_PREFIX = "urn:osh:test:sensor:";

@@ -9,17 +9,18 @@
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.h2.mvstore.MVStore;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 
@@ -35,6 +36,7 @@ import org.vast.util.Asserts;
  */
 public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
 {
+    IProcedureStore procStore;
     IObsStore obsStore;
     
     
@@ -62,43 +64,81 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
     }
     
     
-    /**
-     * Create a new feature store with the provided info
-     * @param mvStore MVStore instance where the maps will be created
-     * @param dataStoreInfo new data store info
-     * @return The new datastore instance 
-     */
-    public static MVFoiStoreImpl create(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
+    @Override
+    protected void checkParentFeatureExists(long parentID) throws DataStoreException
     {
-        H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
-        return (MVFoiStoreImpl)new MVFoiStoreImpl().init(mvStore, dataStoreInfo, null);
+        if (procStore != null)
+            DataStoreUtils.checkParentFeatureExists(parentID, procStore, this);
+        else
+            DataStoreUtils.checkParentFeatureExists(parentID, this);
     }
     
     
     @Override
     protected Stream<Entry<MVFeatureParentKey, IGeoFeature>> getIndexedStream(FoiFilter filter)
     {
-        if (((FoiFilter)filter).getObservationFilter() != null)
+        var resultStream = super.getIndexedStream(filter);
+        
+        if (filter.getParentFilter() != null)
         {
-            // handle case observation filter
-            ObsFilter obsFilter = ((FoiFilter)filter).getObservationFilter();
-            Set<Long> foiKeys = obsStore.select(obsFilter, ObsField.FOI_ID)
-                .map(obs -> obs.getFoiID().getInternalID())
+            var parentIDStream = DataStoreUtils.selectProcedureIDs(procStore, filter.getParentFilter());
+            
+            if (resultStream == null)
+            {
+                resultStream = parentIDStream
+                    .flatMap(id -> getParentResultStream(id, filter.getValidTime()));
+            }
+            else
+            {
+                var parentIDs = parentIDStream.collect(Collectors.toSet());                
+                resultStream = resultStream.filter(
+                    e -> parentIDs.contains(((MVFeatureParentKey)e.getKey()).getParentID()));
+                
+                // post filter using keys valid time if needed
+                if (filter.getValidTime() != null)
+                    resultStream = postFilterKeyValidTime(resultStream, filter.getValidTime());
+            }
+        }
+        
+        if (filter.getObservationFilter() != null)
+        {
+            var foiIDs = obsStore.selectObservedFois(filter.getObservationFilter())
                 .collect(Collectors.toSet());
             
-            return super.getIndexedStream(FoiFilter.Builder.from(filter)
-                .withInternalIDs(foiKeys)
-                .build());
+            if (resultStream == null)
+            {            
+                resultStream = super.getIndexedStream(FoiFilter.Builder.from(filter)
+                    .withInternalIDs(foiIDs)
+                    .build());
+            }
+            else
+            {
+                resultStream = resultStream
+                    .filter(e -> foiIDs.contains(e.getKey().getInternalID()));
+            }
         }
-        else
-            return super.getIndexedStream(filter);
+        
+        return resultStream;
+    }
+    
+    
+    protected Stream<Long> selectParentIDs(ProcedureFilter parentFilter)
+    {
+        return DataStoreUtils.selectFeatureIDs(procStore, parentFilter);
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procStore)
+    {
+        this.procStore = Asserts.checkNotNull(procStore, IProcedureStore.class);
     }
 
 
     @Override
     public void linkTo(IObsStore obsStore)
     {
-        this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);        
+        this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);
     }
     
     

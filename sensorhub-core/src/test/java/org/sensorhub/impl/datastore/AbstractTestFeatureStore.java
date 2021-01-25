@@ -37,6 +37,7 @@ import net.opengis.gml.v32.Polygon;
 import net.opengis.gml.v32.impl.GMLFactory;
 import org.junit.Before;
 import org.junit.Test;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
@@ -1243,7 +1244,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = DataStoreException.class)
     public void testErrorAddWithInvalidParent() throws Exception
     {
         useAdd = true;

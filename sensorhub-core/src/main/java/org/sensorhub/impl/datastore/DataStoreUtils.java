@@ -92,6 +92,20 @@ public class DataStoreUtils
             throw new DataStoreException(DataStoreUtils.ERROR_UNKNOWN_PARENT_FEATURE + parentID);
     }
     
+    public static void checkParentFeatureExists(long parentID, IFeatureStoreBase<?,?,?>... dataStores) throws DataStoreException
+    {
+        if (parentID != 0)
+        {
+            for (var dataStore: dataStores)
+            {
+                if (dataStore.contains(parentID))
+                    return;
+            }
+            
+            throw new DataStoreException(DataStoreUtils.ERROR_UNKNOWN_PARENT_FEATURE + parentID);
+        }   
+    }
+    
     
     //////////////////////////////////////////
     // Helpers methods for datastream stores

@@ -17,6 +17,7 @@ package org.sensorhub.api.datastore.feature;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.vast.ogc.gml.IGeoFeature;
 
 
@@ -50,6 +51,13 @@ public interface IFoiStore extends IFeatureStoreBase<IGeoFeature, FoiField, FoiF
     {
         return new FoiFilter.Builder();
     }
+    
+    
+    /**
+     * Link this store to an procedure store to enable JOIN queries
+     * @param procStore
+     */
+    public void linkTo(IProcedureStore procStore);
     
     
     /**

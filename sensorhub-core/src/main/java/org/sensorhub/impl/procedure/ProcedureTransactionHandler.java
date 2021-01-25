@@ -301,14 +301,14 @@ public class ProcedureTransactionHandler
         
         // store feature description if none was found
         if (fk == null)
-            fk = getFoiStore().add(foi);
+            fk = getFoiStore().add(procKey.getInternalID(), foi);
         
         // otherwise add it only if its newer than the one already in storage
         else
         {
             var validTime = foi instanceof ITemporalFeature ? ((ITemporalFeature)foi).getValidTime() : null;
             if (validTime != null && fk.getValidStartTime().isBefore(validTime.begin()))
-                fk = getFoiStore().add(foi);
+                fk = getFoiStore().add(procKey.getInternalID(), foi);
             else
                 isNew = false;
         }

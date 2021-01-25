@@ -23,6 +23,8 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 import org.vast.ogc.gml.IGeoFeature;
 
@@ -67,6 +69,24 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IGeoFeature, Fo
             return filterDispatchMap;
         }
         
+        else if (filter.getParentFilter() != null)
+        {
+            // delegate to proc store handle procedure filter dispatch map
+            var filterDispatchMap = parentDb.procStore.getFilterDispatchMap(filter.getParentFilter());
+            if (filterDispatchMap != null)
+            {
+                for (var filterInfo: filterDispatchMap.values())
+                {
+                    filterInfo.filter = FoiFilter.Builder
+                        .from(filter)
+                        .withParents((ProcedureFilter)filterInfo.filter)
+                        .build();
+                }
+            }
+            
+            return filterDispatchMap;
+        }
+        
         else if (filter.getObservationFilter() != null)
         {
             // delegate to proc store handle procedure filter dispatch map
@@ -86,6 +106,13 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IGeoFeature, Fo
         }
         
         return null;
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procStore)
+    {
+        throw new UnsupportedOperationException();        
     }
     
     

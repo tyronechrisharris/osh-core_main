@@ -20,6 +20,7 @@ import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.TimeExtent;
@@ -83,6 +84,12 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, Feat
         }
         
         return resultStream;
+    }
+    
+    
+    protected Stream<Long> selectParentIDs(FeatureFilter parentFilter)
+    {
+        return DataStoreUtils.selectFeatureIDs(this, parentFilter);
     }
 
 

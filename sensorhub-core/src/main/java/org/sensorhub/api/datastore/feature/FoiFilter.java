@@ -16,6 +16,7 @@ package org.sensorhub.api.datastore.feature;
 
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.vast.ogc.gml.IGeoFeature;
 
@@ -31,6 +32,7 @@ import org.vast.ogc.gml.IGeoFeature;
  */
 public class FoiFilter extends FeatureFilterBase<IGeoFeature>
 {
+    protected ProcedureFilter parentFilter;
     protected FeatureFilter sampledFeatureFilter;
     protected ObsFilter obsFilter;
     
@@ -39,6 +41,12 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
      * this class can only be instantiated using builder
      */
     protected FoiFilter() {}
+    
+    
+    public ProcedureFilter getParentFilter()
+    {
+        return parentFilter;
+    }
 
 
     public FeatureFilter getSampledFeatureFilter()
@@ -72,6 +80,10 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
     protected <B extends FoiFilterBuilder<B, FoiFilter>> B and(FoiFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.intersect(otherFilter, builder);
+        
+        var parentFilter = this.parentFilter != null ? this.parentFilter.intersect(otherFilter.parentFilter) : otherFilter.parentFilter;
+        if (parentFilter != null)
+            builder.withParents(parentFilter);
         
         var sfFilter = this.sampledFeatureFilter != null ? this.sampledFeatureFilter.intersect(otherFilter.sampledFeatureFilter) : otherFilter.sampledFeatureFilter;
         if (sfFilter != null)
@@ -150,9 +162,67 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
         protected B copyFrom(FoiFilter base)
         {
             super.copyFrom(base);
+            instance.parentFilter = base.parentFilter;
             instance.sampledFeatureFilter = base.sampledFeatureFilter;
             instance.obsFilter = base.obsFilter;
             return (B)this;
+        }
+        
+        
+        /**
+         * Select only FOIs attached to the selected procedures
+         * @param filter Parent procedure filter
+         * @return This builder for chaining
+         */
+        public B withParents(ProcedureFilter filter)
+        {
+            instance.parentFilter = filter;
+            return (B)this;
+        }
+
+        
+        /**
+         * Select only FOIs attached to the selected procedures.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link ProcedureFilter} builder for chaining
+         */
+        public ProcedureFilter.NestedBuilder<B> withParents()
+        {
+            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    FoiFilterBuilder.this.withParents(build());
+                    return (B)FoiFilterBuilder.this;
+                }                
+            };
+        }
+        
+        
+        /**
+         * Select only FOIs attached to the procedures with specific internal IDs
+         * @param ids List of IDs of parent procedures
+         * @return This builder for chaining
+         */
+        public B withParents(long... ids)
+        {
+            return withParents()
+                .withInternalIDs(ids)
+                .done();
+        }
+        
+        
+        /**
+         * Select only features belonging to the parent groups with
+         * specific unique IDs
+         * @param uids List of UIDs of parent procedure groups
+         * @return This builder for chaining
+         */
+        public B withParents(String... uids)
+        {
+            return withParents()
+                .withUniqueIDs(uids)
+                .done();
         }
         
 

@@ -47,7 +47,7 @@ public abstract class MVDatabaseConfig extends DatabaseConfig
     public boolean useCompression = false;
     
     
-    @DisplayInfo(desc = "Set to open the database as read-only (default)")
-    public boolean readOnly = true;
+    @DisplayInfo(desc = "Set to open the database as read-only")
+    public boolean readOnly = false;
 
 }

@@ -61,7 +61,10 @@ public class InMemoryProcedureStore extends InMemoryBaseFeatureStore<IProcedureW
         if (resultStream == null)
         {
             if (filter.getParentFilter() != null)
-                return postFilterOnParents(resultStream, filter.getParentFilter());
+            {
+                var parentIDStream = DataStoreUtils.selectProcedureIDs(this, filter.getParentFilter());
+                return postFilterOnParents(resultStream, parentIDStream);
+            }
             
             else if (filter.getDataStreamFilter() != null)
             {

@@ -55,10 +55,11 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfi
         this.foiStore = new InMemoryFoiStore();
         this.obsStore = new InMemoryObsStore();
         
-        obsStore.linkTo(foiStore);
-        foiStore.linkTo(obsStore);
-        obsStore.getDataStreams().linkTo(procStore);
         procStore.linkTo(obsStore.getDataStreams());
+        foiStore.linkTo(procStore);
+        foiStore.linkTo(obsStore);
+        obsStore.linkTo(foiStore);
+        obsStore.getDataStreams().linkTo(procStore);
     }
     
     

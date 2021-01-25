@@ -19,6 +19,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.vast.ogc.gml.IGeoFeature;
 
 
@@ -36,6 +37,13 @@ public class FoiStoreView extends FeatureStoreViewBase<IGeoFeature, FoiField, Fo
     public FoiStoreView(IFoiStore delegate, FoiFilter viewFilter)
     {
         super(delegate, viewFilter);
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procStore)
+    {
+        throw new UnsupportedOperationException();        
     }
     
     

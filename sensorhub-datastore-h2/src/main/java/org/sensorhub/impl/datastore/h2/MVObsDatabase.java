@@ -90,10 +90,11 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
                 .withName(OBS_STORE_NAME)
                 .build());
             
-            obsStore.linkTo(foiStore);
-            foiStore.linkTo(obsStore);
-            obsStore.getDataStreams().linkTo(procStore);
             procStore.linkTo(obsStore.getDataStreams());
+            foiStore.linkTo(procStore);
+            foiStore.linkTo(obsStore);
+            obsStore.linkTo(foiStore);            
+            obsStore.getDataStreams().linkTo(procStore);            
         }
         catch (Exception e)
         {
