@@ -30,6 +30,7 @@ import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 
 
 /**
@@ -77,22 +78,41 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
         
         if (filter.getParentFilter() != null)
         {
+            var parentIDStream = DataStoreUtils.selectFeatureIDs(this, filter.getParentFilter());
+            
             if (resultStream == null)
             {
-                resultStream = selectParentIDs(filter.getParentFilter())
+                resultStream = parentIDStream
                     .flatMap(id -> getParentResultStream(id, filter.getValidTime()));
             }
             else
             {
-                var parentIDs = selectParentIDs(filter.getParentFilter())
-                    .collect(Collectors.toSet());
-                
+                var parentIDs = parentIDStream.collect(Collectors.toSet());
                 resultStream = resultStream.filter(
                     e -> parentIDs.contains(((MVFeatureParentKey)e.getKey()).getParentID()));
                 
                 // post filter using keys valid time if needed
                 if (filter.getValidTime() != null)
                     resultStream = postFilterKeyValidTime(resultStream, filter.getValidTime());
+            }
+        }
+        
+        if (filter.getDataStreamFilter() != null)
+        {
+            var procIDs = DataStoreUtils.selectDataStreams(dataStreamStore, filter.getDataStreamFilter())
+                .map(ds -> ds.getProcedureID().getInternalID())
+                .collect(Collectors.toSet());
+            
+            if (resultStream == null)
+            {            
+                return super.getIndexedStream(ProcedureFilter.Builder.from(filter)
+                    .withInternalIDs(procIDs)
+                    .build());
+            }
+            else
+            {
+                resultStream = resultStream
+                    .filter(e -> procIDs.contains(e.getKey().getInternalID()));
             }
         }
         
