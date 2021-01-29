@@ -187,9 +187,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     @Override
     public void destroy()
     {
-        stop();
-
-        // destroy websocket factory
+        // stop websocket factory
         try
         {
             wsFactory.stop();
@@ -198,12 +196,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         {
             log.error("Cannot stop websocket factory", e);
         }
-    }
-
-
-    protected void stop()
-    {
-
     }
 
 

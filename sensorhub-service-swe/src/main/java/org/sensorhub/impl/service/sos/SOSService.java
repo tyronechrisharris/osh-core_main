@@ -170,7 +170,7 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
         // undeploy servlet
         undeploy();
         if (servlet != null)
-            servlet.stop();
+            servlet.destroy();
         servlet = null;
         
         // stop thread pool
