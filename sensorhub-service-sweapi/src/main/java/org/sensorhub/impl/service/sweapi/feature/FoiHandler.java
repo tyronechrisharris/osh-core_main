@@ -35,6 +35,7 @@ import org.vast.ogc.gml.IGeoFeature;
 
 public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
 {
+    public static final int EXTERNAL_ID_SEED = 433584715;
     public static final String[] NAMES = { "featuresOfInterest", "fois" };
     
     ProcedureObsTransactionHandler transactionHandler;
@@ -42,7 +43,7 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
     
     public FoiHandler(IEventBus eventBus, ProcedureObsDbWrapper db)
     {
-        super(db.getFoiStore(), new IdEncoder(FeatureHandler.EXTERNAL_ID_SEED));
+        super(db.getFoiStore(), new IdEncoder(EXTERNAL_ID_SEED));
         this.transactionHandler = new ProcedureObsTransactionHandler(eventBus, db);
     }
 

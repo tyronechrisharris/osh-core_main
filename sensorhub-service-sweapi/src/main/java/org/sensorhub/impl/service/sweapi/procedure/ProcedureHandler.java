@@ -38,7 +38,7 @@ import net.opengis.sensorml.v20.IOPropertyList;
 
 public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
-    public static final int EXTERNAL_ID_SEED = 918742953;
+    public static final int EXTERNAL_ID_SEED = 21933547;
     public static final String[] NAMES = { "procedures" };
     
     ProcedureObsTransactionHandler transactionHandler;
