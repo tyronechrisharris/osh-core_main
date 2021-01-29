@@ -165,7 +165,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 if (featuresIndex.isEmpty())
                     return 1;
                 else
-                    return featuresIndex.lastKey().getInternalID()+1;
+                    return idsIndex.lastKey().getInternalID()+1;
             };
         }
         
@@ -208,7 +208,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         checkParentFeatureExists(parentID);
         
         var existingKey = uidsIndex.get(feature.getUniqueIdentifier());
-        var newKey = generateKey(parentID, existingKey, feature);                
+        var newKey = generateKey(parentID, existingKey, feature);
         
         // add to store
         put(newKey, feature, existingKey == null, false);
@@ -681,27 +681,34 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public V put(FeatureKey key, V feature)
     {
-        ensureFullFeatureKey(key);
-        DataStoreUtils.checkFeatureObject(feature);
-        
-        // check that no other feature with same UID exists
-        var uid = feature.getUniqueIdentifier();
-        var existingKey = uidsIndex.get(uid);
-        if (existingKey != null && existingKey.getInternalID() != key.getInternalID())
-            throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
-        
-        // use parent from existing mapping or create new one w/o parent
-        MVFeatureParentKey fk;
-        if (existingKey == null)
-            fk = new MVFeatureParentKey(0L, key.getInternalID(), key.getValidStartTime());
-        else
-            fk = new MVFeatureParentKey(existingKey.getParentID(), key.getInternalID(), key.getValidStartTime());
+        try
+        {
+            ensureFullFeatureKey(key);
+            DataStoreUtils.checkFeatureObject(feature);
             
-        return put(fk, feature, existingKey == null, true);
+            // check that no other feature with same UID exists
+            var uid = feature.getUniqueIdentifier();
+            var existingKey = uidsIndex.get(uid);
+            if (existingKey != null && existingKey.getInternalID() != key.getInternalID())
+                throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
+            
+            // use parent from existing mapping or create new one w/o parent
+            MVFeatureParentKey fk;
+            if (existingKey == null)
+                fk = new MVFeatureParentKey(0L, key.getInternalID(), key.getValidStartTime());
+            else
+                fk = new MVFeatureParentKey(existingKey.getParentID(), key.getInternalID(), key.getValidStartTime());
+                
+            return put(fk, feature, existingKey == null, true);
+        }
+        catch (DataStoreException e)
+        {
+            throw new IllegalArgumentException(e.getMessage());
+        }
     }
     
     
-    protected V put(MVFeatureParentKey fk, V f, boolean isNewFeature, boolean replaceVersion)
+    protected V put(MVFeatureParentKey fk, V f, boolean isNewFeature, boolean replaceVersion) throws DataStoreException
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -716,7 +723,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 // check if we're allowed to replace existing entry
                 boolean isNewEntry = (oldValue == null);
                 if (!isNewEntry && !replaceVersion)
-                    throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);
+                    throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);
                 
                 // update ID and UID indexes
                 if (isNewFeature)
