@@ -17,30 +17,31 @@ package org.sensorhub.utils;
 
 /**
  * <p>
- * Generic runtime exception that can be thrown within within stream API
- * lambda methods. It is often used to wrap a checked exception. 
+ * Generic runtime exception that can be thrown by callbacks or lambda functions
+ * that don't allow for checked exceptions (e.g. stream API, map compute API...)
+ * It is often used to wrap a checked exception. 
  * </p>
  *
  * @author Alex Robin
  * @date Dec 7, 2020
  */
 @SuppressWarnings("serial")
-public class StreamException extends RuntimeException
+public class CallbackException extends RuntimeException
 {
     
-    public StreamException(String msg)
+    public CallbackException(String msg)
     {
         super(msg);
     }
     
     
-    public StreamException(Throwable cause)
+    public CallbackException(Throwable cause)
     {
         super(cause);
     }
     
     
-    public StreamException(String msg, Throwable cause)
+    public CallbackException(String msg, Throwable cause)
     {
         super(msg, cause);
     }

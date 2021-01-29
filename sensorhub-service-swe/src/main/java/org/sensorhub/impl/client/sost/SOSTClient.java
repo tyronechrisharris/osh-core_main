@@ -57,7 +57,7 @@ import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.RobustConnection;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.utils.SerialExecutor;
-import org.sensorhub.utils.StreamException;
+import org.sensorhub.utils.CallbackRuntimeException;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.om.IObservation;
@@ -256,8 +256,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     .forEach(entry -> {
                         var id = entry.getKey().getInternalID();
                         var proc = entry.getValue();
-                        try { addProcedure(id, proc); }
-                        catch (Exception e) { throw new StreamException(e); }
+                        addProcedure(id, proc);
                     });
             })
             .thenRun(() -> {                
@@ -369,7 +368,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                    }
                    catch (Exception ex)
                    {
-                       throw new StreamException(ex);
+                       throw new CallbackRuntimeException(ex);
                    }
                });
             
@@ -377,7 +376,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             for (var streamInfo: addedStreams)
             {
                 try { startStream(streamInfo); }
-                catch (Exception e) { throw new StreamException(e); }
+                catch (Exception e) { throw new CallbackRuntimeException(e); }
             }
         }
         catch (ClientException e)
