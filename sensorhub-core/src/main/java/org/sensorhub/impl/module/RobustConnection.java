@@ -96,7 +96,7 @@ public abstract class RobustConnection
                     }
                     catch (Exception e)
                     {
-                        throw new ClientException(e.getMessage(), e);
+                        throw new ClientException("Error connecting to remote endpoint", e);
                     }
                     
                     // abort if too many attempts
