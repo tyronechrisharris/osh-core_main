@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.api.data.DataEvent;
@@ -111,12 +112,12 @@ public class DataStreamTransactionHandler implements IEventListener
     }
     
     
-    public void addObs(DataBlock rec)
+    public BigInteger addObs(DataBlock rec)
     {
         // no checks since this is called at high rate
         //Asserts.checkNotNull(rec, DataBlock.class);
         
-        addObs(new DataEvent(
+        return addObs(new DataEvent(
             System.currentTimeMillis(),
             dsInfo.getProcedureID().getUniqueID(),
             dsInfo.getOutputName(),
@@ -124,7 +125,12 @@ public class DataStreamTransactionHandler implements IEventListener
     }
     
     
-    public void addObs(DataEvent e)
+    /**
+     * Add all records attached to the event as observations
+     * @param e
+     * @return ID of last observation inserted
+     */
+    public BigInteger addObs(DataEvent e)
     {
         // no checks since this is called at high rate
         //Asserts.checkNotNull(e, DataEvent.class);
@@ -156,6 +162,7 @@ public class DataStreamTransactionHandler implements IEventListener
             foiId = ObsData.NO_FOI;
         
         // process all records
+        BigInteger obsID = null;
         for (DataBlock record: e.getRecords())
         {
             // get time stamp
@@ -174,12 +181,14 @@ public class DataStreamTransactionHandler implements IEventListener
                 .build();
             
             // add to store
-            rootHandler.db.getObservationStore().add(obs);
+            obsID = rootHandler.db.getObservationStore().add(obs);
         }
+        
+        return obsID;
     }
     
     
-    public void addObs(IObsData obs)
+    public BigInteger addObs(IObsData obs)
     {
         // no checks since this is called at high rate
         //Asserts.checkNotNull(obs, IObsData.class);
@@ -195,7 +204,7 @@ public class DataStreamTransactionHandler implements IEventListener
             obs.getResult()));        
         
         // add to store
-        rootHandler.db.getObservationStore().add(obs);
+        return rootHandler.db.getObservationStore().add(obs);
     }
 
 
