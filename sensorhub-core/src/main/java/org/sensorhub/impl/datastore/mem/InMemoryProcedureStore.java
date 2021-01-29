@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.mem;
 
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -58,20 +59,28 @@ public class InMemoryProcedureStore extends InMemoryBaseFeatureStore<IProcedureW
     {
         var resultStream = super.getIndexedStream(filter);
         
-        if (resultStream == null)
+        if (filter.getParentFilter() != null)
         {
-            if (filter.getParentFilter() != null)
-            {
-                var parentIDStream = DataStoreUtils.selectProcedureIDs(this, filter.getParentFilter());
-                return postFilterOnParents(resultStream, parentIDStream);
-            }
+            var parentIDStream = DataStoreUtils.selectProcedureIDs(this, filter.getParentFilter());
+            resultStream = postFilterOnParents(resultStream, parentIDStream);
+        }
+        
+        if (filter.getDataStreamFilter() != null)
+        {
+            var procIDs = DataStoreUtils.selectDataStreams(dataStreamStore, filter.getDataStreamFilter())
+                .map(ds -> ds.getProcedureID().getInternalID())
+                .collect(Collectors.toSet());
             
-            else if (filter.getDataStreamFilter() != null)
+            if (resultStream == null)
+            {            
+                return super.getIndexedStream(ProcedureFilter.Builder.from(filter)
+                    .withInternalIDs(procIDs)
+                    .build());
+            }
+            else
             {
-                DataStoreUtils.selectDataStreams(dataStreamStore, filter.getDataStreamFilter())
-                    .map(ds -> ds.getProcedureID().getInternalID())
-                    .distinct()
-                    .map(id -> map.get(new FeatureKey(id)));
+                resultStream = resultStream
+                    .filter(e -> procIDs.contains(e.getKey().getInternalID()));
             }
         }
         
