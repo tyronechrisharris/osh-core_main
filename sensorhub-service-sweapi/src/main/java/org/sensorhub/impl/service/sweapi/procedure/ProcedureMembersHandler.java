@@ -16,23 +16,28 @@ package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.Map;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import javax.servlet.http.HttpServletRequest;
+import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.impl.procedure.ProcedureUtils;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
+import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import net.opengis.sensorml.v20.IOPropertyList;
 
 
-public class ProcedureMembersHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
+public class ProcedureMembersHandler extends ProcedureHandler
 {
     public static final String[] NAMES = { "members" };
     
     
-    public ProcedureMembersHandler(IProcedureStore dataStore)
+    public ProcedureMembersHandler(IEventBus eventBus, ProcedureObsDbWrapper db)
     {
-        super(dataStore, new ProcedureResourceType());
+        super(eventBus, db);
     }
     
     
@@ -40,8 +45,7 @@ public class ProcedureMembersHandler extends AbstractFeatureHandler<IProcedureWi
     public boolean doPost(ResourceContext ctx) throws IOException
     {
         if (ctx.isEmpty() &&
-            //!(ctx.getParentRef().type instanceof ProcedureGroupResourceType) &&
-            !(ctx.getParentRef().type instanceof ProcedureResourceType))
+            !(ctx.getParentRef().type instanceof ProcedureHandler))
             return ctx.sendError(405, "Procedures can only be created within a ProcedureGroup");
         
         return super.doPost(ctx);
@@ -60,6 +64,35 @@ public class ProcedureMembersHandler extends AbstractFeatureHandler<IProcedureWi
                 .withInternalIDs(parent.internalID)
                 .done();
         }
+    }
+    
+    
+    @Override
+    protected FeatureKey addEntry(final ResourceContext ctx, final IProcedureWithDesc res) throws DataStoreException
+    {        
+        // extract outputs from sml description (no need to store them twice)
+        IOPropertyList outputs = null;
+        if (res.getFullDescription() != null)
+            outputs = ProcedureUtils.extractOutputs(res.getFullDescription());
+        
+        var groupID = ctx.getParentID();
+        var parentHandler = transactionHandler.getProcedureHandler(groupID);
+        if (parentHandler == null)
+            return null;
+        var procHandler = parentHandler.addMember(res);
+
+        // also add datastreams if outputs were specified in SML description
+        if (outputs != null)
+            ProcedureUtils.addDatastreamsFromOutputs(procHandler, outputs);
+        
+        return procHandler.getProcedureKey();
+    }
+    
+    
+    @Override
+    protected String getCanonicalResourceUrl(final String id, final HttpServletRequest req)
+    {
+        return "/" + ProcedureHandler.NAMES[0] + "/" + id;
     }
     
     

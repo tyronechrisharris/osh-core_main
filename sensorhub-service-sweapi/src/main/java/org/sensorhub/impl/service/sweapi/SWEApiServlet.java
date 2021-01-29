@@ -17,14 +17,18 @@ package org.sensorhub.impl.service.sweapi;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
 import javax.servlet.AsyncContext;
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.websocket.api.WebSocketBehavior;
+import org.eclipse.jetty.websocket.api.WebSocketPolicy;
+import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.slf4j.Logger;
@@ -38,21 +42,57 @@ public class SWEApiServlet extends HttpServlet
     static final String INTERNAL_ERROR_LOG_MSG = INTERNAL_ERROR_MSG + " while processing request " + LOG_REQUEST_MSG;
     static final String JSON_CONTENT_TYPE = "application/json";
 
-    protected String baseUrl;
+    protected final SWEApiServiceConfig config;
+    protected final SWEApiSecurity securityHandler;
     protected IProcedureStore procedures;
     protected IFeatureStore features;
     protected IResourceHandler rootHandler;
-    protected SWEApiSecurity securityHandler;
     protected Executor threadPool;
+    protected WebSocketServletFactory wsFactory;
     protected Logger log;
     
 
-    public SWEApiServlet(RootHandler rootHandler, SWEApiSecurity securityHandler, Logger logger)
+    public SWEApiServlet(SWEApiService service, SWEApiSecurity securityHandler, RootHandler rootHandler, Logger logger)
     {
-        this.rootHandler = rootHandler;
+        this.config = service.getConfiguration();
+        this.threadPool = service.getThreadPool();
         this.securityHandler = securityHandler;
-        this.log = logger;
-        this.threadPool = ForkJoinPool.commonPool();
+        this.rootHandler = rootHandler;
+        this.log = logger;        
+    }
+
+
+    @Override
+    public void init(ServletConfig config) throws ServletException
+    {
+        super.init(config);
+
+        // create websocket factory
+        try
+        {
+            WebSocketPolicy wsPolicy = new WebSocketPolicy(WebSocketBehavior.SERVER);
+            wsFactory = WebSocketServletFactory.Loader.load(getServletContext(), wsPolicy);
+            wsFactory.start();
+        }
+        catch (Exception e)
+        {
+            throw new ServletException("Cannot initialize websocket factory", e);
+        }
+    }
+
+
+    @Override
+    public void destroy()
+    {
+        // destroy websocket factory
+        try
+        {
+            wsFactory.stop();
+        }
+        catch (Exception e)
+        {
+            log.error("Cannot stop websocket factory", e);
+        }
     }
     
     
@@ -60,7 +100,46 @@ public class SWEApiServlet extends HttpServlet
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
         logRequest(req);
-        super.service(req, resp);
+        
+        // set current authentified user
+        String userID = ISecurityManager.ANONYMOUS_USER;
+        if (req.getRemoteUser() != null)
+            userID = req.getRemoteUser();
+        
+        try
+        {
+            /*// check if we have an upgrade request for websockets
+            if (wsFactory.isUpgradeRequest(req, resp))
+            {
+                // parse request
+                try
+                {
+                    wsFactory.acceptWebSocket(new WebSocketCreator() {
+                        @Override
+                        public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
+                        {
+                            return socket;
+                        }
+                    }, owsReq.getHttpRequest(), owsReq.getHttpResponse());
+                }
+                catch (Exception e)
+                {
+                    String errorMsg = "Error while processing Websocket request";
+                    resp.sendError(400, errorMsg);
+                    log.trace(errorMsg, e);
+                }
+
+                return;
+            }*/
+
+            // otherwise process as classical HTTP request
+            securityHandler.setCurrentUser(userID);
+            super.service(req, resp);
+        }
+        finally
+        {
+            securityHandler.clearCurrentUser();
+        }
     }
 
 
@@ -280,11 +359,6 @@ public class SWEApiServlet extends HttpServlet
     }
     
     
-    public void stop()
-    {        
-    }
-    
-    
     public void sendError(int code, HttpServletResponse resp)
     {
         sendError(code, null, resp);
@@ -313,6 +387,12 @@ public class SWEApiServlet extends HttpServlet
     public Logger getLogger()
     {
         return this.log;
+    }
+
+
+    public SWEApiServiceConfig getConfig()
+    {
+        return config;
     }
 
 }

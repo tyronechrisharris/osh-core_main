@@ -14,17 +14,21 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
+import java.io.IOException;
+
 
 @SuppressWarnings("serial")
-public class InvalidRequestException extends Exception
+public class InvalidRequestException extends IOException
 {
 
-    public InvalidRequestException()
-    {
-    }
-    
     public InvalidRequestException(String msg)
     {
         super(msg);
+    }
+    
+    
+    public InvalidRequestException(String msg, Throwable e)
+    {
+        super(msg, e);
     }
 }

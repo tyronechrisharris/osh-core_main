@@ -19,15 +19,16 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureStoreWrapper;
 
 
 public class ProcedureStoreWrapper extends AbstractFeatureStoreWrapper<IProcedureWithDesc, ProcedureField, ProcedureFilter, IProcedureStore> implements IProcedureStore
 {
-
-    public ProcedureStoreWrapper(IProcedureStore readStore, IProcedureStore writeStore)
+    
+    public ProcedureStoreWrapper(IProcedureStore readStore, IProcedureStore writeStore, IdConverter idConverter)
     {
-        super(readStore, writeStore);
+        super(readStore, writeStore, idConverter);
     }
     
     

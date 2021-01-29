@@ -14,36 +14,115 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
+import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.api.feature.FeatureId;
+import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
+import org.sensorhub.impl.procedure.DataStreamTransactionHandler;
+import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
+import org.sensorhub.impl.service.sweapi.IdConverter;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceType;
+import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.vast.util.Asserts;
 
 
 public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
 {
-    public static final String[] NAMES = { "obs", "observations" };
+    public static final int EXTERNAL_ID_SEED = 918742953;
+    public static final String[] NAMES = { "observations", "obs" };
+    
+    ProcedureObsDbWrapper db;
+    ProcedureObsTransactionHandler transactionHandler;
+    IdConverter idConverter;
     
     
-    public ObsHandler(IObsStore dataStore)
+    static class ObsHandlerContextData
     {
-        super(dataStore, new ObsResourceType(dataStore));
+        long dsID;
+        IDataStreamInfo dsInfo;
+        FeatureId foiId;
+        DataStreamTransactionHandler dsHandler;
     }
-
-
-    @Override
-    protected void validate(IObsData resource)
+    
+    
+    public ObsHandler(IEventBus eventBus, ProcedureObsDbWrapper db)
     {
-        // TODO Auto-generated method stub
+        super(db.getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED));
+        this.db = db;
+        this.transactionHandler = new ProcedureObsTransactionHandler(eventBus, db.getWriteDb());
+        this.idConverter = db.getIdConverter();
+    }
+    
+    
+    @Override
+    protected ResourceBinding<BigInteger, IObsData> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    {
+        var format = ctx.getFormat();
         
+        var contextData = new ObsHandlerContextData();
+        ctx.setData(contextData);
+        
+        // try to fetch datastream since it's needed to configure binding
+        var publicDsID = ctx.getParentID();
+        if (publicDsID > 0)
+            contextData.dsInfo = db.getDataStreamStore().get(new DataStreamKey(publicDsID));
+                
+        if (forReading)
+        {
+            // when ingesting obs, datastream should be known at this stage
+            Asserts.checkNotNull(contextData.dsInfo, IDataStreamInfo.class);
+            
+            // create transaction handler here so it can be reused multiple times
+            contextData.dsID = idConverter.toInternalID(publicDsID);
+            contextData.dsHandler = transactionHandler.getDataStreamHandler(contextData.dsID);
+            
+            // try to parse featureOfInterest argument
+            String foiArg = ctx.getRequest().getParameter("featureOfInterest");
+            if (foiArg != null)
+            {
+                long publicFoiID = decodeID(ctx, foiArg);
+                var foi = db.getFoiStore().getCurrentVersion(publicFoiID);
+                if (foi == null)
+                    throw new InvalidRequestException("Invalid FOI ID");
+                contextData.foiId = new FeatureId(
+                    idConverter.toInternalID(publicFoiID),
+                    foi.getUniqueIdentifier());
+            }
+        }
+        
+        // select binding depending on format
+        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
+            return new ObsBindingOmJson(ctx, idEncoder, forReading, dataStore);
+        else if (format.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
+            return new ObsBindingSweCommon(ctx, idEncoder, forReading, dataStore);
+        else
+            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+    }
+    
+    
+    @Override
+    public boolean doPost(ResourceContext ctx) throws IOException
+    {
+        if (ctx.isEmpty() &&
+            !(ctx.getParentRef().type instanceof DataStreamHandler))
+            return ctx.sendError(405, "Observations can only be created within a Datastream");
+        
+        return super.doPost(ctx);
     }
 
 
@@ -52,8 +131,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     {
         try
         {
-            var externalID = new BigInteger(id, ResourceType.ID_RADIX);
-            var internalID = ((ObsResourceType)resourceType).getInternalID(externalID);
+            var internalID = new BigInteger(id, ResourceBinding.ID_RADIX);
             if (internalID.signum() <= 0)
                 return null;
             
@@ -65,103 +143,102 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             return null;
         }
     }
+    
+    
+    @Override
+    protected String encodeKey(final ResourceContext ctx, BigInteger key)
+    {
+        var externalID = key;
+        return externalID.toString(ResourceBinding.ID_RADIX);
+    }
 
 
     @Override
     protected ObsFilter getFilter(ResourceRef parent, Map<String, String[]> queryParams) throws InvalidRequestException
     {
         var builder = new ObsFilter.Builder();
-        String[] paramValues;
         
         // filter on parent if needed
         if (parent.internalID > 0)
             builder.withDataStreams(parent.internalID);
         
         // phenomenonTime param
-        paramValues = queryParams.get("phenomenonTime");
-        if (paramValues != null)
+        var phenomenonTime = parseTimeStampArg("phenomenonTime", queryParams);
+        if (phenomenonTime != null)
         {
-            var timeExtent = parseTimeStampArg(paramValues);
             builder.withPhenomenonTime(new TemporalFilter.Builder()
-                .fromTimeExtent(timeExtent)
+                .fromTimeExtent(phenomenonTime)
                 .build());
         }
         
         // resultTime param
-        paramValues = queryParams.get("resultTime");
-        if (paramValues != null)
+        var resultTime = parseTimeStampArg("resultTime", queryParams);
+        if (resultTime != null)
         {
-            var timeExtent = parseTimeStampArg(paramValues);
             builder.withResultTime(new TemporalFilter.Builder()
-                .fromTimeExtent(timeExtent)
+                .fromTimeExtent(resultTime)
                 .build());
         }
         
         // foi param
-        paramValues = queryParams.get("foi");
-        if (paramValues != null)
-        {
-            var foiIDs = parseResourceIds(paramValues);
+        var foiIDs = parseResourceIds("foi", queryParams);
+        if (foiIDs != null && !foiIDs.isEmpty())
             builder.withFois(foiIDs);
-        }
         
         // use opensearch bbox param to filter spatially
-        paramValues = queryParams.get("bbox");
-        if (paramValues != null)
+        var bbox = parseBboxArg("bbox", queryParams);
+        if (bbox != null)
         {
-            var bbox = parseBboxArg(paramValues);
             builder.withPhenomenonLocation(new SpatialFilter.Builder()
                 .withBbox(bbox)
                 .build());
         }
         
         // geom param
-        paramValues = queryParams.get("location");
-        if (paramValues != null)
+        var geom = parseGeomArg("location", queryParams);
+        if (geom != null)
         {
-            var geom = parseGeomArg(paramValues);
             builder.withPhenomenonLocation(new SpatialFilter.Builder()
                 .withRoi(geom)
                 .build());
         }
         
-        // limit
-        paramValues = queryParams.get("limit");
-        int maxResults = Integer.MAX_VALUE;
-        if (paramValues != null)
-        {
-            String limit = getSingleParam("limit", paramValues);
-            
-            try
-            {
-                maxResults = Integer.parseInt(limit);
-            }
-            catch (NumberFormatException e)
-            {
-                throw new InvalidRequestException("Invalid limit parameter: " + limit);
-            }
-        }            
-        builder.withLimit(Math.min(maxResults, 1000));
+        /*
+        disable datastore limit for now
+        since we implement paging with offset/limit in API layer
+        */
+        /*// limit
+        var limit = parseLongArg("limit", queryParams);
+        int maxLimit = Integer.MAX_VALUE;
+        if (limit != null)
+            builder.withLimit(Math.min(maxLimit, limit));
+        else
+            builder.withLimit(100); // default limit*/
         
         return builder.build();
     }
 
 
     @Override
-    protected String addToDataStore(ResourceContext ctx, IObsData resource)
+    protected BigInteger addEntry(ResourceContext ctx, IObsData res) throws DataStoreException
     {
-        BigInteger k = dataStore.add(resource);
+        var dsHandler = ((ObsHandlerContextData)ctx.getData()).dsHandler;
+        return idConverter.toPublicID(dsHandler.addObs(res));
+    }
+    
+    
+    @Override
+    protected boolean isValidID(long internalID)
+    {
+        return false;
+    }
+
+
+    @Override
+    protected void validate(IObsData resource)
+    {
+        // TODO Auto-generated method stub
         
-        if (k != null)
-        {
-            var externalID = ((ObsResourceType)resourceType).getExternalID(k);
-            String id = externalID.toString(ResourceType.ID_RADIX);
-            String url = getCanonicalResourceUrl(id, ctx.getRequest());
-            ctx.getLogger().trace("Added obs {}", id);
-            return url;
-        }
-        
-        return null;
     }
     
     
@@ -170,5 +247,4 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     {
         return NAMES;
     }
-
 }

@@ -19,6 +19,7 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.sensorhub.api.resource.ResourceKey;
@@ -48,23 +49,24 @@ public abstract class ResourceHandler<
     public static final int NO_PARENT = 0;
     
     
-    protected ResourceHandler(S dataStore, ResourceType<K, V> resourceType)
+    protected ResourceHandler(S dataStore, IdEncoder idEncoder)
     {
-        super(dataStore, resourceType);
+        super(dataStore, idEncoder);
     }
     
     
-    protected abstract K getKey(long internalID);
+    protected abstract K getKey(long publicID);
     
     
+    @Override
     protected K getKey(final ResourceContext ctx, final String id)
     {
-        // get resource internal ID
-        long internalID = getInternalID(ctx, id);
-        if (internalID <= 0)
+        // get resource ID
+        long decodedID = decodeID(ctx, id);
+        if (decodedID <= 0)
             return null;
-        
-        return getKey(internalID);
+        else
+            return getKey(decodedID);
     }
         
     
@@ -94,58 +96,35 @@ public abstract class ResourceHandler<
     
     protected void buildFilter(final ResourceRef parent, final Map<String, String[]> queryParams, final B builder) throws InvalidRequestException
     {
-        String[] paramValues;
-        
         // keyword search
-        paramValues = queryParams.get("q");
-        if (paramValues != null)
-        {
-            var keywords = parseMultiValuesArg(paramValues);
+        var keywords = parseMultiValuesArg("q", queryParams);
+        if (keywords != null && !keywords.isEmpty())
             builder.withKeywords(keywords);
-        }
         
-        // limit
-        paramValues = queryParams.get("limit");
-        int maxResults = Integer.MAX_VALUE;
-        if (paramValues != null)
-        {
-            String limit = getSingleParam("limit", paramValues);
-            
-            try
-            {
-                maxResults = Integer.parseInt(limit);
-            }
-            catch (NumberFormatException e)
-            {
-                throw new InvalidRequestException("Invalid limit parameter: " + limit);
-            }
-        }
-        
-        builder.withLimit(Math.min(maxResults, 300));
+        /*
+        disable datastore limit for now
+        since we implement paging with offset/limit in API layer
+        */
+        /*// limit
+        var limit = parseLongArg("limit", queryParams);
+        int maxLimit = Integer.MAX_VALUE;
+        if (limit != null)
+            builder.withLimit(Math.min(maxLimit, limit));
+        else
+            builder.withLimit(100); // default limit*/
+    }
+    
+    
+    protected K addEntry(final ResourceContext ctx, final V res) throws DataStoreException
+    {        
+        return dataStore.add(res);
     }
     
     
     @Override
-    protected String addToDataStore(final ResourceContext ctx, final V resource)
+    protected String encodeKey(final ResourceContext ctx, K key)
     {
-        try
-        {
-            K k = dataStore.add(resource);
-            
-            if (k != null)
-            {
-                long externalID = resourceType.getExternalID(k.getInternalID());
-                String id = Long.toString(externalID, ResourceType.ID_RADIX);
-                String url = getCanonicalResourceUrl(id, ctx.req);
-                ctx.getLogger().info("Added resource {}={}, URL={}", id, k.getInternalID(), url);
-                return url;
-            }
-            
-            return null;
-        }
-        catch (DataStoreException e)
-        {
-            throw new IllegalArgumentException(e.getMessage(), e);
-        }
+        long externalID = idEncoder.encodeID(key.getInternalID());
+        return Long.toString(externalID, ResourceBinding.ID_RADIX);
     }
 }

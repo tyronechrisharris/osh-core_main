@@ -14,34 +14,56 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.feature;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Map.Entry;
-import java.util.stream.Stream;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.impl.service.sweapi.IdUtils;
-import org.sensorhub.impl.service.sweapi.StreamException;
-import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
-import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
-import org.sensorhub.impl.service.sweapi.resource.ResourceType;
+import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 
 
-public abstract class AbstractFeatureResourceType<V extends IFeature> extends ResourceType<FeatureKey, V>
+/**
+ * <p>
+ * Base class for all GeoJSON feature formatter.
+ * </p>
+ * 
+ * @param <V> Feature type
+ *
+ * @author Alex Robin
+ * @since Jan 26, 2021
+ */
+public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends ResourceBindingJson<FeatureKey, V>
 {
+    JsonReader reader;
+    JsonWriter writer;
+    GeoJsonBindings geoJsonBindings;
     
-    public AbstractFeatureResourceType(IdUtils idUtils)
+    
+    public AbstractFeatureBindingGeoJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
-        super(idUtils);
+        super(ctx, idEncoder);
+        
+        this.geoJsonBindings = getJsonBindings(false);
+        
+        if (forReading)
+        {
+            InputStream is = new BufferedInputStream(ctx.getRequest().getInputStream());
+            this.reader = getJsonReader(is);
+        }
+        else
+        {
+            this.writer = getJsonWriter(ctx.getResponse().getOutputStream(), ctx.getPropertyFilter());
+        }
     }
     
     
@@ -49,117 +71,62 @@ public abstract class AbstractFeatureResourceType<V extends IFeature> extends Re
      * To be implemented by subclasses to wrap feature to assign internal ID
      */
     protected abstract V getFeatureWithId(FeatureKey k, V f);
-        
-    
-    protected GeoJsonBindings getJsonBindings()
+
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public V deserialize() throws IOException
     {
-        return new GeoJsonBindings(true);
+        if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
+            return null;
+        
+        var geoJsonBindings = getJsonBindings(false);
+        return (V)geoJsonBindings.readFeature(reader);
+    }
+
+
+    @Override
+    public void serialize(FeatureKey key, V res, boolean showLinks) throws IOException
+    {
+        try
+        {
+            var f = getFeatureWithId(key, res);
+            geoJsonBindings.writeFeature(writer, f);
+            writer.flush();
+        }
+        catch (IOException e)
+        {
+            IOException wrappedEx = new IOException("Error writing feature JSON", e);
+            throw new IllegalStateException(wrappedEx);
+        }
+    }
+
+
+    @Override
+    public void startCollection() throws IOException
+    {
+        startJsonCollection(writer);        
+    }
+
+
+    @Override
+    public void endCollection(Collection<ResourceLink> links) throws IOException
+    {
+        endJsonCollection(writer, links);        
     }
     
     
+    @Override
     protected JsonReader getJsonReader(InputStream is) throws IOException
     {
         JsonReader reader = new JsonReader(new InputStreamReader(is, StandardCharsets.UTF_8.name()));
         reader.setLenient(true);
         return reader;
     }
-
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public V deserialize(ResourceFormat format, InputStream is) throws IOException
+    
+    
+    protected GeoJsonBindings getJsonBindings(boolean showLinks)
     {
-        JsonReader reader = getJsonReader(is);
-        IFeature f = getJsonBindings().readFeature(reader);
-        return (V)f;
-    }
-
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public Iterator<V> deserializeArray(ResourceFormat format, InputStream is) throws IOException
-    {
-        final JsonReader reader = getJsonReader(is);
-        final GeoJsonBindings geoJsonBindings = getJsonBindings();
-        
-        reader.beginArray();        
-        return new Iterator<V>() {
-            
-            @Override
-            public boolean hasNext()
-            {
-                try { return reader.hasNext(); }
-                catch (IOException e) { return false; }
-            }
-
-            @Override
-            public V next()
-            {
-                if (!hasNext())
-                    throw new NoSuchElementException();
-                
-                try
-                {
-                    IFeature f = geoJsonBindings.readFeature(reader);
-                    return (V)f;
-                }
-                catch (Exception e)
-                {
-                    throw new StreamException(e);
-                }
-            }                    
-        };
-    }
-
-
-    @Override
-    public void serialize(FeatureKey k, V f, PropertyFilter propFilter, ResourceFormat format, OutputStream os) throws IOException
-    {
-        try
-        {
-            var writer = getJsonWriter(os, propFilter);
-            getJsonBindings().writeFeature(writer, getFeatureWithId(k, f));
-            writer.flush();
-        }
-        catch (IOException e)
-        {
-            throw new IOException("Error writing feature JSON", e);
-        }
-    }
-
-
-    @Override
-    public void serialize(Stream<Entry<FeatureKey, V>> results, Collection<ResourceLink> links, PropertyFilter propFilter, ResourceFormat format, OutputStream os) throws IOException
-    {
-        var writer = getJsonWriter(os, propFilter);
-        var geoJsonBindings = getJsonBindings();
-        
-        writer.beginArray();
-        
-        try
-        {
-            results.forEach(entry -> {
-                try
-                {
-                    var f = getFeatureWithId(entry.getKey(), entry.getValue());
-                    geoJsonBindings.writeFeature(writer, f);
-                }
-                catch (IOException e)
-                {
-                    IOException wrappedEx = new IOException("Error writing feature JSON", e);
-                    throw new IllegalStateException(wrappedEx);
-                }
-            });
-        }
-        catch (IllegalStateException e)
-        {
-            if (e.getCause() instanceof IOException)
-                throw (IOException)e.getCause();
-            else
-                throw e;
-        }
-        
-        writer.endArray();
-        writer.flush();
+        return new GeoJsonBindings(true);
     }
 }

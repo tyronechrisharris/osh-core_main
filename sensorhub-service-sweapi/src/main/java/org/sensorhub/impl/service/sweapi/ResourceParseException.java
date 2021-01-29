@@ -8,29 +8,28 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.feature;
+package org.sensorhub.impl.service.sweapi;
 
-import org.sensorhub.api.datastore.feature.IFeatureStore;
-import org.vast.ogc.gml.IGeoFeature;
+import java.io.IOException;
 
 
-public class FeatureHistoryHandler extends FeatureHandler
+@SuppressWarnings("serial")
+public class ResourceParseException extends IOException
 {
-    
-    public FeatureHistoryHandler(IFeatureStore dataStore)
-    {
-        super(dataStore);
-    }
-
-
-    @Override
-    protected void validate(IGeoFeature resource)
-    {
-        // TODO Auto-generated method stub
         
+    public ResourceParseException(String message)
+    {
+        super(message);
     }
+
+
+    public ResourceParseException(String message, Throwable cause)
+    {
+        super(message, cause);
+    }
+    
 }

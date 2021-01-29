@@ -24,14 +24,14 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.vast.ogc.gml.IGeoFeature;
 
 
-public class FeatureMembersHandler extends AbstractFeatureHandler<IGeoFeature, FeatureFilter, FeatureFilter.Builder, IFeatureStore>
+public class FeatureMembersHandler extends FeatureHandler
 {
     public static final String[] NAMES = { "members" };
     
     
     public FeatureMembersHandler(IFeatureStore dataStore)
     {
-        super(dataStore, new FeatureCollectionResourceType());
+        super(dataStore);
     }
     
     

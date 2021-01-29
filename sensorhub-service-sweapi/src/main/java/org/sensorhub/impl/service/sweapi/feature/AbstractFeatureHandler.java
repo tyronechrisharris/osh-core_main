@@ -14,7 +14,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.feature;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import org.sensorhub.api.datastore.TemporalFilter;
@@ -22,10 +21,10 @@ import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
+import org.sensorhub.impl.service.sweapi.IdConverter;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceType;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.vast.ogc.gml.IFeature;
 
@@ -36,20 +35,12 @@ public abstract class AbstractFeatureHandler<
     B extends FeatureFilterBaseBuilder<B,? super V,F>,
     S extends IFeatureStoreBase<V,?,F>> extends ResourceHandler<FeatureKey, V, F, B, S>
 {
+    IdConverter idConverter;
     
-    protected AbstractFeatureHandler(S dataStore, ResourceType<FeatureKey, V> resourceType)
+    
+    protected AbstractFeatureHandler(S dataStore, IdEncoder idEncoder)
     {
-        super(dataStore, resourceType);
-    }
-    
-    
-    @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
-    {
-        if (ctx.isEmpty() && !(ctx.getParentRef().type instanceof FeatureCollectionResourceType))
-            return ctx.sendError(405, "Features can only be created within Feature Collections");
-        
-        return super.doPost(ctx);
+        super(dataStore, idEncoder);
     }
 
 
@@ -57,21 +48,16 @@ public abstract class AbstractFeatureHandler<
     protected void buildFilter(final ResourceRef parent, final Map<String, String[]> queryParams, final B builder) throws InvalidRequestException
     {
         super.buildFilter(parent, queryParams, builder);
-        String[] paramValues;
         
         // uid param
-        paramValues = queryParams.get("uid");
-        if (paramValues != null)
-        {
-            var featureUIDs = parseMultiValuesArg(paramValues);
+        var featureUIDs = parseMultiValuesArg("uid", queryParams);
+        if (featureUIDs != null && !featureUIDs.isEmpty())
             builder.withUniqueIDs(featureUIDs);
-        }
-        
+                
         // validTime param
-        paramValues = queryParams.get("validTime");
-        if (paramValues != null)
+        var timeExtent = parseTimeStampArg("validTime", queryParams);
+        if (timeExtent != null)
         {
-            var timeExtent = parseTimeStampArg(paramValues);
             builder.withValidTime(new TemporalFilter.Builder()
                 .fromTimeExtent(timeExtent)
                 .build());
@@ -80,31 +66,21 @@ public abstract class AbstractFeatureHandler<
             builder.withCurrentVersion();
         
         // use opensearch bbox param to filter spatially
-        paramValues = queryParams.get("bbox");
-        if (paramValues != null)
-        {
-            var bbox = parseBboxArg(paramValues);
+        var bbox = parseBboxArg("bbox", queryParams);
+        if (bbox != null)
             builder.withLocationWithin(bbox);
-        }
         
         // geom param
-        paramValues = queryParams.get("geom");
-        if (paramValues != null)
-        {
-            var geom = parseGeomArg(paramValues);
+        var geom = parseGeomArg("geom", queryParams);
+        if (geom != null)
             builder.withLocationIntersecting(geom);
-        }
     }
 
 
     @Override
-    protected FeatureKey getKey(long internalID)
+    protected FeatureKey getKey(long publicID)
     {
-        var fk = dataStore.getCurrentVersionKey(internalID);
-        if (fk != null)
-            return fk;
-        else // return an unknown key so the caller sends 404
-            return new FeatureKey(Long.MAX_VALUE);
+        return dataStore.getCurrentVersionKey(publicID);
     }
     
     

@@ -51,7 +51,7 @@ public class ResourceLink
     
     public static class Builder extends BaseBuilder<ResourceLink>
     {
-        Builder()
+        public Builder()
         {
             this.instance = new ResourceLink();
         }
@@ -64,9 +64,9 @@ public class ResourceLink
         }
         
         
-        public Builder rel(String type)
+        public Builder rel(String rel)
         {
-            instance.type = type;
+            instance.rel = rel;
             return this;
         }
         

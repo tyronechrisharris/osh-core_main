@@ -16,13 +16,21 @@ package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.procedure.ProcedureWrapper;
+import org.sensorhub.impl.procedure.ProcedureUtils;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,10 +43,32 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     static final Logger log = LoggerFactory.getLogger(ProcedureDetailsHandler.class);
     public static final String[] NAMES = { "details", "specsheet" }; //"fullDescription"; //"specs"; //"specsheet"; //"metadata";
     
+    IDataStreamStore dataStreamStore;
     
-    public ProcedureDetailsHandler(IProcedureStore dataStore)
+    
+    public ProcedureDetailsHandler(IEventBus eventBus, IProcedureObsDatabase db)
     {
-        super(dataStore, new ProcedureDetailsResourceType());
+        super(db.getProcedureStore(), new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED));
+        this.dataStreamStore = db.getDataStreamStore();
+    }
+
+
+    @Override
+    protected ResourceBinding<FeatureKey, IProcedureWithDesc> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    {
+        var format = ctx.getFormat();
+        
+        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.SML_JSON))
+            return new ProcedureBindingSmlJson(ctx, idEncoder, forReading);
+        else
+            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+    }
+    
+    
+    @Override
+    protected boolean isValidID(long internalID)
+    {
+        return dataStore.contains(internalID);
     }
     
     
@@ -49,17 +79,16 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     }
     
     
-    @Override
+    /*@Override
     public boolean doPut(final ResourceContext ctx) throws IOException
     {
         return ctx.sendError(405, "Cannot PUT here, use PUT on main resource URL");
-    }
+    }*/
     
     
     @Override
     public boolean doDelete(final ResourceContext ctx) throws IOException
     {
-        // TODO implement DELETE for details only?
         return ctx.sendError(405, "Cannot DELETE here, use DELETE on main resource URL");
     }
     
@@ -98,13 +127,21 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
             return false;
         
         var key = getKey(internalID, version);
-        final AbstractProcess sml = dataStore.get(key).getFullDescription();
+        AbstractProcess sml = dataStore.get(key).getFullDescription();
         if (sml == null)
             return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
         
+        // also load add outputs generated from currently valid datastreams
+        sml = ProcedureUtils.addOutputsFromDatastreams(internalID, sml, dataStreamStore);
+        
         var queryParams = ctx.getRequest().getParameterMap();
+        var responseFormat = parseFormat(queryParams);
+        ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
+        var binding = getBinding(ctx, false);
+        
         ctx.getResponse().setStatus(200);
-        resourceType.serialize(key, new ProcedureWrapper(sml), parseSelectArg(queryParams), null, ctx.getResponse().getOutputStream());
+        ctx.getResponse().setContentType(responseFormat.getMimeType());
+        binding.serialize(key, new ProcedureWrapper(sml), true);
         
         return true;
     }

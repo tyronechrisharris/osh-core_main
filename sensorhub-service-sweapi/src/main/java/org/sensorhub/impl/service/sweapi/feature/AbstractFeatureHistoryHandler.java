@@ -22,12 +22,11 @@ import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceType;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,9 +45,9 @@ public abstract class AbstractFeatureHistoryHandler<
     public static final String[] NAMES = { "history" };
     
     
-    public AbstractFeatureHistoryHandler(S dataStore, ResourceType<FeatureKey, V> resourceType)
+    public AbstractFeatureHistoryHandler(S dataStore, IdEncoder idEncoder)
     {
-        super(dataStore, resourceType);
+        super(dataStore, idEncoder);
     }
     
     
@@ -81,8 +80,14 @@ public abstract class AbstractFeatureHistoryHandler<
             return ctx.sendError(404, String.format(VERSION_NOT_FOUND_ERROR_MSG, id));
         
         var queryParams = ctx.getRequest().getParameterMap();
+        var responseFormat = parseFormat(queryParams);
+        ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
+        var binding = getBinding(ctx, false);
+        
         ctx.getResponse().setStatus(200);
-        resourceType.serialize(key, res, parseSelectArg(queryParams), ResourceFormat.GEOJSON, ctx.getResponse().getOutputStream());
+        ctx.getResponse().setContentType(responseFormat.getMimeType());
+        binding.serialize(key, res, true);
+        
         return true;
     }
     
@@ -134,7 +139,7 @@ public abstract class AbstractFeatureHistoryHandler<
         
         long internalID = ctx.getParentRef().internalID;
         long version = getVersionNumber(ctx, id);
-        ctx.setParent(resourceType, internalID, version);
+        ctx.setParent(this, internalID, version);
         
         return resource;
     }
@@ -148,12 +153,11 @@ public abstract class AbstractFeatureHistoryHandler<
         builder.withInternalIDs(parent.internalID);
         
         // validTime param
-        String[] validTime = queryParams.get("validTime");
+        var validTime = parseTimeStampArg("validTime", queryParams);
         if (validTime != null)
         {
-            var timeExtent = parseTimeStampArg(validTime);
             builder.withValidTime(new TemporalFilter.Builder()
-                .fromTimeExtent(timeExtent)
+                .fromTimeExtent(validTime)
                 .build());
         }
     }

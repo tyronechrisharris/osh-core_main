@@ -42,7 +42,7 @@ public abstract class AbstractResourceStoreWrapper<
     @Override
     public K add(V value) throws DataStoreException
     {
-        return getWriteStore().add(value);
+        return toPublicKey(getWriteStore().add(value));
     }
 
 

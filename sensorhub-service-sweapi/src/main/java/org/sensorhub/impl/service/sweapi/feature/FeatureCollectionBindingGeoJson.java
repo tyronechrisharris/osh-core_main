@@ -20,8 +20,9 @@ import java.util.Collections;
 import javax.xml.namespace.QName;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.IFeatureCollection;
-import org.sensorhub.impl.service.sweapi.IdUtils;
-import org.sensorhub.impl.service.sweapi.resource.ResourceType;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GenericFeature;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.GeoJsonBindings;
@@ -34,19 +35,19 @@ import com.google.gson.stream.JsonWriter;
 import net.opengis.gml.v32.AbstractGeometry;
 
 
-public class FeatureCollectionResourceType extends AbstractFeatureResourceType<IGeoFeature>
+public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJson<IGeoFeature>
 {
     public static final int EXTERNAL_ID_SEED = 7352181;
     
     
-    FeatureCollectionResourceType()
+    FeatureCollectionBindingGeoJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
-        super(new IdUtils(EXTERNAL_ID_SEED));
+        super(ctx, idEncoder, forReading);
     }
     
     
     @Override
-    protected GeoJsonBindings getJsonBindings()
+    protected GeoJsonBindings getJsonBindings(boolean showLinks)
     {
         return new GeoJsonBindings(true) {
             @Override
@@ -111,8 +112,8 @@ public class FeatureCollectionResourceType extends AbstractFeatureResourceType<I
             @Override
             public String getId()
             {
-                var externalID = FeatureCollectionResourceType.this.getExternalID(key.getInternalID());
-                return Long.toString(externalID, ResourceType.ID_RADIX);
+                var externalID = FeatureCollectionBindingGeoJson.this.encodeID(key.getInternalID());
+                return Long.toString(externalID, ResourceBinding.ID_RADIX);
             }
 
             @Override

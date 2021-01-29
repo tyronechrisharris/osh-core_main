@@ -12,25 +12,26 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.feature;
-
-import org.sensorhub.api.datastore.feature.IFeatureStore;
-import org.vast.ogc.gml.IGeoFeature;
+package org.sensorhub.impl.service.sweapi.resource;
 
 
-public class FeatureHistoryHandler extends FeatureHandler
+/**
+ * <p>
+ * Interface defining callbacks to get notified of resource transactional
+ * operations.
+ * </p>
+ * 
+ * @param <V> Type of resource
+ *
+ * @author Alex Robin
+ * @since Dec 23, 2020
+ */
+public interface IResourceEventListener<V>
 {
     
-    public FeatureHistoryHandler(IFeatureStore dataStore)
-    {
-        super(dataStore);
-    }
-
-
-    @Override
-    protected void validate(IGeoFeature resource)
-    {
-        // TODO Auto-generated method stub
-        
-    }
+    void onCreated(V res);
+    
+    void onUpdated(V res);
+    
+    void onDeleted(V res);
 }

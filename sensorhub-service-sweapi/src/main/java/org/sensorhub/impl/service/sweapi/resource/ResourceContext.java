@@ -34,11 +34,21 @@ public class ResourceContext
     HttpServletResponse resp;
     Deque<String> path;
     ResourceRef parentResource = new ResourceRef();
+    ResourceFormat format;
+    PropertyFilter propFilter;
+    
+    
+    /*
+     * Auxiliary data generated during the request handling process for
+     * consumption by later processing stages (such as deserializers)
+     */
+    Object data;
     
     
     public static class ResourceRef
     {
-        public ResourceType<?,?> type;
+        @SuppressWarnings("rawtypes")
+        public BaseResourceHandler type;
         public long internalID;
         public long version;
     }
@@ -98,18 +108,49 @@ public class ResourceContext
     }
     
     
-    public void setParent(ResourceType<?,?> resourceType, long internalID)
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, long internalID)
     {
-        parentResource.type = resourceType;
+        parentResource.type = parentHandler;
         parentResource.internalID = internalID;
     }
     
     
-    public void setParent(ResourceType<?,?> resourceType, long internalID, long version)
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, long internalID, long version)
     {
-        parentResource.type = resourceType;
+        parentResource.type = parentHandler;
         parentResource.internalID = internalID;
         parentResource.version = internalID;
+    }
+    
+    
+    public void setFormatOptions(ResourceFormat format, PropertyFilter propFilter)
+    {
+        this.format = Asserts.checkNotNull(format, ResourceFormat.class);
+        this.propFilter = propFilter;
+    }
+    
+    
+    public ResourceFormat getFormat()
+    {
+        return format;
+    }
+
+
+    public PropertyFilter getPropertyFilter()
+    {
+        return propFilter;
+    }
+
+
+    public Object getData()
+    {
+        return data;
+    }
+    
+    
+    public void setData(Object data)
+    {
+        this.data = data;
     }
     
     
@@ -160,5 +201,11 @@ public class ResourceContext
     public Logger getLogger()
     {
         return servlet.getLogger();
+    }
+    
+    
+    public String getApiRootURL()
+    {
+        return servlet.getConfig().getPublicEndpoint();
     }
 }

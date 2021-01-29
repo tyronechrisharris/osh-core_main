@@ -16,32 +16,63 @@ package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureResourceType;
+import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 
 
 public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStreamInfo, DataStreamFilter, DataStreamFilter.Builder, IDataStreamStore>
 {
+    public static final int EXTERNAL_ID_SEED = 918742953;
     public static final String[] NAMES = { "datastreams" };
     
+    ProcedureObsTransactionHandler transactionHandler;
     
-    public DataStreamHandler(IDataStreamStore dataStore)
+    
+    public DataStreamHandler(IEventBus eventBus, ProcedureObsDbWrapper db)
     {
-        super(dataStore, new DataStreamResourceType());
+        super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED));
+        this.transactionHandler = new ProcedureObsTransactionHandler(eventBus, db);
+    }
+    
+    
+    @Override
+    protected ResourceBinding<DataStreamKey, IDataStreamInfo> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    {
+        var format = ctx.getFormat();
+        
+        if (format.equals(ResourceFormat.JSON))
+            return new DataStreamBindingJson(ctx, idEncoder, forReading);
+        else
+            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+    }
+    
+    
+    @Override
+    protected boolean isValidID(long internalID)
+    {
+        return dataStore.containsKey(new DataStreamKey(internalID));
     }
     
     
     @Override
     public boolean doPost(ResourceContext ctx) throws IOException
     {
-        if (ctx.isEmpty() || !(ctx.getParentRef().type instanceof ProcedureResourceType))
+        if (ctx.isEmpty() &&
+            !(ctx.getParentRef().type instanceof ProcedureHandler))
             return ctx.sendError(405, "Datastreams can only be created within a Procedure");
         
         return super.doPost(ctx);
@@ -57,13 +88,6 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         if (parent.internalID > 0)
             builder.withProcedures(parent.internalID);
     }
-    
-    
-    @Override
-    public String[] getNames()
-    {
-        return NAMES;
-    }
 
 
     @Override
@@ -72,11 +96,56 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         // TODO Auto-generated method stub
         
     }
+    
+    
+    @Override
+    protected DataStreamKey addEntry(final ResourceContext ctx, final IDataStreamInfo res) throws DataStoreException
+    {        
+        var procID = ctx.getParentID();
+        var procHandler = transactionHandler.getProcedureHandler(procID);
+        
+        var dsHandler = procHandler.addOrUpdateDataStream(res.getOutputName(), res.getRecordStructure(), res.getRecordEncoding());
+        var dsKey = dsHandler.getDataStreamKey();
+        
+        return new DataStreamKey(dsKey.getInternalID());
+    }
+    
+    
+    @Override
+    protected boolean updateEntry(final ResourceContext ctx, final DataStreamKey key, final IDataStreamInfo res) throws DataStoreException
+    {        
+        var dsID = key.getInternalID();
+        var dsHandler = transactionHandler.getDataStreamHandler(dsID);
+        
+        if (dsHandler == null)
+            return false;
+        else
+            return dsHandler.update(res.getRecordStructure(), res.getRecordEncoding());
+    }
+    
+    
+    protected boolean deleteEntry(final ResourceContext ctx, final DataStreamKey key) throws DataStoreException
+    {        
+        var dsID = key.getInternalID();
+        
+        var dsHandler = transactionHandler.getDataStreamHandler(dsID);
+        if (dsHandler == null)
+            return false;
+        else
+            return dsHandler.delete();
+    }
 
 
     @Override
-    protected DataStreamKey getKey(long internalID)
+    protected DataStreamKey getKey(long publicID)
     {
-        return new DataStreamKey(internalID);
+        return new DataStreamKey(publicID);
+    }
+    
+    
+    @Override
+    public String[] getNames()
+    {
+        return NAMES;
     }
 }

@@ -14,13 +14,20 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
+import java.math.BigInteger;
 
-@SuppressWarnings("serial")
-public class StreamException extends RuntimeException
+
+public interface IdConverter
 {
-
-    public StreamException(Throwable e)
-    {
-        super(e);
-    }
+    
+    long toInternalID(long publicID);
+    
+    
+    long toPublicID(long internalID);
+    
+    
+    BigInteger toInternalID(BigInteger publicID);
+    
+    
+    BigInteger toPublicID(BigInteger internalID);
 }

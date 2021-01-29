@@ -18,8 +18,9 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.impl.service.sweapi.IdUtils;
-import org.sensorhub.impl.service.sweapi.resource.ResourceType;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
@@ -27,14 +28,21 @@ import com.google.gson.stream.JsonWriter;
 import net.opengis.gml.v32.AbstractGeometry;
 
 
-public class FeatureResourceType extends AbstractFeatureResourceType<IGeoFeature>
+/**
+ * <p>
+ * GeoJSON formatter for feature resources
+ * </p>
+ *
+ * @author Alex Robin
+ * @since Jan 26, 2021
+ */
+public class FeatureFormatterGeoJson extends AbstractFeatureBindingGeoJson<IGeoFeature>
 {
-    public static final int EXTERNAL_ID_SEED = 815420;
     
     
-    FeatureResourceType()
+    FeatureFormatterGeoJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
-        super(new IdUtils(EXTERNAL_ID_SEED));
+        super(ctx, idEncoder, forReading);
     }
     
     
@@ -60,8 +68,8 @@ public class FeatureResourceType extends AbstractFeatureResourceType<IGeoFeature
             @Override
             public String getId()
             {
-                var externalID = FeatureResourceType.this.getExternalID(key.getInternalID());
-                return Long.toString(externalID, ResourceType.ID_RADIX);
+                var externalID = FeatureFormatterGeoJson.this.encodeID(key.getInternalID());
+                return Long.toString(externalID, ResourceBinding.ID_RADIX);
             }
 
             @Override

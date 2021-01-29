@@ -14,21 +14,29 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;
+import org.vast.util.Asserts;
 
 
 public class DataStreamStoreWrapper extends AbstractResourceStoreWrapper<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter, IDataStreamStore> implements IDataStreamStore
 {
-
-    public DataStreamStoreWrapper(IDataStreamStore readStore, IDataStreamStore writeStore)
+    final IdConverter idConverter;
+    
+    
+    public DataStreamStoreWrapper(IDataStreamStore readStore, IDataStreamStore writeStore, IdConverter idConverter)
     {
         super(readStore, writeStore);
+        this.idConverter = Asserts.checkNotNull(idConverter, IdConverter.class);
     }
 
 
@@ -37,12 +45,42 @@ public class DataStreamStoreWrapper extends AbstractResourceStoreWrapper<DataStr
     {
         return (DataStreamFilter.Builder)super.filterBuilder();
     }
+    
+    
+    @Override
+    public DataStreamKey add(IDataStreamInfo value) throws DataStoreException
+    {
+        var procInternalID = idConverter.toInternalID(value.getProcedureID().getInternalID()); 
+        var procUID = value.getProcedureID().getUniqueID();
+                
+        value = DataStreamInfo.Builder.from(value)
+            .withProcedure(new ProcedureId(procInternalID, procUID))
+            .build();
+        
+        return toPublicKey(getWriteStore().add(value));
+    }
 
 
     @Override
     public void linkTo(IProcedureStore procedureStore)
     {
         throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    protected DataStreamKey toInternalKey(DataStreamKey publicKey)
+    {
+        return new DataStreamKey(
+            idConverter.toInternalID(publicKey.getInternalID()));
+    }
+
+
+    @Override
+    protected DataStreamKey toPublicKey(DataStreamKey internalKey)
+    {
+        return new DataStreamKey(
+            idConverter.toPublicID(internalKey.getInternalID()));
     }
 
 }

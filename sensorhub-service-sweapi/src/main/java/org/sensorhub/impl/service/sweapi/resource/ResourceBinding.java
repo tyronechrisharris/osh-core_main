@@ -15,82 +15,53 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.resource;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.stream.Stream;
-import org.sensorhub.impl.service.sweapi.IdUtils;
-import org.sensorhub.impl.service.sweapi.json.FilteredJsonWriter;
-import com.google.gson.stream.JsonWriter;
+import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.vast.util.Asserts;
 
 
-public abstract class ResourceType<K, V>
+/**
+ * <p>
+ * Base class for all resource formatter / parser
+ * </p>
+ * 
+ * @param <K> Resource Key
+ * @param <V> Resource Object
+ *
+ * @author Alex Robin
+ * @since Jan 26, 2021
+ */
+public abstract class ResourceBinding<K, V>
 {
     public static final int ID_RADIX = 36;
     public static final String INDENT = "  ";
     
-    protected final IdUtils idUtils;
+    
+    protected final ResourceContext ctx;
+    protected final IdEncoder idEncoder; // encoder/decoder to obfuscate ids provided by service
     
     
-    protected ResourceType(IdUtils idUtils)
+    protected ResourceBinding(ResourceContext ctx, IdEncoder idEncoder)
     {
-        this.idUtils = idUtils;
+        this.ctx = Asserts.checkNotNull(ctx, ResourceContext.class);
+        this.idEncoder = Asserts.checkNotNull(idEncoder, IdEncoder.class);
     }
     
     
-    public abstract V deserialize(ResourceFormat format, InputStream is) throws IOException;
-    public abstract Iterator<? extends V> deserializeArray(ResourceFormat format, InputStream is) throws IOException;
-    public abstract void serialize(K key, V res, PropertyFilter propFilter, ResourceFormat format, OutputStream os) throws IOException;
-    public abstract void serialize(Stream<Entry<K, V>> results, Collection<ResourceLink> links, PropertyFilter propFilter, ResourceFormat format, OutputStream os) throws IOException;
+    public abstract V deserialize() throws IOException;
+    public abstract void serialize(K key, V res, boolean showLinks) throws IOException;
+    public abstract void startCollection() throws IOException;
+    public abstract void endCollection(Collection<ResourceLink> links) throws IOException;
     
     
-    public long getInternalID(long externalID)
+    public long decodeID(long encodedID)
     {
-        return idUtils.getInternalID(externalID);
+        return idEncoder.decodeID(encodedID);
     }
     
     
-    public long getExternalID(long internalID)
+    public long encodeID(long decodedID)
     {
-        return idUtils.getExternalID(internalID);
-    }
-    
-    
-    protected JsonWriter getJsonWriter(OutputStream os, PropertyFilter propFilter) throws IOException
-    {
-        JsonWriter writer;
-        var osw = new OutputStreamWriter(os, StandardCharsets.UTF_8.name());        
-        if (propFilter != null)
-            writer = new FilteredJsonWriter(osw, propFilter);
-        else
-            writer = new JsonWriter(osw);
-        
-        writer.setLenient(true);
-        writer.setSerializeNulls(false);
-        writer.setIndent(INDENT);
-        return writer;
-    }
-    
-    
-    protected void writeLinksAsJson(Collection<ResourceLink> links, JsonWriter writer) throws IOException
-    {
-        writer.beginArray();
-        
-        for (var l: links)
-        {
-            writer.beginObject();
-            writer.name("rel").value(l.getRel());
-            if (l.getTitle() != null)
-                writer.name("title").value(l.getTitle());
-            writer.name("href").value(l.getHref());
-            writer.name("type").value(l.getType());
-            writer.endObject();
-        }
-        
-        writer.endArray();
+        return idEncoder.encodeID(decodedID);
     }
 }

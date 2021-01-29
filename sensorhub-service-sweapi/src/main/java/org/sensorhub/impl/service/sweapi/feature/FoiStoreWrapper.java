@@ -19,15 +19,17 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.vast.ogc.gml.IGeoFeature;
 
 
 public class FoiStoreWrapper extends AbstractFeatureStoreWrapper<IGeoFeature, FoiField, FoiFilter, IFoiStore> implements IFoiStore
 {
 
-    public FoiStoreWrapper(IFoiStore readStore, IFoiStore writeStore)
+    public FoiStoreWrapper(IFoiStore readStore, IFoiStore writeStore, IdConverter idConverter)
     {
-        super(readStore, writeStore);
+        super(readStore, writeStore, idConverter);
     }
     
     
@@ -35,6 +37,13 @@ public class FoiStoreWrapper extends AbstractFeatureStoreWrapper<IGeoFeature, Fo
     public FoiFilter.Builder filterBuilder()
     {
         return (FoiFilter.Builder)super.filterBuilder();
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procStore)
+    {
+        throw new UnsupportedOperationException();        
     }
 
 

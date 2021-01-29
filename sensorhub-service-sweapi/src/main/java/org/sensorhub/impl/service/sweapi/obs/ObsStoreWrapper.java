@@ -21,18 +21,25 @@ import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.obs.IObsData;
+import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.impl.service.sweapi.AbstractDataStoreWrapper;
+import org.sensorhub.impl.service.sweapi.IdConverter;
+import org.vast.util.Asserts;
 
 
 public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IObsData, ObsField, ObsFilter, IObsStore> implements IObsStore
 {
-
-    public ObsStoreWrapper(IObsStore readStore, IObsStore writeStore)
+    final IdConverter idConverter;
+    
+    
+    public ObsStoreWrapper(IObsStore readStore, IObsStore writeStore, IdConverter idConverter)
     {
         super(readStore, writeStore);
+        this.idConverter = Asserts.checkNotNull(idConverter, IdConverter.class);
     }
 
 
@@ -40,6 +47,35 @@ public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IObsDa
     public ObsFilter.Builder filterBuilder()
     {
         return new ObsFilter.Builder();
+    }
+
+
+    @Override
+    public BigInteger add(IObsData obs)
+    {
+        var dsInternalID = idConverter.toInternalID(obs.getDataStreamID());
+        
+        var foiId = IObsData.NO_FOI;
+        if (obs.getFoiID() != foiId)
+        {
+            var foiInternalID = idConverter.toInternalID(obs.getFoiID().getInternalID()); 
+            var foiUID = obs.getFoiID().getUniqueID();
+            foiId = new FeatureId(foiInternalID, foiUID);
+        }
+        
+        obs = ObsData.Builder.from(obs)
+            .withDataStream(dsInternalID)
+            .withFoi(foiId)
+            .build();
+        
+        return toPublicKey(getWriteStore().add(obs));
+    }
+
+
+    @Override
+    public Stream<ObsStats> getStatistics(ObsStatsQuery query)
+    {
+        return getReadStore().getStatistics(query);
     }
 
 
@@ -58,16 +94,16 @@ public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IObsDa
 
 
     @Override
-    public BigInteger add(IObsData obs)
+    protected BigInteger toInternalKey(BigInteger publicKey)
     {
-        return getWriteStore().add(obs);
+        return idConverter.toInternalID(publicKey);
     }
 
 
     @Override
-    public Stream<ObsStats> getStatistics(ObsStatsQuery query)
+    protected BigInteger toPublicKey(BigInteger internalKey)
     {
-        return getReadStore().getStatistics(query);
+        return idConverter.toPublicID(internalKey);
     }
 
 }

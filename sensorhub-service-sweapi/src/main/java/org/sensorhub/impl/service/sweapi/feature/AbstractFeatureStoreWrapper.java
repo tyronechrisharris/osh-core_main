@@ -20,25 +20,38 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;
 import org.vast.ogc.gml.IFeature;
+import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 
 
 public abstract class AbstractFeatureStoreWrapper<V extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super V>, S extends IFeatureStoreBase<V, VF, F>>
     extends AbstractResourceStoreWrapper<FeatureKey, V, VF, F, S> implements IFeatureStoreBase<V, VF, F>
 {
-
-    protected AbstractFeatureStoreWrapper(S readStore, S writeStore)
+    final IdConverter idConverter;
+    
+    
+    protected AbstractFeatureStoreWrapper(S readStore, S writeStore, IdConverter idConverter)
     {
         super(readStore, writeStore);
+        this.idConverter = Asserts.checkNotNull(idConverter, IdConverter.class);
+    }
+
+
+    @Override
+    public FeatureFilterBaseBuilder<?,?,F> filterBuilder()
+    {
+        return (FeatureFilterBaseBuilder<?,?,F>)super.filterBuilder();
     }
 
 
     @Override
     public FeatureKey add(long parentId, V value) throws DataStoreException
     {
-        return getWriteStore().add(parentId, value);
+        parentId = idConverter.toInternalID(parentId);
+        return toPublicKey(getWriteStore().add(parentId, value));
     }
     
     
@@ -57,9 +70,20 @@ public abstract class AbstractFeatureStoreWrapper<V extends IFeature, VF extends
 
 
     @Override
-    public FeatureFilterBaseBuilder<?,?,F> filterBuilder()
+    protected FeatureKey toInternalKey(FeatureKey publicKey)
     {
-        return (FeatureFilterBaseBuilder<?,?,F>)super.filterBuilder();
+        return new FeatureKey(
+            idConverter.toInternalID(publicKey.getInternalID()),
+            publicKey.getValidStartTime());
+    }
+
+
+    @Override
+    protected FeatureKey toPublicKey(FeatureKey internalKey)
+    {
+        return new FeatureKey(
+            idConverter.toPublicID(internalKey.getInternalID()),
+            internalKey.getValidStartTime());
     }
 
 }

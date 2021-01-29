@@ -20,6 +20,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Set;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
+import org.vast.json.JsonInliningWriter;
 import com.google.gson.stream.JsonWriter;
 
 
@@ -32,7 +33,7 @@ import com.google.gson.stream.JsonWriter;
  * @author Alex Robin
  * @since Nov 6, 2020
  */
-public class FilteredJsonWriter extends JsonWriter
+public class FilteredJsonWriter extends JsonInliningWriter
 {
     private final static String ARRAY_MARKER = "{array}";
     
@@ -57,8 +58,11 @@ public class FilteredJsonWriter extends JsonWriter
         
         if (skippedName == null)
         {
+            if (name.equals("items"))
+                return super.name(name);
+                
             if (excludedProps.contains(name) ||
-                (!includedProps.isEmpty() && !includedProps.contains(name) && currentPath.size() == 1))
+                (!includedProps.isEmpty() && !includedProps.contains(name)))// && currentPath.size() == 1))
                 skippedName = name;
             else
                 super.name(name);

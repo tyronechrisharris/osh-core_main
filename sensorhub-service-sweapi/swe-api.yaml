@@ -87,9 +87,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProcedureOrGroup'
+                $ref: '#/components/schemas/ProcedureCollectionResponse'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -221,13 +219,13 @@ paths:
         5XX:
           $ref: '#/components/responses/5XX'
           
-  '/datastreams/{sid}':
+  '/datastreams/{dsid}':
     get:
       summary: Get a specific datastream resource by ID
       tags:
         - Datastreams
       parameters:
-        - $ref: '#/components/parameters/sid'
+        - $ref: '#/components/parameters/dsid'
         - $ref: '#/components/parameters/select'
         - $ref: '#/components/parameters/format'
       responses:
@@ -843,26 +841,26 @@ paths:
         5XX:
           $ref: '#/components/responses/5XX'
           
-  '/procedures/{pid}/controls/{sid}':
+  '/procedures/{pid}/controls/{csid}':
     get:
       summary:  Get a specific control interface description by ID.
       tags:
         - Tasking
       parameters:
         - $ref: '#/components/parameters/pid'
-        - $ref: '#/components/parameters/sid'
+        - $ref: '#/components/parameters/csid'
       responses:
         '200':
           description: OK. Successful request
   
-  '/procedures/{pid}/controls/{sid}/tasks':
+  '/procedures/{pid}/controls/{csid}/tasks':
     get:
       summary: Get the list of commands/tasks sent through a particular control interface
       tags:
         - Tasking
       parameters:
         - $ref: '#/components/parameters/pid'
-        - $ref: '#/components/parameters/sid'
+        - $ref: '#/components/parameters/csid'
       responses:
         '200':
           description: OK. Successful request
@@ -888,7 +886,7 @@ paths:
         - Tasking
       parameters:
         - $ref: '#/components/parameters/pid'
-        - $ref: '#/components/parameters/sid'
+        - $ref: '#/components/parameters/csid'
       requestBody:
         content:
           application/json:
@@ -908,27 +906,27 @@ paths:
         5XX:
           $ref: '#/components/responses/5XX'
   
-  '/procedures/{pid}/controls/{sid}/tasks/{tid}':
+  '/procedures/{pid}/controls/{csid}/tasks/{tid}':
     get:
       summary: Get info about a specific task
       tags:
         - Tasking
       parameters:
         - $ref: '#/components/parameters/pid'
-        - $ref: '#/components/parameters/sid'
+        - $ref: '#/components/parameters/csid'
         - $ref: '#/components/parameters/tid'
       responses:
         '200':
           description: OK. Successful request
   
-  '/procedures/{pid}/controls/{sid}/tasks/{tid}/status':
+  '/procedures/{pid}/controls/{csid}/tasks/{tid}/status':
     get:
       summary: Get the status of a specific task
       tags:
         - Tasking
       parameters:
         - $ref: '#/components/parameters/pid'
-        - $ref: '#/components/parameters/sid'
+        - $ref: '#/components/parameters/csid'
         - $ref: '#/components/parameters/tid'
       responses:
         '200':
@@ -940,13 +938,13 @@ paths:
   
     
   # Datastream nested resources
-  '/datastreams/{sid}/observations':
+  '/datastreams/{dsid}/observations':
     get:
       summary: Retrieve historical observations from a datastream
       tags:
         - Observations
       parameters:
-        - $ref: '#/components/parameters/sid'
+        - $ref: '#/components/parameters/dsid'
         - $ref: '#/components/parameters/phenomenonTime'
         - $ref: '#/components/parameters/resultTime'
         - $ref: '#/components/parameters/featureOfInterest'
@@ -970,7 +968,8 @@ paths:
       tags:
         - Observations
       parameters:
-        - $ref: '#/components/parameters/sid'
+        - $ref: '#/components/parameters/dsid'
+        - $ref: '#/components/parameters/featureOfInterest'
       requestBody:
         content:
           application/json:
@@ -1170,103 +1169,78 @@ paths:
           $ref: '#/components/responses/404'
         5XX:
           $ref: '#/components/responses/5XX'
-
-    
-    
-  /query:
-    post:
-      summary: >-
-        Run an advanced query on any of the resource sets available through this
-        API
-      tags:
-        - Advanced Queries
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Query'
-      responses:
-        '200':
-          description: OK. Successful request
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BaseResourceInfo'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '403':
-          $ref: '#/components/responses/403'
-        '404':
-          $ref: '#/components/responses/404'
-        5XX:
-          $ref: '#/components/responses/5XX'
           
           
 components:
   schemas:
-    BaseResourceInfo:
+    ResourceWithId:
+      type: object
+      properties:
+        'id':   
+          description: Server assigned resource identifier (auto-generated by server on POST)
+          type: string
+    ResourceProperties:
       description: Common information shared by all resource types
       type: object
       required:
         - name
       properties:
-        id:
-          description: Resource identifier in hexadecimal format (auto-generated by server on POST)
-          type: string
-        name:
+        'name':
           description: Human readable resource name
           type: string
-        description:
+        'description':
           description: Human readable description of resource
           type: string
+          
+    FeatureProperties:
+      allOf:
+        - $ref: '#/components/schemas/ResourceProperties'
     Feature:
-      description: Geospatial feature
+      description: GeoJSON feature representing a feature of interest
       allOf:
-        - $ref: '#/components/schemas/BaseResourceInfo'
-        - $ref: 'http://geojson.org/schema/Feature.json'
-    FeatureCollection:
-      description: Collection of geospatial features
-      allOf:
-        - $ref: '#/components/schemas/BaseResourceInfo'
+        - $ref: '#/components/schemas/ResourceWithId'
+        - $ref: 'https://geojson.org/schema/Feature.json'
         - type: object
           properties:
-            type:
+            'properties':
+              $ref: '#/components/schemas/FeatureProperties'
+    FeatureCollection:
+      description: GeoJSON feature representing a collection of geospatial features
+      allOf:
+        - $ref: '#/components/schemas/Feature'
+        - type: object
+          properties:
+            'schemaUrl':
               type: string
-              enum:
-                - FeatureCollection
-            schemaUrl:
-              type: string
-            numElements:
+            'numElements':
               type: integer
               format: int32
-            bbox:
-              type: array
-              minItems: 4
-              items:
-                type: number
-            geometry:
-              $ref: 'http://geojson.org/schema/Geometry.json'
     FeatureOrCollection:
       type: object
       oneOf:
         - $ref: '#/components/schemas/Feature'
         - $ref: '#/components/schemas/FeatureCollection'
-    Procedure:
-      description: Measurement procedure
-      type: object
+        
+    ProcedureProperties:
       allOf:
-        - $ref: '#/components/schemas/BaseResourceInfo'
+        - $ref: '#/components/schemas/ResourceProperties'
         - type: object
           properties:
-            uid:
+            'uid':
               description: Globally unique ID of procedure (URI)
               type: string
-            type:
+            'type':
+              description: Type of procedure (sensor, process, actuator, etc.)
               type: string
+    Procedure:
+      description: GeoJSON feature representing a procedure
+      allOf:
+        - $ref: '#/components/schemas/ResourceWithId'
+        - $ref: 'https://geojson.org/schema/Feature.json'
+        - type: object
+          properties:
+            'properties':
+              $ref: '#/components/schemas/ProcedureProperties'
     ProcedureGroup:
       description: Group of measurement procedures (e.g. sensor network)
       type: object
@@ -1282,17 +1256,31 @@ components:
       oneOf:
         - $ref: '#/components/schemas/Procedure'
         - $ref: '#/components/schemas/ProcedureGroup'
+    ProcedureCollectionResponse:
+      type: object
+      allOf:
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProcedureOrGroup'
+        - $ref: '#/components/schemas/Links'
     AbstractProcess:
       type: object
+      
     DataStream:
-      type: object
-      properties:
-        components:
-          $ref: '#/components/schemas/DataComponent' 
-        encodings:
-          type: array
-          items: 
-            $ref: '#/components/schemas/DataEncoding'
+      allOf:
+        - $ref: '#/components/schemas/ResourceWithId'
+        - $ref: '#/components/schemas/ResourceProperties'
+        - type: object
+          properties:
+            'resultSchema':
+              $ref: '#/components/schemas/DataComponent' 
+            'resultEncoding':
+              type: array
+              items: 
+                $ref: '#/components/schemas/DataEncoding'
     DataComponent:
       type: object
     DataEncoding:
@@ -1305,6 +1293,20 @@ components:
       type: object
     TaskStatus:
       type: object
+    Links:
+      type: array
+      items:
+        type: object
+        properties:
+          'rel':
+            type: string
+          'title':
+            type: string
+          'href':
+            type: string
+          'type':
+            type: string
+            
     ResourceEvent:
       type: object
       description: Resource Event
@@ -1338,6 +1340,7 @@ components:
           type: string
           description: URL of base resource to select results from
     Error:
+      type: object
       required:
         - code
         - message
@@ -1398,10 +1401,17 @@ components:
       schema:
         type: integer
         minimum: 1
-    sid:
-      name: sid
+    dsid:
+      name: dsid
       in: path
-      description: The name of the datastream (output) or command stream (input)
+      description: The ID of the datastream
+      required: true
+      schema:
+        type: string
+    csid:
+      name: csid
+      in: path
+      description: The name of the command stream
       required: true
       schema:
         type: string
