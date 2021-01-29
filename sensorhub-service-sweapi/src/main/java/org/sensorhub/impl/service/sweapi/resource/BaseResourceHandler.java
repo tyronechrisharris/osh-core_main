@@ -324,21 +324,16 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         
         for (var e: queryParams.entrySet())
         {
-            buf.append(e.getKey()).append("=");
-            
-            if ("offset".equals(e.getKey()) && offset > 0)
+            if (!"offset".equals(e.getKey()))
             {
-                buf.append(offset).append('&');
-            }
-            else
-            {
+                buf.append(e.getKey()).append("=");
                 for (var s: e.getValue())
                     buf.append(s).append(',');
                 buf.setCharAt(buf.length()-1, '&');
             }
         }
         
-        if (!queryParams.containsKey("offset") && offset > 0)
+        if (offset > 0)
             buf.append("offset=").append(offset);
         else
             buf.setLength(buf.length()-1);
