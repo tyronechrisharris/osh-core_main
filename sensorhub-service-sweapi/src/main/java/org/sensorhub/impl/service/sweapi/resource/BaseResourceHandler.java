@@ -19,6 +19,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -672,24 +673,23 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected Bbox parseBboxArg(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
     {
-        var bboxTxt = getSingleParam(paramName, queryParams);
-        if (bboxTxt == null)
+        var bboxCoords = parseMultiValuesArg(paramName, queryParams);
+        if (bboxCoords == null || bboxCoords.isEmpty())
             return null;
         
         try
         {
-            String[] coords = bboxTxt.split(",");
             Bbox bbox = new Bbox();
-            bbox.setMinX(Double.parseDouble(coords[0]));
-            bbox.setMinY(Double.parseDouble(coords[1]));
-            bbox.setMaxX(Double.parseDouble(coords[2]));
-            bbox.setMaxY(Double.parseDouble(coords[3]));
+            bbox.setMinX(Double.parseDouble(bboxCoords.get(0)));
+            bbox.setMinY(Double.parseDouble(bboxCoords.get(1)));
+            bbox.setMaxX(Double.parseDouble(bboxCoords.get(2)));
+            bbox.setMaxY(Double.parseDouble(bboxCoords.get(3)));
             bbox.checkValid();
             return bbox;
         }
         catch (Exception e)
         {
-            throw new InvalidRequestException("Invalid bounding box: " + bboxTxt);
+            throw new InvalidRequestException("Invalid bounding box: " + bboxCoords);
         }
     }
     
@@ -728,7 +728,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected Collection<String> parseMultiValuesArg(String paramName, final Map<String, String[]> queryParams)
+    protected List<String> parseMultiValuesArg(String paramName, final Map<String, String[]> queryParams)
     {
         var allValues = new ArrayList<String>();
         
