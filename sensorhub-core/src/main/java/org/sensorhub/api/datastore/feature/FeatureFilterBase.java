@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.SortedSet;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.SpatialFilter;
@@ -99,9 +100,33 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     public boolean testUniqueIDs(IFeature f)
     {
         var uid = f.getUniqueIdentifier();
-        return (uniqueIDs == null ||
-                uniqueIDs.contains(uid) ||
-                (uidPrefixes != null && uidPrefixes.stream().anyMatch(prefix -> uid.startsWith(prefix))));
+        
+        if (uniqueIDs == null)
+            return true;
+        
+        // Prepare for prefix comparison if some UIDs end with *
+        if (uidPrefixes == null)
+            computeUidPrefixes();
+        
+        return (uniqueIDs.contains(uid) ||
+                (!uidPrefixes.isEmpty() && uidPrefixes.stream().anyMatch(prefix -> uid.startsWith(prefix))));
+    }
+    
+    
+    protected void computeUidPrefixes()
+    {
+        // also build prefix list if needed
+        var prefixList = new ArrayList<String>();
+        for (String uid: uniqueIDs)
+        {
+            if (uid.endsWith(FilterUtils.WILDCARD_CHAR))
+                prefixList.add(uid.substring(0, uid.length()-1));
+        }
+        
+        if (!prefixList.isEmpty())
+            this.uidPrefixes = ImmutableSortedSet.copyOf(prefixList);
+        else
+            this.uidPrefixes = Collections.emptySortedSet();
     }
     
     
@@ -196,17 +221,6 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         public B withUniqueIDs(Collection<String> uids)
         {
             instance.uniqueIDs = ImmutableSortedSet.copyOf(uids);
-            
-            // also build prefix list if needed
-            var prefixList = new ArrayList<String>();
-            for (String uid: uids)
-            {
-                if (uid.endsWith(FilterUtils.WILDCARD_CHAR))
-                    prefixList.add(uid.substring(0, uid.length()-1));
-            }            
-            if (!prefixList.isEmpty())
-                instance.uidPrefixes = ImmutableSortedSet.copyOf(prefixList);
-            
             return (B)this;
         }
 
