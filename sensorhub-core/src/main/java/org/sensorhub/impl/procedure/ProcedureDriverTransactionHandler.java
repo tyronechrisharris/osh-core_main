@@ -33,10 +33,11 @@ import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.ProcedureEvent;
-import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.utils.OshAsserts;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
 
 
 /* 
@@ -84,14 +85,14 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         {
             var taskableSource = (ICommandReceiver)driver;
             for (var commanStream: taskableSource.getCommandInputs().values())
-                doRegister(commanStream);            
+                doRegister(commanStream);
         }
         
         // if group, also register members recursively
         if (driver instanceof IProcedureGroupDriver)
         {
             for (var member: ((IProcedureGroupDriver<?>)driver).getMembers().values())
-                doRegisterMember(member);
+                doRegisterMember(member, driver.getCurrentDescription().getValidTime());
         }
 
         if (DefaultProcedureRegistry.log.isInfoEnabled())
@@ -148,22 +149,30 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     protected CompletableFuture<Boolean> registerMember(IProcedureDriver proc)
     {
         return CompletableFuture.supplyAsync(() -> {
-            try { return doRegisterMember(proc); }
+            try { return doRegisterMember(proc, null); }
             catch (DataStoreException e) { throw new CompletionException(e); }
         });
     }
     
     
-    protected synchronized boolean doRegisterMember(IProcedureDriver driver) throws DataStoreException
+    protected synchronized boolean doRegisterMember(IProcedureDriver driver, TimeExtent validTime) throws DataStoreException
     {
         Asserts.checkNotNull(driver, IProcedureDriver.class);
         var uid = OshAsserts.checkValidUID(driver.getUniqueIdentifier());
         boolean isNew = false;
         
-        var proc = new ProcedureWrapper(driver.getCurrentDescription()); 
+        var procWrapper = new ProcedureWrapper(driver.getCurrentDescription())
+            .hideOutputs()
+            .hideTaskableParams();
+        
+        // also default to proper valid time
+        if (validTime != null)
+            procWrapper.defaultToValidTime(validTime);
+        else
+            procWrapper.defaultToValidFromNow();
         
         // add or update existing procedure entry
-        var newMemberHandler = (ProcedureDriverTransactionHandler)addOrUpdateMember(proc);
+        var newMemberHandler = (ProcedureDriverTransactionHandler)addOrUpdateMember(procWrapper);
         
         // replace and cleanup old handler
         var oldMemberHandler = memberHandlers.get(uid);

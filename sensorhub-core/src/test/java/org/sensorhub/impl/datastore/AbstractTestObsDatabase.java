@@ -26,6 +26,7 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.vast.sensorML.SMLHelper;
 import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -77,7 +78,8 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
                     .uniqueID(PROC_UID_PREFIX + uidSuffixes[i])
                     .name("Procedure #" + (char)(uidSuffixes[i]+65))
                     .build();
-                internalIDs[i] = obsDb.getProcedureStore().add(p).getInternalID();
+                var procWrapper = new ProcedureWrapper(p);
+                internalIDs[i] = obsDb.getProcedureStore().add(procWrapper).getInternalID();
             }
 
             return internalIDs;

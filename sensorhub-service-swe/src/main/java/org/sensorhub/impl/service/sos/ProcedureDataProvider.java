@@ -36,7 +36,7 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.IDataStreamInfo;
-import org.sensorhub.impl.procedure.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.JTSUtils;
@@ -131,7 +131,7 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
                 return;
             
             //servlet.getLogger().debug("maybeFetch");
-            long u = requested.get();
+            //long u = requested.get();
             var fetchNextBatch = itemQueue.size() < batchSize/3;//itemQueue.size() < Math.ceil(u/2.0);
             
             // fetch more from DB if needed
@@ -168,7 +168,7 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
                 //servlet.getLogger().debug("maybeSend");
                 
                 long s = Math.min(n, itemQueue.size());
-                long numSent = s;
+                //long numSent = s;
                 if (requested.compareAndSet(n, n-s))
                 {
                     //servlet.getLogger().debug("Before send: req={}, queue={}, canceled={}",

@@ -14,15 +14,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.procedure;
 
-import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.api.procedure.ProcedureWrapper;
-import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
@@ -48,35 +44,6 @@ public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, P
         {
             super(name);
         }
-    }
-    
-    
-    /**
-     * Add a new procedure using its full description.<br/>
-     * This method delegates to {@link IFeatureStoreBase#add(T)}
-     * @param desc The full procedure description
-     * @return The newly allocated key (internal ID)
-     * @throws DataStoreException if a procedure with the same UID already exists
-     * in this store
-     */
-    public default FeatureKey add(AbstractProcess desc) throws DataStoreException
-    {
-        return add(new ProcedureWrapper(desc));
-    }
-    
-    
-    /**
-     * Add a new procedure using its full description and associate to its parent.<br/>
-     * This method delegates to {@link IFeatureStoreBase#add(long, T)}
-     * @param parentID Internal ID of parent procedure
-     * @param desc The full procedure description
-     * @return The newly allocated key (internal ID)
-     * @throws DataStoreException if a procedure with the same UID already exists
-     * in this store, or if the parent ID is unknown
-     */
-    public default FeatureKey add(long parentID, AbstractProcess desc) throws DataStoreException
-    {
-        return add(parentID, new ProcedureWrapper(desc));
     }
     
     

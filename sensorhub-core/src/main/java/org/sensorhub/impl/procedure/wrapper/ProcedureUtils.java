@@ -8,50 +8,33 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.procedure;
+package org.sensorhub.impl.procedure.wrapper;
 
-import java.time.Instant;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.impl.procedure.ProcedureTransactionHandler;
 import org.vast.data.TextEncodingImpl;
-import org.vast.ogc.gml.GMLUtils;
-import org.vast.util.TimeExtent;
-import com.rits.cloning.Cloner;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.IOPropertyList;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataStream;
 
 
+/**
+ * <p>
+ * Utility methods for handling procedure SensorML descriptions
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Feb 2, 2021
+ */
 public class ProcedureUtils
 {
-    
-    public static AbstractProcess defaultToValidFromNow(AbstractProcess sml)
-    {
-        if (sml.getValidTime() == null)
-        {
-            var timeExtent = TimeExtent.endNow(Instant.now());
-            var gmlTime = GMLUtils.timeExtentToTimePrimitive(timeExtent, true);
-            sml.getValidTimeList().add(gmlTime);
-        }
-        
-        return sml;
-    }
-    
-    
-    public static IOPropertyList extractOutputs(AbstractProcess sml)
-    {
-        var outputList = new IOPropertyList();
-        sml.getOutputList().copyTo(outputList);
-        sml.getOutputList().clear();
-        return outputList;
-    }
-    
     
     public static void addDatastreamsFromOutputs(ProcedureTransactionHandler procHandler, IOPropertyList outputs) throws DataStoreException
     {
@@ -71,9 +54,10 @@ public class ProcedureUtils
     }
     
     
-    public static AbstractProcess addOutputsFromDatastreams(long procID, AbstractProcess sml, IDataStreamStore dataStreamStore)
+    @SuppressWarnings("unchecked")
+    public static <T extends AbstractProcess> ProcessWrapper<T> addOutputsFromDatastreams(long procID, T sml, IDataStreamStore dataStreamStore)
     {
-        var smlWithOutputs = new Cloner().deepClone(sml);
+        var outputList = new IOPropertyList();
                 
         dataStreamStore.select(new DataStreamFilter.Builder()
             .withProcedures(procID)
@@ -81,9 +65,12 @@ public class ProcedureUtils
             .build())
         .forEach(ds -> {
             var output = ds.getRecordStructure();
-            smlWithOutputs.getOutputList().add(ds.getOutputName(), output);
+            outputList.add(ds.getOutputName(), output);
         });
         
-        return smlWithOutputs;
+        if (sml instanceof ProcessWrapper)
+            return ((ProcessWrapper<T>)sml).withOutputs(outputList);
+        else
+            return ProcessWrapper.getWrapper(sml).withOutputs(outputList);
     }
 }

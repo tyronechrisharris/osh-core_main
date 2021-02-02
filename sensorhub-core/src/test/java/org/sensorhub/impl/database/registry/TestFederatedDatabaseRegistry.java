@@ -28,6 +28,7 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.datastore.mem.InMemoryProcedureStateDatabase;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.vast.sensorML.SimpleProcessImpl;
 import com.google.common.collect.Sets;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -119,11 +120,11 @@ public class TestFederatedDatabaseRegistry
         
         AbstractProcess proc1 = new SimpleProcessImpl();
         proc1.setUniqueIdentifier("sensor001");
-        FeatureKey fk1 = db1.getProcedureStore().add(proc1);
+        FeatureKey fk1 = db1.getProcedureStore().add(new ProcedureWrapper(proc1));
     
         AbstractProcess proc3 = new SimpleProcessImpl();
         proc3.setUniqueIdentifier("sensor003");
-        FeatureKey fk3 = db2.getProcedureStore().add(proc3);
+        FeatureKey fk3 = db2.getProcedureStore().add(new ProcedureWrapper(proc3));
         
         FeatureKey id1 = mainObsDatabase.getProcedureStore().getCurrentVersionKey("sensor001");
         assertTrue(fk1.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db1.getDatabaseNum() == id1.getInternalID());

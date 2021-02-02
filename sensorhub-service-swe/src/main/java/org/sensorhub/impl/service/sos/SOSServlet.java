@@ -72,12 +72,12 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
-import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.procedure.DataStreamTransactionHandler;
 import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
-import org.sensorhub.impl.procedure.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.RecordTemplate;
@@ -720,17 +720,16 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // add or replace description in DB
                 try
                 {
-                    // extract outputs from SensorML description (no need to store them twice)
-                    var outputs = ProcedureUtils.extractOutputs(smlProc);
+                    var procWrapper = new ProcedureWrapper(request.getProcedureDescription())
+                        .hideOutputs()
+                        .hideTaskableParams()
+                        .defaultToValidFromNow();
                     
-                    // also default to a validity period starting now if nothing was specified
-                    ProcedureUtils.defaultToValidFromNow(smlProc);
-                    
-                    var procHandler = transactionHandler.addOrUpdateProcedure(new ProcedureWrapper(request.getProcedureDescription()));
+                    var procHandler = transactionHandler.addOrUpdateProcedure(procWrapper);
                     getLogger().info("Registered new procedure {}", procUID);
 
                     // also add datastreams if outputs were specified in SML description
-                    ProcedureUtils.addDatastreamsFromOutputs(procHandler, outputs);
+                    ProcedureUtils.addDatastreamsFromOutputs(procHandler, smlProc.getOutputList());
                 }
                 catch (DataStoreException e)
                 {
@@ -743,6 +742,65 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 InsertSensorResponse resp = new InsertSensorResponse();
                 resp.setAssignedOffering(getOfferingID(procUID));
                 resp.setAssignedProcedureId(procUID);
+                sendResponse(request, resp);
+                asyncCtx.complete();
+            }
+            catch (Exception e)
+            {
+                throw new CompletionException(e);
+            }            
+        }, service.getThreadPool())
+        .exceptionally(ex -> {
+            handleError(
+                (HttpServletRequest)asyncCtx.getRequest(),
+                (HttpServletResponse)asyncCtx.getResponse(),
+                request, ex);
+            return null;
+        });
+    }
+
+
+    @Override
+    protected void handleRequest(UpdateSensorRequest request) throws IOException, OWSException
+    {
+        checkTransactionalSupport(request);
+
+        // security check
+        securityHandler.checkPermission(securityHandler.sos_update_sensor);
+        
+        // check query parameters
+        String procUID = request.getProcedureId();
+        var procDesc = request.getProcedureDescription();
+        OWSExceptionReport report = new OWSExceptionReport();
+        checkQueryProcedure(procUID, report);
+        TransactionUtils.checkSensorML(procDesc, report);
+        report.process();
+
+        // start async response
+        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+        CompletableFuture.runAsync(() -> {
+            try
+            {
+                // version or replace description in DB
+                try
+                {
+                    var procWrapper = new ProcedureWrapper(request.getProcedureDescription())
+                        .hideOutputs()
+                        .hideTaskableParams()
+                        .defaultToValidFromNow();
+                    
+                    var procHandler = transactionHandler.getProcedureHandler(procUID);
+                    procHandler.update(procWrapper);
+                    getLogger().info("Updated procedure {}", procUID);
+                }
+                catch (DataStoreException e)
+                {
+                    throw new IOException("Cannot update procedure", e);
+                }
+        
+                // build and send response
+                UpdateSensorResponse resp = new UpdateSensorResponse(SOSUtils.SOS);
+                resp.setUpdatedProcedure(procUID);
                 sendResponse(request, resp);
                 asyncCtx.complete();
             }
@@ -794,60 +852,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // build and send response
                 DeleteSensorResponse resp = new DeleteSensorResponse(SOSUtils.SOS);
                 resp.setDeletedProcedure(procUID);
-                sendResponse(request, resp);
-                asyncCtx.complete();
-            }
-            catch (Exception e)
-            {
-                throw new CompletionException(e);
-            }            
-        }, service.getThreadPool())
-        .exceptionally(ex -> {
-            handleError(
-                (HttpServletRequest)asyncCtx.getRequest(),
-                (HttpServletResponse)asyncCtx.getResponse(),
-                request, ex);
-            return null;
-        });
-    }
-
-
-    @Override
-    protected void handleRequest(UpdateSensorRequest request) throws IOException, OWSException
-    {
-        checkTransactionalSupport(request);
-
-        // security check
-        securityHandler.checkPermission(securityHandler.sos_update_sensor);
-        
-        // check query parameters
-        String procUID = request.getProcedureId();
-        var procDesc = request.getProcedureDescription();
-        OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryProcedure(procUID, report);
-        TransactionUtils.checkSensorML(procDesc, report);
-        report.process();
-
-        // start async response
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-        CompletableFuture.runAsync(() -> {
-            try
-            {
-                // version or replace description in DB
-                try
-                {
-                    var procHandler = transactionHandler.getProcedureHandler(procUID);
-                    procHandler.update(new ProcedureWrapper(request.getProcedureDescription()));
-                    getLogger().info("Updated procedure {}", procUID);
-                }
-                catch (DataStoreException e)
-                {
-                    throw new IOException("Cannot update procedure", e);
-                }
-        
-                // build and send response
-                UpdateSensorResponse resp = new UpdateSensorResponse(SOSUtils.SOS);
-                resp.setUpdatedProcedure(procUID);
                 sendResponse(request, resp);
                 asyncCtx.complete();
             }

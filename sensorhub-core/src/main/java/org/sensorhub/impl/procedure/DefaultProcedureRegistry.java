@@ -31,10 +31,10 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.api.procedure.IProcedureRegistry;
-import org.sensorhub.api.procedure.ProcedureWrapper;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.database.obs.ProcedureObsEventDatabase;
 import org.sensorhub.impl.database.obs.ProcedureObsEventDatabaseConfig;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IGeoFeature;
@@ -132,8 +132,12 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             // create or update entry in DB
             try
             {
-                var proc = new ProcedureWrapper(driver.getCurrentDescription());
-                var newHandler = (ProcedureDriverTransactionHandler)baseHandler.addOrUpdateProcedure(proc);
+                var procWrapper = new ProcedureWrapper(driver.getCurrentDescription())
+                    .hideOutputs()
+                    .hideTaskableParams()
+                    .defaultToValidFromNow();
+                    
+                var newHandler = (ProcedureDriverTransactionHandler)baseHandler.addOrUpdateProcedure(procWrapper);
                 newHandler.doFinishRegister(driver);
                 driverHandlers.put(procUID,  newHandler);
             }
