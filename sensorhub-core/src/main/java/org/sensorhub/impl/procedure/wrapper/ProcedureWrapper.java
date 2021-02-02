@@ -61,10 +61,24 @@ public class ProcedureWrapper implements IProcedureWithDesc
     }
     
     
+    /**
+     * This methods sets valid time to be from 'currentTime' to 'now' (indeterminate)
+     * in two cases:
+     * - if no valid time was set at all
+     * - if end of validity period was set to 'now' but begin is in the future. In this
+     *   case, we override begin time stamp with current server time (not that this edge
+     *   case can happen with a bad time sync on sender side and causes problems
+     *   downstream when adding members and/or datastreams)
+     * @return This wrapper for chaining
+     */
     public ProcedureWrapper defaultToValidFromNow()
     {
-        if (processWrapper.getValidTime() == null)
-            processWrapper.withValidTime(TimeExtent.endNow(Instant.now()));        
+        var validTime = processWrapper.getValidTime();
+        var now = Instant.now();
+        
+        if (validTime == null || (validTime.endsNow() && validTime.begin().isAfter(now)))
+            processWrapper.withValidTime(TimeExtent.endNow(Instant.now()));
+        
         return this;
     }
 

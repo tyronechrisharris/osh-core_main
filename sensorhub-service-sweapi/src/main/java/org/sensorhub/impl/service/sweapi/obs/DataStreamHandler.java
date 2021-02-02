@@ -84,6 +84,9 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     {
         super.buildFilter(parent, queryParams, builder);
         
+        // only fetch datastreams valid at current time by default
+        builder.withCurrentVersion();
+        
         // filter on parent if needed
         if (parent.internalID > 0)
             builder.withProcedures(parent.internalID);

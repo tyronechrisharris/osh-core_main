@@ -47,16 +47,19 @@ import org.sensorhub.api.procedure.ProcedureRemovedEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.DataComponentChecks;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
-import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
 
 public class ProcedureTransactionHandler
 {
+    static final Logger log = LoggerFactory.getLogger(ProcedureTransactionHandler.class);
+    
     protected final ProcedureObsTransactionHandler rootHandler;
     protected final String procUID;    
     protected FeatureKey procKey;
@@ -218,6 +221,8 @@ public class ProcedureTransactionHandler
             
             // send event        
             getEventPublisher().publish(new DataStreamAddedEvent(procUID, outputName));
+            
+            log.debug("Added new datastream {}#{}", procUID, outputName);
         }
         else
         {
@@ -225,32 +230,50 @@ public class ProcedureTransactionHandler
             newDsKey = dsEntry.getKey();
             IDataStreamInfo oldDsInfo = dsEntry.getValue();
             
-            newDsInfo = new DataStreamInfo.Builder()
-                .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
-                .withRecordDescription(dataStruct)
-                .withRecordEncoding(dataEncoding)
-                .withValidTime(TimeExtent.endNow(Instant.now()))
-                .build();
+            // check if datastream already has observations
+            var hasObs = oldDsInfo.getResultTimeRange() != null;
             
             // 2 cases
             // if structure has changed, create a new datastream
-            if (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), newDsInfo.getRecordStructure()))
+            if (hasObs &&
+               (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dataStruct) ||
+                !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding)))
             {
+                newDsInfo = new DataStreamInfo.Builder()
+                    .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
+                    .withRecordDescription(dataStruct)
+                    .withRecordEncoding(dataEncoding)
+                    .build();
+                
                 newDsKey = dataStreamStore.add(newDsInfo);
                 getEventPublisher().publish(new DataStreamAddedEvent(procUID, outputName));
+                
+                log.debug("Created new version of datastream {}#{}", procUID, outputName);
             }
             
             // if something else has changed, update existing datastream
-            else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), newDsInfo.getRecordStructure()) ||
-                     !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), newDsInfo.getRecordEncoding()))
+            else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), dataStruct) ||
+                     !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding))
             {
+                newDsInfo = new DataStreamInfo.Builder()
+                    .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
+                    .withRecordDescription(dataStruct)
+                    .withRecordEncoding(dataEncoding)
+                    .withValidTime(oldDsInfo.getValidTime())
+                    .build();
+                
                 dataStreamStore.put(newDsKey, newDsInfo);
                 getEventPublisher().publish(new DataStreamChangedEvent(procUID, outputName));
+                
+                log.debug("Updated datastream {}#{}", procUID, outputName);
             }
             
             // else don't update and return existing key
             else
+            {
                 newDsInfo = oldDsInfo;
+                log.debug("No changes to datastream {}#{}", procUID, outputName);
+            }
         }
         
         // create the new procedure handler

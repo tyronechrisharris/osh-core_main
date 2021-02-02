@@ -395,7 +395,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 // check if we're allowed to replace existing entry
                 boolean isNewEntry = (oldValue == null);
                 if (!isNewEntry && !replace)
-                   
+                    throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
+                
                 // update proc/output index
                 // remove old entry if needed
                 if (oldValue != null && replace)
