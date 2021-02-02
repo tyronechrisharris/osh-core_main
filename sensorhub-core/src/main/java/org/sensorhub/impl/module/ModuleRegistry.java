@@ -1048,7 +1048,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 for (IModule<?> module: getLoadedModules())
                 {
                     ModuleState state = module.getCurrentState();
-                    if (state != ModuleState.STOPPED)
+                    if (state != ModuleState.STOPPED && state != ModuleState.LOADED)
                     {
                         allStopped = false;
                         break;
@@ -1074,7 +1074,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             module.unregisterListener(this);
             
             ModuleState state = module.getCurrentState();
-            if (state != ModuleState.STOPPED)
+            if (state != ModuleState.STOPPED && state != ModuleState.LOADED)
             {
                 if (firstWarning)
                 {

@@ -543,8 +543,8 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     {
         synchronized (stateLock)
         {
-            // do nothing if we're already stopping
-            if (state == ModuleState.STOPPING)
+            // do nothing if we were never started
+            if (state == ModuleState.LOADED || state == ModuleState.STOPPING || state == ModuleState.STOPPED)
                 return false;
                         
             // otherwise we allow stop at any time
