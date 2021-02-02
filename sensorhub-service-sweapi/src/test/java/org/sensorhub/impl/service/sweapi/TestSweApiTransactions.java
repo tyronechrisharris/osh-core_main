@@ -168,6 +168,7 @@ public class TestSweApiTransactions
         System.out.println(gson.toJson(jsonResp));
         checkId(url, jsonResp);
         jsonResp.remove("id"); // remove auto-assigned id before compare
+        jsonResp.remove("validTimes");
         assertEquals(json, jsonResp);
     }
     

@@ -23,8 +23,8 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.api.procedure.ProcedureWrapper;
-import org.sensorhub.impl.procedure.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
@@ -131,8 +131,11 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         if (sml == null)
             return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
         
-        // also load add outputs generated from currently valid datastreams
-        sml = ProcedureUtils.addOutputsFromDatastreams(internalID, sml, dataStreamStore);
+        // generate outputs from datastreams
+        // + override ID
+        var idStr = Long.toString(idEncoder.encodeID(internalID), 36);
+        sml = ProcedureUtils.addOutputsFromDatastreams(internalID, sml, dataStreamStore)
+            .withId(idStr);
         
         var queryParams = ctx.getRequest().getParameterMap();
         var responseFormat = parseFormat(queryParams);
@@ -141,6 +144,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         
         ctx.getResponse().setStatus(200);
         ctx.getResponse().setContentType(responseFormat.getMimeType());
+        
         binding.serialize(key, new ProcedureWrapper(sml), true);
         
         return true;

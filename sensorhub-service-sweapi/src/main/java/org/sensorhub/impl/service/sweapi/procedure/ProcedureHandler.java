@@ -23,7 +23,8 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
-import org.sensorhub.impl.procedure.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
@@ -33,7 +34,6 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
-import net.opengis.sensorml.v20.IOPropertyList;
 
 
 public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
@@ -120,32 +120,45 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     
     
     @Override
-    protected FeatureKey addEntry(final ResourceContext ctx, final IProcedureWithDesc res) throws DataStoreException
+    protected FeatureKey addEntry(final ResourceContext ctx, IProcedureWithDesc res) throws DataStoreException
     {        
-        // extract outputs from sml description (no need to store them twice)
-        IOPropertyList outputs = null;
-        if (res.getFullDescription() != null)
-            outputs = ProcedureUtils.extractOutputs(res.getFullDescription());
+        // cleanup sml description before storage
+        var sml = res.getFullDescription();
+        if (sml != null)
+        {
+            res = new ProcedureWrapper(res.getFullDescription())
+                .hideOutputs()
+                .hideTaskableParams()
+                .defaultToValidFromNow();
+        }
         
         var procHandler = transactionHandler.addProcedure(res);
 
         // also add datastreams if outputs were specified in SML description
-        if (outputs != null)
-            ProcedureUtils.addDatastreamsFromOutputs(procHandler, outputs);
+        if (sml != null)
+            ProcedureUtils.addDatastreamsFromOutputs(procHandler, sml.getOutputList());
         
         return procHandler.getProcedureKey();
     }
     
     
     @Override
-    protected boolean updateEntry(final ResourceContext ctx, final FeatureKey key, final IProcedureWithDesc res) throws DataStoreException
+    protected boolean updateEntry(final ResourceContext ctx, final FeatureKey key, IProcedureWithDesc res) throws DataStoreException
     {        
         var procHandler = transactionHandler.getProcedureHandler(key.getInternalID());
         if (procHandler == null)
             return false;
         
-        // remove outputs from sml description
-        ProcedureUtils.extractOutputs(res.getFullDescription());
+        // cleanup sml description before storage
+        var sml = res.getFullDescription();
+        if (sml != null)
+        {
+            res = new ProcedureWrapper(res.getFullDescription())
+                .hideOutputs()
+                .hideTaskableParams()
+                .defaultToValidFromNow();
+        }
+        
         return procHandler.update(res);
     }
     

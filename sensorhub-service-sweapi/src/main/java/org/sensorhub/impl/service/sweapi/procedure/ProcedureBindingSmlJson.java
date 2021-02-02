@@ -21,11 +21,10 @@ import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.api.procedure.ProcedureWrapper;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.vast.sensorML.SMLStaxBindings;
@@ -35,7 +34,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
@@ -103,7 +101,7 @@ public class ProcedureBindingSmlJson extends ResourceBindingJson<FeatureKey, IPr
                 smlWriter.resetContext();
                 var sml = res.getFullDescription();
                 if (sml != null)
-                    smlBindings.writeAbstractProcess(smlWriter, withInternalProcessId(key, sml));
+                    smlBindings.writeAbstractProcess(smlWriter, sml);
                 smlWriter.flush();
             }
             catch (Exception e)
@@ -133,13 +131,5 @@ public class ProcedureBindingSmlJson extends ResourceBindingJson<FeatureKey, IPr
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
         endJsonCollection(writer, links);        
-    }
-    
-    
-    protected AbstractProcess withInternalProcessId(FeatureKey key, AbstractProcess sml)
-    {
-        var externalID = encodeID(key.getInternalID());
-        sml.setId(Long.toString(externalID, ResourceBinding.ID_RADIX));
-        return sml;
     }
 }

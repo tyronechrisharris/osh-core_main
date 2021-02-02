@@ -22,12 +22,12 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.impl.procedure.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
+import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
-import net.opengis.sensorml.v20.IOPropertyList;
 
 
 public class ProcedureMembersHandler extends ProcedureHandler
@@ -68,12 +68,17 @@ public class ProcedureMembersHandler extends ProcedureHandler
     
     
     @Override
-    protected FeatureKey addEntry(final ResourceContext ctx, final IProcedureWithDesc res) throws DataStoreException
+    protected FeatureKey addEntry(final ResourceContext ctx, IProcedureWithDesc res) throws DataStoreException
     {        
-        // extract outputs from sml description (no need to store them twice)
-        IOPropertyList outputs = null;
-        if (res.getFullDescription() != null)
-            outputs = ProcedureUtils.extractOutputs(res.getFullDescription());
+        // cleanup sml description before storage
+        var sml = res.getFullDescription();
+        if (sml != null)
+        {
+            res = new ProcedureWrapper(res.getFullDescription())
+                .hideOutputs()
+                .hideTaskableParams()
+                .defaultToValidFromNow();
+        }        
         
         var groupID = ctx.getParentID();
         var parentHandler = transactionHandler.getProcedureHandler(groupID);
@@ -82,8 +87,8 @@ public class ProcedureMembersHandler extends ProcedureHandler
         var procHandler = parentHandler.addMember(res);
 
         // also add datastreams if outputs were specified in SML description
-        if (outputs != null)
-            ProcedureUtils.addDatastreamsFromOutputs(procHandler, outputs);
+        if (sml != null)
+            ProcedureUtils.addDatastreamsFromOutputs(procHandler, sml.getOutputList());
         
         return procHandler.getProcedureKey();
     }

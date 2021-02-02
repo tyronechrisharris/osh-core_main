@@ -720,7 +720,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 // add or replace description in DB
                 try
                 {
-                    var procWrapper = new ProcedureWrapper(request.getProcedureDescription())
+                    var procWrapper = new ProcedureWrapper(smlProc)
                         .hideOutputs()
                         .hideTaskableParams()
                         .defaultToValidFromNow();
