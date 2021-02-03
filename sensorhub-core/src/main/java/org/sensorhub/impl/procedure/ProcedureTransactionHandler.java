@@ -409,6 +409,12 @@ public class ProcedureTransactionHandler
     {
         return procKey;
     }
+    
+    
+    public String getProcedureUID()
+    {
+        return procUID;
+    }
 
 
     public boolean isNew()
