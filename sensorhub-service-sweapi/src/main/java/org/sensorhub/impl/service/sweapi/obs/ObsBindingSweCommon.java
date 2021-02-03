@@ -183,13 +183,13 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
             {
                 dataWriter = new JsonDataWriterGson();
             }
-            else if (format.equals(ResourceFormat.SWE_TEXT))
+            else if (format.isOneOf(ResourceFormat.SWE_TEXT, ResourceFormat.TEXT_PLAIN, ResourceFormat.TEXT_CSV))
             {
                 //dataWriter = SWEHelper.createDataWriter(dsInfo.getRecordEncoding());
                 dataWriter = new TextDataWriter();
                 dataWriter.setDataEncoding(dsInfo.getRecordEncoding());
             } 
-            else if (format.equals(ResourceFormat.SWE_XML))
+            else if (format.isOneOf(ResourceFormat.SWE_XML, ResourceFormat.TEXT_XML))
             {
                 dataWriter = new XmlDataWriter();
                 dataWriter.setDataEncoding(new XMLEncodingImpl());
@@ -202,22 +202,22 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
         }
         else if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
         {
-            if (format.isOneOf(ResourceFormat.SWE_BINARY))
+            if (format.equals(ResourceFormat.SWE_BINARY))
             {
                 dataWriter = SWEHelper.createDataWriter(dsInfo.getRecordEncoding());
             }
             else if (allowNonBinaryFormat(dsInfo))
             {
-                if (format.isOneOf(ResourceFormat.SWE_TEXT))
+                if (format.equals(ResourceFormat.SWE_JSON))
+                {
+                    dataWriter = new JsonDataWriter();
+                }
+                else if (format.isOneOf(ResourceFormat.SWE_TEXT, ResourceFormat.TEXT_PLAIN, ResourceFormat.TEXT_CSV))
                 {
                     dataWriter = new TextDataWriter();
                     dataWriter.setDataEncoding(new TextEncodingImpl());
                 }
-                else if (format.isOneOf(ResourceFormat.SWE_JSON))
-                {
-                    dataWriter = new JsonDataWriter();
-                }
-                else if (format.isOneOf(ResourceFormat.SWE_XML))
+                else if (format.isOneOf(ResourceFormat.SWE_XML, ResourceFormat.TEXT_XML))
                 {
                     dataWriter = new XmlDataWriter();
                 }
@@ -261,5 +261,6 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
         resultWriter.endStream();
+        resultWriter.flush();
     }
 }

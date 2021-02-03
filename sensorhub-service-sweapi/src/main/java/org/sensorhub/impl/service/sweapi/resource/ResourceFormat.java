@@ -37,9 +37,12 @@ public class ResourceFormat
     public static ResourceFormat SWE_JSON = new ResourceFormat(SWE_FORMAT_PREFIX + "json");
     public static ResourceFormat SWE_XML = new ResourceFormat(SWE_FORMAT_PREFIX + "xml");
     public static ResourceFormat SWE_BINARY = new ResourceFormat(SWE_FORMAT_PREFIX + "binary");
-    public static ResourceFormat SWE_TEXT = new ResourceFormat(SWE_FORMAT_PREFIX + "dsv");
+    public static ResourceFormat SWE_TEXT = new ResourceFormat(SWE_FORMAT_PREFIX + "csv");
     
-    public static ResourceFormat SWE_CSV = new ResourceFormat("text/dsv");
+    public static ResourceFormat TEXT_PLAIN = new ResourceFormat("text/plain");
+    public static ResourceFormat TEXT_CSV = new ResourceFormat("text/csv");
+    public static ResourceFormat TEXT_XML = new ResourceFormat("text/xml");
+    public static ResourceFormat APPLI_XML = new ResourceFormat("application/xml");
     
     
     static

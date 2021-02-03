@@ -106,12 +106,10 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         }
         
         // select binding depending on format
-        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
+        if (format.isOneOf(ResourceFormat.JSON))
             return new ObsBindingOmJson(ctx, idEncoder, forReading, dataStore);
-        else if (format.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
-            return new ObsBindingSweCommon(ctx, idEncoder, forReading, dataStore);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            return new ObsBindingSweCommon(ctx, idEncoder, forReading, dataStore);
     }
     
     
