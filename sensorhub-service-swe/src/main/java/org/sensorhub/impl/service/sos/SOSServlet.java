@@ -480,17 +480,15 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         // security check
         securityHandler.checkPermission(securityHandler.sos_read_obs);
 
-        // check query parameters
-        OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryOffering(request.getOffering(), report);
-        
         // build procedure UID set
+        // offerings have same URI as procedures now so we can just merge everything
+        OWSExceptionReport report = new OWSExceptionReport();
         Set<String> selectedProcedures = new HashSet<>();
         selectedProcedures.addAll(request.getProcedures());
         if (selectedProcedures.isEmpty())
             selectedProcedures.addAll(request.getOfferings());
         else if (!request.getOfferings().isEmpty())
-            selectedProcedures.retainAll(request.getOfferings());        
+            selectedProcedures.retainAll(request.getOfferings());
         checkQueryProcedures(selectedProcedures, report);
         
         // choose serializer according to output format
