@@ -446,6 +446,10 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
             try
             {
+                // remove all obs
+                if (obsStore != null)
+                    obsStore.removeAllObsAndSeries(dsKey.getInternalID());
+                
                 // remove from main index
                 IDataStreamInfo oldValue = dataStreamIndex.remove(dsKey);
                 if (oldValue == null)
@@ -459,10 +463,6 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 
                 // remove from full-text index
                 fullTextIndex.remove(dsKey.getInternalID(), oldValue);
-
-                // remove all obs
-                if (obsStore != null)
-                    obsStore.removeAllObsAndSeries(dsKey.getInternalID());
 
                 return oldValue;
             }
