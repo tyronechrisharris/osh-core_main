@@ -129,6 +129,8 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
             var proc = (IProcedureWithDesc)e.getValue();
             var procWrap = new IProcedureWithDesc()
             {
+                TimeExtent validTime;
+                
                 public String getId() { return proc.getId(); }
                 public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
                 public String getName() { return proc.getName(); }
@@ -138,12 +140,17 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
                 
                 public TimeExtent getValidTime()
                 {
-                    var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
-                    if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
-                        proc.getValidTime() != null && proc.getValidTime().endsNow())
-                        return TimeExtent.period(proc.getValidTime().begin(), nextKey.getValidStartTime());
-                    else
-                        return proc.getValidTime();
+                    if (validTime == null)
+                    {
+                        var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
+                        if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
+                            proc.getValidTime() != null && proc.getValidTime().endsNow())
+                            validTime = TimeExtent.period(proc.getValidTime().begin(), nextKey.getValidStartTime());
+                        else
+                            validTime = proc.getValidTime();
+                    }
+                    
+                    return validTime;
                 }                  
             };
             

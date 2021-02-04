@@ -14,10 +14,15 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.xml.namespace.QName;
+import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -26,8 +31,11 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.sensorhub.impl.datastore.h2.MVFeatureStoreImpl.IGeoTemporalFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
+import net.opengis.gml.v32.AbstractGeometry;
 
 
 /**
@@ -122,6 +130,56 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
                     .filter(e -> foiIDs.contains(e.getKey().getInternalID()));
             }
         }
+        
+        return resultStream;
+    }
+
+
+    @Override
+    public Stream<Entry<FeatureKey, IGeoFeature>> selectEntries(FoiFilter filter, Set<FoiField> fields)
+    {
+        // update validTime in the case it ends at now and there is a
+        // more recent version of the procedure description available
+        Stream<Entry<FeatureKey, IGeoFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
+            if (e.getValue() instanceof IGeoTemporalFeature)
+            {
+                var f = (IGeoTemporalFeature)e.getValue();
+                var procWrap = new IGeoTemporalFeature()
+                {
+                    TimeExtent validTime;
+                    
+                    public String getId() { return f.getId(); }
+                    public String getUniqueIdentifier() { return f.getUniqueIdentifier(); }
+                    public String getName() { return f.getName(); }
+                    public String getDescription() { return f.getDescription(); }
+                    public AbstractGeometry getGeometry() { return f.getGeometry(); }
+                    public Map<QName, Object> getProperties() { return f.getProperties(); } 
+                    
+                    public TimeExtent getValidTime()
+                    {
+                        if (validTime == null)
+                        {
+                            var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
+                            if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
+                                f.getValidTime() != null && f.getValidTime().endsNow())
+                                validTime = TimeExtent.period(f.getValidTime().begin(), nextKey.getValidStartTime());
+                            else
+                                validTime = f.getValidTime();
+                        }
+                        
+                        return validTime;
+                    }                  
+                };
+                
+                return new DataUtils.MapEntry<FeatureKey, IGeoFeature>(e.getKey(), procWrap);
+            }
+            
+            return e;
+        });
+        
+        // apply post filter on time now that we computed the correct valid time period
+        if (filter.getValidTime() != null)
+            resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
         
         return resultStream;
     }
