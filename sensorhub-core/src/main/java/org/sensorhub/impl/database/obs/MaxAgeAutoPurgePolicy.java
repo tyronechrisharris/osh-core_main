@@ -18,9 +18,11 @@ import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
 import org.sensorhub.api.datastore.RangeFilter.RangeOp;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.feature.FoiFilter;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.slf4j.Logger;
 import org.vast.util.DateTimeFormat;
@@ -48,32 +50,59 @@ public class MaxAgeAutoPurgePolicy implements IProcedureObsDbAutoPurgePolicy
     
     
     @Override
-    public int trimStorage(IProcedureObsDatabase db, Logger log)
+    public void trimStorage(IProcedureObsDatabase db, Logger log)
     {
+        // remove all procedures, datastreams and fois whose validity time period
+        // ended before (now - max age)        
         var oldestRecordTime = Instant.now().minusSeconds((long)config.maxRecordAge);
         
-        db.getProcedureStore().removeEntries(new ProcedureFilter.Builder()
+        long numProcRemoved = db.getProcedureStore().removeEntries(new ProcedureFilter.Builder()
             .withValidTime(new TemporalFilter.Builder()
                 .withOperator(RangeOp.CONTAINS)
                 .withRange(Instant.MIN, oldestRecordTime)
                 .build())
             .build());
         
-        db.getFoiStore().removeEntries(new FoiFilter.Builder()
+        long numFoisRemoved = db.getFoiStore().removeEntries(new FoiFilter.Builder()
             .withValidTime(new TemporalFilter.Builder()
                 .withOperator(RangeOp.CONTAINS)
                 .withRange(Instant.MIN, oldestRecordTime)
                 .build())
             .build());
-                
-        var numObsRemoved = (int)db.getObservationStore().removeEntries(new ObsFilter.Builder()
-            .withResultTimeDuring(Instant.MIN, oldestRecordTime)
+        
+        long numDsRemoved = db.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
+            .withValidTime(new TemporalFilter.Builder()
+                .withOperator(RangeOp.CONTAINS)
+                .withRange(Instant.MIN, oldestRecordTime)
+                .build())
             .build());
+        
+        // for each remaining datastream, remove all obs with a timestamp older than
+        // the latest result time minus the max age
+        long numObsRemoved = 0;
+        var allDataStreams = db.getDataStreamStore().selectEntries(db.getDataStreamStore().selectAllFilter()).iterator();
+        while (allDataStreams.hasNext())
+        {
+            var dsEntry = allDataStreams.next();
+            var dsID = dsEntry.getKey().getInternalID();
+            var resultTimeRange = dsEntry.getValue().getResultTimeRange();
+            
+            if (resultTimeRange != null)
+            {            
+                var oldestResultTime = resultTimeRange.end().minusSeconds((long)config.maxRecordAge);
+                numObsRemoved += db.getObservationStore().removeEntries(new ObsFilter.Builder()
+                    .withDataStreams(dsID)
+                    .withResultTimeDuring(Instant.MIN, oldestResultTime)
+                    .build());
+            }
+        }
                 
         if (log.isInfoEnabled())
-            log.info("Purging data up to {}. Removed {} observation records", oldestRecordTime, numObsRemoved);
-        
-        return numObsRemoved;
+        {
+            log.info("Purging data until {}. Removed records: {} procedures, {} fois, {} datastreams, {} observations",
+                oldestRecordTime.truncatedTo(ChronoUnit.SECONDS),
+                numProcRemoved, numFoisRemoved, numDsRemoved, numObsRemoved);
+        }
     }
 
 }

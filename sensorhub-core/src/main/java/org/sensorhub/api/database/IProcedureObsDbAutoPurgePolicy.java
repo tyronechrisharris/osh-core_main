@@ -34,8 +34,7 @@ public interface IProcedureObsDbAutoPurgePolicy
      * Implementation of this method executes whatever actions are necessary
      * for this aging policy
      * @param db
-     * @param log 
-     * @return the number of records removed
+     * @param log
      */
-    public int trimStorage(IProcedureObsDatabase db, Logger log); 
+    public void trimStorage(IProcedureObsDatabase db, Logger log); 
 }
