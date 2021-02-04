@@ -292,7 +292,6 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     {
         Stream<Long> idStream = null;
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
-        boolean validTimeFilterApplied = false;
         boolean fullTextFilterApplied = false;
         
         // if filtering by internal IDs, use these IDs directly
@@ -307,7 +306,6 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             // first select procedures and fetch corresponding datastreams
             idStream = DataStoreUtils.selectProcedureIDs(procedureStore, filter.getProcedureFilter())
                 .flatMap(id -> getDataStreamIdsByProcedure(id, filter.getOutputNames(), filter.getValidTimeFilter()));            
-            validTimeFilterApplied = true;
         }
 
         // if observation filter is used
@@ -329,15 +327,11 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         else
         {
             idStream = getDataStreamIdsFromAllProcedures(filter.getOutputNames(), filter.getValidTimeFilter());
-            validTimeFilterApplied = true;
         }
 
         resultStream = idStream
             .map(id -> dataStreamIndex.getEntry(new DataStreamKey(id)))
             .filter(Objects::nonNull);
-        
-        if (filter.getValidTimeFilter() != null && !validTimeFilterApplied)
-            resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
         
         if (filter.getFullTextFilter() != null && !fullTextFilterApplied)
             resultStream = resultStream.filter(e -> filter.testFullText(e.getValue()));
@@ -359,6 +353,10 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 new DataStreamInfoWithTimeRanges(e.getKey().getInternalID(), e.getValue())
             ); 
         });
+        
+        // apply time filter once validTime is computed correctly
+        if (filter.getValidTimeFilter() != null)
+            resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
         
         return resultStream;
     }
