@@ -132,10 +132,15 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     
     public boolean testValidTime(IFeature f)
     {
-        return (validTime == null ||
-                !(f instanceof ITemporalFeature) ||
-                ((ITemporalFeature)f).getValidTime() == null ||
-                validTime.test(((ITemporalFeature)f).getValidTime()));
+        if (validTime == null)
+            return true;
+        
+        // if feature doesn't have temporal validity, it means it's always valid
+        // so the result depends on temporal operator!
+        if (!(f instanceof ITemporalFeature) || ((ITemporalFeature)f).getValidTime() == null)
+            return validTime.test(TimeExtent.ALL_TIMES);
+        else
+            return validTime.test(((ITemporalFeature)f).getValidTime());
     }
     
     
