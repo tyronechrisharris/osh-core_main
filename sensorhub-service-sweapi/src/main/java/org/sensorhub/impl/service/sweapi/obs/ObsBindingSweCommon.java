@@ -73,7 +73,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
         }
         else
         {
-            var os = ctx.getResponse().getOutputStream();
+            var os = ctx.isWebSocket() ? ctx.getWebsocketOutputStream() : ctx.getResponse().getOutputStream();
             resultWriter = getSweCommonWriter(dsInfo, os, ctx.getPropertyFilter(), ctx.getFormat());
         }
     }

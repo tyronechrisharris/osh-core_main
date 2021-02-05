@@ -108,31 +108,6 @@ public class SWEApiServlet extends HttpServlet
         
         try
         {
-            /*// check if we have an upgrade request for websockets
-            if (wsFactory.isUpgradeRequest(req, resp))
-            {
-                // parse request
-                try
-                {
-                    wsFactory.acceptWebSocket(new WebSocketCreator() {
-                        @Override
-                        public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
-                        {
-                            return socket;
-                        }
-                    }, owsReq.getHttpRequest(), owsReq.getHttpResponse());
-                }
-                catch (Exception e)
-                {
-                    String errorMsg = "Error while processing Websocket request";
-                    resp.sendError(400, errorMsg);
-                    log.trace(errorMsg, e);
-                }
-
-                return;
-            }*/
-
-            // otherwise process as classical HTTP request
             securityHandler.setCurrentUser(userID);
             super.service(req, resp);
         }
@@ -309,7 +284,12 @@ public class SWEApiServlet extends HttpServlet
     
     protected ResourceContext createContext(HttpServletRequest req, HttpServletResponse resp)
     {
-        return new ResourceContext(this, req, resp);
+        // check if we have an upgrade request for websockets
+        if (wsFactory.isUpgradeRequest(req, resp))
+            return new ResourceContext(this, req, resp, wsFactory);
+        else
+            return new ResourceContext(this, req, resp);
+        
     }
     
     

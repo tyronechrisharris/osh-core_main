@@ -59,6 +59,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     public static final String ALREADY_EXISTS_ERROR_MSG = "Resource already exists";
     public static final String ACCESS_DENIED_ERROR_MSG = "Permission denied";
     public static final String UNSUPPORTED_FORMAT_ERROR_MSG = "Unsupported format: ";
+    public static final String UNSUPPORTED_WEBSOCKET_MSG = "Websocket not unsupported on resource ";
     
     protected final S dataStore;
     protected final IdEncoder idEncoder;
@@ -87,8 +88,12 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             // if requesting from this resource collection
             if (ctx.isEmpty())
-                return list(ctx);
-         
+            {
+                if (ctx.getWebsocketFactory() != null)
+                    return stream(ctx);
+                else
+                    return list(ctx);
+            }
             // next should be resource ID or 'count'
             String id = ctx.popNextPathElt();
             if (ctx.isEmpty())
@@ -207,6 +212,12 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             return ctx.sendError(403, ACCESS_DENIED_ERROR_MSG);
         }
+    }
+    
+    
+    protected boolean stream(final ResourceContext ctx) throws InvalidRequestException, IOException
+    {
+        throw new InvalidRequestException(UNSUPPORTED_WEBSOCKET_MSG + ctx.getRequest().getPathInfo());
     }
     
     

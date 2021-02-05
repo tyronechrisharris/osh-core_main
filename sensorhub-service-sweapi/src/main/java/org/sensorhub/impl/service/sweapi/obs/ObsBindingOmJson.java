@@ -29,13 +29,11 @@ import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
-import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
-import org.sensorhub.utils.CallbackException;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.cdm.common.DataStreamWriter;
@@ -77,8 +75,17 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         }
         else
         {
-            this.writer = getJsonWriter(ctx.getResponse().getOutputStream(), ctx.getPropertyFilter());
+            var os = ctx.isWebSocket() ? ctx.getWebsocketOutputStream() : ctx.getResponse().getOutputStream();
+            this.writer = getJsonWriter(os, ctx.getPropertyFilter());
             this.resultWriters = new HashMap<>();
+            
+            // init result writer only in case of single datastream
+            // otherwise we'll do it later
+            if (contextData.dsInfo != null)
+            {
+                var resultWriter = getSweCommonWriter(contextData.dsInfo, writer, ctx.getPropertyFilter());
+                resultWriters.put(ctx.getParentID(), resultWriter);
+            }
         }
     }
     
@@ -134,7 +141,8 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     {
         writer.beginObject();
         
-        writer.name("id").value(key.toString(ResourceBinding.ID_RADIX));
+        if (key != null)
+            writer.name("id").value(key.toString(ResourceBinding.ID_RADIX));
         
         var dsID = obs.getDataStreamID();
         var externalDsId = encodeID(dsID);
@@ -151,11 +159,8 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         
         // create or reuse existing result writer and write result data
         writer.name("result");
-        var resultWriter = resultWriters.compute(dsID, (k, v) -> {
-            if (v == null)
-                v = getSweCommonWriter(k, writer, ctx.getPropertyFilter());
-            return v;
-        });
+        var resultWriter = resultWriters.computeIfAbsent(dsID,
+            k -> getSweCommonWriter(k, writer, ctx.getPropertyFilter()) );
         
         // write if JSON is supported, otherwise print warning message
         if (resultWriter instanceof JsonDataWriterGson)
@@ -171,7 +176,12 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     protected DataStreamWriter getSweCommonWriter(long dsID, JsonWriter writer, PropertyFilter propFilter)
     {
         var dsInfo = obsStore.getDataStreams().get(new DataStreamKey(dsID));
-        
+        return getSweCommonWriter(dsInfo, writer, propFilter);
+    }
+    
+    
+    protected DataStreamWriter getSweCommonWriter(IDataStreamInfo dsInfo, JsonWriter writer, PropertyFilter propFilter)
+    {        
         if (!allowNonBinaryFormat(dsInfo))
             return new BinaryDataWriter();
         

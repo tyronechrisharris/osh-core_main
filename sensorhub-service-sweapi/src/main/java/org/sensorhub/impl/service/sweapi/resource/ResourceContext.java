@@ -20,6 +20,8 @@ import java.util.Deque;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
+import org.sensorhub.impl.service.WebSocketOutputStream;
 import org.sensorhub.impl.service.sweapi.SWEApiServlet;
 import org.slf4j.Logger;
 import org.vast.util.Asserts;
@@ -36,11 +38,13 @@ public class ResourceContext
     ResourceRef parentResource = new ResourceRef();
     ResourceFormat format;
     PropertyFilter propFilter;
+    WebSocketServletFactory wsFactory;
+    WebSocketOutputStream wsOutputStream;
     
     
     /*
      * Auxiliary data generated during the request handling process for
-     * consumption by later processing stages (such as deserializers)
+     * consumption by later processing stages
      */
     Object data;
     
@@ -67,6 +71,13 @@ public class ResourceContext
             if (!Strings.isNullOrEmpty(elt))
                 path.addLast(elt);
         }
+    }
+    
+    
+    public ResourceContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp, WebSocketServletFactory wsFactory)
+    {
+        this(servlet, req, resp);
+        this.wsFactory = Asserts.checkNotNull(wsFactory, WebSocketServletFactory.class);
     }
     
     
@@ -207,5 +218,29 @@ public class ResourceContext
     public String getApiRootURL()
     {
         return servlet.getConfig().getPublicEndpoint();
+    }
+    
+    
+    public boolean isWebSocket()
+    {
+        return wsFactory != null;
+    }
+
+
+    public WebSocketServletFactory getWebsocketFactory()
+    {
+        return wsFactory;
+    }
+    
+    
+    public void setWebsocketOutputStream(WebSocketOutputStream wsOutputStream)
+    {
+        this.wsOutputStream = wsOutputStream;
+    }
+    
+
+    public WebSocketOutputStream getWebsocketOutputStream()
+    {
+        return wsOutputStream;
     }
 }
