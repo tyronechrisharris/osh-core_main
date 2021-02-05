@@ -9,6 +9,7 @@ dependencies {
   compile 'ch.qos.logback:logback-classic:1.1.2'
   compile 'org.eclipse.jetty:jetty-servlet:9.4.19.v20190610'
   compile 'org.eclipse.jetty:jetty-servlets:9.4.19.v20190610'
+  compile 'org.eclipse.jetty.websocket:websocket-server:9.4.19.v20190610'
   compile 'org.eclipse.jetty:jetty-xml:9.4.19.v20190610'
     
   testCompile project(path: ':sensorml-core', configuration: 'testArtifacts')

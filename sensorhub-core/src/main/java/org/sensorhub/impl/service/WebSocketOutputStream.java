@@ -8,53 +8,47 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.swe;
+package org.sensorhub.impl.service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import javax.servlet.WriteListener;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.slf4j.Logger;
+import org.vast.util.Asserts;
 
 
 /**
  * <p>
  * Adapter output stream for sending data to a websocket.<br/>
- * Data is actually sent to the web socket only when flush() is called.
+ * Data is actually sent to the web socket only when send() is called.
  * </p>
  *
  * @author Alex Robin
  * @since Feb 19, 2015
  */
-public class WebSocketOutputStream extends ByteArrayOutputStream implements IAsyncOutputStream
+public class WebSocketOutputStream extends ByteArrayOutputStream
 {
-    Logger log;
-    ByteBuffer buffer;
-    Session session;
-    boolean autoSendOnFlush;
-    boolean closed;
-    
-    
-    public WebSocketOutputStream(Session session, int bufferSize)
-    {
-        this(session, bufferSize, true, null);
-    }
+    protected Logger log;
+    protected ByteBuffer buffer;
+    protected Session session;
+    protected boolean autoSendOnFlush;
+    protected boolean closed;
     
     
     public WebSocketOutputStream(Session session, int bufferSize, boolean autoSendOnFlush, Logger log)
     {
         super(bufferSize);
-        this.session = session;
+        this.session = Asserts.checkNotNull(session, Session.class);
         this.buffer = ByteBuffer.wrap(this.buf);
         this.autoSendOnFlush = autoSendOnFlush;
-        this.log = log;
+        this.log = Asserts.checkNotNull(log, Logger.class);
     }
     
     
@@ -95,26 +89,6 @@ public class WebSocketOutputStream extends ByteArrayOutputStream implements IAsy
         // reset so we can write again in same buffer
         this.reset();
         buffer.rewind();
-    }
-    
-    
-    @Override
-    public boolean isClosed()
-    {
-        return !session.isOpen();
-    }
-    
-    
-    @Override
-    public boolean isReady()
-    {
-        return true;
-    }
-    
-    
-    @Override
-    public void setWriteListener(WriteListener listener)
-    {
     }
 
 }

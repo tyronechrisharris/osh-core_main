@@ -19,8 +19,8 @@ import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.sensorhub.impl.sensor.swe.ITaskingCallback;
-import org.sensorhub.impl.service.swe.WebSocketOutputStream;
-import org.sensorhub.impl.service.swe.WebSocketUtils;
+import org.sensorhub.impl.service.WebSocketOutputStream;
+import org.sensorhub.impl.service.WebSocketUtils;
 import org.slf4j.Logger;
 import org.vast.cdm.common.DataStreamWriter;
 import net.opengis.swe.v20.DataBlock;
@@ -58,7 +58,7 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
         
         try
         {
-            writer.setOutput(new WebSocketOutputStream(session, 1024));
+            writer.setOutput(new WebSocketOutputStream(session, 1024, true, log));
             super.onWebSocketConnect(session);
         }
         catch (Exception e)

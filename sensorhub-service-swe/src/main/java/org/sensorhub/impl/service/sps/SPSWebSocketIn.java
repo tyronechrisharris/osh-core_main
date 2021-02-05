@@ -18,7 +18,7 @@ import java.io.ByteArrayInputStream;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
-import org.sensorhub.impl.service.swe.WebSocketUtils;
+import org.sensorhub.impl.service.WebSocketUtils;
 import org.slf4j.Logger;
 import org.vast.cdm.common.DataStreamParser;
 import net.opengis.swe.v20.DataBlock;

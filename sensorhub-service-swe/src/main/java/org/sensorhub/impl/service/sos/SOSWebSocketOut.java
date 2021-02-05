@@ -14,13 +14,11 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
-import org.sensorhub.impl.service.swe.WebSocketOutputStream;
-import org.sensorhub.impl.service.swe.WebSocketUtils;
+import org.sensorhub.impl.service.WebSocketUtils;
+import org.sensorhub.impl.service.swe.WebSocketOutputStreamAsync;
 import org.slf4j.Logger;
 import org.vast.ows.OWSException;
 import org.vast.ows.OWSRequest;
@@ -43,7 +41,7 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
     SOSServlet parentService;
     OWSRequest request;
     String userID;
-    WebSocketOutputStream respOutputStream;
+    WebSocketOutputStreamAsync respOutputStream;
     //Executor threadPool;
     
     
@@ -69,7 +67,7 @@ public class SOSWebSocketOut implements WebSocketListener, Runnable
         
         try
         {
-            respOutputStream = new WebSocketOutputStream(session, 1024, true, log);
+            respOutputStream = new WebSocketOutputStreamAsync(session, 1024, true, log);
             request.setResponseStream(respOutputStream);
             
             // launch processing in separate thread

@@ -12,12 +12,11 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.swe;
+package org.sensorhub.impl.service;
 
 import java.security.Principal;
 import org.eclipse.jetty.websocket.api.Session;
 import org.slf4j.Logger;
-import org.vast.ows.OWSUtils;
 
 
 public class WebSocketUtils
@@ -57,7 +56,7 @@ public class WebSocketUtils
         {
             String remoteIp = session.getRemoteAddress().getAddress().getHostAddress();
             Principal user = session.getUpgradeRequest().getUserPrincipal();
-            String userID = user != null ? user.getName() : OWSUtils.ANONYMOUS_USER;
+            String userID = user != null ? user.getName() : "anonymous";
             log.debug(CONNECT_MSG, getSessionID(session), remoteIp, userID);
         }
     }
