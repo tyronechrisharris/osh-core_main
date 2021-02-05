@@ -174,19 +174,21 @@ public class StreamingDataProvider extends ProcedureDataProvider
                 .withEventType(DataEvent.class)
                 .subscribe(new DelegatingSubscriber<DataEvent>(consumer) {
                     Subscription wrappedSub;
-                    boolean currentTimeRecordsSent = false;
+                    Subscription wrappingSub;
+                    volatile boolean currentTimeRecordsSent = false;
                     volatile boolean canceled = false;
-                    long latestRecordTimestamp;
+                    volatile long latestEventTimestamp;
 
                     @Override
                     public void onSubscribe(Subscription sub)
                     {
-                        latestRecordTimestamp = System.currentTimeMillis();
+                        latestEventTimestamp = System.currentTimeMillis();
                         
                         // wrap subscription so we can send latest records before we actually
                         // start streaming real-time records from event bus
                         var delegatingSubscriber = this;
-                        this.wrappedSub = new DelegatingSubscription(sub) {
+                        this.wrappedSub = sub;
+                        this.wrappingSub = new DelegatingSubscription(sub) {
                             @Override
                             public void request(long n)
                             {
@@ -195,11 +197,11 @@ public class StreamingDataProvider extends ProcedureDataProvider
                                 if (!currentTimeRecordsSent)
                                 {
                                     // TODO send only n records, not all of them
-                                    currentTimeRecordsSent = true;
                                     sendLatestRecords(dataStreams, obsFilter, delegatingSubscriber);
+                                    currentTimeRecordsSent = true;
                                     
                                     // stop here if there was nothing since timeout period
-                                    if (System.currentTimeMillis() - latestRecordTimestamp > timeOut)
+                                    if (System.currentTimeMillis() - latestEventTimestamp > timeOut)
                                     {
                                         onComplete();
                                         return;
@@ -220,7 +222,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
                             }
                         };
             
-                        super.onSubscribe(wrappedSub);
+                        super.onSubscribe(wrappingSub);
                     }
 
                     protected boolean checkTimeOut()
@@ -228,10 +230,10 @@ public class StreamingDataProvider extends ProcedureDataProvider
                         if (canceled)
                             return true;
                         
-                        if (System.currentTimeMillis() - latestRecordTimestamp > timeOut)
+                        if (System.currentTimeMillis() - latestEventTimestamp > timeOut)
                         {
                             servlet.getLogger().debug("Data provider timeout");
-                            wrappedSub.cancel();
+                            wrappingSub.cancel();
                             onComplete();
                             return true;
                         }
@@ -242,13 +244,19 @@ public class StreamingDataProvider extends ProcedureDataProvider
                     @Override
                     public void onNext(DataEvent item)
                     {
-                        latestRecordTimestamp = item.getTimeStamp();
-                        //servlet.getLogger().debug("Event ts={}", latestRecordTimestamp);
-                        DataBlock[] data = item.getRecords();
-                        if (timeIndexer != null && timeIndexer.getDoubleValue(data[data.length-1]) > stopTime)
-                            onComplete();
-                        if (acceptEvent(obsFilter, item))
-                            super.onNext(item);
+                        latestEventTimestamp = item.getTimeStamp();
+                        
+                        if (currentTimeRecordsSent)
+                        {                        
+                            //servlet.getLogger().debug("Event ts={}", latestRecordTimestamp);
+                            DataBlock[] data = item.getRecords();
+                            if (timeIndexer != null && timeIndexer.getDoubleValue(data[data.length-1]) > stopTime)
+                                onComplete();
+                            else if (acceptEvent(obsFilter, item))
+                                super.onNext(item);
+                            else
+                                wrappingSub.request(1);
+                        }
                         else
                             wrappedSub.request(1);
                     }

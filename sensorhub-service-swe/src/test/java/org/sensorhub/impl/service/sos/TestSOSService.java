@@ -374,6 +374,15 @@ public class TestSOSService
     }
     
     
+    protected Future<DOMHelper> sendRequestAsync(OWSRequest request, boolean usePost) throws Exception
+    {
+        return CompletableFuture.supplyAsync(() -> {
+            try { return sendRequest(request, usePost); }
+            catch (Exception e) { throw new CompletionException(e); }
+        });
+    }
+    
+    
     protected DOMHelper sendSoapRequest(OWSRequest request) throws Exception
     {
         OWSUtils utils = new OWSUtils();
@@ -831,8 +840,10 @@ public class TestSOSService
     {
         deployService(buildSensorProvider1(true, false));      
         
+        var future = sendGetResultAsync(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE, false);
         startSendingData(ID_SENSOR_MODULE1, 100);
-        String[] records = sendGetResult(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE);
+        
+        String[] records = future.get();
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
     }
     
@@ -842,8 +853,10 @@ public class TestSOSService
     {
         deployService(buildSensorProvider1(true, false));
                 
+        var future = sendGetResultAsync(URI_OFFERING1, URI_PROP1_FIELD1, TIMERANGE_FUTURE, false);
         startSendingData(ID_SENSOR_MODULE1, 100);
-        String[] records = sendGetResult(URI_OFFERING1, URI_PROP1_FIELD1, TIMERANGE_FUTURE);
+        
+        String[] records = future.get();
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 2);
     }
     
@@ -853,8 +866,10 @@ public class TestSOSService
     {
         deployService(buildSensorProvider1(true, false));
         
+        var future = sendGetResultAsync(URI_OFFERING1, URI_PROP1_FIELD1 + "," + URI_PROP1_FIELD2, TIMERANGE_FUTURE, false);
         startSendingData(ID_SENSOR_MODULE1, 100);
-        String[] records = sendGetResult(URI_OFFERING1, URI_PROP1_FIELD1 + "," + URI_PROP1_FIELD2, TIMERANGE_FUTURE);
+        
+        String[] records = future.get();
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 3);
     }
     
@@ -864,12 +879,17 @@ public class TestSOSService
     {
         deployService(buildSensorProvider1(true, false), buildSensorProvider2(true, false));
         
+        var future = sendGetResultAsync(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE, false);
         startSendingData(ID_SENSOR_MODULE1, 100);
-        String[] records = sendGetResult(URI_OFFERING1, URI_PROP1, TIMERANGE_FUTURE);
+        
+        String[] records = future.get();
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
         
+        // now get data for 2nd offering
+        future = sendGetResultAsync(URI_OFFERING2, URI_PROP2, TIMERANGE_FUTURE, false);
         startSendingData(ID_SENSOR_MODULE2, 100);
-        records = sendGetResult(URI_OFFERING2, URI_PROP2, TIMERANGE_FUTURE);
+        
+        records = future.get();
         checkGetResultResponse(records, NUM_GEN_SAMPLES, 4);
     }
     
@@ -984,9 +1004,12 @@ public class TestSOSService
     @Test
     public void testGetObsOneOfferingStartNow() throws Exception
     {
-        deployService(buildSensorProvider1());
-        DOMHelper dom = sendRequest(generateGetObsStartNow(URI_OFFERING1, URI_PROP1), false);
+        deployService(buildSensorProvider1(true, false));
         
+        var future = sendRequestAsync(generateGetObsStartNow(URI_OFFERING1, URI_PROP1), false);
+        startSendingData(ID_SENSOR_MODULE1, 100);
+        
+        DOMHelper dom = future.get();
         assertEquals("Wrong number of observations returned", NUM_GEN_SAMPLES, dom.getElements("*/OM_Observation").getLength());
     }
     
@@ -1036,8 +1059,13 @@ public class TestSOSService
     public void testGetObsTwoOfferingsWithPost() throws Exception
     {
         deployService(buildSensorProvider1(), buildSensorProvider2());
-        DOMHelper dom = sendRequest(generateGetObsStartNow(URI_OFFERING1, URI_PROP1), true);
         
+        // wait until data has been produced and archived
+        FakeSensor sensor1 = getSensorModule(ID_SENSOR_MODULE1);
+        AsyncTests.waitForCondition(() -> !sensor1.hasMoreData(), TIMEOUT);
+                
+        // then get obs
+        DOMHelper dom = sendRequest(generateGetObs(URI_OFFERING1, URI_PROP1), true);        
         assertEquals("Wrong number of observations returned", NUM_GEN_SAMPLES, dom.getElements("*/OM_Observation").getLength());
     }
     
