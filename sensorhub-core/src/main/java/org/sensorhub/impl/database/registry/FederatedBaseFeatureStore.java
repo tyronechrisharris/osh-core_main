@@ -144,8 +144,8 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
         if (dbInfo == null)
             return false;
-        else
-            return getFeatureStore(dbInfo.db).containsKey(new FeatureKey(dbInfo.entryID));
+        
+        return getFeatureStore(dbInfo.db).containsKey(new FeatureKey(dbInfo.entryID));
     }
 
 
@@ -186,9 +186,9 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
         if (dbInfo == null)
             return null;
-        else
-            return getFeatureStore(dbInfo.db).get(
-                new FeatureKey(dbInfo.entryID, key.getValidStartTime()));
+        
+        return getFeatureStore(dbInfo.db).get(
+            new FeatureKey(dbInfo.entryID, key.getValidStartTime()));
     }
 
 

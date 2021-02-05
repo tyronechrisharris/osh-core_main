@@ -56,8 +56,12 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
     protected LocalDatabaseInfo getLocalDbInfo(long publicID)
     {
         var dbInfo = super.getLocalDbInfo(publicID);
+        if (dbInfo == null)
+            return null;
+        
         if (!unfilteredDatabases.contains(dbInfo.databaseNum))
             dbInfo.db = new ProcedureObsDatabaseView(dbInfo.db, obsFilter);
+        
         return dbInfo;
     }
     
@@ -66,8 +70,12 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
     protected LocalDatabaseInfo getLocalDbInfo(BigInteger publicID)
     {
         var dbInfo = super.getLocalDbInfo(publicID);
+        if (dbInfo == null)
+            return null;
+        
         if (!unfilteredDatabases.contains(dbInfo.databaseNum))
             dbInfo.db = new ProcedureObsDatabaseView(dbInfo.db, obsFilter);
+        
         return dbInfo;
     }
     
