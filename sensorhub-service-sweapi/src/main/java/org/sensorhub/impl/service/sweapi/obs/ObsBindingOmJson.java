@@ -30,6 +30,7 @@ import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
@@ -59,7 +60,9 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     JsonWriter writer;
     JsonDataParserGson resultReader;
     Map<Long, DataStreamWriter> resultWriters;
-    
+    IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
+    IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
+
     
     ObsBindingOmJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
     {
@@ -145,12 +148,12 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
             writer.name("id").value(key.toString(ResourceBinding.ID_RADIX));
         
         var dsID = obs.getDataStreamID();
-        var externalDsId = encodeID(dsID);
+        var externalDsId = dsIdEncoder.encodeID(dsID);
         writer.name("datastream").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
         
         if (obs.getFoiID() != null && obs.getFoiID() != FeatureId.NULL_FEATURE)
         {
-            var externalfoiId = encodeID(obs.getFoiID().getInternalID());
+            var externalfoiId = foiIdEncoder.encodeID(obs.getFoiID().getInternalID());
             writer.name("foi").value(Long.toString(externalfoiId, ResourceBinding.ID_RADIX));
         }
         
