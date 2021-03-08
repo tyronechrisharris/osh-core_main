@@ -47,7 +47,6 @@ public class FilteredEventPublisherWrapper implements IEventPublisher
 
 
     @Override
-    @SuppressWarnings("unchecked")
     public void subscribe(Subscriber<? super Event> subscriber)
     {
         /*if (wrappedPublisher instanceof FilteredSubmissionPublisherV10)

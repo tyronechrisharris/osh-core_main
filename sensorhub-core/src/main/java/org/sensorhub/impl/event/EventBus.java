@@ -84,13 +84,13 @@ public class EventBus implements IEventBus
     {
         return publishers.compute(topicID, (id, pub) -> {
             // if there is a placeholder, replace by actual publisher
-            boolean hasPlaceHolder = pub instanceof PlaceHolderPublisher;
-            if (pub == null || hasPlaceHolder)
+            boolean isPlaceHolder = pub instanceof PlaceHolderPublisher;
+            if (pub == null || isPlaceHolder)
             {
                 log.debug("Creating publisher for {}", topicID);
                 IEventPublisher newPublisher = supplier.get();
                 
-                if (hasPlaceHolder)
+                if (isPlaceHolder)
                     ((PlaceHolderPublisher)pub).transferTo(newPublisher);
                 return newPublisher;
             }
@@ -197,7 +197,7 @@ public class EventBus implements IEventBus
     /*
      * Register subscriber to multiple sources in the same group, with an optional filter
      */
-    <E extends Event> void subscribeMulti(String groupID, Set<String> topicIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
+    /*<E extends Event> void subscribeMulti(String groupID, Set<String> topicIDs, Predicate<? super E> filter, Subscriber<? super E> subscriber)
     {
         //  create filter with list of sources
         Predicate<? super E> groupFilter = filter != null ?
@@ -206,7 +206,7 @@ public class EventBus implements IEventBus
         
         // subscribe to entire group with filter
         subscribe(groupID, groupFilter, subscriber);
-    }
+    }*/
     
     
     /*
@@ -251,8 +251,6 @@ public class EventBus implements IEventBus
         
         if (opts.getSourceIDs().size() == 1)
             subscribe(opts.getSourceIDs().iterator().next(), filter, subscriber);
-        else if (opts.getGroupID() != null)
-            subscribeMulti(opts.getGroupID(), opts.getSourceIDs(), filter, subscriber);
         else
             subscribeMulti(opts.getSourceIDs(), filter, subscriber);
     }
