@@ -15,30 +15,26 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
-import java.util.Map;
-import org.sensorhub.api.datastore.feature.FeatureFilter;
-import org.sensorhub.api.datastore.feature.IFeatureStore;
-import org.sensorhub.api.datastore.feature.FeatureFilter.Builder;
+import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.feature.FoiFilter;
+import org.sensorhub.api.datastore.feature.IFoiStore;
+import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.IGeoFeature;
+import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 
 
-public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureFilter, FeatureFilter.Builder, IFeatureStore>
+public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IGeoFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
 {
-    public static final int EXTERNAL_ID_SEED = 815420;
-    public static final String[] NAMES = { "features" };
     
-    
-    public FeatureHandler(IFeatureStore dataStore, ResourcePermissions permissions)
+    public FoiHistoryHandler(IEventBus eventBus, IProcedureObsDatabase db, ResourcePermissions permissions)
     {
-        super(dataStore, new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getFoiStore(), new IdEncoder(FoiHandler.EXTERNAL_ID_SEED), permissions);
     }
 
 
@@ -60,35 +56,9 @@ public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureF
         return dataStore.contains(internalID);
     }
     
-    
-    @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
-    {
-        if (ctx.isEmpty() && !(ctx.getParentRef().type instanceof FeatureHandler))
-            return ctx.sendError(405, "Features can only be created within Feature Collections");
-        
-        return super.doPost(ctx);
-    }
-
-
-    @Override
-    protected void buildFilter(ResourceRef parent, Map<String, String[]> queryParams, Builder builder) throws InvalidRequestException
-    {
-        super.buildFilter(parent, queryParams, builder);
-    }
-
-
-    @Override
-    public String[] getNames()
-    {
-        return NAMES;
-    }
-
 
     @Override
     protected void validate(IGeoFeature resource)
-    {
-        // TODO Auto-generated method stub
-        
+    {        
     }
 }

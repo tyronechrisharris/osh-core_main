@@ -27,6 +27,7 @@ import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -46,9 +47,9 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     IDataStreamStore dataStreamStore;
     
     
-    public ProcedureDetailsHandler(IEventBus eventBus, IProcedureObsDatabase db)
+    public ProcedureDetailsHandler(IEventBus eventBus, IProcedureObsDatabase db, ResourcePermissions permissions)
     {
-        super(db.getProcedureStore(), new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED));
+        super(db.getProcedureStore(), new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED), permissions);
         this.dataStreamStore = db.getDataStreamStore();
     }
 
@@ -79,11 +80,11 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     }
     
     
-    /*@Override
+    @Override
     public boolean doPut(final ResourceContext ctx) throws IOException
     {
         return ctx.sendError(405, "Cannot PUT here, use PUT on main resource URL");
-    }*/
+    }
     
     
     @Override
@@ -117,6 +118,9 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     @Override
     protected boolean getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
     {
+        // check permissions
+        ctx.getSecurityHandler().checkPermission(permissions.read);
+                
         ResourceRef parent = ctx.getParentRef();
         Asserts.checkNotNull(parent, "parent");
         

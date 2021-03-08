@@ -100,21 +100,22 @@ public class SWEApiServlet extends HttpServlet
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
         logRequest(req);
-        
-        // set current authentified user
+        super.service(req, resp);
+    }
+    
+    
+    protected void setCurrentUser(HttpServletRequest req)
+    {
         String userID = ISecurityManager.ANONYMOUS_USER;
         if (req.getRemoteUser() != null)
             userID = req.getRemoteUser();
-        
-        try
-        {
-            securityHandler.setCurrentUser(userID);
-            super.service(req, resp);
-        }
-        finally
-        {
-            securityHandler.clearCurrentUser();
-        }
+        securityHandler.setCurrentUser(userID);
+    }
+    
+    
+    protected void clearCurrentUser()
+    {
+        securityHandler.clearCurrentUser();
     }
 
 
@@ -138,6 +139,7 @@ public class SWEApiServlet extends HttpServlet
             CompletableFuture.runAsync(() -> {
                 try
                 {
+                    setCurrentUser(req);
                     rootHandler.doGet(ctx);
                 }
                 catch (Exception e)
@@ -147,6 +149,7 @@ public class SWEApiServlet extends HttpServlet
                 }
                 finally
                 {                
+                    clearCurrentUser();
                     aCtx.complete();
                 }
             }, threadPool);
@@ -179,6 +182,7 @@ public class SWEApiServlet extends HttpServlet
             CompletableFuture.runAsync(() -> {
                 try
                 {
+                    setCurrentUser(req);
                     rootHandler.doPost(ctx);
                 }
                 catch (Throwable e)
@@ -188,6 +192,7 @@ public class SWEApiServlet extends HttpServlet
                 }
                 finally
                 {                
+                    clearCurrentUser();
                     aCtx.complete();
                 }
             }, threadPool);
@@ -220,6 +225,7 @@ public class SWEApiServlet extends HttpServlet
             CompletableFuture.runAsync(() -> {
                 try
                 {
+                    setCurrentUser(req);
                     rootHandler.doPut(ctx);
                 }
                 catch (Throwable e)
@@ -229,6 +235,7 @@ public class SWEApiServlet extends HttpServlet
                 }
                 finally
                 {                
+                    clearCurrentUser();
                     aCtx.complete();
                 }
             }, threadPool);
@@ -261,6 +268,7 @@ public class SWEApiServlet extends HttpServlet
             CompletableFuture.runAsync(() -> {
                 try
                 {
+                    setCurrentUser(req);
                     rootHandler.doDelete(ctx);
                 }
                 catch (Throwable e)
@@ -270,6 +278,7 @@ public class SWEApiServlet extends HttpServlet
                 }
                 finally
                 {                
+                    clearCurrentUser();
                     aCtx.complete();
                 }
             }, threadPool);
@@ -373,6 +382,12 @@ public class SWEApiServlet extends HttpServlet
     public SWEApiServiceConfig getConfig()
     {
         return config;
+    }
+
+
+    public SWEApiSecurity getSecurityHandler()
+    {
+        return securityHandler;
     }
 
 }

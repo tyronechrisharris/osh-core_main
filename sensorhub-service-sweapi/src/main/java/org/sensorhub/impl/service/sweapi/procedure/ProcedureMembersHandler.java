@@ -26,6 +26,7 @@ import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 
@@ -35,9 +36,9 @@ public class ProcedureMembersHandler extends ProcedureHandler
     public static final String[] NAMES = { "members" };
     
     
-    public ProcedureMembersHandler(IEventBus eventBus, ProcedureObsDbWrapper db)
+    public ProcedureMembersHandler(IEventBus eventBus, ProcedureObsDbWrapper db, ResourcePermissions permissions)
     {
-        super(eventBus, db);
+        super(eventBus, db, permissions);
     }
     
     

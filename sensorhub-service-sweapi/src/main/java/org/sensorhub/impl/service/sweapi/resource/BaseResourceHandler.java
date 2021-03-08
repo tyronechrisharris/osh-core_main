@@ -29,6 +29,7 @@ import org.sensorhub.impl.service.sweapi.BaseHandler;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
@@ -63,13 +64,16 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected final S dataStore;
     protected final IdEncoder idEncoder;
+    protected final ResourcePermissions permissions;
+            
     
-    
-    public BaseResourceHandler(S dataStore, IdEncoder idEncoder)
+    public BaseResourceHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
     {
         this.dataStore = Asserts.checkNotNull(dataStore, IDataStore.class);
         this.idEncoder = Asserts.checkNotNull(idEncoder, IdEncoder.class);
+        this.permissions = Asserts.checkNotNull(permissions, ResourcePermissions.class);
     }
+    
     
     protected abstract ResourceBinding<K, V> getBinding(ResourceContext ctx, boolean forReading) throws IOException;
     protected abstract K getKey(final ResourceContext ctx, final String id);
@@ -78,8 +82,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected abstract K addEntry(final ResourceContext ctx, final V res) throws DataStoreException;
     protected abstract boolean isValidID(long internalID);
     protected abstract void validate(V resource) throws ResourceParseException;
-    //protected abstract Collection<ResourceLink> getCollectionLinks();
-    
+        
     
     @Override
     public boolean doGet(final ResourceContext ctx) throws IOException
@@ -223,6 +226,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected boolean getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
     {
+        // check permissions
+        ctx.getSecurityHandler().checkPermission(permissions.read);
+                
         // get resource key
         var key = getKey(ctx, id);
         if (key != null)
@@ -252,6 +258,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected boolean list(final ResourceContext ctx) throws InvalidRequestException, IOException
     {
+        // check permissions
+        ctx.getSecurityHandler().checkPermission(permissions.read);
+                
         var queryParams = ctx.req.getParameterMap();
         F filter = getFilter(ctx.getParentRef(), queryParams);
         var responseFormat = parseFormat(queryParams);
@@ -356,10 +365,12 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected boolean create(final ResourceContext ctx) throws IOException
     {
+        // check permissions
+        ctx.getSecurityHandler().checkPermission(permissions.create);
+        
+        // read and ingest one or more resources
         int count = 0;
         String url = null;
-                
-        // read and ingest one or more resources
         try
         {
             // get content type
@@ -429,6 +440,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected boolean update(final ResourceContext ctx, final String id) throws IOException
     {
+        // check permissions
+        ctx.getSecurityHandler().checkPermission(permissions.update);
+                
         // get resource key
         var key = getKey(ctx, id);
         
@@ -484,6 +498,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected boolean delete(final ResourceContext ctx, final String id) throws IOException
     {
+        // check permissions
+        ctx.getSecurityHandler().checkPermission(permissions.delete);
+        
         // get resource key
         var key = getKey(ctx, id);
         if (key != null)

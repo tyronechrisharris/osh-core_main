@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.sensorhub.impl.service.WebSocketOutputStream;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity;
 import org.sensorhub.impl.service.sweapi.SWEApiServlet;
 import org.slf4j.Logger;
 import org.vast.util.Asserts;
@@ -218,6 +219,12 @@ public class ResourceContext
     public String getApiRootURL()
     {
         return servlet.getConfig().getPublicEndpoint();
+    }
+    
+    
+    public SWEApiSecurity getSecurityHandler()
+    {
+        return servlet.getSecurityHandler();
     }
     
     

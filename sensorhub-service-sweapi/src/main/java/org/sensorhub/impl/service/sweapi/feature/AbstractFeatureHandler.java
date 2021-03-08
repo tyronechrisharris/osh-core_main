@@ -24,6 +24,7 @@ import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBu
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.vast.ogc.gml.IFeature;
@@ -38,9 +39,9 @@ public abstract class AbstractFeatureHandler<
     IdConverter idConverter;
     
     
-    protected AbstractFeatureHandler(S dataStore, IdEncoder idEncoder)
+    protected AbstractFeatureHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
     {
-        super(dataStore, idEncoder);
+        super(dataStore, idEncoder, permissions);
     }
 
 

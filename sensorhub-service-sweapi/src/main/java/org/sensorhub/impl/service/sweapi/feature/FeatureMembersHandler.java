@@ -19,6 +19,7 @@ import java.util.Map;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.vast.ogc.gml.IGeoFeature;
@@ -29,9 +30,9 @@ public class FeatureMembersHandler extends FeatureHandler
     public static final String[] NAMES = { "members" };
     
     
-    public FeatureMembersHandler(IFeatureStore dataStore)
+    public FeatureMembersHandler(IFeatureStore dataStore, ResourcePermissions permissions)
     {
-        super(dataStore);
+        super(dataStore, permissions);
     }
     
     

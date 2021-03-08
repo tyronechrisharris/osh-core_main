@@ -28,9 +28,13 @@ import org.sensorhub.impl.database.registry.FilteredFederatedObsDatabase;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
+import org.sensorhub.impl.service.sweapi.feature.FoiHistoryHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler;
+import org.sensorhub.impl.service.sweapi.procedure.ProcedureDetailsHandler;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
+import org.sensorhub.impl.service.sweapi.procedure.ProcedureHistoryHandler;
+import org.sensorhub.impl.service.sweapi.procedure.ProcedureMembersHandler;
 import org.sensorhub.utils.NamedThreadFactory;
 
 
@@ -116,24 +120,41 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
         //timeOutMonitor = new TimeOutMonitor();
         
         // create obs db read/write wrapper
-        var obsDbWrapper = new ProcedureObsDbWrapper(obsReadDatabase, obsWriteDatabase, getParentHub().getDatabaseRegistry());
+        var db = new ProcedureObsDbWrapper(obsReadDatabase, obsWriteDatabase, getParentHub().getDatabaseRegistry());
         
         // create resource handlers hierarchy
         RootHandler rootHandler = new RootHandler();
+        var eventBus = getParentHub().getEventBus();
+        var security = (SWEApiSecurity)this.securityHandler;
         
-        ProcedureHandler procedureHandler = new ProcedureHandler(getParentHub().getEventBus(), obsDbWrapper);    
+        // procedures and sub-resources
+        var procedureHandler = new ProcedureHandler(eventBus, db, security.proc_summary_permissions);
         rootHandler.addSubResource(procedureHandler);
+                
+        var procHistoryHandler = new ProcedureHistoryHandler(eventBus, db, security.proc_summary_permissions);
+        procedureHandler.addSubResource(procHistoryHandler);
         
-        // fois are either sampling features or simple references to sampled features
-        FoiHandler foiHandler = new FoiHandler(getParentHub().getEventBus(), obsDbWrapper);
+        var procDetailsHandler = new ProcedureDetailsHandler(eventBus, db, security.proc_details_permissions);
+        procedureHandler.addSubResource(procDetailsHandler);
+        
+        var procMembersHandler = new ProcedureMembersHandler(eventBus, db, security.proc_summary_permissions);
+        procedureHandler.addSubResource(procMembersHandler);
+        
+        // features of interest and sub-resources
+        var foiHandler = new FoiHandler(eventBus, db, security.foi_permissions);
         rootHandler.addSubResource(foiHandler);
         procedureHandler.addSubResource(foiHandler);
         
-        DataStreamHandler dataStreamHandler = new DataStreamHandler(getParentHub().getEventBus(), obsDbWrapper);
+        var foiHistoryHandler = new FoiHistoryHandler(eventBus, db, security.foi_permissions);
+        foiHandler.addSubResource(foiHistoryHandler);
+        
+        // datastreams
+        var dataStreamHandler = new DataStreamHandler(eventBus, db, security.datastream_permissions);
         rootHandler.addSubResource(dataStreamHandler);
         procedureHandler.addSubResource(dataStreamHandler);
         
-        ObsHandler obsHandler = new ObsHandler(getParentHub().getEventBus(), obsDbWrapper);    
+        // observations
+        var obsHandler = new ObsHandler(eventBus, db, security.obs_permissions);    
         rootHandler.addSubResource(obsHandler);
         dataStreamHandler.addSubResource(obsHandler);
         foiHandler.addSubResource(obsHandler);

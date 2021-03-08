@@ -25,6 +25,7 @@ import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -41,9 +42,9 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
     ProcedureObsTransactionHandler transactionHandler;
     
     
-    public FoiHandler(IEventBus eventBus, ProcedureObsDbWrapper db)
+    public FoiHandler(IEventBus eventBus, ProcedureObsDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getFoiStore(), new IdEncoder(EXTERNAL_ID_SEED));
+        super(db.getFoiStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.transactionHandler = new ProcedureObsTransactionHandler(eventBus, db);
     }
 
@@ -54,7 +55,7 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
         var format = ctx.getFormat();
         
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new FeatureFormatterGeoJson(ctx, idEncoder, forReading);
+            return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
         else
             throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
     }
@@ -85,10 +86,19 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
         
         if (parent.internalID > 0)
         {
-            /*builder.withObservations()
-                .withProcedures(parent.internalID)
-                .done();*/
             builder.withParents(parent.internalID);
+        }
+        else
+        {        
+            // parent ID
+            var ids = parseResourceIds("parentId", queryParams);
+            if (ids != null && !ids.isEmpty())
+                builder.withParents().withInternalIDs(ids).done();
+            
+            // parent UID
+            var uids = parseMultiValuesArg("parentUid", queryParams);
+            if (uids != null && !uids.isEmpty())
+                builder.withParents().withUniqueIDs(uids).done();
         }
     }
 

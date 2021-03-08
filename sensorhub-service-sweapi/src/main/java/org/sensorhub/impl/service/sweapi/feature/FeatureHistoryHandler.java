@@ -15,15 +15,16 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.feature;
 
 import org.sensorhub.api.datastore.feature.IFeatureStore;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.vast.ogc.gml.IGeoFeature;
 
 
 public class FeatureHistoryHandler extends FeatureHandler
 {
     
-    public FeatureHistoryHandler(IFeatureStore dataStore)
+    public FeatureHistoryHandler(IFeatureStore dataStore, ResourcePermissions permissions)
     {
-        super(dataStore);
+        super(dataStore, permissions);
     }
 
 

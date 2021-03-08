@@ -28,6 +28,7 @@ import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
@@ -44,21 +45,10 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     ProcedureObsTransactionHandler transactionHandler;
     
     
-    public ProcedureHandler(IEventBus eventBus, ProcedureObsDbWrapper db)
+    public ProcedureHandler(IEventBus eventBus, ProcedureObsDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getProcedureStore(), new IdEncoder(EXTERNAL_ID_SEED));
+        super(db.getProcedureStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.transactionHandler = new ProcedureObsTransactionHandler(eventBus, db);
-                
-        ProcedureHistoryHandler procedureHistoryService = new ProcedureHistoryHandler(eventBus, db);
-        addSubResource(procedureHistoryService);
-        
-        ProcedureDetailsHandler procedureDetailsService = new ProcedureDetailsHandler(eventBus, db);
-        addSubResource(procedureDetailsService);
-        
-        if (!(this instanceof ProcedureMembersHandler)) {
-            ProcedureMembersHandler membersService = new ProcedureMembersHandler(eventBus, db);
-            addSubResource(membersService);
-        }
     }
 
 

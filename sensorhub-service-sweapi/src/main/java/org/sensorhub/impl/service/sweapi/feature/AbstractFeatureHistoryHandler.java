@@ -24,6 +24,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
@@ -45,29 +46,32 @@ public abstract class AbstractFeatureHistoryHandler<
     public static final String[] NAMES = { "history" };
     
     
-    public AbstractFeatureHistoryHandler(S dataStore, IdEncoder idEncoder)
+    public AbstractFeatureHistoryHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
     {
-        super(dataStore, idEncoder);
+        super(dataStore, idEncoder, permissions);
     }
     
     
     @Override
     public boolean doPost(ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot POST in feature history, use PUT on main resource URL with a new validTime");
+        return ctx.sendError(405, "Cannot POST in history collection, use PUT on main resource URL with a new validTime");
     }
     
     
     @Override
     public boolean doPut(ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot PUT in feature history, use PUT on main resource URL with a new validTime");
+        return ctx.sendError(405, "Cannot PUT in history collection, use PUT on main resource URL with a new validTime");
     }
     
     
     @Override
     protected boolean getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
     {
+        // check permissions
+        ctx.getSecurityHandler().checkPermission(permissions.read);
+        
         // internal ID & version number
         long internalID = ctx.getParentID();
         long version = getVersionNumber(ctx, id);
@@ -95,6 +99,9 @@ public abstract class AbstractFeatureHistoryHandler<
     @Override
     protected boolean delete(final ResourceContext ctx, final String id) throws IOException
     {
+        // check permissions
+        ctx.getSecurityHandler().checkPermission(permissions.delete);
+        
         // internal ID & version number
         long internalID = ctx.getParentID();
         long version = getVersionNumber(ctx, id);

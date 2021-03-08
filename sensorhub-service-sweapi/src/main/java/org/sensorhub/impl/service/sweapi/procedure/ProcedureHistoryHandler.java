@@ -23,6 +23,7 @@ import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHistoryHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -32,9 +33,9 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 public class ProcedureHistoryHandler extends AbstractFeatureHistoryHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
     
-    public ProcedureHistoryHandler(IEventBus eventBus, IProcedureObsDatabase db)
+    public ProcedureHistoryHandler(IEventBus eventBus, IProcedureObsDatabase db, ResourcePermissions permissions)
     {
-        super(db.getProcedureStore(), new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED));
+        super(db.getProcedureStore(), new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED), permissions);
     }
 
 

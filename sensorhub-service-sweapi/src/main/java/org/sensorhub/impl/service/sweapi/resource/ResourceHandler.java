@@ -21,6 +21,7 @@ import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.sensorhub.api.resource.ResourceKey;
 import org.vast.util.IResource;
@@ -49,9 +50,9 @@ public abstract class ResourceHandler<
     public static final int NO_PARENT = 0;
     
     
-    protected ResourceHandler(S dataStore, IdEncoder idEncoder)
+    protected ResourceHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
     {
-        super(dataStore, idEncoder);
+        super(dataStore, idEncoder, permissions);
     }
     
     

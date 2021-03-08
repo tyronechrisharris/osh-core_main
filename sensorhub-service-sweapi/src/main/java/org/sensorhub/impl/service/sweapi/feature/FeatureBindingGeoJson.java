@@ -36,11 +36,11 @@ import net.opengis.gml.v32.AbstractGeometry;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class FeatureFormatterGeoJson extends AbstractFeatureBindingGeoJson<IGeoFeature>
+public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IGeoFeature>
 {
     
     
-    FeatureFormatterGeoJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    FeatureBindingGeoJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
     }
@@ -68,7 +68,7 @@ public class FeatureFormatterGeoJson extends AbstractFeatureBindingGeoJson<IGeoF
             @Override
             public String getId()
             {
-                var externalID = FeatureFormatterGeoJson.this.encodeID(key.getInternalID());
+                var externalID = FeatureBindingGeoJson.this.encodeID(key.getInternalID());
                 return Long.toString(externalID, ResourceBinding.ID_RADIX);
             }
 

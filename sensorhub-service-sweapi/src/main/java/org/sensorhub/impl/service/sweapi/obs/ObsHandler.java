@@ -36,6 +36,7 @@ import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -46,7 +47,7 @@ import org.vast.util.Asserts;
 
 public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
 {
-    public static final int EXTERNAL_ID_SEED = 918742953;
+    public static final int EXTERNAL_ID_SEED = 71145893;
     public static final String[] NAMES = { "observations", "obs" };
     
     IEventBus eventBus;
@@ -64,9 +65,9 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     }
     
     
-    public ObsHandler(IEventBus eventBus, ProcedureObsDbWrapper db)
+    public ObsHandler(IEventBus eventBus, ProcedureObsDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED));
+        super(db.getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         
         this.eventBus = eventBus;
         this.db = db;
@@ -132,6 +133,8 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     
     protected boolean stream(final ResourceContext ctx) throws InvalidRequestException, IOException
     {
+        ctx.getSecurityHandler().checkPermission(permissions.stream);
+        
         var queryParams = ctx.getRequest().getParameterMap();
         var filter = getFilter(ctx.getParentRef(), queryParams);
         var responseFormat = parseFormat(queryParams);
