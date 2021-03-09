@@ -12,26 +12,26 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.task;
+package org.sensorhub.api.tasking;
 
 
 /**
  * <p>
- * Event sent when a command stream (i.e. tasking/control input) is enabled
+ * Event sent when a command stream (i.e. tasking/control input) is disabled
  * by a procedure
  * </p>
  *
  * @author Alex Robin
  * @date Nov 23, 2020
  */
-public class CommandStreamEnabledEvent extends CommandStreamEvent
+public class CommandStreamDisabledEvent extends CommandStreamEvent
 {
     
     /**
      * Pass-through to super class constructor
      * @see CommandStreamEvent#CommandStreamEvent(long, String, String)
      */
-    public CommandStreamEnabledEvent(long timeStamp, String procUID, String controlInputName)
+    public CommandStreamDisabledEvent(long timeStamp, String procUID, String controlInputName)
     {
         super(timeStamp, procUID, controlInputName);
     }
@@ -41,7 +41,7 @@ public class CommandStreamEnabledEvent extends CommandStreamEvent
      * Pass-through to super class constructor
      * @see CommandStreamEvent#CommandStreamEvent(String, String)
      */
-    public CommandStreamEnabledEvent(String procUID, String controlInputName)
+    public CommandStreamDisabledEvent(String procUID, String controlInputName)
     {
         super(procUID, controlInputName);
     }
