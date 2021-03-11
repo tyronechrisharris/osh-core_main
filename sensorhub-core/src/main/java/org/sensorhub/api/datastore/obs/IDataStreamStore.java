@@ -39,7 +39,7 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
     {
         public static final DataStreamInfoField PROCEDURE_ID = new DataStreamInfoField("procedureID");
         public static final DataStreamInfoField OUTPUT_NAME = new DataStreamInfoField("outputName");
-        public static final DataStreamInfoField RECORD_VERSION = new DataStreamInfoField("recordVersion");
+        public static final DataStreamInfoField VALID_TIME = new DataStreamInfoField("validTime");
         public static final DataStreamInfoField RECORD_DESCRIPTION  = new DataStreamInfoField("recordDescription");
         public static final DataStreamInfoField RECORD_ENCODING = new DataStreamInfoField("recordEncoding");
         
@@ -74,7 +74,7 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
      * data stream corresponding to the specified procedure and output.
      * @param procUID Unique ID of procedure producing the data stream
      * @param outputName Name of output generating the data stream
-     * @return The feature key or null if none was found with this UID
+     * @return The datastream key or null if none was found
      */
     public default DataStreamKey getLatestVersionKey(String procUID, String outputName)
     {
@@ -88,7 +88,7 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
      * corresponding to the specified procedure and output.
      * @param procUID Unique ID of procedure producing the data stream
      * @param outputName Name of output generating the data stream
-     * @return The feature representation or null if none was found with this UID
+     * @return The datastream info or null if none was found
      */
     public default IDataStreamInfo getLatestVersion(String procUID, String outputName)
     {
@@ -102,7 +102,7 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
      * data stream corresponding to the specified procedure and output.
      * @param procUID Unique ID of procedure producing the data stream
      * @param outputName Name of output generating the data stream
-     * @return The feature entry or null if none was found with this UID
+     * @return The datastream entry or null if none was found
      */
     public default Entry<DataStreamKey, IDataStreamInfo> getLatestVersionEntry(String procUID, String outputName)
     {
