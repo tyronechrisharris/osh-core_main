@@ -14,20 +14,16 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import net.opengis.swe.v20.AllowedTokens;
-import net.opengis.swe.v20.Category;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.Quantity;
+import net.opengis.swe.v20.DataRecord;
 import java.util.ArrayList;
-import org.sensorhub.api.common.CommandStatus;
-import org.sensorhub.api.common.CommandStatus.StatusCode;
-import org.sensorhub.api.data.IStreamingControlInterface;
-import org.sensorhub.api.sensor.SensorException;
-import org.vast.data.AllowedTokensImpl;
-import org.vast.data.CategoryImpl;
-import org.vast.data.DataRecordImpl;
-import org.vast.data.QuantityImpl;
+import java.util.concurrent.CompletableFuture;
+import org.sensorhub.api.tasking.CommandAckEvent;
+import org.sensorhub.api.tasking.CommandException;
+import org.sensorhub.api.tasking.ICommandData;
+import org.sensorhub.api.tasking.IStreamingControlInterface;
+import org.vast.swe.SWEHelper;
 
 
 /**
@@ -42,6 +38,7 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
 {
     String name;
     int counter = 1;
+    DataRecord commandStruct;
     ArrayList<DataBlock> receivedCommands = new ArrayList<DataBlock>();
     
     
@@ -49,6 +46,18 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
     {
         super(parentSensor);
         this.name = "command1";
+        
+        var swe = new SWEHelper();
+        this.commandStruct = swe.createRecord()
+            .name(name)
+            .definition("urn:test:def:command")
+            .addField("samplingPeriod", swe.createQuantity()
+                .definition("urn:test:def:samplingPeriod")
+                .uomCode("s"))
+            .addField("sensitivity", swe.createQuantity()
+                .definition("urn:test:def:sensitivity")
+                .uomCode("s"))
+            .build();
     }
 
 
@@ -62,32 +71,23 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
     @Override
     public DataComponent getCommandDescription()
     {
-        DataComponent record = new DataRecordImpl(3);
-        record.setName(this.name);
-        record.setDefinition("urn:blabla:command");
-        
-        Quantity q = new QuantityImpl();
-        q.setDefinition("urn:blabla:samplingPeriod");
-        q.getUom().setCode("s");
-        record.addComponent("samplingPeriod", q);
-        
-        Category c = new CategoryImpl();
-        c.setDefinition("urn:blabla:sensitivity");
-        AllowedTokens tokens = new AllowedTokensImpl();
-        tokens.addValue("HIGH");
-        tokens.addValue("LOW");
-        c.setConstraint(tokens);
-        record.addComponent("sens", c);
-        
-        return record;
+        return commandStruct;
     }
 
 
     @Override
-    public CommandStatus execCommand(DataBlock command) throws SensorException
+    public CompletableFuture<Void> executeCommand(ICommandData command)
     {
-        receivedCommands.add(command);
-        return new CommandStatus(String.format("%03d",  counter++), StatusCode.COMPLETED);
+        return CompletableFuture.runAsync(() -> {
+            receivedCommands.add(command.getParams());          
+            eventHandler.publish(CommandAckEvent.success(this, command));
+        });
+    }
+
+
+    @Override
+    public void validateCommand(DataBlock command) throws CommandException
+    {        
     }
     
     

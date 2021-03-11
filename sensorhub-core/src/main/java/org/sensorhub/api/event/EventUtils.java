@@ -21,8 +21,8 @@ import org.vast.util.Asserts;
 public class EventUtils
 {
     public static final String PROCEDURE_MAIN_CHANNEL = "/main";
-    public static final String PROCEDURE_OUTPUT_CHANNELS = "/outputs/";
-    public static final String PROCEDURE_CONTROL_CHANNELS = "/control/";
+    public static final String PROCEDURE_OUTPUT_CHANNEL = "/outputs/";
+    public static final String PROCEDURE_CONTROL_CHANNEL = "/controls/";
     
     
     private EventUtils() {}
@@ -39,15 +39,23 @@ public class EventUtils
     {
         OshAsserts.checkValidUID(procedureUID);
         Asserts.checkNotNullOrEmpty(outputName, "outputName");
-        return procedureUID + PROCEDURE_OUTPUT_CHANNELS + outputName;
+        return procedureUID + PROCEDURE_OUTPUT_CHANNEL + outputName;
     }
     
     
-    public static final String getProcedureControlSourceID(String procedureUID, String commandName)
+    public static final String getProcedureCommandTopicID(String procedureUID, String commandInputName)
     {
         OshAsserts.checkValidUID(procedureUID);
-        Asserts.checkNotNullOrEmpty(commandName, "commandName");
-        return procedureUID + PROCEDURE_CONTROL_CHANNELS + commandName;
+        Asserts.checkNotNullOrEmpty(commandInputName, "commandInputName");
+        return procedureUID + PROCEDURE_CONTROL_CHANNEL + commandInputName + "/commands";
+    }
+    
+    
+    public static final String getProcedureCommandAckTopicID(String procedureUID, String commandInputName)
+    {
+        OshAsserts.checkValidUID(procedureUID);
+        Asserts.checkNotNullOrEmpty(commandInputName, "commandInputName");
+        return procedureUID + PROCEDURE_CONTROL_CHANNEL + commandInputName + "/commands/ack";
     }
     
     

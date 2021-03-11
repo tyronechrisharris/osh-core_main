@@ -15,10 +15,10 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.sensor;
 
 import java.util.Map;
-import org.sensorhub.api.data.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.procedure.IProcedureDriver;
+import org.sensorhub.api.tasking.ICommandReceiver;
 
 
 /**

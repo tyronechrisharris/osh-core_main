@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
+import org.sensorhub.api.tasking.IStreamingControlInterface;
 
 
 public class FakeSensor extends AbstractSensorModule<SensorConfig>

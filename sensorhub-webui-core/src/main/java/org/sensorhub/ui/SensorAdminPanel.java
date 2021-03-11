@@ -15,8 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.ui;
 
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.sensor.ISensorModule;
+import org.sensorhub.api.tasking.IStreamingControlInterface;
 import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Component;

@@ -8,30 +8,37 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.data;
+package org.sensorhub.api.tasking;
 
-import java.util.Map;
-import org.sensorhub.api.procedure.IProcedureDriver;
+import java.time.Instant;
+import net.opengis.swe.v20.DataBlock;
 
 
 /**
  * <p>
- * Interface for all receivers of command data (e.g. actuator, process)
+ * Represents command data sent to a control interface
  * </p>
  *
  * @author Alex Robin
- * @since Mar 23, 2017
+ * @date Mar 11, 2021
  */
-public interface ICommandReceiver extends IProcedureDriver
+public interface ICommandData
 {
+
+    ICommandStreamInfo getCommandStream();
     
-    /**
-     * Retrieves the list of data inputs
-     * @return map of output names -> data interface objects
-     */
-    public Map<String, ? extends IStreamingControlInterface> getCommandInputs();
+    String getSenderID();
+    
+    long getCommandRefID();
+    
+    Instant getIssueTime();
+    
+    Instant getActuationTime();
+
+    DataBlock getParams();
+
 }

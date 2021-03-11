@@ -14,16 +14,17 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import net.opengis.swe.v20.AllowedTokens;
 import net.opengis.swe.v20.Category;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
-import org.sensorhub.api.common.CommandStatus;
-import org.sensorhub.api.common.CommandStatus.StatusCode;
-import org.sensorhub.api.data.IStreamingControlInterface;
-import org.sensorhub.api.sensor.SensorException;
-import org.vast.data.AllowedTokensImpl;
-import org.vast.data.CategoryImpl;
+import net.opengis.swe.v20.ValidationException;
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import org.sensorhub.api.tasking.CommandAckEvent;
+import org.sensorhub.api.tasking.CommandException;
+import org.sensorhub.api.tasking.ICommandData;
+import org.sensorhub.api.tasking.IStreamingControlInterface;
+import org.vast.swe.SWEHelper;
 
 
 /**
@@ -38,12 +39,20 @@ public class FakeSensorControl2 extends AbstractSensorControl<FakeSensor> implem
 {
     String name;
     int counter = 1;
+    Category commandStruct;
     
     
     public FakeSensorControl2(FakeSensor parentSensor)
     {
         super(parentSensor);
         this.name = "command2";
+        
+        var swe = new SWEHelper();
+        this.commandStruct = swe.createCategory()
+            .name(name)
+            .definition("urn:test:def:trigger")
+            .addAllowedValues("NOW", "REPEAT", "STOP")
+            .build();
     }
 
 
@@ -57,22 +66,29 @@ public class FakeSensorControl2 extends AbstractSensorControl<FakeSensor> implem
     @Override
     public DataComponent getCommandDescription()
     {
-        Category c = new CategoryImpl();
-        c.setName(name);
-        c.setDefinition("urn:blabla:trigger");
-        AllowedTokens tokens = new AllowedTokensImpl();
-        tokens.addValue("NOW");
-        tokens.addValue("REPEAT");
-        tokens.addValue("STOP");
-        c.setConstraint(tokens);                
-        return c;
+        return commandStruct;
     }
 
 
     @Override
-    public CommandStatus execCommand(DataBlock command) throws SensorException
+    public CompletableFuture<Void> executeCommand(ICommandData command)
     {
-        return new CommandStatus(String.format("%03d",  counter++), StatusCode.COMPLETED);
+        counter++;
+        eventHandler.publish(CommandAckEvent.success(this, command));
+        return CompletableFuture.completedFuture(null);
+    }
+
+
+    @Override
+    public void validateCommand(DataBlock command) throws CommandException
+    {
+        var cmdStruct = commandStruct.copy();
+        cmdStruct.setData(command);
+        
+        var errors = new ArrayList<ValidationException>();
+        cmdStruct.validateData(errors);
+        if (!errors.isEmpty())
+            throw new CommandException(errors.get(0).getMessage());
     }
 
 }

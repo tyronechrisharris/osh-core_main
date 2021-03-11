@@ -18,9 +18,9 @@ import java.lang.ref.WeakReference;
 import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.IProcedureStateDatabase;
+import org.sensorhub.api.tasking.IStreamingControlInterface;
 import org.vast.ogc.gml.IGeoFeature;
 
 

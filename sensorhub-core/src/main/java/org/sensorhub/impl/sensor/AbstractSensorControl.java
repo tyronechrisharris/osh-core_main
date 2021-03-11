@@ -14,17 +14,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import java.util.List;
-import java.util.UUID;
-import net.opengis.swe.v20.DataBlock;
-import org.sensorhub.api.common.CommandStatus;
-import org.sensorhub.api.data.ICommandReceiver;
-import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventHandler;
+import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
-import org.sensorhub.api.common.CommandStatus.StatusCode;
-import org.sensorhub.api.sensor.SensorException;
+import org.sensorhub.api.tasking.ICommandReceiver;
+import org.sensorhub.api.tasking.IStreamingControlInterface;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.event.EventSourceInfo;
 
@@ -65,7 +60,7 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
         // use event handler of the parent sensor
         this.eventHandler = new BasicEventHandler();
         String groupID = parentSensor.getUniqueIdentifier();
-        String sourceID = EventUtils.getProcedureControlSourceID(groupID, getName());
+        String sourceID = EventUtils.getProcedureCommandAckTopicID(groupID, getName());
         this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
     }
     
@@ -92,26 +87,23 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     
     
     @Override
-    public CommandStatus execCommandGroup(List<DataBlock> commands) throws SensorException
+    public void registerListener(IEventListener listener)
     {
-        CommandStatus groupStatus = new CommandStatus();
-        groupStatus.id = UUID.randomUUID().toString();
-        groupStatus.status = StatusCode.COMPLETED;
-        
-        // if any of the commands fail, return fail status with
-        // error message and don't process more commands
-        for (DataBlock cmd: commands)
-        {
-            CommandStatus cmdStatus = execCommand(cmd);
-            if (cmdStatus.status == StatusCode.REJECTED || cmdStatus.status == StatusCode.FAILED)
-            {
-                groupStatus.status = cmdStatus.status;
-                groupStatus.message = cmdStatus.message;
-                break;
-            }          
-        }
-        
-        return groupStatus;
+        eventHandler.registerListener(listener);
+    }
+
+
+    @Override
+    public void unregisterListener(IEventListener listener)
+    {
+        eventHandler.unregisterListener(listener);
+    }
+    
+    
+    @Override
+    public IEventSourceInfo getEventSourceInfo()
+    {
+        return eventSrcInfo;
     }
     
 }

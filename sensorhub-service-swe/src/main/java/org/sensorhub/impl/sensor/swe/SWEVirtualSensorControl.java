@@ -16,10 +16,11 @@ package org.sensorhub.impl.sensor.swe;
 
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
-import org.sensorhub.api.common.CommandStatus;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.common.CommandStatus.StatusCode;
-import org.sensorhub.api.sensor.SensorException;
+import org.sensorhub.api.tasking.CommandAckEvent;
+import org.sensorhub.api.tasking.ICommandData;
 import org.sensorhub.impl.sensor.AbstractSensorControl;
 import org.vast.data.AbstractDataBlock;
 import org.vast.data.DataBlockInt;
@@ -70,29 +71,39 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
     
 
     @Override
-    public CommandStatus execCommand(DataBlock command) throws SensorException
+    public void validateCommand(DataBlock command)
     {
-        try
+        
+    }
+    
+    
+    @Override
+    public CompletableFuture<Void> executeCommand(ICommandData command)
+    {
+        // wrap to add choice index if several commands were advertised by server
+        DataBlock commandParams;
+        if (cmdWrapper != null)
         {
-            // wrap to add choice index if several commands was advertised by server
-            if (cmdWrapper != null)
+            cmdWrapper.getUnderlyingObject()[1] = (AbstractDataBlock)command.getParams();
+            commandParams = cmdWrapper;
+        }
+        else
+            commandParams = command.getParams();
+        
+        // execute command asynchronously
+        return CompletableFuture.runAsync(() -> {
+            try
             {
-                cmdWrapper.getUnderlyingObject()[1] = (AbstractDataBlock)command;
-                command = cmdWrapper;
-            }            
-            
-            //SubmitResponse resp =
-            parentSensor.spsClient.sendTaskMessage(command);
-            
-            // TODO handle SPS request and task status
-            CommandStatus cmdStatus = new CommandStatus();
-            cmdStatus.status = StatusCode.COMPLETED;
-            
-            return cmdStatus;
-        }
-        catch (SensorHubException e)
-        {
-            throw new SensorException("Error while sending command to SPS", e);
-        }
+                //SubmitResponse resp =
+                parentSensor.spsClient.sendTaskMessage(commandParams);
+                
+                // TODO handle SPS response and task status            
+                eventHandler.publish(CommandAckEvent.success(this, command));
+            }
+            catch (SensorHubException e)
+            {
+                throw new CompletionException("Error sending command to SPS", e);
+            }
+        });
     }
 }

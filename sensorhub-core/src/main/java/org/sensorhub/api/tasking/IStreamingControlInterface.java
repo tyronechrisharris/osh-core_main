@@ -12,24 +12,24 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.data;
+package org.sensorhub.api.tasking;
 
-import java.util.List;
-import org.sensorhub.api.common.CommandStatus;
-import org.sensorhub.api.sensor.SensorException;
+import java.util.concurrent.CompletableFuture;
+import org.sensorhub.api.event.IEventProducer;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 
+
 /**
  * <p>
- * Interface for all taskable components using the SWE model to describe
+ * Interface for all taskable components using SWE Common model to describe
  * structure and encoding of commands they accept (e.g. actuators, processes...)
  * </p>
  *
  * @author Alex Robin
  * @since Mar 23, 2017
  */
-public interface IStreamingControlInterface
+public interface IStreamingControlInterface extends IEventProducer
 {
 
     /**
@@ -62,20 +62,23 @@ public interface IStreamingControlInterface
     
     
     /**
-     * Executes the command synchronously, blocking until completion of command
-     * @param command command message data
-     * @return status after execution of command
-     * @throws SensorException
+     * Executes the provided command, potentially asynchronously.
+     * @param command Command data
+     * @return A future that will be completed normally when the command is accepted
+     * and the callee is ready to receive the next command. Note that the command
+     * may not have finished executing at this point. Command success/failure is notified
+     * separately using a {@link CommandAckEvent} sent to all registered listeners.)<br/>
+     * If an error can be detected early, the future will complete exceptionally with a 
+     * {@link CompletionException}
      */
-    public CommandStatus execCommand(DataBlock command) throws SensorException;
-
-
+    public CompletableFuture<Void> executeCommand(ICommandData command);
+    
+    
     /**
-     * Executes multiple commands synchronously and in the order specified.
-     * This method will block until all commands are completed
-     * @param commands list of command messages data
-     * @return a single status message for the command group
-     * @throws SensorException
+     * Validates the command parameters without executing the command. This
+     * is used for validating a task before it can be accepted for execution. 
+     * @param command
+     * @throws CommandException if the command is invalid
      */
-    public CommandStatus execCommandGroup(List<DataBlock> commands) throws SensorException;
+    public void validateCommand(DataBlock command) throws CommandException;
 }

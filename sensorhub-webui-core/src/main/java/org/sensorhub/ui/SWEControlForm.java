@@ -14,8 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import org.sensorhub.api.data.IStreamingControlInterface;
 import org.sensorhub.api.sensor.SensorException;
+import org.sensorhub.api.tasking.IStreamingControlInterface;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
