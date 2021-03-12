@@ -12,7 +12,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.obs;
+package org.sensorhub.api.datastore.obs;
 
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.utils.ObjectUtils;
@@ -24,8 +24,8 @@ import org.vast.util.TimeExtent;
 
 /**
  * <p>
- * Immutable object representing statistics for a bucket of observations.</br>
- * There can be only one data stream and one FOI attached to each bucket.
+ * Immutable object representing statistics for observations associated to 
+ * a pair of single data stream and FOI.
  * </p>
  *
  * @author Alex Robin
@@ -51,8 +51,7 @@ public class ObsStats
 
 
     /**
-     * @return The unique ID of the data stream that contains the observations 
-     * in this bucket.
+     * @return The ID of the datastream that these statistics apply to
      */
     public Long getDataStreamID()
     {
@@ -71,7 +70,7 @@ public class ObsStats
 
 
     /**
-     * @return The range of phenomenon times in this series
+     * @return The time range spanned by phenomenon times of all selected observations
      */
     public TimeExtent getPhenomenonTimeRange()
     {
@@ -80,8 +79,8 @@ public class ObsStats
 
 
     /**
-     * @return The range of result times in this observation series. There are
-     * 3 main cases:<br/>
+     * @return The time range spanned by result times of all selected observations.
+     * There are 3 main cases:<br/>
      * <li>The returned range is equal to the phenomenon time range for many
      * sensors for which sampling and measurement operations are considered
      * to be simultaneous (most electronic sensors fit into this category).</li>
@@ -100,7 +99,8 @@ public class ObsStats
 
 
     /**
-     * @return Bounding rectangle of phenomenon locations in this series
+     * @return Bounding rectangle enclosing phenomenon locations of all
+     * selected observations
      */
     public Bbox getPhenomenonBbox()
     {
@@ -109,7 +109,7 @@ public class ObsStats
 
 
     /**
-     * @return The total number of observations in the series.
+     * @return The total number of selected observations
      */
     public long getTotalObsCount()
     {
@@ -118,7 +118,7 @@ public class ObsStats
     
 
     /**
-     * @return The histogram of observations count vs. time
+     * @return The histogram of observation counts vs. time
      */
     public int[] getObsCountsByTime()
     {

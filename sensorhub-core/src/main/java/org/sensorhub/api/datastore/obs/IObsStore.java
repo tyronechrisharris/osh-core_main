@@ -22,7 +22,6 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IObsData;
-import org.sensorhub.api.obs.ObsStats;
 import net.opengis.swe.v20.DataBlock;
 import com.google.common.collect.Sets;
 

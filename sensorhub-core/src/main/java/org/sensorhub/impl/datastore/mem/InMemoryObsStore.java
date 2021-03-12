@@ -34,9 +34,9 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.obs.IObsData;
-import org.sensorhub.api.obs.ObsStats;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.util.Asserts;
 
