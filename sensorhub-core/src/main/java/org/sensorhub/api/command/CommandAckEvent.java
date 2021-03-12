@@ -54,17 +54,17 @@ public class CommandAckEvent extends CommandStreamEvent
     
     public static CommandAckEvent fail(IStreamingControlInterface controlInterface, ICommandData command)
     {
-        return fail(controlInterface, command, 1);
+        return fail(controlInterface, command, null);
     }
     
     
-    public static CommandAckEvent fail(IStreamingControlInterface controlInterface, ICommandData command, int errorCode)
+    public static CommandAckEvent fail(IStreamingControlInterface controlInterface, ICommandData command, Exception error)
     {
         return new CommandAckEvent(
             System.currentTimeMillis(),
             controlInterface.getParentProducer().getUniqueIdentifier(),
             controlInterface.getName(),
-            CommandAck.fail(command.getCommandRefID(), errorCode));
+            CommandAck.fail(command.getCommandRefID(), error));
     }
 
 

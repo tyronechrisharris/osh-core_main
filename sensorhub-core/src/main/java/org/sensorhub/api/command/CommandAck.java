@@ -33,6 +33,7 @@ public class CommandAck implements ICommandAck
     protected long commandRefID;
     protected Instant actuationTime;
     protected int statusCode;
+    protected Exception error;
     
     
     protected CommandAck(long commandRefID, int statusCode)
@@ -67,9 +68,11 @@ public class CommandAck implements ICommandAck
     }
     
     
-    public static ICommandAck fail(long commandRefID, int errorCode)
+    public static ICommandAck fail(long commandRefID, Exception error)
     {
-        return new CommandAck(commandRefID, errorCode);
+        var ack = new CommandAck(commandRefID, FAILED);
+        ack.error = error;
+        return ack;
     }
 
 
@@ -91,5 +94,11 @@ public class CommandAck implements ICommandAck
     public int getStatusCode()
     {
         return statusCode;
+    }
+
+
+    public Exception getError()
+    {
+        return error;
     }
 }
