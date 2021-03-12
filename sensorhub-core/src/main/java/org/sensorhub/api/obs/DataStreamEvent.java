@@ -53,6 +53,17 @@ public abstract class DataStreamEvent extends ProcedureEvent
     {
         this(System.currentTimeMillis(), procUID, outputName);
     }
+    
+    
+    /**
+     * Helper constructor that sets the timestamp to current system time
+     * @param dsInfo Data stream the event relates to
+     */
+    public DataStreamEvent(IDataStreamInfo dsInfo)
+    {
+        super(Asserts.checkNotNull(dsInfo, IDataStreamInfo.class).getProcedureID().getUniqueID());
+        this.outputName = Asserts.checkNotNullOrEmpty(dsInfo.getOutputName(), "outputName");
+    }
 
 
     /**

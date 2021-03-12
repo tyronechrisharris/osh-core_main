@@ -26,11 +26,14 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamChangedEvent;
+import org.sensorhub.api.obs.DataStreamDisabledEvent;
+import org.sensorhub.api.obs.DataStreamEnabledEvent;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.DataStreamRemovedEvent;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
+import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
@@ -79,20 +82,31 @@ public class DataStreamTransactionHandler implements IEventListener
     
     public boolean update(DataComponent dataStruct, DataEncoding dataEncoding)
     {
+        var oldDsInfo = getDataStreamStore().get(dsKey);
+        if (oldDsInfo == null)
+            return false;
+        
+        // check if datastream already has observations
+        var hasObs = oldDsInfo.getResultTimeRange() != null;
+        if (hasObs &&
+            (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dataStruct) ||
+             !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding)))
+            throw new IllegalArgumentException("Cannot update the record structure or encoding of a datastream if it already has observations");        
+        
+        // update datastream info
         var newDsInfo = new DataStreamInfo.Builder()
             .withProcedure(dsInfo.getProcedureID())
             .withRecordDescription(dataStruct)
             .withRecordEncoding(dataEncoding)
+            .withValidTime(oldDsInfo.getValidTime())
             .build();
-        
-        var oldDsInfo = getDataStreamStore().replace(dsKey, newDsInfo);
-        if (oldDsInfo == null)
-            return false;
-        
+        getDataStreamStore().replace(dsKey, newDsInfo);        
         this.dsInfo = newDsInfo;
-        getStatusEventPublisher().publish(new DataStreamChangedEvent(
-            dsInfo.getProcedureID().getUniqueID(),
-            dsInfo.getOutputName()));
+        
+        // send event
+        var event = new DataStreamChangedEvent(dsInfo);
+        getStatusEventPublisher().publish(event);
+        getProcedureStatusEventPublisher().publish(event);
         
         return true;
     }
@@ -103,12 +117,33 @@ public class DataStreamTransactionHandler implements IEventListener
         var oldDsKey = getDataStreamStore().remove(dsKey);
         if (oldDsKey == null)
             return false;
-                
-        getStatusEventPublisher().publish(new DataStreamRemovedEvent(
-            dsInfo.getProcedureID().getUniqueID(),
-            dsInfo.getOutputName()));
-                
+        
+        // if datastream was currently valid, disable it first
+        if (dsInfo.getValidTime().endsNow())
+            disable();
+        
+        // send event
+        var event = new DataStreamRemovedEvent(dsInfo);
+        getStatusEventPublisher().publish(event);
+        getProcedureStatusEventPublisher().publish(event);
+        
         return true;
+    }
+    
+    
+    public void enable()
+    {                
+        var event = new DataStreamEnabledEvent(dsInfo);
+        getStatusEventPublisher().publish(event);
+        getProcedureStatusEventPublisher().publish(event);
+    }
+    
+    
+    public void disable()
+    {                
+        var event = new DataStreamDisabledEvent(dsInfo);
+        getStatusEventPublisher().publish(event);
+        getProcedureStatusEventPublisher().publish(event);
     }
     
     

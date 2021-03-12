@@ -14,6 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
+import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.IProcedureDriver;
@@ -141,15 +143,63 @@ public class EventUtils
     }
     
     
+    public static final String getCommandStreamStatusTopicID(IStreamingControlInterface controlInterface)
+    {
+        return getCommandStreamStatusTopicID(
+            controlInterface.getParentProducer().getUniqueIdentifier(),
+            controlInterface.getName());
+    }
+    
+    
+    public static final String getCommandStreamStatusTopicID(ICommandStreamInfo csInfo)
+    {
+        return getCommandStreamStatusTopicID(
+            csInfo.getProcedureID().getUniqueID(),
+            csInfo.getCommandName());
+    }
+    
+    
     public static final String getCommandStreamDataTopicID(String procedureUID, String controlInputName)
     {
         return getCommandStreamTopicID(procedureUID, controlInputName) + DATA_CHANNEL;
     }
     
     
+    public static final String getCommandStreamDataTopicID(IStreamingControlInterface controlInterface)
+    {
+        return getCommandStreamDataTopicID(
+            controlInterface.getParentProducer().getUniqueIdentifier(),
+            controlInterface.getName());
+    }
+    
+    
+    public static final String getCommandStreamDataTopicID(ICommandStreamInfo csInfo)
+    {
+        return getCommandStreamDataTopicID(
+            csInfo.getProcedureID().getUniqueID(),
+            csInfo.getName());
+    }
+    
+    
     public static final String getCommandStreamAckTopicID(String procedureUID, String controlInputName)
     {
         return getCommandStreamTopicID(procedureUID, controlInputName) + ACK_CHANNEL;
+    }
+    
+    
+    public static final String getCommandStreamAckTopicID(IStreamingControlInterface controlInterface)
+    {
+        return getCommandStreamAckTopicID(
+            controlInterface.getParentProducer().getUniqueIdentifier(),
+            controlInterface.getName());
+    }
+    
+    
+    public static final String getCommandStreamAckTopicID(ICommandStreamInfo csInfo)
+    {
+        return getCommandStreamAckTopicID(
+            csInfo.getProcedureID().getUniqueID(),
+            csInfo.getName());
     }
     
 }

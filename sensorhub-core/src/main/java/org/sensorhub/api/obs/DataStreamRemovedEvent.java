@@ -44,4 +44,14 @@ public class DataStreamRemovedEvent extends DataStreamEvent
     {
         super(procUID, outputName);
     }
+    
+    
+    /**
+     * Pass-through to super class constructor
+     * @see DataStreamEvent#DataStreamEvent(IDataStreamInfo)
+     */
+    public DataStreamRemovedEvent(IDataStreamInfo dsInfo)
+    {
+        super(dsInfo);
+    }
 }

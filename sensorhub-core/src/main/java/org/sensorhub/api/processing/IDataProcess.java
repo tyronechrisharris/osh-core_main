@@ -15,8 +15,8 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.processing;
 
 import java.util.Map;
+import org.sensorhub.api.command.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.tasking.ICommandReceiver;
 import net.opengis.swe.v20.DataComponent;
 
 
@@ -27,7 +27,7 @@ import net.opengis.swe.v20.DataComponent;
  * process (i.e. always running to process incoming data streams) or an
  * on-demand process that is triggered externally.<br/> The process becomes
  * an on-demand process if one or more inputs are exposed through the
- * {@link org.sensorhub.api.tasking.ICommandReceiver} interface.<br/>
+ * {@link org.sensorhub.api.command.ICommandReceiver} interface.<br/>
  * In both cases, data is produced on output interface(s) and can be either
  * polled or pushed to registered listeners.
  * </p>

@@ -44,4 +44,14 @@ public class DataStreamAddedEvent extends DataStreamEvent
     {
         super(procUID, outputName);
     }
+    
+    
+    /**
+     * Pass-through to super class constructor
+     * @see DataStreamEvent#DataStreamEvent(IDataStreamInfo)
+     */
+    public DataStreamAddedEvent(IDataStreamInfo dsInfo)
+    {
+        super(dsInfo);
+    }
 }

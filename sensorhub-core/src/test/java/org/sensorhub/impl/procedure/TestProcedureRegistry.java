@@ -19,9 +19,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
@@ -170,7 +170,7 @@ public class TestProcedureRegistry
         assertEquals(0, stateDb.getFoiStore().size());
         
         AtomicInteger sampleCounter = new AtomicInteger();
-        Map<String, Integer> sampleCountsPerMember = new HashMap<>();
+        Map<String, Integer> sampleCountsPerMember = new ConcurrentHashMap<>();
         registry.register(sensorNet).thenRun(() -> {
             
             // check parent procedure is in DB

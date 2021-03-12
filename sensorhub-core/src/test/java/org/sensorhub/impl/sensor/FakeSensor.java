@@ -19,11 +19,11 @@ import net.opengis.gml.v32.impl.PointImpl;
 import net.opengis.sensorml.v20.PhysicalSystem;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
+import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.api.tasking.IStreamingControlInterface;
 
 
 public class FakeSensor extends AbstractSensorModule<SensorConfig>

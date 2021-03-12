@@ -16,6 +16,8 @@ package org.sensorhub.impl.datastore.view;
 
 import java.util.concurrent.Callable;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -30,15 +32,31 @@ public class ProcedureObsDatabaseView implements IProcedureObsDatabase
     ProcedureStoreView procStoreView;
     FoiStoreView foiStoreView;
     ObsStoreView obsStoreView;
+    CommandStoreView commandStoreView;
     
     
     public ProcedureObsDatabaseView(IProcedureObsDatabase delegate, ObsFilter obsFilter)
     {
+        this(delegate, obsFilter, new CommandFilter.Builder().withProcedures(0).build());
+    }
+    
+    
+    public ProcedureObsDatabaseView(IProcedureObsDatabase delegate, ObsFilter obsFilter, CommandFilter cmdFilter)
+    {
         this.delegate = Asserts.checkNotNull(delegate, IProcedureObsDatabase.class);
-        this.procStoreView = new ProcedureStoreView(delegate.getProcedureStore(), 
-            obsFilter.getDataStreamFilter() != null ? obsFilter.getDataStreamFilter().getProcedureFilter() : null);
+        Asserts.checkNotNull(obsFilter, ObsFilter.class);
+        Asserts.checkNotNull(cmdFilter, CommandFilter.class);
+        
+        var procFilter = obsFilter.getDataStreamFilter() != null ? obsFilter.getDataStreamFilter().getProcedureFilter() : null;
+        this.procStoreView = new ProcedureStoreView(delegate.getProcedureStore(), procFilter);
         this.foiStoreView = new FoiStoreView(delegate.getFoiStore(), obsFilter.getFoiFilter());
         this.obsStoreView = new ObsStoreView(delegate.getObservationStore(), obsFilter);
+        
+        // build command filter with settings equivalent to ObsFilter
+        var cmdFilterBuilder = CommandFilter.Builder.from(cmdFilter);
+        if (procFilter != null)
+            cmdFilterBuilder.withProcedures(procFilter);       
+        this.commandStoreView = new CommandStoreView(delegate.getCommandStore(), cmdFilterBuilder.build());
     }
     
     
@@ -69,6 +87,13 @@ public class ProcedureObsDatabaseView implements IProcedureObsDatabase
     public IObsStore getObservationStore()
     {
         return obsStoreView;
+    }
+
+
+    @Override
+    public ICommandStore getCommandStore()
+    {
+        return commandStoreView;
     }
 
 

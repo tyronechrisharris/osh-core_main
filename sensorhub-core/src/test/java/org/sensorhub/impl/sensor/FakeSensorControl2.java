@@ -20,10 +20,10 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.ValidationException;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
-import org.sensorhub.api.tasking.CommandAckEvent;
-import org.sensorhub.api.tasking.CommandException;
-import org.sensorhub.api.tasking.ICommandData;
-import org.sensorhub.api.tasking.IStreamingControlInterface;
+import org.sensorhub.api.command.CommandAckEvent;
+import org.sensorhub.api.command.CommandException;
+import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.command.IStreamingControlInterface;
 import org.vast.swe.SWEHelper;
 
 

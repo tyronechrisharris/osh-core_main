@@ -16,11 +16,11 @@ package org.sensorhub.impl.sensor;
 
 import net.opengis.sensorml.v20.PhysicalSystem;
 import net.opengis.sensorml.v20.SpatialFrame;
+import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.api.tasking.IStreamingControlInterface;
 import org.vast.sensorML.SMLFactory;
 
 

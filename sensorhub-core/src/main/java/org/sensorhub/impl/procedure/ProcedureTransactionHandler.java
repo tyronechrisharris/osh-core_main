@@ -18,8 +18,13 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import org.sensorhub.api.command.CommandStreamAddedEvent;
+import org.sensorhub.api.command.CommandStreamInfo;
+import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.command.CommandStreamKey;
+import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -30,11 +35,7 @@ import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
-import org.sensorhub.api.obs.DataStreamChangedEvent;
-import org.sensorhub.api.obs.DataStreamDisabledEvent;
-import org.sensorhub.api.obs.DataStreamEnabledEvent;
 import org.sensorhub.api.obs.DataStreamInfo;
-import org.sensorhub.api.obs.DataStreamRemovedEvent;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
@@ -185,11 +186,6 @@ public class ProcedureTransactionHandler
     }
     
     
-    
-    /*
-     * Datastream helper methods
-     */
-    
     public synchronized DataStreamTransactionHandler addOrUpdateDataStream(String outputName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
     {
         Asserts.checkNotNullOrEmpty(outputName, "outputName");
@@ -203,9 +199,9 @@ public class ProcedureTransactionHandler
             throw new IllegalStateException("Inconsistent output name");
         
         // try to retrieve existing data stream
-        IDataStreamStore dataStreamStore = rootHandler.db.getDataStreamStore();
+        IDataStreamStore dataStreamStore = getDataStreamStore();
         Entry<DataStreamKey, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(procUID, outputName);
-        DataStreamKey newDsKey;
+        DataStreamKey dsKey;
         IDataStreamInfo newDsInfo;
         
         if (dsEntry == null)
@@ -216,7 +212,7 @@ public class ProcedureTransactionHandler
                 .withRecordDescription(dataStruct)
                 .withRecordEncoding(dataEncoding)
                 .build();
-            newDsKey = dataStreamStore.add(newDsInfo);
+            dsKey = dataStreamStore.add(newDsInfo);
             
             // send event        
             getEventPublisher().publish(new DataStreamAddedEvent(procUID, outputName));
@@ -225,15 +221,15 @@ public class ProcedureTransactionHandler
         }
         else
         {
-            // if an output with the same name already existed
-            newDsKey = dsEntry.getKey();
+            // if an output with the same name already exists
+            dsKey = dsEntry.getKey();
             IDataStreamInfo oldDsInfo = dsEntry.getValue();
             
             // check if datastream already has observations
             var hasObs = oldDsInfo.getResultTimeRange() != null;
             
-            // 2 cases
-            // if structure has changed, create a new datastream
+            // 3 cases
+            // if observations were already recorded and structure has changed, create a new datastream
             if (hasObs &&
                (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dataStruct) ||
                 !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding)))
@@ -244,7 +240,7 @@ public class ProcedureTransactionHandler
                     .withRecordEncoding(dataEncoding)
                     .build();
                 
-                newDsKey = dataStreamStore.add(newDsInfo);
+                dsKey = dataStreamStore.add(newDsInfo);
                 getEventPublisher().publish(new DataStreamAddedEvent(procUID, outputName));
                 
                 log.debug("Created new version of datastream {}#{}", procUID, outputName);
@@ -254,16 +250,9 @@ public class ProcedureTransactionHandler
             else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), dataStruct) ||
                      !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding))
             {
-                newDsInfo = new DataStreamInfo.Builder()
-                    .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
-                    .withRecordDescription(dataStruct)
-                    .withRecordEncoding(dataEncoding)
-                    .withValidTime(oldDsInfo.getValidTime())
-                    .build();
-                
-                dataStreamStore.put(newDsKey, newDsInfo);
-                getEventPublisher().publish(new DataStreamChangedEvent(procUID, outputName));
-                
+                var dsHandler = new DataStreamTransactionHandler(dsKey, oldDsInfo, rootHandler);
+                dsHandler.update(dataStruct, dataEncoding);
+                newDsInfo = dsHandler.getDataStreamInfo();
                 log.debug("Updated datastream {}#{}", procUID, outputName);
             }
             
@@ -275,42 +264,93 @@ public class ProcedureTransactionHandler
             }
         }
         
-        // create the new procedure handler
-        return new DataStreamTransactionHandler(newDsKey, newDsInfo, foiIdMap, rootHandler);
+        // create the new datastream handler
+        return new DataStreamTransactionHandler(dsKey, newDsInfo, foiIdMap, rootHandler);
     }
     
     
-    public synchronized boolean deleteDataStream(String outputName)
+    public synchronized CommandStreamTransactionHandler addOrUpdateCommandStream(String commandName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
     {
-        Asserts.checkNotNullOrEmpty(outputName, "outputName");
-        disableDataStream(outputName);
+        Asserts.checkNotNullOrEmpty(commandName, "commandName");
+        Asserts.checkNotNull(dataStruct, DataComponent.class);
+        Asserts.checkNotNull(dataEncoding, DataEncoding.class);
         
-        var isDeleted = getDataStreamStore().removeAllVersions(procUID, outputName) > 0;
+        // check command name == data component name
+        if (dataStruct.getName() == null)
+            dataStruct.setName(commandName);
+        else if (!commandName.equals(dataStruct.getName()))
+            throw new IllegalStateException("Inconsistent command name");
         
-        if (isDeleted)
-            getEventPublisher().publish(new DataStreamRemovedEvent(procUID, outputName));
+        // try to retrieve existing command stream
+        ICommandStreamStore commandStreamStore = getCommandStreamStore();
+        Entry<CommandStreamKey, ICommandStreamInfo> csEntry = commandStreamStore.getLatestVersionEntry(procUID, commandName);
+        CommandStreamKey csKey;
+        ICommandStreamInfo newCsInfo;
         
-        return isDeleted;
+        if (csEntry == null)
+        {
+            // create new command stream
+            newCsInfo = new CommandStreamInfo.Builder()
+                .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
+                .withRecordDescription(dataStruct)
+                .withRecordEncoding(dataEncoding)
+                .build();
+            csKey = commandStreamStore.add(newCsInfo);
+            
+            // send event        
+            getEventPublisher().publish(new CommandStreamAddedEvent(procUID, commandName));
+            
+            log.debug("Added new command stream {}#{}", procUID, commandName);
+        }
+        else
+        {
+            // if a command input with the same name already exists
+            csKey = csEntry.getKey();
+            ICommandStreamInfo oldCsInfo = csEntry.getValue();
+            
+            // check if command stream already has commands
+            var hasCommands = oldCsInfo.getIssueTimeRange() != null;
+            
+            // 3 cases
+            // if commands were already recorded and structure has changed, create a new command stream
+            if (hasCommands &&
+               (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), dataStruct) ||
+                !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), dataEncoding)))
+            {
+                newCsInfo = new CommandStreamInfo.Builder()
+                    .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
+                    .withRecordDescription(dataStruct)
+                    .withRecordEncoding(dataEncoding)
+                    .build();
+                
+                csKey = commandStreamStore.add(newCsInfo);
+                getEventPublisher().publish(new CommandStreamAddedEvent(procUID, commandName));
+                
+                log.debug("Created new version of command stream {}#{}", procUID, commandName);
+            }
+            
+            // if something else has changed, update existing command stream
+            else if (!DataComponentChecks.checkStructEquals(oldCsInfo.getRecordStructure(), dataStruct) ||
+                     !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), dataEncoding))
+            {
+                var csHandler = new CommandStreamTransactionHandler(csKey, oldCsInfo, rootHandler);
+                csHandler.update(dataStruct, dataEncoding);
+                newCsInfo = csHandler.getCommandStreamInfo();
+                log.debug("Updated comand stream {}#{}", procUID, commandName);
+            }
+            
+            // else don't update and return existing key
+            else
+            {
+                newCsInfo = oldCsInfo;
+                log.debug("No changes to command stream {}#{}", procUID, commandName);
+            }
+        }
+        
+        // create the new command stream handler
+        return new CommandStreamTransactionHandler(csKey, newCsInfo, rootHandler);
     }
     
-    
-    public void enableDataStream(String outputName)
-    {                
-        // send event
-        getEventPublisher().publish(new DataStreamEnabledEvent(procUID, outputName));
-    }
-    
-    
-    public void disableDataStream(String outputName)
-    {                
-        // send event
-        getEventPublisher().publish(new DataStreamDisabledEvent(procUID, outputName));
-    }
-    
-    
-    /*
-     * FOI helper methods
-     */    
     
     public synchronized FeatureKey addOrUpdateFoi(IGeoFeature foi) throws DataStoreException
     {
@@ -359,6 +399,12 @@ public class ProcedureTransactionHandler
     protected IDataStreamStore getDataStreamStore()
     {
         return rootHandler.db.getDataStreamStore();
+    }
+    
+    
+    protected ICommandStreamStore getCommandStreamStore()
+    {
+        return rootHandler.db.getCommandStreamStore();
     }
     
     

@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import org.sensorhub.api.command.ICommandReceiver;
+import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
@@ -30,8 +32,6 @@ import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.ProcedureEvent;
-import org.sensorhub.api.tasking.ICommandReceiver;
-import org.sensorhub.api.tasking.IStreamingControlInterface;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.vast.ogc.gml.IGeoFeature;
@@ -127,7 +127,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
                     output.unregisterListener(dsHandler);
                 
                 if (sendEvents)
-                    disableDataStream(outputName);
+                    dsHandler.disable();
             }
         }
         dataStreamHandlers.clear();
@@ -241,7 +241,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         dataStreamHandlers.put(output.getName(), newDsHandler);
         
         // enable and start forwarding events
-        enableDataStream(output.getName());
+        newDsHandler.enable();
         output.registerListener(newDsHandler);
         
         return isNew;
@@ -263,22 +263,8 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         if (dsHandler != null)
         {
             output.unregisterListener(dsHandler);
-            disableDataStream(output.getName());
+            dsHandler.disable();
         }
-    }
-    
-    
-    @Override
-    public synchronized boolean deleteDataStream(String outputName)
-    {
-        if (driver != null && driver instanceof IDataProducer)
-        {
-            var output = ((IDataProducer)driver).getOutputs().get(outputName);
-            if (output != null)
-                doUnregister(output);
-        }
-        
-        return super.deleteDataStream(outputName);
     }
 
 

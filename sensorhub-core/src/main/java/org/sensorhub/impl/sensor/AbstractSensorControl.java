@@ -14,10 +14,10 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
+import org.sensorhub.api.command.ICommandReceiver;
+import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.tasking.ICommandReceiver;
-import org.sensorhub.api.tasking.IStreamingControlInterface;
 import org.sensorhub.impl.event.BasicEventHandler;
 
 
