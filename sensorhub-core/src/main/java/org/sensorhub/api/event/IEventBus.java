@@ -53,15 +53,6 @@ public interface IEventBus
     
     
     /**
-     * Get a publisher created according to the specs of an event source
-     * @param eventSrcInfo info obtained from event source
-     * @return the publisher instance that can be used to publish events and
-     * directly register subscribers
-     */
-    IEventPublisher getPublisher(IEventSourceInfo eventSrcInfo);
-    
-    
-    /**
      * Create a new subscription for events handled by this event bus
      * @return the builder for the new subscription
      */

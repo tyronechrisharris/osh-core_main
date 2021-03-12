@@ -25,7 +25,6 @@ import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 
@@ -260,11 +259,5 @@ public class FederatedDbModuleAdapter implements IProcedureObsDatabaseModule<Dat
     public void unregisterListener(IEventListener listener)
     {        
     }
-
-
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        return null;
-    }
+    
 }

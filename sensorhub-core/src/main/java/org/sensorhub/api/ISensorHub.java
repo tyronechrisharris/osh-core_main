@@ -17,13 +17,9 @@ package org.sensorhub.api;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.api.event.IEventSource;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
-import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.module.ModuleRegistry;
 
 
@@ -35,13 +31,8 @@ import org.sensorhub.impl.module.ModuleRegistry;
  * @author Alex Robin
  * @since Jun 23, 2017
  */
-public interface ISensorHub extends IEventSource
-{
-    public static final String EVENT_SOURCE_ID = "urn:osh:hub";
-    public static final IEventSourceInfo EVENT_SOURCE_INFO = new EventSourceInfo(
-        ISensorHub.EVENT_SOURCE_ID,
-        ISensorHub.EVENT_SOURCE_ID);
-    
+public interface ISensorHub
+{    
     
     public ISensorHubConfig getConfig();
 
@@ -67,9 +58,6 @@ public interface ISensorHub extends IEventSource
     public IProcessingManager getProcessingManager();
     
     
-    public IEventPublisher getEventPublisher();
-    
-    
     public void start();
 
 
@@ -80,15 +68,5 @@ public interface ISensorHub extends IEventSource
 
 
     public void stop(boolean saveConfig, boolean saveState);
-    
-
-    /**
-     * @return The event source information for entire hub
-     */
-    @Override
-    public default IEventSourceInfo getEventSourceInfo()
-    {
-        return EVENT_SOURCE_INFO;
-    }
 
 }

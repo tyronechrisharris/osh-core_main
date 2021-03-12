@@ -83,12 +83,9 @@ public class ObsWebSocketOut implements WebSocketListener
             var obsConverter = new DataEventToObsConverter(dsID, dsInfo, Collections.emptyMap());
                         
             // subscribe to event bus
-            var eventSrc = EventUtils.getProcedureOutputSourceID(
-                dsInfo.getProcedureID().getUniqueID(),
-                dsInfo.getOutputName());
-            
+            var topic = EventUtils.getDataStreamDataTopicID(dsInfo);            
             obsHandler.eventBus.newSubscription(DataEvent.class)
-                .withTopicID(eventSrc)
+                .withTopicID(topic)
                 .withEventType(DataEvent.class)
                 .subscribe(new Subscriber<DataEvent>() {
 

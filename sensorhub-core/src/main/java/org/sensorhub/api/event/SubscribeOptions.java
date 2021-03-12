@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -98,40 +97,6 @@ public class SubscribeOptions<E extends Event>
                 Asserts.checkNotNull(id, "topicID");
                 instance.sourceIDs.add(id);
             }
-            return (B)this;
-        }
-        
-        
-        public B withSource(IEventSource... sources)
-        {
-            return withSources(Arrays.asList(sources));
-        }
-        
-        
-        public B withSources(Iterable<IEventSource> sources)
-        {
-            var srcInfoList = new ArrayList<IEventSourceInfo>();
-            
-            for (IEventSource s: sources)
-            {
-                Asserts.checkNotNull(s.getEventSourceInfo().getSourceID(), "sourceID");
-                srcInfoList.add(s.getEventSourceInfo());
-            }
-            
-            return withSourceInfos(srcInfoList);
-        }
-        
-        
-        public B withSourceInfo(IEventSourceInfo... sourcesInfo)
-        {
-            return withSourceInfos(Arrays.asList(sourcesInfo));
-        }
-        
-        
-        public B withSourceInfos(Iterable<IEventSourceInfo> sourcesInfo)
-        {
-            for (IEventSourceInfo s: sourcesInfo)
-                instance.sourceIDs.add(s.getSourceID());            
             return (B)this;
         }
         

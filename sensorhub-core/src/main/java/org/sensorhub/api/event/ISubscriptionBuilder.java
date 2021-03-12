@@ -53,38 +53,6 @@ public interface ISubscriptionBuilder<E extends Event>
     
     
     /**
-     * Add one or more sources to the subscription.
-     * @param sources One or more event producers to subscribe to
-     * @return This builder for chaining
-     */
-    ISubscriptionBuilder<E> withSource(IEventSource... sources);
-    
-    
-    /**
-     * Add one or more sources to the subscription
-     * @param sources Collection of event producers to subscribe to
-     * @return This builder for chaining
-     */
-    ISubscriptionBuilder<E> withSources(Iterable<IEventSource> sources);
-    
-    
-    /**
-     * Add one or more event sources to the subscription
-     * @param sourcesInfo One or more event sources to subscribe to
-     * @return This builder for chaining
-     */
-    ISubscriptionBuilder<E> withSourceInfo(IEventSourceInfo... sourcesInfo);
-    
-    
-    /**
-     * Add one or more event sources to the subscription
-     * @param sourcesInfo Collection of event sources to subscribe to
-     * @return This builder for chaining
-     */
-    ISubscriptionBuilder<E> withSourceInfos(Iterable<IEventSourceInfo> sourcesInfo);
-    
-    
-    /**
      * Include only events of the specified type<br/>
      * This method can be called several times to include more types
      * @param type The accepted event types/classes

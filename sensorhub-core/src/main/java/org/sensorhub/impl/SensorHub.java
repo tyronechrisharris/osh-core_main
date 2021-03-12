@@ -20,7 +20,6 @@ import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
@@ -57,7 +56,6 @@ public class SensorHub implements ISensorHub
     protected ISensorHubConfig config;
     protected ModuleRegistry moduleRegistry;
     protected IEventBus eventBus;
-    protected IEventPublisher eventPublisher;
     protected IProcedureRegistry procedureRegistry;
     protected IDatabaseRegistry databaseRegistry;
     protected INetworkManager networkManager;
@@ -88,7 +86,6 @@ public class SensorHub implements ISensorHub
     {
         this.config = config;
         this.eventBus = eventBus;
-        this.eventPublisher = eventBus.getPublisher(ISensorHub.EVENT_SOURCE_ID);
         this.moduleRegistry = registry;
         this.databaseRegistry = new DefaultDatabaseRegistry(this);
         this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
@@ -205,13 +202,6 @@ public class SensorHub implements ISensorHub
         if (processingManager == null)
             processingManager = new ProcessingManagerImpl(this);
         return processingManager;
-    }
-
-
-    @Override
-    public IEventPublisher getEventPublisher()
-    {
-        return eventPublisher;
     }
     
     

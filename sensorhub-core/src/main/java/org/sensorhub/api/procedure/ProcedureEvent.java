@@ -66,7 +66,7 @@ public abstract class ProcedureEvent extends Event
     public String getSourceID()
     {
         if (sourceID == null)
-            sourceID = EventUtils.getProcedureSourceID(procedureUID);
+            sourceID = EventUtils.getProcedureStatusTopicID(procedureUID);
         return sourceID;
     }
 

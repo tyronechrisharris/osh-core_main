@@ -23,7 +23,7 @@ package org.sensorhub.api.event;
  * @author Alex Robin
  * @since Sep 5, 2013
  */
-public interface IEventProducer extends IEventSource
+public interface IEventProducer
 {
     
     /**

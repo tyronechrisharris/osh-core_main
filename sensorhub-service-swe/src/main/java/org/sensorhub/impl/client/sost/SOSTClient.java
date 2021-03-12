@@ -28,7 +28,6 @@ import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import net.opengis.swe.v20.DataBlock;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.client.IClientModule;
 import org.sensorhub.api.event.EventUtils;
@@ -117,7 +116,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         private long internalID;
         private String procUID;
         private String outputName;
-        private String eventSrcId;
+        private String topicId;
         private Subscription sub;
         private String templateId;
         private SWEData resultData = new SWEData();
@@ -316,7 +315,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     protected void subscribeToRegistryEvents()
     {
         getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
-            .withTopicID(ISensorHub.EVENT_SOURCE_ID)
+            .withTopicID(EventUtils.getProcedureRegistryTopicID())
             .withEventType(ProcedureEvent.class)
             .subscribe(e -> {
                 handleEvent(e);
@@ -340,7 +339,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             
             // subscribe to procedure events
             getParentHub().getEventBus().newSubscription(ProcedureEvent.class)
-                .withTopicID(EventUtils.getProcedureSourceID(procUID))
+                .withTopicID(EventUtils.getProcedureStatusTopicID(procUID))
                 .withEventType(ProcedureEvent.class)
                 .subscribe(e -> {
                     handleEvent(e);
@@ -513,12 +512,12 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
      */
     protected StreamInfo registerDataStream(long dsID, IDataStreamInfo dsInfo) throws ClientException
     {
+        var dsTopicId = EventUtils.getDataStreamDataTopicID(dsInfo);
+        
         try
         {
-            var dsSourceId = getDataStreamSourceId(dsInfo);
-            
             // skip if already registered
-            var streamInfo = dataStreams.get(dsSourceId);
+            var streamInfo = dataStreams.get(dsTopicId);
             if (streamInfo != null)
                 return streamInfo;
             
@@ -564,23 +563,21 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             streamInfo.internalID = dsID;
             streamInfo.procUID = dsInfo.getProcedureID().getUniqueID();
             streamInfo.outputName = dsInfo.getOutputName();
-            streamInfo.eventSrcId = dsSourceId;
+            streamInfo.topicId = dsTopicId;
             streamInfo.templateId = resp.getAcceptedTemplateId();
             streamInfo.resultData.setElementType(dsInfo.getRecordStructure());
             streamInfo.resultData.setEncoding(dsInfo.getRecordEncoding());
             //streamInfo.measPeriodMs = (int)(output.getAverageSamplingPeriod()*1000);
             streamInfo.minRecordsPerRequest = 1;//(int)(1.0 / sensorOutput.getAverageSamplingPeriod());
-            dataStreams.put(streamInfo.eventSrcId, streamInfo);
+            dataStreams.put(streamInfo.topicId, streamInfo);
             
-            getLogger().info("Datastream {} registered at SOS endpoint {}", 
-                getDataStreamSourceId(dsInfo), getSosEndpointUrl());
+            getLogger().info("Datastream {} registered at SOS endpoint {}", dsTopicId, getSosEndpointUrl());
                         
             return streamInfo;
         }
         catch (Exception e)
         {
-            throw new ClientException("Error registering datastream " + 
-                getDataStreamSourceId(dsInfo) + " at remote SOS", e);
+            throw new ClientException("Error registering datastream " + dsTopicId + " at remote SOS", e);
         }
     }
     
@@ -598,7 +595,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             
             // subscribe to data events
             getParentHub().getEventBus().newSubscription(DataEvent.class)
-                .withTopicID(streamInfo.eventSrcId)
+                .withTopicID(streamInfo.topicId)
                 .withEventType(DataEvent.class)
                 .subscribe(e -> {
                     handleEvent(e, streamInfo);
@@ -616,12 +613,12 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                             sendObs(obs, streamInfo);
                         });
                     
-                    getLogger().info("Starting data push for stream {} to SOS endpoint {}", streamInfo.eventSrcId, getSosEndpointUrl());
+                    getLogger().info("Starting data push for stream {} to SOS endpoint {}", streamInfo.topicId, getSosEndpointUrl());
                 });
         }
         catch(Exception e)
         {
-            throw new ClientException("Error starting data push for stream " + streamInfo.eventSrcId, e);
+            throw new ClientException("Error starting data push for stream " + streamInfo.topicId, e);
         }
     }
     
@@ -655,7 +652,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
      */
     protected void disableDataStream(String procUID, String outputName, boolean remove)
     {
-        var dsSourceId = getDataStreamSourceId(procUID, outputName);
+        var dsSourceId = EventUtils.getDataStreamDataTopicID(procUID, outputName);
         var streamInfo = remove ? dataStreams.remove(dsSourceId) : dataStreams.get(dsSourceId);
         if (streamInfo != null)
         {
@@ -702,7 +699,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         if (streamInfo.executor != null)
             streamInfo.executor.clear();
         
-        getLogger().info("Stopping data push for stream {}", streamInfo.eventSrcId);
+        getLogger().info("Stopping data push for stream {}", streamInfo.topicId);
     }
     
     
@@ -988,20 +985,6 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         
         // run task in async thread pool
         streamInfo.executor.execute(sendTask);
-    }
-    
-    
-    private String getDataStreamSourceId(IDataStreamInfo dsInfo)
-    {
-        return getDataStreamSourceId(
-            dsInfo.getProcedureID().getUniqueID(),
-            dsInfo.getOutputName());
-    }
-    
-    
-    private String getDataStreamSourceId(String procUID, String outputName)
-    {
-        return EventUtils.getProcedureOutputSourceID(procUID, outputName);
     }
 
 

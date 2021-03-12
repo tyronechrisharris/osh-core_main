@@ -33,9 +33,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.impl.event.EventSourceInfo;
@@ -86,10 +84,6 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
             foi.setGeometry(p);
             allFois.put(foiUID, foi);
             fois = ImmutableMap.of(foiUID, foi);
-            
-            String groupID = getParentGroup().getUniqueIdentifier();
-            String sourceID = EventUtils.getProcedureSourceID(memberUID);
-            eventSrcInfo = new EventSourceInfo(groupID, sourceID);
         }   
         
         public void addOutputs(IStreamingDataInterface... outputs)
@@ -166,12 +160,6 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
         public boolean isEnabled()
         {
             return FakeSensorNetWithMembers.this.isStarted();
-        }
-
-        @Override
-        public IEventSourceInfo getEventSourceInfo()
-        {
-            return eventSrcInfo;
         }
     };
 

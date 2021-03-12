@@ -14,11 +14,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.procedure.ProcedureAddedEvent;
@@ -63,7 +63,8 @@ public class ProcedureObsTransactionHandler
         var procUID = proc.getUniqueIdentifier();
         
         // send event
-        var eventPublisher = eventBus.getPublisher(ISensorHub.EVENT_SOURCE_INFO);
+        var topic = EventUtils.getProcedureRegistryTopicID();
+        var eventPublisher = eventBus.getPublisher(topic);
         eventPublisher.publish(new ProcedureAddedEvent(procUID, null));
         
         // create new procedure handler

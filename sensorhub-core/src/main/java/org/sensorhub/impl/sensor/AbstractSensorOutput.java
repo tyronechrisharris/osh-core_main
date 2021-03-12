@@ -17,13 +17,11 @@ package org.sensorhub.impl.sensor;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.sensor.ISensorDriver;
 import org.sensorhub.impl.event.BasicEventHandler;
-import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.module.AbstractModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +43,6 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
     protected static final String ERROR_NO_STORAGE = "Data storage is not supported by driver ";
     protected final T parentSensor;
     protected final IEventHandler eventHandler;
-    protected final IEventSourceInfo eventSrcInfo;
     protected final String name;
     protected final Logger log;
     protected DataBlock latestRecord;
@@ -102,19 +99,7 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
     {
         this.name = Asserts.checkNotNull(name, "name");
         this.parentSensor = Asserts.checkNotNull(parentSensor, ISensorDriver.class);
-        
-        // setup event handling stuff
         this.eventHandler = new BasicEventHandler();
-        if (eventSrcInfo == null)
-        {
-            var procUID = parentSensor.getUniqueIdentifier();
-            var groupUID = parentSensor.getParentGroupUID();
-            String groupID = groupUID != null ? groupUID : procUID;
-            String sourceID = EventUtils.getProcedureOutputSourceID(procUID, getName());
-            this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
-        }
-        else
-            this.eventSrcInfo = eventSrcInfo;
         
         // setup logger
         if (log == null)
@@ -175,13 +160,6 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
     public void unregisterListener(IEventListener listener)
     {
         eventHandler.unregisterListener(listener);
-    }
-    
-    
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        return eventSrcInfo;
     }
     
     

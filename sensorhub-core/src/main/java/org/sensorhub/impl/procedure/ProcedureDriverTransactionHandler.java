@@ -25,7 +25,6 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
 import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.procedure.IProcedureDriver;
@@ -360,14 +359,6 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
             if (((FoiEvent) e).getFoi() != null)
                 register(((FoiEvent) e).getFoi());
         }        
-    }
-    
-
-    @Override    
-    protected IEventPublisher getEventPublisher()
-    {
-        var eventSrcInfo = driver.getEventSourceInfo();
-        return rootHandler.eventBus.getPublisher(eventSrcInfo);
     }
     
     

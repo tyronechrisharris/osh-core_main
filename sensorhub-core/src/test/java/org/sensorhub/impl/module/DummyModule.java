@@ -18,7 +18,6 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
@@ -221,14 +220,4 @@ public class DummyModule implements IModule<ModuleConfig>
         return this.hub;
     }
     
-    
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        return new IEventSourceInfo() {
-            public String getGroupID() { return null; }
-            public String getSourceID() { return getLocalID(); }            
-        };
-    }
-
 }

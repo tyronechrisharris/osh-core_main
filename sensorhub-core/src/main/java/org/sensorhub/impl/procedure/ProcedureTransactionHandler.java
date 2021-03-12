@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -368,23 +367,21 @@ public class ProcedureTransactionHandler
         return rootHandler.db.getFoiStore();
     }
     
-    
+
     protected IEventPublisher getEventPublisher()
     {
-        var eventSrcInfo = EventUtils.getProcedureEventSourceInfo(parentGroupUID, procUID);
-        return rootHandler.eventBus.getPublisher(eventSrcInfo);
+        var topic = EventUtils.getProcedureStatusTopicID(procUID);
+        return rootHandler.eventBus.getPublisher(topic);
     }
     
     
     protected IEventPublisher getParentPublisher()
     {
-        if (parentGroupUID != null)
-        {
-            var eventSrcInfo = EventUtils.getProcedureEventSourceInfo(parentGroupUID, procUID);
-            return rootHandler.eventBus.getPublisher(eventSrcInfo);
-        }
+        var topic = (parentGroupUID != null) ?
+            EventUtils.getProcedureStatusTopicID(parentGroupUID) :
+            EventUtils.getProcedureRegistryTopicID();
         
-        return rootHandler.eventBus.getPublisher(ISensorHub.EVENT_SOURCE_INFO);
+        return rootHandler.eventBus.getPublisher(topic);
     }
     
     

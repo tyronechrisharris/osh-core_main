@@ -22,7 +22,6 @@ import java.util.concurrent.ExecutorService;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -225,12 +224,5 @@ public class AsyncEventHandler implements IEventHandler
                 queue.cancel();
             listeners.clear();
         }
-    }
-
-
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        throw new UnsupportedOperationException();
     }
 }

@@ -30,6 +30,7 @@ import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.Event;
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
 import org.sensorhub.api.obs.DataStreamDisabledEvent;
 import org.sensorhub.api.obs.DataStreamEnabledEvent;
@@ -109,11 +110,11 @@ public class TestProcedureRegistry
         })
         .thenCompose(nil -> {
             // check data is forwarded to event bus
-            var eventSrcInfo = sensor.getOutputs().get(NAME_OUTPUT1).getEventSourceInfo();
-            System.out.println("Subscribing to channel " + eventSrcInfo);
+            var topic = EventUtils.getDataStreamDataTopicID(sensor.getOutputs().get(NAME_OUTPUT1));
+            System.out.println("Subscribing to channel " + topic);
             hub.getEventBus().newSubscription(DataEvent.class)
                 .withEventType(DataEvent.class)
-                .withSourceInfo(eventSrcInfo)
+                .withTopicID(topic)
                 .consume(e -> {
                     System.out.println("Record received from " + e.getSourceID() + ", ts=" +
                         Instant.ofEpochMilli(e.getTimeStamp()));
@@ -212,9 +213,9 @@ public class TestProcedureRegistry
             
             for (var sensor: sensorNet.getMembers().values())
             {
-                var eventSrcInfo = sensor.getOutputs().get(NAME_OUTPUT1).getEventSourceInfo();
-                System.out.println("Subscribe to channel " + eventSrcInfo);
-                subBuilder.withSourceInfo(eventSrcInfo);                     
+                var topic = EventUtils.getDataStreamDataTopicID(sensor.getOutputs().get(NAME_OUTPUT1));
+                System.out.println("Subscribe to channel " + topic);
+                subBuilder.withTopicID(topic);                     
             }
             
             subBuilder.consume(e -> {
@@ -299,11 +300,11 @@ public class TestProcedureRegistry
         })
         .thenCompose(nil -> {
             // check data is forwarded to event bus
-            var eventSrcInfo = sensorNet.getOutputs().get(NAME_OUTPUT1).getEventSourceInfo();
-            System.out.println("Subscribe to channel " + eventSrcInfo);
+            var topic = EventUtils.getDataStreamDataTopicID(sensorNet.getOutputs().get(NAME_OUTPUT1));
+            System.out.println("Subscribe to channel " + topic);
             hub.getEventBus().newSubscription(DataEvent.class)
                 .withEventType(DataEvent.class)
-                .withSourceInfo(eventSrcInfo)                     
+                .withTopicID(topic)                     
                 .consume(e -> {
                     var foiStr = e.getFoiUID() != null ? e.getFoiUID() : NO_FOI;
                     System.out.println("Record received from " + e.getSourceID() +
@@ -368,8 +369,8 @@ public class TestProcedureRegistry
         // subscribe to events
         var receivedEvents = new ArrayList<Event>();
         hub.getEventBus().newSubscription(ProcedureEvent.class)
-            .withSource(hub)
-            .withSource(sensor)
+            .withTopicID(EventUtils.getProcedureRegistryTopicID())
+            .withTopicID(EventUtils.getProcedureStatusTopicID(sensor))
             .consume(e -> {
                 System.out.println("Received " + e.getClass().getSimpleName() +
                     " from " + e.getProcedureUID() +
@@ -441,8 +442,8 @@ public class TestProcedureRegistry
         // subscribe to events
         var receivedEvents = new ArrayList<Event>();
         hub.getEventBus().newSubscription(ProcedureEvent.class)
-            .withSource(hub)
-            .withSource(sensor)
+            .withTopicID(EventUtils.getProcedureRegistryTopicID())
+            .withTopicID(EventUtils.getProcedureStatusTopicID(sensor))
             .consume(e -> {
                 System.out.println("Received " + e.getClass().getSimpleName() +
                     " from " + e.getProcedureUID() +

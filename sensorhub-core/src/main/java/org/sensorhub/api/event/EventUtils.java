@@ -14,75 +14,142 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.event;
 
+import org.sensorhub.api.data.IStreamingDataInterface;
+import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.utils.OshAsserts;
-import org.sensorhub.impl.event.EventSourceInfo;
 import org.vast.util.Asserts;
+
 
 public class EventUtils
 {
-    public static final String PROCEDURE_MAIN_CHANNEL = "/main";
-    public static final String PROCEDURE_OUTPUT_CHANNEL = "/outputs/";
-    public static final String PROCEDURE_CONTROL_CHANNEL = "/controls/";
+    public static final String MODULE_TOPIC_PREFIX = "modules/";
+    public static final String PROCEDURE_TOPIC_PREFIX = "procedures/";
+    public static final String PROCEDURE_OUTPUT_CHANNELS = "/outputs/";
+    public static final String PROCEDURE_CONTROL_CHANNELS = "/commands/";
+    public static final String PROCEDURE_TASKS_CHANNELS = "/tasks/";
+    public static final String STATUS_CHANNEL = "/status";
+    public static final String DATA_CHANNEL = "/data";
+    public static final String ACK_CHANNEL = "/ack";
     
     
     private EventUtils() {}
     
     
-    public static final String getProcedureSourceID(String procedureUID)
+    public static final String getModuleRegistryTopicID()
     {
-        OshAsserts.checkValidUID(procedureUID);
-        return procedureUID + PROCEDURE_MAIN_CHANNEL;
+        return MODULE_TOPIC_PREFIX;
     }
     
     
-    public static final String getProcedureOutputSourceID(String procedureUID, String outputName)
+    public static final String getModuleTopicID(String moduleID)
+    {
+        OshAsserts.checkValidUID(moduleID, "ModuleID");
+        return MODULE_TOPIC_PREFIX + moduleID;
+    }
+    
+    
+    public static final String getProcedureRegistryTopicID()
+    {
+        return PROCEDURE_TOPIC_PREFIX;
+    }
+    
+    
+    public static final String getProcedurePublisherGroupID(String procedureUID)
+    {
+        OshAsserts.checkValidUID(procedureUID);
+        return PROCEDURE_TOPIC_PREFIX + procedureUID;
+    }
+    
+    
+    public static final String getProcedureStatusTopicID(String procedureUID)
+    {
+        OshAsserts.checkValidUID(procedureUID);
+        return PROCEDURE_TOPIC_PREFIX + procedureUID + STATUS_CHANNEL;
+    }
+    
+    
+    public static final String getProcedureStatusTopicID(IProcedureDriver driver)
+    {
+        return getProcedureStatusTopicID(driver.getUniqueIdentifier());
+    }
+    
+    
+    static final String getDataStreamTopicID(String procedureUID, String outputName)
     {
         OshAsserts.checkValidUID(procedureUID);
         Asserts.checkNotNullOrEmpty(outputName, "outputName");
-        return procedureUID + PROCEDURE_OUTPUT_CHANNEL + outputName;
+        return PROCEDURE_TOPIC_PREFIX + procedureUID + PROCEDURE_OUTPUT_CHANNELS + outputName;
     }
     
     
-    public static final String getProcedureCommandTopicID(String procedureUID, String commandInputName)
+    public static final String getDataStreamStatusTopicID(String procedureUID, String outputName)
+    {
+        return getDataStreamTopicID(procedureUID, outputName) + STATUS_CHANNEL;
+    }
+    
+    
+    public static final String getDataStreamStatusTopicID(IStreamingDataInterface outputInterface)
+    {
+        return getDataStreamStatusTopicID(
+            outputInterface.getParentProducer().getUniqueIdentifier(),
+            outputInterface.getName());
+    }
+    
+    
+    public static final String getDataStreamStatusTopicID(IDataStreamInfo dsInfo)
+    {
+        return getDataStreamStatusTopicID(
+            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getOutputName());
+    }
+    
+    
+    public static final String getDataStreamDataTopicID(String procedureUID, String outputName)
+    {
+        return getDataStreamTopicID(procedureUID, outputName) + DATA_CHANNEL;
+    }
+    
+    
+    public static final String getDataStreamDataTopicID(IStreamingDataInterface outputInterface)
+    {
+        return getDataStreamDataTopicID(
+            outputInterface.getParentProducer().getUniqueIdentifier(),
+            outputInterface.getName());
+    }
+    
+    
+    public static final String getDataStreamDataTopicID(IDataStreamInfo dsInfo)
+    {
+        return getDataStreamDataTopicID(
+            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getOutputName());
+    }
+    
+    
+    static final String getCommandStreamTopicID(String procedureUID, String controlInputName)
     {
         OshAsserts.checkValidUID(procedureUID);
-        Asserts.checkNotNullOrEmpty(commandInputName, "commandInputName");
-        return procedureUID + PROCEDURE_CONTROL_CHANNEL + commandInputName + "/commands";
+        Asserts.checkNotNullOrEmpty(controlInputName, "controlInputName");
+        return PROCEDURE_TOPIC_PREFIX + procedureUID + PROCEDURE_CONTROL_CHANNELS + controlInputName;
     }
     
     
-    public static final String getProcedureCommandAckTopicID(String procedureUID, String commandInputName)
+    public static final String getCommandStreamStatusTopicID(String procedureUID, String controlInputName)
     {
-        OshAsserts.checkValidUID(procedureUID);
-        Asserts.checkNotNullOrEmpty(commandInputName, "commandInputName");
-        return procedureUID + PROCEDURE_CONTROL_CHANNEL + commandInputName + "/commands/ack";
+        return getCommandStreamTopicID(procedureUID, controlInputName) + STATUS_CHANNEL;
     }
     
     
-    public static final IEventSourceInfo getProcedureEventSourceInfo(String procedureUID)
+    public static final String getCommandStreamDataTopicID(String procedureUID, String controlInputName)
     {
-        return getProcedureEventSourceInfo(null, procedureUID);
+        return getCommandStreamTopicID(procedureUID, controlInputName) + DATA_CHANNEL;
     }
     
     
-    public static final IEventSourceInfo getProcedureEventSourceInfo(String parentGroupUID, String procedureUID)
+    public static final String getCommandStreamAckTopicID(String procedureUID, String controlInputName)
     {
-        return new EventSourceInfo(
-            parentGroupUID != null ? parentGroupUID : procedureUID,
-            getProcedureSourceID(procedureUID));
+        return getCommandStreamTopicID(procedureUID, controlInputName) + ACK_CHANNEL;
     }
     
-    
-    public static final IEventSourceInfo getOutputEventSourceInfo(String procedureUID, String outputName)
-    {
-        return getOutputEventSourceInfo(null, procedureUID, outputName);
-    }
-    
-    
-    public static final IEventSourceInfo getOutputEventSourceInfo(String parentGroupUID, String procedureUID, String outputName)
-    {
-        return new EventSourceInfo(
-            parentGroupUID != null ? parentGroupUID : procedureUID,
-            getProcedureOutputSourceID(procedureUID, outputName));
-    }
 }

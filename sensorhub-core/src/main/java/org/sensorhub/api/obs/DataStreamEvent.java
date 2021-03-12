@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.obs;
 
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.procedure.ProcedureEvent;
 import org.vast.util.Asserts;
 
@@ -61,4 +62,14 @@ public abstract class DataStreamEvent extends ProcedureEvent
     {
         return outputName;
     }
+
+
+    @Override
+    public String getSourceID()
+    {
+        if (sourceID == null)
+            sourceID = EventUtils.getDataStreamStatusTopicID(procedureUID, outputName);
+        return sourceID;
+    }
+    
 }

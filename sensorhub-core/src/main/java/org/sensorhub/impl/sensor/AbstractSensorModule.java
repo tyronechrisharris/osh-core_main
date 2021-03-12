@@ -35,8 +35,6 @@ import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.event.EventUtils;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.procedure.IProcedureDriver;
@@ -50,7 +48,6 @@ import org.sensorhub.api.tasking.IStreamingControlInterface;
 import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
 import org.vast.ogc.gml.IGeoFeature;
@@ -158,16 +155,6 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 generateXmlIDFromUUID(uuid);
 
             this.randomUniqueID = true;
-        }
-        
-        // generate default event source info
-        if (eventSrcInfo == null)
-        {
-            var procUID = getUniqueIdentifier();
-            var groupUID = getParentGroupUID();
-            var groupID = groupUID != null ? groupUID : procUID;
-            String sourceID = EventUtils.getProcedureSourceID(procUID);
-            eventSrcInfo = new EventSourceInfo(groupID, sourceID);
         }
         
         // set last description update time if provided in config
@@ -354,13 +341,6 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     public String getUniqueIdentifier()
     {
         return uniqueID;
-    }
-
-
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        return eventSrcInfo;
     }
 
 

@@ -14,14 +14,11 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.tasking.ICommandReceiver;
 import org.sensorhub.api.tasking.IStreamingControlInterface;
 import org.sensorhub.impl.event.BasicEventHandler;
-import org.sensorhub.impl.event.EventSourceInfo;
 
 
 /**
@@ -43,7 +40,6 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     protected final String name;
     protected final T parentSensor;
     protected final IEventHandler eventHandler;
-    protected final IEventSourceInfo eventSrcInfo;
     
     
     public AbstractSensorControl(T parentSensor)
@@ -56,12 +52,7 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     {
         this.name = name;
         this.parentSensor = parentSensor;
-        
-        // use event handler of the parent sensor
         this.eventHandler = new BasicEventHandler();
-        String groupID = parentSensor.getUniqueIdentifier();
-        String sourceID = EventUtils.getProcedureCommandAckTopicID(groupID, getName());
-        this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
     }
     
     
@@ -97,13 +88,6 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     public void unregisterListener(IEventListener listener)
     {
         eventHandler.unregisterListener(listener);
-    }
-    
-    
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        return eventSrcInfo;
     }
     
 }

@@ -30,7 +30,6 @@ import java.util.function.Supplier;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.event.SubscribeOptions;
 import org.sensorhub.utils.NamedThreadFactory;
 import org.sensorhub.api.event.ISubscriptionBuilder;
@@ -121,16 +120,6 @@ public class EventBus implements IEventBus
             log.debug("Publisher group = {}", groupID);
             return new FilteredEventPublisherWrapper(groupPublisher, topicID, e -> topicID.equals(e.getSourceID()));
         });
-    }
-    
-    
-    @Override
-    public IEventPublisher getPublisher(IEventSourceInfo eventSrcInfo)
-    {
-        if (eventSrcInfo.getGroupID() == null)
-            return getPublisher(eventSrcInfo.getSourceID());
-        else
-            return getPublisher(eventSrcInfo.getGroupID(), eventSrcInfo.getSourceID());
     }
 
 

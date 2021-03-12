@@ -76,7 +76,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
         
         // cache of datastreams info
         var dataStreams = new HashMap<Long, DataStreamInfoCache>();
-        var dataStreamsBySource = new HashMap<String, DataStreamInfoCache>();
+        var dataStreamsByTopic = new HashMap<String, DataStreamInfoCache>();
         
         // query selected datastreams
         var dsFilter = obsFilter.getDataStreamFilter();
@@ -86,17 +86,17 @@ public class StreamingDataProvider extends ProcedureDataProvider
                 var dsInfo = dsEntry.getValue();
                 var dsInfoCache = new DataStreamInfoCache(dsKey.getInternalID(), dsInfo);
                 dataStreams.put(dsInfoCache.internalId, dsInfoCache);
-                var eventSrc = EventUtils.getProcedureOutputSourceID(
+                var topic = EventUtils.getDataStreamDataTopicID(
                     dsInfoCache.procUID,
                     dsInfoCache.resultStruct.getName());
-                dataStreamsBySource.put(eventSrc, dsInfoCache);
+                dataStreamsByTopic.put(topic, dsInfoCache);
             });
 
         // call getResults and transform DataEvents to Observation objects
         subscribeAndProcessDataEvents(dataStreams, originalTimeFilter, obsFilter, new DelegatingSubscriberAdapter<DataEvent, IObservation>(consumer) {
             public void onNext(DataEvent e)
             {
-                var dsInfoCache = dataStreamsBySource.get(e.getSourceID());
+                var dsInfoCache = dataStreamsByTopic.get(e.getSourceID());
                 
                 for (DataBlock data: e.getRecords())
                 {
@@ -138,13 +138,13 @@ public class StreamingDataProvider extends ProcedureDataProvider
     protected void subscribeAndProcessDataEvents(Map<Long, DataStreamInfoCache> dataStreams, TimeExtent timeFilter, ObsFilter obsFilter, Subscriber<DataEvent> consumer)
     {        
         // create set of event sources
-        var eventSources = new HashSet<String>();
+        var topics = new HashSet<String>();
         for (var dsInfoCache: dataStreams.values())
         {
-            var eventSrc = EventUtils.getProcedureOutputSourceID(
+            var topic = EventUtils.getDataStreamDataTopicID(
                 dsInfoCache.procUID,
                 dsInfoCache.resultStruct.getName());
-            eventSources.add(eventSrc);
+            topics.add(topic);
         }        
         
         // subscribe for data events only if continuous live stream was requested
@@ -170,7 +170,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
             // subscribe to event bus
             // wrap subscriber to handle timeout and end time
             eventBus.newSubscription(DataEvent.class)
-                .withTopicIDs(eventSources)
+                .withTopicIDs(topics)
                 .withEventType(DataEvent.class)
                 .subscribe(new DelegatingSubscriber<DataEvent>(consumer) {
                     Subscription wrappedSub;
@@ -216,7 +216,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
                             @Override
                             public void cancel()
                             {
-                                servlet.getLogger().debug("Canceling subscription: " + eventSources);
+                                servlet.getLogger().debug("Canceling subscription: " + topics);
                                 super.cancel();
                                 canceled = true;
                             }

@@ -18,14 +18,12 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.event.BasicEventHandler;
-import org.sensorhub.impl.event.EventSourceInfo;
 import org.sensorhub.utils.ModuleUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
@@ -46,7 +44,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     private ISensorHub hub;
     protected Logger logger;
     protected IEventHandler eventHandler = new BasicEventHandler();
-    protected IEventSourceInfo eventSrcInfo;
     protected ConfigType config;
     protected ModuleState state = ModuleState.LOADED;
     protected ModuleSecurity securityHandler;
@@ -651,16 +648,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     public void unregisterListener(IEventListener listener)
     {
         eventHandler.unregisterListener(listener);
-    }
-    
-    
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        if (eventSrcInfo == null)
-            eventSrcInfo = new EventSourceInfo(getLocalID());
-        
-        return eventSrcInfo;
     }
     
     

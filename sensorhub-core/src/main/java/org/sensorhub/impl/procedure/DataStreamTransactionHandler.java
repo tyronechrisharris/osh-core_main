@@ -56,7 +56,7 @@ public class DataStreamTransactionHandler implements IEventListener
     protected final DataStreamKey dsKey;
     protected IDataStreamInfo dsInfo;
     protected String parentGroupUID;
-    protected IEventPublisher eventPublisher;
+    protected IEventPublisher dataEventPublisher;
     protected ScalarIndexer timeStampIndexer;
     protected Map<String, FeatureId> foiIdMap;
     
@@ -90,7 +90,7 @@ public class DataStreamTransactionHandler implements IEventListener
             return false;
         
         this.dsInfo = newDsInfo;
-        getEventPublisher().publish(new DataStreamChangedEvent(
+        getStatusEventPublisher().publish(new DataStreamChangedEvent(
             dsInfo.getProcedureID().getUniqueID(),
             dsInfo.getOutputName()));
         
@@ -104,7 +104,7 @@ public class DataStreamTransactionHandler implements IEventListener
         if (oldDsKey == null)
             return false;
                 
-        getEventPublisher().publish(new DataStreamRemovedEvent(
+        getStatusEventPublisher().publish(new DataStreamRemovedEvent(
             dsInfo.getProcedureID().getUniqueID(),
             dsInfo.getOutputName()));
                 
@@ -137,7 +137,7 @@ public class DataStreamTransactionHandler implements IEventListener
         //checkInitialized();
         
         // first forward to event bus to minimize latency
-        getEventPublisher().publish(e);
+        getDataEventPublisher().publish(e);
         
         // if event carries an FOI UID, try to fetch the full Id object
         FeatureId foiId;
@@ -196,7 +196,7 @@ public class DataStreamTransactionHandler implements IEventListener
         
         // first send to event bus to minimize latency
         var foiID = obs.getFoiID();
-        getEventPublisher().publish(new DataEvent(
+        getDataEventPublisher().publish(new DataEvent(
             System.currentTimeMillis(),
             dsInfo.getProcedureID().getUniqueID(),
             dsInfo.getOutputName(),
@@ -216,28 +216,34 @@ public class DataStreamTransactionHandler implements IEventListener
             addObs((DataEvent)e);
         }
     }
-        
-        
-    protected synchronized IEventPublisher getEventPublisher()
+    
+    
+    protected synchronized IEventPublisher getDataEventPublisher()
     {
         // create event publisher if needed
-        if (eventPublisher == null)
+        // cache it because we need it often
+        if (dataEventPublisher == null)
         {
-            var procID = dsInfo.getProcedureID();
-            
-            // fetch parent UID if needed
-            if (parentGroupUID == null)
-            {
-                var parentID = rootHandler.db.getProcedureStore().getParent(procID.getInternalID());
-                if (parentID > 0)
-                    parentGroupUID = rootHandler.db.getProcedureStore().getCurrentVersion(parentID).getUniqueIdentifier();
-            }
-            
-            var eventSrcInfo = EventUtils.getOutputEventSourceInfo(parentGroupUID, procID.getUniqueID(), dsInfo.getOutputName());
-            eventPublisher = rootHandler.eventBus.getPublisher(eventSrcInfo);
+            var topic = EventUtils.getDataStreamDataTopicID(dsInfo);
+            dataEventPublisher = rootHandler.eventBus.getPublisher(topic);
         }
          
-        return eventPublisher;
+        return dataEventPublisher;
+    }
+        
+        
+    protected synchronized IEventPublisher getStatusEventPublisher()
+    {
+        var topic = EventUtils.getDataStreamStatusTopicID(dsInfo);
+        return rootHandler.eventBus.getPublisher(topic);
+    }
+    
+    
+    protected IEventPublisher getProcedureStatusEventPublisher()
+    {
+        var procUID = dsInfo.getProcedureID().getUniqueID();
+        var topic = EventUtils.getProcedureStatusTopicID(procUID);
+        return rootHandler.eventBus.getPublisher(topic);
     }
     
     

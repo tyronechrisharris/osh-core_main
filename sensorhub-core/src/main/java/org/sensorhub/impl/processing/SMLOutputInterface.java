@@ -22,10 +22,8 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.processing.ProcessingException;
 import org.sensorhub.impl.event.BasicEventHandler;
-import org.sensorhub.impl.event.EventSourceInfo;
 import org.vast.process.DataQueue;
 import org.vast.process.ProcessException;
 import org.vast.swe.SWEHelper;
@@ -40,7 +38,6 @@ class SMLOutputInterface implements IStreamingDataInterface
 {
     final SMLProcessImpl parentProcess;
     final IEventHandler eventHandler;
-    final IEventSourceInfo eventSrcInfo;
     DataComponent outputDef;
     DataEncoding outputEncoding;
     DataBlock lastRecord;
@@ -85,6 +82,7 @@ class SMLOutputInterface implements IStreamingDataInterface
         this.parentProcess = parentProcess;
         this.outputDef = outputDef;
         this.outputEncoding = SWEHelper.getDefaultEncoding(outputDef);
+        this.eventHandler = new BasicEventHandler();
         
         try
         {
@@ -94,12 +92,6 @@ class SMLOutputInterface implements IStreamingDataInterface
         {
             throw new ProcessingException("Error while connecting output " + outputDef.getName(), e);
         }
-        
-        // setup event handling stuff
-        this.eventHandler = new BasicEventHandler();
-        String groupID = parentProcess.getUniqueIdentifier();
-        String sourceID = parentProcess.getUniqueIdentifier() + "/outputs/" + getName();
-        this.eventSrcInfo = new EventSourceInfo(groupID, sourceID);
     }
     
 
@@ -171,12 +163,5 @@ class SMLOutputInterface implements IStreamingDataInterface
     {
         eventHandler.unregisterListener(listener);
     }
-
-
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        return eventSrcInfo;
-    }
-
+    
 }

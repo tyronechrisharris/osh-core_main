@@ -23,7 +23,6 @@ import java.util.concurrent.LinkedBlockingDeque;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.event.IEventSourceInfo;
 
 
 /**
@@ -185,12 +184,5 @@ public class WeakEventHandler implements IEventHandler
     public void clearAllListeners()
     {
         listeners.clear();        
-    }
-
-
-    @Override
-    public IEventSourceInfo getEventSourceInfo()
-    {
-        throw new UnsupportedOperationException();
     }
 }
