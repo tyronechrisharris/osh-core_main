@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.task;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -31,11 +32,24 @@ import java.util.concurrent.CompletableFuture;
 public interface ITaskManager
 {
     
+    /**
+     * @return True if all commands must be sent via creation of a task on this
+     * interface, false if commands can be sent directly to the control interfaces
+     */
+    public boolean isTaskRequired();
+    
+    
+    /**
+     * Retrieves the list of all tasks currently being processed by this procedure
+     * @return Read-only map of FOI unique IDs -> feature objects
+     */
+    public Map<Long, ? extends ITask> getCurrentTasks();
+    
     
     /**
      * Validates a new task asynchronously and sends an initial task status
      * @param task
-     * @return Future with computed task status. 
+     * @return Future that wil be completed when the initial task status is known. 
      */
     public default CompletableFuture<ITaskStatus> acceptTask(ITask task)
     {

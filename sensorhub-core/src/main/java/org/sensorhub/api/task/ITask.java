@@ -17,15 +17,14 @@ package org.sensorhub.api.task;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.UUID;
-import org.sensorhub.api.command.CommandData;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.procedure.ProcedureId;
-import org.vast.util.TimeExtent;
 
 
 /**
  * <p>
- * A task includes one or more commands that will be processed in order by
- * the receiver procedure.
+ * A task includes one or more commands that will be processed in sequence
+ * or in parallel by the receiver procedure.
  * </p><p>
  * The command receiver typically does its best to reject the entire task if
  * one of the commands is invalid or cannot be executed, or if the particular
@@ -35,9 +34,7 @@ import org.vast.util.TimeExtent;
  * </p><p>
  * A task can also be used to reserve a slot for exclusive access to one or
  * more control channels. Such a task does not include any embedded commands
- * but rather the list of control channels requested. Real-time control channels
- * are then made available during the requested time window and accessible
- * using the task ID.
+ * but must set the boolean flag requestExclusiveControl.
  * </p>
  *
  * @author Alex Robin
@@ -52,12 +49,8 @@ public interface ITask
     UUID getTaskID();    
     
     Instant getCreationTime();
-
-    TimeExtent getRequestedExecutionTime();
-
-    int getPriority();
     
-    Collection<CommandData> getCommands();
+    Collection<ICommandData> getCommands();
 
-    boolean isExclusiveControl();
+    boolean isRequestExclusiveControl();
 }

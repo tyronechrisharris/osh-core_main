@@ -14,33 +14,53 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.task;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import org.vast.util.TimeExtent;
 
 
 public interface ITaskStatus
 {
-    public enum ReasonCode {
-        HIGER_PRIORITY_OVERRIDE,
-        PARAM_VALUE_ERROR,
-    }
-
     
     /**
      * @return ID of task that this status relates to, as assigned by task manager
      */
     UUID getTaskID();
     
-    StatusCode getStatusCode();
     
+    /**
+     * @return Task status code
+     */
+    TaskStatusCode getStatusCode();
+    
+    
+    /**
+     * @return Task status reason code, or null if no reason was specified
+     */
+    ReasonCode getReasonCode();
+    
+    
+    /**
+     * @return Time at which this status was actual 
+     */
     Instant getUpdateTime();
     
-    Instant getScheduledEndTime();
-
-    Instant getScheduledStartTime();
-
+    
+    /**
+     * @return Estimated execution time range
+     */
+    TimeExtent getEstimatedExecutionTime();
+    
+    
+    /**
+     * @return Estimated execution duration
+     */
+    Duration getEstimatedDuration();
+    
+    
+    /**
+     * @return Additional status message
+     */    
     String getMessage();
-
-    int getErrorCode();
-
 }

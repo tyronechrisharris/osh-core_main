@@ -18,7 +18,7 @@ package org.sensorhub.api.task;
 /**
  * Task status code enumeration
  */
-public enum StatusCode
+public enum TaskStatusCode
 {
     /** Task was received but not yet evaluated **/
     PENDING,

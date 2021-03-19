@@ -15,12 +15,13 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.task;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
-import org.sensorhub.api.command.CommandData;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.util.BaseBuilder;
-import org.vast.util.TimeExtent;
+import com.google.common.collect.ImmutableList;
 
 
 /**
@@ -37,11 +38,9 @@ public class TaskData implements ITask
     protected ProcedureId procedureID;
     protected String senderID;
     protected UUID taskID;
-    protected int priority;
     protected Instant creationTime;
-    protected TimeExtent requestedExecutionTime;
-    protected Collection<CommandData> commands;
-    protected boolean exclusiveControl;
+    protected Collection<ICommandData> commands;
+    protected boolean requestExclusiveControl;
     
     
     protected TaskData()
@@ -70,13 +69,6 @@ public class TaskData implements ITask
     }
 
 
-    @Override
-    public int getPriority()
-    {
-        return priority;
-    }
-
-
     public Instant getCreationTime()
     {
         return creationTime;
@@ -84,21 +76,14 @@ public class TaskData implements ITask
 
 
     @Override
-    public TimeExtent getRequestedExecutionTime()
+    public boolean isRequestExclusiveControl()
     {
-        return requestedExecutionTime;
+        return requestExclusiveControl;
     }
 
 
     @Override
-    public boolean isExclusiveControl()
-    {
-        return exclusiveControl;
-    }
-
-
-    @Override
-    public Collection<CommandData> getCommands()
+    public Collection<ICommandData> getCommands()
     {
         return commands;
     }
@@ -137,11 +122,9 @@ public class TaskData implements ITask
             instance.procedureID = base.getProcedureID();
             instance.senderID = base.getSenderID();
             instance.taskID = base.getTaskID();
-            instance.priority = base.getPriority();
             instance.creationTime = base.getCreationTime();
-            instance.requestedExecutionTime = base.getRequestedExecutionTime();
             instance.commands = base.getCommands();
-            instance.exclusiveControl = base.isExclusiveControl();
+            instance.requestExclusiveControl = base.isRequestExclusiveControl();
             return (B)this;
         }
         
@@ -150,6 +133,49 @@ public class TaskData implements ITask
         {
             instance.procedureID = procId;
             return (B)this;
+        }
+        
+        
+        public B withSenderID(String senderID)
+        {
+            instance.senderID = senderID;
+            return (B)this;
+        }
+        
+        
+        public B withTaskID(UUID taskID)
+        {
+            instance.taskID = taskID;
+            return (B)this;
+        }
+        
+        
+        public B withCreationTime(Instant creationTime)
+        {
+            instance.creationTime = creationTime;
+            return (B)this;
+        }
+        
+        
+        public B withCommands(ICommandData commands)
+        {
+            return withCommands(Arrays.asList(commands));
+        }
+
+
+        public B withCommands(Collection<ICommandData> commands)
+        {
+            instance.commands = ImmutableList.copyOf(commands);
+            return (B)this;
+        }
+        
+        
+        @Override
+        public T build()
+        {
+            if (instance.creationTime == null)
+                instance.creationTime = Instant.now();
+            return super.build();
         }
     }
 }

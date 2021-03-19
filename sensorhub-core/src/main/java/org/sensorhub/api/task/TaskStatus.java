@@ -14,10 +14,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.task;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.UUID;
 import org.sensorhub.api.command.CommandAck;
+import org.vast.util.TimeExtent;
 
 
 /**
@@ -31,22 +33,22 @@ import org.sensorhub.api.command.CommandAck;
 public class TaskStatus implements ITaskStatus
 {    
 	protected UUID taskID;
-	protected StatusCode statusCode;
+	protected TaskStatusCode statusCode;
+    protected ReasonCode reasonCode;
 	protected Instant updateTime;
-	protected Instant scheduledStartTime;
-    protected Instant scheduledEndTime;
+	protected TimeExtent estimatedExecTime;
+    protected Duration estimatedDuration;
     protected Collection<CommandAck> commandsStatus;
-    protected int errorCode;
     protected String message;
 	
 	
-	public TaskStatus(StatusCode statusCode)
+	public TaskStatus(TaskStatusCode statusCode)
 	{
 	    this.statusCode = statusCode;
 	}
 	
 	
-	public TaskStatus(UUID taskID, StatusCode statusCode)
+	public TaskStatus(UUID taskID, TaskStatusCode statusCode)
 	{
 	    this(statusCode);
 	    this.taskID = taskID;
@@ -57,13 +59,10 @@ public class TaskStatus implements ITaskStatus
 	public static final TaskStatus accepted()
 	{
 	    return new TaskStatus(UUID.randomUUID(),
-	        StatusCode.ACCEPTED);
+	        TaskStatusCode.ACCEPTED);
 	}
 
 
-	/**
-	 * @return Task ID assigned by command receiver in response to the command
-	 */
 	@Override
     public UUID getTaskID()
     {
@@ -72,9 +71,16 @@ public class TaskStatus implements ITaskStatus
 
 
     @Override
-    public StatusCode getStatusCode()
+    public TaskStatusCode getStatusCode()
     {
         return statusCode;
+    }
+
+
+    @Override
+    public ReasonCode getReasonCode()
+    {
+        return reasonCode;
     }
 
 
@@ -86,29 +92,22 @@ public class TaskStatus implements ITaskStatus
 
 
     @Override
-    public Instant getScheduledStartTime()
+    public TimeExtent getEstimatedExecutionTime()
     {
-        return scheduledStartTime;
+        return estimatedExecTime;
     }
 
 
     @Override
-    public Instant getScheduledEndTime()
+    public Duration getEstimatedDuration()
     {
-        return scheduledEndTime;
+        return estimatedDuration;
     }
 
 
     public Collection<CommandAck> getCommandsStatus()
     {
         return commandsStatus;
-    }
-
-
-    @Override
-    public int getErrorCode()
-    {
-        return errorCode;
     }
 
 
