@@ -29,16 +29,34 @@ import net.opengis.swe.v20.DataBlock;
 public interface ICommandData
 {
 
+    /**
+     * @return Info about command stream that this command is attached to
+     */
     ICommandStreamInfo getCommandStream();
     
+    
+    /**
+     * @return ID of sender
+     */
     String getSenderID();
     
+    
+    /**
+     * @return Command ref id used to associate with ACK message when
+     * several commands are pipelined
+     */
     long getCommandRefID();
     
-    Instant getIssueTime();
     
-    Instant getActuationTime();
+    /**
+     * @return Time the command was issued
+     */
+    Instant getIssueTime();
 
+    
+    /**
+     * @return The command parameters (i.e. command data)
+     */
     DataBlock getParams();
 
 }

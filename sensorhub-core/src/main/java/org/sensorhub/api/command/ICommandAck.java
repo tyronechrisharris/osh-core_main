@@ -27,11 +27,37 @@ import java.time.Instant;
  */
 public interface ICommandAck
 {
+    public enum CommandStatusCode
+    {
+        SUCCESS,
+        FAILED
+    }    
+    
+    
+    /**
+     * @return The command status code
+     */
+    CommandStatusCode getStatusCode();
 
-    int getStatusCode();
-
+    
+    /**
+     * @return Time at which the command was executed and resulted in
+     * a change to the receiver or its environment (e.g. actuation, other
+     * action on the outside world, change of parameters of process, etc.)
+     */
     Instant getActuationTime();
 
+    
+    /**
+     * @return Command reference ID, so this ACK can be attached to the
+     * original command message.
+     */
     long getCommandRefID();
 
+    
+    /**
+     * @return The exception raised while executing the command if status was
+     * {@link FAILED}, null otherwise
+     */
+    Exception getError();
 }

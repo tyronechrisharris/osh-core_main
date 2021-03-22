@@ -84,8 +84,15 @@ public class CommandDataWithAck implements ICommandDataWithAck
 
 
     @Override
-    public int getStatusCode()
+    public CommandStatusCode getStatusCode()
     {
         return ack.getStatusCode();
+    }
+
+
+    @Override
+    public Exception getError()
+    {
+        return ack.getError();
     }
 }

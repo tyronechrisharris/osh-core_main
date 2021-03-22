@@ -78,11 +78,4 @@ public class CommandData implements ICommandData
     {
         return params;
     }
-
-
-    @Override
-    public Instant getActuationTime()
-    {
-        throw new IllegalStateException("Command not executed yet");
-    }
 }

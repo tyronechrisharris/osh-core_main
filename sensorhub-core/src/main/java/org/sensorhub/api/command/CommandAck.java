@@ -19,7 +19,7 @@ import java.time.Instant;
 
 /**
  * <p>
- * Status of an individual command, used as ACK
+ * Immutable class used as command ACK
  * </p>
  *
  * @author Alex Robin
@@ -27,22 +27,19 @@ import java.time.Instant;
  */
 public class CommandAck implements ICommandAck
 {
-    public static final int SUCCESS = 0;
-    public static final int FAILED = 1;
-    
     protected long commandRefID;
     protected Instant actuationTime;
-    protected int statusCode;
+    protected CommandStatusCode statusCode;
     protected Exception error;
     
     
-    protected CommandAck(long commandRefID, int statusCode)
+    protected CommandAck(long commandRefID, CommandStatusCode statusCode)
     {
         this(commandRefID, statusCode, Instant.now());
     }
     
     
-    protected CommandAck(long commandRefID, int statusCode, Instant actuationTime)
+    protected CommandAck(long commandRefID, CommandStatusCode statusCode, Instant actuationTime)
     {
         this.commandRefID = commandRefID;
         this.statusCode = statusCode;
@@ -52,25 +49,25 @@ public class CommandAck implements ICommandAck
     
     public static ICommandAck success(long commandRefID)
     {
-        return new CommandAck(commandRefID, SUCCESS);
+        return new CommandAck(commandRefID, CommandStatusCode.SUCCESS);
     }
     
     
     public static ICommandAck success(long commandRefID, Instant actuationTime)
     {
-        return new CommandAck(commandRefID, SUCCESS, actuationTime);
+        return new CommandAck(commandRefID, CommandStatusCode.SUCCESS, actuationTime);
     }
     
     
     public static ICommandAck fail(long commandRefID)
     {
-        return new CommandAck(commandRefID, FAILED);
+        return new CommandAck(commandRefID, CommandStatusCode.FAILED);
     }
     
     
     public static ICommandAck fail(long commandRefID, Exception error)
     {
-        var ack = new CommandAck(commandRefID, FAILED);
+        var ack = new CommandAck(commandRefID, CommandStatusCode.FAILED);
         ack.error = error;
         return ack;
     }
@@ -91,12 +88,13 @@ public class CommandAck implements ICommandAck
 
 
     @Override
-    public int getStatusCode()
+    public CommandStatusCode getStatusCode()
     {
         return statusCode;
     }
 
 
+    @Override
     public Exception getError()
     {
         return error;
