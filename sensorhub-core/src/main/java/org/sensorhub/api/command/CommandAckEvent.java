@@ -15,6 +15,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.command;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collection;
+import org.vast.util.Asserts;
+
 
 /**
  * <p>
@@ -26,13 +30,13 @@ import java.time.Instant;
  */
 public class CommandAckEvent extends CommandStreamEvent
 {
-    protected ICommandAck status;
+    protected Collection<ICommandAck> commandAcks;
     
     
-    public CommandAckEvent(long timeStamp, String procUID, String controlInputName, ICommandAck status)
+    public CommandAckEvent(long timeStamp, String procUID, String controlInputName, ICommandAck... commandAcks)
     {
         super(timeStamp, procUID, controlInputName);
-        this.status = status;
+        this.commandAcks = Asserts.checkNotNullOrEmpty(Arrays.asList(commandAcks), ICommandAck[].class);
     }
     
     
@@ -68,9 +72,9 @@ public class CommandAckEvent extends CommandStreamEvent
     }
 
 
-    public ICommandAck getStatus()
+    public Collection<ICommandAck> getCommandAcks()
     {
-        return status;
+        return commandAcks;
     }
 
 }
