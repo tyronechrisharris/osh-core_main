@@ -15,13 +15,14 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import net.opengis.swe.v20.Category;
-import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.ValidationException;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
-import org.sensorhub.api.command.CommandAckEvent;
+import java.util.function.Consumer;
+import org.sensorhub.api.command.CommandAck;
 import org.sensorhub.api.command.CommandException;
+import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.vast.swe.SWEHelper;
@@ -71,19 +72,19 @@ public class FakeSensorControl2 extends AbstractSensorControl<FakeSensor> implem
 
 
     @Override
-    public CompletableFuture<Void> executeCommand(ICommandData command)
+    public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback)
     {
         counter++;
-        eventHandler.publish(CommandAckEvent.success(this, command));
+        callback.accept(CommandAck.success(command.getCommandRefID()));
         return CompletableFuture.completedFuture(null);
     }
 
 
     @Override
-    public void validateCommand(DataBlock command) throws CommandException
+    public void validateCommand(ICommandData command) throws CommandException
     {
         var cmdStruct = commandStruct.copy();
-        cmdStruct.setData(command);
+        cmdStruct.setData(command.getParams());
         
         var errors = new ArrayList<ValidationException>();
         cmdStruct.validateData(errors);

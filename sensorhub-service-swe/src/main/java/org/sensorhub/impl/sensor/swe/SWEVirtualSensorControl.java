@@ -18,13 +18,16 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import org.sensorhub.api.command.CommandAckEvent;
+import java.util.function.Consumer;
+import org.sensorhub.api.command.CommandAck;
+import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.impl.sensor.AbstractSensorControl;
 import org.vast.data.AbstractDataBlock;
 import org.vast.data.DataBlockInt;
 import org.vast.data.DataBlockMixed;
+import org.vast.ows.sps.StatusReport.RequestStatus;
 import org.vast.util.Asserts;
 
 
@@ -69,16 +72,9 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
         return cmdDescription;
     }
     
-
-    @Override
-    public void validateCommand(DataBlock command)
-    {
-        
-    }
-    
     
     @Override
-    public CompletableFuture<Void> executeCommand(ICommandData command)
+    public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback)
     {
         // wrap to add choice index if several commands were advertised by server
         DataBlock commandParams;
@@ -94,16 +90,23 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
         return CompletableFuture.runAsync(() -> {
             try
             {
-                //SubmitResponse resp =
-                parentSensor.spsClient.sendTaskMessage(commandParams);
-                
-                // TODO handle SPS response and task status            
-                eventHandler.publish(CommandAckEvent.success(this, command));
+                // TODO handle asynchronous tasking
+                var resp = parentSensor.spsClient.sendTaskMessage(commandParams);
+                if (resp.getReport().getRequestStatus() == RequestStatus.Rejected)
+                    callback.accept(CommandAck.fail(command.getCommandRefID()));
+                else
+                    callback.accept(CommandAck.success(command.getCommandRefID()));
             }
             catch (SensorHubException e)
             {
                 throw new CompletionException("Error sending command to SPS", e);
             }
         });
+    }
+    
+
+    @Override
+    public void validateCommand(ICommandData command)
+    {        
     }
 }

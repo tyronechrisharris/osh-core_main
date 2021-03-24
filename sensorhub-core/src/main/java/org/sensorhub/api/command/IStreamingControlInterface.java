@@ -15,8 +15,8 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.command;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import org.sensorhub.api.event.IEventProducer;
-import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 
 
@@ -24,6 +24,13 @@ import net.opengis.swe.v20.DataComponent;
  * <p>
  * Interface for all taskable components using SWE Common model to describe
  * structure and encoding of commands they accept (e.g. actuators, processes...)
+ * <p></p>
+ * Note that this interface only provides simple methods for queuing commands 
+ * for immediate execution and return only a simple ACK. Procedures requiring
+ * more control of the lifecycle of tasks (priority handling, scheduling, etc.)
+ * and the ability to report about their state, like it is often the case with
+ * long running tasks, should implement the {@link ITaskManager} interface
+ * in addition.
  * </p>
  *
  * @author Alex Robin
@@ -64,21 +71,23 @@ public interface IStreamingControlInterface extends IEventProducer
     /**
      * Executes the provided command, potentially asynchronously.
      * @param command Command data
+     * @param callback Callback to receive command execution acknowledgment
      * @return A future that will be completed normally when the command is accepted
      * and the callee is ready to receive the next command. Note that the command
-     * may not have finished executing at this point. Command success/failure is notified
-     * separately using a {@link CommandAckEvent} sent to all registered listeners.)<br/>
-     * If an error can be detected early, the future will complete exceptionally with a 
-     * {@link CompletionException}
+     * may not have finished executing at this point. Command success/failure is
+     * notified separately using the provided callback<br/>
+     * If an error can be detected early, the future will complete exceptionally
+     * with a {@link CompletionException}. Otherwise, the ACK object will contain
+     * the exception.
      */
-    public CompletableFuture<Void> executeCommand(ICommandData command);
+    public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback);
     
     
     /**
      * Validates the command parameters without executing the command. This
-     * is used for validating a task before it can be accepted for execution. 
+     * is used for validating a command that is part of a larger task. 
      * @param command
      * @throws CommandException if the command is invalid
      */
-    public void validateCommand(DataBlock command) throws CommandException;
+    public void validateCommand(ICommandData command) throws CommandException;
 }

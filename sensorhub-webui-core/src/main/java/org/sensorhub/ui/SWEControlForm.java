@@ -14,8 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.api.tasking.IStreamingControlInterface;
+import org.sensorhub.api.command.CommandData;
+import org.sensorhub.api.command.IStreamingControlInterface;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -67,11 +67,14 @@ public class SWEControlForm extends SWEEditForm
                 try
                 {
                     if (controlInput != null)
-                        controlInput.execCommand(component.getData());
+                    {
+                        var cmd = new CommandData(0, 0, component.getData());
+                        controlInput.executeCommand(cmd, ack -> {}).get();
+                    }
                     else
                         controlSink.setData(component.getData());
                 }
-                catch (SensorException e)
+                catch (Exception e)
                 {
                     DisplayUtils.showErrorPopup("Error while sending command to sensor", e);
                 }
