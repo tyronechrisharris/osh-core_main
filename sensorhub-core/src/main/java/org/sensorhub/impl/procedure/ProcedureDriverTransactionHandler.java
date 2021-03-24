@@ -15,9 +15,14 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.procedure;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
+import org.sensorhub.api.command.CommandEvent;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandReceiver;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.FoiEvent;
@@ -34,6 +39,7 @@ import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.procedure.ProcedureEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
+import org.vast.data.TextEncodingImpl;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -48,8 +54,9 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
 {
     protected IProcedureDriver driver; // reference to live procedure
     protected Map<String, DataStreamTransactionHandler> dataStreamHandlers = new HashMap<>();
-    protected Map<String, DataStreamTransactionHandler> commandStreamHandlers = new HashMap<>();
+    protected Map<String, CommandStreamTransactionHandler> commandStreamHandlers = new HashMap<>();
     protected Map<String, ProcedureDriverTransactionHandler> memberHandlers = new HashMap<>();
+    protected Map<String, Subscription> commandSubscriptions;
     
     
     protected ProcedureDriverTransactionHandler(FeatureKey procKey, String procUID, String parentGroupUID, ProcedureObsTransactionHandler rootHandler)
@@ -147,6 +154,8 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     
     protected CompletableFuture<Boolean> registerMember(IProcedureDriver proc)
     {
+        Asserts.checkNotNull(proc, IProcedureDriver.class);
+        
         return CompletableFuture.supplyAsync(() -> {
             try { return doRegisterMember(proc, null); }
             catch (DataStoreException e) { throw new CompletionException(e); }
@@ -190,6 +199,8 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     
     protected CompletableFuture<Boolean> unregisterMember(IProcedureDriver proc)
     {
+        Asserts.checkNotNull(driver, IProcedureDriver.class);
+        
         return CompletableFuture.supplyAsync(() -> {
             try { return doUnregisterMember(proc); }
             catch (DataStoreException e) { throw new CompletionException(e); }
@@ -212,6 +223,8 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
 
     protected CompletableFuture<Boolean> register(IStreamingDataInterface output)
     {
+        Asserts.checkNotNull(output, IStreamingDataInterface.class);
+        
         return CompletableFuture.supplyAsync(() -> {
             try { return doRegister(output); }
             catch (DataStoreException e) { throw new CompletionException(e); }
@@ -268,20 +281,87 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
 
 
-    protected CompletableFuture<Boolean> register(IStreamingControlInterface commandStream)
+    protected CompletableFuture<Boolean> register(IStreamingControlInterface controlInput)
     {
-        Asserts.checkNotNull(commandStream, IStreamingControlInterface.class);
+        Asserts.checkNotNull(controlInput, IStreamingControlInterface.class);
         
         return CompletableFuture.supplyAsync(() -> {
-            return doRegister(commandStream);
+            try { return doRegister(controlInput); }
+            catch (DataStoreException e) { throw new CompletionException(e); }
         });
     }
     
     
-    protected synchronized boolean doRegister(IStreamingControlInterface commandStream)
+    protected synchronized boolean doRegister(IStreamingControlInterface controlInput) throws DataStoreException
     {
-        DefaultProcedureRegistry.log.warn("Command streams register not implemented yet");
-        return true;
+        Asserts.checkNotNull(controlInput, IStreamingControlInterface.class);
+        boolean isNew = true;
+        
+        // add or update existing command stream entry
+        var newCsHandler = addOrUpdateCommandStream(
+            controlInput.getName(),
+            controlInput.getCommandDescription(),
+            new TextEncodingImpl());
+        newCsHandler.parentGroupUID = this.parentGroupUID;
+            
+        // replace and cleanup old handler
+        commandStreamHandlers.put(controlInput.getName(), newCsHandler);
+        var oldSub = commandSubscriptions.get(controlInput.getName());
+        if (oldSub != null)
+        {
+            oldSub.cancel();
+            isNew = false;
+        }
+                
+        // connect procedure to receive commands from event bus
+        newCsHandler.connectReceiver(new Subscriber<CommandEvent>() {
+            Subscription sub;
+            
+            @Override
+            public void onSubscribe(Subscription sub)
+            {
+                this.sub = sub;
+                commandSubscriptions.put(controlInput.getName(), sub);
+                sub.request(1);
+            }
+
+            @Override
+            public void onNext(CommandEvent item)
+            {
+                CompletableFuture.runAsync(() -> {
+                    sendCommand(item.getCommands().iterator());
+                });                
+            }
+            
+            protected void sendCommand(Iterator<ICommandData> commands)
+            {
+                if (commands.hasNext())
+                {
+                    var cmd = commands.next();
+                    controlInput.executeCommand(cmd, newCsHandler::publishAck)
+                        .thenRun(() -> sendCommand(commands));
+                }
+                else
+                {
+                    sub.request(1);
+                }
+            }
+
+            @Override
+            public void onError(Throwable throwable)
+            {                
+            }
+
+            @Override
+            public void onComplete()
+            {
+            }            
+        });
+        
+        // enable
+        newCsHandler.enable();
+        
+        return isNew;
     }
 
 

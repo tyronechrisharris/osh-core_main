@@ -14,18 +14,19 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import java.util.concurrent.Flow.Subscriber;
 import org.sensorhub.api.command.CommandAckEvent;
+import org.sensorhub.api.command.CommandEvent;
 import org.sensorhub.api.command.CommandStreamChangedEvent;
 import org.sensorhub.api.command.CommandStreamDisabledEvent;
 import org.sensorhub.api.command.CommandStreamEnabledEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.CommandStreamRemovedEvent;
+import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
-import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
-import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.utils.DataComponentChecks;
 import net.opengis.swe.v20.DataComponent;
@@ -42,7 +43,7 @@ import net.opengis.swe.v20.DataEncoding;
  * @author Alex Robin
  * @date Mar 21, 2021
  */
-public class CommandStreamTransactionHandler implements IEventListener
+public class CommandStreamTransactionHandler
 {
     protected final ProcedureObsTransactionHandler rootHandler;
     protected final CommandStreamKey csKey;
@@ -130,13 +131,33 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
 
 
-    @Override
-    public void handleEvent(Event e)
+    public IEventPublisher connectSender(Subscriber<CommandAckEvent> ackSubscriber)
     {
-        if (e instanceof CommandAckEvent)
-        {
-            
-        }
+        var ackTopic = EventUtils.getCommandStreamAckTopicID(csInfo);
+        rootHandler.eventBus.newSubscription(CommandAckEvent.class)
+            .withTopicID(ackTopic)
+            .subscribe(ackSubscriber);        
+        
+        return getDataEventPublisher();
+    }
+    
+    
+    public void connectReceiver(Subscriber<CommandEvent> commandSubscriber)
+    {
+        var dataTopic = EventUtils.getCommandStreamDataTopicID(csInfo);
+        rootHandler.eventBus.newSubscription(CommandEvent.class)
+            .withTopicID(dataTopic)
+            .subscribe(commandSubscriber);
+    }
+    
+    
+    public void publishAck(ICommandAck ack)
+    {
+        getAckEventPublisher().publish(new CommandAckEvent(
+            System.currentTimeMillis(),
+            csInfo.getProcedureID().getUniqueID(),
+            csInfo.getCommandName(),
+            ack));
     }
     
     
@@ -151,6 +172,20 @@ public class CommandStreamTransactionHandler implements IEventListener
         }
          
         return dataEventPublisher;
+    }
+    
+    
+    protected synchronized IEventPublisher getAckEventPublisher()
+    {
+        // create event publisher if needed
+        // cache it because we need it often
+        if (ackEventPublisher == null)
+        {
+            var topic = EventUtils.getCommandStreamAckTopicID(csInfo);
+            ackEventPublisher = rootHandler.eventBus.getPublisher(topic);
+        }
+         
+        return ackEventPublisher;
     }
         
         
