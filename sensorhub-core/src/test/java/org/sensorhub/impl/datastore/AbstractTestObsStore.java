@@ -47,7 +47,7 @@ import net.opengis.swe.v20.DataComponent;
 
 /**
  * <p>
- * Abstract base for testing implementations of IFeatureStore.
+ * Abstract base for testing implementations of IObsStore.
  * </p>
  *
  * @author Alex Robin

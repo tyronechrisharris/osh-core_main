@@ -21,6 +21,14 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
 
+/**
+ * <p>
+ * Interface for command stream descriptors
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Mar 26, 2021
+ */
 public interface ICommandStreamInfo extends IResource
 {
     

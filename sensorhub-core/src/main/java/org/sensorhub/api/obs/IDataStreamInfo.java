@@ -25,7 +25,7 @@ import net.opengis.swe.v20.DataEncoding;
 
 /**
  * <p>
- * Interface for IDataStreamStore value objects
+ * Interface for DataStream descriptors
  * </p>
  *
  * @author Alex Robin
