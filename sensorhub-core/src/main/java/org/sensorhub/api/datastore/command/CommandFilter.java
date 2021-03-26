@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
 import java.util.function.Predicate;
-import org.sensorhub.api.command.ICommandDataWithAck;
+import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
@@ -41,14 +41,14 @@ import com.google.common.primitives.Longs;
  * @author Alex Robin
  * @date Mar 11, 2021
  */
-public class CommandFilter implements IQueryFilter, Predicate<ICommandDataWithAck>
+public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
 {
     protected SortedSet<BigInteger> internalIDs;
     protected CommandStreamFilter commandStreamFilter;
     protected TemporalFilter actuationTime;
     protected TemporalFilter issueTime;
     protected SortedSet<String> senderIDs;
-    protected Predicate<ICommandDataWithAck> valuePredicate;
+    protected Predicate<ICommandAck> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
     
@@ -88,7 +88,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandDataWithAc
     }
 
 
-    public Predicate<ICommandDataWithAck> getValuePredicate()
+    public Predicate<ICommandAck> getValuePredicate()
     {
         return valuePredicate;
     }
@@ -102,7 +102,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandDataWithAc
 
 
     @Override
-    public boolean test(ICommandDataWithAck cmd)
+    public boolean test(ICommandAck cmd)
     {
         return (testActuationTime(cmd) &&
                 testIssueTime(cmd) &&
@@ -110,28 +110,28 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandDataWithAc
     }
     
     
-    public boolean testActuationTime(ICommandDataWithAck cmd)
+    public boolean testActuationTime(ICommandAck cmd)
     {
         return (actuationTime == null ||
                 actuationTime.test(cmd.getActuationTime()));
     }
     
     
-    public boolean testIssueTime(ICommandDataWithAck cmd)
+    public boolean testIssueTime(ICommandAck cmd)
     {
         return (issueTime == null ||
                 issueTime.test(cmd.getIssueTime()));
     }
     
     
-    public boolean testSenderID(ICommandDataWithAck cmd)
+    public boolean testSenderID(ICommandAck cmd)
     {
         return (senderIDs == null ||
             senderIDs.contains(cmd.getSenderID()));
     }
     
     
-    public boolean testValuePredicate(ICommandDataWithAck cmd)
+    public boolean testValuePredicate(ICommandAck cmd)
     {
         return (valuePredicate == null ||
                 valuePredicate.test(cmd));
@@ -513,7 +513,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandDataWithAc
          * @param valuePredicate The predicate to test the command data
          * @return This builder for chaining
          */
-        public B withValuePredicate(Predicate<ICommandDataWithAck> valuePredicate)
+        public B withValuePredicate(Predicate<ICommandAck> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
             return (B)this;

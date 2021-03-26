@@ -36,16 +36,9 @@ public interface ICommandData
     
     
     /**
-     * @return ID of sender
+     * @return The ID of the sender
      */
     String getSenderID();
-    
-    
-    /**
-     * @return Command ref id used to associate with ACK message when
-     * several commands are pipelined
-     */
-    long getCommandRefID();
     
     
     /**

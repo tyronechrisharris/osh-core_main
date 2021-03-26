@@ -15,7 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.database.registry;
 
 import java.time.Instant;
-import org.sensorhub.api.command.ICommandDataWithAck;
+import org.sensorhub.api.command.ICommandAck;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -28,12 +28,12 @@ import net.opengis.swe.v20.DataBlock;
  * @author Alex Robin
  * @date Mar 24, 2021
  */
-public class CommandDelegate implements ICommandDataWithAck
+public class CommandDelegate implements ICommandAck
 {
-    ICommandDataWithAck delegate;
+    ICommandAck delegate;
 
 
-    public CommandDelegate(ICommandDataWithAck cmd)
+    public CommandDelegate(ICommandAck cmd)
     {
         this.delegate = cmd;
     }
@@ -42,12 +42,6 @@ public class CommandDelegate implements ICommandDataWithAck
     public long getCommandStreamID()
     {
         return delegate.getCommandStreamID();
-    }
-
-
-    public long getCommandRefID()
-    {
-        return delegate.getCommandRefID();
     }
 
 

@@ -52,7 +52,7 @@ public class CommandAckEvent extends CommandStreamEvent
             System.currentTimeMillis(),
             controlInterface.getParentProducer().getUniqueIdentifier(),
             controlInterface.getName(),
-            CommandAck.success(command.getCommandRefID(), actuationTime));
+            CommandAck.success(command, actuationTime));
     }
     
     
@@ -68,7 +68,7 @@ public class CommandAckEvent extends CommandStreamEvent
             System.currentTimeMillis(),
             controlInterface.getParentProducer().getUniqueIdentifier(),
             controlInterface.getName(),
-            CommandAck.fail(command.getCommandRefID(), error));
+            CommandAck.fail(command, error));
     }
 
 

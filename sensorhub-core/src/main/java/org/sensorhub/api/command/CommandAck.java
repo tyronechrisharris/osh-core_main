@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.command;
 
 import java.time.Instant;
+import net.opengis.swe.v20.DataBlock;
 
 
 /**
@@ -27,56 +28,49 @@ import java.time.Instant;
  */
 public class CommandAck implements ICommandAck
 {
-    protected long commandRefID;
+    protected ICommandData command;
     protected Instant actuationTime;
     protected CommandStatusCode statusCode;
     protected Exception error;
     
     
-    protected CommandAck(long commandRefID, CommandStatusCode statusCode)
+    protected CommandAck(ICommandData cmd, CommandStatusCode statusCode)
     {
-        this(commandRefID, statusCode, Instant.now());
+        this(cmd, statusCode, Instant.now());
     }
     
     
-    protected CommandAck(long commandRefID, CommandStatusCode statusCode, Instant actuationTime)
+    protected CommandAck(ICommandData cmd, CommandStatusCode statusCode, Instant actuationTime)
     {
-        this.commandRefID = commandRefID;
+        this.command = cmd;
         this.statusCode = statusCode;
         this.actuationTime = actuationTime;        
     }
     
     
-    public static ICommandAck success(long commandRefID)
+    public static ICommandAck success(ICommandData cmd)
     {
-        return new CommandAck(commandRefID, CommandStatusCode.SUCCESS);
+        return new CommandAck(cmd, CommandStatusCode.SUCCESS);
     }
     
     
-    public static ICommandAck success(long commandRefID, Instant actuationTime)
+    public static ICommandAck success(ICommandData cmd, Instant actuationTime)
     {
-        return new CommandAck(commandRefID, CommandStatusCode.SUCCESS, actuationTime);
+        return new CommandAck(cmd, CommandStatusCode.SUCCESS, actuationTime);
     }
     
     
-    public static ICommandAck fail(long commandRefID)
+    public static ICommandAck fail(ICommandData cmd)
     {
-        return new CommandAck(commandRefID, CommandStatusCode.FAILED);
+        return new CommandAck(cmd, CommandStatusCode.FAILED);
     }
     
     
-    public static ICommandAck fail(long commandRefID, Exception error)
+    public static ICommandAck fail(ICommandData cmd, Exception error)
     {
-        var ack = new CommandAck(commandRefID, CommandStatusCode.FAILED);
+        var ack = new CommandAck(cmd, CommandStatusCode.FAILED);
         ack.error = error;
         return ack;
-    }
-
-
-    @Override
-    public long getCommandRefID()
-    {
-        return commandRefID;
     }
 
 
@@ -98,5 +92,29 @@ public class CommandAck implements ICommandAck
     public Exception getError()
     {
         return error;
+    }
+
+
+    public long getCommandStreamID()
+    {
+        return command.getCommandStreamID();
+    }
+
+
+    public String getSenderID()
+    {
+        return command.getSenderID();
+    }
+
+
+    public Instant getIssueTime()
+    {
+        return command.getIssueTime();
+    }
+
+
+    public DataBlock getParams()
+    {
+        return command.getParams();
     }
 }

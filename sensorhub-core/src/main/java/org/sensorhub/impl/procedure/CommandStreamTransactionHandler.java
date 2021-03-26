@@ -158,6 +158,9 @@ public class CommandStreamTransactionHandler
             csInfo.getProcedureID().getUniqueID(),
             csInfo.getControlInputName(),
             ack));
+        
+        // store command with its ACK in DB
+        
     }
     
     

@@ -16,7 +16,7 @@ package org.sensorhub.api.datastore.command;
 
 import java.math.BigInteger;
 import java.util.stream.Stream;
-import org.sensorhub.api.command.ICommandDataWithAck;
+import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
@@ -35,7 +35,7 @@ import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
  * @author Alex Robin
  * @date Mar 11, 2021
  */
-public interface ICommandStore extends IDataStore<BigInteger, ICommandDataWithAck, CommandField, CommandFilter>
+public interface ICommandStore extends IDataStore<BigInteger, ICommandAck, CommandField, CommandFilter>
 {
     public static class CommandField extends ValueField
     {
@@ -62,7 +62,7 @@ public interface ICommandStore extends IDataStore<BigInteger, ICommandDataWithAc
      * @param obs
      * @return The auto-generated ID
      */
-    public BigInteger add(ICommandDataWithAck obs);
+    public BigInteger add(ICommandAck obs);
     
     
     /**

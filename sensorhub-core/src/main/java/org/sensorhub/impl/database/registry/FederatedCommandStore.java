@@ -23,7 +23,7 @@ import java.util.Spliterator;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.sensorhub.api.command.ICommandDataWithAck;
+import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
@@ -47,7 +47,7 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Mar 24, 2021
  */
-public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, ICommandDataWithAck, CommandField, CommandFilter> implements ICommandStore
+public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, ICommandAck, CommandField, CommandFilter> implements ICommandStore
 {
     final IDatabaseRegistry registry;
     final FederatedObsDatabase parentDb;
@@ -107,7 +107,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
     /*
      * Convert to public values on the way out
      */
-    protected ICommandDataWithAck toPublicValue(int databaseID, ICommandDataWithAck cmd)
+    protected ICommandAck toPublicValue(int databaseID, ICommandAck cmd)
     {
         long dsPublicId = registry.getPublicID(databaseID, cmd.getCommandStreamID());
         
@@ -125,7 +125,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
     /*
      * Convert to public entries on the way out
      */
-    protected Entry<BigInteger, ICommandDataWithAck> toPublicEntry(int databaseID, Entry<BigInteger, ICommandDataWithAck> e)
+    protected Entry<BigInteger, ICommandAck> toPublicEntry(int databaseID, Entry<BigInteger, ICommandAck> e)
     {
         return new AbstractMap.SimpleEntry<>(
             toPublicKey(databaseID, e.getKey()),
@@ -162,7 +162,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
 
 
     @Override
-    public ICommandDataWithAck get(Object obj)
+    public ICommandAck get(Object obj)
     {
         BigInteger key = ensureCommandKey(obj);
         
@@ -171,7 +171,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
         if (dbInfo == null)
             return null;
         
-        ICommandDataWithAck cmd = dbInfo.db.getCommandStore().get(toLocalKey(dbInfo.databaseNum, key));
+        ICommandAck cmd = dbInfo.db.getCommandStore().get(toLocalKey(dbInfo.databaseNum, key));
         if (cmd == null)
             return null;
         
@@ -231,9 +231,9 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandDataWithAck>> selectEntries(CommandFilter filter, Set<CommandField> fields)
+    public Stream<Entry<BigInteger, ICommandAck>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {
-        final var cmdIterators = new ArrayList<Spliterator<Entry<BigInteger, ICommandDataWithAck>>>(100);
+        final var cmdIterators = new ArrayList<Spliterator<Entry<BigInteger, ICommandAck>>>(100);
         
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -262,7 +262,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
         
         
         // stream and merge cmmands from all selected command streams and time periods
-        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, ICommandDataWithAck>>(cmdIterators,
+        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, ICommandAck>>(cmdIterators,
             (e1, e2) -> e1.getValue().getActuationTime().compareTo(e2.getValue().getActuationTime()));         
                
         // stream output of merge sort iterator + apply limit        
@@ -328,7 +328,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
     
     
     @Override
-    public BigInteger add(ICommandDataWithAck cmd)
+    public BigInteger add(ICommandAck cmd)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

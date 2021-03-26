@@ -17,7 +17,7 @@ package org.sensorhub.impl.datastore.view;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.sensorhub.api.command.ICommandDataWithAck;
+import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
@@ -36,7 +36,7 @@ import org.sensorhub.impl.datastore.ReadOnlyDataStore;
  * @author Alex Robin
  * @date Mar 12, 2021
  */
-public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandDataWithAck, CommandField, CommandFilter> implements ICommandStore
+public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandAck, CommandField, CommandFilter> implements ICommandStore
 {
     ICommandStore delegate;
     CommandStreamStoreView commandStreamStoreView;
@@ -52,7 +52,7 @@ public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandData
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandDataWithAck>> selectEntries(CommandFilter filter, Set<CommandField> fields)
+    public Stream<Entry<BigInteger, ICommandAck>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {
         try
         {
@@ -84,7 +84,7 @@ public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandData
 
 
     @Override
-    public ICommandDataWithAck get(Object key)
+    public ICommandAck get(Object key)
     {
         return delegate.get(key);
     }
@@ -112,7 +112,7 @@ public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandData
 
 
     @Override
-    public BigInteger add(ICommandDataWithAck obs)
+    public BigInteger add(ICommandAck obs)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

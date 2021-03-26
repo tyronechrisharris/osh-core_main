@@ -93,9 +93,9 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
                 // TODO handle asynchronous tasking
                 var resp = parentSensor.spsClient.sendTaskMessage(commandParams);
                 if (resp.getReport().getRequestStatus() == RequestStatus.Rejected)
-                    callback.accept(CommandAck.fail(command.getCommandRefID()));
+                    callback.accept(CommandAck.fail(command));
                 else
-                    callback.accept(CommandAck.success(command.getCommandRefID()));
+                    callback.accept(CommandAck.success(command));
             }
             catch (SensorHubException e)
             {

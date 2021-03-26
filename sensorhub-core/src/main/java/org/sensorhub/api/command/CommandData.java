@@ -17,6 +17,7 @@ package org.sensorhub.api.command;
 import java.time.Instant;
 import org.sensorhub.api.utils.OshAsserts;
 import org.vast.util.Asserts;
+import org.vast.util.BaseBuilder;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -33,16 +34,22 @@ public class CommandData implements ICommandData
 {
     protected long commandStreamID;
     protected String senderID;
-    protected long commandRefID = 0;
-    protected Instant issueTime = null;
+    protected Instant issueTime;
     protected DataBlock params;
     
     
-    public CommandData(long commandStreamID, long refID, DataBlock params)
+    protected CommandData()
+    {
+        // can only instantiate with builder
+        this.issueTime = Instant.now();
+    }
+    
+    
+    public CommandData(long commandStreamID, DataBlock params)
     {
         this.commandStreamID = OshAsserts.checkValidInternalID(commandStreamID);
-        this.commandRefID = refID;
         this.params = Asserts.checkNotNull(params, DataBlock.class);
+        this.issueTime = Instant.now();
     }
 
 
@@ -61,13 +68,6 @@ public class CommandData implements ICommandData
 
 
     @Override
-    public long getCommandRefID()
-    {
-        return commandRefID;
-    }
-
-
-    @Override
     public Instant getIssueTime()
     {
         return issueTime;
@@ -78,5 +78,73 @@ public class CommandData implements ICommandData
     public DataBlock getParams()
     {
         return params;
+    }
+    
+    
+    /*
+     * Builder
+     */
+    public static class Builder extends CommandDataBuilder<Builder, CommandData>
+    {
+        public Builder()
+        {
+            this.instance = new CommandData();
+        }
+        
+        public static Builder from(ICommandData base)
+        {
+            return new Builder().copyFrom(base);
+        }
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    public static abstract class CommandDataBuilder<
+            B extends CommandDataBuilder<B, T>,
+            T extends CommandData>
+        extends BaseBuilder<T>
+    {       
+        protected CommandDataBuilder()
+        {
+        }
+        
+        
+        protected B copyFrom(ICommandData base)
+        {
+            instance.commandStreamID = base.getCommandStreamID();
+            instance.senderID = base.getSenderID();
+            instance.issueTime = base.getIssueTime();
+            instance.params = base.getParams();
+            return (B)this;
+        }
+
+
+        public B withCommandStream(long id)
+        {
+            instance.commandStreamID = id;
+            return (B)this;
+        }
+        
+
+        public B withIssueTime(Instant issueTime)
+        {
+            instance.issueTime = issueTime;
+            return (B)this;
+        }
+
+
+        public B withParams(DataBlock params)
+        {
+            instance.params = params;
+            return (B)this;
+        }
+        
+        
+        public T build()
+        {
+            OshAsserts.checkValidInternalID(instance.commandStreamID, "commandStreamID");
+            Asserts.checkNotNull(instance.params, "params");
+            return super.build();
+        }
     }
 }

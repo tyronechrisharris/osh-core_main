@@ -82,7 +82,7 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
     {
         return CompletableFuture.runAsync(() -> {
             receivedCommands.add(command.getParams());
-            callback.accept(CommandAck.success(command.getCommandRefID()));
+            callback.accept(CommandAck.success(command));
         });
     }
 

@@ -25,13 +25,13 @@ import java.time.Instant;
  * @author Alex Robin
  * @date Mar 11, 2021
  */
-public interface ICommandAck
+public interface ICommandAck extends ICommandData
 {
     public enum CommandStatusCode
     {
         SUCCESS,
         FAILED
-    }    
+    }
     
     
     /**
@@ -46,13 +46,6 @@ public interface ICommandAck
      * action on the outside world, change of parameters of process, etc.)
      */
     Instant getActuationTime();
-
-    
-    /**
-     * @return Command reference ID, so this ACK can be attached to the
-     * original command message.
-     */
-    long getCommandRefID();
 
     
     /**

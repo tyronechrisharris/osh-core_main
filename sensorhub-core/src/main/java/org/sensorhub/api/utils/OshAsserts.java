@@ -45,6 +45,13 @@ public class OshAsserts
     }
     
     
+    public static long checkValidInternalID(long id, String idName)
+    {
+        Asserts.checkArgument(id > 0, "{} ID must be > 0", idName);
+        return id;
+    }
+    
+    
     public static String checkFeatureObject(IFeature f)
     {
         Asserts.checkNotNull(f, IFeature.class);

@@ -75,7 +75,7 @@ public class FakeSensorControl2 extends AbstractSensorControl<FakeSensor> implem
     public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback)
     {
         counter++;
-        callback.accept(CommandAck.success(command.getCommandRefID()));
+        callback.accept(CommandAck.success(command));
         return CompletableFuture.completedFuture(null);
     }
 
