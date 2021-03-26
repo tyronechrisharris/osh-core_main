@@ -42,9 +42,9 @@ public class CommandDataWithAck implements ICommandDataWithAck
     
     
     @Override
-    public ICommandStreamInfo getCommandStream()
+    public long getCommandStreamID()
     {
-        return command.getCommandStream();
+        return command.getCommandStreamID();
     }
 
 

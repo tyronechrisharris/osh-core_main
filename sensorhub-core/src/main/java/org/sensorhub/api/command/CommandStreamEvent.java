@@ -62,7 +62,7 @@ public abstract class CommandStreamEvent extends ProcedureEvent
     public CommandStreamEvent(ICommandStreamInfo csInfo)
     {
         super(Asserts.checkNotNull(csInfo, ICommandStreamInfo.class).getProcedureID().getUniqueID());
-        this.controlInputName = csInfo.getCommandName();
+        this.controlInputName = csInfo.getControlInputName();
     }
 
 

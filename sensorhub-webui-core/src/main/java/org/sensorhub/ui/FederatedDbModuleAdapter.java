@@ -20,6 +20,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabaseModule;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
@@ -73,6 +74,13 @@ public class FederatedDbModuleAdapter implements IProcedureObsDatabaseModule<Dat
     public IObsStore getObservationStore()
     {
         return delegate.getObservationStore();
+    }
+
+
+    @Override
+    public ICommandStore getCommandStore()
+    {
+        return delegate.getCommandStore();
     }
 
 

@@ -155,7 +155,7 @@ public class EventUtils
     {
         return getCommandStreamStatusTopicID(
             csInfo.getProcedureID().getUniqueID(),
-            csInfo.getCommandName());
+            csInfo.getControlInputName());
     }
     
     
@@ -177,7 +177,7 @@ public class EventUtils
     {
         return getCommandStreamDataTopicID(
             csInfo.getProcedureID().getUniqueID(),
-            csInfo.getName());
+            csInfo.getControlInputName());
     }
     
     
@@ -199,7 +199,7 @@ public class EventUtils
     {
         return getCommandStreamAckTopicID(
             csInfo.getProcedureID().getUniqueID(),
-            csInfo.getName());
+            csInfo.getControlInputName());
     }
     
 }

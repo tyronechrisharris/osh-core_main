@@ -12,71 +12,81 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.command;
+package org.sensorhub.impl.database.registry;
 
 import java.time.Instant;
-import org.sensorhub.api.utils.OshAsserts;
-import org.vast.util.Asserts;
+import org.sensorhub.api.command.ICommandDataWithAck;
 import net.opengis.swe.v20.DataBlock;
 
 
 /**
  * <p>
- * Immutable object carrying data for a single command associated to a
- * specific command stream.
+ * ICommandData delegate used to override behavior of an existing ICommandData
+ * implementation. 
  * </p>
  *
  * @author Alex Robin
- * @date Mar 10, 2021
+ * @date Mar 24, 2021
  */
-public class CommandData implements ICommandData
+public class CommandDelegate implements ICommandDataWithAck
 {
-    protected long commandStreamID;
-    protected String senderID;
-    protected long commandRefID = 0;
-    protected Instant issueTime = null;
-    protected DataBlock params;
-    
-    
-    public CommandData(long commandStreamID, long refID, DataBlock params)
+    ICommandDataWithAck delegate;
+
+
+    public CommandDelegate(ICommandDataWithAck cmd)
     {
-        this.commandStreamID = OshAsserts.checkValidInternalID(commandStreamID);
-        this.commandRefID = refID;
-        this.params = Asserts.checkNotNull(params, DataBlock.class);
+        this.delegate = cmd;
+    }
+    
+    
+    public long getCommandStreamID()
+    {
+        return delegate.getCommandStreamID();
     }
 
 
-    @Override
-    public long getCommandStreamID()
+    public long getCommandRefID()
     {
-        return commandStreamID;
+        return delegate.getCommandRefID();
     }
 
 
     @Override
     public String getSenderID()
     {
-        return senderID;
+        return delegate.getSenderID();
     }
 
 
-    @Override
-    public long getCommandRefID()
+    public Instant getActuationTime()
     {
-        return commandRefID;
+        return delegate.getActuationTime();
     }
 
 
-    @Override
     public Instant getIssueTime()
     {
-        return issueTime;
+        return delegate.getIssueTime();
     }
 
 
     @Override
     public DataBlock getParams()
     {
-        return params;
+        return null;
+    }
+
+
+    @Override
+    public CommandStatusCode getStatusCode()
+    {
+        return delegate.getStatusCode();
+    }
+
+
+    @Override
+    public Exception getError()
+    {
+        return delegate.getError();
     }
 }

@@ -30,9 +30,9 @@ public interface ICommandData
 {
 
     /**
-     * @return Info about command stream that this command is attached to
+     * @return The internal ID of the command stream that the command is part of.
      */
-    ICommandStreamInfo getCommandStream();
+    long getCommandStreamID();
     
     
     /**

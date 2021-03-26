@@ -25,8 +25,8 @@ import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.database.IProcedureObsDbAutoPurgePolicy;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
-import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.module.IModule;
@@ -188,9 +188,10 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     }
 
 
-    public IDataStreamStore getDataStreamStore()
+    @Override
+    public ICommandStore getCommandStore()
     {
-        return db.getDataStreamStore();
+        return db.getCommandStore();
     }
     
     

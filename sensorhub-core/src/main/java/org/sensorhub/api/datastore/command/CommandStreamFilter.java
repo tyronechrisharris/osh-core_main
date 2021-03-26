@@ -43,7 +43,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
 {
     protected ProcedureFilter procFilter;
     protected CommandFilter commandFilter;
-    protected SortedSet<String> commandNames;
+    protected SortedSet<String> controlInputNames;
     protected SortedSet<String> taskableProperties;
     protected TemporalFilter validTime;
     
@@ -66,9 +66,9 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
     }
 
 
-    public SortedSet<String> getCommandNames()
+    public SortedSet<String> getControlInputNames()
     {
-        return commandNames;
+        return controlInputNames;
     }
 
 
@@ -86,8 +86,8 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
     
     public boolean testCommandName(ICommandStreamInfo cs)
     {
-        return (commandNames == null ||
-            commandNames.contains(cs.getCommandName()));
+        return (controlInputNames == null ||
+            controlInputNames.contains(cs.getControlInputName()));
     }
     
     
@@ -159,9 +159,9 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
         if (cmdFilter != null)
             builder.withCommands(cmdFilter);
         
-        var outputNames = FilterUtils.intersect(this.commandNames, otherFilter.commandNames);
+        var outputNames = FilterUtils.intersect(this.controlInputNames, otherFilter.controlInputNames);
         if (outputNames != null)
-            builder.withCommandNames(outputNames);
+            builder.withControlInputNames(outputNames);
         
         var taskableProperties = FilterUtils.intersect(this.taskableProperties, otherFilter.taskableProperties);
         if (taskableProperties != null)
@@ -237,7 +237,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
             super.copyFrom(other);
             instance.procFilter = other.procFilter;
             instance.commandFilter = other.commandFilter;
-            instance.commandNames = other.commandNames;
+            instance.controlInputNames = other.controlInputNames;
             instance.validTime = other.validTime;
             instance.taskableProperties = other.taskableProperties;
             return (B)this;
@@ -334,9 +334,9 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
          * @param names One or more procedure parameter names
          * @return This builder for chaining
          */
-        public B withCommandNames(String... names)
+        public B withControlInputNames(String... names)
         {
-            return withCommandNames(Arrays.asList(names));
+            return withControlInputNames(Arrays.asList(names));
         }
         
         
@@ -345,9 +345,9 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
          * @param names Collections of procedure parameter names
          * @return This builder for chaining
          */
-        public B withCommandNames(Collection<String> names)
+        public B withControlInputNames(Collection<String> names)
         {
-            instance.commandNames = ImmutableSortedSet.copyOf(names);
+            instance.controlInputNames = ImmutableSortedSet.copyOf(names);
             return (B)this;
         }
         

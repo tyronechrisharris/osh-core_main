@@ -36,14 +36,6 @@ public class CommandStreamInfo implements ICommandStreamInfo
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
     protected TimeExtent validTime;
-
-
-    @Override
-    public long getInternalID()
-    {
-        // should not be used until datastore assigns it
-        throw new IllegalStateException("ID not assigned yet");
-    }
     
     
     @Override
@@ -54,7 +46,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
 
 
     @Override
-    public String getCommandName()
+    public String getControlInputName()
     {
         return recordStruct.getName();
     }
@@ -64,7 +56,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
     public String getName()
     {
         return recordStruct.getLabel() != null ?
-            recordStruct.getLabel() : getCommandName();
+            recordStruct.getLabel() : getControlInputName();
     }
     
     
@@ -166,7 +158,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
             Asserts.checkNotNull(instance.procedureID, "procedureID");
             Asserts.checkArgument(instance.procedureID.getInternalID() > 0, "procedure internalID must be > 0");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");
-            Asserts.checkNotNull(instance.getCommandName(), "commandName");
+            Asserts.checkNotNull(instance.getControlInputName(), "commandName");
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");
             return super.build();
         }

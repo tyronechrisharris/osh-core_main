@@ -100,17 +100,17 @@ public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, IC
     /**
      * Helper method to retrieve the entry for the latest version of the
      * command stream corresponding to the specified procedure and command input.
-     * @param procUID Unique ID of procedure producing the data stream
-     * @param commandName Name of taskable parameter associated to the command stream
+     * @param procUID Unique ID of procedure exposing the command stream
+     * @param controlInput Name of control input associated to the command stream
      * @return The feature entry or null if none was found with this UID
      */
-    public default Entry<CommandStreamKey, ICommandStreamInfo> getLatestVersionEntry(String procUID, String commandName)
+    public default Entry<CommandStreamKey, ICommandStreamInfo> getLatestVersionEntry(String procUID, String controlInput)
     {
         Optional<Entry<CommandStreamKey, ICommandStreamInfo>> entryOpt = selectEntries(new CommandStreamFilter.Builder()
             .withProcedures()
                 .withUniqueIDs(procUID)
                 .done()
-            .withCommandNames(commandName)
+            .withControlInputNames(controlInput)
             .build())
         .findFirst();
         
@@ -120,17 +120,17 @@ public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, IC
     
     /**
      * Remove all command streams that are associated to the given procedure command input
-     * @param procUID
-     * @param commandName
+     * @param procUID Unique ID of procedure exposing the command stream
+     * @param controlInput Name of control input associated to the command stream
      * @return The number of entries actually removed
      */
-    public default long removeAllVersions(String procUID, String commandName)
+    public default long removeAllVersions(String procUID, String controlInput)
     {
         return removeEntries(new CommandStreamFilter.Builder()
             .withProcedures()
                 .withUniqueIDs(procUID)
                 .done()
-            .withCommandNames(commandName)
+            .withControlInputNames(controlInput)
             .build());
     }
     

@@ -16,7 +16,12 @@ package org.sensorhub.impl.datastore;
 
 import java.time.Instant;
 import java.util.stream.Stream;
+import org.sensorhub.api.command.CommandStreamInfo;
+import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.command.CommandStreamFilter;
+import org.sensorhub.api.datastore.command.CommandStreamKey;
+import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
@@ -46,6 +51,8 @@ public class DataStoreUtils
 {
     public static final String ERROR_INVALID_DATASTREAM_KEY = "Key must be an instance of " + DataStreamKey.class.getSimpleName();
     public static final String ERROR_EXISTING_DATASTREAM = "Datastore already contains datastream for the same procedure, output and validTime";
+    public static final String ERROR_INVALID_COMMANDSTREAM_KEY = "Key must be an instance of " + CommandStreamKey.class.getSimpleName();
+    public static final String ERROR_EXISTING_COMMANDSTREAM = "Datastore already contains command stream for the same procedure, control input and validTime";
     
     public static final String ERROR_INVALID_FEATURE_KEY = "Key must be an instance of " + FeatureKey.class.getSimpleName();
     public static final String ERROR_EXISTING_FEATURE = "Datastore already contains feature with the same UID: ";
@@ -107,9 +114,9 @@ public class DataStoreUtils
     }
     
     
-    //////////////////////////////////////////
-    // Helpers methods for datastream stores
-    //////////////////////////////////////////
+    ////////////////////////////////////////////////
+    // Helpers methods for datastream stream stores
+    ////////////////////////////////////////////////
     
     public static DataStreamKey checkDataStreamKey(Object key)
     {
@@ -160,6 +167,62 @@ public class DataStoreUtils
         }
         
         return dsInfo;
+    }
+    
+    
+    /////////////////////////////////////////////
+    // Helpers methods for command stream stores
+    /////////////////////////////////////////////
+    
+    public static CommandStreamKey checkCommandStreamKey(Object key)
+    {
+        Asserts.checkNotNull(key, CommandStreamKey.class);
+        Asserts.checkArgument(key instanceof CommandStreamKey, ERROR_INVALID_DATASTREAM_KEY);
+        return (CommandStreamKey)key;
+    }
+    
+    
+    public static void checkCommandStreamInfo(IProcedureStore procedureStore, ICommandStreamInfo csInfo) throws DataStoreException
+    {
+        Asserts.checkNotNull(csInfo, ICommandStreamInfo.class);
+        Asserts.checkNotNull(csInfo.getProcedureID(), "procedureID");
+        Asserts.checkNotNull(csInfo.getControlInputName(), "controlInputName");
+        checkParentProcedureExists(procedureStore, csInfo);
+    }
+    
+    
+    public static void checkParentProcedureExists(IProcedureStore procedureStore, ICommandStreamInfo csInfo) throws DataStoreException
+    {
+        var procID = csInfo.getProcedureID().getInternalID();
+        if (procedureStore != null && procedureStore.getCurrentVersionKey(procID) == null)
+            throw new DataStoreException("Unknown parent procedure: " + procID);
+    }
+    
+    
+    public static ICommandStreamInfo ensureValidTime(IProcedureStore procedureStore, ICommandStreamInfo csInfo)
+    {
+        // use valid time of parent procedure or current time if none was set
+        if (csInfo.getValidTime() == null)
+        {
+            TimeExtent validTime = null;
+            
+            if (procedureStore != null)
+            {
+                var fk = procedureStore.getCurrentVersionKey(csInfo.getProcedureID().getInternalID());
+                if (fk.getValidStartTime() != Instant.MIN)
+                    validTime = TimeExtent.endNow(fk.getValidStartTime());
+            }
+            
+            if (validTime == null)
+                validTime = TimeExtent.endNow(Instant.now());
+            
+            // create new datastream obj with proper valid time
+            return CommandStreamInfo.Builder.from(csInfo)
+                .withValidTime(validTime)
+                .build();
+        }
+        
+        return csInfo;
     }
     
     
@@ -233,5 +296,30 @@ public class DataStoreUtils
     {
         Asserts.checkState(dataStreamStore != null, "No linked datastream store");            
         return dataStreamStore.select(filter);
+    }
+    
+    
+    public static Stream<Long> selectCommandStreamIDs(ICommandStreamStore cmdStreamStore, CommandStreamFilter filter)
+    {
+        if (filter.getInternalIDs() != null)
+        {
+            // if only internal IDs were specified, no need to search the linked datastore
+            return filter.getInternalIDs().stream();
+        }
+        else
+        {
+            Asserts.checkState(cmdStreamStore != null, "No linked command stream store");
+            
+            // otherwise get all keys matching the filter from linked datastore
+            return cmdStreamStore.selectKeys(filter)
+                .map(k -> k.getInternalID());
+        }
+    }
+    
+    
+    public static Stream<ICommandStreamInfo> selectCommandStreams(ICommandStreamStore cmdStreamStore, CommandStreamFilter filter)
+    {
+        Asserts.checkState(cmdStreamStore != null, "No linked command stream store");            
+        return cmdStreamStore.select(filter);
     }
 }

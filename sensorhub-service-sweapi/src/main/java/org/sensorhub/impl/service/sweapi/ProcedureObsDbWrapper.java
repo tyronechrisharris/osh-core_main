@@ -17,6 +17,8 @@ package org.sensorhub.impl.service.sweapi;
 import java.util.concurrent.Callable;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
@@ -36,6 +38,8 @@ public class ProcedureObsDbWrapper implements IProcedureObsDatabase
     IDataStreamStore dataStreamStore;
     IObsStore obsStore;
     IFoiStore foiStore;
+    ICommandStreamStore commandStreamStore;
+    ICommandStore commandStore;
     
     
     public ProcedureObsDbWrapper(IProcedureObsDatabase readDb, IProcedureObsDatabase writeDb, IDatabaseRegistry dbRegistry)
@@ -133,6 +137,20 @@ public class ProcedureObsDbWrapper implements IProcedureObsDatabase
     public IObsStore getObservationStore()
     {
         return obsStore;
+    }
+
+
+    @Override
+    public ICommandStreamStore getCommandStreamStore()
+    {
+        return commandStreamStore;
+    }
+
+
+    @Override
+    public ICommandStore getCommandStore()
+    {
+        return commandStore;
     }
 
 

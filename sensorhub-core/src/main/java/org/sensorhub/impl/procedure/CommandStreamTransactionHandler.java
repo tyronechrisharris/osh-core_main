@@ -156,7 +156,7 @@ public class CommandStreamTransactionHandler
         getAckEventPublisher().publish(new CommandAckEvent(
             System.currentTimeMillis(),
             csInfo.getProcedureID().getUniqueID(),
-            csInfo.getCommandName(),
+            csInfo.getControlInputName(),
             ack));
     }
     

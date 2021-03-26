@@ -503,7 +503,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandDataWithAc
         {
             return withCommandStreams(new CommandStreamFilter.Builder()
                 .withProcedures(procID)
-                .withCommandNames(commandNames)
+                .withControlInputNames(commandNames)
                 .build());
         }
 

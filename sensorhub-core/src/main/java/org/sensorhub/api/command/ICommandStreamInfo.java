@@ -23,16 +23,37 @@ import net.opengis.swe.v20.DataEncoding;
 
 public interface ICommandStreamInfo extends IResource
 {
-    long getInternalID();
     
+    /**
+     * @return The identifier of the procedure that exposes this command stream
+     */
     ProcedureId getProcedureID();
 
-    String getCommandName();
+    
+    /**
+     * @return The name of the procedure control input that receives commands
+     * from this stream
+     */
+    String getControlInputName();
+    
 
+    /**
+     * @return The structure of the command parameters
+     */
     DataComponent getRecordStructure();
 
+    
+    /**
+     * @return The recommended encoding for the command parameters
+     */
     DataEncoding getRecordEncoding();
-
+    
+    
+    /**
+     * @return The time of validity of this command stream. This corresponds
+     * to the time during which the corresponding control input actually
+     * existed.
+     */
     TimeExtent getValidTime();
     
     

@@ -24,6 +24,7 @@ import java.util.concurrent.Callable;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -35,6 +36,7 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     final FederatedProcedureStore procStore;
     final FederatedFoiStore foiStore;
     final FederatedObsStore obsStore;
+    final FederatedCommandStore commandStore;
     final IDatabaseRegistry registry;
     
     
@@ -63,6 +65,7 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
         this.procStore = new FederatedProcedureStore(registry, this);
         this.foiStore = new FederatedFoiStore(registry, this);
         this.obsStore = new FederatedObsStore(registry, this);
+        this.commandStore = new FederatedCommandStore(registry, this);
     }
     
     
@@ -161,6 +164,13 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     public IFoiStore getFoiStore()
     {
         return foiStore;
+    }
+
+
+    @Override
+    public ICommandStore getCommandStore()
+    {
+        return commandStore;
     }
     
     
