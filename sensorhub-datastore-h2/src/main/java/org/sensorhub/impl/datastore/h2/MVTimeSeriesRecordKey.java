@@ -16,37 +16,40 @@ package org.sensorhub.impl.datastore.h2;
 
 import java.time.Instant;
 import org.sensorhub.utils.ObjectUtils;
-import org.vast.util.Asserts;
 
 
 /**
  * <p>
- * Immutable key object used to identify an individual data stream.
+ * Internal key used to index observations or commands by series ID and
+ * timestamp. The full ObsKey/CommandKey is reconstructed when the series
+ * info is known.
  * </p>
  *
  * @author Alex Robin
- * @since Sep 19, 2019
+ * @date Sep 12, 2019
  */
-class MVDataStreamProcKey
-{    
-    long internalID;
-    long procedureID;
-    String outputName;
-    long validStartTime; // seconds past unix epoch
+class MVTimeSeriesRecordKey
+{
+    protected long seriesID;
+    protected Instant timeStamp = null;
     
     
-    MVDataStreamProcKey(long procID, String outputName, Instant validStartTime)
-    {        
-        this(0, procID, outputName, validStartTime.getEpochSecond());
+    MVTimeSeriesRecordKey(long seriesID, Instant phenomenonTime)
+    {
+        this.seriesID = seriesID;
+        this.timeStamp = phenomenonTime;        
     }
-    
-    
-    MVDataStreamProcKey(long internalID, long procID, String outputName, long validStartTime)
-    {        
-        this.internalID = internalID;
-        this.procedureID = procID;
-        this.outputName = Asserts.checkNotNull(outputName, "outputName");
-        this.validStartTime = validStartTime;
+
+
+    public long getSeriesID()
+    {
+        return seriesID;
+    }
+
+
+    public Instant getTimeStamp()
+    {
+        return timeStamp;
     }
 
 

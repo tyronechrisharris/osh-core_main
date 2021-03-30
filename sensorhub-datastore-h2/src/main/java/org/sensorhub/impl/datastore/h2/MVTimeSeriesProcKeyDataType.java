@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
@@ -23,53 +22,55 @@ import org.h2.mvstore.type.DataType;
 
 /**
  * <p>
- * H2 DataType implementation to index observation series by datastream ID,
- * then result time, then foi ID.
+ * H2 DataType implementation for internal DataStream key objects
  * </p>
  *
  * @author Alex Robin
- * @date Sep 12, 2019
+ * @date Apr 7, 2018
  */
-class MVObsSeriesKeyByDataStreamDataType implements DataType
+class MVTimeSeriesProcKeyDataType implements DataType
 {
-    private static final int MEM_SIZE = 8+12+8; // long ID + instant + long ID
+    private static final int MIN_MEM_SIZE = 8+8+4;
     
-    
+            
     @Override
     public int compare(Object objA, Object objB)
     {
-        MVTimeSeriesKey a = (MVTimeSeriesKey)objA;
-        MVTimeSeriesKey b = (MVTimeSeriesKey)objB;
+        MVTimeSeriesProcKey a = (MVTimeSeriesProcKey)objA;
+        MVTimeSeriesProcKey b = (MVTimeSeriesProcKey)objB;
         
-        // first compare datastream IDs
-        int comp = Long.compare(a.dataStreamID, b.dataStreamID);
+        // first compare procedure internal ID
+        int comp = Long.compare(a.procedureID, b.procedureID);
         if (comp != 0)
             return comp;
         
-        // if datastream IDs are the same, compare result time stamps
-        comp = a.resultTime.compareTo(b.resultTime);
+        // only if IDs are the same, compare output name
+        comp = a.signalName.compareTo(b.signalName);
         if (comp != 0)
             return comp;
         
-        // if result times are equal, compare foi IDs
-        return Long.compare(a.foiID, b.foiID);
+        // only if output names are the same, compare valid times
+        // sort in reverse order so that latest version is always first
+        return -Long.compare(a.validStartTime, b.validStartTime);
     }
     
 
     @Override
     public int getMemory(Object obj)
     {
-        return MEM_SIZE;
+        MVTimeSeriesProcKey key = (MVTimeSeriesProcKey)obj;
+        return MIN_MEM_SIZE + key.signalName.length();
     }
     
 
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        MVTimeSeriesKey key = (MVTimeSeriesKey)obj;
-        wbuf.putVarLong(key.dataStreamID);
-        wbuf.putVarLong(key.foiID);
-        H2Utils.writeInstant(wbuf, key.resultTime);
+        MVTimeSeriesProcKey key = (MVTimeSeriesProcKey)obj;
+        wbuf.putVarLong(key.internalID);
+        wbuf.putVarLong(key.procedureID);
+        H2Utils.writeAsciiString(wbuf, key.signalName);
+        wbuf.putVarLong(key.validStartTime);
     }
     
 
@@ -84,10 +85,11 @@ class MVObsSeriesKeyByDataStreamDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
-        long dataStreamID = DataUtils.readVarLong(buff);
-        long foiID = DataUtils.readVarLong(buff);
-        Instant resultTime = H2Utils.readInstant(buff);        
-        return new MVTimeSeriesKey(dataStreamID, foiID, resultTime);
+        long internalID = DataUtils.readVarLong(buff);
+        long procID = DataUtils.readVarLong(buff);
+        String outputName = H2Utils.readAsciiString(buff);
+        long validStartTime = DataUtils.readVarLong(buff);        
+        return new MVTimeSeriesProcKey(internalID, procID, outputName, validStartTime);
     }
     
 
@@ -95,7 +97,7 @@ class MVObsSeriesKeyByDataStreamDataType implements DataType
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
     {
         for (int i=0; i<len; i++)
-            obj[i] = read(buff);
+            obj[i] = read(buff);        
     }
 
 }

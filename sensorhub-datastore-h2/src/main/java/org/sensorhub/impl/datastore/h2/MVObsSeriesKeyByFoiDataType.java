@@ -30,8 +30,8 @@ class MVObsSeriesKeyByFoiDataType extends MVObsSeriesKeyByDataStreamDataType
     @Override
     public int compare(Object objA, Object objB)
     {
-        MVObsSeriesKey a = (MVObsSeriesKey)objA;
-        MVObsSeriesKey b = (MVObsSeriesKey)objB;
+        MVTimeSeriesKey a = (MVTimeSeriesKey)objA;
+        MVTimeSeriesKey b = (MVTimeSeriesKey)objB;
         
         // first compare FOI IDs
         int comp = Long.compare(a.foiID, b.foiID);

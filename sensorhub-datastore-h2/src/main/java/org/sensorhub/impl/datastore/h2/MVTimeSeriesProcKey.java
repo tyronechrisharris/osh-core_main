@@ -14,27 +14,40 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.time.Instant;
 import org.sensorhub.utils.ObjectUtils;
+import org.vast.util.Asserts;
+
 
 /**
  * <p>
- * Information about an observation series.<br/>
- * We also store procedure UID and FOI UID so we can reconstruct observation
- * keys when scanning observations.
+ * Immutable key object used to index a datastream or command stream by its
+ * parent procedure ID and output/control input name.
  * </p>
  *
  * @author Alex Robin
- * @date Sep 12, 2019
+ * @since Sep 19, 2019
  */
-class MVObsSeriesInfo
-{
-    transient MVObsSeriesKey key;
-    long id = 0;
-        
+class MVTimeSeriesProcKey
+{    
+    long internalID;
+    long procedureID;
+    String signalName;
+    long validStartTime; // seconds past unix epoch
     
-    MVObsSeriesInfo(long id)
-    {
-        this.id = id;
+    
+    MVTimeSeriesProcKey(long procID, String outputName, Instant validStartTime)
+    {        
+        this(0, procID, outputName, validStartTime.getEpochSecond());
+    }
+    
+    
+    MVTimeSeriesProcKey(long internalID, long procID, String signalName, long validStartTime)
+    {        
+        this.internalID = internalID;
+        this.procedureID = procID;
+        this.signalName = Asserts.checkNotNull(signalName, "signalName");
+        this.validStartTime = validStartTime;
     }
 
 

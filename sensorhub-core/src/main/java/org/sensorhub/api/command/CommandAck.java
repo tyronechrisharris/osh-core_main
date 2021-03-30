@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.command;
 
 import java.time.Instant;
+import org.vast.util.Asserts;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -34,41 +35,36 @@ public class CommandAck implements ICommandAck
     protected Exception error;
     
     
-    protected CommandAck(ICommandData cmd, CommandStatusCode statusCode)
-    {
-        this(cmd, statusCode, Instant.now());
-    }
-    
-    
     protected CommandAck(ICommandData cmd, CommandStatusCode statusCode, Instant actuationTime)
     {
-        this.command = cmd;
-        this.statusCode = statusCode;
+        this.command = Asserts.checkNotNull(cmd, ICommandData.class);
+        this.statusCode = Asserts.checkNotNull(statusCode, CommandStatusCode.class);
         this.actuationTime = actuationTime;        
     }
     
     
     public static ICommandAck success(ICommandData cmd)
     {
-        return new CommandAck(cmd, CommandStatusCode.SUCCESS);
+        return new CommandAck(cmd, CommandStatusCode.SUCCESS, Instant.now());
     }
     
     
     public static ICommandAck success(ICommandData cmd, Instant actuationTime)
     {
+        Asserts.checkNotNull(actuationTime, "actuationTime");
         return new CommandAck(cmd, CommandStatusCode.SUCCESS, actuationTime);
     }
     
     
     public static ICommandAck fail(ICommandData cmd)
     {
-        return new CommandAck(cmd, CommandStatusCode.FAILED);
+        return new CommandAck(cmd, CommandStatusCode.FAILED, null);
     }
     
     
     public static ICommandAck fail(ICommandData cmd, Exception error)
     {
-        var ack = new CommandAck(cmd, CommandStatusCode.FAILED);
+        var ack = new CommandAck(cmd, CommandStatusCode.FAILED, null);
         ack.error = error;
         return ack;
     }

@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
@@ -23,49 +22,39 @@ import org.h2.mvstore.type.DataType;
 
 /**
  * <p>
- * H2 DataType implementation to index observations by series ID, then 
- * phenomenon time.
+ * H2 DataType implementation to serialize/deserialize ObsSeriesInfo objects
  * </p>
  *
  * @author Alex Robin
- * @date Sep 12, 2019
+ * @date Sep 13, 2019
  */
-class MVObsKeyDataType implements DataType
+public class MVTimeSeriesInfoDataType implements DataType
 {
-    private static final int MEM_SIZE = 8+12; // long ID + instant
+    private static final int MEM_SIZE = 8; // long ID
     
     
     @Override
-    public int compare(Object objA, Object objB)
+    public int compare(Object a, Object b)
     {
-        MVObsKey a = (MVObsKey)objA;
-        MVObsKey b = (MVObsKey)objB;
-        
-        // first compare series IDs
-        int comp = Long.compare(a.seriesID, b.seriesID);
-        if (comp != 0)
-            return comp;
-        
-        // if series IDs are equal, compare time stamps
-        return a.getPhenomenonTime().compareTo(b.getPhenomenonTime());
+        // not used as index
+        return 0;
     }
-    
+
 
     @Override
     public int getMemory(Object obj)
     {
         return MEM_SIZE;
     }
-    
+
 
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        MVObsKey key = (MVObsKey)obj;
-        wbuf.putVarLong(key.seriesID);
-        H2Utils.writeInstant(wbuf, key.getPhenomenonTime());
+        MVTimeSeriesInfo info = (MVTimeSeriesInfo)obj;
+        wbuf.putVarLong(info.id);
     }
-    
+
 
     @Override
     public void write(WriteBuffer wbuf, Object[] obj, int len, boolean key)
@@ -73,22 +62,21 @@ class MVObsKeyDataType implements DataType
         for (int i=0; i<len; i++)
             write(wbuf, obj[i]);
     }
-    
+
 
     @Override
     public Object read(ByteBuffer buff)
     {
-        long seriesID = DataUtils.readVarLong(buff);
-        Instant phenomenonTime = H2Utils.readInstant(buff);        
-        return new MVObsKey(seriesID, phenomenonTime);
+        long id = DataUtils.readVarLong(buff);
+        return new MVTimeSeriesInfo(id);
     }
-    
+
 
     @Override
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
     {
         for (int i=0; i<len; i++)
-            obj[i] = read(buff);        
+            obj[i] = read(buff);
     }
 
 }

@@ -22,39 +22,49 @@ import org.h2.mvstore.type.DataType;
 
 /**
  * <p>
- * H2 DataType implementation to serialize/deserialize ObsSeriesInfo objects
+ * H2 DataType implementation to index command series by datastream ID,
+ * then receiver ID;
  * </p>
  *
  * @author Alex Robin
- * @date Sep 13, 2019
+ * @date Mar 25, 2021
  */
-public class MVObsSeriesInfoDataType implements DataType
+class MVCommandSeriesKeyByCommandStreamDataType implements DataType
 {
-    private static final int MEM_SIZE = 8; // long ID
+    private static final int MEM_SIZE = 8+8; // long ID, long receiver ID
     
     
     @Override
-    public int compare(Object a, Object b)
+    public int compare(Object objA, Object objB)
     {
-        // not used as index
-        return 0;
+        MVTimeSeriesKey a = (MVTimeSeriesKey)objA;
+        MVTimeSeriesKey b = (MVTimeSeriesKey)objB;
+        
+        // first compare datastream IDs
+        int comp = Long.compare(a.dataStreamID, b.dataStreamID);
+        if (comp != 0)
+            return comp;
+        
+        // if IDs are equal, compare receiver IDs
+        return Long.compare(a.foiID, b.foiID);
     }
-
+    
 
     @Override
     public int getMemory(Object obj)
     {
         return MEM_SIZE;
     }
-
+    
 
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        MVObsSeriesInfo info = (MVObsSeriesInfo)obj;
-        wbuf.putVarLong(info.id);
+        MVTimeSeriesKey key = (MVTimeSeriesKey)obj;
+        wbuf.putVarLong(key.dataStreamID);
+        wbuf.putVarLong(key.foiID);
     }
-
+    
 
     @Override
     public void write(WriteBuffer wbuf, Object[] obj, int len, boolean key)
@@ -62,15 +72,16 @@ public class MVObsSeriesInfoDataType implements DataType
         for (int i=0; i<len; i++)
             write(wbuf, obj[i]);
     }
-
+    
 
     @Override
     public Object read(ByteBuffer buff)
     {
-        long id = DataUtils.readVarLong(buff);
-        return new MVObsSeriesInfo(id);
+        long dataStreamID = DataUtils.readVarLong(buff);
+        long receiverID = DataUtils.readVarLong(buff);       
+        return new MVTimeSeriesKey(dataStreamID, receiverID);
     }
-
+    
 
     @Override
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)

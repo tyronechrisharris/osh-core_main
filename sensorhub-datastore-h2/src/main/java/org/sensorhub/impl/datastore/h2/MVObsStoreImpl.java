@@ -80,9 +80,9 @@ public class MVObsStoreImpl implements IObsStore
     protected MVStore mvStore;
     protected MVDataStoreInfo dataStoreInfo;
     protected MVDataStreamStoreImpl dataStreamStore;
-    protected MVBTreeMap<MVObsKey, IObsData> obsRecordsIndex;
-    protected MVBTreeMap<MVObsSeriesKey, MVObsSeriesInfo> obsSeriesMainIndex;
-    protected MVBTreeMap<MVObsSeriesKey, Boolean> obsSeriesByFoiIndex;
+    protected MVBTreeMap<MVTimeSeriesRecordKey, IObsData> obsRecordsIndex;
+    protected MVBTreeMap<MVTimeSeriesKey, MVTimeSeriesInfo> obsSeriesMainIndex;
+    protected MVBTreeMap<MVTimeSeriesKey, Boolean> obsSeriesByFoiIndex;
     
     protected IFoiStore foiStore;
     protected int maxSelectedSeriesOnJoin = 200;
@@ -146,18 +146,18 @@ public class MVObsStoreImpl implements IObsStore
                         
         // open observation map
         String mapName = OBS_RECORDS_MAP_NAME + ":" + dataStoreInfo.name;
-        this.obsRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVObsKey, IObsData>()
-                .keyType(new MVObsKeyDataType())
+        this.obsRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, IObsData>()
+                .keyType(new MVTimeSeriesRecordKeyDataType())
                 .valueType(new MVObsDataType()));
         
         // open observation series map
         mapName = OBS_SERIES_MAP_NAME + ":" + dataStoreInfo.name;
-        this.obsSeriesMainIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVObsSeriesKey, MVObsSeriesInfo>()
+        this.obsSeriesMainIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesKey, MVTimeSeriesInfo>()
                 .keyType(new MVObsSeriesKeyByDataStreamDataType())
-                .valueType(new MVObsSeriesInfoDataType()));
+                .valueType(new MVTimeSeriesInfoDataType()));
         
         mapName = OBS_SERIES_FOI_MAP_NAME + ":" + dataStoreInfo.name;
-        this.obsSeriesByFoiIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVObsSeriesKey, Boolean>()
+        this.obsSeriesByFoiIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesKey, Boolean>()
                 .keyType(new MVObsSeriesKeyByFoiDataType())
                 .valueType(new MVVoidDataType()));
         
@@ -186,11 +186,11 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<MVObsSeriesInfo> getAllObsSeries(Range<Instant> resultTimeRange)
+    Stream<MVTimeSeriesInfo> getAllObsSeries(Range<Instant> resultTimeRange)
     {
-        MVObsSeriesKey first = new MVObsSeriesKey(0, 0, resultTimeRange.lowerEndpoint());
-        MVObsSeriesKey last = new MVObsSeriesKey(Long.MAX_VALUE, Long.MAX_VALUE, resultTimeRange.upperEndpoint());        
-        RangeCursor<MVObsSeriesKey, MVObsSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
+        MVTimeSeriesKey first = new MVTimeSeriesKey(0, 0, resultTimeRange.lowerEndpoint());
+        MVTimeSeriesKey last = new MVTimeSeriesKey(Long.MAX_VALUE, Long.MAX_VALUE, resultTimeRange.upperEndpoint());        
+        RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
         
         return cursor.entryStream()
             .filter(e -> resultTimeRange.contains(e.getKey().resultTime))
@@ -201,39 +201,39 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<MVObsSeriesInfo> getObsSeriesByDataStream(long dataStreamID, Range<Instant> resultTimeRange, boolean latestResultOnly)
+    Stream<MVTimeSeriesInfo> getObsSeriesByDataStream(long dataStreamID, Range<Instant> resultTimeRange, boolean latestResultOnly)
     {
         // special case when latest result is requested
         if (latestResultOnly)
         {
-            MVObsSeriesKey key = new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
-            MVObsSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
+            MVTimeSeriesKey key = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
+            MVTimeSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
             if (lastKey.dataStreamID != dataStreamID)
                 return null;
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
        
         // scan series for all FOIs of the selected procedure and result times
-        MVObsSeriesKey first = new MVObsSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
-        MVObsSeriesKey last = new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
-        RangeCursor<MVObsSeriesKey, MVObsSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
+        MVTimeSeriesKey first = new MVTimeSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
+        MVTimeSeriesKey last = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
+        RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
         
         return cursor.entryStream()
             .map(e -> {
-                MVObsSeriesInfo series = e.getValue();
+                MVTimeSeriesInfo series = e.getValue();
                 series.key = e.getKey();
                 return series;
             });
     }
     
     
-    Stream<MVObsSeriesInfo> getObsSeriesByFoi(long foiID, Range<Instant> resultTimeRange, boolean latestResultOnly)
+    Stream<MVTimeSeriesInfo> getObsSeriesByFoi(long foiID, Range<Instant> resultTimeRange, boolean latestResultOnly)
     {
         // special case when latest result is requested
         if (latestResultOnly)
         {
-            MVObsSeriesKey key = new MVObsSeriesKey(Long.MAX_VALUE, foiID, Instant.MAX);
-            MVObsSeriesKey lastKey = obsSeriesByFoiIndex.floorKey(key);
+            MVTimeSeriesKey key = new MVTimeSeriesKey(Long.MAX_VALUE, foiID, Instant.MAX);
+            MVTimeSeriesKey lastKey = obsSeriesByFoiIndex.floorKey(key);
             if (lastKey.foiID != foiID)
                 return null;
             resultTimeRange = Range.singleton(lastKey.resultTime);
@@ -241,55 +241,55 @@ public class MVObsStoreImpl implements IObsStore
        
         // scan series for all procedures that produced observations of the selected FOI
         final Range<Instant> finalResultTimeRange = resultTimeRange;
-        MVObsSeriesKey first = new MVObsSeriesKey(0, foiID, resultTimeRange.lowerEndpoint());
-        MVObsSeriesKey last = new MVObsSeriesKey(Long.MAX_VALUE, foiID, resultTimeRange.upperEndpoint());
-        RangeCursor<MVObsSeriesKey, Boolean> cursor = new RangeCursor<>(obsSeriesByFoiIndex, first, last);
+        MVTimeSeriesKey first = new MVTimeSeriesKey(0, foiID, resultTimeRange.lowerEndpoint());
+        MVTimeSeriesKey last = new MVTimeSeriesKey(Long.MAX_VALUE, foiID, resultTimeRange.upperEndpoint());
+        RangeCursor<MVTimeSeriesKey, Boolean> cursor = new RangeCursor<>(obsSeriesByFoiIndex, first, last);
         
         return cursor.keyStream()
             .filter(k -> finalResultTimeRange.test(k.resultTime))
             .map(k -> {
-                MVObsSeriesInfo series = obsSeriesMainIndex.get(k);
+                MVTimeSeriesInfo series = obsSeriesMainIndex.get(k);
                 series.key = k;
                 return series;
             });
     }
     
     
-    Stream<MVObsSeriesInfo> getObsSeriesByDataStreamAndFoi(long dataStreamID, long foiID, Range<Instant> resultTimeRange, boolean latestResultOnly)
+    Stream<MVTimeSeriesInfo> getObsSeriesByDataStreamAndFoi(long dataStreamID, long foiID, Range<Instant> resultTimeRange, boolean latestResultOnly)
     {
         // special case when latest result is requested
         if (latestResultOnly)
         {
-            MVObsSeriesKey key = new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
-            MVObsSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
+            MVTimeSeriesKey key = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
+            MVTimeSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
             if (lastKey.dataStreamID != dataStreamID)
                 return null;
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
        
         // scan series for all FOIs of the selected procedure and result times
-        MVObsSeriesKey first = new MVObsSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
-        MVObsSeriesKey last = new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
-        RangeCursor<MVObsSeriesKey, MVObsSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
+        MVTimeSeriesKey first = new MVTimeSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
+        MVTimeSeriesKey last = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
+        RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
         
         return cursor.entryStream()
             .map(e -> {
-                MVObsSeriesInfo series = e.getValue();
+                MVTimeSeriesInfo series = e.getValue();
                 series.key = e.getKey();
                 return series;
             });
     }
     
     
-    RangeCursor<MVObsKey, IObsData> getObsCursor(long seriesID, Range<Instant> phenomenonTimeRange)
+    RangeCursor<MVTimeSeriesRecordKey, IObsData> getObsCursor(long seriesID, Range<Instant> phenomenonTimeRange)
     {
-        MVObsKey first = new MVObsKey(seriesID, phenomenonTimeRange.lowerEndpoint());
-        MVObsKey last = new MVObsKey(seriesID, phenomenonTimeRange.upperEndpoint());        
+        MVTimeSeriesRecordKey first = new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.lowerEndpoint());
+        MVTimeSeriesRecordKey last = new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.upperEndpoint());        
         return new RangeCursor<>(obsRecordsIndex, first, last);
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsStream(MVObsSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean currentTimeOnly, boolean latestResultOnly)
+    Stream<Entry<BigInteger, IObsData>> getObsStream(MVTimeSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean currentTimeOnly, boolean latestResultOnly)
     {
         // if series is a special case where all obs have resultTime = phenomenonTime
         if (series.key.resultTime == Instant.MIN)
@@ -298,8 +298,8 @@ public class MVObsStoreImpl implements IObsStore
             // phenomenon time right before current time
             if (currentTimeOnly)
             {
-                MVObsKey maxKey = new MVObsKey(series.id, Instant.now());      
-                Entry<MVObsKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
+                MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.now());      
+                Entry<MVTimeSeriesRecordKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
                 if (e.getKey().seriesID == series.id)
                     return Stream.of(mapToPublicEntry(e));
                 else
@@ -309,8 +309,8 @@ public class MVObsStoreImpl implements IObsStore
             // if request if for latest result only, get only the latest obs in series
             if (latestResultOnly)
             {
-                MVObsKey maxKey = new MVObsKey(series.id, Instant.MAX);      
-                Entry<MVObsKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
+                MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.MAX);      
+                Entry<MVTimeSeriesRecordKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
                 if (e.getKey().seriesID == series.id)
                     return Stream.of(mapToPublicEntry(e));
                 else
@@ -323,7 +323,7 @@ public class MVObsStoreImpl implements IObsStore
         
         // scan using a cursor on main obs index
         // recreating full entries in the process
-        RangeCursor<MVObsKey, IObsData> cursor = getObsCursor(series.id, phenomenonTimeRange);
+        RangeCursor<MVTimeSeriesRecordKey, IObsData> cursor = getObsCursor(series.id, phenomenonTimeRange);
         return cursor.entryStream()
             .map(e -> {
                 return mapToPublicEntry(e);
@@ -331,17 +331,17 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    BigInteger mapToPublicKey(MVObsKey internalKey)
+    BigInteger mapToPublicKey(MVTimeSeriesRecordKey internalKey)
     {
         // compute internal ID
         WriteBuffer buf = new WriteBuffer(24); // seriesID + timestamp seconds + nanos
         DataUtils.writeVarLong(buf.getBuffer(), internalKey.getSeriesID());
-        H2Utils.writeInstant(buf, internalKey.getPhenomenonTime());
+        H2Utils.writeInstant(buf, internalKey.getTimeStamp());
         return new BigInteger(buf.getBuffer().array(), 0, buf.position());
     }
     
     
-    MVObsKey mapToInternalKey(Object keyObj)
+    MVTimeSeriesRecordKey mapToInternalKey(Object keyObj)
     {
         Asserts.checkArgument(keyObj instanceof BigInteger, "key must be a BigInteger");
         BigInteger key = (BigInteger)keyObj;
@@ -353,7 +353,7 @@ public class MVObsStoreImpl implements IObsStore
             long seriesID = DataUtils.readVarLong(buf);
             Instant phenomenonTime = H2Utils.readInstant(buf);
             
-            return new MVObsKey(seriesID, phenomenonTime);
+            return new MVTimeSeriesRecordKey(seriesID, phenomenonTime);
         }
         catch (Exception e)
         {
@@ -363,7 +363,7 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Entry<BigInteger, IObsData> mapToPublicEntry(Entry<MVObsKey, IObsData> internalEntry)
+    Entry<BigInteger, IObsData> mapToPublicEntry(Entry<MVTimeSeriesRecordKey, IObsData> internalEntry)
     {
         BigInteger obsID = mapToPublicKey(internalEntry.getKey());
         return new DataUtils.MapEntry<>(obsID, internalEntry.getValue());
@@ -373,10 +373,10 @@ public class MVObsStoreImpl implements IObsStore
     /*
      * Select all obs series matching the filter
      */
-    protected Stream<MVObsSeriesInfo> selectObsSeries(ObsFilter filter, TimeParams timeParams)
+    protected Stream<MVTimeSeriesInfo> selectObsSeries(ObsFilter filter, TimeParams timeParams)
     {
         // otherwise prepare stream of matching obs series
-        Stream<MVObsSeriesInfo> obsSeries = null;
+        Stream<MVTimeSeriesInfo> obsSeries = null;
         
         // if no datastream nor FOI filter used, scan all obs
         if (filter.getDataStreamFilter() == null && filter.getFoiFilter() == null)
@@ -518,8 +518,8 @@ public class MVObsStoreImpl implements IObsStore
     
     TimeExtent getDataStreamResultTimeRange(long dataStreamID)
     {
-        MVObsSeriesKey firstKey = obsSeriesMainIndex.ceilingKey(new MVObsSeriesKey(dataStreamID, 0, Instant.MIN));
-        MVObsSeriesKey lastKey = obsSeriesMainIndex.floorKey(new MVObsSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX));
+        MVTimeSeriesKey firstKey = obsSeriesMainIndex.ceilingKey(new MVTimeSeriesKey(dataStreamID, 0, Instant.MIN));
+        MVTimeSeriesKey lastKey = obsSeriesMainIndex.floorKey(new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX));
         
         if (firstKey == null || lastKey == null)
             return null;
@@ -535,13 +535,13 @@ public class MVObsStoreImpl implements IObsStore
         Instant[] timeRange = new Instant[] {Instant.MAX, Instant.MIN};
         getObsSeriesByDataStream(dataStreamID, H2Utils.ALL_TIMES_RANGE, false)
             .forEach(s -> {
-                MVObsKey firstKey = obsRecordsIndex.ceilingKey(new MVObsKey(s.id, Instant.MIN));
-                MVObsKey lastKey = obsRecordsIndex.floorKey(new MVObsKey(s.id, Instant.MAX));
+                MVTimeSeriesRecordKey firstKey = obsRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(s.id, Instant.MIN));
+                MVTimeSeriesRecordKey lastKey = obsRecordsIndex.floorKey(new MVTimeSeriesRecordKey(s.id, Instant.MAX));
                 
-                if (firstKey != null && timeRange[0].isAfter(firstKey.phenomenonTime))
-                    timeRange[0] = firstKey.phenomenonTime;
-                if (lastKey != null && timeRange[1].isBefore(lastKey.phenomenonTime))
-                    timeRange[1] = lastKey.phenomenonTime;
+                if (firstKey != null && timeRange[0].isAfter(firstKey.timeStamp))
+                    timeRange[0] = firstKey.timeStamp;
+                if (lastKey != null && timeRange[1].isBefore(lastKey.timeStamp))
+                    timeRange[1] = lastKey.timeStamp;
             });
         
         if (timeRange[0] == Instant.MAX || timeRange[1] == Instant.MIN)
@@ -553,16 +553,16 @@ public class MVObsStoreImpl implements IObsStore
     
     Range<Instant> getObsSeriesPhenomenonTimeRange(long seriesID)
     {
-        MVObsKey firstKey = obsRecordsIndex.ceilingKey(new MVObsKey(seriesID, Instant.MIN));
-        MVObsKey lastKey = obsRecordsIndex.floorKey(new MVObsKey(seriesID, Instant.MAX));
-        return Range.closed(firstKey.phenomenonTime, lastKey.phenomenonTime);
+        MVTimeSeriesRecordKey firstKey = obsRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, Instant.MIN));
+        MVTimeSeriesRecordKey lastKey = obsRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, Instant.MAX));
+        return Range.closed(firstKey.timeStamp, lastKey.timeStamp);
     }
     
     
     long getObsSeriesCount(long seriesID, Range<Instant> phenomenonTimeRange)
     {
-        MVObsKey firstKey = obsRecordsIndex.ceilingKey(new MVObsKey(seriesID, phenomenonTimeRange.lowerEndpoint()));
-        MVObsKey lastKey = obsRecordsIndex.floorKey(new MVObsKey(seriesID, phenomenonTimeRange.upperEndpoint()));
+        MVTimeSeriesRecordKey firstKey = obsRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.lowerEndpoint()));
+        MVTimeSeriesRecordKey lastKey = obsRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.upperEndpoint()));
         return obsRecordsIndex.getKeyIndex(lastKey) - obsRecordsIndex.getKeyIndex(firstKey);
     }
     
@@ -579,11 +579,11 @@ public class MVObsStoreImpl implements IObsStore
         for (int i = 0; i < counts.length; i++)
         {
             var beginBin = Instant.ofEpochSecond(t);
-            MVObsKey k1 = obsRecordsIndex.ceilingKey(new MVObsKey(seriesID, beginBin));
+            MVTimeSeriesRecordKey k1 = obsRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, beginBin));
             
             t += dt;
             var endBin = Instant.ofEpochSecond(t);
-            MVObsKey k2 = obsRecordsIndex.floorKey(new MVObsKey(seriesID, endBin));
+            MVTimeSeriesRecordKey k2 = obsRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, endBin));
             
             if (k1 != null && k2 != null && k1.seriesID == seriesID && k2.seriesID == seriesID)
             {
@@ -597,7 +597,7 @@ public class MVObsStoreImpl implements IObsStore
                     int count = (int)(idx2-idx1);
                     
                     // need to add one unless end of bin falls exactly on a key 
-                    if (!endBin.equals(k2.phenomenonTime))
+                    if (!endBin.equals(k2.timeStamp))
                         count++;
                     
                     counts[i] = count;
@@ -712,7 +712,7 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public boolean containsKey(Object key)
     {
-        MVObsKey obsKey = mapToInternalKey(key);
+        MVTimeSeriesRecordKey obsKey = mapToInternalKey(key);
         return obsKey == null ? false : obsRecordsIndex.containsKey(obsKey);
     }
 
@@ -727,7 +727,7 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public IObsData get(Object key)
     {
-        MVObsKey obsKey = mapToInternalKey(key);
+        MVTimeSeriesRecordKey obsKey = mapToInternalKey(key);
         return obsKey == null ? null : obsRecordsIndex.get(obsKey);
     }
 
@@ -747,7 +747,7 @@ public class MVObsStoreImpl implements IObsStore
             public Iterator<Entry<BigInteger, IObsData>> iterator() {
                 return getAllObsSeries(H2Utils.ALL_TIMES_RANGE)
                     .flatMap(series -> {
-                        RangeCursor<MVObsKey, IObsData> cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
+                        RangeCursor<MVTimeSeriesRecordKey, IObsData> cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
                         return cursor.entryStream().map(e -> {
                             return mapToPublicEntry(e);
                         });
@@ -775,7 +775,7 @@ public class MVObsStoreImpl implements IObsStore
             public Iterator<BigInteger> iterator() {
                 return getAllObsSeries(H2Utils.ALL_TIMES_RANGE)
                     .flatMap(series -> {
-                        RangeCursor<MVObsKey, IObsData> cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
+                        RangeCursor<MVTimeSeriesRecordKey, IObsData> cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
                         return cursor.keyStream().map(e -> {
                             return mapToPublicKey(e);
                         });
@@ -809,22 +809,22 @@ public class MVObsStoreImpl implements IObsStore
             
             try
             {
-                MVObsSeriesKey seriesKey = new MVObsSeriesKey(
+                MVTimeSeriesKey seriesKey = new MVTimeSeriesKey(
                     obs.getDataStreamID(),
                     obs.getFoiID() == null ? 0 : obs.getFoiID().getInternalID(),
                     obs.getResultTime().equals(obs.getPhenomenonTime()) ? Instant.MIN : obs.getResultTime());
                 
-                MVObsSeriesInfo series = obsSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
+                MVTimeSeriesInfo series = obsSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
                     // also update the FOI to procedure mapping if needed
                     if (obs.getFoiID() != null)
                         obsSeriesByFoiIndex.putIfAbsent(seriesKey, Boolean.TRUE);
                     
-                    return new MVObsSeriesInfo(
+                    return new MVTimeSeriesInfo(
                         obsRecordsIndex.isEmpty() ? 1 : obsRecordsIndex.lastKey().seriesID + 1);
                 });
                 
                 // add to main obs index
-                MVObsKey obsKey = new MVObsKey(series.id, obs.getPhenomenonTime());
+                MVTimeSeriesRecordKey obsKey = new MVTimeSeriesRecordKey(series.id, obs.getPhenomenonTime());
                 obsRecordsIndex.put(obsKey, obs);
                 
                 return mapToPublicKey(obsKey);
@@ -848,7 +848,7 @@ public class MVObsStoreImpl implements IObsStore
             
             try
             {
-                MVObsKey obsKey = mapToInternalKey(key);
+                MVTimeSeriesRecordKey obsKey = mapToInternalKey(key);
                 IObsData oldObs = obsRecordsIndex.replace(obsKey, obs);
                 if (oldObs == null)
                     throw new UnsupportedOperationException("put can only be used to update existing keys");
@@ -873,7 +873,7 @@ public class MVObsStoreImpl implements IObsStore
             
             try
             {
-                MVObsKey key = mapToInternalKey(keyObj);
+                MVTimeSeriesRecordKey key = mapToInternalKey(keyObj);
                 IObsData oldObs = obsRecordsIndex.remove(key);
                 
                 // don't check and remove empty obs series here since in many cases they will be reused.
@@ -893,15 +893,15 @@ public class MVObsStoreImpl implements IObsStore
     protected void removeAllObsAndSeries(long datastreamID)
     {
         // remove all series and obs
-        MVObsSeriesKey first = new MVObsSeriesKey(datastreamID, 0, Instant.MIN);
-        MVObsSeriesKey last = new MVObsSeriesKey(datastreamID, Long.MAX_VALUE, Instant.MAX);
+        MVTimeSeriesKey first = new MVTimeSeriesKey(datastreamID, 0, Instant.MIN);
+        MVTimeSeriesKey last = new MVTimeSeriesKey(datastreamID, Long.MAX_VALUE, Instant.MAX);
         
         new RangeCursor<>(obsSeriesMainIndex, first, last).entryStream().forEach(entry -> {
 
             // remove all obs in series
             var seriesId = entry.getValue().id;
-            MVObsKey k1 = new MVObsKey(seriesId, Instant.MIN);
-            MVObsKey k2 = new MVObsKey(seriesId, Instant.MAX);
+            MVTimeSeriesRecordKey k1 = new MVTimeSeriesRecordKey(seriesId, Instant.MIN);
+            MVTimeSeriesRecordKey k2 = new MVTimeSeriesRecordKey(seriesId, Instant.MAX);
             new RangeCursor<>(obsRecordsIndex, k1, k2).keyStream().forEach(k -> {
                 obsRecordsIndex.remove(k);
             });

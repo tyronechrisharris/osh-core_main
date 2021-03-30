@@ -43,7 +43,8 @@ public interface ICommandAck extends ICommandData
     /**
      * @return Time at which the command was executed and resulted in
      * a change to the receiver or its environment (e.g. actuation, other
-     * action on the outside world, change of parameters of process, etc.)
+     * action on the outside world, change of parameters of process, etc.).
+     * Null if execution of the command failed.
      */
     Instant getActuationTime();
 

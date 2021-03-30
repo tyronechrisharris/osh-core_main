@@ -14,29 +14,33 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.time.Instant;
+import org.sensorhub.utils.ObjectUtils;
 
 /**
  * <p>
- * Key to index observation series.<br/>
- * Each series corresponds to a combination of procedure ID, result time
- * and FOI ID.
+ * Information about an observation/command time series.<br/>
+ * It includes the key of the series so we can reconstruct full observation
+ * and command keys when scanning entries.
  * </p>
  *
  * @author Alex Robin
  * @date Sep 12, 2019
  */
-class MVObsSeriesKey
+class MVTimeSeriesInfo
 {
-    long dataStreamID;
-    long foiID;
-    Instant resultTime; // Instant.MIN if resultTime=phenomenonTime for all obs in series
+    transient MVTimeSeriesKey key;
+    long id = 0;
+        
     
-    
-    MVObsSeriesKey(long dataStreamID, long foiID, Instant resultTime)
+    MVTimeSeriesInfo(long id)
     {
-        this.dataStreamID = dataStreamID;
-        this.foiID = foiID;
-        this.resultTime = resultTime;
+        this.id = id;
+    }
+
+
+    @Override
+    public String toString()
+    {
+        return ObjectUtils.toString(this, true);
     }
 }

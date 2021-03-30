@@ -20,6 +20,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -47,6 +48,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     MVProcedureStoreImpl procStore;
     MVObsStoreImpl obsStore;
     MVFoiStoreImpl foiStore;
+    MVCommandStoreImpl cmdStore;
     
     
     @Override
@@ -158,6 +160,14 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     {
         checkStarted();
         return foiStore;
+    }
+
+
+    @Override
+    public ICommandStore getCommandStore()
+    {
+        checkStarted();
+        return cmdStore;
     }
 
 

@@ -15,46 +15,35 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.time.Instant;
-import org.sensorhub.utils.ObjectUtils;
-
 
 /**
  * <p>
- * Internal Observation key used to index observations by series ID.<br/>
- * The full ObsKey is reconstructed when the series info is set.
+ * Key to index observation and command series.<br/>
+ * Each series corresponds to a combination of procedure ID, result time
+ * and FOI ID.
  * </p>
  *
  * @author Alex Robin
  * @date Sep 12, 2019
  */
-class MVObsKey
+class MVTimeSeriesKey
 {
-    protected long seriesID;
-    protected Instant phenomenonTime = null;
+    long dataStreamID;
+    long foiID;
+    Instant resultTime; // Instant.MIN if resultTime=phenomenonTime for all obs in series
     
     
-    MVObsKey(long seriesID, Instant phenomenonTime)
+    MVTimeSeriesKey(long dataStreamID, long foiID, Instant resultTime)
     {
-        this.seriesID = seriesID;
-        this.phenomenonTime = phenomenonTime;        
+        this.dataStreamID = dataStreamID;
+        this.foiID = foiID;
+        this.resultTime = resultTime;
     }
-
-
-    public long getSeriesID()
+    
+    
+    MVTimeSeriesKey(long commandStreamID, long receiverID)
     {
-        return seriesID;
-    }
-
-
-    public Instant getPhenomenonTime()
-    {
-        return phenomenonTime;
-    }
-
-
-    @Override
-    public String toString()
-    {
-        return ObjectUtils.toString(this, true);
+        this.dataStreamID = commandStreamID;
+        this.foiID = receiverID;
     }
 }

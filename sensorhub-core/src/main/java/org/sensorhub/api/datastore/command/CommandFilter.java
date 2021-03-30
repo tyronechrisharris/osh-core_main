@@ -113,7 +113,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
     public boolean testActuationTime(ICommandAck cmd)
     {
         return (actuationTime == null ||
-                actuationTime.test(cmd.getActuationTime()));
+                (cmd.getActuationTime() != null && actuationTime.test(cmd.getActuationTime())));
     }
     
     
@@ -342,7 +342,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
          * @param end End of desired period
          * @return This builder for chaining
          */
-        public B withResultTimeDuring(Instant begin, Instant end)
+        public B withIssueTimeDuring(Instant begin, Instant end)
         {
             return withIssueTime(new TemporalFilter.Builder()
                     .withRange(begin, end)
@@ -354,7 +354,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
          * Keep only commands with the latest issue time.
          * @return This builder for chaining
          */
-        public B withLatestResult()
+        public B withLatestIssued()
         {
             return withIssueTime(new TemporalFilter.Builder()
                 .withLatestTime().build());

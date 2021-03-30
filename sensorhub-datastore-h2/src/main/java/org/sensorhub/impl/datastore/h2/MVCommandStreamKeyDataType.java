@@ -15,44 +15,31 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.nio.ByteBuffer;
-import java.time.Instant;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
+import org.sensorhub.api.datastore.command.CommandStreamKey;
 
 
 /**
  * <p>
- * H2 DataType implementation to index observation series by datastream ID,
- * then result time, then foi ID.
+ * H2 DataType implementation for internal DataStream key objects
  * </p>
  *
  * @author Alex Robin
- * @date Sep 12, 2019
+ * @date Mar 26, 2021
  */
-class MVObsSeriesKeyByDataStreamDataType implements DataType
+class MVCommandStreamKeyDataType implements DataType
 {
-    private static final int MEM_SIZE = 8+12+8; // long ID + instant + long ID
+    private static final int MEM_SIZE = 8;
     
-    
+            
     @Override
     public int compare(Object objA, Object objB)
     {
-        MVTimeSeriesKey a = (MVTimeSeriesKey)objA;
-        MVTimeSeriesKey b = (MVTimeSeriesKey)objB;
-        
-        // first compare datastream IDs
-        int comp = Long.compare(a.dataStreamID, b.dataStreamID);
-        if (comp != 0)
-            return comp;
-        
-        // if datastream IDs are the same, compare result time stamps
-        comp = a.resultTime.compareTo(b.resultTime);
-        if (comp != 0)
-            return comp;
-        
-        // if result times are equal, compare foi IDs
-        return Long.compare(a.foiID, b.foiID);
+        CommandStreamKey a = (CommandStreamKey)objA;
+        CommandStreamKey b = (CommandStreamKey)objB;        
+        return Long.compare(a.getInternalID(), b.getInternalID());
     }
     
 
@@ -66,10 +53,8 @@ class MVObsSeriesKeyByDataStreamDataType implements DataType
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        MVTimeSeriesKey key = (MVTimeSeriesKey)obj;
-        wbuf.putVarLong(key.dataStreamID);
-        wbuf.putVarLong(key.foiID);
-        H2Utils.writeInstant(wbuf, key.resultTime);
+        CommandStreamKey key = (CommandStreamKey)obj;
+        wbuf.putVarLong(key.getInternalID());
     }
     
 
@@ -84,10 +69,8 @@ class MVObsSeriesKeyByDataStreamDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
-        long dataStreamID = DataUtils.readVarLong(buff);
-        long foiID = DataUtils.readVarLong(buff);
-        Instant resultTime = H2Utils.readInstant(buff);        
-        return new MVTimeSeriesKey(dataStreamID, foiID, resultTime);
+        long internalID = DataUtils.readVarLong(buff);       
+        return new CommandStreamKey(internalID);
     }
     
 
@@ -95,7 +78,7 @@ class MVObsSeriesKeyByDataStreamDataType implements DataType
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
     {
         for (int i=0; i<len; i++)
-            obj[i] = read(buff);
+            obj[i] = read(buff);        
     }
 
 }
