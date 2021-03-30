@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.command;
 
 import java.time.Instant;
+import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import net.opengis.swe.v20.DataBlock;
 
@@ -112,5 +113,12 @@ public class CommandAck implements ICommandAck
     public DataBlock getParams()
     {
         return command.getParams();
+    }
+
+
+    @Override
+    public String toString()
+    {
+        return ObjectUtils.toString(this, true);
     }
 }

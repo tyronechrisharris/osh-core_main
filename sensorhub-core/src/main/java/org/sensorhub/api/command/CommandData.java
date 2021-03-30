@@ -16,6 +16,7 @@ package org.sensorhub.api.command;
 
 import java.time.Instant;
 import org.sensorhub.api.utils.OshAsserts;
+import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import net.opengis.swe.v20.DataBlock;
@@ -78,6 +79,13 @@ public class CommandData implements ICommandData
     public DataBlock getParams()
     {
         return params;
+    }
+
+
+    @Override
+    public String toString()
+    {
+        return ObjectUtils.toString(this, true);
     }
     
     
