@@ -40,6 +40,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
 
 
     @Test
+    @Override
     public void testGetNumRecordsOneDataStream() throws Exception
     {
         // add one command stream
@@ -54,6 +55,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
 
 
     @Test
+    @Override
     public void testGetNumRecordsTwoDataStreams() throws Exception
     {
         // add 2 command streams
@@ -94,6 +96,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     }
     
     
+    @Override
     protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandAck>> resultStream, Map<BigInteger, ICommandAck> expectedResults, CommandFilter filter)
     {
         // keep only latest command in expected results
@@ -102,6 +105,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     }
     
     
+    @Override
     protected void checkMapKeySet(Set<BigInteger> keySet)
     {
         var saveAllCommands = allCommands;
@@ -111,6 +115,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     }
     
     
+    @Override
     protected void checkGetCommands(int expectedNumObs) throws Exception
     {
         var saveAllCommands = allCommands;
@@ -122,6 +127,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     }
     
     
+    @Override
     protected void checkRemoveAllKeys()
     {
         var saveAllCommands = allCommands;
@@ -133,6 +139,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
 
 
     @Test
+    @Override
     public void testGetDatastoreName() throws Exception
     {
         assertEquals(InMemoryCommandStore.class.getSimpleName(), cmdStore.getDatastoreName());

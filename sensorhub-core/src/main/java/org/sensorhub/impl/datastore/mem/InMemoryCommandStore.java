@@ -245,7 +245,6 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
     public ICommandAck get(Object key)
     {
         var k = toInternalKey(key);
-        System.out.println(k);
         return map.get(k);
     }
 
