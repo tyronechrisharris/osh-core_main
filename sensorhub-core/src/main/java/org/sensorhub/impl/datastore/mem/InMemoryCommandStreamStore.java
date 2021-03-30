@@ -27,59 +27,61 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Stream;
+import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.obs.DataStreamFilter;
-import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.api.datastore.obs.IDataStreamStore;
-import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.CommandStreamFilter;
+import org.sensorhub.api.datastore.command.CommandStreamKey;
+import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.impl.datastore.DataStoreUtils;
-import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
+import org.sensorhub.impl.datastore.command.CommandStreamInfoWrapper;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 
 
 /**
  * <p>
- * In-memory implementation of a datastream store backed by a {@link java.util.NavigableMap}.
+ * In-memory implementation of a command stream store backed by a
+ * {@link java.util.NavigableMap}.
  * </p>
  *
  * @author Alex Robin
- * @date Sep 28, 2019
+ * @date Mar 28, 2021
  */
-public class InMemoryDataStreamStore implements IDataStreamStore
+public class InMemoryCommandStreamStore implements ICommandStreamStore
 {
-    ConcurrentNavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
-    ConcurrentNavigableMap<Long, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
-    InMemoryObsStore obsStore;
+    ConcurrentNavigableMap<CommandStreamKey, ICommandStreamInfo> map = new ConcurrentSkipListMap<>();
+    ConcurrentNavigableMap<Long, Set<CommandStreamKey>> procIdToCsKeys = new ConcurrentSkipListMap<>();
+    InMemoryCommandStore cmdStore;
     IProcedureStore procedureStore;
     
     
-    class DataStreamInfoWithTimeRanges extends DataStreamInfoWrapper
+    class CommandStreamInfoWithTimeRanges extends CommandStreamInfoWrapper
     {
         long id;
-        TimeExtent phenomenonTimeRange;
+        TimeExtent actuationTimeRange;
         
-        DataStreamInfoWithTimeRanges(long internalID, IDataStreamInfo dsInfo)
+        CommandStreamInfoWithTimeRanges(long internalID, ICommandStreamInfo csInfo)
         {
-            super(dsInfo);
+            super(csInfo);
             this.id = internalID;
         }        
         
         @Override
-        public TimeExtent getPhenomenonTimeRange()
+        public TimeExtent getActuationTimeRange()
         {
-            if (phenomenonTimeRange == null)
+            if (actuationTimeRange == null)
             {
-                var obsIt = obsStore.select(new ObsFilter.Builder().withDataStreams(id).build()).iterator();
+                var cmdIt = cmdStore.select(new CommandFilter.Builder()
+                    .withCommandStreams(id).build()).iterator();
                 
                 Instant begin = Instant.MAX;
                 Instant end = Instant.MIN;
-                while (obsIt.hasNext())
+                while (cmdIt.hasNext())
                 {
-                    var t = obsIt.next().getPhenomenonTime();
+                    var t = cmdIt.next().getActuationTime();
                     if (t.isBefore(begin))
                         begin = t;
                     if (t.isAfter(end))
@@ -87,77 +89,77 @@ public class InMemoryDataStreamStore implements IDataStreamStore
                 }
                 
                 if (begin == Instant.MAX || end == Instant.MIN)
-                    phenomenonTimeRange = null;
+                    actuationTimeRange = null;
                 else
-                    phenomenonTimeRange = TimeExtent.period(begin, end);
+                    actuationTimeRange = TimeExtent.period(begin, end);
             }
             
-            return phenomenonTimeRange;
+            return actuationTimeRange;
         }
     }
 
 
-    public InMemoryDataStreamStore(InMemoryObsStore obsStore)
+    public InMemoryCommandStreamStore(InMemoryCommandStore cmdStore)
     {
-        this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);
+        this.cmdStore = Asserts.checkNotNull(cmdStore, ICommandStore.class);
     }
     
     
     @Override
-    public synchronized DataStreamKey add(IDataStreamInfo dsInfo) throws DataStoreException
+    public synchronized CommandStreamKey add(ICommandStreamInfo csInfo) throws DataStoreException
     {
-        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
+        DataStoreUtils.checkCommandStreamInfo(procedureStore, csInfo);
         
         // use valid time of parent procedure or current time if none was set
-        dsInfo = DataStoreUtils.ensureValidTime(procedureStore, dsInfo);
+        csInfo = DataStoreUtils.ensureValidTime(procedureStore, csInfo);
 
         // create key
-        var newKey = generateKey(dsInfo);
+        var newKey = generateKey(csInfo);
 
         // add to store
-        put(newKey, dsInfo, false);
+        put(newKey, csInfo, false);
         return newKey;
     }
     
     
-    protected DataStreamKey generateKey(IDataStreamInfo dsInfo)
+    protected CommandStreamKey generateKey(ICommandStreamInfo csInfo)
     {
         //long internalID = map.isEmpty() ? 1 : map.lastKey().getInternalID()+1;
-        //return new DataStreamKey(internalID);
+        //return new CommandStreamKey(internalID);
         
         // make sure that the same procedure/output combination always returns the same ID
         // this will keep things more consistent across restart
         var hash = Objects.hash(
-            dsInfo.getProcedureID().getInternalID(),
-            dsInfo.getOutputName(),
-            dsInfo.getValidTime());
-        return new DataStreamKey(hash & 0xFFFFFFFFL);
+            csInfo.getProcedureID().getInternalID(),
+            csInfo.getControlInputName(),
+            csInfo.getValidTime());
+        return new CommandStreamKey(hash & 0xFFFFFFFFL);
     }
 
 
     @Override
-    public IDataStreamInfo get(Object key)
+    public ICommandStreamInfo get(Object key)
     {
-        var dsKey = DataStoreUtils.checkDataStreamKey(key);
+        var csKey = DataStoreUtils.checkCommandStreamKey(key);
         
-        var val = map.get(dsKey);
+        var val = map.get(csKey);
         if (val != null)
-            return new DataStreamInfoWithTimeRanges(dsKey.getInternalID(), val);
+            return new CommandStreamInfoWithTimeRanges(csKey.getInternalID(), val);
         else
             return null;
     }
 
 
     @Override
-    public Stream<Entry<DataStreamKey, IDataStreamInfo>> selectEntries(DataStreamFilter filter, Set<DataStreamInfoField> fields)
+    public Stream<Entry<CommandStreamKey, ICommandStreamInfo>> selectEntries(CommandStreamFilter filter, Set<CommandStreamInfoField> fields)
     {
-        Stream<DataStreamKey> keyStream = null;
-        Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
+        Stream<CommandStreamKey> keyStream = null;
+        Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
 
         if (filter.getInternalIDs() != null)
         {
             keyStream = filter.getInternalIDs().stream()
-                .map(id -> new DataStreamKey(id));
+                .map(id -> new CommandStreamKey(id));
         }
         
         // or filter on selected procedures
@@ -165,18 +167,18 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         {
             keyStream = DataStoreUtils.selectProcedureIDs(procedureStore, filter.getProcedureFilter()) 
                 .flatMap(procId -> {
-                    var dsKeys = procIdToDsKeys.get(procId);
-                    return dsKeys != null ? dsKeys.stream() : Stream.empty();
+                    var csKeys = procIdToCsKeys.get(procId);
+                    return csKeys != null ? csKeys.stream() : Stream.empty();
                 });
         }        
         
         if (keyStream != null)
         {
             resultStream = keyStream.map(key -> {
-                var dsInfo = map.get(key);
-                if (dsInfo == null)
+                var csInfo = map.get(key);
+                if (csInfo == null)
                     return null;
-                return (Entry<DataStreamKey, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(key, dsInfo);
+                return (Entry<CommandStreamKey, ICommandStreamInfo>)new AbstractMap.SimpleEntry<>(key, csInfo);
             })
             .filter(Objects::nonNull);
         }
@@ -186,25 +188,25 @@ public class InMemoryDataStreamStore implements IDataStreamStore
             resultStream = map.entrySet().stream();
         }
         
-        // filter with predicate, apply limit and wrap with DataStreamInfoWithTimeRanges
+        // filter with predicate, apply limit and wrap with CommandStreamInfoWithTimeRanges
         return resultStream
             .filter(e -> filter.test(e.getValue()))
             .limit(filter.getLimit()).map(e -> {
-                IDataStreamInfo val = new DataStreamInfoWithTimeRanges(e.getKey().getInternalID(), e.getValue());
-                return (Entry<DataStreamKey, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(e.getKey(), val);
+                ICommandStreamInfo val = new CommandStreamInfoWithTimeRanges(e.getKey().getInternalID(), e.getValue());
+                return (Entry<CommandStreamKey, ICommandStreamInfo>)new AbstractMap.SimpleEntry<>(e.getKey(), val);
             });
     }
 
 
     @Override
-    public IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo)
+    public ICommandStreamInfo put(CommandStreamKey key, ICommandStreamInfo csInfo)
     {
-        DataStoreUtils.checkDataStreamKey(key);
+        DataStoreUtils.checkCommandStreamKey(key);
         
         try
         {
-            DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
-            return put(key, dsInfo, true);
+            DataStoreUtils.checkCommandStreamInfo(procedureStore, csInfo);
+            return put(key, csInfo, true);
         }
         catch (DataStoreException e)
         {
@@ -213,59 +215,59 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     }
     
     
-    protected synchronized IDataStreamInfo put(DataStreamKey dsKey, IDataStreamInfo dsInfo, boolean replace) throws DataStoreException
+    protected synchronized ICommandStreamInfo put(CommandStreamKey csKey, ICommandStreamInfo csInfo, boolean replace) throws DataStoreException
     {
-        // if needed, add a new datastream keyset for the specified procedure
-        var procDsKeys = procIdToDsKeys.compute(dsInfo.getProcedureID().getInternalID(), (id, keys) -> {
+        // if needed, add a new command stream keyset for the specified procedure
+        var procDsKeys = procIdToCsKeys.compute(csInfo.getProcedureID().getInternalID(), (id, keys) -> {
             if (keys == null)
                 keys = new ConcurrentSkipListSet<>();
             return keys;
         });
         
-        // scan existing datastreams associated to the same procedure
+        // scan existing command streams associated to the same procedure
         for (var key: procDsKeys)
         {
-            var prevDsInfo = map.get(key);
+            var prevCsInfo = map.get(key);
             
-            if (prevDsInfo != null &&
-                prevDsInfo.getProcedureID().getInternalID() == dsInfo.getProcedureID().getInternalID() &&
-                prevDsInfo.getOutputName().equals(dsInfo.getOutputName()))
+            if (prevCsInfo != null &&
+                prevCsInfo.getProcedureID().getInternalID() == csInfo.getProcedureID().getInternalID() &&
+                prevCsInfo.getControlInputName().equals(csInfo.getControlInputName()))
             {    
-                var prevValidTime = prevDsInfo.getValidTime().begin();
-                var newValidTime = dsInfo.getValidTime().begin();
+                var prevValidTime = prevCsInfo.getValidTime().begin();
+                var newValidTime = csInfo.getValidTime().begin();
                 
-                // error if datastream with same procedure/name/validTime already exists
+                // error if command stream with same procedure/name/validTime already exists
                 if (prevValidTime.equals(newValidTime))
                     throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
                 // don't add if previous entry had a more recent valid time
                 // or if new entry is dated in the future
                 if (prevValidTime.isAfter(newValidTime) || newValidTime.isAfter(Instant.now()))
-                    return prevDsInfo;
+                    return prevCsInfo;
                 
-                // otherwise remove existing datastream and associated observations
+                // otherwise remove existing command stream and associated commands
                 map.remove(key);
-                obsStore.removeEntries(new ObsFilter.Builder()
-                    .withDataStreams(key.getInternalID())
+                cmdStore.removeEntries(new CommandFilter.Builder()
+                    .withCommandStreams(key.getInternalID())
                     .build());
                 break;
             }
         }
         
-        // add new datastream
-        var oldDsInfo = map.put(dsKey, dsInfo);
-        procDsKeys.add(dsKey);        
+        // add new command stream
+        var oldDsInfo = map.put(csKey, csInfo);
+        procDsKeys.add(csKey);        
         return oldDsInfo;
     }
 
 
     @Override
-    public IDataStreamInfo remove(Object key)
+    public ICommandStreamInfo remove(Object key)
     {
-        var dsKey = DataStoreUtils.checkDataStreamKey(key);
-        var oldValue = map.remove(dsKey);
+        var csKey = DataStoreUtils.checkCommandStreamKey(key);
+        var oldValue = map.remove(csKey);
         if (oldValue != null)
-            procIdToDsKeys.get(oldValue.getProcedureID().getInternalID()).remove(dsKey);
+            procIdToCsKeys.get(oldValue.getProcedureID().getInternalID()).remove(csKey);
         return oldValue;
     }
 
@@ -287,8 +289,8 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     @Override
     public boolean containsKey(Object key)
     {
-        var dsKey = DataStoreUtils.checkDataStreamKey(key);
-        return map.containsKey(dsKey);
+        var csKey = DataStoreUtils.checkCommandStreamKey(key);
+        return map.containsKey(csKey);
     }
 
 
@@ -300,7 +302,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
 
 
     @Override
-    public Set<Entry<DataStreamKey, IDataStreamInfo>> entrySet()
+    public Set<Entry<CommandStreamKey, ICommandStreamInfo>> entrySet()
     {
         return map.entrySet();
     }
@@ -314,7 +316,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
 
 
     @Override
-    public Set<DataStreamKey> keySet()
+    public Set<CommandStreamKey> keySet()
     {
         return Collections.unmodifiableSet(map.keySet());
     }
@@ -328,7 +330,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
 
 
     @Override
-    public Collection<IDataStreamInfo> values()
+    public Collection<ICommandStreamInfo> values()
     {
         return Collections.unmodifiableCollection(map.values());
     }

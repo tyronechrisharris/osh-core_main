@@ -106,7 +106,7 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
         
     
     @Test
-    public void testSelectDatastreamWithProcedureFilterJoin()
+    public void testSelectDatastreamWithProcedureFilterJoin() throws Exception
     {
         int procUids[] = {13, 5, 25};
         long[] procIds = addProcedures(procUids);

@@ -84,14 +84,14 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     {
         try
         {
-            var dsInfo = new CommandStreamInfo.Builder()
+            var csInfo = new CommandStreamInfo.Builder()
                 .withProcedure(new ProcedureId(procID, PROC_UID_PREFIX+procID))
                 .withRecordDescription(recordStruct)
                 .withRecordEncoding(new TextEncodingImpl())
                 .build();
             
-            var csID = cmdStore.getCommandStreams().add(dsInfo);
-            allCommandStreams.put(csID, dsInfo);
+            var csID = cmdStore.getCommandStreams().add(csInfo);
+            allCommandStreams.put(csID, csInfo);
             return csID;
         }
         catch (DataStoreException e)
@@ -179,7 +179,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    protected void checkGetObs(int expectedNumObs) throws Exception
+    protected void checkGetCommands(int expectedNumObs) throws Exception
     {
         assertEquals(expectedNumObs, cmdStore.getNumRecords());
 
@@ -234,15 +234,15 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
         
         // add cmd w/o FOI
         addCommands(csKey.getInternalID(), Instant.parse("2000-01-01T00:00:00Z"), numObs=100);
-        checkGetObs(totalObs += numObs);
+        checkGetCommands(totalObs += numObs);
         forceReadBackFromStorage();
-        checkGetObs(totalObs);
+        checkGetCommands(totalObs);
 
         // add cmd with FOI
         addCommands(csKey.getInternalID(), Instant.parse("9080-02-01T00:00:00Z"), numObs=30);
-        checkGetObs(totalObs += numObs);
+        checkGetCommands(totalObs += numObs);
         forceReadBackFromStorage();
-        checkGetObs(totalObs);
+        checkGetCommands(totalObs);
     }
 
 
@@ -254,7 +254,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    private void checkMapKeySet(Set<BigInteger> keySet)
+    protected void checkMapKeySet(Set<BigInteger> keySet)
     {
         keySet.forEach(k -> {
             if (!allCommands.containsKey(k))
@@ -319,7 +319,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    private void testRemoveAllKeys()
+    protected void checkRemoveAllKeys()
     {
         assertTrue(cmdStore.getNumRecords() == allCommands.size());
 
@@ -344,22 +344,22 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
         var csKey = addSimpleCommandStream(10, "out1");
         
         addCommands(csKey.getInternalID(), Instant.parse("1900-01-01T00:00:00Z"), 100);
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
 
         addCommands(csKey.getInternalID(), Instant.parse("2900-01-01T00:00:00Z"), 100);
         forceReadBackFromStorage();
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
 
         forceReadBackFromStorage();
         addCommands(csKey.getInternalID(), Instant.parse("0001-01-01T00:00:00Z"), 100);
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
 
         forceReadBackFromStorage();
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
     }
 
 
-    private void checkSelectedEntries(Stream<Entry<BigInteger, ICommandAck>> resultStream, Map<BigInteger, ICommandAck> expectedResults, CommandFilter filter)
+    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandAck>> resultStream, Map<BigInteger, ICommandAck> expectedResults, CommandFilter filter)
     {
         System.out.println("Select cmd with " + filter);
 

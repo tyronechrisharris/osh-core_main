@@ -18,6 +18,7 @@ import java.util.concurrent.Callable;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureStateDatabase;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -39,6 +40,7 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfi
     IProcedureStore procStore;
     IFoiStore foiStore;
     IObsStore obsStore;
+    ICommandStore cmdStore;
         
 
     public InMemoryProcedureStateDatabase()
@@ -71,6 +73,13 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfi
 
 
     @Override
+    public IFoiStore getFoiStore()
+    {
+        return foiStore;
+    }
+
+
+    @Override
     public IObsStore getObservationStore()
     {
         return obsStore;
@@ -78,9 +87,9 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfi
 
 
     @Override
-    public IFoiStore getFoiStore()
+    public ICommandStore getCommandStore()
     {
-        return foiStore;
+        return cmdStore;
     }
 
 

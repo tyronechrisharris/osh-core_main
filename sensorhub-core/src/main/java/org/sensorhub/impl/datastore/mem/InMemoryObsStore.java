@@ -38,6 +38,7 @@ import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 
 
@@ -74,6 +75,12 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
             this.foiID = foiID;
             this.phenomenonTime = phenomenonTime;
         }
+
+        @Override
+        public String toString()
+        {
+            return ObjectUtils.toString(this, true);
+        }
     }
     
     
@@ -109,8 +116,8 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     {
         // compute internal ID
         ByteBuffer buf = ByteBuffer.allocate(24);
-        buf.putInt((int)obsKey.dataStreamID);
-        buf.putInt((int)obsKey.foiID);
+        buf.putLong(obsKey.dataStreamID);
+        buf.putLong(obsKey.foiID);
         buf.putInt((int)(obsKey.phenomenonTime.getEpochSecond()));
         buf.putInt((int)(obsKey.phenomenonTime.getNano()));
         return new BigInteger(buf.array(), 0, buf.position());
@@ -125,9 +132,15 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         try
         {
             // parse from BigInt
-            ByteBuffer buf = ByteBuffer.wrap(key.toByteArray());
-            long dsID = buf.getInt();
-            long foiID = buf.getInt();
+            byte[] bigIntBytes = key.toByteArray();
+            ByteBuffer buf = ByteBuffer.allocate(16);
+            for (int i=0; i<(16-bigIntBytes.length); i++)
+                buf.put((byte)0);
+            buf.put(bigIntBytes);
+            buf.flip();
+            
+            long dsID = buf.getLong();
+            long foiID = buf.getLong();
             Instant phenomenonTime = Instant.ofEpochSecond(buf.getInt(), buf.getInt());
             return new ObsKey(dsID, foiID, phenomenonTime);
         }
