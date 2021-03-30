@@ -34,10 +34,10 @@ class MVTimeSeriesRecordKey
     protected Instant timeStamp = null;
     
     
-    MVTimeSeriesRecordKey(long seriesID, Instant phenomenonTime)
+    MVTimeSeriesRecordKey(long seriesID, Instant timeStamp)
     {
         this.seriesID = seriesID;
-        this.timeStamp = phenomenonTime;        
+        this.timeStamp = timeStamp;        
     }
 
 

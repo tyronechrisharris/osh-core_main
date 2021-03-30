@@ -263,9 +263,9 @@ public class MVCommandStoreImpl implements ICommandStore
             // parse from BigInt
             ByteBuffer buf = ByteBuffer.wrap(key.toByteArray());
             long seriesID = DataUtils.readVarLong(buf);
-            Instant phenomenonTime = H2Utils.readInstant(buf);
+            Instant issueTime = H2Utils.readInstant(buf);
             
-            return new MVTimeSeriesRecordKey(seriesID, phenomenonTime);
+            return new MVTimeSeriesRecordKey(seriesID, issueTime);
         }
         catch (Exception e)
         {
@@ -372,7 +372,7 @@ public class MVCommandStoreImpl implements ICommandStore
         getCommandSeriesByDataStream(dataStreamID)
             .forEach(s -> {
                 MVTimeSeriesRecordKey firstKey = cmdRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(s.id, Instant.MIN));
-                MVTimeSeriesRecordKey lastKey = cmdRecordsIndex.floorKey(new MVTimeSeriesRecordKey(s.id, Instant.MAX.minusSeconds(1)));
+                MVTimeSeriesRecordKey lastKey = cmdRecordsIndex.floorKey(new MVTimeSeriesRecordKey(s.id, Instant.MAX));
                 
                 if (firstKey != null && timeRange[0].isAfter(firstKey.timeStamp))
                     timeRange[0] = firstKey.timeStamp;
@@ -395,18 +395,18 @@ public class MVCommandStoreImpl implements ICommandStore
     }
     
     
-    long getCommandSeriesCount(long seriesID, Range<Instant> phenomenonTimeRange)
+    long getCommandSeriesCount(long seriesID, Range<Instant> issueTimeRange)
     {
-        MVTimeSeriesRecordKey firstKey = cmdRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.lowerEndpoint()));
-        MVTimeSeriesRecordKey lastKey = cmdRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.upperEndpoint()));
+        MVTimeSeriesRecordKey firstKey = cmdRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, issueTimeRange.lowerEndpoint()));
+        MVTimeSeriesRecordKey lastKey = cmdRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, issueTimeRange.upperEndpoint()));
         return cmdRecordsIndex.getKeyIndex(lastKey) - cmdRecordsIndex.getKeyIndex(firstKey);
     }
     
     
-    int[] getCommandSeriesHistogram(long seriesID, Range<Instant> phenomenonTimeRange, Duration binSize)
+    int[] getCommandSeriesHistogram(long seriesID, Range<Instant> issueTimeRange, Duration binSize)
     {
-        long start = phenomenonTimeRange.lowerEndpoint().getEpochSecond();
-        long end = phenomenonTimeRange.upperEndpoint().getEpochSecond();
+        long start = issueTimeRange.lowerEndpoint().getEpochSecond();
+        long end = issueTimeRange.upperEndpoint().getEpochSecond();
         long dt = binSize.getSeconds();
         long t = start;
         int numBins = (int)((end - start)/dt);
