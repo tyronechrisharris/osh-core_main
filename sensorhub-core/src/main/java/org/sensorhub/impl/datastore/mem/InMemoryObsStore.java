@@ -133,8 +133,8 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         {
             // parse from BigInt
             byte[] bigIntBytes = key.toByteArray();
-            ByteBuffer buf = ByteBuffer.allocate(16);
-            for (int i=0; i<(16-bigIntBytes.length); i++)
+            ByteBuffer buf = ByteBuffer.allocate(24);
+            for (int i=0; i<(24-bigIntBytes.length); i++)
                 buf.put((byte)0);
             buf.put(bigIntBytes);
             buf.flip();
@@ -146,8 +146,8 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         }
         catch (Exception e)
         {
-            // invalid bigint key
-            return null;
+            // invalid bigint key// return key object that will never match
+            return new ObsKey(0, 0, Instant.MAX);
         }
     }
     
@@ -281,7 +281,8 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public IObsData get(Object key)
     {
-        return map.get(toInternalKey(key));
+        var k = toInternalKey(key);
+        return map.get(k);
     }
 
 

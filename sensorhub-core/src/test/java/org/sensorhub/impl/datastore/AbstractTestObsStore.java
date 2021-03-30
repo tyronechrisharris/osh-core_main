@@ -252,7 +252,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    private void checkMapKeySet(Set<BigInteger> keySet)
+    protected void checkMapKeySet(Set<BigInteger> keySet)
     {
         keySet.forEach(k -> {
             if (!allObs.containsKey(k))
@@ -317,7 +317,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    private void testRemoveAllKeys()
+    protected void checkRemoveAllKeys()
     {
         assertTrue(obsStore.getNumRecords() == allObs.size());
 
@@ -342,22 +342,22 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         var dsKey = addSimpleDataStream(10, "out1");
         
         addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.parse("1900-01-01T00:00:00Z"), 100);
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
 
         addSimpleObsWithoutResultTime(dsKey.getInternalID(), 563, Instant.parse("2900-01-01T00:00:00Z"), 100);
         forceReadBackFromStorage();
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
 
         forceReadBackFromStorage();
         addSimpleObsWithoutResultTime(dsKey.getInternalID(), 1003, Instant.parse("0001-01-01T00:00:00Z"), 100);
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
 
         forceReadBackFromStorage();
-        testRemoveAllKeys();
+        checkRemoveAllKeys();
     }
 
 
-    private void checkSelectedEntries(Stream<Entry<BigInteger, IObsData>> resultStream, Map<BigInteger, IObsData> expectedResults, ObsFilter filter)
+    protected void checkSelectedEntries(Stream<Entry<BigInteger, IObsData>> resultStream, Map<BigInteger, IObsData> expectedResults, ObsFilter filter)
     {
         System.out.println("Select obs with " + filter);
 
