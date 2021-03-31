@@ -26,6 +26,7 @@ import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
+import org.vast.util.Asserts;
 
 
 /**
@@ -45,7 +46,7 @@ public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandAck,
     
     public CommandStoreView(ICommandStore delegate, CommandFilter viewFilter)
     {
-        this.delegate = delegate;
+        this.delegate = Asserts.checkNotNull(delegate, ICommandStore.class);
         this.commandStreamStoreView = new CommandStreamStoreView(delegate.getCommandStreams(), viewFilter.getCommandStreamFilter());
         this.viewFilter = viewFilter;
     }

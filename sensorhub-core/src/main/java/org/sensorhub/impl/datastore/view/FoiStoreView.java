@@ -21,6 +21,7 @@ import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.vast.ogc.gml.IGeoFeature;
+import org.vast.util.Asserts;
 
 
 /**
@@ -36,7 +37,7 @@ public class FoiStoreView extends FeatureStoreViewBase<IGeoFeature, FoiField, Fo
     
     public FoiStoreView(IFoiStore delegate, FoiFilter viewFilter)
     {
-        super(delegate, viewFilter);
+        super(Asserts.checkNotNull(delegate, IFoiStore.class), viewFilter);
     }
 
 

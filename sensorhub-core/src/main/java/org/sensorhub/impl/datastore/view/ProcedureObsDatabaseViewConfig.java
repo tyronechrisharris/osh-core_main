@@ -17,6 +17,8 @@ package org.sensorhub.impl.datastore.view;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
+import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
@@ -33,7 +35,7 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
  */
 public class ProcedureObsDatabaseViewConfig
 {
-    public String sourceDatabaseId; // can be itself a filter view?
+    public String sourceDatabaseId; // can be itself a filtered view?
     
     public IQueryFilter includeFilter;
     
@@ -46,11 +48,10 @@ public class ProcedureObsDatabaseViewConfig
             hub.getDatabaseRegistry().getObsDatabase(sourceDatabaseId) :
             hub.getDatabaseRegistry().getFederatedObsDatabase();
          
-        var obsFilter = getObsFilter();
-        if (includeFilter == null)
+        if (includeFilter != null)
+            return new ProcedureObsDatabaseView(srcDatabase, getObsFilter(), getCommandFilter());
+        else
             return srcDatabase;
-        
-        return new ProcedureObsDatabaseView(srcDatabase, obsFilter);
     }
     
     
@@ -72,6 +73,32 @@ public class ProcedureObsDatabaseViewConfig
         else if (includeFilter instanceof ProcedureFilter)
         {
             return new ObsFilter.Builder()
+                .withProcedures((ProcedureFilter)includeFilter)
+                .build();
+        }
+        else
+            throw new IllegalStateException("Invalid filtered view configuration");
+    }
+    
+    
+    public CommandFilter getCommandFilter()
+    {
+        if (includeFilter == null)
+            return null;
+        
+        if (includeFilter instanceof CommandFilter)
+        {
+            return (CommandFilter)includeFilter;
+        }
+        else if (includeFilter instanceof CommandStreamFilter)
+        {
+            return new CommandFilter.Builder()
+                .withCommandStreams((CommandStreamFilter)includeFilter)
+                .build();
+        }
+        else if (includeFilter instanceof ProcedureFilter)
+        {
+            return new CommandFilter.Builder()
                 .withProcedures((ProcedureFilter)includeFilter)
                 .build();
         }

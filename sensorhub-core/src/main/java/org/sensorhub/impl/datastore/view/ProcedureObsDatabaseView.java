@@ -37,11 +37,37 @@ public class ProcedureObsDatabaseView implements IProcedureObsDatabase
     
     public ProcedureObsDatabaseView(IProcedureObsDatabase delegate, ObsFilter obsFilter)
     {
-        this(delegate, obsFilter, new CommandFilter.Builder().withProcedures(0).build());
+        this(delegate, obsFilter, null);
+    }
+    
+    
+    public ProcedureObsDatabaseView(IProcedureObsDatabase delegate, CommandFilter cmdFilter)
+    {
+        this(delegate, null, cmdFilter);
     }
     
     
     public ProcedureObsDatabaseView(IProcedureObsDatabase delegate, ObsFilter obsFilter, CommandFilter cmdFilter)
+    {
+        if (cmdFilter == null)
+        {
+            cmdFilter = new CommandFilter.Builder()
+                .withProcedures(0)
+                .build();
+        }
+        
+        if (obsFilter == null)
+        {
+            obsFilter = new ObsFilter.Builder()
+                .withProcedures(0)
+                .build();
+        }
+        
+        init(delegate, obsFilter, cmdFilter);
+    }
+    
+    
+    protected void init(IProcedureObsDatabase delegate, ObsFilter obsFilter, CommandFilter cmdFilter)
     {
         this.delegate = Asserts.checkNotNull(delegate, IProcedureObsDatabase.class);
         Asserts.checkNotNull(obsFilter, ObsFilter.class);

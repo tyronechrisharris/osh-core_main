@@ -19,6 +19,7 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.vast.util.Asserts;
 
 
 /**
@@ -34,7 +35,7 @@ public class ProcedureStoreView extends FeatureStoreViewBase<IProcedureWithDesc,
     
     public ProcedureStoreView(IProcedureStore delegate, ProcedureFilter viewFilter)
     {
-        super(delegate, viewFilter);
+        super(Asserts.checkNotNull(delegate, IProcedureStore.class), viewFilter);
     }
     
     

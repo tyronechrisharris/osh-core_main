@@ -44,7 +44,7 @@ public class CommandStreamStoreView extends ReadOnlyDataStore<CommandStreamKey, 
     
     public CommandStreamStoreView(ICommandStreamStore delegate, CommandStreamFilter viewFilter)
     {
-        this.delegate = delegate;
+        this.delegate = Asserts.checkNotNull(delegate, ICommandStreamStore.class);
         this.viewFilter = viewFilter;
     }
     

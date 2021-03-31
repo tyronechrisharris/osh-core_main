@@ -27,6 +27,7 @@ import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
+import org.vast.util.Asserts;
 
 
 /**
@@ -46,7 +47,7 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
     
     public ObsStoreView(IObsStore delegate, ObsFilter viewFilter)
     {
-        this.delegate = delegate;
+        this.delegate = Asserts.checkNotNull(delegate, IObsStore.class);
         this.dataStreamStoreView = new DataStreamStoreView(delegate.getDataStreams(), viewFilter.getDataStreamFilter());
         this.viewFilter = viewFilter;
     }

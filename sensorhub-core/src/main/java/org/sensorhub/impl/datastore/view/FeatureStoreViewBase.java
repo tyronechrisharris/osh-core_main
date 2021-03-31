@@ -40,7 +40,7 @@ public abstract class FeatureStoreViewBase<
     F viewFilter;
     
     
-    public FeatureStoreViewBase(S delegate, F viewFilter)
+    protected FeatureStoreViewBase(S delegate, F viewFilter)
     {
         this.delegate = delegate;
         this.viewFilter = viewFilter;

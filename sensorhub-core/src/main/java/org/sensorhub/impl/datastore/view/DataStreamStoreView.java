@@ -44,7 +44,7 @@ public class DataStreamStoreView extends ReadOnlyDataStore<DataStreamKey, IDataS
     
     public DataStreamStoreView(IDataStreamStore delegate, DataStreamFilter viewFilter)
     {
-        this.delegate = delegate;
+        this.delegate = Asserts.checkNotNull(delegate, IDataStreamStore.class);
         this.viewFilter = viewFilter;
     }
     

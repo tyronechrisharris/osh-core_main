@@ -43,6 +43,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     final static String PROCEDURE_STORE_NAME = "proc_store";
     final static String FOI_STORE_NAME = "foi_store";
     final static String OBS_STORE_NAME = "obs_store";
+    final static String CMD_STORE_NAME = "cmd_store";
     
     MVStore mvStore;
     MVProcedureStoreImpl procStore;
@@ -92,11 +93,17 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
                 .withName(OBS_STORE_NAME)
                 .build());
             
+            // open command store
+            cmdStore = MVCommandStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+                .withName(CMD_STORE_NAME)
+                .build());
+            
             procStore.linkTo(obsStore.getDataStreams());
             foiStore.linkTo(procStore);
             foiStore.linkTo(obsStore);
-            obsStore.linkTo(foiStore);            
-            obsStore.getDataStreams().linkTo(procStore);            
+            obsStore.linkTo(foiStore);
+            obsStore.getDataStreams().linkTo(procStore);
+            cmdStore.getCommandStreams().linkTo(procStore);            
         }
         catch (Exception e)
         {

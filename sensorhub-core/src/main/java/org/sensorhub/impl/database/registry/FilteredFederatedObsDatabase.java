@@ -21,8 +21,10 @@ import java.util.Iterator;
 import java.util.Set;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseView;
+import org.vast.util.Asserts;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
@@ -40,13 +42,26 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
 {
     final Set<Integer> unfilteredDatabases = Sets.newHashSet();
     final ObsFilter obsFilter;
+    final CommandFilter cmdFilter;
     
     
     public FilteredFederatedObsDatabase(IDatabaseRegistry registry, ObsFilter obsFilter, int... unfilteredDatabases)
     {
         super(registry);
+        this.obsFilter = Asserts.checkNotNull(obsFilter, ObsFilter.class);
+        this.cmdFilter = null;
         
-        this.obsFilter = obsFilter;
+        for (int dbNum: unfilteredDatabases)
+            this.unfilteredDatabases.add(dbNum);
+    }
+    
+    
+    public FilteredFederatedObsDatabase(IDatabaseRegistry registry, CommandFilter cmdFilter, int... unfilteredDatabases)
+    {
+        super(registry);
+        this.obsFilter = null;
+        this.cmdFilter = Asserts.checkNotNull(cmdFilter, CommandFilter.class);
+        
         for (int dbNum: unfilteredDatabases)
             this.unfilteredDatabases.add(dbNum);
     }
@@ -60,7 +75,7 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
             return null;
         
         if (!unfilteredDatabases.contains(dbInfo.databaseNum))
-            dbInfo.db = new ProcedureObsDatabaseView(dbInfo.db, obsFilter);
+            dbInfo.db = new ProcedureObsDatabaseView(dbInfo.db, obsFilter, cmdFilter);
         
         return dbInfo;
     }
@@ -74,7 +89,7 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
             return null;
         
         if (!unfilteredDatabases.contains(dbInfo.databaseNum))
-            dbInfo.db = new ProcedureObsDatabaseView(dbInfo.db, obsFilter);
+            dbInfo.db = new ProcedureObsDatabaseView(dbInfo.db, obsFilter, cmdFilter);
         
         return dbInfo;
     }
@@ -93,7 +108,7 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
                 return Iterators.transform(allDbs.iterator(), db -> {
                     var dbNum = db.getDatabaseNum();
                     if (!unfilteredDatabases.contains(dbNum))
-                        return new ProcedureObsDatabaseView(db, obsFilter);
+                        return new ProcedureObsDatabaseView(db, obsFilter, cmdFilter);
                     return db;
                 });
             }
