@@ -535,13 +535,14 @@ public class MVObsStoreImpl implements IObsStore
         Instant[] timeRange = new Instant[] {Instant.MAX, Instant.MIN};
         getObsSeriesByDataStream(dataStreamID, H2Utils.ALL_TIMES_RANGE, false)
             .forEach(s -> {
-                MVTimeSeriesRecordKey firstKey = obsRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(s.id, Instant.MIN));
-                MVTimeSeriesRecordKey lastKey = obsRecordsIndex.floorKey(new MVTimeSeriesRecordKey(s.id, Instant.MAX));
+                var seriesTimeRange = getObsSeriesPhenomenonTimeRange(s.id);
+                if (seriesTimeRange == null)
+                    return;
                 
-                if (firstKey != null && timeRange[0].isAfter(firstKey.timeStamp))
-                    timeRange[0] = firstKey.timeStamp;
-                if (lastKey != null && timeRange[1].isBefore(lastKey.timeStamp))
-                    timeRange[1] = lastKey.timeStamp;
+                if (timeRange[0].isAfter(seriesTimeRange.lowerEndpoint()))
+                    timeRange[0] = seriesTimeRange.lowerEndpoint();
+                if (timeRange[1].isBefore(seriesTimeRange.upperEndpoint()))
+                    timeRange[1] = seriesTimeRange.upperEndpoint();
             });
         
         if (timeRange[0] == Instant.MAX || timeRange[1] == Instant.MIN)
@@ -555,7 +556,12 @@ public class MVObsStoreImpl implements IObsStore
     {
         MVTimeSeriesRecordKey firstKey = obsRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, Instant.MIN));
         MVTimeSeriesRecordKey lastKey = obsRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, Instant.MAX));
-        return Range.closed(firstKey.timeStamp, lastKey.timeStamp);
+        
+        if (firstKey == null || lastKey == null ||
+            firstKey.seriesID != seriesID || lastKey.seriesID != seriesID)
+            return null;
+        else
+            return Range.closed(firstKey.timeStamp, lastKey.timeStamp);
     }
     
     
@@ -563,7 +569,12 @@ public class MVObsStoreImpl implements IObsStore
     {
         MVTimeSeriesRecordKey firstKey = obsRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.lowerEndpoint()));
         MVTimeSeriesRecordKey lastKey = obsRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.upperEndpoint()));
-        return obsRecordsIndex.getKeyIndex(lastKey) - obsRecordsIndex.getKeyIndex(firstKey);
+        
+        if (firstKey == null || lastKey == null ||
+            firstKey.seriesID != seriesID || lastKey.seriesID != seriesID)
+            return 0;
+        else
+            return obsRecordsIndex.getKeyIndex(lastKey) - obsRecordsIndex.getKeyIndex(firstKey) + 1;
     }
     
     

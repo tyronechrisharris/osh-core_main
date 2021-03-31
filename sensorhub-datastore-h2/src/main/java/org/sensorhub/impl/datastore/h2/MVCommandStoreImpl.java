@@ -371,13 +371,14 @@ public class MVCommandStoreImpl implements ICommandStore
         Instant[] timeRange = new Instant[] {Instant.MAX, Instant.MIN};
         getCommandSeriesByDataStream(dataStreamID)
             .forEach(s -> {
-                MVTimeSeriesRecordKey firstKey = cmdRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(s.id, Instant.MIN));
-                MVTimeSeriesRecordKey lastKey = cmdRecordsIndex.floorKey(new MVTimeSeriesRecordKey(s.id, Instant.MAX));
+                var seriesTimeRange = getCommandSeriesIssueTimeRange(s.id);
+                if (seriesTimeRange == null)
+                    return;
                 
-                if (firstKey != null && timeRange[0].isAfter(firstKey.timeStamp))
-                    timeRange[0] = firstKey.timeStamp;
-                if (lastKey != null && timeRange[1].isBefore(lastKey.timeStamp))
-                    timeRange[1] = lastKey.timeStamp;
+                if (timeRange[0].isAfter(seriesTimeRange.lowerEndpoint()))
+                    timeRange[0] = seriesTimeRange.lowerEndpoint();
+                if (timeRange[1].isBefore(seriesTimeRange.upperEndpoint()))
+                    timeRange[1] = seriesTimeRange.upperEndpoint();
             });
         
         if (timeRange[0] == Instant.MAX || timeRange[1] == Instant.MIN)
@@ -387,11 +388,16 @@ public class MVCommandStoreImpl implements ICommandStore
     }
     
     
-    Range<Instant> getCommandSeriesActuationTimeRange(long seriesID)
+    Range<Instant> getCommandSeriesIssueTimeRange(long seriesID)
     {
         MVTimeSeriesRecordKey firstKey = cmdRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, Instant.MIN));
         MVTimeSeriesRecordKey lastKey = cmdRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, Instant.MAX));
-        return Range.closed(firstKey.timeStamp, lastKey.timeStamp);
+        
+        if (firstKey == null || lastKey == null ||
+            firstKey.seriesID != seriesID || lastKey.seriesID != seriesID)
+            return null;
+        else
+            return Range.closed(firstKey.timeStamp, lastKey.timeStamp);
     }
     
     
@@ -399,7 +405,12 @@ public class MVCommandStoreImpl implements ICommandStore
     {
         MVTimeSeriesRecordKey firstKey = cmdRecordsIndex.ceilingKey(new MVTimeSeriesRecordKey(seriesID, issueTimeRange.lowerEndpoint()));
         MVTimeSeriesRecordKey lastKey = cmdRecordsIndex.floorKey(new MVTimeSeriesRecordKey(seriesID, issueTimeRange.upperEndpoint()));
-        return cmdRecordsIndex.getKeyIndex(lastKey) - cmdRecordsIndex.getKeyIndex(firstKey);
+        
+        if (firstKey == null || lastKey == null ||
+            firstKey.seriesID != seriesID || lastKey.seriesID != seriesID)
+            return 0;
+        else
+            return cmdRecordsIndex.getKeyIndex(lastKey) - cmdRecordsIndex.getKeyIndex(firstKey) + 1;
     }
     
     
@@ -461,7 +472,7 @@ public class MVCommandStoreImpl implements ICommandStore
                 .map(series -> {
                    var dsID = series.key.dataStreamID;
                    
-                   var seriesTimeRange = getCommandSeriesActuationTimeRange(series.id);
+                   var seriesTimeRange = getCommandSeriesIssueTimeRange(series.id);
                    
                    // skip if requested actuation time range doesn't intersect series time range
                    var statsTimeRange = timeParams.actuationTimeRange;
