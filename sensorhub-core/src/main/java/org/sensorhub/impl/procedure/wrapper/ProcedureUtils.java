@@ -14,7 +14,10 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure.wrapper;
 
+import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.command.CommandStreamFilter;
+import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.impl.procedure.ProcedureTransactionHandler;
@@ -54,6 +57,24 @@ public class ProcedureUtils
     }
     
     
+    public static void addCommandStreamsFromTaskableParams(ProcedureTransactionHandler procHandler, IOPropertyList params) throws DataStoreException
+    {
+        for (var param: params)
+        {
+            if (param instanceof DataStream)
+            {
+                var ds = (DataStream)param;
+                procHandler.addOrUpdateCommandStream(ds.getName(), ds.getElementType(), ds.getEncoding());
+            }
+            else if (param instanceof DataComponent)
+            {
+                var comp = (DataComponent)param;
+                procHandler.addOrUpdateCommandStream(comp.getName(), comp, new TextEncodingImpl());
+            }
+        }
+    }
+    
+    
     @SuppressWarnings("unchecked")
     public static <T extends AbstractProcess> ProcessWrapper<T> addOutputsFromDatastreams(long procID, T sml, IDataStreamStore dataStreamStore)
     {
@@ -72,5 +93,35 @@ public class ProcedureUtils
             return ((ProcessWrapper<T>)sml).withOutputs(outputList);
         else
             return ProcessWrapper.getWrapper(sml).withOutputs(outputList);
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    public static <T extends AbstractProcess> ProcessWrapper<T> addTaskableParamsFromCommandStreams(long procID, T sml, ICommandStreamStore cmdStreamStore)
+    {
+        var paramList = new IOPropertyList();
+                
+        cmdStreamStore.select(new CommandStreamFilter.Builder()
+            .withProcedures(procID)
+            .withCurrentVersion()
+            .build())
+        .forEach(cs -> {
+            var param = cs.getRecordStructure();
+            param.setUpdatable(true);
+            paramList.add(cs.getControlInputName(), param);
+        });
+        
+        if (sml instanceof ProcessWrapper)
+            return ((ProcessWrapper<T>)sml).withParams(paramList);
+        else
+            return ProcessWrapper.getWrapper(sml).withParams(paramList);
+    }
+    
+    
+    public static <T extends AbstractProcess> ProcessWrapper<T> addIOsFromDataStore(long procID, T sml, IProcedureObsDatabase db)
+    {
+        var wrapper = addOutputsFromDatastreams(procID, sml, db.getDataStreamStore());
+        wrapper = addTaskableParamsFromCommandStreams(procID, sml, db.getCommandStreamStore());
+        return wrapper;
     }
 }
