@@ -56,9 +56,9 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
             .addField("samplingPeriod", swe.createQuantity()
                 .definition("urn:test:def:samplingPeriod")
                 .uomCode("s"))
-            .addField("sensitivity", swe.createQuantity()
+            .addField("sensitivity", swe.createCategory()
                 .definition("urn:test:def:sensitivity")
-                .uomCode("s"))
+                .addAllowedValues("LOW", "HIGH"))
             .build();
     }
 
@@ -81,6 +81,7 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
     public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback)
     {
         return CompletableFuture.runAsync(() -> {
+            System.out.println("Received command: " + command);
             receivedCommands.add(command.getParams());
             callback.accept(CommandAck.success(command));
         });
