@@ -35,6 +35,12 @@ public interface ICommandAck extends ICommandData
     
     
     /**
+     * @return The command that this ACK relates to
+     */
+    ICommandData getCommand();
+    
+    
+    /**
      * @return The command status code
      */
     CommandStatusCode getStatusCode();

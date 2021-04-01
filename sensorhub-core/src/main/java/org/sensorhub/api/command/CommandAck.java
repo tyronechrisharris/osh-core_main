@@ -69,12 +69,11 @@ public class CommandAck implements ICommandAck
         ack.error = error;
         return ack;
     }
-
-
-    @Override
-    public Instant getActuationTime()
+    
+    
+    public ICommandData getCommand()
     {
-        return actuationTime;
+        return command;
     }
 
 
@@ -86,30 +85,41 @@ public class CommandAck implements ICommandAck
 
 
     @Override
+    public Instant getActuationTime()
+    {
+        return actuationTime;
+    }
+
+
+    @Override
     public Exception getError()
     {
         return error;
     }
 
 
+    @Override
     public long getCommandStreamID()
     {
         return command.getCommandStreamID();
     }
 
 
+    @Override
     public String getSenderID()
     {
         return command.getSenderID();
     }
 
 
+    @Override
     public Instant getIssueTime()
     {
         return command.getIssueTime();
     }
 
 
+    @Override
     public DataBlock getParams()
     {
         return command.getParams();

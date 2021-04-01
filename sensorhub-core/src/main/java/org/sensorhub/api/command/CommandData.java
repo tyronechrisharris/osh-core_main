@@ -33,6 +33,7 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class CommandData implements ICommandData
 {
+    public static final String UNKNOWN_SENDER = "%NA%";
     protected long commandStreamID;
     protected String senderID;
     protected Instant issueTime;
@@ -49,6 +50,7 @@ public class CommandData implements ICommandData
     public CommandData(long commandStreamID, DataBlock params)
     {
         this.commandStreamID = OshAsserts.checkValidInternalID(commandStreamID);
+        this.senderID = UNKNOWN_SENDER;
         this.params = Asserts.checkNotNull(params, DataBlock.class);
         this.issueTime = Instant.now();
     }

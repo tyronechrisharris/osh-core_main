@@ -16,6 +16,8 @@ package org.sensorhub.impl.database.registry;
 
 import java.time.Instant;
 import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
+import org.vast.util.Asserts;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -33,12 +35,20 @@ public class CommandDelegate implements ICommandAck
     ICommandAck delegate;
 
 
-    public CommandDelegate(ICommandAck cmd)
+    public CommandDelegate(ICommandAck delegate)
     {
-        this.delegate = cmd;
+        this.delegate = Asserts.checkNotNull(delegate, "delegate");
+    }
+
+
+    @Override
+    public ICommandData getCommand()
+    {
+        return delegate.getCommand();
     }
     
     
+    @Override
     public long getCommandStreamID()
     {
         return delegate.getCommandStreamID();
@@ -46,28 +56,9 @@ public class CommandDelegate implements ICommandAck
 
 
     @Override
-    public String getSenderID()
-    {
-        return delegate.getSenderID();
-    }
-
-
     public Instant getActuationTime()
     {
         return delegate.getActuationTime();
-    }
-
-
-    public Instant getIssueTime()
-    {
-        return delegate.getIssueTime();
-    }
-
-
-    @Override
-    public DataBlock getParams()
-    {
-        return null;
     }
 
 
@@ -83,4 +74,26 @@ public class CommandDelegate implements ICommandAck
     {
         return delegate.getError();
     }
+
+
+    @Override
+    public String getSenderID()
+    {
+        return delegate.getSenderID();
+    }
+
+
+    @Override
+    public Instant getIssueTime()
+    {
+        return delegate.getIssueTime();
+    }
+
+
+    @Override
+    public DataBlock getParams()
+    {
+        return delegate.getParams();
+    }
+    
 }

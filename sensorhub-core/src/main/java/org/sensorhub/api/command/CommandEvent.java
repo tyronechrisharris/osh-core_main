@@ -38,6 +38,12 @@ public class CommandEvent extends CommandStreamEvent
         this.commands = Asserts.checkNotNullOrEmpty(Arrays.asList(commands), ICommandData[].class);
         this.sourceID = Asserts.checkNotNullOrEmpty(commands[0].getSenderID(), "senderID");
     }
+    
+    
+    public CommandEvent(String procUID, String controlInputName, ICommandData... commands)
+    {
+        this(System.currentTimeMillis(), procUID, controlInputName, commands);
+    }
 
 
     public Collection<ICommandData> getCommands()
