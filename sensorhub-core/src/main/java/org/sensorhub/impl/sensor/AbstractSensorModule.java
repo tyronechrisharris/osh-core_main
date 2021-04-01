@@ -313,8 +313,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             
             try
             {
-                // if output is added after init(), register it now
-                if (isInitialized())
+                // if control input is added after start(), register it now
+                if (isStarted() && hasParentHub() && getParentHub().getProcedureRegistry() != null)
                     getParentHub().getProcedureRegistry().register(controlInterface).get();
             }
             catch (ExecutionException | InterruptedException e)
