@@ -16,74 +16,25 @@ package org.sensorhub.ui;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.sensor.ISensorModule;
-import org.sensorhub.impl.service.sps.SPSConnectorConfig;
-import org.sensorhub.impl.service.sps.SPSServiceConfig;
-import org.sensorhub.impl.service.sps.SensorConnectorConfig;
 import org.sensorhub.ui.data.BaseProperty;
-import org.sensorhub.ui.data.MyBeanItem;
-import com.vaadin.v7.data.Property;
-import com.vaadin.server.ExternalResource;
-import com.vaadin.ui.Link;
 
 
 @SuppressWarnings("serial")
 public class SPSConfigForm extends GenericConfigForm
 {
     protected static final String SPS_PACKAGE = "org.sensorhub.impl.service.sps.";
-    protected static final String PROP_CONNECTORS = "connectors";
+    protected static final String PROP_CONNECTORS = "customConnectors";
     protected static final String PROP_ENDPOINT = "endPoint";
     
     
     @Override
-    public void build(String title, String popupText, MyBeanItem<? extends Object> beanItem, boolean includeSubForms)
+    public boolean isFieldVisible(String propId)
     {
-        super.build(title, popupText, beanItem, includeSubForms);
+        // hide offeringID since we cannot configure it manually anymore
+        if (propId.equals("offeringID"))
+            return false;
         
-        // add link to capabilities
-        Property<?> endPointProp = beanItem.getItemProperty(PROP_ENDPOINT);
-        if (endPointProp != null)
-        {
-            String baseUrl = (String)endPointProp.getValue();
-            if (baseUrl != null)
-            {
-                baseUrl = baseUrl.substring(1);
-                String href = baseUrl + "?service=SPS&version=2.0&request=GetCapabilities";
-                Link link = new Link("Link to capabilities", new ExternalResource(href), "_blank", 0, 0, null);
-                this.addComponent(link);
-            }
-        }
-        
-        // add links to DescribeTasking
-        SPSServiceConfig spsConf = (SPSServiceConfig)beanItem.getBean();
-        if (spsConf.endPoint != null)
-        {
-            String baseUrl = spsConf.endPoint.substring(1);
-            for (SPSConnectorConfig conf: spsConf.connectors)
-            {
-                if (conf instanceof SensorConnectorConfig)
-                {
-                    String sensorID = ((SensorConnectorConfig) conf).sensorID;
-                    if (sensorID != null)
-                    {
-                        try
-                        {
-                            ISensorModule<?> sensor = (ISensorModule<?>)getParentHub().getModuleRegistry().getModuleById(sensorID);
-                            String uid = sensor.getUniqueIdentifier();
-                            String name = sensor.getName();
-                            String href = baseUrl + "?service=SPS&version=2.0&request=DescribeTasking&procedure=" + uid;
-                            Link link = new Link("DescribeTasking for " + name, new ExternalResource(href), "_blank", 0, 0, null);
-                            this.addComponent(link);
-                        }
-                        catch (SensorHubException e)
-                        {
-                            getLogger().error("Cannot add SPS link", e);
-                        }
-                    }
-                }
-            }
-        }
+        return super.isFieldVisible(propId);
     }
 
 
@@ -95,12 +46,11 @@ public class SPSConfigForm extends GenericConfigForm
             Map<String, Class<?>> classList = new LinkedHashMap<>();
             try
             {
-                classList.put("Sensor Connector", Class.forName(SPS_PACKAGE + "SensorConnectorConfig"));               
-                classList.put("Stream Process Connector", Class.forName(SPS_PACKAGE + "StreamProcessConnectorConfig"));             
+                classList.put("Procedure Tasking", Class.forName(SPS_PACKAGE + "ProcedureTaskingConnectorConfig"));               
             }
             catch (ClassNotFoundException e)
             {
-                getLogger().error("Cannot find SPS connector class", e);
+                getLogger().error("Cannot find SPS provider class", e);
             }
             return classList;
         }

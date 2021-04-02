@@ -36,6 +36,7 @@ import org.sensorhub.impl.security.BasicSecurityRealmConfig;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.sos.SOSServiceConfig;
+import org.sensorhub.impl.service.sps.SPSServiceConfig;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.IModuleConfigForm;
 import com.vaadin.server.VaadinServlet;
@@ -97,8 +98,8 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             customForms.put(CommProviderConfig.class.getCanonicalName(), CommProviderConfigForm.class);
             customForms.put(BasicSecurityRealmConfig.UserConfig.class.getCanonicalName(), BasicSecurityConfigForm.class);
             customForms.put(BasicSecurityRealmConfig.RoleConfig.class.getCanonicalName(), BasicSecurityConfigForm.class);
-            customForms.put(SOSConfigForm.SOS_PACKAGE + "SOSServiceConfig", SOSConfigForm.class);
-            customForms.put(SPSConfigForm.SPS_PACKAGE + "SPSServiceConfig", SPSConfigForm.class);
+            customForms.put(SOSServiceConfig.class.getCanonicalName(), SOSConfigForm.class);
+            customForms.put(SPSServiceConfig.class.getCanonicalName(), SPSConfigForm.class);
             
             // custom form builders defined in config
             for (CustomUIConfig customForm: config.customForms)
@@ -125,6 +126,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             customPanels.put(DatabaseConfig.class.getCanonicalName(), DatabaseAdminPanel.class);
             customPanels.put(NetworkConfig.class.getCanonicalName(), NetworkAdminPanel.class);
             customPanels.put(SOSServiceConfig.class.getCanonicalName(), SOSAdminPanel.class);
+            customPanels.put(SPSServiceConfig.class.getCanonicalName(), SPSAdminPanel.class);
             
             // load custom panel builders defined in config
             for (CustomUIConfig customPanel: config.customPanels)

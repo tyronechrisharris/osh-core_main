@@ -68,7 +68,7 @@ public class SWEControlForm extends SWEEditForm
                 {
                     if (controlInput != null)
                     {
-                        var cmd = new CommandData(0, 0, component.getData());
+                        var cmd = new CommandData(0, component.getData());
                         controlInput.executeCommand(cmd, ack -> {}).get();
                     }
                     else
