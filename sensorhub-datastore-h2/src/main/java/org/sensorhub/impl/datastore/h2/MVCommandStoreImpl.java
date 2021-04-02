@@ -227,7 +227,7 @@ public class MVCommandStoreImpl implements ICommandStore
         {
             MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.MAX);
             Entry<MVTimeSeriesRecordKey, ICommandAck> e = cmdRecordsIndex.floorEntry(maxKey);
-            if (e.getKey().seriesID == series.id)
+            if (e != null && e.getKey().seriesID == series.id)
                 return Stream.of(mapToPublicEntry(e));
             else
                 return Stream.empty();

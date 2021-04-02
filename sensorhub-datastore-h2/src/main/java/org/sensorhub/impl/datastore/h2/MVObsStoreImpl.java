@@ -208,7 +208,7 @@ public class MVObsStoreImpl implements IObsStore
         {
             MVTimeSeriesKey key = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
             MVTimeSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
-            if (lastKey.dataStreamID != dataStreamID)
+            if (lastKey == null || lastKey.dataStreamID != dataStreamID)
                 return null;
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
@@ -234,7 +234,7 @@ public class MVObsStoreImpl implements IObsStore
         {
             MVTimeSeriesKey key = new MVTimeSeriesKey(Long.MAX_VALUE, foiID, Instant.MAX);
             MVTimeSeriesKey lastKey = obsSeriesByFoiIndex.floorKey(key);
-            if (lastKey.foiID != foiID)
+            if (lastKey == null || lastKey.foiID != foiID)
                 return null;
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
@@ -262,7 +262,7 @@ public class MVObsStoreImpl implements IObsStore
         {
             MVTimeSeriesKey key = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
             MVTimeSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
-            if (lastKey.dataStreamID != dataStreamID)
+            if (lastKey == null || lastKey.dataStreamID != dataStreamID)
                 return null;
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
@@ -300,7 +300,7 @@ public class MVObsStoreImpl implements IObsStore
             {
                 MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.now());      
                 Entry<MVTimeSeriesRecordKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
-                if (e.getKey().seriesID == series.id)
+                if (e != null && e.getKey().seriesID == series.id)
                     return Stream.of(mapToPublicEntry(e));
                 else
                     return Stream.empty();
@@ -311,7 +311,7 @@ public class MVObsStoreImpl implements IObsStore
             {
                 MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.MAX);      
                 Entry<MVTimeSeriesRecordKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
-                if (e.getKey().seriesID == series.id)
+                if (e != null && e.getKey().seriesID == series.id)
                     return Stream.of(mapToPublicEntry(e));
                 else
                     return Stream.empty();
