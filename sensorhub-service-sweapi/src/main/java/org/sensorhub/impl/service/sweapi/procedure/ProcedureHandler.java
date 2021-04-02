@@ -23,7 +23,7 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
-import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
+import org.sensorhub.impl.procedure.ProcedureUtils;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
