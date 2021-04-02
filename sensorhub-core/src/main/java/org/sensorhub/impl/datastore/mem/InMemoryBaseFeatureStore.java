@@ -217,7 +217,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         for (var entry: parentChildMap.entrySet())
         {
             if (entry.getValue().contains(internalID))
-                return entry.getKey();
+                return entry.getKey() == 0 ? null : entry.getKey();
         }
         
         return null;

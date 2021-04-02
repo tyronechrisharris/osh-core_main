@@ -436,7 +436,7 @@ public class ProcedureTransactionHandler
         if (parentGroupUID == null)
         {
             var parentID = getProcedureStore().getParent(procKey.getInternalID());
-            if (parentID > 0)
+            if (parentID != null && parentID > 0)
                 parentGroupUID = getProcedureStore().getCurrentVersion(parentID).getUniqueIdentifier();
         }
     }
