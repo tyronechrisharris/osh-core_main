@@ -38,7 +38,6 @@ import org.vast.swe.SWEHelper;
  */
 public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implements IStreamingControlInterface
 {
-    String name;
     int counter = 1;
     DataRecord commandStruct;
     ArrayList<DataBlock> receivedCommands = new ArrayList<DataBlock>();
@@ -46,8 +45,7 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
     
     public FakeSensorControl1(FakeSensor parentSensor)
     {
-        super(parentSensor);
-        this.name = "command1";
+        super("command1", parentSensor);
         
         var swe = new SWEHelper();
         this.commandStruct = swe.createRecord()
@@ -60,13 +58,6 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
                 .definition("urn:test:def:sensitivity")
                 .addAllowedValues("LOW", "HIGH"))
             .build();
-    }
-
-
-    @Override
-    public String getName()
-    {
-        return name;
     }
 
 

@@ -20,7 +20,6 @@ import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventSourceInfo;
-import org.sensorhub.api.sensor.ISensorDriver;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.sensorhub.impl.module.AbstractModule;
 import org.slf4j.Logger;
@@ -98,7 +97,7 @@ public abstract class AbstractSensorOutput<T extends IDataProducer> implements I
     public AbstractSensorOutput(String name, T parentSensor, IEventSourceInfo eventSrcInfo, Logger log)
     {
         this.name = Asserts.checkNotNull(name, "name");
-        this.parentSensor = Asserts.checkNotNull(parentSensor, ISensorDriver.class);
+        this.parentSensor = Asserts.checkNotNull(parentSensor, "parentSensor");
         this.eventHandler = new BasicEventHandler();
         
         // setup logger

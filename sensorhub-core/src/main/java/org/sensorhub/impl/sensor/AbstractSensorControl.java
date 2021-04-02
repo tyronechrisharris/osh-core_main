@@ -19,6 +19,7 @@ import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.impl.event.BasicEventHandler;
+import org.vast.util.Asserts;
 
 
 /**
@@ -42,16 +43,10 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     protected final IEventHandler eventHandler;
     
     
-    public AbstractSensorControl(T parentSensor)
-    {
-        this(null, parentSensor);
-    }
-    
-    
     public AbstractSensorControl(String name, T parentSensor)
     {
-        this.name = name;
-        this.parentSensor = parentSensor;
+        this.name = Asserts.checkNotNull(name, "name");
+        this.parentSensor = Asserts.checkNotNull(parentSensor, "parentSensor");
         this.eventHandler = new BasicEventHandler();
     }
     

@@ -38,15 +38,13 @@ import org.vast.swe.SWEHelper;
  */
 public class FakeSensorControl2 extends AbstractSensorControl<FakeSensor> implements IStreamingControlInterface
 {
-    String name;
     int counter = 1;
     Category commandStruct;
     
     
     public FakeSensorControl2(FakeSensor parentSensor)
     {
-        super(parentSensor);
-        this.name = "command2";
+        super("command2", parentSensor);
         
         var swe = new SWEHelper();
         this.commandStruct = swe.createCategory()
@@ -54,13 +52,6 @@ public class FakeSensorControl2 extends AbstractSensorControl<FakeSensor> implem
             .definition("urn:test:def:trigger")
             .addAllowedValues("NOW", "REPEAT", "STOP")
             .build();
-    }
-
-
-    @Override
-    public String getName()
-    {
-        return name;
     }
 
 
