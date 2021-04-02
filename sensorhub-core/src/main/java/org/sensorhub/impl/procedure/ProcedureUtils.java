@@ -12,7 +12,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.procedure.wrapper;
+package org.sensorhub.impl.procedure;
 
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -20,7 +20,7 @@ import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
-import org.sensorhub.impl.procedure.ProcedureTransactionHandler;
+import org.sensorhub.impl.procedure.wrapper.ProcessWrapper;
 import org.vast.data.TextEncodingImpl;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.IOPropertyList;
@@ -64,12 +64,14 @@ public class ProcedureUtils
             if (param instanceof DataStream)
             {
                 var ds = (DataStream)param;
-                procHandler.addOrUpdateCommandStream(ds.getName(), ds.getElementType(), ds.getEncoding());
+                if (ds.getElementType().isSetUpdatable())
+                    procHandler.addOrUpdateCommandStream(ds.getName(), ds.getElementType(), ds.getEncoding());
             }
             else if (param instanceof DataComponent)
             {
                 var comp = (DataComponent)param;
-                procHandler.addOrUpdateCommandStream(comp.getName(), comp, new TextEncodingImpl());
+                if (comp.isSetUpdatable())
+                    procHandler.addOrUpdateCommandStream(comp.getName(), comp, new TextEncodingImpl());
             }
         }
     }

@@ -16,6 +16,7 @@ package org.sensorhub.impl.procedure;
 
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.event.EventUtils;
@@ -172,6 +173,12 @@ public class ProcedureObsTransactionHandler
     }
     
     
+    protected ProcedureTransactionHandler createProcedureHandler(FeatureKey procKey, String procUID)
+    {
+        return new ProcedureTransactionHandler(procKey, procUID, this);
+    }
+    
+    
     /**
      * Create a handler for an existing datastream with the specified procedure and output name
      * @param procUID Procedure unique ID
@@ -193,8 +200,44 @@ public class ProcedureObsTransactionHandler
     }
     
     
-    protected ProcedureTransactionHandler createProcedureHandler(FeatureKey procKey, String procUID)
+    /**
+     * Create a handler for an existing command stream with the specified ID
+     * @param id Command stream internal ID
+     * @return The new command stream handler or null if command stream doesn't exist
+     */
+    public CommandStreamTransactionHandler getCommandStreamHandler(long id)
     {
-        return new ProcedureTransactionHandler(procKey, procUID, this);
+        OshAsserts.checkValidInternalID(id);
+        
+        // load command stream info from DB
+        var csKey = new CommandStreamKey(id);
+        var csInfo = db.getCommandStreamStore().get(csKey);
+        if (csInfo == null)
+            return null;
+        
+        // create new command stream handler
+        return new CommandStreamTransactionHandler(csKey, csInfo, this);
+    }
+    
+    
+    /**
+     * Create a handler for an existing command stream with the specified procedure
+     * and control input name
+     * @param procUID Procedure unique ID
+     * @param controlInputName Control input name
+     * @return The new command stream handler or null if command stream doesn't exist
+     */
+    public CommandStreamTransactionHandler getCommandStreamHandler(String procUID, String controlInputName)
+    {
+        OshAsserts.checkValidUID(procUID);
+        Asserts.checkNotNullOrEmpty(controlInputName, "controlInputName");
+        
+        // load command stream info from DB
+        var csEntry = db.getCommandStreamStore().getLatestVersionEntry(procUID, controlInputName);
+        if (csEntry == null)
+            return null;
+        
+        // create new command stream handler
+        return new CommandStreamTransactionHandler(csEntry.getKey(), csEntry.getValue(), this);
     }
 }

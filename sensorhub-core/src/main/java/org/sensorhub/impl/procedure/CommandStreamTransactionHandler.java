@@ -14,8 +14,13 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
+import java.util.function.Consumer;
 import org.sensorhub.api.command.CommandAckEvent;
+import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.CommandEvent;
 import org.sensorhub.api.command.CommandStreamChangedEvent;
 import org.sensorhub.api.command.CommandStreamDisabledEvent;
@@ -23,12 +28,16 @@ import org.sensorhub.api.command.CommandStreamEnabledEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.CommandStreamRemovedEvent;
 import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventPublisher;
+import org.sensorhub.impl.event.SubscriberConsumerAdapter;
 import org.sensorhub.utils.DataComponentChecks;
+import org.vast.util.Asserts;
+import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -51,6 +60,9 @@ public class CommandStreamTransactionHandler
     protected String parentGroupUID;
     protected IEventPublisher dataEventPublisher;
     protected IEventPublisher ackEventPublisher;
+    
+    protected Map<ICommandData, Consumer<ICommandAck>> ackCallbacks;
+    protected volatile Subscription ackSub;
     
     
     public CommandStreamTransactionHandler(CommandStreamKey csKey, ICommandStreamInfo csInfo, ProcedureObsTransactionHandler rootHandler)
@@ -129,29 +141,74 @@ public class CommandStreamTransactionHandler
         getStatusEventPublisher().publish(event);
         getProcedureStatusEventPublisher().publish(event);
     }
-
-
-    public IEventPublisher connectSender(Subscriber<CommandAckEvent> ackSubscriber)
+    
+    
+    public void connectCommandReceiver(Subscriber<CommandEvent> commandSubscriber)
     {
-        var ackTopic = EventUtils.getCommandStreamAckTopicID(csInfo);
-        rootHandler.eventBus.newSubscription(CommandAckEvent.class)
-            .withTopicID(ackTopic)
-            .subscribe(ackSubscriber);        
+        Asserts.checkNotNull(commandSubscriber, Subscriber.class);
         
-        return getDataEventPublisher();
-    }
-    
-    
-    public void connectReceiver(Subscriber<CommandEvent> commandSubscriber)
-    {
         var dataTopic = EventUtils.getCommandStreamDataTopicID(csInfo);
         rootHandler.eventBus.newSubscription(CommandEvent.class)
             .withTopicID(dataTopic)
             .subscribe(commandSubscriber);
     }
+
+
+    public void connectAckReceiver(Subscriber<CommandAckEvent> ackSubscriber)
+    {
+        Asserts.checkNotNull(ackSubscriber, Subscriber.class);
+        
+        var ackTopic = EventUtils.getCommandStreamAckTopicID(csInfo);
+        rootHandler.eventBus.newSubscription(CommandAckEvent.class)
+            .withTopicID(ackTopic)
+            .subscribe(ackSubscriber);
+    }
     
     
-    public void publishAck(ICommandAck ack)
+    public void sendCommand(DataBlock data, Consumer<ICommandAck> onAck)
+    {
+        var cmd = new CommandData(csKey.getInternalID(), data);
+        
+        // register ACK callback if provided
+        if (onAck != null)
+        {
+            // prepare callback map and register subscriber the first time
+            if (ackCallbacks == null)
+            {
+                ackCallbacks = new ConcurrentHashMap<>();
+                connectAckReceiver(new SubscriberConsumerAdapter<CommandAckEvent>(
+                    sub -> {
+                        this.ackSub = sub;
+                    },
+                    event -> {
+                        for (var ack: event.getCommandAcks())
+                        {
+                            var callback = ackCallbacks.remove(ack.getCommand());
+                            if (callback != null)
+                                callback.accept(ack);
+                        }
+                    }, false));
+            }
+            
+            ackCallbacks.put(cmd, onAck);
+        }
+        
+        getDataEventPublisher().publish(new CommandEvent(
+            System.currentTimeMillis(),
+            csInfo.getProcedureID().getUniqueID(),
+            csInfo.getControlInputName(),
+            cmd));
+    }
+    
+    
+    public void cleanup()
+    {
+        if (ackSub != null)
+            ackSub.cancel();
+    }
+    
+    
+    public void sendAck(ICommandAck ack)
     {
         getAckEventPublisher().publish(new CommandAckEvent(
             System.currentTimeMillis(),

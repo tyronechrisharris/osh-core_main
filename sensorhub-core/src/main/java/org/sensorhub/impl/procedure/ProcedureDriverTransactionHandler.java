@@ -56,7 +56,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     protected Map<String, DataStreamTransactionHandler> dataStreamHandlers = new HashMap<>();
     protected Map<String, CommandStreamTransactionHandler> commandStreamHandlers = new HashMap<>();
     protected Map<String, ProcedureDriverTransactionHandler> memberHandlers = new HashMap<>();
-    protected Map<String, Subscription> commandSubscriptions;
+    protected Map<String, Subscription> commandSubscriptions = new HashMap<>();
     
     
     protected ProcedureDriverTransactionHandler(FeatureKey procKey, String procUID, String parentGroupUID, ProcedureObsTransactionHandler rootHandler)
@@ -90,8 +90,8 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         if (driver instanceof ICommandReceiver)
         {
             var taskableSource = (ICommandReceiver)driver;
-            for (var commanStream: taskableSource.getCommandInputs().values())
-                doRegister(commanStream);
+            for (var commandStream: taskableSource.getCommandInputs().values())
+                doRegister(commandStream);
         }
         
         // if group, also register members recursively
@@ -304,7 +304,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
             new TextEncodingImpl());
         newCsHandler.parentGroupUID = this.parentGroupUID;
             
-        // replace and cleanup old handler
+        // replace and cleanup old handler and subscription
         commandStreamHandlers.put(controlInput.getName(), newCsHandler);
         var oldSub = commandSubscriptions.get(controlInput.getName());
         if (oldSub != null)
@@ -313,8 +313,19 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
             isNew = false;
         }
                 
-        // connect procedure to receive commands from event bus
-        newCsHandler.connectReceiver(new Subscriber<CommandEvent>() {
+        // connect to receive commands from event bus
+        connectControlInput(controlInput, newCsHandler);
+        
+        // enable
+        newCsHandler.enable();
+        
+        return isNew;
+    }
+    
+    
+    protected void connectControlInput(IStreamingControlInterface controlInput, CommandStreamTransactionHandler csHandler)
+    {
+        csHandler.connectCommandReceiver(new Subscriber<CommandEvent>() {
             Subscription sub;
             
             @Override
@@ -338,7 +349,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
                 if (commands.hasNext())
                 {
                     var cmd = commands.next();
-                    controlInput.executeCommand(cmd, newCsHandler::publishAck)
+                    controlInput.executeCommand(cmd, csHandler::sendAck)
                         .thenRun(() -> sendCommand(commands));
                 }
                 else
@@ -349,7 +360,8 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
 
             @Override
             public void onError(Throwable throwable)
-            {                
+            {
+                
             }
 
             @Override
@@ -357,11 +369,6 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
             {
             }            
         });
-        
-        // enable
-        newCsHandler.enable();
-        
-        return isNew;
     }
 
 
@@ -376,7 +383,15 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     {
         Asserts.checkNotNull(commandStream, IStreamingControlInterface.class);
         
-        DefaultProcedureRegistry.log.warn("Command streams unregister not implemented yet");
+        // remove handler
+        var csHandler = commandStreamHandlers.remove(commandStream.getName());
+        if (csHandler != null)
+            csHandler.disable();
+        
+        // cancel subcriptions to received commands
+        var sub = commandSubscriptions.remove(commandStream.getName());
+        if (sub != null)
+            sub.cancel();
     }
 
 
