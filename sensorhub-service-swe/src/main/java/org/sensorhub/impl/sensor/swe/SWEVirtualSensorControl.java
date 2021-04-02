@@ -28,7 +28,6 @@ import org.vast.data.AbstractDataBlock;
 import org.vast.data.DataBlockInt;
 import org.vast.data.DataBlockMixed;
 import org.vast.ows.sps.StatusReport.RequestStatus;
-import org.vast.util.Asserts;
 
 
 public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSensor>
@@ -39,14 +38,13 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
     
     public SWEVirtualSensorControl(SWEVirtualSensor parentSensor, DataComponent cmdDescription)
     {
-        this(parentSensor, cmdDescription, -1);
-        Asserts.checkNotNull(cmdDescription.getName(), "Command must have a name");
+        this(parentSensor, cmdDescription, -1);        
     }
     
     
     public SWEVirtualSensorControl(SWEVirtualSensor parentSensor, DataComponent cmdDescription, int choiceIndex)
     {
-        super(parentSensor);
+        super(cmdDescription.getName(), parentSensor);
         this.cmdDescription = cmdDescription;
         
         if (choiceIndex >= 0)
@@ -56,13 +54,6 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
             choiceIndexData.setIntValue(choiceIndex);
             cmdWrapper.getUnderlyingObject()[0] = choiceIndexData;
         }
-    }
-    
-
-    @Override
-    public String getName()
-    {
-        return cmdDescription.getName();
     }
     
 

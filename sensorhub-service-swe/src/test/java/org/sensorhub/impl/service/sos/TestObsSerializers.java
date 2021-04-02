@@ -65,7 +65,7 @@ public class TestObsSerializers
         var sos = (SOSService)moduleRegistry.loadModule(sosCfg, TIMEOUT);
         sos.init();
         sos.start();
-        servlet = sos.servlet;
+        servlet = sos.getServlet();
         
         TestAsyncContext.WRITE_BUFFER_CONSUME_DELAY_MS = 100;
         TestAsyncContext.WRITE_BUFFER_READY_LIMIT = 1024;

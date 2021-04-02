@@ -26,15 +26,13 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorControl1;
 import org.sensorhub.impl.sensor.FakeSensorControl2;
 import org.sensorhub.impl.sensor.FakeSensorData;
-import org.sensorhub.impl.service.sps.SPSConnectorConfig;
-import org.sensorhub.impl.service.sps.SPSService;
-import org.sensorhub.impl.service.sps.SensorConnectorConfig;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.DataBlockMixed;
 import org.vast.data.DataBlockString;
@@ -78,19 +76,19 @@ public class TestSPSTService
     }
     
     
-    protected SPSService deployService(SPSConnectorConfig... connectorConfigs) throws Exception
+    protected SPSService deployService() throws Exception
     {   
-        return spsTest.deployService(true, connectorConfigs);
+        return spsTest.deployService(true);
     }
     
     
-    protected SensorConnectorConfig buildSensorConnector1() throws Exception
+    protected ISensorModule<?> registerSensor1() throws Exception
     {
-        return spsTest.buildSensorConnector1();
+        return spsTest.registerSensor1();
     }
     
     
-    protected InsertSensorRequest buildInsertSensor() throws Exception
+    protected InsertSensorRequest buildInsertSensor(boolean addControlInputs) throws Exception
     {
         FakeSensor sensor = new FakeSensor();
         sensor.setParentHub(new SensorHub());
@@ -100,7 +98,8 @@ public class TestSPSTService
         sensor.init(config);
         sensor.setSensorUID(SENSOR_UID);
         sensor.setDataInterfaces(new FakeSensorData(sensor, "output1", 1.0, 0));
-        sensor.setControlInterfaces(new FakeSensorControl1(sensor), new FakeSensorControl2(sensor));
+        if (addControlInputs)
+            sensor.setControlInterfaces(new FakeSensorControl1(sensor), new FakeSensorControl2(sensor));
         
         // build insert sensor request
         InsertSensorRequest req = new InsertSensorRequest();
@@ -146,25 +145,33 @@ public class TestSPSTService
         getCap.setGetServer(TestSPSService.HTTP_ENDPOINT);
         SPSServiceCapabilities caps = (SPSServiceCapabilities)utils.sendRequest(getCap, false);
         //utils.writeXMLResponse(System.out, caps);
-        assertEquals("No offering added", offeringIndex+1, caps.getLayers().size());
         
-        return (SPSOfferingCapabilities)caps.getLayers().get(offeringIndex);
+        if (offeringIndex >= 0)
+        {
+            assertEquals("No offering added", offeringIndex+1, caps.getLayers().size());
+            return (SPSOfferingCapabilities)caps.getLayers().get(offeringIndex);
+        }
+        else
+        {
+            assertEquals("No offering should be added", 0, caps.getLayers().size());
+            return null;
+        }
     }    
     
     
     @Test
     public void testSetupService() throws Exception
     {
-        deployService(buildSensorConnector1());
+        deployService();
     }
     
     
     @Test
-    public void testInsertSensor() throws Exception
+    public void testInsertSensorWithoutControlInputs() throws Exception
     {
-        deployService(new SPSConnectorConfig[0]);
+        deployService();
         OWSUtils utils = new OWSUtils();
-        InsertSensorRequest req = buildInsertSensor();
+        InsertSensorRequest req = buildInsertSensor(false);
         
         try
         {
@@ -177,28 +184,59 @@ public class TestSPSTService
             utils.writeXMLException(System.out, "SOS", "2.0", e);
             throw e;
         }
+                
+        // check no new offering added since there are no control inputs
+        getCapabilities(-1);
+    }
+    
+    
+    @Test
+    public void testInsertSensorWithControlInputs() throws Exception
+    {
+        deployService();
+        OWSUtils utils = new OWSUtils();
+        InsertSensorRequest req = buildInsertSensor(true);
         
+        try
+        {
+            utils.writeXMLQuery(System.out, req);
+            OWSResponse resp = utils.sendRequest(req, false);
+            utils.writeXMLResponse(System.out, resp);
+        }
+        catch (OWSException e)
+        {
+            utils.writeXMLException(System.out, "SOS", "2.0", e);
+            throw e;
+        }
+                
         // check new offering has correct properties
         SPSOfferingCapabilities newOffering = getCapabilities(0);
         String procUID = req.getProcedureDescription().getUniqueIdentifier();
         assertEquals(procUID, newOffering.getProcedures().iterator().next());
+        
+        // check describe tasking response
+        DescribeTaskingRequest dtReq = spsTest.buildDescribeTasking(SENSOR_UID);
+        DescribeTaskingResponse dtResp = (DescribeTaskingResponse)utils.sendRequest(dtReq, false);
+        assertTrue("Top level element should be a DataChoice", dtResp.getTaskingParameters() instanceof DataChoice);
+        assertEquals("Wrong number of tasking parameters", 2, dtResp.getTaskingParameters().getComponentCount());
     }
     
     
     @Test
     public void testInsertTaskingTemplate() throws Exception
     {
-        deployService(buildSensorConnector1());
+        registerSensor1();
+        deployService();
         OWSUtils utils = new OWSUtils();
         
         // first register sensor
-        InsertSensorRequest req = buildInsertSensor();
+        InsertSensorRequest req = buildInsertSensor(false); // w/o control inputs
         InsertSensorResponse resp = (InsertSensorResponse)utils.sendRequest(req, false);
         
         // send template for 1st control input
+        DataComponent command1 = new FakeSensorControl1(new FakeSensor()).getCommandDescription();
         DataEncoding encoding = new TextEncodingImpl();
-        DataComponent controlInput = (DataComponent)req.getProcedureDescription().getParameterList().get(0);
-        utils.sendRequest(buildInsertTaskingTemplate(controlInput, encoding, resp), false);
+        utils.sendRequest(buildInsertTaskingTemplate(command1, encoding, resp), false);
         
         // check describe tasking response
         DescribeTaskingRequest dtReq = spsTest.buildDescribeTasking(SENSOR_UID);
@@ -206,9 +244,9 @@ public class TestSPSTService
         assertTrue("Top level element should be a DataRecord", dtResp.getTaskingParameters() instanceof DataRecord);
         assertEquals("Wrong number of tasking parameters", 2, dtResp.getTaskingParameters().getComponentCount());
         
-        // send template for 2nd control i,put
-        controlInput = (DataComponent)req.getProcedureDescription().getParameterList().get(1);
-        utils.sendRequest(buildInsertTaskingTemplate(controlInput, encoding, resp), false);
+        // send template for 2nd control input
+        DataComponent command2 = new FakeSensorControl2(new FakeSensor()).getCommandDescription();
+        utils.sendRequest(buildInsertTaskingTemplate(command2, encoding, resp), false);
         
         // check describe tasking response again
         dtResp = (DescribeTaskingResponse)utils.sendRequest(dtReq, false);
@@ -226,7 +264,7 @@ public class TestSPSTService
             public synchronized void onWebSocketBinary(byte payload[], int offset, int len)
             {
                 String rec = new String(payload, offset, len);
-                System.out.print(rec);
+                System.out.print("Received command: " + rec);
                 records.add(rec);
                 this.notifyAll();
             }
@@ -273,17 +311,18 @@ public class TestSPSTService
     @Test
     public void testConnectTasking() throws Exception
     {
-        deployService(buildSensorConnector1());
+        registerSensor1();
+        deployService();
         OWSUtils utils = new OWSUtils();
         
         // first register sensor
-        InsertSensorRequest isReq = buildInsertSensor();
+        InsertSensorRequest isReq = buildInsertSensor(false);
         InsertSensorResponse isResp = (InsertSensorResponse)utils.sendRequest(isReq, false);
         
         // send template for 1st control input
+        DataComponent command1 = new FakeSensorControl1(new FakeSensor()).getCommandDescription();
         DataEncoding encoding = new TextEncodingImpl();
-        DataComponent controlInput = (DataComponent)isReq.getProcedureDescription().getParameterList().get(0);
-        InsertTaskingTemplateRequest itReq = buildInsertTaskingTemplate(controlInput, encoding, isResp);
+        InsertTaskingTemplateRequest itReq = buildInsertTaskingTemplate(command1, encoding, isResp);
         InsertTaskingTemplateResponse itResp = utils.sendRequest(itReq, false);
         
         // connect tasking stream

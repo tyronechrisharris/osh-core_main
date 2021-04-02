@@ -14,9 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sps;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.vast.ows.sps.StatusReport;
 import org.vast.util.DateTime;
 
@@ -28,7 +27,7 @@ public class InMemoryTaskDB implements ITaskDB
 	
 	public InMemoryTaskDB()
 	{
-		this.taskTable = Collections.synchronizedMap(new HashMap<String, ITask>());
+		this.taskTable = new ConcurrentHashMap<String, ITask>();
 	}
 	
 	

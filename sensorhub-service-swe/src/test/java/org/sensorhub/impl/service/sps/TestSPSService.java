@@ -19,15 +19,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.List;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.ModuleRegistry;
@@ -37,7 +38,9 @@ import org.sensorhub.impl.sensor.FakeSensorControl2;
 import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
+import org.sensorhub.impl.service.WebSocketOutputStream;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
+import org.sensorhub.test.AsyncTests;
 import org.slf4j.LoggerFactory;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.data.DataBlockDouble;
@@ -67,20 +70,20 @@ import org.w3c.dom.NodeList;
 
 public class TestSPSService
 {
+    static final long TIMEOUT = 5000L;
     static final int SERVER_PORT = 8888;
     static final String SERVICE_PATH = "/sps";
     static final String HTTP_ENDPOINT = "http://localhost:" + SERVER_PORT + "/sensorhub" + SERVICE_PATH;
     static final String WS_ENDPOINT = HTTP_ENDPOINT.replace("http://", "ws://");     
     static final String NAME_INPUT1 = "command";
-    static final String URI_OFFERING1 = "urn:mysps:sensor1";
-    static final String URI_OFFERING2 = "urn:mysps:sensor2";
+    static final String NAME_SENSOR1 = "Sensor 1";
+    static final String NAME_SENSOR2 = "Sensor 2";
     static final String NAME_OFFERING1 = "SPS Sensor Control #1";
     static final String NAME_OFFERING2 = "SPS Sensor Control #2";
     static final String SENSOR_UID_1 = "urn:mysensors:SENSOR001";
     static final String SENSOR_UID_2 = "urn:mysensors:SENSOR002";
     
     protected ModuleRegistry moduleRegistry;
-    FakeSensor sensor1, sensor2;
     
     
     @Before
@@ -96,13 +99,13 @@ public class TestSPSService
     }
     
     
-    protected SPSService deployService(SPSConnectorConfig... connectorConfigs) throws Exception
+    protected SPSService deployService() throws Exception
     {
-        return deployService(false, connectorConfigs);
+        return deployService(false);
     }
     
     
-    protected SPSService deployService(boolean enabledTransactional, SPSConnectorConfig... connectorConfigs) throws Exception
+    protected SPSService deployService(boolean enabledTransactional) throws Exception
     {   
         // create service config
         SPSServiceConfig serviceCfg = new SPSServiceConfig();
@@ -122,8 +125,6 @@ public class TestSPSService
         srvcMetadata.fees = "NONE";
         srvcMetadata.accessConstraints = "NONE";
         
-        serviceCfg.connectors.addAll(Arrays.asList(connectorConfigs));
-        
         // load module into registry
         SPSService sps = (SPSService)moduleRegistry.loadModule(serviceCfg);
         moduleRegistry.saveModulesConfiguration();
@@ -131,53 +132,41 @@ public class TestSPSService
     }
     
     
-    protected SensorConnectorConfig buildSensorConnector1() throws Exception
+    protected ISensorModule<?> registerSensor1() throws Exception
     {
         // create test sensor
         SensorConfig sensorCfg = new SensorConfig();
-        sensorCfg.autoStart = true;
+        sensorCfg.autoStart = false;
         sensorCfg.moduleClass = FakeSensor.class.getCanonicalName();
-        sensorCfg.name = "Sensor1";
-        sensor1 = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
-        sensor1.setSensorUID(SENSOR_UID_1);
+        sensorCfg.name = NAME_SENSOR1;
+        var sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
         
-        // add custom interfaces
-        sensor1.setDataInterfaces(new FakeSensorData(sensor1, "output1", 1.0, 0));
-        sensor1.setControlInterfaces(new FakeSensorControl1(sensor1));
+        sensor.requestInit(true);
+        sensor.setSensorUID(SENSOR_UID_1);
+        sensor.setDataInterfaces(new FakeSensorData(sensor, "output1", 1.0, 0));
+        sensor.setControlInterfaces(new FakeSensorControl1(sensor));
         
-        // create SOS data provider config
-        SensorConnectorConfig provCfg = new SensorConnectorConfig();
-        provCfg.enabled = true;
-        provCfg.name = NAME_OFFERING1;
-        provCfg.sensorID = sensor1.getLocalID();
-        //provCfg.hiddenOutputs
-        
-        return provCfg;
+        moduleRegistry.startModule(sensorCfg.id);
+        return sensor;
     }
     
     
-    protected SensorConnectorConfig buildSensorConnector2() throws Exception
+    protected ISensorModule<?> registerSensor2() throws Exception
     {
         // create test sensor
         SensorConfig sensorCfg = new SensorConfig();
-        sensorCfg.autoStart = true;
+        sensorCfg.autoStart = false;
         sensorCfg.moduleClass = FakeSensor.class.getCanonicalName();
-        sensorCfg.name = "Sensor2";
-        sensor2 = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
-        sensor2.setSensorUID(SENSOR_UID_2);
+        sensorCfg.name = NAME_SENSOR2;
+        var sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
         
-        // add custom interfaces
-        sensor2.setDataInterfaces(new FakeSensorData(sensor2, "output1", 1.0, 0));
-        sensor2.setControlInterfaces(new FakeSensorControl1(sensor2), new FakeSensorControl2(sensor2));
+        sensor.requestInit(true);
+        sensor.setSensorUID(SENSOR_UID_2);
+        sensor.setDataInterfaces(new FakeSensorData(sensor, "output1", 1.0, 0));
+        sensor.setControlInterfaces(new FakeSensorControl1(sensor), new FakeSensorControl2(sensor));
         
-        // create SOS data provider config
-        SensorConnectorConfig provCfg = new SensorConnectorConfig();
-        provCfg.enabled = true;
-        provCfg.name = NAME_OFFERING2;
-        provCfg.sensorID = sensor2.getLocalID();
-        //provCfg.hiddenOutputs
-        
-        return provCfg;
+        moduleRegistry.startModule(sensorCfg.id);
+        return sensor;
     }
     
     
@@ -268,14 +257,15 @@ public class TestSPSService
     @Test
     public void testSetupService() throws Exception
     {
-        deployService(buildSensorConnector1());
+        deployService();
     }
     
     
     @Test
     public void testGetCapabilitiesOneOffering() throws Exception
     {
-        deployService(buildSensorConnector1());
+        deployService();
+        registerSensor1();
         
         InputStream is = new URL(HTTP_ENDPOINT + "?service=SPS&version=2.0&request=GetCapabilities").openStream();
         DOMHelper dom = new DOMHelper(is, false);
@@ -283,15 +273,17 @@ public class TestSPSService
         
         NodeList offeringElts = dom.getElements("contents/SPSContents/offering/*");
         assertEquals("Wrong number of offerings", 1, offeringElts.getLength());
-        assertEquals("Wrong offering id", URI_OFFERING1, dom.getElementValue((Element)offeringElts.item(0), "identifier"));
-        assertEquals("Wrong offering name", NAME_OFFERING1, dom.getElementValue((Element)offeringElts.item(0), "name"));
+        assertEquals("Wrong offering id", SENSOR_UID_1, dom.getElementValue((Element)offeringElts.item(0), "identifier"));
+        assertEquals("Wrong offering name", NAME_SENSOR1, dom.getElementValue((Element)offeringElts.item(0), "name"));
     }
     
     
     @Test
     public void testGetCapabilitiesTwoOfferings() throws Exception
     {
-        deployService(buildSensorConnector1(), buildSensorConnector2());
+        registerSensor1();
+        registerSensor2();
+        deployService();
         
         InputStream is = new URL(HTTP_ENDPOINT + "?service=SOS&version=2.0&request=GetCapabilities").openStream();
         DOMHelper dom = new DOMHelper(is, false);
@@ -300,43 +292,57 @@ public class TestSPSService
         NodeList offeringElts = dom.getElements("contents/SPSContents/offering/*");
         assertEquals("Wrong number of offerings", 2, offeringElts.getLength());
         
-        assertEquals("Wrong offering id", URI_OFFERING1, dom.getElementValue((Element)offeringElts.item(0), "identifier"));
-        assertEquals("Wrong offering name", NAME_OFFERING1, dom.getElementValue((Element)offeringElts.item(0), "name"));
+        assertEquals("Wrong offering id", SENSOR_UID_1, dom.getElementValue((Element)offeringElts.item(0), "identifier"));
+        assertEquals("Wrong procedure id", SENSOR_UID_1, dom.getElementValue((Element)offeringElts.item(0), "procedure"));
+        assertEquals("Wrong offering name", NAME_SENSOR1, dom.getElementValue((Element)offeringElts.item(0), "name"));
         
-        assertEquals("Wrong offering id", URI_OFFERING2, dom.getElementValue((Element)offeringElts.item(1), "identifier"));
-        assertEquals("Wrong offering name", NAME_OFFERING2, dom.getElementValue((Element)offeringElts.item(1), "name"));
+        assertEquals("Wrong offering id", SENSOR_UID_2, dom.getElementValue((Element)offeringElts.item(1), "identifier"));
+        assertEquals("Wrong procedure id", SENSOR_UID_2, dom.getElementValue((Element)offeringElts.item(1), "procedure"));
+        assertEquals("Wrong offering name", NAME_SENSOR2, dom.getElementValue((Element)offeringElts.item(1), "name"));
     }
     
     
     @Test
     public void testDescribeSensorOneOffering() throws Exception
     {
-        deployService(buildSensorConnector1());
+        deployService();
+        registerSensor1();
+        
         DOMHelper dom = sendRequest(buildDescribeSensor(SENSOR_UID_1), false);
-        assertEquals("Wrong Sensor UID", SENSOR_UID_1, dom.getElementValue("identifier"));
+        var smlElt = dom.getElement("description/SensorDescription/data/*");
+        assertEquals("Wrong Sensor UID", SENSOR_UID_1, dom.getElementValue(smlElt, "identifier"));
+        assertEquals("Wrong Sensor Name", NAME_SENSOR1, dom.getElementValue(smlElt, "name"));
+        assertEquals("Wrong number of control parameters", 1, dom.getElements(smlElt, "parameters/*/parameter").getLength());        
     }
     
     
     @Test
     public void testDescribeSensorTwoOfferings() throws Exception
     {
-        deployService(buildSensorConnector1(), buildSensorConnector2());
+        deployService();
+        registerSensor1();
+        registerSensor2();
         DOMHelper dom;
+        Element smlElt;
         
         dom = sendRequest(buildDescribeSensor(SENSOR_UID_1), false);
-        assertEquals("Wrong Sensor UID", SENSOR_UID_1, dom.getElementValue("identifier"));
-        assertEquals("Wrong number of control parameters", 1, dom.getElements("parameters/*/parameter").getLength());
+        smlElt = dom.getElement("description/SensorDescription/data/*");
+        assertEquals("Wrong Sensor UID", SENSOR_UID_1, dom.getElementValue(smlElt, "identifier"));
+        assertEquals("Wrong number of control parameters", 1, dom.getElements(smlElt, "parameters/*/parameter").getLength());
         
         dom = sendRequest(buildDescribeSensor(SENSOR_UID_2), true);
-        assertEquals("Wrong Sensor UID", SENSOR_UID_2, dom.getElementValue("identifier"));
-        assertEquals("Wrong number of control parameters", 2, dom.getElements("parameters/*/parameter").getLength());
+        smlElt = dom.getElement("description/SensorDescription/data/*");
+        assertEquals("Wrong Sensor UID", SENSOR_UID_2, dom.getElementValue(smlElt, "identifier"));
+        assertEquals("Wrong number of control parameters", 2, dom.getElements(smlElt, "parameters/*/parameter").getLength());
     }
     
     
     @Test(expected = OWSException.class)
     public void testDescribeSensorWrongFormat() throws Exception
     {
-        deployService(buildSensorConnector1());
+        registerSensor1();
+        deployService();
+                
         DescribeSensorRequest req = buildDescribeSensor(SENSOR_UID_1);
         req.setFormat("InvalidFormat");
         sendRequest(req, false);
@@ -346,7 +352,9 @@ public class TestSPSService
     @Test
     public void testDescribeTaskingOneOffering() throws Exception
     {
-        deployService(buildSensorConnector1());
+        deployService();
+        registerSensor1();
+        
         DOMHelper dom = sendRequest(buildDescribeTasking(SENSOR_UID_1), false);
         
         NodeList offeringElts = dom.getElements("taskingParameters/*/field");
@@ -357,7 +365,9 @@ public class TestSPSService
     @Test
     public void testDescribeTaskingTwoOfferings() throws Exception
     {
-        deployService(buildSensorConnector1(), buildSensorConnector2());
+        registerSensor2();
+        registerSensor1();
+        deployService();
         
         DOMHelper dom;
         NodeList offeringElts;
@@ -375,7 +385,8 @@ public class TestSPSService
     @Test
     public void testSubmitOneOffering() throws Exception
     {
-        deployService(buildSensorConnector1());
+        deployService();
+        var sensor = registerSensor1();
         SPSUtils spsUtils = new SPSUtils();
         
         // first send describeTasking
@@ -389,6 +400,15 @@ public class TestSPSService
         SubmitRequest subReq = buildSubmit(SENSOR_UID_1, resp.getTaskingParameters(), dataBlock);
         dom = sendRequest(subReq, true);
         
+        // check that sensor1 has received command
+        var controlInterface = (FakeSensorControl1)sensor.getCommandInputs().get("command1");
+        var receivedCommands = controlInterface.getReceivedCommands();
+        AsyncTests.waitForCondition(() ->
+            !receivedCommands.isEmpty() &&
+            receivedCommands.get(0).getDoubleValue(0) == 10.0 &&
+            receivedCommands.get(0).getStringValue(1).equals("HIGH"),
+            TIMEOUT);
+        
         OWSExceptionReader.checkException(dom, dom.getBaseElement());
     }
     
@@ -396,7 +416,8 @@ public class TestSPSService
     @Test
     public void testDirectTasking() throws Exception
     {
-        deployService(buildSensorConnector1());
+        deployService();
+        var sensor = registerSensor1();
         OWSUtils utils = new OWSUtils();
         
         // create tasking session
@@ -420,14 +441,16 @@ public class TestSPSService
         System.out.println("Sending WebSocket request @ " + currentTime);
         WebSocketClient client = new WebSocketClient();
         client.start();
-        client.connect(new SPSWebSocketOut(writer, LoggerFactory.getLogger("ws")) {
+        client.connect(new WebSocketAdapter() {
             public void onWebSocketConnect(Session sess)
             {
                 super.onWebSocketConnect(sess);
-                
+                                
                 // write datablock
                 try
                 {
+                    writer.setOutput(new WebSocketOutputStream(sess, 1024, true, LoggerFactory.getLogger("ws")));
+                    
                     for (int i=1; i<=numCommands; i++)
                     {
                         DataBlock dataBlock = new DataBlockMixed(new DataBlockDouble(1), new DataBlockString(1));
@@ -445,7 +468,7 @@ public class TestSPSService
         }, new URI(utils.buildURLQuery(connReq)));
         
         // wait until all commands are received
-        FakeSensorControl1 controlInterface = (FakeSensorControl1)sensor1.getCommandInputs().get("command1");
+        FakeSensorControl1 controlInterface = (FakeSensorControl1)sensor.getCommandInputs().get("command1");
         List<DataBlock> receivedCommands = controlInterface.getReceivedCommands();
         long t0 = System.currentTimeMillis();
         while (receivedCommands.size() < numCommands)

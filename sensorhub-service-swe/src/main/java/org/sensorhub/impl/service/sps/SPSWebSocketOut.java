@@ -15,10 +15,11 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sps;
 
 import java.io.IOException;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
-import org.eclipse.jetty.websocket.api.WebSocketAdapter;
-import org.sensorhub.impl.sensor.swe.ITaskingCallback;
+import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.sensorhub.impl.service.WebSocketOutputStream;
 import org.sensorhub.impl.service.WebSocketUtils;
 import org.slf4j.Logger;
@@ -34,17 +35,20 @@ import net.opengis.swe.v20.DataBlock;
  * @author Alex Robin
  * @since Dec 20, 2016
  */
-public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallback 
+public class SPSWebSocketOut implements WebSocketListener, Subscriber<DataBlock> 
 {
     final static String WS_WRITE_ERROR = "Error while writing SWE command message";
     
-    Logger log;
+    ISPSConnector connector;
     DataStreamWriter writer;
+    Logger log;
     Session session;
+    Subscription subscription;
     
     
-    public SPSWebSocketOut(DataStreamWriter writer, Logger log)
+    public SPSWebSocketOut(ISPSConnector connector, DataStreamWriter writer, Logger log)
     {
+        this.connector = connector;
         this.writer = writer;
         this.log = log;
     }
@@ -59,7 +63,7 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
         try
         {
             writer.setOutput(new WebSocketOutputStream(session, 1024, true, log));
-            super.onWebSocketConnect(session);
+            connector.subscribeToCommands(writer.getDataComponents(), this);
         }
         catch (Exception e)
         {
@@ -71,15 +75,19 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
     @Override
     public void onWebSocketError(Throwable e)
     {
+        if (subscription != null)
+            subscription.cancel();
         log.error(WebSocketUtils.SEND_ERROR_MSG, e);
+        WebSocketUtils.closeSession(session, StatusCode.PROTOCOL, "", log);
     }
     
     
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
+        if (subscription != null)
+            subscription.cancel();
         WebSocketUtils.logClose(session, statusCode, reason, log);
-        super.onWebSocketClose(statusCode, reason);
     }
     
     
@@ -98,29 +106,42 @@ public class SPSWebSocketOut extends WebSocketAdapter implements ITaskingCallbac
 
 
     @Override
-    public void onCommandReceived(DataBlock cmdData)
+    public void onSubscribe(Subscription subscription)
     {
-        try
-        {
-            if (isConnected())
-            {
-                writer.write(cmdData);
-                writer.flush();
-            }
-        }
-        catch (IOException e)
-        {
-            log.error(WS_WRITE_ERROR, e);
-            if (isConnected())
-                getSession().close(StatusCode.SERVER_ERROR, WS_WRITE_ERROR);
-        }
+        this.subscription = subscription;
+        subscription.request(Long.MAX_VALUE);
     }
 
 
     @Override
-    public void onClose()
+    public void onNext(DataBlock cmdData)
     {
-        if (isConnected())
-            getSession().close();
+        try
+        {
+            writer.write(cmdData);
+            writer.flush();
+        }
+        catch (IOException e)
+        {
+            WebSocketUtils.closeSession(session, StatusCode.SERVER_ERROR, WS_WRITE_ERROR, log);
+            log.error(WS_WRITE_ERROR, e);
+        }
+        
+    }
+
+
+    @Override
+    public void onError(Throwable throwable)
+    {
+        if (subscription != null)
+            subscription.cancel();
+        WebSocketUtils.closeSession(session, StatusCode.SERVER_ERROR, WebSocketUtils.INPUT_NOT_SUPPORTED, log);
+    }
+
+
+    @Override
+    public void onComplete()
+    {
+        WebSocketUtils.closeSession(session, StatusCode.NORMAL, "complete", log);  
     }
 }

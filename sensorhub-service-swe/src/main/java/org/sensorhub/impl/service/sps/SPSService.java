@@ -14,14 +14,13 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sps;
 
-import org.sensorhub.api.event.Event;
+import java.util.stream.Collectors;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.module.ModuleEvent;
+import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.service.IServiceModule;
-import org.sensorhub.impl.module.AbstractModule;
-import org.sensorhub.impl.service.HttpServer;
+import org.sensorhub.impl.service.swe.SWEService;
+import org.vast.ows.sps.SPSServiceCapabilities;
+import com.google.common.base.Strings;
 
 
 /**
@@ -35,123 +34,67 @@ import org.sensorhub.impl.service.HttpServer;
  * @author Alex Robin
  * @since Jan 15, 2015
  */
-public class SPSService extends AbstractModule<SPSServiceConfig> implements IServiceModule<SPSServiceConfig>, IEventListener
+public class SPSService extends SWEService<SPSServiceConfig>
 {
-    SPSServlet servlet;
-    
     
     @Override
-    public void requestStart() throws SensorHubException
+    public void init() throws SensorHubException
     {
-        if (canStart())
+        super.init();
+        
+        // validate config
+        for (var connectorConfig: config.customConnectors)
         {
-            HttpServer httpServer = HttpServer.getInstance();
-            if (httpServer == null)
-                throw new SensorHubException("HTTP server module is not loaded");
-            
-            // subscribe to server lifecycle events
-            httpServer.registerListener(this);
-            
-            // we actually start in the handleEvent() method when
-            // a STARTED event is received from HTTP server
-        }
-    }    
-    
-    
-    @Override
-    public void setConfiguration(SPSServiceConfig config)
-    {
-        super.setConfiguration(config);
+            if (Strings.isNullOrEmpty(connectorConfig.procedureUID))
+                throw new SensorHubException("Connector configuration must specify a procedure unique ID");
+        }       
+        
         this.securityHandler = new SPSSecurity(this, config.security.enableAccessControl);
+    }
+    
+    
+    protected CommandFilter getResourceFilter()
+    {
+        // else if some custom providers are configured, build a filter to expose them (and nothing else)
+        if (config.exposedResources == null && config.customConnectors != null && !config.customConnectors.isEmpty())
+        {
+            var procUIDs = config.customConnectors.stream()
+                .map(config -> config.procedureUID)
+                .collect(Collectors.toSet());
+            
+            return new CommandFilter.Builder()
+                .withProcedures().withUniqueIDs(procUIDs).done()
+                .build();
+        }
+        
+        return null;
     }
     
     
     @Override
     public void start() throws SensorHubException
     {
+        super.start();
+        
         // deploy servlet
         servlet = new SPSServlet(this, (SPSSecurity)this.securityHandler, getLogger());
         deploy();
         
-        setState(ModuleState.STARTED);        
+        setState(ModuleState.STARTED);
     }
-    
-    
-    @Override
-    public void stop()
+
+
+    public SPSServiceCapabilities getCapabilities()
     {
-        // undeploy servlet
-        undeploy();        
-        if (servlet != null)
-            servlet.stop();
-        servlet = null;
-        
-        setState(ModuleState.STOPPED);
+        if (isStarted())
+            return (SPSServiceCapabilities)servlet.updateCapabilities();
+        else
+            return null;
     }
-    
-    
-    protected void deploy() throws SensorHubException
+
+
+    public SPSServlet getServlet()
     {
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer == null || !httpServer.isStarted())
-            throw new SensorHubException("An HTTP server instance must be started");
-        
-        // deploy ourself to HTTP server
-        httpServer.deployServlet(servlet, config.endPoint);
-        httpServer.addServletSecurity(config.endPoint, config.security.requireAuth);
-    }
-    
-    
-    protected void undeploy()
-    {
-        HttpServer httpServer = HttpServer.getInstance();
-        
-        // return silently if HTTP server missing on stop
-        if (httpServer == null || !httpServer.isStarted())
-            return;
-        
-        httpServer.undeployServlet(servlet);
-    }
-    
-    
-    @Override
-    public void cleanup() throws SensorHubException
-    {
-        // stop listening to http server events
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer != null)
-            httpServer.unregisterListener(this);
-        
-        // unregister security handler
-        if (securityHandler != null)
-            securityHandler.unregister();
-    }
-    
-    
-    @Override
-    public void handleEvent(Event e)
-    {
-        // catch HTTP server lifecycle events
-        if (e instanceof ModuleEvent && e.getSource() == HttpServer.getInstance())
-        {
-            ModuleState newState = ((ModuleEvent) e).getNewState();
-            
-            // start when HTTP server is enabled
-            if (newState == ModuleState.STARTED)
-            {
-                try
-                {
-                    start();
-                }
-                catch (Exception ex)
-                {
-                    reportError("SPS Service could not start", ex);
-                }
-            }
-            
-            // stop when HTTP server is disabled
-            else if (newState == ModuleState.STOPPED)
-                stop();
-        }
+        return (SPSServlet)servlet;
     }
 }

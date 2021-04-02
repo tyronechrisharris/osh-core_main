@@ -24,7 +24,6 @@ import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.vast.data.DataIterator;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.SOSOfferingCapabilities;
-import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.swe.SWEConstants;
 import org.vast.util.TimeExtent;
@@ -40,20 +39,12 @@ public class CapabilitiesUpdater
     public static final String PROC_NAME_PLACEHOLDER = "{%procedure_name%}";
     public static final String PROC_DESC_PLACEHOLDER = "{%procedure_description%}";
     
-    SOSServlet servlet;
     
-    
-    public CapabilitiesUpdater(SOSServlet servlet)
-    {
-        this.servlet = servlet;
-    }
-    
-    
-    public void updateOfferings(final SOSServiceCapabilities caps)
+    public void updateOfferings(final SOSServlet servlet)
     {
         Map<String, SOSOfferingCapabilities> offerings = new LinkedHashMap<>();
         
-        var obsDb = servlet.readDatabase;
+        var obsDb = servlet.getReadDatabase();
         var providerConfigs = servlet.providerConfigs;
         
         obsDb.getProcedureStore().selectEntries(new ProcedureFilter.Builder().build())
@@ -138,8 +129,8 @@ public class CapabilitiesUpdater
                     offering.setPhenomenonTime(TimeExtent.endNow(phenTimeRange.begin()));
             });
         
-        caps.getLayers().clear();
-        caps.getLayers().addAll(offerings.values());
+        servlet.capabilities.getLayers().clear();
+        servlet.capabilities.getLayers().addAll(offerings.values());
     }
     
     

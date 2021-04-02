@@ -14,11 +14,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sps;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
 import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.security.SecurityConfig;
-import org.sensorhub.impl.service.ogc.OGCServiceConfig;
+import org.sensorhub.impl.service.swe.SWEServiceConfig;
 
 
 /**
@@ -29,19 +27,11 @@ import org.sensorhub.impl.service.ogc.OGCServiceConfig;
  * @author Alex Robin
  * @since Sep 6, 2013
  */
-public class SPSServiceConfig extends OGCServiceConfig
+public class SPSServiceConfig extends SWEServiceConfig
 {
-        
-    @DisplayInfo(desc="Set to true to enable transactional operation support")
-    public boolean enableTransactional = false;
     
-    
-    @DisplayInfo(label="Offerings", desc="Configuration of connectors for SPS offerings")
-    public List<SPSConnectorConfig> connectors = new ArrayList<>();
-    
-    
-    @DisplayInfo(desc="Security related options")
-    public SecurityConfig security = new SecurityConfig();
+    @DisplayInfo(desc="Custom connector configurations")
+    public LinkedHashSet<SPSConnectorConfig> customConnectors = new LinkedHashSet<>();
     
     
     public SPSServiceConfig()

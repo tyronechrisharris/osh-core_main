@@ -14,21 +14,11 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import org.sensorhub.api.event.Event;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.stream.Collectors;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.service.IServiceModule;
-import org.sensorhub.impl.database.registry.FilteredFederatedObsDatabase;
-import org.sensorhub.impl.module.AbstractModule;
-import org.sensorhub.impl.service.HttpServer;
-import org.sensorhub.utils.NamedThreadFactory;
+import org.sensorhub.impl.service.swe.SWEService;
 import org.vast.ows.sos.SOSServiceCapabilities;
 import com.google.common.base.Strings;
 
@@ -43,31 +33,9 @@ import com.google.common.base.Strings;
  * @author Alex Robin
  * @since Sep 7, 2013
  */
-public class SOSService extends AbstractModule<SOSServiceConfig> implements IServiceModule<SOSServiceConfig>, IEventListener
+public class SOSService extends SWEService<SOSServiceConfig>
 {
-    protected SOSServlet servlet;
-    ScheduledExecutorService threadPool;
     TimeOutMonitor timeOutMonitor;
-    IProcedureObsDatabase readDatabase;
-    IProcedureObsDatabase writeDatabase;
-
-
-    @Override
-    public void requestStart() throws SensorHubException
-    {
-        if (canStart())
-        {
-            HttpServer httpServer = HttpServer.getInstance();
-            if (httpServer == null)
-                throw new SensorHubException("HTTP server module is not loaded");
-
-            // subscribe to server lifecycle events
-            httpServer.registerListener(this);
-
-            // we actually start in the handleEvent() method when
-            // a STARTED event is received from HTTP server
-        }
-    }
 
 
     @Override
@@ -90,69 +58,31 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
         
         this.securityHandler = new SOSSecurity(this, config.security.enableAccessControl);
     }
-
-
-    @Override
-    public void start() throws SensorHubException
+    
+    
+    protected ObsFilter getResourceFilter()
     {
-        // get handle to write database
-        // use the configured database
-        if (config.databaseID != null)
-        {
-            writeDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
-                .getModuleById(config.databaseID);
-        }
-        
-        // or default to the procedure state DB
-        else
-        {
-            writeDatabase = getParentHub().getProcedureRegistry().getProcedureStateDatabase();
-        }
-        
-        // if exposed resource filter is set, use it
-        ObsFilter obsFilter = null;
-        if (config.exposedResources != null)
-        {
-            obsFilter = config.exposedResources.getObsFilter();
-        }
-        
         // else if some custom providers are configured, build a filter to expose them (and nothing else)
-        else if (config.customDataProviders != null && !config.customDataProviders.isEmpty())
+        if (config.exposedResources == null && config.customDataProviders != null && !config.customDataProviders.isEmpty())
         {
             var procUIDs = config.customDataProviders.stream()
                 .map(config -> config.procedureUID)
                 .collect(Collectors.toSet());
             
-            obsFilter = new ObsFilter.Builder()
+            return new ObsFilter.Builder()
                 .withProcedures().withUniqueIDs(procUIDs).done()
                 .build();
         }
         
-        // if a filter was provided, use a filtered db implementation
-        if (obsFilter != null)
-        {
-            if (writeDatabase != null)
-            {
-                readDatabase = new FilteredFederatedObsDatabase(
-                    getParentHub().getDatabaseRegistry(),
-                    obsFilter, writeDatabase.getDatabaseNum());
-            }
-            else
-                readDatabase = config.exposedResources.getFilteredView(getParentHub());
-        }
+        return null;
+    }
+
+
+    @Override
+    public void start() throws SensorHubException
+    {
+        super.start();
         
-        // else expose all procedures on this hub
-        else
-            readDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
-
-        // init thread pool
-        var threadPool = new ScheduledThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors(),
-            new NamedThreadFactory("SOSPool"));
-        threadPool.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
-        threadPool.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
-        this.threadPool = threadPool;        
-
         // init timeout monitor
         timeOutMonitor = new TimeOutMonitor(threadPool);
 
@@ -164,105 +94,12 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
     }
 
 
-    @Override
-    public void stop()
-    {
-        // undeploy servlet
-        undeploy();
-        if (servlet != null)
-            servlet.destroy();
-        servlet = null;
-        
-        // stop thread pool
-        if (threadPool != null)
-            threadPool.shutdown();
-
-        setState(ModuleState.STOPPED);
-    }
-
-
-    protected void deploy() throws SensorHubException
-    {
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer == null || !httpServer.isStarted())
-            throw new SensorHubException("An HTTP server instance must be started");
-
-        // deploy ourself to HTTP server
-        httpServer.deployServlet(servlet, config.endPoint);
-        httpServer.addServletSecurity(config.endPoint, config.security.requireAuth);
-    }
-
-
-    protected void undeploy()
-    {
-        HttpServer httpServer = HttpServer.getInstance();
-
-        // return silently if HTTP server missing on stop
-        if (httpServer == null || !httpServer.isStarted())
-            return;
-
-        httpServer.undeployServlet(servlet);
-    }
-
-
-    @Override
-    public void cleanup() throws SensorHubException
-    {
-        // stop listening to http server events
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer != null)
-            httpServer.unregisterListener(this);
-
-        // TODO destroy all virtual sensors?
-        //for (SOSConsumerConfig consumerConf: config.dataConsumers)
-        //    SensorHub.getInstance().getModuleRegistry().destroyModule(consumerConf.sensorID);
-
-        // unregister security handler
-        if (securityHandler != null)
-            securityHandler.unregister();
-    }
-
-
-    @Override
-    public void handleEvent(Event e)
-    {
-        // catch HTTP server lifecycle events
-        if (e instanceof ModuleEvent && e.getSource() == HttpServer.getInstance())
-        {
-            ModuleState newState = ((ModuleEvent) e).getNewState();
-
-            // start when HTTP server is enabled
-            if (newState == ModuleState.STARTED)
-            {
-                try
-                {
-                    start();
-                }
-                catch (Exception ex)
-                {
-                    reportError("SOS Service could not start", ex);
-                }
-            }
-
-            // stop when HTTP server is disabled
-            else if (newState == ModuleState.STOPPED)
-                stop();
-        }
-    }
-
-
     public SOSServiceCapabilities getCapabilities()
     {
         if (isStarted())
-            return servlet.updateCapabilities();
+            return (SOSServiceCapabilities)servlet.updateCapabilities();
         else
             return null;
-    }
-
-
-    public ScheduledExecutorService getThreadPool()
-    {
-        return threadPool;
     }
 
 
@@ -274,12 +111,6 @@ public class SOSService extends AbstractModule<SOSServiceConfig> implements ISer
 
     public SOSServlet getServlet()
     {
-        return servlet;
-    }
-
-
-    public IProcedureObsDatabase getReadDatabase()
-    {
-        return readDatabase;
+        return (SOSServlet)servlet;
     }
 }

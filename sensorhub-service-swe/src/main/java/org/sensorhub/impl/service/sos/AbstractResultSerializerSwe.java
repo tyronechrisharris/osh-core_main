@@ -18,6 +18,7 @@ import java.io.IOException;
 import javax.servlet.AsyncContext;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.impl.service.swe.RecordTemplate;
+import org.sensorhub.impl.service.swe.SWEServlet;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.SOSException;
@@ -44,7 +45,7 @@ import net.opengis.swe.v20.DataEncoding;
  */
 public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerializer<GetResultRequest, DataEvent> implements ISOSAsyncResultSerializer
 {
-    static final String UNSUPPORTED_FORMAT = SOSServlet.INVALID_RESPONSE_FORMAT;
+    static final String UNSUPPORTED_FORMAT = SWEServlet.INVALID_RESPONSE_FORMAT;
     
     DataStreamWriter writer;
     boolean multipleRecords;

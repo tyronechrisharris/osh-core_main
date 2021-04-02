@@ -30,18 +30,14 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Flow.Subscription;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.servlet.AsyncContext;
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.namespace.QName;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 import net.opengis.fes.v20.Conformance;
 import net.opengis.fes.v20.FilterCapabilities;
 import net.opengis.fes.v20.SpatialCapabilities;
@@ -57,31 +53,17 @@ import net.opengis.swe.v20.BinaryMember;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
-import org.eclipse.jetty.websocket.api.WebSocketBehavior;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
-import org.eclipse.jetty.websocket.api.WebSocketPolicy;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
-import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
-import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.database.IProcedureObsDatabase;
-import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.procedure.DataStreamTransactionHandler;
-import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
-import org.sensorhub.impl.procedure.wrapper.ProcedureUtils;
-import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
-import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.RecordTemplate;
-import org.sensorhub.impl.service.swe.TransactionUtils;
+import org.sensorhub.impl.service.swe.SWEServlet;
 import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.slf4j.Logger;
@@ -97,16 +79,13 @@ import org.vast.ows.OWSRequest;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.*;
 import org.vast.ows.swe.DeleteSensorRequest;
-import org.vast.ows.swe.DeleteSensorResponse;
 import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.ows.swe.SWESOfferingCapabilities;
 import org.vast.ows.swe.UpdateSensorRequest;
-import org.vast.ows.swe.UpdateSensorResponse;
 import org.vast.swe.DataSourceDOM;
 import org.vast.swe.SWEHelper;
 import org.vast.util.ReaderException;
 import org.vast.util.TimeExtent;
-import com.google.common.base.Strings;
 
 
 /**
@@ -118,84 +97,33 @@ import com.google.common.base.Strings;
  * @since Sep 7, 2013
  */
 @SuppressWarnings("serial")
-public class SOSServlet extends org.vast.ows.sos.SOSServlet
+public class SOSServlet extends SWEServlet
 {
-    static final String INVALID_RESPONSE_FORMAT = "Unsupported response format: ";
-    static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";
-    static final long GET_CAPS_MIN_REFRESH_PERIOD = 1000; // 1s
     static final String DEFAULT_PROVIDER_KEY = "%%%_DEFAULT_";
     static final char TEMPLATE_ID_SEPARATOR = '#';
     static final Pattern TEMPLATE_ID_REGEX = Pattern.compile("(.+)" + TEMPLATE_ID_SEPARATOR + "(.+)");
-
-    final transient SOSService service;
+    
     final transient SOSServiceConfig config;
     final transient SOSSecurity securityHandler;
-    final transient SOSServiceCapabilities capabilities = new SOSServiceCapabilities();
     final transient CapabilitiesUpdater capsUpdater;
+    final transient SOSServiceCapabilities capabilities = new SOSServiceCapabilities();
     final transient NavigableMap<String, SOSProviderConfig> providerConfigs;
-
-    final IProcedureObsDatabase readDatabase;
-    final IProcedureObsDatabase writeDatabase;
-    final ProcedureObsTransactionHandler transactionHandler;
-
     final transient Map<String, SOSCustomFormatConfig> customFormats = new HashMap<>();
-    WebSocketServletFactory wsFactory;
-    
-    AtomicLong lastGetCapsRequest = new AtomicLong();
 
 
     protected SOSServlet(SOSService service, SOSSecurity securityHandler, Logger log) throws SensorHubException
     {
-        super(log);
+        super(service, new SOSUtils(), log);
 
-        this.service = service;
         this.config = service.getConfiguration();
         this.securityHandler = securityHandler;
-        this.capsUpdater = new CapabilitiesUpdater(this);
-
-        this.readDatabase = service.readDatabase;
-        this.writeDatabase = service.writeDatabase;
-        this.transactionHandler = new ProcedureObsTransactionHandler(service.getParentHub().getEventBus(), writeDatabase);
+        this.capsUpdater = new CapabilitiesUpdater();
         
         this.providerConfigs = new TreeMap<>();
         for (var config: service.getConfiguration().customDataProviders)
             providerConfigs.put(config.procedureUID, config);
 
         generateCapabilities();
-    }
-
-
-    @Override
-    public void init(ServletConfig config) throws ServletException
-    {
-        super.init(config);
-
-        // create websocket factory
-        try
-        {
-            WebSocketPolicy wsPolicy = new WebSocketPolicy(WebSocketBehavior.SERVER);
-            wsFactory = WebSocketServletFactory.Loader.load(getServletContext(), wsPolicy);
-            wsFactory.start();
-        }
-        catch (Exception e)
-        {
-            throw new ServletException("Cannot initialize websocket factory", e);
-        }
-    }
-
-
-    @Override
-    public void destroy()
-    {
-        // stop websocket factory
-        try
-        {
-            wsFactory.stop();
-        }
-        catch (Exception e)
-        {
-            log.error("Cannot stop websocket factory", e);
-        }
     }
 
 
@@ -311,6 +239,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
 
         try
         {
+            // set current authentified user
+            securityHandler.setCurrentUser(userID);
+            
+            // reject request early if SOS not authorized at all
+            securityHandler.checkPermission(securityHandler.rootPerm);
+            
             // check if we have an upgrade request for websockets
             if (wsFactory.isUpgradeRequest(req, resp))
             {
@@ -345,8 +279,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 return;
             }
 
-            // otherwise process as classical HTTP request
-            securityHandler.setCurrentUser(userID);
+            // otherwise process as classical HTTP request            
             super.service(req, resp);
         }
         finally
@@ -354,92 +287,61 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             securityHandler.clearCurrentUser();
         }
     }
-
-
-    protected void acceptWebSocket(final OWSRequest owsReq, final WebSocketListener socket) throws IOException
+    
+    
+    @Override
+    public void handleRequest(OWSRequest request) throws IOException, OWSException
     {
-        wsFactory.acceptWebSocket(new WebSocketCreator() {
-            @Override
-            public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
-            {
-                return socket;
-            }
-        }, owsReq.getHttpRequest(), owsReq.getHttpResponse());
+        // core operations
+        if (request instanceof GetCapabilitiesRequest)
+            handleRequest((GetCapabilitiesRequest)request);
+        else if (request instanceof DescribeSensorRequest)
+            handleRequest((DescribeSensorRequest)request);
+        else if (request instanceof GetFeatureOfInterestRequest)
+            handleRequest((GetFeatureOfInterestRequest)request);
+        else if (request instanceof GetObservationRequest)
+            handleRequest((GetObservationRequest)request);
+        
+        // result retrieval
+        else if (request instanceof GetResultRequest)
+            handleRequest((GetResultRequest)request);
+        else if (request instanceof GetResultTemplateRequest)
+            handleRequest((GetResultTemplateRequest)request);
+        
+        // transactional methods
+        else if (request instanceof InsertSensorRequest)
+            handleRequest((InsertSensorRequest)request);
+        else if (request instanceof UpdateSensorRequest)
+            handleRequest((UpdateSensorRequest)request);
+        else if (request instanceof DeleteSensorRequest)
+            handleRequest((DeleteSensorRequest)request);
+        else if (request instanceof InsertObservationRequest)
+            handleRequest((InsertObservationRequest)request);
+        else if (request instanceof InsertResultRequest)
+            handleRequest((InsertResultRequest)request);
+        else if (request instanceof InsertResultTemplateRequest)
+            handleRequest((InsertResultTemplateRequest)request);
     }
 
 
     @Override
     protected void handleRequest(GetCapabilitiesRequest request) throws IOException, OWSException
     {
-        // check that version 2.0.0 is supported by client
-        if (!request.getAcceptedVersions().isEmpty())
-        {
-            if (!request.getAcceptedVersions().contains(DEFAULT_VERSION))
-                throw new SOSException(SOSException.version_nego_failed_code, "AcceptVersions", null,
-                        "Only version " + DEFAULT_VERSION + " is supported by this server");
-        }
-
-        // set selected version
-        request.setVersion(DEFAULT_VERSION);
-
         // security check
-        securityHandler.checkPermission(securityHandler.sos_read_caps);
-        
-        // update operation URLs dynamically if base URL not set in config
-        if (Strings.isNullOrEmpty(HttpServer.getInstance().getConfiguration().proxyBaseUrl))
-        {
-            String endpointUrl = request.getHttpRequest().getRequestURL().toString();
-            capabilities.updateAllEndpointUrls(endpointUrl);
-        }
-        
-        // send async response
-        var asyncCtx = request.getHttpRequest().startAsync();
-        CompletableFuture.runAsync(() -> {
-            
-            try
-            {
-                // fence updater to throttle at max refresh rate
-                var now = System.currentTimeMillis();
-                while (true)
-                {
-                    long local = lastGetCapsRequest.get();
-                    if (now >= local + GET_CAPS_MIN_REFRESH_PERIOD)
-                    {
-                        if (lastGetCapsRequest.compareAndSet(local, now))
-                        {
-                            updateCapabilities();
-                            break;
-                        }
-                    }
-                    else
-                        break;
-                }            
-            
-                var os = asyncCtx.getResponse().getOutputStream();
-                owsUtils.writeXMLResponse(os, capabilities, request.getVersion(), request.getSoapVersion());
-                os.flush();
-                asyncCtx.complete();
-            }
-            catch (Exception e)
-            {
-                handleError(
-                    (HttpServletRequest)asyncCtx.getRequest(),
-                    (HttpServletResponse)asyncCtx.getResponse(),
-                    request, e);
-            }
-        }, service.getThreadPool());
+        securityHandler.checkPermission(securityHandler.sos_read_caps);        
+        super.handleRequest(request);
     }
     
     
-    protected SOSServiceCapabilities updateCapabilities()
+    @Override
+    public SOSServiceCapabilities updateCapabilities()
     {
-        capsUpdater.updateOfferings(capabilities);
+        capsUpdater.updateOfferings(this);
         getLogger().debug("Updating capabilities");
         return capabilities;
-    }   
+    }
 
 
-    @Override
     protected void handleRequest(DescribeSensorRequest request) throws IOException, OWSException
     {
         // security check
@@ -474,7 +376,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    @Override
     protected void handleRequest(GetObservationRequest request) throws IOException, OWSException
     {
         // security check
@@ -516,7 +417,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    @Override
+
     protected void handleRequest(GetResultTemplateRequest request) throws IOException, OWSException
     {
         // security check
@@ -587,7 +488,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    @Override
     protected void handleRequest(GetResultRequest request) throws IOException, OWSException
     {
         // security check
@@ -662,7 +562,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    @Override
     protected void handleRequest(final GetFeatureOfInterestRequest request) throws IOException, OWSException
     {
         // security check
@@ -694,181 +593,27 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    @Override
     protected void handleRequest(InsertSensorRequest request) throws IOException, OWSException
     {
-        checkTransactionalSupport(request);
-        
-        // security check
         securityHandler.checkPermission(securityHandler.sos_insert_sensor);
-
-        // check query parameters
-        OWSExceptionReport report = new OWSExceptionReport();
-        var smlProc = request.getProcedureDescription();
-        TransactionUtils.checkSensorML(smlProc, report);
-        report.process();
-
-        // start async response
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-        CompletableFuture.runAsync(() -> {
-            try
-            {
-                String procUID = request.getProcedureDescription().getUniqueIdentifier();
-                
-                // add or replace description in DB
-                try
-                {
-                    var procWrapper = new ProcedureWrapper(smlProc)
-                        .hideOutputs()
-                        .hideTaskableParams()
-                        .defaultToValidFromNow();
-                    
-                    var procHandler = transactionHandler.addOrUpdateProcedure(procWrapper);
-                    getLogger().info("Registered new procedure {}", procUID);
-
-                    // also add datastreams if outputs were specified in SML description
-                    ProcedureUtils.addDatastreamsFromOutputs(procHandler, smlProc.getOutputList());
-                }
-                catch (DataStoreException e)
-                {
-                    getLogger().error("Error", e);
-                    throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
-                        "Procedure " + procUID + " is already registered on this server");
-                }
-
-                // build and send response
-                InsertSensorResponse resp = new InsertSensorResponse();
-                resp.setAssignedOffering(getOfferingID(procUID));
-                resp.setAssignedProcedureId(procUID);
-                sendResponse(request, resp);
-                asyncCtx.complete();
-            }
-            catch (Exception e)
-            {
-                throw new CompletionException(e);
-            }            
-        }, service.getThreadPool())
-        .exceptionally(ex -> {
-            handleError(
-                (HttpServletRequest)asyncCtx.getRequest(),
-                (HttpServletResponse)asyncCtx.getResponse(),
-                request, ex);
-            return null;
-        });
+        super.handleRequest(request);
     }
 
 
-    @Override
     protected void handleRequest(UpdateSensorRequest request) throws IOException, OWSException
     {
-        checkTransactionalSupport(request);
-
-        // security check
         securityHandler.checkPermission(securityHandler.sos_update_sensor);
-        
-        // check query parameters
-        String procUID = request.getProcedureId();
-        var procDesc = request.getProcedureDescription();
-        OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryProcedure(procUID, report);
-        TransactionUtils.checkSensorML(procDesc, report);
-        report.process();
-
-        // start async response
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-        CompletableFuture.runAsync(() -> {
-            try
-            {
-                // version or replace description in DB
-                try
-                {
-                    var procWrapper = new ProcedureWrapper(request.getProcedureDescription())
-                        .hideOutputs()
-                        .hideTaskableParams()
-                        .defaultToValidFromNow();
-                    
-                    var procHandler = transactionHandler.getProcedureHandler(procUID);
-                    procHandler.update(procWrapper);
-                    getLogger().info("Updated procedure {}", procUID);
-                }
-                catch (DataStoreException e)
-                {
-                    throw new IOException("Cannot update procedure", e);
-                }
-        
-                // build and send response
-                UpdateSensorResponse resp = new UpdateSensorResponse(SOSUtils.SOS);
-                resp.setUpdatedProcedure(procUID);
-                sendResponse(request, resp);
-                asyncCtx.complete();
-            }
-            catch (Exception e)
-            {
-                throw new CompletionException(e);
-            }            
-        }, service.getThreadPool())
-        .exceptionally(ex -> {
-            handleError(
-                (HttpServletRequest)asyncCtx.getRequest(),
-                (HttpServletResponse)asyncCtx.getResponse(),
-                request, ex);
-            return null;
-        });
+        super.handleRequest(request);
     }
 
 
-    @Override
     protected void handleRequest(DeleteSensorRequest request) throws IOException, OWSException
     {
-        checkTransactionalSupport(request);
-
-        // security check
         securityHandler.checkPermission(securityHandler.sos_delete_sensor);
-
-        // check query parameters
-        String procUID = request.getProcedureId();
-        OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryProcedure(procUID, report);
-        report.process();
-        
-        // start async response
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-        CompletableFuture.runAsync(() -> {
-            try
-            {
-                // delete complete procedure history + all datastreams and obs from DB
-                try
-                {
-                    transactionHandler.getProcedureHandler(procUID).delete();
-                    getLogger().info("Deleted procedure {}", procUID);
-                }
-                catch (Exception e)
-                {
-                    throw new IOException("Cannot delete procedure " + procUID, e);
-                }
-        
-                // build and send response
-                DeleteSensorResponse resp = new DeleteSensorResponse(SOSUtils.SOS);
-                resp.setDeletedProcedure(procUID);
-                sendResponse(request, resp);
-                asyncCtx.complete();
-            }
-            catch (Exception e)
-            {
-                throw new CompletionException(e);
-            }            
-        }, service.getThreadPool())
-        .exceptionally(ex -> {
-            handleError(
-                (HttpServletRequest)asyncCtx.getRequest(),
-                (HttpServletResponse)asyncCtx.getResponse(),
-                request, ex);
-            return null;
-        });
+        super.handleRequest(request);
     }
 
 
-    @Override
     protected void handleRequest(InsertObservationRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
@@ -886,13 +631,12 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    @Override
     protected void handleRequest(InsertResultTemplateRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
 
         // security check
-        securityHandler.checkPermission(securityHandler.sos_insert_obs);
+        securityHandler.checkPermission(securityHandler.sos_insert_sensor);
         
         // check query parameters
         String procUID = getProcedureUID(request.getOffering());
@@ -964,7 +708,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    @Override
     protected void handleRequest(InsertResultRequest request) throws IOException, OWSException
     {
         checkTransactionalSupport(request);
@@ -1134,15 +877,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     }
 
 
-    protected FeatureKey checkQueryProcedure(String procUID, OWSExceptionReport report) throws SOSException
-    {
-        FeatureKey fk = null;
-        if (procUID == null || (fk = readDatabase.getProcedureStore().getCurrentVersionKey(procUID)) == null)
-            report.add(new SOSException(SOSException.invalid_param_code, "procedure", procUID, "Unknown procedure: " + procUID));
-        return fk;
-    }
-
-
     protected void checkQueryProcedures(Set<String> procedures, OWSExceptionReport report) throws SOSException
     {
         for (String procUID: procedures)
@@ -1172,7 +906,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             if (config == null)
                 return getDefaultDataProvider(request);
             else
-                return config.createProvider(service, request);
+                return config.createProvider((SOSService)service, request);
         }
         catch (SensorHubException e)
         {
@@ -1192,7 +926,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
                 if (providerConfigs.containsKey(procUID))
                 {
                     SOSProviderConfig config = providerConfigs.get(procUID);
-                    var customDataProvider = config.createProvider(service, request);
+                    var customDataProvider = config.createProvider((SOSService)service, request);
                     providerMap.put(procUID, customDataProvider);
                 }
                 
@@ -1220,7 +954,7 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         {
             var defaultConfig = new ProcedureDataProviderConfig();
             defaultConfig.liveDataTimeout = config.defaultLiveTimeout;
-            return defaultConfig.createProvider(service, request);
+            return defaultConfig.createProvider((SOSService)service, request);
         }
         catch (SensorHubException e)
         {
@@ -1233,13 +967,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
     {
         if (!config.enableTransactional || writeDatabase == null)
             throw new SOSException(SOSException.invalid_param_code, "request", request.getOperation(), request.getOperation() + " operation is not supported on this endpoint");
-    }
-
-
-    @Override
-    protected String getDefaultVersion()
-    {
-        return DEFAULT_VERSION;
     }
 
 
@@ -1297,36 +1024,6 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
             return true;
 
         return false;
-    }
-    
-    
-    protected boolean isXmlMimeType(String format)
-    {
-        return OWSUtils.XML_MIME_TYPE.equals(format) ||
-               OWSUtils.XML_MIME_TYPE2.equals(format);
-    }
-
-
-    protected void startSoapEnvelope(OWSRequest request, XMLStreamWriter writer) throws XMLStreamException
-    {
-        String soapUri = request.getSoapVersion();
-        if (soapUri != null)
-        {
-            writer.writeStartElement(SOAP_PREFIX, "Envelope", soapUri);
-            writer.writeNamespace(SOAP_PREFIX, soapUri);
-            writer.writeStartElement(SOAP_PREFIX, "Body", soapUri);
-        }
-    }
-
-
-    protected void endSoapEnvelope(OWSRequest request, XMLStreamWriter writer) throws XMLStreamException
-    {
-        String soapUri = request.getSoapVersion();
-        if (soapUri != null)
-        {
-            writer.writeEndElement();
-            writer.writeEndElement();
-        }
     }
     
     
@@ -1396,30 +1093,18 @@ public class SOSServlet extends org.vast.ows.sos.SOSServlet
         throw new SOSException(SOSException.invalid_param_code, "format",
             format, INVALID_RESPONSE_FORMAT + format);
     }
-
-
-    public String getProcedureUID(String offeringID)
+    
+    
+    @Override
+    public SOSServiceCapabilities getCapabilities()
     {
-        // for now, assume offerings have same URI as procedures
-        return offeringID;
+        return capabilities;
     }
-
-
-    public String getOfferingID(String procedureUID)
+    
+    
+    @Override
+    protected String getServiceType()
     {
-        // for now, assume offerings have same URI as procedures
-        return procedureUID;
-    }
-
-
-    protected ISensorHub getParentHub()
-    {
-        return service.getParentHub();
-    }
-
-
-    protected Logger getLogger()
-    {
-        return log;
+        return SOSUtils.SOS;
     }
 }

@@ -34,21 +34,21 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class SPSWebSocketIn implements WebSocketListener
 {
-    SPSServlet service;
+    SPSServlet servlet;
+    ISPSConnector connector;
+    DataStreamParser parser;
+    String taskID;
     Logger log;
     Session session;
-    DataStreamParser parser;
-    ISPSConnector connector;
-    ITask task;
     
     
-    public SPSWebSocketIn(SPSServlet service, ITask task, DataStreamParser parser, ISPSConnector connector, Logger log)
+    public SPSWebSocketIn(SPSServlet servlet, String taskID, ISPSConnector conn, DataStreamParser parser, Logger log)
     {
-        this.service = service;
-        this.log = log;
-        this.task = task;
+        this.servlet = servlet;
+        this.taskID = taskID;
+        this.connector = conn;
         this.parser = parser;
-        this.connector = connector;
+        this.log = log;
     }
     
     
@@ -71,7 +71,7 @@ public class SPSWebSocketIn implements WebSocketListener
             ByteArrayInputStream is = new ByteArrayInputStream(payload, offset, len);
             parser.setInput(is);
             DataBlock data = parser.parseNextBlock();
-            connector.sendSubmitData(task, data);
+            connector.sendCommand(data, null);
         }
         catch (Exception e)
         {
@@ -86,7 +86,7 @@ public class SPSWebSocketIn implements WebSocketListener
     public void onWebSocketClose(int statusCode, String reason)
     {
         WebSocketUtils.logClose(session, statusCode, reason, log);
-        service.cleanupSession(task.getID());        
+        servlet.receiveSessionsMap.remove(taskID);
         session = null;
     }
     
@@ -95,6 +95,7 @@ public class SPSWebSocketIn implements WebSocketListener
     public void onWebSocketError(Throwable e)
     {
         log.error(WebSocketUtils.INTERNAL_ERROR_MSG, e);
+        close();
     }
 
 
@@ -108,6 +109,7 @@ public class SPSWebSocketIn implements WebSocketListener
     public void close()
     {
         WebSocketUtils.closeSession(session, StatusCode.NORMAL, "End of tasking session", log);
-        service.cleanupSession(task.getID());
+        servlet.receiveSessionsMap.remove(taskID);
+        session = null;
     }
 }

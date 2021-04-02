@@ -15,9 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import static org.junit.Assert.*;
-import java.io.InputStream;
 import java.net.URI;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.concurrent.Future;
@@ -27,7 +25,6 @@ import net.opengis.swe.v20.DataStream;
 import net.opengis.swe.v20.Quantity;
 import net.opengis.swe.v20.Time;
 import net.opengis.swe.v20.Vector;
-import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -42,12 +39,10 @@ import org.vast.data.TimeImpl;
 import org.vast.data.VectorImpl;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.ObservationImpl;
-import org.vast.ogc.om.ProcedureRef;
 import org.vast.ows.GetCapabilitiesRequest;
 import org.vast.ows.OWSException;
 import org.vast.ows.OWSResponse;
 import org.vast.ows.OWSUtils;
-import org.vast.ows.sos.InsertObservationRequest;
 import org.vast.ows.sos.InsertResultRequest;
 import org.vast.ows.sos.InsertResultTemplateRequest;
 import org.vast.ows.sos.InsertResultTemplateResponse;
@@ -59,7 +54,6 @@ import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.sos.SOSUtils;
 import org.vast.sensorML.PhysicalSystemImpl;
 import org.vast.swe.SWEConstants;
-import org.vast.util.TimeExtent;
 
 
 public class TestSOSTService
@@ -373,12 +367,12 @@ public class TestSOSTService
         // send data using websocket
         for (int i=0; i<NUM_GEN_SAMPLES; i++)
         {
+            Thread.sleep(300);
             String isoTime = Instant.now().toString();
             var data = new String(isoTime + "," + (40.0+i/10.) + "," + (-90.0-i/10.) + ",0.0\n");
             ByteBuffer buf = ByteBuffer.wrap(data.getBytes());
             System.out.println("Sending data: " + data);
-            session.getRemote().sendBytes(buf);
-            Thread.sleep(300);
+            session.getRemote().sendBytes(buf);            
         }
         
         // check no errors occured during transfer
@@ -396,7 +390,7 @@ public class TestSOSTService
         synchronized (lock)
         {
             if (socket.isConnected())
-                lock.wait(5000);
+                lock.wait(1000);
         }
         
         assertTrue("Websocket client was not properly disconnected", socket.isNotConnected());

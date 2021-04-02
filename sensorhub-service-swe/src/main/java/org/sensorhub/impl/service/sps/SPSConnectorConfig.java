@@ -31,9 +31,10 @@ public abstract class SPSConnectorConfig extends OfferingConfig
     
     
     /**
-     * Retrieves the connector instance describe by this configuration
+     * Retrieves the tasking connector instance describe by this configuration
      * @param service parent service instance
-     * @return
+     * @return The connector instance corresponding to this config class
+     * @throws SensorHubException 
      */
-    protected abstract ISPSConnector getConnector(SPSServlet service) throws SensorHubException;
+    public abstract ISPSConnector createConnector(SPSService service) throws SensorHubException;
 }

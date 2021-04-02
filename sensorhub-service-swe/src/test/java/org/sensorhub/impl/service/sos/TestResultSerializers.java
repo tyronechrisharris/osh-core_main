@@ -66,7 +66,7 @@ public class TestResultSerializers
         var sos = (SOSService)moduleRegistry.loadModule(sosCfg, TIMEOUT);
         sos.init();
         sos.start();
-        servlet = sos.servlet;
+        servlet = sos.getServlet();
     }
     
     
