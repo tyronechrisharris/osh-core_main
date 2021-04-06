@@ -23,13 +23,13 @@ allprojects  {
 
 
 subprojects {
-  apply plugin: 'java'
-  apply plugin: 'osgi'
+  apply plugin: 'java-library'
+  //apply plugin: 'osgi'
   apply plugin: 'eclipse'
   apply plugin: 'maven-publish'
   
-  sourceCompatibility = 1.11
-  targetCompatibility = 1.11
+  sourceCompatibility = 11
+  targetCompatibility = 11
   ext.details = null
   ext.pom = {} // pom data that subprojects can append to
   
@@ -65,8 +65,8 @@ subprojects {
 
   // default test dependencies
   dependencies {
-    testCompile 'junit:junit:4.13'
-    testCompile 'xmlunit:xmlunit:1.6'
+    testImplementation 'junit:junit:4.13'
+    testImplementation 'xmlunit:xmlunit:1.6'
   }
 
   // print test names
@@ -90,7 +90,7 @@ subprojects {
           }
         }
         
-        // OSGi manifest info
+        /*// OSGi manifest info
         manifest {
           // main info
           symbolicName project.group + '.' + project.name
@@ -133,7 +133,7 @@ subprojects {
           // build number
           if (project.buildNumber != null && !project.buildNumber.isEmpty())
             attributes 'Bundle-BuildNumber': project.buildNumber
-        }
+        }*/
       }
     }
   }
@@ -190,7 +190,7 @@ subprojects {
 
 
 // distribution zip files
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'distribution'
 targetCompatibility = 1.11
 tasks.jar.enabled = false

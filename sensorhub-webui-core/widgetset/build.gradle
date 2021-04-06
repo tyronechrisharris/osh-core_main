@@ -2,25 +2,25 @@ description = 'OSH Vaadin WidgetSet'
 
 configurations {
   vaadin {
-    extendsFrom compile
+    extendsFrom implementation
   }
 }
 
 dependencies {
-  compile 'com.vaadin:vaadin-shared:' + vaadinVersion
-  compile 'com.vaadin:vaadin-server:' + vaadinVersion
-  compile 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
-  compile 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
-  compile 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
-  compile 'com.vaadin:vaadin-themes:' + vaadinVersion
+  implementation 'com.vaadin:vaadin-shared:' + vaadinVersion
+  implementation 'com.vaadin:vaadin-server:' + vaadinVersion
+  implementation 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
+  implementation 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
+  implementation 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
+  implementation 'com.vaadin:vaadin-themes:' + vaadinVersion
   vaadin 'com.vaadin:vaadin-client-compiler:' + vaadinVersion 
 }
 
 task compileWidgetset(type: JavaExec) {
   def inputSource = sourceSets.main.resources.srcDirs
   def outputFolder = "$projectDir/src/main/resources/VAADIN/widgetsets"
-  inputs.dir(inputSource)
-  outputs.file(outputFolder)
+  inputs.files(inputSource)
+  outputs.dir(outputFolder)
   
   main 'com.vaadin.tools.WidgetsetCompiler'
   classpath inputSource
@@ -32,9 +32,6 @@ task compileWidgetset(type: JavaExec) {
   args '-localWorkers', '' + Runtime.getRuntime().availableProcessors()
   args '-logLevel', 'WARN'
   args 'org.sensorhub.ui.SensorHubWidgetSet'
-  /*doFirst {
-    println commandLine
-  }*/
 }
 
 task compileTheme(type: JavaExec) {

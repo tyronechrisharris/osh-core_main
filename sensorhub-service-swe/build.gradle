@@ -1,27 +1,21 @@
 description = 'OSH SWE Services'
 ext.details = 'Implementation of OGC SWE standard interfaces as OSH services and virtual sensors'
 
-rootProject.allprojects {
-  repositories {
-    maven { url "http://52north.org/maven/repo/releases" }
-  }
-}
-
 dependencies {
-  compile project(':sensorhub-core')
-  compile project(':ogc-services-sos')
-  compile project(':ogc-services-sps')
+  implementation project(':sensorhub-core')
+  api project(':ogc-services-sos')
+  api project(':ogc-services-sps')
     
-  testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
-  testCompile project(':sensorhub-datastore-h2')
-  testCompile 'commons-io:commons-io:1.3.2'
+  testImplementation project(path: ':sensorhub-core', configuration: 'testArtifacts')
+  testImplementation project(':sensorhub-datastore-h2')
+  testImplementation 'commons-io:commons-io:1.3.2'
 }
 
 // add info to OSGI manifest
 jar {
   manifest {
-    instruction 'Bundle-Vendor', 'Sensia Software LLC'
-    instruction 'Bundle-Activator', 'org.sensorhub.impl.service.sos.Activator'
+    attributes('Bundle-Vendor': 'Sensia Software LLC')
+    attributes('Bundle-Activator': 'org.sensorhub.impl.service.sos.Activator')
   }
 }
 

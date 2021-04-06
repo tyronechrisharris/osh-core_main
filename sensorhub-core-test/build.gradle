@@ -1,8 +1,8 @@
 description = 'OSH Test Project'
 
 dependencies {
-  compile project(':sensorhub-core')
-  compile project(':sensorhub-service-swe')
-  compile project(':sensorhub-datastore-h2')
-  compile project(':sensorhub-webui-core')
+  implementation project(':sensorhub-core')
+  implementation project(':sensorhub-service-swe')
+  implementation project(':sensorhub-datastore-h2')
+  implementation project(':sensorhub-webui-core')
 }

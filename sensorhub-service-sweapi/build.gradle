@@ -3,20 +3,20 @@ ext.details = 'Implementation of OGC SWE REST API'
 
 
 dependencies {
-  compile project(':sensorhub-core')
-  compile 'org.eclipse.jetty.websocket:websocket-server:9.4.19.v20190610'
+  implementation project(':sensorhub-core')
+  implementation 'org.eclipse.jetty.websocket:websocket-server:9.4.19.v20190610'
     
-  testCompile project(path: ':sensorhub-core', configuration: 'testArtifacts')
-  testCompile project(':sensorhub-datastore-h2')
-  testCompile 'commons-io:commons-io:1.3.2'  
-  testCompile 'org.jglue.fluent-json:fluent-json:2.0.3'
+  testImplementation project(path: ':sensorhub-core', configuration: 'testArtifacts')
+  testImplementation project(':sensorhub-datastore-h2')
+  testImplementation 'commons-io:commons-io:1.3.2'  
+  testImplementation 'org.jglue.fluent-json:fluent-json:2.0.3'
 }
 
 // add info to OSGI manifest
 jar {
   manifest {
-    instruction 'Bundle-Vendor', 'Sensia Software LLC'
-    instruction 'Bundle-Activator', 'org.sensorhub.impl.service.sos.Activator'
+    attributes('Bundle-Vendor': 'Sensia Software LLC')
+    attributes('Bundle-Activator': 'org.sensorhub.impl.service.sos.Activator')
   }
 }
 
