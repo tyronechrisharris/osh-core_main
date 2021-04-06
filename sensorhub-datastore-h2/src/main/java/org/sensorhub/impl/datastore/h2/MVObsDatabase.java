@@ -53,7 +53,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         try
         {
@@ -129,7 +129,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
 
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         if (mvStore != null) 
         {

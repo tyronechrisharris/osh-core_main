@@ -114,11 +114,9 @@ public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfi
     
     
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
         checkConfig();
-        
-        super.init();
         initAsync = true;
         uniqueID = config.sensorUID;
                 
@@ -255,7 +253,7 @@ public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfi
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {        
         for (var output: getOutputs().values())
             ((SWEVirtualSensorOutput)output).start();
@@ -263,7 +261,7 @@ public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfi
 
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         for (var output: getOutputs().values())
             ((SWEVirtualSensorOutput)output).stop();

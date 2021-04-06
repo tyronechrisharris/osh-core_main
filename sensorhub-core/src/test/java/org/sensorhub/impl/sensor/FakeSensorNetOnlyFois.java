@@ -40,9 +40,9 @@ public class FakeSensorNetOnlyFois extends FakeSensor implements IMultiSourceDat
     
     
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
-        super.init();
+        super.doInit();
         this.uniqueID = SENSORNET_UID;
         this.xmlID = "SENSORNET1";
     }

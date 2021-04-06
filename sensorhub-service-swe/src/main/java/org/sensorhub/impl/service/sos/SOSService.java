@@ -39,9 +39,9 @@ public class SOSService extends SWEService<SOSServiceConfig>
 
 
     @Override
-    public void init() throws SensorHubException
-    {
-        super.init();
+    public void doInit() throws SensorHubException
+    {        
+        super.doInit();
         
         // validate config
         for (var providerConfig: config.customDataProviders)
@@ -79,9 +79,9 @@ public class SOSService extends SWEService<SOSServiceConfig>
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
-        super.start();
+        super.doStart();
         
         // init timeout monitor
         timeOutMonitor = new TimeOutMonitor(threadPool);

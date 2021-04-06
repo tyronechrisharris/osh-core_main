@@ -38,9 +38,9 @@ public class SPSService extends SWEService<SPSServiceConfig>
 {
     
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
-        super.init();
+        super.doInit();
         
         // validate config
         for (var connectorConfig: config.customConnectors)
@@ -72,10 +72,8 @@ public class SPSService extends SWEService<SPSServiceConfig>
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
-        super.start();
-        
         // deploy servlet
         servlet = new SPSServlet(this, (SPSSecurity)this.securityHandler, getLogger());
         deploy();

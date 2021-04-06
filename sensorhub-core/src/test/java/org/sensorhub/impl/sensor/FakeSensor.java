@@ -58,22 +58,22 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
 
 
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
-        super.init();
+        super.doInit();
         this.uniqueID = SENSOR_UID;
         this.xmlID = "SENSOR1";
     }
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {        
     }
     
     
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         for (IStreamingDataInterface o: getObservationOutputs().values())
             ((IFakeSensorOutput)o).stop();

@@ -22,9 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.xml.namespace.QName;
 import net.opengis.OgcPropertyList;
-import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.AbstractSWEIdentifiable;
 import net.opengis.swe.v20.DataComponent;
@@ -33,7 +31,6 @@ import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.procedure.IProcedureDriver;
-import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.processing.ProcessingException;
@@ -95,9 +92,9 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
-        super.init();
+        super.doInit();
         
         // only go further if sensorML file was provided
         // otherwise we'll do it at the next update
@@ -181,7 +178,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         errorCount = 0; 
         

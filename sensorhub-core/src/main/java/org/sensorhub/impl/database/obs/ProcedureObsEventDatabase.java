@@ -44,7 +44,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         if (config.dbConfig == null)
             throw new DataStoreException("Underlying database configuration must be provided");
@@ -62,8 +62,8 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
             //dbModule.setParentHub(getParentHub());
             dbModule.setConfiguration(dbConfig);
-            dbModule.requestInit(true);
-            dbModule.requestStart();
+            dbModule.init();
+            dbModule.start();
             
             this.db = (IProcedureObsDatabase)dbModule;
             Asserts.checkNotNull(db.getProcedureStore(), IProcedureStore.class);
@@ -111,7 +111,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
     
     
     @Override
-    public synchronized void stop() throws SensorHubException
+    protected synchronized void doStop() throws SensorHubException
     {
         if (autoPurgeTimer != null)
         {

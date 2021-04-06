@@ -145,7 +145,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         // reset java util logging config so we don't get annoying atmosphere logs
         LogManager.getLogManager().reset();//.getLogger("org.atmosphere").setLevel(Level.OFF);
@@ -183,7 +183,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
     
 
     @Override
-    public void stop()
+    protected void doStop()
     {
         if (vaadinServlet != null)
         {
@@ -286,7 +286,16 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             
             // stop when HTTP server is disabled
             else if (newState == ModuleState.STOPPED)
-                stop();
+            {
+                try
+                {
+                    stop();
+                }
+                catch (SensorHubException ex)
+                {
+                    reportError("Admin UI could not stop", ex);
+                }
+            }
         }
     }
 

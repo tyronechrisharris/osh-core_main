@@ -72,7 +72,7 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
     
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         // get handle to write database
         // use the configured database
@@ -130,7 +130,7 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
 
 
     @Override
-    public void stop()
+    protected void doStop() throws SensorHubException
     {
         // undeploy servlet
         undeploy();
@@ -205,13 +205,22 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
                 }
                 catch (Exception ex)
                 {
-                    reportError("SOS Service could not start", ex);
+                    reportError("Service could not start", ex);
                 }
             }
 
             // stop when HTTP server is disabled
             else if (newState == ModuleState.STOPPED)
-                stop();
+            {
+                try
+                {
+                    stop();
+                }
+                catch (SensorHubException ex)
+                {
+                    reportError("Service could not stop", ex);
+                }
+            }
         }
     }
 

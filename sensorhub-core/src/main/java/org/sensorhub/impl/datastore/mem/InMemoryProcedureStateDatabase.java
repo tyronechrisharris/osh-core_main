@@ -115,13 +115,13 @@ public class InMemoryProcedureStateDatabase extends AbstractModule<DatabaseConfi
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
     }
 
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {        
     }
 

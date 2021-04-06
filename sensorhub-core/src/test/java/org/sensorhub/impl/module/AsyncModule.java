@@ -60,7 +60,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                         
                         try { Thread.sleep(config.initDelay); }
                         catch(InterruptedException e) {}
-                        init();
+                        doInit();
                         
                         return null;
                     }
@@ -88,7 +88,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
 
 
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {   
         System.out.println("Running init() of " + MsgUtils.moduleString(this));
         try { Thread.sleep(config.initExecTime); }
@@ -156,7 +156,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         System.out.println("Running start() of " + MsgUtils.moduleString(this));
         try { Thread.sleep(config.startExecTime); }
@@ -208,7 +208,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
     
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         System.out.println("Running stop() of " + MsgUtils.moduleString(this));
         try { Thread.sleep(config.stopExecTime); }

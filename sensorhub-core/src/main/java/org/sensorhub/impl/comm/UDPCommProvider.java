@@ -62,7 +62,7 @@ public class UDPCommProvider extends AbstractModule<UDPCommProviderConfig> imple
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {        
         UDPConfig config = this.config.protocol;
         
@@ -99,7 +99,7 @@ public class UDPCommProvider extends AbstractModule<UDPCommProviderConfig> imple
 
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         try
         {

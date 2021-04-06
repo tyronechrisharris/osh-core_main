@@ -165,9 +165,9 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
 
 
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
-        super.init();
+        super.doInit();
         if (this.uniqueID == SENSOR_UID)
             this.uniqueID = SENSORNET_UID;
         this.xmlID = "SENSORNET1";
@@ -235,13 +235,13 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {        
     }
     
     
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         for (IDataProducer sensor: members.values())
             for (IStreamingDataInterface o: sensor.getOutputs().values())

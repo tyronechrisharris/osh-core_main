@@ -67,7 +67,7 @@ public class TCPCommProvider extends AbstractModule<TCPCommProviderConfig> imple
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {        
         TCPConfig config = this.config.protocol;
         
@@ -101,7 +101,7 @@ public class TCPCommProvider extends AbstractModule<TCPCommProviderConfig> imple
 
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         try
         {

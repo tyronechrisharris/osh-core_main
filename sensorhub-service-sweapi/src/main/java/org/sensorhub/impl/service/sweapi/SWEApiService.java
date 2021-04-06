@@ -86,7 +86,7 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         // get handle to database
         if (config.databaseID != null)
@@ -175,7 +175,7 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
 
 
     @Override
-    public void stop()
+    protected void doStop()
     {
         // undeploy servlet
         undeploy();
@@ -252,7 +252,16 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
 
             // stop when HTTP server is disabled
             else if (newState == ModuleState.STOPPED)
-                stop();
+            {
+                try
+                {
+                    stop();
+                }
+                catch (Exception ex)
+                {
+                    reportError("SWE API Service could not stop", ex);
+                }
+            }
         }
     }
 

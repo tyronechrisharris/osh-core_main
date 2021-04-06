@@ -111,9 +111,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public void init() throws SensorHubException
+    protected void beforeInit() throws SensorHubException
     {
-        super.init();
+        super.beforeInit();
 
         // reset internal state
         this.uniqueID = null;
@@ -187,6 +187,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
             }
         }
+        
+        super.afterInit();
     }
     
     
@@ -203,6 +205,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     @Override
     protected void beforeStart() throws SensorHubException
     {
+        super.beforeStart();
+        
         // register sensor with registry if attached to a hub
         try
         {
@@ -234,6 +238,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         {
             throw new SensorException("Error unregistering driver", e.getCause());
         }
+        
+        super.afterStop();
     }
 
 

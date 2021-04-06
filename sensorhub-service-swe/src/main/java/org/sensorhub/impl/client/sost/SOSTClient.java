@@ -176,7 +176,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     
     
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
         // check configuration
         checkConfiguration();
@@ -238,7 +238,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         connection.updateConfig(config.connection);
         

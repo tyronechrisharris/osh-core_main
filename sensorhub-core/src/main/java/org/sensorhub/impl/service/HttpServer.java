@@ -120,7 +120,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
 
 
     @Override
-    public synchronized void start() throws SensorHubException
+    public synchronized void doStart() throws SensorHubException
     {
         try
         {
@@ -305,7 +305,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     
     
     @Override
-    public synchronized void stop() throws SensorHubException
+    public synchronized void doStop() throws SensorHubException
     {
         try
         {

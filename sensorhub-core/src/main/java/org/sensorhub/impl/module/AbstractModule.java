@@ -402,9 +402,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             try
             {
-                beforeInit();
                 init();
-                afterInit();
                 if (!initAsync)
                     setState(ModuleState.INITIALIZED);
             }
@@ -415,12 +413,14 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             }
         }
     }
-
-
+    
+    
     @Override
     public void init() throws SensorHubException
-    {        
-        Asserts.checkState(config != null, "Configuration must be set before calling init()");
+    {
+        beforeInit();
+        doInit();
+        afterInit();
     }
     
     
@@ -433,28 +433,38 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
 
 
     /**
-     * This method is called right before {@link #init()}.<br/>
+     * This method is called right before {@link #doInit()}.<br/>
      * It is typically implemented whenever a super class needs to run some logic
-     * at the beginning of the initialization phase even when {@link #init()} is
+     * at the beginning of the initialization phase even when {@link #doInit()} is
      * overriden by its descendants
      * @throws SensorHubException
      */
     protected void beforeInit() throws SensorHubException
     {
-        // to be implemented by derived classes 
+        Asserts.checkState(config != null, "Configuration must be set before calling init()");
     }
 
 
     /**
-     * This method is called right after {@link #init()}.<br/>
+     * Actual implementation of initialization logic
+     * @throws SensorHubException
+     */
+    protected void doInit() throws SensorHubException
+    {        
+        // to be implemented by derived classes
+    }
+
+
+    /**
+     * This method is called right after {@link #doInit()}.<br/>
      * It is typically implemented whenever a super class needs to run some logic
-     * at the end of the initialization phase even when {@link #init()} is
+     * at the end of the initialization phase even when {@link #doInit()} is
      * overriden by its descendants
      * @throws SensorHubException
      */
     protected void afterInit() throws SensorHubException
     {
-        // to be implemented by derived classes 
+        // to be implemented by derived classes
     }
 
 
@@ -495,9 +505,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             try
             {
-                beforeStart();
                 start();
-                afterStart();
                 if (!startAsync)
                     setState(ModuleState.STARTED);
             }
@@ -507,6 +515,15 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 requestStop();
             }
         }
+    }
+    
+    
+    @Override
+    public void start() throws SensorHubException
+    {
+        beforeStart();
+        doStart();
+        afterStart();
     }
 
 
@@ -520,6 +537,16 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected void beforeStart() throws SensorHubException
     {
         // to be implemented by derived classes 
+    }
+
+
+    /**
+     * Actual implementation of startup logic
+     * @throws SensorHubException
+     */
+    protected void doStart() throws SensorHubException
+    {        
+        // to be implemented by derived classes
     }
 
 
@@ -562,9 +589,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             try
             {
-                beforeStop();
                 stop();
-                afterStop();
                 clearStatus();
                 
                 // make sure we reset to LOADED if we didn't initialize correctly
@@ -579,6 +604,15 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             }
         }
     }
+    
+    
+    @Override
+    public void stop() throws SensorHubException
+    {
+        beforeStop();
+        doStop();
+        afterStop();
+    }
 
 
     /**
@@ -591,6 +625,16 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected void beforeStop() throws SensorHubException
     {
         // to be implemented by derived classes 
+    }
+
+
+    /**
+     * Actual implementation of stop logic
+     * @throws SensorHubException
+     */
+    protected void doStop() throws SensorHubException
+    {        
+        // to be implemented by derived classes
     }
 
 

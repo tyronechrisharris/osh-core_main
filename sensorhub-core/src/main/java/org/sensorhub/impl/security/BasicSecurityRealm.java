@@ -58,7 +58,7 @@ public class BasicSecurityRealm extends AbstractModule<BasicSecurityRealmConfig>
     
     
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
         // build user map
         users.clear();
@@ -76,7 +76,7 @@ public class BasicSecurityRealm extends AbstractModule<BasicSecurityRealmConfig>
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         getParentHub().getSecurityManager().registerUserRegistry(this);
         getParentHub().getSecurityManager().registerAuthorizer(this);        
@@ -84,7 +84,7 @@ public class BasicSecurityRealm extends AbstractModule<BasicSecurityRealmConfig>
     
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         
     }

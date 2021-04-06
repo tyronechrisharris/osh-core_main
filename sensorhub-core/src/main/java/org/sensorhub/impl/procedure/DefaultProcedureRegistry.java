@@ -84,9 +84,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             procStateDb = new ProcedureObsEventDatabase();
             procStateDb.setParentHub(hub);
             procStateDb.init(dbListenerConfig);
-            procStateDb.start();
-            
-            hub.getDatabaseRegistry().register(procStateDb);            
+            procStateDb.start();            
         }
         catch (Exception e)
         {

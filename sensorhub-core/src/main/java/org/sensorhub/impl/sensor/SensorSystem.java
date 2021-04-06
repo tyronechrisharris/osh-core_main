@@ -56,9 +56,9 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
     
     
     @Override
-    public void init() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {
-        super.init();
+        super.doInit();
         
         // generate unique ID
         if (config.uniqueID != null && !config.uniqueID.equals(AUTO_ID))
@@ -147,7 +147,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
 
 
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         for (ISensorModule<?> sensor: sensors.values())
         {
@@ -186,7 +186,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
 
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         for (ISensorModule<?> sensor: sensors.values())
             sensor.stop();

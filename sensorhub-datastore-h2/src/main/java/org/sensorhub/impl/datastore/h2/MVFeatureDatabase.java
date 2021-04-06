@@ -41,7 +41,7 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
     
     
     @Override
-    public void start() throws SensorHubException
+    protected void doStart() throws SensorHubException
     {
         try
         {
@@ -95,7 +95,7 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
 
 
     @Override
-    public void stop() throws SensorHubException
+    protected void doStop() throws SensorHubException
     {
         if (mvStore != null) 
         {
