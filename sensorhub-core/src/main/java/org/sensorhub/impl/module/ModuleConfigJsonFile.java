@@ -34,6 +34,7 @@ import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.datastore.DataStoreFiltersTypeAdapterFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.util.Asserts;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -67,12 +68,13 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     Gson gson;
     File configFile;
     boolean keepBackup;
+    ModuleClassFinder classFinder;
     
     
     /* GSON type adapter factory for parsing JSON object to a custom subclass.
      * The desired class is indicated by an additional field, whose name is
      * configured by typeFieldName. */
-    public static final class RuntimeTypeAdapterFactory<T> implements TypeAdapterFactory
+    public final class RuntimeTypeAdapterFactory<T> implements TypeAdapterFactory
     {
         private final Class<?> baseType;
         private final String typeFieldName;
@@ -113,7 +115,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
                             try
                             {
                                 @SuppressWarnings("unchecked")
-                                Class<R> runtimeClass = (Class<R>)Class.forName(type);
+                                Class<R> runtimeClass = (Class<R>)classFinder.findClass(type);
                                 delegate = gson.getDelegateAdapter(RuntimeTypeAdapterFactory.this, TypeToken.get(runtimeClass));                        
                             }
                             catch (ClassNotFoundException e)
@@ -165,12 +167,19 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     
     public ModuleConfigJsonFile(String moduleConfigPath, boolean keepBackup)
     {
+        this(moduleConfigPath, keepBackup, null);
+    }
+    
+    
+    public ModuleConfigJsonFile(String moduleConfigPath, boolean keepBackup, ModuleClassFinder classFinder)
+    {
         this.configFile = new File(moduleConfigPath);
         if (!configFile.exists())
             throw new IllegalArgumentException("Cannot find config file " + configFile.getAbsolutePath());
         
         this.keepBackup= keepBackup;
         this.configMap = new LinkedHashMap<>();
+        this.classFinder = Asserts.checkNotNull(classFinder, ModuleClassFinder.class);
         
         // init json serializer/deserializer
         final GsonBuilder builder = new GsonBuilder()
@@ -323,5 +332,12 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
         {
             throw new IllegalStateException("Error while writing JSON config file " + configFile.getAbsolutePath(), e);
         }
+    }
+
+
+    @Override
+    public ModuleClassFinder getModuleClassFinder()
+    {
+        return classFinder;
     }
 }

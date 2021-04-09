@@ -47,7 +47,9 @@ public class AdminUIServlet extends VaadinServlet
             if (user != null)
                 securityHandler.setCurrentUser(user.getName());
             
-            securityHandler.checkPermission(securityHandler.admin_access);            
+            securityHandler.checkPermission(securityHandler.admin_access);
+            
+            this.getService().setClassLoader(this.getClass().getClassLoader());
             super.service(request, response);
         }
         catch (SecurityException e)

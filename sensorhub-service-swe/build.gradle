@@ -3,8 +3,19 @@ ext.details = 'Implementation of OGC SWE standard interfaces as OSH services and
 
 dependencies {
   implementation project(':sensorhub-core')
-  api project(':ogc-services-sos')
-  api project(':ogc-services-sps')
+  
+  embeddedApi(project(':ogc-services-sos')) {
+    // exclude from embedded jars, already provided by sensorhub-core
+    exclude group: 'org.vast.opengis', module: 'swe-common-om' 
+    exclude group: 'org.vast.opengis', module: 'sensorml-core'
+    exclude group: 'javax.servlet', module: 'javax.servlet-api'
+  }
+  embeddedApi(project(':ogc-services-sps')) {
+    // exclude from embedded jars, already provided by sensorhub-core
+    exclude group: 'org.vast.opengis', module: 'swe-common-om' 
+    exclude group: 'org.vast.opengis', module: 'sensorml-core'
+    exclude group: 'javax.servlet', module: 'javax.servlet-api'
+  }
     
   testImplementation project(path: ':sensorhub-core', configuration: 'testArtifacts')
   testImplementation project(':sensorhub-datastore-h2')
@@ -12,10 +23,10 @@ dependencies {
 }
 
 // add info to OSGI manifest
-jar {
+osgi {
   manifest {
     attributes('Bundle-Vendor': 'Sensia Software LLC')
-    attributes('Bundle-Activator': 'org.sensorhub.impl.service.sos.Activator')
+    attributes('-exportcontents': 'org.sensorhub.*,org.vast.*,net.opengis.*')
   }
 }
 

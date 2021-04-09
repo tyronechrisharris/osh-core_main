@@ -1,0 +1,4 @@
+felix-cache/
+.moduledata/
+**/*.dat
+**/*.bak.*

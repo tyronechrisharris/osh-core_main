@@ -6,3 +6,5 @@ dependencies {
   implementation project(':sensorhub-datastore-h2')
   implementation project(':sensorhub-webui-core')
 }
+
+tasks.osgi.enabled = false

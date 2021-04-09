@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.module.ModuleConfig;
+import org.vast.util.Asserts;
 
 
 /**
@@ -33,6 +34,13 @@ import org.sensorhub.api.module.ModuleConfig;
 public class InMemoryConfigDb implements IModuleConfigRepository
 {
     Map<String, ModuleConfig> configMap = new LinkedHashMap<String, ModuleConfig>();
+    ModuleClassFinder classFinder;
+    
+    
+    public InMemoryConfigDb(ModuleClassFinder classFinder)
+    {
+        this.classFinder = Asserts.checkNotNull(classFinder, ModuleClassFinder.class);
+    }
     
     
     @Override
@@ -90,6 +98,13 @@ public class InMemoryConfigDb implements IModuleConfigRepository
     public void close()
     {
         configMap.clear();
+    }
+
+
+    @Override
+    public ModuleClassFinder getModuleClassFinder()
+    {
+        return classFinder;
     }
 
 }

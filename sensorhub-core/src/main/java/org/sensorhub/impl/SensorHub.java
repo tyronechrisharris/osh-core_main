@@ -15,12 +15,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl;
 
 import java.util.concurrent.ForkJoinPool;
+import org.osgi.framework.BundleContext;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
@@ -29,6 +29,7 @@ import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry;
 import org.sensorhub.impl.datastore.mem.InMemoryProcedureStateDbConfig;
 import org.sensorhub.impl.event.EventBus;
 import org.sensorhub.impl.module.InMemoryConfigDb;
+import org.sensorhub.impl.module.ModuleClassFinder;
 import org.sensorhub.impl.module.ModuleConfigJsonFile;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
@@ -54,6 +55,7 @@ public class SensorHub implements ISensorHub
     private static final String ERROR_MSG = "Fatal error during sensorhub execution";
     
     protected ISensorHubConfig config;
+    protected BundleContext osgiContext;
     protected ModuleRegistry moduleRegistry;
     protected IEventBus eventBus;
     protected IProcedureRegistry procedureRegistry;
@@ -66,35 +68,42 @@ public class SensorHub implements ISensorHub
     
     public SensorHub()
     {
-        IModuleConfigRepository configDB = new InMemoryConfigDb();
-        init(new SensorHubConfig(),
-            new ModuleRegistry(this, configDB),
-            new EventBus());
+        this.config = new SensorHubConfig();
     }
     
     
     public SensorHub(ISensorHubConfig config)
     {
-        IModuleConfigRepository configDB = new ModuleConfigJsonFile(config.getModuleConfigPath(), true);
-        init(config,
-            new ModuleRegistry(this, configDB),
-            new EventBus());
+        this.config = config;
     }
     
     
-    protected void init(ISensorHubConfig config, ModuleRegistry registry, IEventBus eventBus)
+    public SensorHub(ISensorHubConfig config, BundleContext osgiContext)
     {
         this.config = config;
-        this.eventBus = eventBus;
-        this.moduleRegistry = registry;
-        this.databaseRegistry = new DefaultDatabaseRegistry(this);
-        this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
-    }   
+        this.osgiContext = osgiContext;
+    }
     
     
     @Override
     public void start()
     {
+        log.info("*****************************************");
+        log.info("Starting SensorHub...");
+        log.info("Version : {}", ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion());
+        log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
+        log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
+        
+        // init hub core components
+        var classFinder = new ModuleClassFinder(osgiContext);
+        var configDB = config.getModuleConfigPath() != null ?
+            new ModuleConfigJsonFile(config.getModuleConfigPath(), true, classFinder) :
+            new InMemoryConfigDb(classFinder);
+        this.moduleRegistry = new ModuleRegistry(this, configDB);
+        this.eventBus = new EventBus();
+        this.databaseRegistry = new DefaultDatabaseRegistry(this);
+        this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
+        
         // prepare client authenticator (e.g. for HTTP connections, etc...)
         ClientAuth.createInstance("keystore");
                 
@@ -122,7 +131,7 @@ public class SensorHub implements ISensorHub
     {
         try
         {
-            if (!stopped)
+            if (!stopped && moduleRegistry != null)
             {
                 moduleRegistry.shutdown(saveConfig, saveState);
                 eventBus.shutdown();
@@ -147,6 +156,12 @@ public class SensorHub implements ISensorHub
     public void setConfig(ISensorHubConfig config)
     {
         this.config = config;
+    }
+    
+    
+    public BundleContext getOsgiContext()
+    {
+        return osgiContext;
     }
 
 
@@ -218,12 +233,6 @@ public class SensorHub implements ISensorHub
             System.out.println("Command syntax: sensorhub [module_config_path] [base_storage_path]");
             System.exit(1);
         }
-        
-        log.info("*****************************************");
-        log.info("Starting SensorHub...");
-        log.info("Version : {}", ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion());
-        log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
-        log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
         
         // start sensorhub
         ISensorHub instance = null;

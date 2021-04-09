@@ -1,19 +1,31 @@
-description = 'H2 MVStore Storage'
+description = 'OSH Datastore (H2)'
 ext.details = 'Storage module backed by a H2 MVStore object database'
 
 dependencies {
   implementation project(':sensorhub-core')
-  implementation 'com.h2database:h2-mvstore:1.4.197'
-  implementation 'com.esotericsoftware:kryo:4.0.2'
-  implementation 'org.apache.lucene:lucene-analyzers-common:7.5.0'
+  embeddedImpl 'com.h2database:h2-mvstore:1.4.197'
+  embeddedImpl 'com.esotericsoftware:kryo:4.0.2'
+  embeddedImpl 'org.apache.lucene:lucene-analyzers-common:7.5.0'
   testImplementation project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }
 
 // add info to OSGI manifest
-jar {
+osgi {
   manifest {
     attributes('Bundle-Vendor': 'Sensia Software LLC')
-    attributes('Bundle-Activator': 'org.sensorhub.impl.persistence.perst.Activator')
+    attributes('Bundle-Activator': 'org.sensorhub.impl.Activator')
+    
+    // ignore some errors
+    attributes('-fixupmessages': '''
+      Classes found in the wrong directory: \\{META-INF/versions/,
+      Input file does not exist: objenesis
+    ''')
+    
+    // remove unused packages from imports
+    attributes('Import-Package': '''
+      !java.*,!com.sun.*,!sun.*,!javax.xml.*,!org.xml.sax.*,!org.w3c.dom.*,
+      !javax.crypto.*,
+      *''')
   }
 }
 

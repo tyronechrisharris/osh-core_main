@@ -14,6 +14,7 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api;
 
+import org.osgi.framework.BundleContext;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
@@ -35,6 +36,9 @@ public interface ISensorHub
 {    
     
     public ISensorHubConfig getConfig();
+    
+    
+    public BundleContext getOsgiContext();
 
 
     public IEventBus getEventBus();

@@ -22,8 +22,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -207,7 +205,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     {
         try
         {
-            Class<?> moduleClazz = Class.forName(config.moduleClass);
+            Class<?> moduleClazz = configRepo.getModuleClassFinder().findClass(config.moduleClass);
             return IDatabase.class.isAssignableFrom(moduleClazz) ||
                    IDataStore.class.isAssignableFrom(moduleClazz);
         }
@@ -337,7 +335,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     {
         try
         {
-            Class<?> clazz = Class.forName(className);
+            var clazz = configRepo.getModuleClassFinder().findClass(className);
             return clazz.getDeclaredConstructor().newInstance();
         }
         catch (NoClassDefFoundError | ReflectiveOperationException e)
@@ -561,6 +559,12 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         {
             // start module in separate thread
             asyncExec.submit(() -> {
+                
+                // set current thread classloader to the module classloader
+                // needed to use proper classloader when booting using OSGi
+                var prevCl = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(module.getClass().getClassLoader());
+                
                 try
                 {
                     if (!module.isInitialized())
@@ -578,7 +582,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 catch (Exception e)
                 {
                     log.error(IModule.CANNOT_START_MSG + MsgUtils.moduleString(module), e);
-                }            
+                }
+                
+                Thread.currentThread().setContextClassLoader(prevCl);
             });
         }
         catch (RejectedExecutionException e)
@@ -946,20 +952,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      */
     public Collection<IModuleProvider> getInstalledModuleTypes()
     {
-        ArrayList<IModuleProvider> installedModules = new ArrayList<>();
-        
-        ServiceLoader<IModuleProvider> sl = ServiceLoader.load(IModuleProvider.class);
-        try
-        {
-            for (IModuleProvider provider: sl)
-                installedModules.add(provider);
-        }
-        catch (ServiceConfigurationError e)
-        {
-            log.error("{}: {}", ServiceConfigurationError.class.getName(), e.getMessage());
-        }
-        
-        return installedModules;
+        return configRepo.getModuleClassFinder().getInstalledModuleTypes(Object.class);
     }
     
     
@@ -971,16 +964,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      */
     public Collection<IModuleProvider> getInstalledModuleTypes(Class<?> moduleClass)
     {
-        ArrayList<IModuleProvider> installedModules = new ArrayList<>();
-
-        ServiceLoader<IModuleProvider> sl = ServiceLoader.load(IModuleProvider.class);
-        for (IModuleProvider provider: sl)
-        {
-            if (moduleClass.isAssignableFrom(provider.getModuleClass()))
-                installedModules.add(provider);
-        }
-        
-        return installedModules;
+        return configRepo.getModuleClassFinder().getInstalledModuleTypes(moduleClass);
     }
     
     

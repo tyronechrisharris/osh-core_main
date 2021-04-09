@@ -1,11 +1,22 @@
 ext.oshCoreVersion = '2.0.0'
 
 
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "biz.aQute.bnd:biz.aQute.bnd.gradle:5.3.0"
+  }
+}
+
+    
 allprojects  {
   group = 'org.sensorhub'
 
   repositories {
-    //jcenter() 
     maven { url "https://repo.maven.apache.org/maven2" }
   }
   
@@ -25,7 +36,6 @@ allprojects  {
 subprojects {
   apply plugin: 'java-library'
   apply plugin: 'java-test-fixtures'
-  //apply plugin: 'osgi'
   apply plugin: 'eclipse'
   apply plugin: 'maven-publish'
   
@@ -56,12 +66,14 @@ subprojects {
     }
   }
     
-  // add embedded config for embedding jars in bundle
+  // custom dependency configurations for embedding jars in OSGi bundle
   configurations {
+    embeddedApi
+    embeddedImpl
     embedded
-    compile {
-      extendsFrom embedded
-    }
+    embedded.extendsFrom(embeddedApi, embeddedImpl)
+    api.extendsFrom(embeddedApi)
+    implementation.extendsFrom(embeddedImpl)  
   }
 
   // default test dependencies
@@ -79,33 +91,51 @@ subprojects {
       exceptionFormat 'full'
     }
   }
-  
-  // configure packaging in separate task
-  task jarConfig {
-    doLast {    
-      // jar content
-      project.jar { 
-        into('lib') {
-          from {
-            project.configurations.embedded
-          }
-        }
         
-        /*// OSGi manifest info
+  // OSGi bundle jar task
+  task osgi(type: aQute.bnd.gradle.Bundle) {
+    archiveClassifier = 'bundle'
+    from project.sourceSets.main.output 
+  }
+  assemble.dependsOn osgi
+    
+  // OSGi manifest generation task
+  task osgiManifest {
+    
+    // need to do this after subproject is processed and dependencies are resolved!
+    doLast {    
+      project.osgi {
         manifest {
           // main info
-          symbolicName project.group + '.' + project.name
-          if (project.description != null)
+          attributes 'Bundle-SymbolicName': project.group + '.' + project.name
+          if (project.description != null && !attributes['Bundle-Name'])
             attributes 'Bundle-Name': project.description
           if (project.details != null)
             attributes 'Bundle-Description': project.details
-            
+          if (project.buildNumber != null && !project.buildNumber.isEmpty())
+            attributes 'Bundle-BuildNumber': project.buildNumber
+          if (!attributes['Bundle-License'])
+            attributes 'Bundle-License': 'MPL 2.0 (http://mozilla.org/MPL/2.0)'
+          if (!attributes['Bundle-Copyright'] && attributes['Bundle-Vendor'])
+            attributes 'Bundle-Copyright': 'Copyright (c) ' + attributes['Bundle-Vendor'] + '. All Rights Reserved'
+          
+          // default osgi settings if not overriden by project
+          if (!attributes['Bundle-Activator'])
+            attributes('Bundle-Activator': 'org.sensorhub.impl.Activator')
+          if (!attributes['-exportcontents'])
+            attributes '-exportcontents': 'org.sensorhub.*'
+          if (!attributes['Import-Package'])
+            attributes 'Import-Package': '!java.*,!com.sun.*,!sun.*,!javax.xml.*,!org.xml.sax.*,!org.w3c.dom.*,*'
+          //attributes '-noimportjava': true
+          //attributes '-sources': true
+          
           // add embedded jars to OSGi classpath
           def classpath = '.'
+          def embeddedJars = ''
           project.configurations.embedded.each {
-            classpath += ',lib/' + it.name
+            embeddedJars += 'lib/' + it.name + '=' + it.name + ';lib:=true,'
           }
-          attributes 'Bundle-ClassPath': classpath
+          attributes '-includeresource': embeddedJars
           
           // native libs location
           def resourcesFolder = new File(projectDir, '/src/main/resources')
@@ -122,23 +152,11 @@ subprojects {
             }
             attributes 'Bundle-NativeCode': nativePaths
           }
-          
-          // bundle dependencies
-          def oshDeps = ''
-          project.configurations.runtime.each {
-            if (it.name.startsWith('sensorhub'))
-              oshDeps += it.name + ','
-          }
-          attributes 'OSH-Dependencies': oshDeps
-          
-          // build number
-          if (project.buildNumber != null && !project.buildNumber.isEmpty())
-            attributes 'Bundle-BuildNumber': project.buildNumber
-        }*/
+        }
       }
     }
   }
-  jar.dependsOn(jarConfig)
+  osgi.dependsOn osgiManifest
 
   // do maven stuff at the end in case subprojects add extra info
   afterEvaluate { project ->    

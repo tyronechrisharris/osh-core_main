@@ -4,7 +4,6 @@ ext.details = 'Implementation of OGC SWE REST API'
 
 dependencies {
   implementation project(':sensorhub-core')
-  implementation 'org.eclipse.jetty.websocket:websocket-server:9.4.19.v20190610'
     
   testImplementation project(path: ':sensorhub-core', configuration: 'testArtifacts')
   testImplementation project(':sensorhub-datastore-h2')
@@ -16,7 +15,7 @@ dependencies {
 jar {
   manifest {
     attributes('Bundle-Vendor': 'Sensia Software LLC')
-    attributes('Bundle-Activator': 'org.sensorhub.impl.service.sos.Activator')
+    attributes('Bundle-Activator': 'org.sensorhub.impl.Activator')
   }
 }
 

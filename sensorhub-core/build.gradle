@@ -2,25 +2,43 @@ description = 'OSH Core APIs & Components'
 ext.details = 'Core components of OpenSensorHub framework'
 
 dependencies {
-  api project(':swe-common-core')
-  api project(':swe-common-om')
-  api project(':sensorml-core')
-  api 'ch.qos.logback:logback-classic:1.1.2'
-  api 'org.apache.felix:org.apache.felix.framework:4.2.1'
-  api 'org.eclipse.jetty:jetty-servlet:9.4.19.v20190610'
-  api 'org.eclipse.jetty:jetty-servlets:9.4.19.v20190610'
-  api 'org.eclipse.jetty.websocket:websocket-server:9.4.19.v20190610'
-  api 'org.eclipse.jetty:jetty-xml:9.4.19.v20190610'
+  embeddedApi project(':swe-common-core')
+  embeddedApi project(':swe-common-om')
+  embeddedApi project(':sensorml-core')
+  api 'org.osgi:org.osgi.framework:1.9.0'
+  embeddedApi 'org.eclipse.jetty:jetty-servlet:9.4.19.v20190610'
+  embeddedApi 'org.eclipse.jetty:jetty-servlets:9.4.19.v20190610'
+  embeddedApi 'org.eclipse.jetty.websocket:websocket-server:9.4.19.v20190610'
+  embeddedApi 'org.eclipse.jetty:jetty-xml:9.4.19.v20190610'
     
   testImplementation project(path: ':sensorml-core', configuration: 'testArtifacts')
   testImplementation 'commons-io:commons-io:1.3.2'
 }
 
 // add info to OSGI manifest
-jar {
+osgi {
   manifest {
     attributes('Bundle-Vendor': 'Sensia Software LLC')
-    attributes('Bundle-Activator': 'org.sensorhub.Activator')
+    attributes('Bundle-Activator': 'org.sensorhub.impl.Activator')
+    attributes('-exportcontents': '''
+       org.sensorhub.*,
+       org.vast.*,
+       net.opengis.*,
+       org.eclipse.jetty.*,
+       javax.servlet.*,
+       com.google.common.*,
+       com.google.gson.*,
+       com.vividsolutions.*,
+       org.slf4j.*,
+       com.rits.*,
+       org.objenesis.*
+    ''')
+    
+    // override import packages since this is our root bundle
+    attributes('Import-Package': 'org.osgi.framework')
+    
+    // allow binding to OWS reader/writer dynamically (needed by OGCRegistry)
+    attributes('DynamicImport-Package': 'org.vast.ows,org.vast.ows.*')
   }
 }
 

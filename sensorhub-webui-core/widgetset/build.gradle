@@ -1,18 +1,18 @@
-description = 'OSH Vaadin WidgetSet'
+description = 'OSH Admin Vaadin WidgetSet'
 
 configurations {
   vaadin {
-    extendsFrom implementation
+    extendsFrom compileOnly
   }
 }
 
 dependencies {
-  implementation 'com.vaadin:vaadin-shared:' + vaadinVersion
-  implementation 'com.vaadin:vaadin-server:' + vaadinVersion
-  implementation 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
-  implementation 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
-  implementation 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
-  implementation 'com.vaadin:vaadin-themes:' + vaadinVersion
+  compileOnly 'com.vaadin:vaadin-shared:' + vaadinVersion
+  compileOnly 'com.vaadin:vaadin-server:' + vaadinVersion
+  compileOnly 'com.vaadin:vaadin-client-compiled:' + vaadinVersion
+  compileOnly 'com.vaadin:vaadin-compatibility-client:' + vaadinVersion
+  compileOnly 'com.vaadin:vaadin-compatibility-client-compiled:' + vaadinVersion
+  compileOnly 'com.vaadin:vaadin-themes:' + vaadinVersion
   vaadin 'com.vaadin:vaadin-client-compiler:' + vaadinVersion 
 }
 

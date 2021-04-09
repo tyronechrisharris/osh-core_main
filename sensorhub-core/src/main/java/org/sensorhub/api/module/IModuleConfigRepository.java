@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.module;
 
 import java.util.List;
+import org.sensorhub.impl.module.ModuleClassFinder;
 
 
 /**
@@ -27,6 +28,13 @@ import java.util.List;
  */
 public interface IModuleConfigRepository
 {
+    
+    /**
+     * @return module class finder used to instantiate module config classes
+     * and implementation classes provided by this repository
+     */
+    public ModuleClassFinder getModuleClassFinder();
+    
     
     /**
      * @return list of all modules configuration
