@@ -81,21 +81,25 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public String getName()
     {
-        return config.name;
+        return config != null && config.name != null ?
+            config.name :
+            getClass().getSimpleName();
     }
     
     
     @Override
     public String getDescription()
     {
-        return config.description;
+        return config != null ? config.description : null;
     }
 
 
     @Override
     public String getLocalID()
     {
-        return config.id;
+        return config != null && config.id != null ?
+            config.id :
+            "NO_ID";
     }
     
     
