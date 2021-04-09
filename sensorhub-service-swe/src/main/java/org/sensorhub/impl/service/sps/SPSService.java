@@ -74,6 +74,8 @@ public class SPSService extends SWEService<SPSServiceConfig>
     @Override
     protected void doStart() throws SensorHubException
     {
+        super.doStart();
+        
         // deploy servlet
         servlet = new SPSServlet(this, (SPSSecurity)this.securityHandler, getLogger());
         deploy();

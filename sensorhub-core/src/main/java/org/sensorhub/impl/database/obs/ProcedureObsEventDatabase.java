@@ -62,8 +62,8 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
             //dbModule.setParentHub(getParentHub());
             dbModule.setConfiguration(dbConfig);
-            dbModule.init();
-            dbModule.start();
+            dbModule.requestInit(true);
+            dbModule.requestStart();
             
             this.db = (IProcedureObsDatabase)dbModule;
             Asserts.checkNotNull(db.getProcedureStore(), IProcedureStore.class);

@@ -94,8 +94,6 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     @Override
     protected void doInit() throws SensorHubException
     {
-        super.doInit();
-        
         // only go further if sensorML file was provided
         // otherwise we'll do it at the next update
         if (config.sensorML != null)
