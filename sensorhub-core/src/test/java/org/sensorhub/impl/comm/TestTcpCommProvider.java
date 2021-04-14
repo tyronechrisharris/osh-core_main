@@ -12,11 +12,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.test.comm;
+package org.sensorhub.impl.comm;
 
 import java.io.InputStream;
-import org.sensorhub.impl.comm.TCPCommProvider;
-import org.sensorhub.impl.comm.TCPCommProviderConfig;
 
 
 /*
