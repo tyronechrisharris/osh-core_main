@@ -73,7 +73,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
         }
         catch (Exception e)
         {
-            throw new DataStoreException("Cannot instantiate underlying database " + dbConfig.moduleClass, e);
+            throw new DataStoreException("Cannot instantiate underlying database " + config.dbConfig.moduleClass, e);
         }
         
         // start auto-purge timer thread if policy is specified and enabled
