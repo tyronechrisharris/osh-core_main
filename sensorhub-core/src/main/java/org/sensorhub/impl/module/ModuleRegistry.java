@@ -22,12 +22,15 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.event.Event;
@@ -52,6 +55,8 @@ import org.sensorhub.utils.MsgUtils;
 import org.sensorhub.utils.NamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.util.Asserts;
+import com.google.common.collect.Sets;
 
 
 /**
@@ -76,8 +81,20 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     IModuleConfigRepository configRepo;
     Map<String, IModule<?>> loadedModules;
     ExecutorService asyncExec;
+    Set<WaitFuture<?>> waitForModuleFutures = Sets.newConcurrentHashSet();
     volatile boolean allModulesLoaded = true;
     volatile boolean shutdownCalled;
+    
+    
+    static class WaitFuture<T> extends CompletableFuture<T>
+    {
+        Predicate<IModule<?>> predicate;
+        
+        WaitFuture(Predicate<IModule<?>> predicate)
+        {
+            this.predicate = predicate;
+        }
+    }
     
     
     public ModuleRegistry(ISensorHub hub, IModuleConfigRepository configRepos)
@@ -870,7 +887,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * @return list of module instances of the specified type
      */
     @SuppressWarnings("unchecked")
-    public synchronized <T extends IModule<?>> Collection<T> getLoadedModules(Class<T> moduleType)
+    public synchronized <T> Collection<T> getLoadedModules(Class<T> moduleType)
     {
         ArrayList<T> matchingModules = new ArrayList<>();
         
@@ -1165,10 +1182,81 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                     break;
             }
             
+            // notify other modules waiting
+            notifyWaitFutures((ModuleEvent)e);
+            
             // forward events to event bus
             // events from all modules are published in the same group
             IEventPublisher modulePublisher = hub.getEventBus().getPublisher(EVENT_GROUP_ID, e.getSourceID());
-            modulePublisher.publish(e);
+            modulePublisher.publish(e);            
+        }
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    protected void notifyWaitFutures(ModuleEvent e)
+    {
+        synchronized (waitForModuleFutures)
+        {
+            var it = waitForModuleFutures.iterator();
+            while (it.hasNext())
+            {
+                var f = it.next();
+                if (f.predicate.test(e.getModule()))
+                {
+                    it.remove();
+                    ((WaitFuture<IModule<?>>)f).complete(e.getModule());
+                }
+            }
+        }
+    }
+    
+    
+    public <T> CompletableFuture<T> waitForModuleType(Class<T> moduleType, ModuleState requiredState)
+    {
+        Asserts.checkNotNull(moduleType, "moduleClass");
+        Asserts.checkNotNull(requiredState, ModuleState.class);
+        
+        return waitForModule(m -> {
+            return moduleType.isAssignableFrom(m.getClass())
+                && m.getCurrentState() == requiredState;
+        });
+    }
+    
+    
+    public <T extends IModule<?>> CompletableFuture<T> waitForModule(String id, ModuleState requiredState)
+    {
+        Asserts.checkNotNull(id, "moduleID");
+        Asserts.checkNotNull(requiredState, ModuleState.class);
+        
+        return waitForModule(m -> {
+            return m.getLocalID().equals(id)
+                && m.getCurrentState() == requiredState;
+        });
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    public <T> CompletableFuture<T> waitForModule(final Predicate<IModule<?>> predicate)
+    {
+        Asserts.checkNotNull(predicate, Predicate.class);
+        
+        synchronized (waitForModuleFutures)
+        {
+            var future = new WaitFuture<T>(predicate);
+            
+            var modules = getLoadedModules();
+            for (var m: modules)
+            {
+                if (future.predicate.test(m))
+                {
+                    future.complete((T)m);
+                    return future;
+                }
+            }
+                
+            waitForModuleFutures.add(future);            
+            return future;
         }
     }
     
