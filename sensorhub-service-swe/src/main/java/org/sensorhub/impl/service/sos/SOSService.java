@@ -62,8 +62,13 @@ public class SOSService extends SWEService<SOSServiceConfig>
     
     protected ObsFilter getResourceFilter()
     {
+        if (config.exposedResources != null)
+        {
+            return config.exposedResources.getObsFilter();
+        }
+        
         // else if some custom providers are configured, build a filter to expose them (and nothing else)
-        if (config.exposedResources == null && config.customDataProviders != null && !config.customDataProviders.isEmpty())
+        else if (config.exposedResources == null && config.customDataProviders != null && !config.customDataProviders.isEmpty())
         {
             var procUIDs = config.customDataProviders.stream()
                 .map(config -> config.procedureUID)

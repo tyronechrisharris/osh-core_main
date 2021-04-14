@@ -55,8 +55,13 @@ public class SPSService extends SWEService<SPSServiceConfig>
     
     protected CommandFilter getResourceFilter()
     {
+        if (config.exposedResources != null)
+        {
+            return config.exposedResources.getCommandFilter();
+        }
+        
         // else if some custom providers are configured, build a filter to expose them (and nothing else)
-        if (config.exposedResources == null && config.customConnectors != null && !config.customConnectors.isEmpty())
+        else if (config.exposedResources == null && config.customConnectors != null && !config.customConnectors.isEmpty())
         {
             var procUIDs = config.customConnectors.stream()
                 .map(config -> config.procedureUID)
