@@ -127,7 +127,9 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
         if (fullTextFilter != null)
             builder.withFullText(fullTextFilter);
         
-        var valuePredicate = this.valuePredicate != null ? this.valuePredicate.and(otherFilter.valuePredicate) : otherFilter.valuePredicate;
+        var valuePredicate = this.valuePredicate == null ? otherFilter.valuePredicate :
+                             otherFilter.valuePredicate != null ? this.valuePredicate.and(otherFilter.valuePredicate) :
+                             this.valuePredicate;
         if (valuePredicate != null)
             builder.withValuePredicate(valuePredicate);
         
