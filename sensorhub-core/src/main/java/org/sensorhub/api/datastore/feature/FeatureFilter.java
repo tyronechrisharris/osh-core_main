@@ -133,7 +133,8 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         }
                 
         
-        protected B copyFrom(F base)
+        @Override
+        public B copyFrom(F base)
         {
             super.copyFrom(base);
             instance.parentFilter = base.parentFilter;

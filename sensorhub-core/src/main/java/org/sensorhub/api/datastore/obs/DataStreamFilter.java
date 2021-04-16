@@ -235,7 +235,8 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         }
         
         
-        protected B copyFrom(F other)
+        @Override
+        public B copyFrom(F other)
         {
             super.copyFrom(other);
             instance.procFilter = other.procFilter;

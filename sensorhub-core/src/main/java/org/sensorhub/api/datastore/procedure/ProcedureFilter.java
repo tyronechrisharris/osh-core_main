@@ -159,7 +159,8 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         }
                 
         
-        protected B copyFrom(F base)
+        @Override
+        public B copyFrom(F base)
         {
             super.copyFrom(base);
             instance.parentFilter = base.parentFilter;

@@ -264,7 +264,12 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
         }
         
         
-        protected B copyFrom(ObsFilter base)
+        /**
+         * Init this builder with settings from the provided filter
+         * @param base
+         * @return This builder for chaining
+         */
+        public B copyFrom(ObsFilter base)
         {
             instance.internalIDs = base.internalIDs;
             instance.phenomenonTime = base.phenomenonTime;

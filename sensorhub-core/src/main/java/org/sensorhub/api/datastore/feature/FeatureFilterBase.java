@@ -194,7 +194,8 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         }
         
         
-        protected B copyFrom(F base)
+        @Override
+        public B copyFrom(F base)
         {
             Asserts.checkNotNull(base, FeatureFilterBase.class);
             super.copyFrom(base);

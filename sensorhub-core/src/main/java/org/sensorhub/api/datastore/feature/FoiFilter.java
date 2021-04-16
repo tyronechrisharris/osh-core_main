@@ -159,7 +159,8 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
         }
         
         
-        protected B copyFrom(FoiFilter base)
+        @Override
+        public B copyFrom(FoiFilter base)
         {
             super.copyFrom(base);
             instance.parentFilter = base.parentFilter;

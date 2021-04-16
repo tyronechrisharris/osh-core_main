@@ -245,7 +245,12 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
         }
         
         
-        protected B copyFrom(CommandFilter base)
+        /**
+         * Init this builder with settings from the provided filter
+         * @param base
+         * @return This builder for chaining
+         */
+        public B copyFrom(CommandFilter base)
         {
             instance.internalIDs = base.internalIDs;
             instance.actuationTime = base.actuationTime;

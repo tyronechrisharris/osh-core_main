@@ -152,9 +152,14 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
         }
         
         
-        protected B copyFrom(F base)
+        /**
+         * Init this builder with settings from the provided filter
+         * @param base
+         * @return This builder for chaining
+         */
+        public B copyFrom(F base)
         {
-            Asserts.checkNotNull(base, ResourceFilter.class);
+            Asserts.checkNotNull(base, ResourceFilter.class);            
             instance.internalIDs = base.getInternalIDs();
             instance.fullText = base.getFullTextFilter();
             instance.valuePredicate = base.getValuePredicate();

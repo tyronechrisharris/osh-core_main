@@ -232,7 +232,8 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
         }
         
         
-        protected B copyFrom(F other)
+        @Override
+        public B copyFrom(F other)
         {
             super.copyFrom(other);
             instance.procFilter = other.procFilter;
