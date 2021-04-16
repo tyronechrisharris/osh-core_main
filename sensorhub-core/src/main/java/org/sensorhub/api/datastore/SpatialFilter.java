@@ -36,7 +36,7 @@ public class SpatialFilter implements Predicate<Geometry>
 {
     public enum SpatialOp
     {
-        INTERSECTS, CONTAINS, EQUALS, WITHIN, DISJOINT, WITHIN_DISTANCE
+        INTERSECTS, OVERLAPS, CROSSES, TOUCHES, CONTAINS, EQUALS, WITHIN, DISJOINT, WITHIN_DISTANCE
     }
 
     protected SpatialOp operator;
@@ -188,6 +188,16 @@ public class SpatialFilter implements Predicate<Geometry>
         }
         
         
+        public B withDistanceToGeom(Geometry geom, double distance)
+        {
+            instance.center = geom.getCentroid();
+            instance.distance = distance;
+            withRoi(geom.getEnvelope().buffer(distance, 0));
+            withOperator(SpatialOp.WITHIN_DISTANCE);
+            return (B)this;
+        }
+        
+        
         public B withBbox(Bbox bbox)
         {
             withRoi(bbox.toJtsPolygon());
@@ -212,16 +222,30 @@ public class SpatialFilter implements Predicate<Geometry>
                     instance.geomTest = (g -> instanceLocal.preparedGeom.intersects(g));
                     break;
                     
-                case CONTAINS:
-                    instance.geomTest = (g -> instanceLocal.preparedGeom.contains(g));
+                case OVERLAPS:
+                    instance.geomTest = (g -> instanceLocal.preparedGeom.overlaps(g));
+                    break;
+                    
+                case CROSSES:
+                    instance.geomTest = (g -> instanceLocal.preparedGeom.crosses(g));
+                    break;
+                    
+                case TOUCHES:
+                    instance.geomTest = (g -> instanceLocal.preparedGeom.touches(g));
                     break;
                     
                 case EQUALS:
                     instance.geomTest = (g -> instanceLocal.preparedGeom.equals(g));
                     break;
                     
-                case WITHIN:
+                case CONTAINS:
+                    // use reverse operator so we can prepare the fixed geom
                     instance.geomTest = (g -> instanceLocal.preparedGeom.within(g));
+                    break;
+                    
+                case WITHIN:
+                    // use reverse operator so we can prepare the fixed geom
+                    instance.geomTest = (g -> instanceLocal.preparedGeom.contains(g));
                     break;
                     
                 case DISJOINT:

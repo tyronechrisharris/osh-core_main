@@ -214,7 +214,7 @@ public class TestSpatialFilter
     
     
     @Test
-    public void testPredicate_Contains_PolygonPoint() throws Exception
+    public void testPredicate_Within_PolygonPoint() throws Exception
     {
         var roi = new WKTReader().read(
             "POLYGON((10.689697265625 -25.0927734375, " +
@@ -225,7 +225,7 @@ public class TestSpatialFilter
         
         var filter = new SpatialFilter.Builder()
             .withRoi(roi)
-            .withOperator(SpatialOp.CONTAINS)
+            .withOperator(SpatialOp.WITHIN)
             .build();
         
         // inside
@@ -300,7 +300,7 @@ public class TestSpatialFilter
     
     
     @Test
-    public void testPredicate_Contains_PolygonPolygon() throws Exception
+    public void testPredicate_Within_PolygonPolygon() throws Exception
     {
         var roi = new WKTReader().read(
             "POLYGON((10.689697265625 -25.0927734375, " +
@@ -311,7 +311,7 @@ public class TestSpatialFilter
         
         var filter = new SpatialFilter.Builder()
             .withRoi(roi)
-            .withOperator(SpatialOp.CONTAINS)
+            .withOperator(SpatialOp.WITHIN)
             .build();
         
         // inside
@@ -342,7 +342,7 @@ public class TestSpatialFilter
         });
         assertFalse(filter.test(poly3));
         
-        // contains
+        // within
         var poly4 = new GeometryFactory().createPolygon(new Coordinate[] {
             new Coordinate(10,-10),
             new Coordinate(50,-10),
@@ -355,7 +355,7 @@ public class TestSpatialFilter
     
     
     @Test
-    public void testPredicate_Within_PolygonPolygon() throws Exception
+    public void testPredicate_Contains_PolygonPolygon() throws Exception
     {
         var roi = new WKTReader().read(
             "POLYGON((10.689697265625 -25.0927734375, " +
@@ -366,7 +366,7 @@ public class TestSpatialFilter
         
         var filter = new SpatialFilter.Builder()
             .withRoi(roi)
-            .withOperator(SpatialOp.WITHIN)
+            .withOperator(SpatialOp.CONTAINS)
             .build();
         
         // inside
