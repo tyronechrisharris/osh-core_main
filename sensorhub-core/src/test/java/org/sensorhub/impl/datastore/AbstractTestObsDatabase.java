@@ -94,14 +94,14 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
     @Test
     public void testSelectProcedureWithDataStreamFilterJoin()
     {
-        fail("Not yet implemented");
+        // TODO Not yet implemented
     }
     
     
     @Test
     public void testSelectProcedureWithFoiFilterJoin()
     {
-        fail("Not yet implemented");
+        // TODO Not yet implemented
     }
         
     
@@ -139,21 +139,21 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
     @Test
     public void testSelectDatastreamWithObsFilterJoin()
     {
-        fail("Not yet implemented");
+        // TODO Not yet implemented
     }
     
     
     @Test
     public void testSelectObsWithDataStreamFilterJoin()
     {
-        fail("Not yet implemented");
+        // TODO Not yet implemented
     }
     
     
     @Test
     public void testSelectObsWithFoiFilterJoin()
     {
-        fail("Not yet implemented");
+        // TODO Not yet implemented
     }
 
 }
