@@ -25,10 +25,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * <p>
+ * The module class finder can find classes using the ServiceLoader API or
+ * OSGI service discovery.
+ * </p>
+ *
+ * @author Alex Robin
+ * @since Apr 20, 2021
+ */
 public class ModuleClassFinder
 {
     private static final Logger log = LoggerFactory.getLogger(ModuleRegistry.class);
     BundleContext osgiContext;
+    
+    
+    public ModuleClassFinder()
+    {        
+    }
     
     
     public ModuleClassFinder(BundleContext osgiContext)

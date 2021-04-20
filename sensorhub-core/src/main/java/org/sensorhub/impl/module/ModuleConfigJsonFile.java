@@ -167,7 +167,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     
     public ModuleConfigJsonFile(String moduleConfigPath, boolean keepBackup)
     {
-        this(moduleConfigPath, keepBackup, null);
+        this(moduleConfigPath, keepBackup, new ModuleClassFinder());
     }
     
     
