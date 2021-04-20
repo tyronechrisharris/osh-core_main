@@ -42,6 +42,7 @@ public class TestModuleRegistry
     {
         System.out.println("\n*****************************");
         hub = new SensorHub();
+        hub.start();
         registry = hub.getModuleRegistry(); 
     }
     

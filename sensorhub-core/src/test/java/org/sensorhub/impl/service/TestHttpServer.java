@@ -47,7 +47,9 @@ public class TestHttpServer
     public void setup()
     {
         System.out.println("\n*****************************");
-        registry = new SensorHub().getModuleRegistry(); 
+        var hub = new SensorHub();
+        hub.start();
+        registry = hub.getModuleRegistry(); 
     }
     
     
@@ -55,7 +57,7 @@ public class TestHttpServer
     {
         HttpServerConfig config = new HttpServerConfig();
         config.autoStart = true;
-        config.authMethod = authMethod;        
+        config.authMethod = authMethod;
         registry.loadModule(config);
         return config;
     }
@@ -83,7 +85,7 @@ public class TestHttpServer
     @Test
     public void testDeployServlet() throws Exception
     {
-        HttpServerConfig config = startServer(null);        
+        HttpServerConfig config = startServer(null);
         final String testText = "Deploying hot servlet in SensorHub works";
         
         // deploy new servlet dynamically

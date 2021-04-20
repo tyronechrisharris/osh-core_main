@@ -15,6 +15,7 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import static org.junit.Assert.*;
+import org.junit.Before;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.Point;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
@@ -22,6 +23,7 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
 import org.junit.Test;
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.impl.SensorHub;
 import org.vast.ogc.gml.GMLUtils;
 import org.vast.sensorML.SMLUtils;
@@ -36,7 +38,16 @@ public class TestSensorPosition
     double heading = 56.0;
     double pitch = -12.3;
     double roll = 3.6;
+    ISensorHub hub;
     
+    
+    @Before
+    public void setup() throws Exception
+    {
+        // init sensorhub with in-memory config
+        hub = new SensorHub();
+        hub.start();
+    }
     
     protected void checkFoiLocation(FakeSensorWithPos sensor) throws Exception
     {
@@ -76,7 +87,7 @@ public class TestSensorPosition
     public void testStaticLocation() throws Exception
     {
         FakeSensorWithPos sensor = new FakeSensorWithPos();
-        sensor.setParentHub(new SensorHub());
+        sensor.setParentHub(hub);
         SensorConfigWithPos config = new SensorConfigWithPos();
         config.id = "TEST_SENSOR";
         config.name = "Temp Sensor";
@@ -100,7 +111,7 @@ public class TestSensorPosition
     public void testStaticOrientation() throws Exception
     {
         FakeSensorWithPos sensor = new FakeSensorWithPos();
-        sensor.setParentHub(new SensorHub());
+        sensor.setParentHub(hub);
         SensorConfigWithPos config = new SensorConfigWithPos();
         config.id = "TEST_SENSOR";
         config.name = "Temp Sensor";
@@ -124,7 +135,7 @@ public class TestSensorPosition
     public void testStaticLocationAndOrientation() throws Exception
     {
         FakeSensorWithPos sensor = new FakeSensorWithPos();
-        sensor.setParentHub(new SensorHub());
+        sensor.setParentHub(hub);
         SensorConfigWithPos config = new SensorConfigWithPos();
         config.id = "TEST_SENSOR";
         config.name = "Video Camera";        

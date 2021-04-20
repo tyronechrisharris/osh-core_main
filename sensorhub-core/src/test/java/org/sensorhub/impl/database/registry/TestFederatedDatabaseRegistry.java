@@ -48,6 +48,7 @@ public class TestFederatedDatabaseRegistry
     public void setup()
     {
         SensorHub hub = new SensorHub();
+        hub.start();
         this.registry = hub.getDatabaseRegistry();
         this.mainObsDatabase = registry.getFederatedObsDatabase();
     }

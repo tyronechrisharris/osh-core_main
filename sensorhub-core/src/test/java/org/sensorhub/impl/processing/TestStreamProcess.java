@@ -52,7 +52,9 @@ public class TestStreamProcess implements IEventListener
     public void setupFramework() throws Exception
     {
         // init sensorhub with in-memory config
-        registry = new SensorHub().getModuleRegistry();
+        var hub = new SensorHub();
+        hub.start();
+        registry = hub.getModuleRegistry();
     }
     
     

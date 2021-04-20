@@ -71,6 +71,7 @@ public class TestProcedureRegistry
     public void init()
     {
         hub = new SensorHub();
+        hub.start();
         registry = hub.getProcedureRegistry();
         stateDb = hub.getProcedureRegistry().getProcedureStateDatabase();
     }

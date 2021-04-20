@@ -28,9 +28,12 @@ public class TestAsyncModule
     
     
     private AsyncModule loadModule(final AsyncModuleConfig conf) throws SensorHubException
-    {
+    {        
+        var hub = new SensorHub();
+        hub.start();
+     
         AsyncModuleConfig config = new AsyncModuleConfig();
-        AsyncModule module = (AsyncModule)new SensorHub().getModuleRegistry().loadModule(config);
+        AsyncModule module = (AsyncModule)hub.getModuleRegistry().loadModule(config);
         module.setConfiguration(conf);
         
         module.registerListener(e -> {
