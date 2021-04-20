@@ -114,7 +114,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         var existingKey = uidMap.get(uid);
         FeatureKey newKey = generateKey(existingKey, feature);
         if (existingKey != null && existingKey.getValidStartTime().equals(newKey.getValidStartTime()))
-            throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);     
+            throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);     
                 
         put(newKey, feature);
         

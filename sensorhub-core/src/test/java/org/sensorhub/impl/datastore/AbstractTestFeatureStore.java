@@ -1235,7 +1235,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = DataStoreException.class)
     public void testErrorAddWithExistingUID() throws Exception
     {
         useAdd = true;
