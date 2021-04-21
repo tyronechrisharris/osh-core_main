@@ -283,7 +283,7 @@ public class TestModuleRegistry
     @Test
     public void testStartModuleAsyncWithDependency() throws Exception
     {
-        long timeOut = 2000;
+        long timeOut = 1000;
         
         final AsyncModuleConfig conf1 = new AsyncModuleConfig();
         conf1.moduleClass = AsyncModule.class.getCanonicalName();

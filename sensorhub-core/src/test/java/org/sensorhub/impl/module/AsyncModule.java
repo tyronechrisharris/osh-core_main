@@ -58,11 +58,9 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                                 module.waitForState(config.moduleStateNeededForInit, 0);                    
                         }
                         
-                        System.out.println(state);
                         try { Thread.sleep(config.initDelay); }
                         catch(InterruptedException e) {}
                         doInit();
-                        System.out.println(state);
                         
                         return null;
                     }
@@ -235,7 +233,8 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                     {
                         try
                         {
-                            init(this.config);
+                            setConfiguration(this.config);
+                            doInit();
                         }
                         catch (SensorHubException e1)
                         {
@@ -247,7 +246,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                     {
                         try
                         {
-                            start();
+                            doStart();
                         }
                         catch (SensorHubException e1)
                         {
