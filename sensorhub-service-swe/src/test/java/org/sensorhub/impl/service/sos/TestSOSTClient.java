@@ -308,6 +308,16 @@ public class TestSOSTClient
     @After
     public void cleanup()
     {
+        try
+        {
+            if (moduleRegistry != null)
+                moduleRegistry.shutdown(false, false);
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        
         sosTest.cleanup();
     }
 }

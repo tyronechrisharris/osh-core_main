@@ -77,6 +77,8 @@ public class DataStreamTransactionHandler implements IEventListener
         this.timeStampIndexer = SWEHelper.getTimeStampIndexer(dsInfo.getRecordStructure());
         this.rootHandler = rootHandler;
         this.foiIdMap = Asserts.checkNotNull(foiIdMap, "foiIdMap");
+        
+        getDataEventPublisher();
     }
     
     
