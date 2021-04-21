@@ -83,7 +83,9 @@ public class TestSweApiTransactions
         dbFile.deleteOnExit();
         
         // get instance with in-memory DB
-        moduleRegistry = new SensorHub().getModuleRegistry();
+        var hub = new SensorHub();
+        hub.start();
+        moduleRegistry = hub.getModuleRegistry();
         
         // start HTTP server
         HttpServerConfig httpConfig = new HttpServerConfig();
