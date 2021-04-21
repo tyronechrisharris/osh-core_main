@@ -1005,8 +1005,58 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         log.info("Module registry shutdown initiated");
         log.info("Stopping all modules (saving config = {}, saving state = {})", saveConfig, saveState);
         
-        // request stop for all modules
+        // separate datastore/database modules from other modules
+        var dataStores = new ArrayList<IModule<?>>();
+        var otherModules = new ArrayList<IModule<?>>();
         for (IModule<?> module: getLoadedModules())
+        {
+            if (module instanceof IDatabase || module instanceof IDataStore)
+                dataStores.add(module);
+            else
+                otherModules.add(module);   
+        }
+        
+        // stop all non-datastore modules
+        stopModules(otherModules, saveConfig, saveState, timeOutTime);
+        
+        // then stop all datastores
+        stopModules(dataStores, saveConfig, saveState, timeOutTime);
+        
+        // shutdown executor once all tasks have been run
+        asyncExec.shutdown();
+        
+        // unregister from all modules and warn if some could not stop
+        boolean firstWarning = true;
+        for (IModule<?> module: getLoadedModules())
+        {
+            module.unregisterListener(this);
+            
+            ModuleState state = module.getCurrentState();
+            if (state != ModuleState.STOPPED && state != ModuleState.LOADED)
+            {
+                if (firstWarning)
+                {
+                    log.warn("The following modules could not be stopped");
+                    firstWarning = false;
+                }
+                
+                if (log.isWarnEnabled())
+                    log.warn(MsgUtils.moduleString(module));
+            }
+        } 
+        
+        // clear loaded modules
+        loadedModules.clear();
+        
+        // properly close config database
+        configRepo.close();
+    }
+    
+    
+    private void stopModules(Collection<IModule<?>> moduleList, boolean saveConfig, boolean saveState, long timeOutTime)
+    {
+        // call stop on all modules
+        for (IModule<?> module: moduleList)
         {
             try
             {
@@ -1036,10 +1086,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             {
                 log.error("Error during shutdown", e);
             }
-        }
-        
-        // shutdown executor once all tasks have been run
-        asyncExec.shutdown();
+        }        
         
         // wait for all modules to be stopped
         try
@@ -1048,7 +1095,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             while (!allStopped)
             {
                 allStopped = true;                
-                for (IModule<?> module: getLoadedModules())
+                for (IModule<?> module: moduleList)
                 {
                     ModuleState state = module.getCurrentState();
                     if (state != ModuleState.STOPPED && state != ModuleState.LOADED)
@@ -1069,32 +1116,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         {
             Thread.currentThread().interrupt();
         }
-        
-        // unregister from all modules and warn if some could not stop
-        boolean firstWarning = true;
-        for (IModule<?> module: getLoadedModules())
-        {
-            module.unregisterListener(this);
-            
-            ModuleState state = module.getCurrentState();
-            if (state != ModuleState.STOPPED && state != ModuleState.LOADED)
-            {
-                if (firstWarning)
-                {
-                    log.warn("The following modules could not be stopped");
-                    firstWarning = false;
-                }
-                
-                if (log.isWarnEnabled())
-                    log.warn(MsgUtils.moduleString(module));
-            }
-        } 
-        
-        // clear loaded modules
-        loadedModules.clear();
-        
-        // properly close config database
-        configRepo.close();
     }
     
     
