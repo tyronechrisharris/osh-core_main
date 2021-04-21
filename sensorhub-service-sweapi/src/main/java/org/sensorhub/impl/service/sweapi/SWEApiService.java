@@ -242,7 +242,7 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
             {
                 try
                 {
-                    start();
+                    doStart();
                 }
                 catch (Exception ex)
                 {
@@ -255,7 +255,7 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
             {
                 try
                 {
-                    stop();
+                    doStop();
                 }
                 catch (Exception ex)
                 {

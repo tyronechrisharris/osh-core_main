@@ -183,7 +183,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
     
 
     @Override
-    protected void doStop()
+    protected void doStop() throws SensorHubException
     {
         if (vaadinServlet != null)
         {
@@ -276,7 +276,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             {
                 try
                 {
-                    start();
+                    doStart();
                 }
                 catch (SensorHubException ex)
                 {
@@ -289,7 +289,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
             {
                 try
                 {
-                    stop();
+                    doStop();
                 }
                 catch (SensorHubException ex)
                 {
