@@ -272,7 +272,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     
     
     @Override
-    public void doStop()
+    protected void doStop()
     {
         // cancel reconnection loop
         if (connection != null)

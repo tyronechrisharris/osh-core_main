@@ -56,6 +56,7 @@ import org.sensorhub.impl.sensor.FakeSensorNetOnlyFois;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
+import org.sensorhub.impl.service.swe.SWEServlet;
 import org.sensorhub.test.AsyncTests;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.QuantityImpl;
@@ -85,7 +86,7 @@ import com.google.common.collect.Sets;
 public class TestSOSService
 {
     static final long TIMEOUT = 5000L;
-    static final long CAPS_REFRESH_PERIOD = 1000L; // time to wait until capabilities are refreshed
+    static final long CAPS_REFRESH_PERIOD = SWEServlet.GET_CAPS_MIN_REFRESH_PERIOD; // time to wait until capabilities are refreshed
     static final String ID_SENSOR_MODULE1 = "dfc5249b-2e7d-4fcb-8dc2-33186668fbs1";
     static final String ID_SENSOR_MODULE2 = "26f00c5d-c18f-46dc-ac71-c0c10efc08s2";
     static final String UID_SENSOR1 = "urn:sensors:mysensor:001";
@@ -419,6 +420,11 @@ public class TestSOSService
     public void testSetupService() throws Exception
     {
         deployService(buildSensorProvider1());
+        
+        var sosList = moduleRegistry.getLoadedModules(SOSService.class);
+        assertEquals("No SOS service deployed", 1, sosList.size());
+        
+        assertTrue(sosList.iterator().next().isStarted());
     }
     
     
@@ -558,8 +564,8 @@ public class TestSOSService
     {
         var provider1 = buildSensorProvider1(false, false);
         var provider2 = buildSensorProvider2(true, false);
-        provider1.liveDataTimeout = 5.0;
-        provider2.liveDataTimeout = 3.0;
+        provider1.liveDataTimeout = 2.0;
+        provider2.liveDataTimeout = 1.0;
         final SOSService sos = deployService(provider2, provider1);
         
         // wait for timeout
@@ -601,7 +607,7 @@ public class TestSOSService
         // wait until timeout
         AsyncTests.waitForCondition(() -> !sensor2.hasMoreData(), TIMEOUT);
         var end = Instant.now();
-        Thread.sleep((long)(provider2.liveDataTimeout*1000));
+        Thread.sleep((long)(provider1.liveDataTimeout*1000));
         Thread.sleep(CAPS_REFRESH_PERIOD);
         is = new URL(HTTP_ENDPOINT + GETCAPS_REQUEST).openStream();
         dom = checkOfferings(is, UID_SENSOR1, UID_SENSOR2);
@@ -1060,7 +1066,7 @@ public class TestSOSService
     @Test
     public void testGetObsTwoOfferingsWithPost() throws Exception
     {
-        deployService(buildSensorProvider1(), buildSensorProvider2());
+        deployService(buildSensorProvider1WithStorage(), buildSensorProvider2());
         
         // wait until data has been produced and archived
         FakeSensor sensor1 = getSensorModule(ID_SENSOR_MODULE1);
@@ -1406,8 +1412,7 @@ public class TestSOSService
     {
         try
         {
-            if (moduleRegistry != null)
-                moduleRegistry.shutdown(false, false);
+            HttpServer.getInstance().stop();
             HttpServer.getInstance().cleanup();
         }
         catch (Exception e)

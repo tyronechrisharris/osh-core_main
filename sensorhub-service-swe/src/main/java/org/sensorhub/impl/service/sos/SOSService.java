@@ -39,7 +39,7 @@ public class SOSService extends SWEService<SOSServiceConfig>
 
 
     @Override
-    public void doInit() throws SensorHubException
+    protected void doInit() throws SensorHubException
     {        
         super.doInit();
         

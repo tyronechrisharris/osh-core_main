@@ -496,8 +496,7 @@ public class TestSPSService
     {
         try
         {
-            if (moduleRegistry != null)
-                moduleRegistry.shutdown(false, false);            
+            HttpServer.getInstance().stop();
             HttpServer.getInstance().cleanup();
         }
         catch (Exception e)

@@ -62,8 +62,7 @@ public class TestProcedureSerializers
         // load and start SOSService
         var sosCfg = new SOSServiceConfig();
         var sos = (SOSService)moduleRegistry.loadModule(sosCfg, TIMEOUT);
-        sos.init();
-        sos.start();
+        moduleRegistry.startModule(sosCfg.id);
         servlet = sos.getServlet();
         
         TestAsyncContext.WRITE_BUFFER_CONSUME_DELAY_MS = 100;
@@ -189,6 +188,7 @@ public class TestProcedureSerializers
     {
         try
         {
+            HttpServer.getInstance().stop();
             HttpServer.getInstance().cleanup();
         }
         catch (SensorHubException e)

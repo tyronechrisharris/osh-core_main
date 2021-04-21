@@ -19,6 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
 
 
 /**
@@ -190,6 +191,7 @@ public abstract class RobustConnection
                 try
                 {
                     module.stop();
+                    module.waitForState(ModuleState.STOPPED, 5000L);
                     module.start();
                 }
                 catch (SensorHubException e)

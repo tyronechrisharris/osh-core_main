@@ -17,11 +17,13 @@ package org.sensorhub.impl.service.sos;
 import static org.junit.Assert.*;
 import java.net.URL;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
@@ -34,6 +36,7 @@ import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.service.HttpServer;
+import org.sensorhub.test.AsyncTests;
 import org.vast.ows.GetCapabilitiesRequest;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.SOSOfferingCapabilities;
@@ -113,7 +116,7 @@ public class TestSOSTClient
         config.connection.maxConnectErrors = 2;
         
         final SOSTClient client = (SOSTClient)moduleRegistry.loadModule(config);
-        client.init();
+        client.init();        
         client.start();
         
         if (!async)
@@ -276,17 +279,27 @@ public class TestSOSTClient
         sensor.startSendingData();
         Thread.sleep(500);
         
+        AtomicInteger clientStopCount = new AtomicInteger();
+        AtomicInteger clientRestartCount = new AtomicInteger();
+        client.registerListener(event -> {
+            if (event instanceof ModuleEvent) {
+                if (((ModuleEvent) event).getNewState() == ModuleState.STOPPED)
+                    clientStopCount.incrementAndGet();
+                else if (((ModuleEvent) event).getNewState() == ModuleState.STARTING)
+                    clientRestartCount.incrementAndGet();
+            }
+        });
+        
         // stop server
         HttpServer.getInstance().stop();
         
-        if (!client.waitForState(ModuleState.STOPPING, TIMEOUT))
-            fail("SOS-T client was not stopped");
+        AsyncTests.waitForCondition(() -> clientRestartCount.get() >= 1, TIMEOUT);
         
-        if (!client.waitForState(ModuleState.STARTING, TIMEOUT))
-            fail("SOS-T client was not restarted");
+        assertEquals("SOS-T client should have stopped once", 1, clientStopCount.get());
+        assertEquals("SOS-T client should restarted once", 1, clientRestartCount.get());
         
-        if (!client.waitForState(ModuleState.STOPPED, TIMEOUT))
-            fail("SOS-T client was not stopped after 3 tries");
+        //if (!client.waitForState(ModuleState.STOPPED, TIMEOUT))
+        //    fail("SOS-T client was not stopped after 3 tries");
         
         assertTrue("Client should have an error", client.getCurrentError() != null);
     }

@@ -26,6 +26,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
@@ -67,6 +68,7 @@ public class TestObsSerializers
         var sos = (SOSService)moduleRegistry.loadModule(sosCfg, TIMEOUT);
         sos.init();
         sos.start();
+        sos.waitForState(ModuleState.STARTED, TIMEOUT);
         servlet = sos.getServlet();
         
         TestAsyncContext.WRITE_BUFFER_CONSUME_DELAY_MS = 100;
@@ -179,6 +181,7 @@ public class TestObsSerializers
     {
         try
         {
+            HttpServer.getInstance().stop();
             HttpServer.getInstance().cleanup();
         }
         catch (SensorHubException e)

@@ -73,8 +73,8 @@ import com.google.common.base.Strings;
 public abstract class SWEServlet extends OWSServlet
 {
     public static final String INVALID_RESPONSE_FORMAT = "Unsupported response format: ";
+    public static final long GET_CAPS_MIN_REFRESH_PERIOD = 200; // ms
     protected static final String INVALID_WS_REQ_MSG = "Invalid Websocket request: ";
-    protected static final long GET_CAPS_MIN_REFRESH_PERIOD = 1000; // 1s
     protected static final String DEFAULT_VERSION = "2.0.0";
     protected static final QName EXT_WS = new QName("websocket");
     static final String SOS_PREFIX = "sos";
