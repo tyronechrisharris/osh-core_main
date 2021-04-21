@@ -61,7 +61,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
     
     
     @Override
-    public void requestStart() throws SensorHubException
+    public void start() throws SensorHubException
     {
         if (canStart())
         {

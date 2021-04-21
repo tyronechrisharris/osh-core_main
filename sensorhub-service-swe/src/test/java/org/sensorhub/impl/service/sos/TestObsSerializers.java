@@ -53,7 +53,9 @@ public class TestObsSerializers
     public static void init() throws Exception
     {
         // get instance with in-memory DB
-        var moduleRegistry = new SensorHub().getModuleRegistry();
+        var hub = new SensorHub();
+        hub.start();
+        var moduleRegistry = hub.getModuleRegistry();
         
         // start HTTP server
         var httpConfig = new HttpServerConfig();

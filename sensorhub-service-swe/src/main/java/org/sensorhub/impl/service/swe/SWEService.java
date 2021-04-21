@@ -54,7 +54,7 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
  
     
     @Override
-    public void requestStart() throws SensorHubException
+    public void start() throws SensorHubException
     {
         if (canStart())
         {
@@ -125,7 +125,7 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
             new NamedThreadFactory("SOSPool"));
         threadPool.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
         threadPool.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
-        this.threadPool = threadPool;        
+        this.threadPool = threadPool;
     }
 
 
@@ -201,7 +201,7 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
             {
                 try
                 {
-                    start();
+                    doStart();
                 }
                 catch (Exception ex)
                 {
@@ -214,7 +214,7 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
             {
                 try
                 {
-                    stop();
+                    doStop();
                 }
                 catch (SensorHubException ex)
                 {

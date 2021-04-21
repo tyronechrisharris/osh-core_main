@@ -48,7 +48,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected ModuleState state = ModuleState.LOADED;
     protected ModuleSecurity securityHandler;
     protected final Object stateLock = new Object();
-    protected boolean startRequested;
     protected boolean initAsync, startAsync, stopAsync;
     protected Throwable lastError;
     protected String statusMsg;
@@ -132,7 +131,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         boolean wasStarted = isStarted();
         
         if (wasStarted)
-            requestStop();
+            stop();
         
         try
         {
@@ -145,11 +144,11 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         }
         
         // force re-init
-        requestInit(true);
+        init();
         
         // also restart if it was started
         if (wasStarted)
-            requestStart();
+            start();
     }
     
     
@@ -200,24 +199,13 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                     ModuleEvent event = new ModuleEvent(this, newState);
                     eventHandler.publish(event);
                 }
-                
-                // process delayed start request
-                try
-                {
-                    if (startRequested && (newState == ModuleState.INITIALIZED || newState == ModuleState.STOPPED))
-                        requestStart();
-                }
-                catch (SensorHubException e)
-                {
-                    getLogger().error("Error during delayed start", e);
-                }
             }
         }
     }
     
     
     @Override
-    public boolean waitForState(ModuleState state, long timeout)
+    public boolean waitForState(ModuleState state, long timeout) throws SensorHubException
     {
         synchronized (stateLock)
         {
@@ -233,9 +221,14 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                     
                 while (this.state.ordinal() < state.ordinal() || (waitForRestart && this.state != state) )
                 {
-                    //Throwable error = getCurrentError();
-                    //if (error != null)
-                    //    return false;
+                    Throwable error = getCurrentError();
+                    if (error != null)
+                    {
+                        if (error instanceof SensorHubException)
+                            throw (SensorHubException)error;
+                        else
+                            throw new SensorHubException("Internal module error", error);
+                    }
                     
                     if (timeout > 0)
                     {
@@ -378,7 +371,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     }
     
     
-    protected boolean canInit(boolean force) throws SensorHubException
+    protected boolean canInit() throws SensorHubException
     {
         synchronized (stateLock)
         {
@@ -386,35 +379,11 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             if (this.config == null)
                 throw new SensorHubException("Module configuration must be set");
             
-            // do nothing if we are already intializing or initialized
-            if (!force && state.ordinal() >= ModuleState.INITIALIZING.ordinal())
-                return false;
-            
             // otherwise actually init the module
             clearError();
             clearStatus();
-            setState(ModuleState.INITIALIZING);            
+            setState(ModuleState.INITIALIZING);
             return true;
-        }
-    }
-    
-    
-    @Override
-    public void requestInit(boolean force) throws SensorHubException
-    {
-        if (canInit(force))
-        {
-            try
-            {
-                init();
-                if (!initAsync)
-                    setState(ModuleState.INITIALIZED);
-            }
-            catch (Exception e)
-            {
-                reportError(CANNOT_INIT_MSG, e);
-                setState(ModuleState.LOADED);
-            }
         }
     }
     
@@ -422,9 +391,23 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     @Override
     public void init() throws SensorHubException
     {
-        beforeInit();
-        doInit();
-        afterInit();
+        if (canInit())
+        {
+            try
+            {
+                beforeInit();
+                doInit();
+                afterInit();
+                
+                if (!initAsync)
+                    setState(ModuleState.INITIALIZED);                
+            }
+            catch (Exception e)
+            {
+                reportError(CANNOT_INIT_MSG, e);
+                setState(ModuleState.LOADED);
+            }
+        }
     }
     
     
@@ -476,10 +459,6 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     {
         synchronized (stateLock)
         {
-            // error if we were never initialized
-            if (state == ModuleState.LOADED)
-                throw new SensorHubException("Module must first be initialized");
-            
             // do nothing if we're already started or starting
             if (state == ModuleState.STARTED || state == ModuleState.STARTING)
             {
@@ -487,12 +466,9 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 return false;
             }
             
-            // set to start later if we're still initializing or stopping
-            if (state == ModuleState.INITIALIZING || state == ModuleState.STOPPING)
-            {
-                startRequested = true;
-                return false;
-            }
+            // error if we were never initialized
+            if (state.ordinal() < ModuleState.INITIALIZED.ordinal())
+                throw new SensorHubException("Module must first be initialized");
             
             // actually start if we're either initialized or stopped
             clearError();
@@ -503,31 +479,25 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     
     
     @Override
-    public void requestStart() throws SensorHubException
+    public void start() throws SensorHubException
     {
         if (canStart())
         {
             try
             {
-                start();
+                beforeStart();
+                doStart();
+                afterStart();
+                
                 if (!startAsync)
                     setState(ModuleState.STARTED);
             }
             catch (Exception e)
             {
                 reportError(CANNOT_START_MSG, e);
-                requestStop();
+                stop();
             }
         }
-    }
-    
-    
-    @Override
-    public void start() throws SensorHubException
-    {
-        beforeStart();
-        doStart();
-        afterStart();
     }
 
 
@@ -567,7 +537,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     }
     
     
-    protected boolean canStop()
+    protected boolean canStop() throws SensorHubException
     {
         synchronized (stateLock)
         {
@@ -578,14 +548,13 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             // otherwise we allow stop at any time
             // modules have to handle that properly
             setState(ModuleState.STOPPING);
-            startRequested = false;
             return true;
         }
     }
     
     
     @Override
-    public void requestStop() throws SensorHubException
+    public void stop() throws SensorHubException
     {
         ModuleState oldState = this.state;
         
@@ -593,7 +562,9 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
         {
             try
             {
-                stop();
+                beforeStop();
+                doStop();
+                afterStop();
                 clearStatus();
                 
                 // make sure we reset to LOADED if we didn't initialize correctly
@@ -606,16 +577,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             {
                 reportError(CANNOT_STOP_MSG, e);
             }
-        }
-    }
-    
-    
-    @Override
-    public void stop() throws SensorHubException
-    {
-        beforeStop();
-        doStop();
-        afterStop();
+        }        
     }
 
 

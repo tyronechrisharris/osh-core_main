@@ -31,9 +31,9 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
     
     
     @Override
-    public void requestInit(boolean force) throws SensorHubException
+    public void init() throws SensorHubException
     {
-        if (canInit(force))
+        if (canInit())
         {
             Callable<Void> task = new Callable<Void>()
             {
@@ -58,9 +58,11 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                                 module.waitForState(config.moduleStateNeededForInit, 0);                    
                         }
                         
+                        System.out.println(state);
                         try { Thread.sleep(config.initDelay); }
                         catch(InterruptedException e) {}
                         doInit();
+                        System.out.println(state);
                         
                         return null;
                     }
@@ -99,7 +101,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
     
     
     @Override
-    public void requestStart() throws SensorHubException
+    public void start() throws SensorHubException
     {
         if (canStart())
         {
@@ -128,7 +130,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                         
                         try { Thread.sleep(config.startDelay); }
                         catch(InterruptedException e) {}
-                        start();
+                        doStart();
                         
                         return null;
                     }
@@ -167,7 +169,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
     
     
     @Override
-    public void requestStop() throws SensorHubException
+    public void stop() throws SensorHubException
     {
         if (canStop())
         {
@@ -180,7 +182,7 @@ public class AsyncModule extends AbstractModule<AsyncModuleConfig>
                     {
                         try { Thread.sleep(config.stopDelay); }
                         catch(InterruptedException e) {}
-                        stop();
+                        doStop();
                         
                         return null;
                     }

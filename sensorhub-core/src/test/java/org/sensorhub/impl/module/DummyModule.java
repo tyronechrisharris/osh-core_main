@@ -46,16 +46,10 @@ public class DummyModule implements IModule<ModuleConfig>
     {
         return (state == ModuleState.STARTED);
     }
-
-
-    @Override
-    public void init()
-    {
-    }
     
     
     @Override
-    public void init(ModuleConfig config)
+    public void init(ModuleConfig config) throws SensorHubException
     {
         this.config = config;
         init();
@@ -101,18 +95,6 @@ public class DummyModule implements IModule<ModuleConfig>
     public String getLocalID()
     {
         return config.id;
-    }
-
-
-    @Override
-    public void start()
-    {
-    }
-
-
-    @Override
-    public void stop()
-    {
     }
 
 
@@ -170,25 +152,22 @@ public class DummyModule implements IModule<ModuleConfig>
 
 
     @Override
-    public void requestInit(boolean force) throws SensorHubException
+    public void init() throws SensorHubException
     {
-        init();
         setState(ModuleState.INITIALIZED);
     }
 
 
     @Override
-    public void requestStart() throws SensorHubException
+    public void start() throws SensorHubException
     {
-        start();
         setState(ModuleState.STARTED);
     }
 
 
     @Override
-    public void requestStop() throws SensorHubException
+    public void stop() throws SensorHubException
     {
-        stop();
         setState(ModuleState.STOPPED);
     }
     

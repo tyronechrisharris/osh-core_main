@@ -211,7 +211,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         try
         {
             if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
-                getParentHub().getProcedureRegistry().register(this).get(); // for now, block here until requestInit is also async
+                getParentHub().getProcedureRegistry().register(this).get(); // for now, block here until init is also async
         }
         catch (ExecutionException | InterruptedException e)
         {

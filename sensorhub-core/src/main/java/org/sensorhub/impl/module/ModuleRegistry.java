@@ -75,7 +75,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     private static final String REGISTRY_SHUTDOWN_MSG = "Registry was shut down";
     private static final String TIMEOUT_MSG = " in the requested time frame";
     public static final String EVENT_GROUP_ID = "urn:osh:modules";
+    public static final long DEFAULT_TIMEOUT_MS = 5000L;
     public static final long SHUTDOWN_TIMEOUT_MS = 10000L;
+    
 
     ISensorHub hub;
     IModuleConfigRepository configRepo;
@@ -149,8 +151,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         
         // First load/start all datastore modules marked as "autostart" to ensure they
         // are registered with database registry and ready to record data before any
-        // other module start producing data. This is necessary to avoid missing data
-        // if it is published to the bus before datastores are ready.
+        // other module start producing data.
         log.info("Loading datastore connectors");
         for (ModuleConfig config: dataStoreConfs)
         {
@@ -427,7 +428,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      */
     public IModule<?> initModule(String moduleID) throws SensorHubException
     {
-        return initModule(moduleID, false, Long.MAX_VALUE);
+        return initModule(moduleID, Long.MAX_VALUE);
     }
     
     
@@ -436,14 +437,13 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * This method is synchronous so it will block until the module is actually initialized,
      * the timeout occurs or an exception is thrown
      * @param moduleID Local ID of module to initialize
-     * @param force set to true to force a reinit, even if module was already initialized
      * @param timeOut Maximum time to wait for init to complete (or <= 0 to wait forever)
      * @return module Loaded module with the given moduleID
      * @throws SensorHubException if an error occurs during init
      */
-    public IModule<?> initModule(String moduleID, boolean force, long timeOut) throws SensorHubException
+    public IModule<?> initModule(String moduleID, long timeOut) throws SensorHubException
     {
-        IModule<?> module = initModuleAsync(moduleID, force, null);
+        IModule<?> module = initModuleAsync(moduleID, null);
         if (!module.waitForState(ModuleState.INITIALIZED, timeOut))
             throw new SensorHubException(IModule.CANNOT_INIT_MSG + MsgUtils.moduleString(module) + TIMEOUT_MSG);
         return module;
@@ -455,19 +455,18 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * This method is asynchronous so it returns immediately and the listener will be notified
      * when the module is actually initialized
      * @param moduleID Local ID of module to initialize
-     * @param force set to true to force a reinit, even if module was already initialized
      * @param listener Listener to register for receiving the module's events
      * @return the module instance (may not yet be initialized when this method returns)
      * @throws SensorHubException if no module with given ID can be found
      */
-    public IModule<?> initModuleAsync(String moduleID, boolean force, IEventListener listener) throws SensorHubException
+    public IModule<?> initModuleAsync(String moduleID, IEventListener listener) throws SensorHubException
     {
         @SuppressWarnings("rawtypes")
         final IModule module = getModuleById(moduleID);
         if (listener != null)
             module.registerListener(listener);
         
-        initModuleAsync(module, force);
+        initModuleAsync(module);
         return module;
     }
     
@@ -476,10 +475,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     /**
      * Initializes the module asynchronously in a separate thread
      * @param module module instance to initialize
-     * @param force set to true to force a reinit, even if module was already initialized
      * @throws SensorHubException
      */
-    public void initModuleAsync(final IModule<?> module, final boolean force) throws SensorHubException
+    public void initModuleAsync(final IModule<?> module) throws SensorHubException
     {   
         try
         {
@@ -488,8 +486,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 try
                 {
                     // if forced, try to stop first
-                    if (force && module.isInitialized())
-                        module.requestStop();
+                    if (module.isInitialized())
+                        module.stop();
                 }
                 catch (Exception e)
                 {
@@ -498,7 +496,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 
                 try
                 {
-                    module.requestInit(force);
+                    module.init();
                 }
                 catch (Exception e)
                 {
@@ -585,7 +583,10 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 try
                 {
                     if (!module.isInitialized())
-                        module.requestInit(false);
+                    {
+                        module.init();
+                        module.waitForState(ModuleState.INITIALIZED, DEFAULT_TIMEOUT_MS);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -594,7 +595,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 
                 try
                 {
-                    module.requestStart();
+                    module.start();
                 }
                 catch (Exception e)
                 {
@@ -676,7 +677,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             asyncExec.submit(() -> {
                 try
                 {
-                    module.requestStop();
+                    module.stop();
                 }
                 catch (Exception e)
                 {
@@ -723,8 +724,9 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             asyncExec.submit(() -> {
                 try
                 {
-                    module.requestStop();
-                    module.requestStart();                        
+                    module.stop();
+                    module.waitForState(ModuleState.STOPPED, DEFAULT_TIMEOUT_MS);
+                    module.start();                        
                 }
                 catch (Exception e)
                 {

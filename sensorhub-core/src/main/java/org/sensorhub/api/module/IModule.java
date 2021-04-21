@@ -117,8 +117,9 @@ public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
      * @param state state to wait for
      * @param timeout maximum time to wait in milliseconds or <= 0 to wait forever
      * @return true if module state has been reached, false in case of timeout or error
+     * @throws SensorHubException if an error occurs before the desired state is reached
      */
-    public boolean waitForState(ModuleState state, long timeout);
+    public boolean waitForState(ModuleState state, long timeout) throws SensorHubException;
     
     
     /**
@@ -134,37 +135,24 @@ public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
     
     
     /**
-     * Requests to initialize the module with the current configuration.<br/>
-     * Implementations of this method should return immediately while the module waits
-     * for the proper init conditions.<br/>
-     * When this method returns without error the module state is guaranteed to be
-     * {@link ModuleState#INITIALIZING} or {@link ModuleState#INITIALIZED} 
-     * @param force set to true to force a reinit, even if module was already initialized
-     * @throws SensorHubException if module could not enter initialization phase
-     */
-    public void requestInit(boolean force) throws SensorHubException;
-    
-    
-    /**
-     * Initializes the module synchronously with the current configuration.<br/>
-     * Configuration must be set prior to calling this method.<br/>
-     * Implementations of this method must block until the module is
-     * successfully initialized or send an exception.<br/>
-     * Module lifecycle events may not be generated when calling this method directly.<br/>
-     * @throws SensorHubException 
+     * Requests the module to initialize with the current configuration.<br/>
+     * Implementations of this method can be synchronous or asynchronous, but when 
+     * this method returns without error, the module state is guaranteed to be
+     * either {@link ModuleState#INITIALIZING} or {@link ModuleState#INITIALIZED}.<br/>
+     * A configuration must be set before calling this method.<br/>
+     * @throws SensorHubException if an error occurs during synchronous execution. 
+     * If an error occurs asynchronously, it can be retrieved with {@link #getCurrentError()}
      */
     public void init() throws SensorHubException;
     
     
     /**
-     * Initializes the module synchronously with the specified configuration.<br/>
-     * Implementations of this method must block until the module is
-     * successfully initialized or send an exception.<br/>
+     * Initializes the module with the specified configuration.<br/>
      * This is equivalent to calling {@link #setConfiguration(ModuleConfig)}
      * and then {@link #init()} with no arguments.<br/>
-     * Module lifecycle events may not be generated when calling this method directly.<br/>
      * @param config
-     * @throws SensorHubException 
+     * @throws SensorHubException if an error occurs during synchronous execution. 
+     * If an error occurs asynchronously, it can be retrieved with {@link #getCurrentError()}
      */
     public void init(ConfigType config) throws SensorHubException;
     
@@ -182,47 +170,23 @@ public interface IModule<ConfigType extends ModuleConfig> extends IEventProducer
     
     /**
      * Requests the module to start.<br/>
-     * Implementations of this method should return immediately while the module waits
-     * for the proper start conditions.<br/>
-     * When this method returns without error the module state is guaranteed to be
-     * {@link ModuleState#STARTING} or {@link ModuleState#STARTED}
-     * @throws SensorHubException if startup could not be initiated
-     */
-    public void requestStart() throws SensorHubException;
-    
-    
-    /**
-     * Starts the module synchronously with the current configuration.<br/>
-     * Implementations of this method must block until the module is
-     * successfully started or send an exception.<br/>
-     * Module lifecycle events may not be generated when calling this method directly.<br/>
-     * init() should always be called before start().
-     * @throws SensorHubException
+     * Implementations of this method can be synchronous or asynchronous, but when 
+     * this method returns without error, the module state is guaranteed to be
+     * either {@link ModuleState#STARTING} or {@link ModuleState#STARTED}.<br/>
+     * Module should be in {@link ModuleState#INITIALIZED} state before calling this method.
+     * @throws SensorHubException if an error occurs during synchronous execution. 
+     * If an error occurs asynchronously, it can be retrieved with {@link #getCurrentError()}
      */
     public void start() throws SensorHubException;
     
     
     /**
      * Requests the module to stop.<br/>
-     * Implementations of this method should return immediately while the module waits
-     * for the proper stop conditions.<br/>
-     * When this method returns without error the module state is guaranteed to be
-     * {@link ModuleState#STOPPING} or {@link ModuleState#STOPPED}
-     * @throws SensorHubException if shutdown could not be initiated
-     */
-    public void requestStop() throws SensorHubException;
-    
-    
-    
-    /**
-     * Stops the module.<br/>
-     * All temporary resources created by the module should be cleaned
-     * when this is called (ex: memory, files, connections, etc.)<br/>
-     * Implementations of this method must block until the module is
-     * successfully stopped or send an exception.<br/>
-     * Module lifecycle events may not be generated when calling this method directly.<br/>
-     * stop() can be called right after init() even if start() hasn't been called.
-     * @throws SensorHubException
+     * Implementations of this method can be synchronous or asynchronous, but when 
+     * this method returns without error, the module state is guaranteed to be
+     * either {@link ModuleState#STOPPING} or {@link ModuleState#STOPPED}.<br/>
+     * @throws SensorHubException if an error occurs during synchronous execution. 
+     * If an error occurs asynchronously, it can be retrieved with {@link #getCurrentError()}
      */
     public void stop() throws SensorHubException;
     

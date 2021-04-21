@@ -90,7 +90,9 @@ public class TestSPSService
     public void setup() throws Exception
     {
         // get instance with in-memory DB
-        moduleRegistry = new SensorHub().getModuleRegistry();
+        var hub = new SensorHub();
+        hub.start();
+        moduleRegistry = hub.getModuleRegistry();
         
         // start HTTP server
         HttpServerConfig httpConfig = new HttpServerConfig();
@@ -141,7 +143,7 @@ public class TestSPSService
         sensorCfg.name = NAME_SENSOR1;
         var sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
         
-        sensor.requestInit(true);
+        sensor.init();
         sensor.setSensorUID(SENSOR_UID_1);
         sensor.setDataInterfaces(new FakeSensorData(sensor, "output1", 1.0, 0));
         sensor.setControlInterfaces(new FakeSensorControl1(sensor));
@@ -160,7 +162,7 @@ public class TestSPSService
         sensorCfg.name = NAME_SENSOR2;
         var sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
         
-        sensor.requestInit(true);
+        sensor.init();
         sensor.setSensorUID(SENSOR_UID_2);
         sensor.setDataInterfaces(new FakeSensorData(sensor, "output1", 1.0, 0));
         sensor.setControlInterfaces(new FakeSensorControl1(sensor), new FakeSensorControl2(sensor));

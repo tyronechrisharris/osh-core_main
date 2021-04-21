@@ -60,7 +60,7 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
 
 
     @Override
-    public void requestStart() throws SensorHubException
+    public void start() throws SensorHubException
     {
         if (canStart())
         {

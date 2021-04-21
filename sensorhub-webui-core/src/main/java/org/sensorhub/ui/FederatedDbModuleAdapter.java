@@ -192,12 +192,6 @@ public class FederatedDbModuleAdapter implements IProcedureObsDatabaseModule<Dat
 
 
     @Override
-    public void requestInit(boolean force) throws SensorHubException
-    {        
-    }
-
-
-    @Override
     public void init() throws SensorHubException
     {        
     }
@@ -216,19 +210,7 @@ public class FederatedDbModuleAdapter implements IProcedureObsDatabaseModule<Dat
 
 
     @Override
-    public void requestStart() throws SensorHubException
-    {        
-    }
-
-
-    @Override
     public void start() throws SensorHubException
-    {        
-    }
-
-
-    @Override
-    public void requestStop() throws SensorHubException
     {        
     }
 

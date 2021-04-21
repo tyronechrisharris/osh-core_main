@@ -62,7 +62,9 @@ public class TestSOSTClient
         sosTest.setup();
         
         // create separate hub for client
-        moduleRegistry = new SensorHub().getModuleRegistry();
+        var hub = new SensorHub();
+        hub.start();
+        moduleRegistry = hub.getModuleRegistry();
         ClientAuth.createInstance(null);
     }
     
@@ -75,10 +77,10 @@ public class TestSOSTClient
         sensorCfg.moduleClass = FakeSensor.class.getCanonicalName();
         sensorCfg.name = "Sensor1";
         FakeSensor sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
-        sensor.requestInit(false);
+        sensor.init();
         sensor.setSensorUID(SENSOR_UID);
         sensor.setDataInterfaces(new FakeSensorData(sensor, TestSOSService.NAME_OUTPUT1, SAMPLING_PERIOD, numSamples));
-        sensor.requestStart();
+        sensor.start();
         return sensor;
     }
     
@@ -111,8 +113,8 @@ public class TestSOSTClient
         config.connection.maxConnectErrors = 2;
         
         final SOSTClient client = (SOSTClient)moduleRegistry.loadModule(config);
-        client.requestInit(false);
-        client.requestStart();
+        client.init();
+        client.start();
         
         if (!async)
             client.waitForState(ModuleState.STARTED, TIMEOUT);
@@ -256,7 +258,7 @@ public class TestSOSTClient
         sensor.startSendingData(200);        
         sosTest.checkGetResultResponse(f.get(), NUM_GEN_SAMPLES, 4);
         
-        client.requestStop();
+        client.stop();
     }
     
     

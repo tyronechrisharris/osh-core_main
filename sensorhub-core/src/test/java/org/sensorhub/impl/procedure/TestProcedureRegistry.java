@@ -83,7 +83,7 @@ public class TestProcedureRegistry
         // configure and init sensor
         FakeSensor sensor = new FakeSensor();
         sensor.setConfiguration(new SensorConfig());
-        sensor.requestInit(true);
+        sensor.init();
         sensor.setDataInterfaces(
             new FakeSensorData(sensor, NAME_OUTPUT1, 0.1, NUM_GEN_SAMPLES),
             new FakeSensorData2(sensor, NAME_OUTPUT2, 0.05, NUM_GEN_SAMPLES));
@@ -143,9 +143,9 @@ public class TestProcedureRegistry
         FakeSensor sensor = new FakeSensor();
         sensor.setParentHub(hub);
         sensor.setConfiguration(new SensorConfig());
-        sensor.requestInit(true);
+        sensor.init();
         sensor.setDataInterfaces(new FakeSensorData(sensor, NAME_OUTPUT1, 1.0, 10));
-        sensor.requestStart();
+        sensor.start();
         
         // check procedure is in DB
         assertEquals(1, stateDb.getProcedureStore().size());
@@ -160,7 +160,7 @@ public class TestProcedureRegistry
         int numMembers = 10;
         FakeSensorNetWithMembers sensorNet = new FakeSensorNetWithMembers();
         sensorNet.setConfiguration(new SensorConfig());
-        sensorNet.requestInit(true);
+        sensorNet.init();
         sensorNet.addMembers(numMembers, p -> {
             p.addOutputs(
                 new FakeSensorData(p, NAME_OUTPUT1, SAMPLING_PERIOD, NUM_GEN_SAMPLES),
@@ -261,7 +261,7 @@ public class TestProcedureRegistry
         obsFoiMap.put(19, 5);
         FakeSensorNetOnlyFois sensorNet = new FakeSensorNetOnlyFois();
         sensorNet.setConfiguration(new SensorConfig());
-        sensorNet.requestInit(true);
+        sensorNet.init();
         sensorNet.setDataInterfaces(new FakeSensorData2(sensorNet, NAME_OUTPUT1, 0.05, numObs, obsFoiMap));
         sensorNet.addFois(numFois);
                 
@@ -362,7 +362,7 @@ public class TestProcedureRegistry
         // configure and init sensor
         FakeSensor sensor = new FakeSensor();
         sensor.setConfiguration(new SensorConfig());
-        sensor.requestInit(true);
+        sensor.init();
         sensor.setDataInterfaces(
             new FakeSensorData(sensor, NAME_OUTPUT1, 0.1, NUM_GEN_SAMPLES),
             new FakeSensorData2(sensor, NAME_OUTPUT2, 0.05, NUM_GEN_SAMPLES));        
@@ -434,7 +434,7 @@ public class TestProcedureRegistry
         // configure and init sensor
         FakeSensor sensor = new FakeSensor();
         sensor.setConfiguration(new SensorConfig());
-        sensor.requestInit(true);
+        sensor.init();
         sensor.setDataInterfaces(
             new FakeSensorData(sensor, NAME_OUTPUT1, 0.1, NUM_GEN_SAMPLES),
             new FakeSensorData(sensor, NAME_OUTPUT1 + "_bis", 0.1, NUM_GEN_SAMPLES),

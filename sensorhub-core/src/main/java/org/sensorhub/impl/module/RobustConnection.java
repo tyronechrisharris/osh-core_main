@@ -189,8 +189,8 @@ public abstract class RobustConnection
             {
                 try
                 {
-                    module.requestStop();
-                    module.requestStart();
+                    module.stop();
+                    module.start();
                 }
                 catch (SensorHubException e)
                 {

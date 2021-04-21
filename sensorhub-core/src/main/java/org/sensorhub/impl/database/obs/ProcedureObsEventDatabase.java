@@ -30,6 +30,7 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.module.IModule;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
 import org.sensorhub.impl.module.AbstractModule;
 import org.vast.util.Asserts;
@@ -60,10 +61,11 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             
             @SuppressWarnings("unchecked")
             IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
-            //dbModule.setParentHub(getParentHub());
             dbModule.setConfiguration(dbConfig);
-            dbModule.requestInit(true);
-            dbModule.requestStart();
+            dbModule.init();
+            dbModule.waitForState(ModuleState.INITIALIZED, 10000);
+            dbModule.start();
+            dbModule.waitForState(ModuleState.STARTED, 10000);
             
             this.db = (IProcedureObsDatabase)dbModule;
             Asserts.checkNotNull(db.getProcedureStore(), IProcedureStore.class);

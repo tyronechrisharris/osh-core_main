@@ -264,7 +264,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             .exceptionally(err -> {
                 if (err != null)
                     reportError(null, err.getCause());
-                try { requestStop(); }
+                try { stop(); }
                 catch (SensorHubException e) {}
                 return null;
             });
@@ -272,7 +272,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     
     
     @Override
-    public void stop()
+    public void doStop()
     {
         // cancel reconnection loop
         if (connection != null)

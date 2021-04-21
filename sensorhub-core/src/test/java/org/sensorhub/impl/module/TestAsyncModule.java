@@ -73,7 +73,7 @@ public class TestAsyncModule
         long timeOut = 5000;
         
         IModule<?> module = loadModule(conf);
-        module.requestInit(false);
+        module.init();
         
         long t0 = System.currentTimeMillis();
         module.waitForState(ModuleState.INITIALIZED, timeOut);
@@ -103,13 +103,14 @@ public class TestAsyncModule
         conf.startExecTime = 100;
         long timeOut = 5000;
         
-        IModule<?> module = loadModule(conf);        
-        module.requestInit(false);
-        module.requestStart();
-        
+        IModule<?> module = loadModule(conf);
         long t0 = System.currentTimeMillis();
+        
+        module.init();        
         module.waitForState(ModuleState.INITIALIZED, timeOut);
         long t1 = System.currentTimeMillis();
+        
+        module.start();
         module.waitForState(ModuleState.STARTED, timeOut);
         long t2 = System.currentTimeMillis();
         
@@ -142,14 +143,14 @@ public class TestAsyncModule
         conf.useThreadForStop = true;
         long timeOut = 5000;
         
-        IModule<?> module = loadModule(conf);        
+        IModule<?> module = loadModule(conf);
         module.init();
-        assertEquals("Module was not initialized", ModuleState.INITIALIZED, module.getCurrentState());
+        module.waitForState(ModuleState.INITIALIZED, timeOut);
         module.start();
-        assertEquals("Module was not started", ModuleState.STARTED, module.getCurrentState());
+        module.waitForState(ModuleState.STARTED, timeOut);
         
         long t0 = System.currentTimeMillis();
-        module.requestStop();
+        module.stop();
         assertEquals("Module is not stopping", ModuleState.STOPPING, module.getCurrentState());
         module.waitForState(ModuleState.STOPPED, timeOut);
         long t1 = System.currentTimeMillis();
@@ -181,15 +182,15 @@ public class TestAsyncModule
         module.init();
         
         // start module once
-        module.requestStart();
+        module.start();
         module.waitForState(ModuleState.STARTED, timeOut);
         assertEquals("Module was not started", ModuleState.STARTED, module.getCurrentState());
         
         // now restart it
         conf.startEventReceived = false;
         long t0 = System.currentTimeMillis();
-        module.requestStop();
-        module.requestStart();
+        module.stop();
+        module.start();
         module.waitForState(ModuleState.STARTED, timeOut);
         long t1 = System.currentTimeMillis();
         
@@ -216,66 +217,10 @@ public class TestAsyncModule
         long timeOut = 100;
         
         IModule<?> module = loadModule(conf);        
-        module.requestInit(false);
+        module.init();
         boolean noTimeOut = module.waitForState(ModuleState.INITIALIZED, timeOut);
         
         assertFalse("Init should have timeout", noTimeOut);
-    }
-    
-    
-    @Test
-    public void testAsyncInitCalledTwice() throws Exception
-    {
-        final AsyncModuleConfig conf = new AsyncModuleConfig();
-        conf.moduleClass = AsyncModule.class.getCanonicalName();
-        conf.id = "MOD_ASYNC2";
-        conf.autoStart = false;
-        conf.name = "ModuleAsync2";
-        conf.initDelay = 50;
-        conf.initExecTime = 100;
-        
-        IModule<?> module = loadModule(conf);
-        module.init();
-        
-        // init again
-        long t0 = System.currentTimeMillis();
-        module.requestInit(false);
-        assertEquals("Module should remain initialized", ModuleState.INITIALIZED, module.getCurrentState());
-        long t1 = System.currentTimeMillis();
-        
-        long delay = t1 - t0;
-        assertFalse("Init executed twice", delay >= conf.initExecTime);
-    }
-    
-    
-    @Test
-    public void testAsyncInitCalledWhileInitializing() throws Exception
-    {
-        final AsyncModuleConfig conf = new AsyncModuleConfig();
-        conf.moduleClass = AsyncModule.class.getCanonicalName();
-        conf.id = "MOD_ASYNC2";
-        conf.autoStart = false;
-        conf.name = "ModuleAsync2";
-        conf.initDelay = 500;
-        conf.initExecTime = 100;
-        conf.useThreadForInit = true;
-        long timeOut = 5000;
-        
-        IModule<?> module = loadModule(conf);
-                
-        // request async init twice
-        long t0 = System.currentTimeMillis();
-        module.requestInit(false);
-        assertEquals("Module should be initializing", ModuleState.INITIALIZING, module.getCurrentState());
-        module.requestInit(false);
-        assertEquals("Module should remain initializing", ModuleState.INITIALIZING, module.getCurrentState());
-        module.waitForState(ModuleState.INITIALIZED, timeOut);
-        long t1 = System.currentTimeMillis();
-        
-        long expectedDelay = conf.initExecTime + conf.initDelay;
-        long delay = t1 - t0;
-        assertFalse("Init executed twice", delay >= 2*expectedDelay);
-        assertEquals("Module was not initialized", ModuleState.INITIALIZED, module.getCurrentState());
     }
     
     
@@ -295,14 +240,14 @@ public class TestAsyncModule
         module.init();
         
         // start module once
-        module.requestStart();
+        module.start();
         module.waitForState(ModuleState.STARTED, timeOut);
         assertEquals("Module was not started", ModuleState.STARTED, module.getCurrentState());
         //assertTrue("No STARTED event received", conf.startEventReceived);
         
         // start again
         long t0 = System.currentTimeMillis();
-        module.requestStart();
+        module.start();
         assertEquals("Module should remain started", ModuleState.STARTED, module.getCurrentState());
         long t1 = System.currentTimeMillis();
         
@@ -311,8 +256,8 @@ public class TestAsyncModule
     }
     
     
-    @Test
-    public void testAsyncStartCalledWhileInitializing() throws Exception
+    @Test(expected=SensorHubException.class)
+    public void testErrorStartCalledWhileInitializing() throws Exception
     {
         final AsyncModuleConfig conf = new AsyncModuleConfig();
         conf.moduleClass = AsyncModule.class.getCanonicalName();
@@ -325,32 +270,11 @@ public class TestAsyncModule
         conf.startDelay = 150;
         conf.startExecTime = 70;
         conf.useThreadForStart = true;
-        long timeOut = 2000;
         
         IModule<?> module = loadModule(conf);
         
-        // request async start during init twice
-        long t0 = System.currentTimeMillis();
-        module.requestInit(false);
-        assertEquals("Module should be initializing", ModuleState.INITIALIZING, module.getCurrentState());
-        module.requestStart();
-        assertEquals("Module should remain initializing", ModuleState.INITIALIZING, module.getCurrentState());
-        module.waitForState(ModuleState.INITIALIZED, timeOut);
-        long t1 = System.currentTimeMillis();
-        module.waitForState(ModuleState.STARTED, timeOut);
-        long t2 = System.currentTimeMillis();
-        assertEquals("Module was not started", ModuleState.STARTED, module.getCurrentState());
-        
-        long expectedDelay = conf.initExecTime + conf.initDelay;
-        long delay = t1 - t0;
-        //assertTrue("No INITIALIZED event received", conf.initEventReceived);
-        assertFalse("Init executed twice", delay >= 2*expectedDelay);
-        assertTrue("Init timeout reached", delay < timeOut);
-                
-        expectedDelay = conf.startExecTime + conf.startDelay;
-        delay = t2 - t1;
-        //assertTrue("No STARTED event received", conf.startEventReceived);
-        assertTrue("Start never executed", delay >= expectedDelay);
-        assertTrue("Start timeout reached", delay < timeOut);
+        // request async start during init
+        module.init();
+        module.start();
     }
 }

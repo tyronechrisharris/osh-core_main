@@ -934,7 +934,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                                     try 
                                     {
                                         if (selectedModule != null)
-                                            moduleRegistry.initModuleAsync(selectedModule, true);
+                                            moduleRegistry.initModuleAsync(selectedModule);
                                     }
                                     catch (SensorHubException ex)
                                     {

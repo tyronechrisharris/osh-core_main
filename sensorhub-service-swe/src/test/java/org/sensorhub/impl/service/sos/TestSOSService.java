@@ -128,7 +128,9 @@ public class TestSOSService
         dbFile2.deleteOnExit();
         
         // get instance with in-memory DB
-        moduleRegistry = new SensorHub().getModuleRegistry();
+        var hub = new SensorHub();
+        hub.start();
+        moduleRegistry = hub.getModuleRegistry();
         
         // start HTTP server
         HttpServerConfig httpConfig = new HttpServerConfig();
@@ -207,7 +209,7 @@ public class TestSOSService
         sensorCfg.moduleClass = FakeSensor.class.getCanonicalName();
         sensorCfg.name = "Sensor1";
         FakeSensor sensor = (FakeSensor)moduleRegistry.loadModule(sensorCfg);
-        sensor.requestInit(true);
+        sensor.init();
         sensor.setSensorUID(UID_SENSOR1);
         sensor.setDataInterfaces(new FakeSensorData(sensor, NAME_OUTPUT1, SAMPLING_PERIOD, NUM_GEN_SAMPLES));
         if (start)
@@ -243,7 +245,7 @@ public class TestSOSService
         sensorCfg.moduleClass = FakeSensorNetOnlyFois.class.getCanonicalName();
         sensorCfg.name = "Sensor2";
         var sensorNet = (FakeSensorNetOnlyFois)moduleRegistry.loadModule(sensorCfg);
-        sensorNet.requestInit(true);
+        sensorNet.init();
         sensorNet.setSensorUID(UID_SENSOR2);
         sensorNet.addFois(obsFoiMap.size());
         sensorNet.setDataInterfaces(new FakeSensorData2(sensorNet, NAME_OUTPUT2, SAMPLING_PERIOD, NUM_GEN_SAMPLES, obsFoiMap));
