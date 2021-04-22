@@ -63,7 +63,7 @@ public class SensorHub implements ISensorHub
     protected INetworkManager networkManager;
     protected ISecurityManager securityManager;
     protected IProcessingManager processingManager;
-    protected volatile boolean stopped;
+    protected volatile boolean started = false;
     
     
     public SensorHub()
@@ -86,29 +86,33 @@ public class SensorHub implements ISensorHub
     
     
     @Override
-    public void start()
+    public synchronized void start()
     {
-        log.info("*****************************************");
-        log.info("Starting SensorHub...");
-        log.info("Version : {}", ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion());
-        log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
-        log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
-        
-        // init hub core components
-        var classFinder = new ModuleClassFinder(osgiContext);
-        var configDB = config.getModuleConfigPath() != null ?
-            new ModuleConfigJsonFile(config.getModuleConfigPath(), true, classFinder) :
-            new InMemoryConfigDb(classFinder);
-        this.moduleRegistry = new ModuleRegistry(this, configDB);
-        this.eventBus = new EventBus();
-        this.databaseRegistry = new DefaultDatabaseRegistry(this);
-        this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
-        
-        // prepare client authenticator (e.g. for HTTP connections, etc...)
-        ClientAuth.createInstance("keystore");
-                
-        // load all modules in the order implied by dependency constraints
-        moduleRegistry.loadAllModules();
+        if (!started)
+        {
+            log.info("*****************************************");
+            log.info("Starting SensorHub...");
+            log.info("Version : {}", ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion());
+            log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
+            log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
+            
+            // init hub core components
+            var classFinder = new ModuleClassFinder(osgiContext);
+            var configDB = config.getModuleConfigPath() != null ?
+                new ModuleConfigJsonFile(config.getModuleConfigPath(), true, classFinder) :
+                new InMemoryConfigDb(classFinder);
+            this.moduleRegistry = new ModuleRegistry(this, configDB);
+            this.eventBus = new EventBus();
+            this.databaseRegistry = new DefaultDatabaseRegistry(this);
+            this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
+            
+            // prepare client authenticator (e.g. for HTTP connections, etc...)
+            ClientAuth.createInstance("keystore");
+                    
+            // load all modules in the order implied by dependency constraints
+            moduleRegistry.loadAllModules();
+            started = true;
+        }
     }
     
     
@@ -131,11 +135,11 @@ public class SensorHub implements ISensorHub
     {
         try
         {
-            if (!stopped && moduleRegistry != null)
+            if (started)
             {
                 moduleRegistry.shutdown(saveConfig, saveState);
                 eventBus.shutdown();
-                stopped = true;
+                started = false;
                 log.info("SensorHub was cleanly stopped");
             }
         }
