@@ -11,7 +11,6 @@ package org.sensorhub.impl.event;
 
 import static org.junit.Assert.*;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -26,13 +25,14 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.event.IEventPublisher;
+import org.sensorhub.test.AsyncTests;
 import com.google.common.collect.Sets;
 
 
 public class TestEventBus
 {
     static final int TIMEOUT = 2; // in seconds
-    static final String GROUP = "urn:test";
+    static final String GROUP = "urn:test:group";
     static final String[] SOURCES = {
         "urn:test:source0",
         "urn:test:source1",
@@ -68,7 +68,7 @@ public class TestEventBus
         int numRequestedEvents;
         int numExceptedEvents;
         Predicate<Event> filter;
-        ArrayList<Event> eventsReceived = new ArrayList<>();
+        AtomicInteger numEventsReceived = new AtomicInteger();
 
         SubscriberInfo(String sourceId, int numRequestedEvents)
         {
@@ -95,7 +95,7 @@ public class TestEventBus
 
         boolean done()
         {
-            return eventsReceived.size() >= numExceptedEvents;
+            return numEventsReceived.get() >= numExceptedEvents;
         }
     }
 
@@ -128,6 +128,7 @@ public class TestEventBus
         }
 
         // subscribe
+        AtomicInteger subscriptionCount = new AtomicInteger();
         for (int i = 0; i < subscribers.length; i++)
         {
             final int subId = i;
@@ -171,8 +172,7 @@ public class TestEventBus
                         if (now - e.getTimeStamp() > 100)
                             throw new IllegalStateException("Delivery too slow!");
 
-                        sub.eventsReceived.add(e);
-                        if (sub.eventsReceived.size() == sub.numExceptedEvents)
+                        if (sub.numEventsReceived.incrementAndGet() == sub.numExceptedEvents)
                             doneSignal.countDown();
                     }
 
@@ -180,10 +180,14 @@ public class TestEventBus
                     public void onSubscribe(Subscription subscription)
                     {
                         System.out.println("Subscribed " + subId + " to " + sub.sourceIds);
+                        subscriptionCount.incrementAndGet();
                         subscription.request(sub.numRequestedEvents);
                     }
                 });
         }
+        
+        // wait until all subscriptions are active
+        AsyncTests.waitForCondition(() -> subscriptionCount.get() == subscribers.length, TIMEOUT*1000);
 
         int count = 0;
         boolean done = false;
@@ -223,7 +227,7 @@ public class TestEventBus
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
         assertTrue("Timeout before enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
         for (SubscriberInfo sub: subscribers)
-            assertEquals(sub.numExceptedEvents, sub.eventsReceived.size());
+            assertEquals(sub.numExceptedEvents, sub.numEventsReceived.get());
     }
 
 
@@ -241,7 +245,7 @@ public class TestEventBus
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
         assertTrue("Timeout before enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
         for (SubscriberInfo sub: subscribers)
-            assertEquals(sub.numExceptedEvents, sub.eventsReceived.size());
+            assertEquals(sub.numExceptedEvents, sub.numEventsReceived.get());
     }
 
 
@@ -262,7 +266,7 @@ public class TestEventBus
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
         assertTrue("Timeout before enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
         for (SubscriberInfo sub: subscribers)
-            assertEquals(sub.numExceptedEvents, sub.eventsReceived.size());
+            assertEquals(sub.numExceptedEvents, sub.numEventsReceived.get());
     }
 
 
@@ -286,7 +290,7 @@ public class TestEventBus
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
         assertTrue("Timeout before enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
         for (SubscriberInfo sub: subscribers)
-            assertEquals(sub.numExceptedEvents, sub.eventsReceived.size());
+            assertEquals(sub.numExceptedEvents, sub.numEventsReceived.get());
     }
 
 
@@ -310,7 +314,7 @@ public class TestEventBus
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
         assertTrue("Timeout before enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
         for (SubscriberInfo sub: subscribers)
-            assertEquals(sub.numExceptedEvents, sub.eventsReceived.size());
+            assertEquals(sub.numExceptedEvents, sub.numEventsReceived.get());
     }
 
 
@@ -335,7 +339,7 @@ public class TestEventBus
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
         assertTrue("Timeout before enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
         for (SubscriberInfo sub: subscribers)
-            assertEquals(sub.numExceptedEvents, sub.eventsReceived.size());
+            assertEquals(sub.numExceptedEvents, sub.numEventsReceived.get());
     }
 
 
@@ -352,13 +356,13 @@ public class TestEventBus
         SubscriberInfo[] subscribers = {
             new SubscriberInfo(SOURCES[4], 20),
             new SubscriberInfo(Sets.newHashSet(SOURCES[0], SOURCES[2]), 500, 35+56, null),
-            new SubscriberInfo(Sets.newHashSet(SOURCES[2], SOURCES[1]), 300, (31+56)/2+1, e -> ((TestEvent)e).getCount() % 2 == 0)
+            new SubscriberInfo(Sets.newHashSet(SOURCES[2], SOURCES[1]), 300, (31+1)/2+56/2, e -> ((TestEvent)e).getCount() % 2 == 0)
         };
 
         CountDownLatch doneSignal = createPublishersAndSubscribe(sources, subscribers);
         assertTrue("Timeout before enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));
         for (SubscriberInfo sub: subscribers)
-            assertEquals(sub.numExceptedEvents, sub.eventsReceived.size());
+            assertEquals(sub.numExceptedEvents, sub.numEventsReceived.get());
     }
 
 
