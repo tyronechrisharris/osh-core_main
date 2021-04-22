@@ -14,12 +14,21 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.function.Consumer;
+import org.sensorhub.api.command.CommandAck;
+import org.sensorhub.api.command.CommandException;
+import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandReceiver;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
+import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.vast.util.Asserts;
+import net.opengis.swe.v20.DataBlock;
 
 
 /**
@@ -69,6 +78,43 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     public boolean isEnabled()
     {
         return true;
+    }
+
+
+    @Override
+    public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback)
+    {
+        return CompletableFuture.runAsync(() -> {
+            try
+            {
+                var ok = execCommand(command.getParams());
+                callback.accept(ok ? CommandAck.success(command) : CommandAck.fail(command));
+            }
+            catch (SensorException e)
+            {
+                throw new CompletionException(e);
+            }
+        });
+    }
+
+
+    @Override
+    public void validateCommand(ICommandData command) throws CommandException
+    {        
+    }
+    
+        
+    /**
+     * Helper method to implement simple synchronous command logic, backward compatible
+     * with existing driver implementations (1.x). For more advanced implementations,
+     * override {@link #executeCommand(ICommandData, Consumer)} directly.
+     * @param cmdData
+     * @return
+     * @throws SensorException
+     */
+    protected boolean execCommand(DataBlock cmdData) throws SensorException
+    {
+        throw new UnsupportedOperationException();
     }
     
     
