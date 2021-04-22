@@ -1019,7 +1019,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         if (loadedModules.isEmpty())
             return;        
         
-        long timeOutTime = System.currentTimeMillis() + SHUTDOWN_TIMEOUT_MS;
         log.info("Module registry shutdown initiated");
         log.info("Stopping all modules (saving config = {}, saving state = {})", saveConfig, saveState);
         
@@ -1034,11 +1033,11 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 otherModules.add(module);   
         }
         
-        // stop all non-datastore modules
-        stopModules(otherModules, saveConfig, saveState, timeOutTime);
+        // stop all non-datastore modules        
+        stopModules(otherModules, saveConfig, saveState);
         
         // then stop all datastores
-        stopModules(dataStores, saveConfig, saveState, timeOutTime);
+        stopModules(dataStores, saveConfig, saveState);
         
         // shutdown executor once all tasks have been run
         asyncExec.shutdown();
@@ -1071,8 +1070,10 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     }
     
     
-    private void stopModules(Collection<IModule<?>> moduleList, boolean saveConfig, boolean saveState, long timeOutTime)
+    private void stopModules(Collection<IModule<?>> moduleList, boolean saveConfig, boolean saveState)
     {
+        long timeOutTime = System.currentTimeMillis() + SHUTDOWN_TIMEOUT_MS;
+        
         // call stop on all modules
         for (IModule<?> module: moduleList)
         {
