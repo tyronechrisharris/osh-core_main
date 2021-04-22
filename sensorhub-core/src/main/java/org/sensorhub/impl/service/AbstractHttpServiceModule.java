@@ -64,12 +64,10 @@ public abstract class AbstractHttpServiceModule<ConfigType extends ModuleConfig>
     {
         // stop listening to http server events
         if (httpServer != null)
-        {
             httpServer.unregisterListener(this);
-            httpServer = null;
-        }
         
-        super.stop();
+        super.stop();        
+        httpServer = null;
     }
     
     

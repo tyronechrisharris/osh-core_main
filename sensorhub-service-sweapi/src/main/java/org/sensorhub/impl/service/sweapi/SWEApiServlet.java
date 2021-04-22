@@ -87,7 +87,8 @@ public class SWEApiServlet extends HttpServlet
         // destroy websocket factory
         try
         {
-            wsFactory.stop();
+            if (wsFactory != null)
+                wsFactory.stop();
         }
         catch (Exception e)
         {
