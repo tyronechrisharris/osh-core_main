@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
+import java.math.BigInteger;
 import java.util.concurrent.Callable;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.command.CommandFilter;
@@ -51,15 +52,17 @@ public class ProcedureObsDatabaseView implements IProcedureObsDatabase
     {
         if (cmdFilter == null)
         {
+            // create filter that will never match anything
             cmdFilter = new CommandFilter.Builder()
-                .withProcedures(0)
+                .withInternalIDs(BigInteger.ZERO)
                 .build();
         }
         
         if (obsFilter == null)
         {
+            // create filter that will never match anything
             obsFilter = new ObsFilter.Builder()
-                .withProcedures(0)
+                .withInternalIDs(BigInteger.ZERO)
                 .build();
         }
         
@@ -74,15 +77,13 @@ public class ProcedureObsDatabaseView implements IProcedureObsDatabase
         Asserts.checkNotNull(cmdFilter, CommandFilter.class);
         
         var procFilter = obsFilter.getDataStreamFilter() != null ? obsFilter.getDataStreamFilter().getProcedureFilter() : null;
+        if (procFilter == null)
+            procFilter = cmdFilter.getCommandStreamFilter() != null ? cmdFilter.getCommandStreamFilter().getProcedureFilter() : null;
+        
         this.procStoreView = new ProcedureStoreView(delegate.getProcedureStore(), procFilter);
         this.foiStoreView = new FoiStoreView(delegate.getFoiStore(), obsFilter.getFoiFilter());
         this.obsStoreView = new ObsStoreView(delegate.getObservationStore(), obsFilter);
-        
-        // build command filter with settings equivalent to ObsFilter
-        var cmdFilterBuilder = CommandFilter.Builder.from(cmdFilter);
-        if (procFilter != null)
-            cmdFilterBuilder.withProcedures(procFilter);       
-        this.commandStoreView = new CommandStoreView(delegate.getCommandStore(), cmdFilterBuilder.build());
+        this.commandStoreView = new CommandStoreView(delegate.getCommandStore(), cmdFilter);
     }
     
     

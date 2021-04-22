@@ -66,6 +66,17 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
             this.unfilteredDatabases.add(dbNum);
     }
     
+    
+    public FilteredFederatedObsDatabase(IDatabaseRegistry registry, ObsFilter obsFilter, CommandFilter cmdFilter, int... unfilteredDatabases)
+    {
+        super(registry);
+        this.obsFilter = Asserts.checkNotNull(obsFilter, ObsFilter.class);
+        this.cmdFilter = Asserts.checkNotNull(cmdFilter, CommandFilter.class);
+        
+        for (int dbNum: unfilteredDatabases)
+            this.unfilteredDatabases.add(dbNum);
+    }
+    
 
     @Override
     protected LocalDatabaseInfo getLocalDbInfo(long publicID)
