@@ -15,14 +15,15 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.concurrent.TimeUnit;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.event.EventUtils;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.procedure.DataEventToObsConverter;
 import org.sensorhub.impl.service.WebSocketOutputStream;
 import org.sensorhub.impl.service.WebSocketUtils;
@@ -32,6 +33,8 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.utils.CallbackException;
 import org.slf4j.Logger;
 import org.vast.util.Asserts;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 
 
 /**
@@ -78,9 +81,22 @@ public class ObsWebSocketOut implements WebSocketListener
             ctx.setWebsocketOutputStream(wsOutputStream);
             var binding = obsHandler.getBinding(ctx, false);
             
+            // prepare lazy loaded map of FOI UID to full FeatureId
+            var foiIdCache = CacheBuilder.newBuilder()
+                .maximumSize(100)
+                .expireAfterAccess(1, TimeUnit.MINUTES)
+                .build(new CacheLoader<String, FeatureId>() {
+                    @Override
+                    public FeatureId load(String uid) throws Exception
+                    {
+                        var fk = obsHandler.db.getFoiStore().getCurrentVersionKey(uid);
+                        return new FeatureId(fk.getInternalID(), uid);
+                    }                    
+                });
+            
             // get datastream info and init event to obs converter
             var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
-            var obsConverter = new DataEventToObsConverter(dsID, dsInfo, Collections.emptyMap());
+            var obsConverter = new DataEventToObsConverter(dsID, dsInfo, uid -> foiIdCache.getUnchecked(uid));
                         
             // subscribe to event bus
             var topic = EventUtils.getDataStreamDataTopicID(dsInfo);            

@@ -14,8 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
-import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IDataStreamInfo;
@@ -42,15 +42,15 @@ public class DataEventToObsConverter
 {
     protected long dsID;
     protected IDataStreamInfo dsInfo;
-    protected Map<String, FeatureId> foiIdMap;
+    protected Function<String, FeatureId> foiIdMapper;
     protected ScalarIndexer timeStampIndexer;
     
     
-    public DataEventToObsConverter(long dsID, IDataStreamInfo dsInfo, Map<String, FeatureId> foiIdMap)
+    public DataEventToObsConverter(long dsID, IDataStreamInfo dsInfo, Function<String, FeatureId> foiIdMapper)
     {
         this.dsID = OshAsserts.checkValidInternalID(dsID);
         this.dsInfo = Asserts.checkNotNull(dsInfo, IDataStreamInfo.class);
-        this.foiIdMap = Asserts.checkNotNull(foiIdMap, "foiIdMap");
+        this.foiIdMapper = Asserts.checkNotNull(foiIdMapper, "foiIdMapper");
         this.timeStampIndexer = SWEHelper.getTimeStampIndexer(dsInfo.getRecordStructure());
     }
     
@@ -62,17 +62,11 @@ public class DataEventToObsConverter
         String foiUID = e.getFoiUID();
         if (foiUID != null)
         {
-            var fid = foiIdMap.get(foiUID);
+            var fid = foiIdMapper.apply(foiUID);
             if (fid != null)
                 foiId = fid;
             else
                 throw new IllegalStateException("Unknown FOI: " + foiUID);
-        }
-        
-        // else use the single FOI if there is one
-        else if (foiIdMap.size() == 1)
-        {
-            foiId = foiIdMap.values().iterator().next();
         }
         
         // else don't associate to any FOI
