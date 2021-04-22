@@ -27,6 +27,7 @@ import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
+import org.sensorhub.api.service.IHttpServer;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.client.sost.SOSTClient;
 import org.sensorhub.impl.client.sost.SOSTClientConfig;
@@ -35,7 +36,6 @@ import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorData;
-import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.test.AsyncTests;
 import org.vast.ows.GetCapabilitiesRequest;
 import org.vast.ows.OWSUtils;
@@ -52,6 +52,7 @@ public class TestSOSTClient
     static final int NUM_GEN_SAMPLES = 4;
     
     TestSOSService sosTest;
+    SensorHub hub;
     ModuleRegistry moduleRegistry;
     Exception asyncError;
     int recordCounter = 0;
@@ -65,7 +66,7 @@ public class TestSOSTClient
         sosTest.setup();
         
         // create separate hub for client
-        var hub = new SensorHub();
+        hub = new SensorHub();
         hub.start();
         moduleRegistry = hub.getModuleRegistry();
         ClientAuth.createInstance(null);
@@ -291,7 +292,8 @@ public class TestSOSTClient
         });
         
         // stop server
-        HttpServer.getInstance().stop();
+        var httpServer = sosTest.moduleRegistry.getModuleByType(IHttpServer.class);
+        httpServer.stop();
         
         AsyncTests.waitForCondition(() -> clientRestartCount.get() >= 1, TIMEOUT);
         
@@ -308,16 +310,8 @@ public class TestSOSTClient
     @After
     public void cleanup()
     {
-        try
-        {
-            if (moduleRegistry != null)
-                moduleRegistry.shutdown(false, false);
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
-        
+        if (hub != null)
+            hub.stop();        
         sosTest.cleanup();
     }
 }

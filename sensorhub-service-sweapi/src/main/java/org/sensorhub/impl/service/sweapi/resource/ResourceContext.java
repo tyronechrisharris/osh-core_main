@@ -218,7 +218,7 @@ public class ResourceContext
     
     public String getApiRootURL()
     {
-        return servlet.getConfig().getPublicEndpoint();
+        return servlet.getApiRootURL();
     }
     
     

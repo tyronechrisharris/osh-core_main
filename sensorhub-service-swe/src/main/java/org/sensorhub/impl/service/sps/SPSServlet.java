@@ -216,7 +216,7 @@ public class SPSServlet extends SWEServlet
         capabilities.setServiceProvider(serviceInfo.serviceProvider);
 
         // supported operations
-        String endpoint = config.getPublicEndpoint();
+        String endpoint = service.getHttpServer().getPublicEndpointUrl(config.endPoint);
         capabilities.getGetServers().put("GetCapabilities", endpoint);
         capabilities.getGetServers().put("DescribeSensor", endpoint);
         capabilities.getPostServers().putAll(capabilities.getGetServers());

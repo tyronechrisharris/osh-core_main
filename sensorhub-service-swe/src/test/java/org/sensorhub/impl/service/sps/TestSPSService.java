@@ -36,7 +36,6 @@ import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorControl1;
 import org.sensorhub.impl.sensor.FakeSensorControl2;
 import org.sensorhub.impl.sensor.FakeSensorData;
-import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.WebSocketOutputStream;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
@@ -83,14 +82,16 @@ public class TestSPSService
     static final String SENSOR_UID_1 = "urn:mysensors:SENSOR001";
     static final String SENSOR_UID_2 = "urn:mysensors:SENSOR002";
     
-    protected ModuleRegistry moduleRegistry;
+    
+    SensorHub hub;
+    ModuleRegistry moduleRegistry;
     
     
     @Before
     public void setup() throws Exception
     {
         // get instance with in-memory DB
-        var hub = new SensorHub();
+        hub = new SensorHub();
         hub.start();
         moduleRegistry = hub.getModuleRegistry();
         
@@ -494,14 +495,7 @@ public class TestSPSService
     @After
     public void cleanup()
     {
-        try
-        {
-            HttpServer.getInstance().stop();
-            HttpServer.getInstance().cleanup();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
+        if (hub != null)
+            hub.stop();
     }
 }

@@ -55,6 +55,7 @@ import org.eclipse.jetty.xml.XmlConfiguration;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.security.ISecurityManager;
+import org.sensorhub.api.service.IHttpServer;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServerConfig.AuthMethod;
 import org.vast.util.Asserts;
@@ -69,7 +70,7 @@ import com.google.common.base.Strings;
  * @author Alex Robin
  * @since Sep 6, 2013
  */
-public class HttpServer extends AbstractModule<HttpServerConfig>
+public class HttpServer extends AbstractModule<HttpServerConfig> implements IHttpServer<HttpServerConfig>
 {
     private static final String OSH_SERVER_ID = "osh-server";
     private static final String OSH_HANDLERS = "osh-handlers";
@@ -83,7 +84,6 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     
     private static final String CERT_ALIAS = "jetty";
     public static final String TEST_MSG = "SensorHub web server is up";
-    private static HttpServer instance;
         
     Server server;
     ServletContextHandler servletHandler;
@@ -92,16 +92,6 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     
     public HttpServer()
     {
-        if (instance != null)
-            throw new IllegalStateException("Cannot start several HTTP server instances");
-        
-        instance = this;
-    }
-    
-    
-    public static HttpServer getInstance()
-    {
-        return instance;
     }
 
     
@@ -120,7 +110,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
 
 
     @Override
-    public synchronized void doStart() throws SensorHubException
+    protected synchronized void doStart() throws SensorHubException
     {
         try
         {
@@ -305,7 +295,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     
     
     @Override
-    public synchronized void doStop() throws SensorHubException
+    protected synchronized void doStop() throws SensorHubException
     {
         try
         {
@@ -314,6 +304,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
                 server.stop();
                 servletHandler = null;
                 jettySecurityHandler = null;
+                server = null;
             }
         }
         catch (Exception e)
@@ -417,17 +408,9 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
             jettySecurityHandler.addConstraintMapping(cm);
         }
     }
-
-
-    @Override
-    public synchronized void cleanup() throws SensorHubException
-    {
-        server = null;
-        instance = null;
-    }
     
     
-    public String getServletsBaseUrl()
+    public String getServerBaseUrl()
     {
         String baseUrl = "";
         if (!Strings.isNullOrEmpty(config.proxyBaseUrl))
@@ -437,6 +420,14 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
         else if (config.httpsPort > 0)
             baseUrl = "https://localhost" + (config.httpsPort != 443 ? ":" + config.httpsPort : "");
         
+        return baseUrl;
+    }
+    
+    
+    public String getServletsBaseUrl()
+    {
+        var baseUrl = getServerBaseUrl();
+        
         if (config.servletsRootUrl != null)
             baseUrl = appendToUrlPath(baseUrl, config.servletsRootUrl);
         
@@ -444,7 +435,13 @@ public class HttpServer extends AbstractModule<HttpServerConfig>
     }
     
     
-    public String appendToUrlPath(String url, String nextPart)
+    public String getPublicEndpointUrl(String path)
+    {
+        return appendToUrlPath(getServletsBaseUrl(), path);
+    }
+    
+    
+    private String appendToUrlPath(String url, String nextPart)
     {
         if (url.endsWith("/"))
             url = url.substring(0, url.length()-1);            

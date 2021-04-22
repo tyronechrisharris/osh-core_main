@@ -26,9 +26,7 @@ import javax.xml.stream.XMLStreamWriter;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.impl.SensorHub;
-import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.vast.ogc.om.IProcedure;
 import org.vast.ows.swe.DescribeSensorRequest;
@@ -43,6 +41,7 @@ public class TestProcedureSerializers
     static final int SERVER_PORT = 8888;
     static final int NUM_GENERATED_RECORDS = 10;
     
+    static SensorHub hub;
     static SOSServlet servlet;
     
     
@@ -50,7 +49,7 @@ public class TestProcedureSerializers
     public static void init() throws Exception
     {
         // get instance with in-memory DB
-        var hub = new SensorHub();
+        hub = new SensorHub();
         hub.start();
         var moduleRegistry = hub.getModuleRegistry();
         
@@ -186,13 +185,11 @@ public class TestProcedureSerializers
     @AfterClass
     public static void cleanup()
     {
-        try
+        if (hub != null)
         {
-            HttpServer.getInstance().stop();
-            HttpServer.getInstance().cleanup();
-        }
-        catch (SensorHubException e)
-        {
+            hub.stop();
+            hub = null;
+            servlet = null;
         }
     }
 

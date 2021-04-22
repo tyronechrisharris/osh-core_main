@@ -21,14 +21,10 @@ import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.event.Event;
-import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.database.registry.FilteredFederatedObsDatabase;
-import org.sensorhub.impl.module.AbstractModule;
-import org.sensorhub.impl.service.HttpServer;
+import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.utils.NamedThreadFactory;
 
 
@@ -42,7 +38,7 @@ import org.sensorhub.utils.NamedThreadFactory;
  * @author Alex Robin
  * @since Mar 31, 2021
  */
-public abstract class SWEService<ConfigType extends SWEServiceConfig> extends AbstractModule<ConfigType> implements IServiceModule<ConfigType>, IEventListener
+public abstract class SWEService<ConfigType extends SWEServiceConfig> extends AbstractHttpServiceModule<ConfigType> implements IServiceModule<ConfigType>
 {
     protected SWEServlet servlet;
     protected ScheduledExecutorService threadPool;
@@ -51,24 +47,6 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
     
     
     protected abstract IQueryFilter getResourceFilter();
- 
-    
-    @Override
-    public void start() throws SensorHubException
-    {
-        if (canStart())
-        {
-            HttpServer httpServer = HttpServer.getInstance();
-            if (httpServer == null)
-                throw new SensorHubException("HTTP server module is not loaded");
-
-            // subscribe to server lifecycle events
-            httpServer.registerListener(this);
-
-            // we actually start in the handleEvent() method when
-            // a STARTED event is received from HTTP server
-        }
-    }    
     
 
     @Override
@@ -148,10 +126,6 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
 
     protected void deploy() throws SensorHubException
     {
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer == null || !httpServer.isStarted())
-            throw new SensorHubException("An HTTP server instance must be started");
-
         // deploy ourself to HTTP server
         httpServer.deployServlet(servlet, config.endPoint);
         httpServer.addServletSecurity(config.endPoint, config.security.requireAuth);
@@ -160,8 +134,6 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
 
     protected void undeploy()
     {
-        HttpServer httpServer = HttpServer.getInstance();
-
         // return silently if HTTP server missing on stop
         if (httpServer == null || !httpServer.isStarted())
             return;
@@ -173,55 +145,9 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
     @Override
     public void cleanup() throws SensorHubException
     {
-        // stop listening to http server events
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer != null)
-            httpServer.unregisterListener(this);
-
-        // TODO destroy all virtual sensors?
-        //for (SOSConsumerConfig consumerConf: config.dataConsumers)
-        //    SensorHub.getInstance().getModuleRegistry().destroyModule(consumerConf.sensorID);
-
         // unregister security handler
         if (securityHandler != null)
             securityHandler.unregister();
-    }
-
-
-    @Override
-    public void handleEvent(Event e)
-    {
-        // catch HTTP server lifecycle events
-        if (e instanceof ModuleEvent && e.getSource() == HttpServer.getInstance())
-        {
-            ModuleState newState = ((ModuleEvent) e).getNewState();
-
-            // start when HTTP server is enabled
-            if (newState == ModuleState.STARTED)
-            {
-                try
-                {
-                    doStart();
-                }
-                catch (Exception ex)
-                {
-                    reportError("Service could not start", ex);
-                }
-            }
-
-            // stop when HTTP server is disabled
-            else if (newState == ModuleState.STOPPED)
-            {
-                try
-                {
-                    doStop();
-                }
-                catch (SensorHubException ex)
-                {
-                    reportError("Service could not stop", ex);
-                }
-            }
-        }
     }
 
 

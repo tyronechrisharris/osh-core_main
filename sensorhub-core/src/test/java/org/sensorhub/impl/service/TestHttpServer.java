@@ -53,13 +53,12 @@ public class TestHttpServer
     }
     
     
-    private HttpServerConfig startServer(AuthMethod authMethod) throws Exception
+    private HttpServer startServer(AuthMethod authMethod) throws Exception
     {
         HttpServerConfig config = new HttpServerConfig();
         config.autoStart = true;
         config.authMethod = authMethod;
-        registry.loadModule(config);
-        return config;
+        return (HttpServer)registry.loadModule(config);
     }
     
     
@@ -85,11 +84,11 @@ public class TestHttpServer
     @Test
     public void testDeployServlet() throws Exception
     {
-        HttpServerConfig config = startServer(null);
+        var httpServer = startServer(null);
         final String testText = "Deploying hot servlet in SensorHub works";
         
         // deploy new servlet dynamically
-        HttpServer.getInstance().deployServlet(new HttpServlet() {
+        httpServer.deployServlet(new HttpServlet() {
             private static final long serialVersionUID = 1L;
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException
@@ -107,7 +106,7 @@ public class TestHttpServer
         }, "/junit");
         
         // connect to servlet and check response
-        URL url = new URL("http://localhost:" + config.httpPort + config.servletsRootUrl + "/junit");
+        URL url = new URL(httpServer.getServletsBaseUrl() + "junit");
         BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
         String resp = reader.readLine();
         System.out.println(resp);
@@ -120,7 +119,7 @@ public class TestHttpServer
     private void testConnect(AuthMethod authMethod) throws Exception
     {
         addUsers();
-        HttpServerConfig config = startServer(authMethod);
+        var httpServer = startServer(authMethod);
         
         // register simple authenticator
         if (authMethod != null)
@@ -138,7 +137,7 @@ public class TestHttpServer
         }
         
         // connect to servlet and check response
-        URL url = new URL("http://localhost:" + config.httpPort + config.servletsRootUrl + "/test");
+        URL url = new URL(httpServer.getServletsBaseUrl() + "test");
         BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
         String resp = reader.readLine();
         System.out.println(resp);
@@ -175,7 +174,6 @@ public class TestHttpServer
         try
         {
             registry.shutdown(false, false);
-            HttpServer.getInstance().cleanup();
         }
         catch (Exception e)
         {

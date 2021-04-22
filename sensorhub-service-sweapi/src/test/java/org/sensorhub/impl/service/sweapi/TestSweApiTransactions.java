@@ -36,7 +36,6 @@ import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.datastore.h2.MVObsDatabaseConfig;
-import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -67,7 +66,7 @@ public class TestSweApiTransactions
     
     static final int SERVER_PORT = 8888;
     static final long TIMEOUT = 10000;
-    ModuleRegistry moduleRegistry;
+    SensorHub hub;
     File dbFile;
     SWEApiService swa;
     IProcedureObsDatabase db;
@@ -76,21 +75,21 @@ public class TestSweApiTransactions
     
     
     @Before
-    public void startService() throws IOException, SensorHubException
+    public void setup() throws IOException, SensorHubException
     {
         // use temp DB file
         dbFile = File.createTempFile("sweapi-db-", ".dat");
         dbFile.deleteOnExit();
         
         // get instance with in-memory DB
-        var hub = new SensorHub();
+        hub = new SensorHub();
         hub.start();
-        moduleRegistry = hub.getModuleRegistry();
+        var moduleRegistry = hub.getModuleRegistry();
         
         // start HTTP server
         HttpServerConfig httpConfig = new HttpServerConfig();
         httpConfig.httpPort = SERVER_PORT;
-        moduleRegistry.loadModule(httpConfig, TIMEOUT);
+        var httpServer = (HttpServer)moduleRegistry.loadModule(httpConfig, TIMEOUT);
         
         // start DB
         MVObsDatabaseConfig dbCfg = new MVObsDatabaseConfig();
@@ -109,7 +108,7 @@ public class TestSweApiTransactions
         swaCfg.name = "SWE API Service";
         swaCfg.autoStart = true;
         swa = (SWEApiService)moduleRegistry.loadModule(swaCfg, TIMEOUT);
-        swaRootUrl = swaCfg.getPublicEndpoint();
+        swaRootUrl = httpServer.getPublicEndpointUrl(swaCfg.endPoint);
     }
 
     
@@ -255,7 +254,7 @@ public class TestSweApiTransactions
             + "  ]\n"
             + "}";
         
-        return (JsonObject)new JsonParser().parse(sml);
+        return (JsonObject)JsonParser.parseString(sml);
     }
     
     
@@ -469,7 +468,7 @@ public class TestSweApiTransactions
         
         writer.endObject();
         
-        return (JsonObject)new JsonParser().parse(buffer.getBuffer().toString());
+        return (JsonObject)JsonParser.parseString(buffer.getBuffer().toString());
     }
     
     
@@ -539,12 +538,11 @@ public class TestSweApiTransactions
     protected JsonObject createObservationNoFoi(Instant startTime, int num) throws Exception
     {
         var buffer = new StringWriter();
-        var writer = new JsonWriter(buffer);
         
-        writer.beginObject();
-        
-        try
+        try (var writer = new JsonWriter(buffer))
         {
+            writer.beginObject();
+            
             var timeStamp = startTime.plusSeconds(num).toString();
             writer.name("phenomenonTime").value(timeStamp.toString());
             writer.name("resultTime").value(timeStamp.toString());
@@ -554,15 +552,15 @@ public class TestSweApiTransactions
                 .name("f1").value(num)
                 .name("f2").value(String.format("text_%03d", num))
                 .endObject();
+            
+            writer.endObject();
         }
         catch (Exception e)
         {
             throw new IOException("Error writing JSON observation", e);
         }
         
-        writer.endObject();
-        
-        return (JsonObject)new JsonParser().parse(buffer.getBuffer().toString());
+        return (JsonObject)JsonParser.parseString(buffer.getBuffer().toString());
     }
     
     
@@ -668,7 +666,7 @@ public class TestSweApiTransactions
                 throw new IOException("Received HTTP error code " + statusCode);
             }
             
-            return new JsonParser().parse(response.body());
+            return JsonParser.parseString(response.body());
         }
         catch (InterruptedException e)
         {
@@ -700,13 +698,8 @@ public class TestSweApiTransactions
     {
         try
         {
-            if (moduleRegistry != null)
-                moduleRegistry.shutdown(false, false);
-            HttpServer.getInstance().cleanup();
-        }
-        catch (Exception e)
-        {
-            e.printStackTrace();
+            if (hub != null)
+                hub.stop();
         }
         finally
         {

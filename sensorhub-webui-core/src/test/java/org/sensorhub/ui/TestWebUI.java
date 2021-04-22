@@ -23,6 +23,7 @@ import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
+import org.sensorhub.api.service.IHttpServer;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.module.DummyModule;
 import org.sensorhub.impl.module.ModuleRegistry;
@@ -32,18 +33,21 @@ import org.sensorhub.impl.service.HttpServerConfig;
 
 public class TestWebUI
 {
+    static SensorHub hub;
     static ModuleRegistry registry;
     
     
     static public void setup() throws Exception
     {
         // start sensorhub and load modules
-        registry = new SensorHub().getModuleRegistry();
+        hub = new SensorHub();
+        hub.start();
+        registry = hub.getModuleRegistry();
         setupConfig();
         
         // connect to servlet and check response
-        HttpServerConfig httpConfig = HttpServer.getInstance().getConfiguration();
-        URL url = new URL("http://localhost:" + httpConfig.httpPort + httpConfig.servletsRootUrl + "/test");
+        var httpServer = registry.getModuleByType(IHttpServer.class);
+        URL url = new URL(httpServer.getServletsBaseUrl() + "test");
         BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
         String resp = reader.readLine();
         System.out.println(resp);

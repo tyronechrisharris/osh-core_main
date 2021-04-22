@@ -21,19 +21,16 @@ import java.util.Map;
 import java.util.logging.LogManager;
 import org.sensorhub.api.comm.CommProviderConfig;
 import org.sensorhub.api.comm.NetworkConfig;
-import org.sensorhub.api.event.Event;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.database.obs.ProcedureObsEventDatabaseConfig;
-import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.security.BasicSecurityRealmConfig;
-import org.sensorhub.impl.service.HttpServer;
+import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.sos.SOSServiceConfig;
 import org.sensorhub.impl.service.sps.SPSServiceConfig;
@@ -42,7 +39,7 @@ import org.sensorhub.ui.api.IModuleConfigForm;
 import com.vaadin.server.VaadinServlet;
 
 
-public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEventListener
+public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> implements IEventListener
 {
     protected static final String SERVLET_PARAM_UI_CLASS = "UI";
     protected static final String SERVLET_PARAM_MODULE = "module_instance";
@@ -57,24 +54,6 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
     
     public AdminUIModule()
     {
-    }
-    
-    
-    @Override
-    public void start() throws SensorHubException
-    {
-        if (canStart())
-        {
-            HttpServer httpServer = HttpServer.getInstance();
-            if (httpServer == null)
-                throw new SensorHubException("HTTP server module is not loaded");
-            
-            // subscribe to server lifecycle events
-            httpServer.registerListener(this);
-            
-            // we actually start in the handleEvent() method when
-            // a STARTED event is received from HTTP server
-        }
     }
     
     
@@ -158,11 +137,6 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
         initParams.put("productionMode", "true");  // set to false to compile theme on-the-fly
         initParams.put("heartbeatInterval", Integer.toString(HEARTBEAT_INTERVAL));
         
-        // get HTTP server instance
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer == null || !httpServer.isStarted())
-            throw new SensorHubException("An HTTP server instance must be started");
-        
         // deploy servlet
         // HACK: we have to disable std err to hide message due to Vaadin duplicate implementation of SL4J
         // Note that this may hide error messages in other modules now that startup sequence is multithreaded
@@ -187,7 +161,7 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
     {
         if (vaadinServlet != null)
         {
-            HttpServer.getInstance().undeployServlet(vaadinServlet);
+            httpServer.undeployServlet(vaadinServlet);
             vaadinServlet.destroy();
         }
         
@@ -260,43 +234,6 @@ public class AdminUIModule extends AbstractModule<AdminUIConfig> implements IEve
         // unregister security handler
         if (securityHandler != null)
             securityHandler.unregister();
-    }
-    
-    
-    @Override
-    public void handleEvent(Event e)
-    {
-        // catch HTTP server lifecycle events
-        if (e instanceof ModuleEvent && e.getSource() == HttpServer.getInstance())
-        {
-            ModuleState newState = ((ModuleEvent) e).getNewState();
-            
-            // start when HTTP server is enabled
-            if (newState == ModuleState.STARTED)
-            {
-                try
-                {
-                    doStart();
-                }
-                catch (SensorHubException ex)
-                {
-                    reportError("Admin UI could not start", ex);
-                }
-            }
-            
-            // stop when HTTP server is disabled
-            else if (newState == ModuleState.STOPPED)
-            {
-                try
-                {
-                    doStop();
-                }
-                catch (SensorHubException ex)
-                {
-                    reportError("Admin UI could not stop", ex);
-                }
-            }
-        }
     }
 
     

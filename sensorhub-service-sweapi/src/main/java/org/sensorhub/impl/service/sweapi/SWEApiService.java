@@ -14,19 +14,16 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
-import org.sensorhub.api.event.Event;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.database.registry.FilteredFederatedObsDatabase;
-import org.sensorhub.impl.module.AbstractModule;
-import org.sensorhub.impl.service.HttpServer;
+import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.feature.FoiHistoryHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
@@ -48,7 +45,7 @@ import org.sensorhub.utils.NamedThreadFactory;
  * @author Alex Robin
  * @since Oct 12, 2020
  */
-public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implements IServiceModule<SWEApiServiceConfig>, IEventListener
+public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig> implements IServiceModule<SWEApiServiceConfig>, IEventListener
 {
     protected SWEApiServlet servlet;
     ExecutorService threadPool;
@@ -57,24 +54,6 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
     IProcedureObsDatabase obsWriteDatabase;
     IFeatureDatabase featureReadDatabase;
     IFeatureDatabase featureWriteDatabase;
-
-
-    @Override
-    public void start() throws SensorHubException
-    {
-        if (canStart())
-        {
-            HttpServer httpServer = HttpServer.getInstance();
-            if (httpServer == null)
-                throw new SensorHubException("HTTP server module is not loaded");
-
-            // subscribe to server lifecycle events
-            httpServer.registerListener(this);
-
-            // we actually start in the handleEvent() method when
-            // a STARTED event is received from HTTP server
-        }
-    }
 
 
     @Override
@@ -189,10 +168,6 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
 
     protected void deploy() throws SensorHubException
     {
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer == null || !httpServer.isStarted())
-            throw new SensorHubException("An HTTP server instance must be started");
-
         // deploy ourself to HTTP server
         httpServer.deployServlet(servlet, config.endPoint + "/*");
         httpServer.addServletSecurity(config.endPoint, config.security.requireAuth);
@@ -201,8 +176,6 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
 
     protected void undeploy()
     {
-        HttpServer httpServer = HttpServer.getInstance();
-
         // return silently if HTTP server missing on stop
         if (httpServer == null || !httpServer.isStarted())
             return;
@@ -214,55 +187,9 @@ public class SWEApiService extends AbstractModule<SWEApiServiceConfig> implement
     @Override
     public void cleanup() throws SensorHubException
     {
-        // stop listening to http server events
-        HttpServer httpServer = HttpServer.getInstance();
-        if (httpServer != null)
-            httpServer.unregisterListener(this);
-
-        // TODO destroy all virtual sensors?
-        //for (SOSConsumerConfig consumerConf: config.dataConsumers)
-        //    SensorHub.getInstance().getModuleRegistry().destroyModule(consumerConf.sensorID);
-
         // unregister security handler
         if (securityHandler != null)
             securityHandler.unregister();
-    }
-
-
-    @Override
-    public void handleEvent(Event e)
-    {
-        // catch HTTP server lifecycle events
-        if (e instanceof ModuleEvent && e.getSource() == HttpServer.getInstance())
-        {
-            ModuleState newState = ((ModuleEvent) e).getNewState();
-
-            // start when HTTP server is enabled
-            if (newState == ModuleState.STARTED)
-            {
-                try
-                {
-                    doStart();
-                }
-                catch (Exception ex)
-                {
-                    reportError("SWE API Service could not start", ex);
-                }
-            }
-
-            // stop when HTTP server is disabled
-            else if (newState == ModuleState.STOPPED)
-            {
-                try
-                {
-                    doStop();
-                }
-                catch (Exception ex)
-                {
-                    reportError("SWE API Service could not stop", ex);
-                }
-            }
-        }
     }
 
 

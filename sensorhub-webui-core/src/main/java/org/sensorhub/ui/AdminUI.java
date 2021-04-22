@@ -29,7 +29,6 @@ import org.sensorhub.api.client.ClientConfig;
 import org.sensorhub.api.comm.NetworkConfig;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
-import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
@@ -38,12 +37,10 @@ import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.security.SecurityModuleConfig;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
+import org.sensorhub.api.service.IHttpServer;
 import org.sensorhub.api.service.ServiceConfig;
-import org.sensorhub.impl.SensorHub;
-import org.sensorhub.impl.event.EventBus;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.SensorSystem;
-import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.ui.ModuleTypeSelectionPopup.ModuleTypeSelectionCallback;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.UIConstants;
@@ -72,7 +69,6 @@ import com.vaadin.server.VaadinServlet;
 import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.communication.PushMode;
 import com.vaadin.shared.ui.ContentMode;
-import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.shared.ui.ui.Transport;
 import com.vaadin.v7.ui.AbstractSelect.ItemDescriptionGenerator;
 import com.vaadin.ui.Accordion;
@@ -532,7 +528,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         ArrayList<IModule<?>> moduleList = new ArrayList<>();
         
         // add network modules to list
-        moduleList.add(HttpServer.getInstance());
+        moduleList.add(moduleRegistry.getModuleByType(IHttpServer.class));
         for (IModule<?> module: moduleRegistry.getLoadedModules())
         {
             ModuleConfig config = module.getConfiguration();

@@ -40,7 +40,6 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.procedure.ProcedureUtils;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
-import org.sensorhub.impl.service.HttpServer;
 import org.slf4j.Logger;
 import org.vast.ows.GetCapabilitiesRequest;
 import org.vast.ows.OWSException;
@@ -58,7 +57,6 @@ import org.vast.ows.swe.DeleteSensorResponse;
 import org.vast.ows.swe.InsertSensorRequest;
 import org.vast.ows.swe.UpdateSensorRequest;
 import org.vast.ows.swe.UpdateSensorResponse;
-import com.google.common.base.Strings;
 
 
 /**
@@ -136,7 +134,7 @@ public abstract class SWEServlet extends OWSServlet
                             var capabilities = updateCapabilities();
                             
                             // update operation URLs dynamically if base URL not set in config
-                            if (Strings.isNullOrEmpty(HttpServer.getInstance().getConfiguration().proxyBaseUrl))
+                            if (service.getHttpServer().getServerBaseUrl().contains("://localhost"))
                             {
                                 String endpointUrl = request.getHttpRequest().getRequestURL().toString();
                                 capabilities.updateAllEndpointUrls(endpointUrl);

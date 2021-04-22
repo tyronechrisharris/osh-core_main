@@ -42,7 +42,6 @@ public class SWEApiServlet extends HttpServlet
     static final String INTERNAL_ERROR_LOG_MSG = INTERNAL_ERROR_MSG + " while processing request " + LOG_REQUEST_MSG;
     static final String JSON_CONTENT_TYPE = "application/json";
 
-    protected final SWEApiServiceConfig config;
     protected final SWEApiSecurity securityHandler;
     protected IProcedureStore procedures;
     protected IFeatureStore features;
@@ -50,15 +49,16 @@ public class SWEApiServlet extends HttpServlet
     protected Executor threadPool;
     protected WebSocketServletFactory wsFactory;
     protected Logger log;
+    protected String rootUrl;
     
 
     public SWEApiServlet(SWEApiService service, SWEApiSecurity securityHandler, RootHandler rootHandler, Logger logger)
     {
-        this.config = service.getConfiguration();
         this.threadPool = service.getThreadPool();
         this.securityHandler = securityHandler;
         this.rootHandler = rootHandler;
-        this.log = logger;        
+        this.log = logger;
+        this.rootUrl = service.getHttpServer().getPublicEndpointUrl(service.getConfiguration().endPoint);
     }
 
 
@@ -379,9 +379,9 @@ public class SWEApiServlet extends HttpServlet
     }
 
 
-    public SWEApiServiceConfig getConfig()
+    public String getApiRootURL()
     {
-        return config;
+        return rootUrl;
     }
 
 

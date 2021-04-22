@@ -903,6 +903,24 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     }
     
     
+    /**
+     * Find first module with the given type
+     * @param moduleType parent class of modules to search for
+     * @return The matching module or null if none were found
+     */
+    @SuppressWarnings("unchecked")
+    public synchronized <T> T getModuleByType(Class<T> moduleType)
+    {
+        for (IModule<?> module: getLoadedModules())
+        {
+            if (moduleType.isAssignableFrom(module.getClass()))
+                return (T)module;
+        }
+        
+        return null;
+    }
+    
+    
     @Override
     public IModule<?> getModuleById(String moduleID) throws SensorHubException
     {

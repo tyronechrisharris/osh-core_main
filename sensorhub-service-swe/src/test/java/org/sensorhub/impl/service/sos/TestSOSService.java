@@ -53,7 +53,6 @@ import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorData;
 import org.sensorhub.impl.sensor.FakeSensorData2;
 import org.sensorhub.impl.sensor.FakeSensorNetOnlyFois;
-import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.SWEServlet;
@@ -114,10 +113,11 @@ public class TestSOSService
     static final String TIMERANGE_NOW = "now";
     
     
-    NavigableMap<Integer, Integer> obsFoiMap = new TreeMap<>();
+    SensorHub hub;
     ModuleRegistry moduleRegistry;
     File dbFile1, dbFile2;
-    
+    NavigableMap<Integer, Integer> obsFoiMap = new TreeMap<>();
+        
     
     @Before
     public void setup() throws Exception
@@ -129,7 +129,7 @@ public class TestSOSService
         dbFile2.deleteOnExit();
         
         // get instance with in-memory DB
-        var hub = new SensorHub();
+        hub = new SensorHub();
         hub.start();
         moduleRegistry = hub.getModuleRegistry();
         
@@ -1412,8 +1412,8 @@ public class TestSOSService
     {
         try
         {
-            HttpServer.getInstance().stop();
-            HttpServer.getInstance().cleanup();
+            if (hub != null)
+                hub.stop();
         }
         catch (Exception e)
         {
