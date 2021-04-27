@@ -223,6 +223,7 @@ public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implement
     @Override
     public void onError(AsyncEvent event) throws IOException
     {
+        close();
         servlet.getLogger().debug("Async error", event.getThrowable());
     }
 
@@ -230,6 +231,7 @@ public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implement
     @Override
     public void onComplete(AsyncEvent event) throws IOException
     {
+        subscription.cancel();
         servlet.getLogger().debug("Asynchronous connection complete");
     }
 
