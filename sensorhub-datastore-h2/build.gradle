@@ -13,7 +13,7 @@ dependencies {
 osgi {
   manifest {
     attributes('Bundle-Vendor': 'Sensia Software LLC')
-    attributes('Bundle-Activator': 'org.sensorhub.impl.Activator')
+    attributes('Bundle-Activator': 'org.sensorhub.impl.datastore.h2.Activator')
     
     // ignore some errors
     attributes('-fixupmessages': '''

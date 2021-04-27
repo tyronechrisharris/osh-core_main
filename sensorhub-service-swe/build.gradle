@@ -26,6 +26,7 @@ dependencies {
 osgi {
   manifest {
     attributes('Bundle-Vendor': 'Sensia Software LLC')
+    attributes('Bundle-Activator': 'org.sensorhub.impl.service.swe.Activator')
     attributes('-exportcontents': 'org.sensorhub.*,org.vast.*,net.opengis.*')
   }
 }

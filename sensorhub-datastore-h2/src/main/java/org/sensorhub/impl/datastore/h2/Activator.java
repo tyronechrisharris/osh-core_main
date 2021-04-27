@@ -12,28 +12,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl;
+package org.sensorhub.impl.datastore.h2;
 
 import org.osgi.framework.BundleActivator;
-import org.osgi.framework.BundleContext;
+import org.sensorhub.utils.OshBundleActivator;
 
 
-public class Activator implements BundleActivator
+public class Activator extends OshBundleActivator implements BundleActivator
 {
-
-    @Override
-    public void start(BundleContext context) throws Exception
-    {
-        // TODO Auto-generated method stub
-
-    }
-
-
-    @Override
-    public void stop(BundleContext context) throws Exception
-    {
-        // TODO Auto-generated method stub
-
-    }
-
 }
