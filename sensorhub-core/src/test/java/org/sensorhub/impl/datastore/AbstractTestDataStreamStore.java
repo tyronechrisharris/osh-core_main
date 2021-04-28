@@ -109,7 +109,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     protected DataStreamKey addSimpleDataStream(ProcedureId procID, String outputName, String description, TimeExtent validTime) throws DataStoreException
     {
         SWEHelper fac = new SWEHelper();
-        var dataStruct = fac.createDataRecord()
+        var dataStruct = fac.createRecord()
             .name(outputName)
             .description(description)
             .addField("t1", fac.createTime().asSamplingTimeIsoUTC().build())

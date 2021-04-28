@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import net.opengis.OgcProperty;
@@ -118,7 +119,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         // reset internal state
         this.uniqueID = null;
         this.xmlID = null;
-        this.foiMap = Collections.emptyMap();
+        this.foiMap = new TreeMap<>();
         this.locationOutput = null;
         this.sensorDescription = new PhysicalSystemImpl();
         removeAllOutputs();
@@ -547,7 +548,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 	                        sensorDescWithPos.addPositionAsVector(orientVector);
 	                else // both
 	                {
-	                    DataRecord pos = fac.createDataRecord()
+	                    DataRecord pos = fac.createRecord()
 	                        .addField("location", locVector)
 	                        .addField("orientation", orientVector)
 	                        .build();

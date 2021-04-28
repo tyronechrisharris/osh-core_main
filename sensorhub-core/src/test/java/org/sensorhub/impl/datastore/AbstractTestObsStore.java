@@ -103,7 +103,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     protected DataStreamKey addSimpleDataStream(long procID, String outputName)
     {
         SWEHelper fac = new SWEHelper();
-        var builder = fac.createDataRecord()
+        var builder = fac.createRecord()
             .name(outputName);
         for (int i=0; i<5; i++)
             builder.addField("comp"+i, fac.createQuantity().build());        

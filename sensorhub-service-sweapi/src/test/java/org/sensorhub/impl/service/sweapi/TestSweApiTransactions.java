@@ -414,7 +414,7 @@ public class TestSweApiTransactions
     protected String addDatastream(String procUrl, int num) throws Exception
     {
         var swe = new SWEHelper();
-        var rec = swe.createDataRecord()
+        var rec = swe.createRecord()
             .name(String.format("output%03d", num))
             .addSamplingTimeIsoUTC("time")
             .addField("f1", swe.createQuantity()

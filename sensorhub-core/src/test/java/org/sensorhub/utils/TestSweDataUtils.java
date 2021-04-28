@@ -46,7 +46,7 @@ public class TestSweDataUtils
     public void testTimeStampIndexerFirst() throws Exception
     {
         VectorHelper fac = new VectorHelper();
-        DataRecord rec = fac.createDataRecord()
+        DataRecord rec = fac.createRecord()
             .addSamplingTimeIsoUTC("ts")
             .addField("vec", fac.newLocationVectorXYZ("def", "crs", "km"))
             .build();
@@ -58,7 +58,7 @@ public class TestSweDataUtils
     public void testTimeStampIndexerLast() throws Exception
     {
         VectorHelper fac = new VectorHelper();
-        DataRecord rec =fac.createDataRecord()
+        DataRecord rec =fac.createRecord()
             .addField("vec", fac.newLocationVectorXYZ("def", "crs", "km"))
             .addField("time", fac.createTime()
                 .asPhenomenonTimeIsoUTC()
@@ -85,7 +85,7 @@ public class TestSweDataUtils
     public void testLocationIndexerSamplingPoint2D() throws Exception
     {
         GeoPosHelper fac = new GeoPosHelper();
-        DataRecord rec = fac.createDataRecord()
+        DataRecord rec = fac.createRecord()
             .addField("time", fac.createTime()
                 .asPhenomenonTimeIsoUTC()
                 .build())
@@ -99,7 +99,7 @@ public class TestSweDataUtils
     public void testLocationIndexerSamplingPoint3D() throws Exception
     {
         GeoPosHelper fac = new GeoPosHelper();
-        DataRecord rec = fac.createDataRecord()
+        DataRecord rec = fac.createRecord()
             .addField("time", fac.createTime()
                 .asPhenomenonTimeIsoUTC()
                 .build())
@@ -113,7 +113,7 @@ public class TestSweDataUtils
     public void testLocationIndexerSensorLoc2D() throws Exception
     {
         GeoPosHelper fac = new GeoPosHelper();
-        DataRecord rec = fac.createDataRecord()
+        DataRecord rec = fac.createRecord()
             .addField("time", fac.createTime()
                 .asPhenomenonTimeIsoUTC()
                 .build())
@@ -127,7 +127,7 @@ public class TestSweDataUtils
     public void testLocationIndexerSensorLoc3D() throws Exception
     {
         GeoPosHelper fac = new GeoPosHelper();
-        DataRecord rec = fac.createDataRecord()
+        DataRecord rec = fac.createRecord()
             .addField("time", fac.createTime()
                 .asPhenomenonTimeIsoUTC()
                 .build())
