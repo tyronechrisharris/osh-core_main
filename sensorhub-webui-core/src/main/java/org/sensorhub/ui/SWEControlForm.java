@@ -16,6 +16,7 @@ package org.sensorhub.ui;
 
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.IStreamingControlInterface;
+import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.Button.ClickEvent;
@@ -55,6 +56,7 @@ public class SWEControlForm extends SWEEditForm
         
         // send button
         Button sendBtn = new Button("Send Command");
+        sendBtn.addStyleName(UIConstants.STYLE_SMALL);
         addComponent(sendBtn);
         setComponentAlignment(sendBtn, Alignment.MIDDLE_LEFT);
         sendBtn.addClickListener(new ClickListener()
@@ -68,7 +70,7 @@ public class SWEControlForm extends SWEEditForm
                 {
                     if (controlInput != null)
                     {
-                        var cmd = new CommandData(0, component.getData());
+                        var cmd = new CommandData(1, component.getData());
                         controlInput.executeCommand(cmd, ack -> {}).get();
                     }
                     else

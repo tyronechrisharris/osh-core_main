@@ -17,6 +17,7 @@ package org.sensorhub.ui;
 import net.opengis.swe.v20.DataChoice;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.SimpleComponent;
+import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Component;
@@ -31,7 +32,7 @@ import com.vaadin.v7.ui.ListSelect;
 
 
 @SuppressWarnings("serial")
-public class SWEEditForm extends SWECommonForm
+public abstract class SWEEditForm extends SWECommonForm
 {
     transient DataComponent component;
 
@@ -42,13 +43,13 @@ public class SWEEditForm extends SWECommonForm
         this.component = component;
         if (!component.hasData())
             component.assignNewDataBlock();
-        buildForm();
     }
     
     
     protected void buildForm()
     {
         setSpacing(true);
+        setMargin(false);
         addComponent(buildWidget(component, false));
     }
     
@@ -68,6 +69,7 @@ public class SWEEditForm extends SWECommonForm
             // combo to select command type
             HorizontalLayout header = getCaptionLayout(component);
             ListSelect combo = new ListSelect();
+            combo.addStyleName(UIConstants.STYLE_SMALL);
             combo.setItemCaptionMode(ItemCaptionMode.ID);
             combo.setNullSelectionAllowed(false);
             combo.setRows(1);
@@ -102,6 +104,7 @@ public class SWEEditForm extends SWECommonForm
         {
             HorizontalLayout layout = getCaptionLayout(component);
             final TextField f = new TextField();
+            f.addStyleName(UIConstants.STYLE_SMALL);
             f.setValue(component.getData().getStringValue());
             layout.addComponent(f);
             f.addValueChangeListener(new ValueChangeListener() {
@@ -130,6 +133,7 @@ public class SWEEditForm extends SWECommonForm
         
         Label l = new Label();
         l.setContentMode(ContentMode.HTML);
+        l.addStyleName(UIConstants.STYLE_SMALL);
         l.setValue(getCaption(component, false));
         l.setDescription(getTooltip(component));
         header.addComponent(l);

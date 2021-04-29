@@ -290,7 +290,7 @@ public class ProcessFlowDiagram extends AbstractJavaScriptComponent
         popup.center();
         
         // retrieve param component
-        SWEEditForm form = new SWEEditForm(component);
+        SWEParamForm form = new SWEParamForm(component);
         content.addComponent(form);
         
         // Open it in the UI
