@@ -21,6 +21,7 @@ import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -33,6 +34,7 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.utils.OshAsserts;
+import org.sensorhub.impl.datastore.command.EmptyCommandStore;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
@@ -57,7 +59,9 @@ public class DataStoreUtils
     public static final String ERROR_INVALID_FEATURE_KEY = "Key must be an instance of " + FeatureKey.class.getSimpleName();
     public static final String ERROR_EXISTING_FEATURE = "Datastore already contains feature with the same UID: ";
     public static final String ERROR_EXISTING_FEATURE_VERSION = "Datastore already contains feature with the same UID and validTime";
-    public static final String ERROR_UNKNOWN_PARENT_FEATURE = "Unknown parent feature: ";
+    public static final String ERROR_UNKNOWN_PARENT_FEATURE = "Unknown parent feature: ";    
+    
+    public static final ICommandStore EMPTY_COMMAND_STORE = new EmptyCommandStore();
     
     
     public static long checkInternalID(long internalID)
