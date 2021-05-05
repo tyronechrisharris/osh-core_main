@@ -147,6 +147,10 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         writer.name("id").value(Long.toString(publicDsID, 36));
         writer.name("name").value(dsInfo.getName());
+        
+        if (dsInfo.getDescription() != null)
+            writer.name("description").value(dsInfo.getDescription());
+        
         writer.name("procedure").value(Long.toString(publicProcID, 36));
         
         writer.name("validTime").beginArray()
