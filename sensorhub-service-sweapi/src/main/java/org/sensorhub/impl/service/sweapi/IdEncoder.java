@@ -14,7 +14,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
-import org.vast.util.Asserts;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
@@ -65,22 +64,25 @@ public class IdEncoder
     
     public long encodeID(long internalID)
     {
-        Asserts.checkArgument(internalID < MAXID, "ID cannot be longer than 56 bits");
-        
-        // number of bits necessary to encode ID
-        long x = internalID;
-        int numInternalIDBits = 0;
-        while (x != 0)
-        {
-            numInternalIDBits++;
-            x >>>= 1;
+        if (internalID < MAXID)
+        {        
+            // number of bits necessary to encode ID
+            long x = internalID;
+            int numInternalIDBits = 0;
+            while (x != 0)
+            {
+                numInternalIDBits++;
+                x >>>= 1;
+            }
+            
+            // use truncated hash of ID as higher part
+            long hashValue = getHashValue(internalID, numInternalIDBits);
+            int hashShift = numInternalIDBits + INTERNAL_ID_SIZE_BITS;
+            
+            return numInternalIDBits | (internalID << INTERNAL_ID_SIZE_BITS) | (hashValue << hashShift);
         }
-        
-        // use truncated hash of ID as higher part
-        long hashValue = getHashValue(internalID, numInternalIDBits);
-        int hashShift = numInternalIDBits + INTERNAL_ID_SIZE_BITS;
-        
-        return numInternalIDBits | (internalID << INTERNAL_ID_SIZE_BITS) | (hashValue << hashShift);
+        else
+            return internalID;
     }
     
     
@@ -98,9 +100,8 @@ public class IdEncoder
         int hashShift = numInternalIDBits + INTERNAL_ID_SIZE_BITS;
         long embeddedHashValue = encodedID >>> hashShift;
         
-        //Asserts.checkArgument(embeddedHashValue == correctHashValue, "Invalid external ID");
         if (embeddedHashValue != correctHashValue)
-            return 0;
+            return encodedID;
         else
             return internalID;
     }
