@@ -14,11 +14,11 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.command;
 
+import java.math.BigInteger;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.datastore.command.CommandFilter;
-import org.sensorhub.api.datastore.command.CommandKey;
 import org.sensorhub.api.datastore.command.CommandStats;
 import org.sensorhub.api.datastore.command.CommandStatsQuery;
 import org.sensorhub.api.datastore.command.ICommandStore;
@@ -27,7 +27,7 @@ import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 
 
-public class EmptyCommandStore extends ReadOnlyDataStore<CommandKey, ICommandAck, CommandField, CommandFilter> implements ICommandStore
+public class EmptyCommandStore extends ReadOnlyDataStore<BigInteger, ICommandAck, CommandField, CommandFilter> implements ICommandStore
 {
     ICommandStreamStore commandStreamStore = new EmptyCommandStreamStore();
     
@@ -45,7 +45,7 @@ public class EmptyCommandStore extends ReadOnlyDataStore<CommandKey, ICommandAck
 
 
     @Override
-    public Stream<Entry<CommandKey, ICommandAck>> selectEntries(CommandFilter query, Set<CommandField> fields)
+    public Stream<Entry<BigInteger, ICommandAck>> selectEntries(CommandFilter query, Set<CommandField> fields)
     {
          return Stream.empty();
     }
@@ -73,7 +73,7 @@ public class EmptyCommandStore extends ReadOnlyDataStore<CommandKey, ICommandAck
 
 
     @Override
-    public CommandKey add(ICommandAck obs)
+    public BigInteger add(ICommandAck obs)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
