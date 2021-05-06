@@ -19,6 +19,7 @@ import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.ui.api.IModuleAdminPanel;
+import org.sensorhub.ui.data.FieldProperty;
 import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.ui.Alignment;
@@ -52,6 +53,24 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
     public void build(final MyBeanItem<ModuleConfig> beanItem, final IProcedureObsDatabaseModule<?> db)
     {
         super.build(beanItem, db);
+        
+        // assign default database number if not set and module hasn't been initialized yet
+        if (!db.isInitialized() && db.getConfiguration().databaseNum == null)
+        {
+            int highestDbNum = 0;
+            for (var otherDb: getParentHub().getDatabaseRegistry().getRegisteredObsDatabases())
+                highestDbNum = Math.max(otherDb.getDatabaseNum(), highestDbNum);
+            for (var otherDb: getParentHub().getModuleRegistry().getLoadedModules(IProcedureObsDatabase.class))
+            {
+                if (otherDb.getDatabaseNum() == null)
+                    continue;
+                highestDbNum = Math.max(otherDb.getDatabaseNum(), highestDbNum);
+            }
+            
+            var nextDbNum = highestDbNum+1;
+            //db.getConfiguration().databaseNum = nextDbNum;
+            ((FieldProperty)beanItem.getItemProperty("databaseNum")).setValue(nextDbNum);
+        }
         
         if (db != null && db.isStarted())
         {
@@ -107,6 +126,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
         // show in tabs
         db.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
                 .withProcedures().withUniqueIDs(procUID).done()
+                .withLimit(10)
                 .build())
             .forEach(dsEntry -> {
                 var dsID = dsEntry.getKey().getInternalID();

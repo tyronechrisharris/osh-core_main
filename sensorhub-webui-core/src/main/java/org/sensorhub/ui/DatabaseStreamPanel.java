@@ -69,7 +69,7 @@ import net.opengis.swe.v20.Vector;
  * This represents the panel displaying info for a single data stream
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 24, 2019
  */
 public class DatabaseStreamPanel extends VerticalLayout
