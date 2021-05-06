@@ -131,7 +131,11 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
             public void buttonClick(ClickEvent event)
             {
                 //close();
-                getUI().addWindow(new DownloadModulesPopup());
+                var osgiCtx = ((AdminUI)getUI()).getParentHub().getOsgiContext();
+                if (osgiCtx != null)
+                    getUI().addWindow(new DownloadOsgiBundlesPopup(osgiCtx));
+                else
+                    getUI().addWindow(new DownloadModulesPopup());                    
             }
         });
         
