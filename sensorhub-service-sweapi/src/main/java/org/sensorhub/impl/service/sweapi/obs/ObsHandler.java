@@ -139,7 +139,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         ctx.getSecurityHandler().checkPermission(permissions.stream);
         
         var queryParams = ctx.getRequest().getParameterMap();
-        var filter = getFilter(ctx.getParentRef(), queryParams);
+        var filter = getFilter(ctx.getParentRef(), queryParams, 0, Long.MAX_VALUE);
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         
@@ -206,7 +206,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
 
 
     @Override
-    protected ObsFilter getFilter(ResourceRef parent, Map<String, String[]> queryParams) throws InvalidRequestException
+    protected ObsFilter getFilter(ResourceRef parent, Map<String, String[]> queryParams, long offset, long limit) throws InvalidRequestException
     {
         var builder = new ObsFilter.Builder();
         
@@ -260,17 +260,9 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
                 .build());
         }
         
-        /*
-        disable datastore limit for now
-        since we implement paging with offset/limit in API layer
-        */
-        /*// limit
-        var limit = parseLongArg("limit", queryParams);
-        int maxLimit = Integer.MAX_VALUE;
-        if (limit != null)
-            builder.withLimit(Math.min(maxLimit, limit));
-        else
-            builder.withLimit(100); // default limit*/
+        // limit
+        // need to limit to offset+limit+1 since we rescan from the beginning for now
+        builder.withLimit(offset+limit+1);
         
         return builder.build();
     }

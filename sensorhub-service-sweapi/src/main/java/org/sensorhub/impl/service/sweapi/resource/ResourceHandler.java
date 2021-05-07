@@ -86,11 +86,17 @@ public abstract class ResourceHandler<
     
     
     @SuppressWarnings({ "unchecked" })
-    public F getFilter(final ResourceRef parent, final Map<String, String[]> queryParams) throws InvalidRequestException
+    public F getFilter(final ResourceRef parent, final Map<String, String[]> queryParams, long offset, long limit) throws InvalidRequestException
     {
         B builder = (B)dataStore.filterBuilder();
         if (queryParams != null)
+        {
             buildFilter(parent, queryParams, builder);
+            
+            // limit
+            // need to limit to offset+limit+1 since we rescan from the beginning for now
+            builder.withLimit(offset+limit+1);
+        }
         return builder.build();
     }
     
@@ -101,18 +107,6 @@ public abstract class ResourceHandler<
         var keywords = parseMultiValuesArg("q", queryParams);
         if (keywords != null && !keywords.isEmpty())
             builder.withKeywords(keywords);
-        
-        /*
-        disable datastore limit for now
-        since we implement paging with offset/limit in API layer
-        */
-        /*// limit
-        var limit = parseLongArg("limit", queryParams);
-        int maxLimit = Integer.MAX_VALUE;
-        if (limit != null)
-            builder.withLimit(Math.min(maxLimit, limit));
-        else
-            builder.withLimit(100); // default limit*/
     }
     
     

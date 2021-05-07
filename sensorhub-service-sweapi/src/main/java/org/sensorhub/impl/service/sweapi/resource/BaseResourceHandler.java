@@ -78,7 +78,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected abstract ResourceBinding<K, V> getBinding(ResourceContext ctx, boolean forReading) throws IOException;
     protected abstract K getKey(final ResourceContext ctx, final String id);
     protected abstract String encodeKey(final ResourceContext ctx, K key);
-    protected abstract F getFilter(final ResourceRef parent, final Map<String, String[]> queryParams) throws InvalidRequestException;
+    protected abstract F getFilter(final ResourceRef parent, final Map<String, String[]> queryParams, long offset, long limit) throws InvalidRequestException;
     protected abstract K addEntry(final ResourceContext ctx, final V res) throws DataStoreException;
     protected abstract boolean isValidID(long internalID);
     protected abstract void validate(V resource) throws ResourceParseException;
@@ -260,13 +260,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
-                
-        var queryParams = ctx.req.getParameterMap();
-        F filter = getFilter(ctx.getParentRef(), queryParams);
-        var responseFormat = parseFormat(queryParams);
-        ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         
         // parse offset & limit
+        var queryParams = ctx.req.getParameterMap();
         var offset = parseLongArg("offset", queryParams);
         if (offset == null)
             offset = 0L;
@@ -275,6 +271,11 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         if (limit == null)
             limit = 100L;
         limit = Math.min(limit, 10000);
+        
+        // create datastore filter
+        F filter = getFilter(ctx.getParentRef(), queryParams, offset, limit);
+        var responseFormat = parseFormat(queryParams);
+        ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         
         // set HTTP headers
         ctx.resp.setStatus(200);
@@ -285,22 +286,24 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         binding.startCollection();
         
         // fetch from DB and temporarily handle paging here
-        var results = dataStore.selectEntries(filter)
-            .skip(offset)
-            .limit(limit+1) // get one more so we know when to enable paging
-            .iterator();
-        
-        var count = 0;
-        while (results.hasNext())
+        try (var results = dataStore.selectEntries(filter))
         {
-            if (count++ >= limit)
-                break;
-            var e = results.next();
-            binding.serialize(e.getKey(), e.getValue(), false);
+            var it = results.skip(offset)
+                .limit(limit+1) // get one more so we know when to enable paging
+                .iterator();
+            
+            var count = 0;
+            while (it.hasNext())
+            {
+                if (count++ >= limit)
+                    break;
+                var e = it.next();
+                binding.serialize(e.getKey(), e.getValue(), false);
+            }
+            
+            binding.endCollection(getPagingLinks(ctx, offset, limit, count > limit));
+            return true;
         }
-        
-        binding.endCollection(getPagingLinks(ctx, offset, limit, count > limit));
-        return true;
     }
     
     
@@ -532,11 +535,10 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected boolean getElementCount(final ResourceContext ctx) throws InvalidRequestException, IOException
     {
-        F filter = getFilter(ctx.getParentRef(), ctx.req.getParameterMap());
+        F filter = getFilter(ctx.getParentRef(), ctx.req.getParameterMap(), 0, Long.MAX_VALUE);
         
         // get count from datastore
         long count = dataStore.countMatchingEntries(filter);
-        //long count = dataStore.getNumRecords();
         
         // write out as json
         Writer writer = new OutputStreamWriter(ctx.resp.getOutputStream());
