@@ -30,7 +30,7 @@ import net.opengis.swe.v20.Vector;
  * Helper class to accessand write SWE Common data stuctures and records
  * </p>
  *
- * @author Alex Robin <alex.robin@sensiasoftware.com>
+ * @author Alex Robin
  * @since Jun 10, 2019
  */
 public class SWEDataUtils
