@@ -19,7 +19,6 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -279,7 +278,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     @Override
     public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
     {
-        final var obsIterators = new ArrayList<Spliterator<Entry<BigInteger, IObsData>>>(100);
+        final var obsStreams = new ArrayList<Stream<Entry<BigInteger, IObsData>>>(100);
         
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -292,7 +291,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                     int dbNum = v.databaseNum;
                     var obsStream = v.db.getObservationStore().selectEntries((ObsFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbNum, e));
-                    obsIterators.add(obsStream.spliterator());
+                    obsStreams.add(obsStream);
                 });
         }
         else
@@ -302,18 +301,19 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                     int dbNum = db.getDatabaseNum();
                     var obsStream = db.getObservationStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbNum, e));
-                    obsIterators.add(obsStream.spliterator());
+                    obsStreams.add(obsStream);
                 });
         }
         
         
         // stream and merge obs from all selected datastreams and time periods
-        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, IObsData>>(obsIterators,
+        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, IObsData>>(obsStreams,
             (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));         
                
         // stream output of merge sort iterator + apply limit        
         return StreamSupport.stream(mergeSortIt, false)
-            .limit(filter.getLimit());
+            .limit(filter.getLimit())
+            .onClose(() -> mergeSortIt.close());
     }
 
 

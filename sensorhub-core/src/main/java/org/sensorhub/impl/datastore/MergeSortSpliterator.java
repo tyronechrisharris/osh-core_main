@@ -14,12 +14,13 @@ import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.Spliterator;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 
 /**
  * <p>
  * Implementation of spliterator used to merge and sort elements obtained
- * from several pre-ordered spliterators. The source spliterators must
+ * from several pre-ordered streams. The source streams must
  * already be ordered according to the specified Comparator.
  * </p>
  * @param <T> 
@@ -29,7 +30,7 @@ import java.util.function.Consumer;
  */
 public class MergeSortSpliterator<T> implements Spliterator<T>
 {
-    Collection<Spliterator<T>> iterators;
+    Collection<Stream<T>> streams;
     PriorityQueue<StreamSource> sources;
     Comparator<T> comparator;
     boolean needInit;
@@ -40,9 +41,9 @@ public class MergeSortSpliterator<T> implements Spliterator<T>
         Spliterator<T> iterator;
         T nextRecord;
         
-        StreamSource(Spliterator<T> iterator)
+        StreamSource(Stream<T> stream)
         {
-            this.iterator = iterator;
+            this.iterator = stream.spliterator();
         }
         
         @Override
@@ -58,9 +59,9 @@ public class MergeSortSpliterator<T> implements Spliterator<T>
     }
 
 
-    public MergeSortSpliterator(Collection<Spliterator<T>> iterators, Comparator<T> comparator)
+    public MergeSortSpliterator(Collection<Stream<T>> streams, Comparator<T> comparator)
     {
-        this.iterators = iterators;
+        this.streams = streams;
         this.comparator = comparator;
         this.needInit = true;
     }
@@ -112,17 +113,15 @@ public class MergeSortSpliterator<T> implements Spliterator<T>
     
     private void loadFirstElements()
     {
-        this.sources = new PriorityQueue<>(iterators.size());
+        this.sources = new PriorityQueue<>(streams.size());
         
-        for (Spliterator<T> it: iterators)
+        for (Stream<T> s: streams)
         {
-            StreamSource src = new StreamSource(it);
+            StreamSource src = new StreamSource(s);
             if (src.tryAdvance())
                 sources.add(src);
         }
         
-        iterators.clear();
-        iterators = null;
         needInit = false;
     }
     
@@ -131,5 +130,14 @@ public class MergeSortSpliterator<T> implements Spliterator<T>
     public Spliterator<T> trySplit()
     {
         return null;
+    }
+    
+    
+    public void close()
+    {
+        for (Stream<T> s: streams)
+            s.close();
+        streams.clear();
+        streams = null;
     }
 }

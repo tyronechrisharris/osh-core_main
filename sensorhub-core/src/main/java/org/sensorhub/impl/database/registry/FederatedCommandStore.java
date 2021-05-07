@@ -19,7 +19,6 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -233,7 +232,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
     @Override
     public Stream<Entry<BigInteger, ICommandAck>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {
-        final var cmdIterators = new ArrayList<Spliterator<Entry<BigInteger, ICommandAck>>>(100);
+        final var cmdStreams = new ArrayList<Stream<Entry<BigInteger, ICommandAck>>>(100);
         
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -246,7 +245,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
                     int dbNum = v.databaseNum;
                     var cmdStream = v.db.getCommandStore().selectEntries((CommandFilter)v.filter, fields)
                         .map(e -> toPublicEntry(dbNum, e));
-                    cmdIterators.add(cmdStream.spliterator());
+                    cmdStreams.add(cmdStream);
                 });
         }
         else
@@ -256,18 +255,19 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
                     int dbNum = db.getDatabaseNum();
                     var cmdStream = db.getCommandStore().selectEntries(filter, fields)
                         .map(e -> toPublicEntry(dbNum, e));
-                    cmdIterators.add(cmdStream.spliterator());
+                    cmdStreams.add(cmdStream);
                 });
         }
         
         
         // stream and merge cmmands from all selected command streams and time periods
-        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, ICommandAck>>(cmdIterators,
+        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, ICommandAck>>(cmdStreams,
             (e1, e2) -> e1.getValue().getActuationTime().compareTo(e2.getValue().getActuationTime()));         
                
         // stream output of merge sort iterator + apply limit        
         return StreamSupport.stream(mergeSortIt, false)
-            .limit(filter.getLimit());
+            .limit(filter.getLimit())
+            .onClose(() -> mergeSortIt.close());
     }
     
     

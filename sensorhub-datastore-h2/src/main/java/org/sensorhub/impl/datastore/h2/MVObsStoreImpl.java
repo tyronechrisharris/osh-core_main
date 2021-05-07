@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -448,11 +447,11 @@ public class MVObsStoreImpl implements IObsStore
         
         // create obs streams for each selected series
         // and keep all spliterators in array list
-        final var obsIterators = new ArrayList<Spliterator<Entry<BigInteger, IObsData>>>(100);
-        obsIterators.add(obsSeries
+        final var obsStreams = new ArrayList<Stream<Entry<BigInteger, IObsData>>>(100);
+        obsStreams.add(obsSeries
             .peek(s -> {
                 // make sure list size cannot go over a threshold
-                if (obsIterators.size() >= maxSelectedSeriesOnJoin)
+                if (obsStreams.size() >= maxSelectedSeriesOnJoin)
                     throw new IllegalStateException("Too many datastreams or features of interest selected. Please refine your filter");
             })
             .flatMap(series -> {
@@ -462,18 +461,18 @@ public class MVObsStoreImpl implements IObsStore
                     timeParams.currentTimeOnly,
                     timeParams.latestResultOnly);
                 return getPostFilteredResultStream(obsStream, filter);
-            })
-            .spliterator());        
+            }));        
         
         // TODO group by result time when series with different result times are selected
         
         // stream and merge obs from all selected datastreams and time periods
-        MergeSortSpliterator<Entry<BigInteger, IObsData>> mergeSortIt = new MergeSortSpliterator<>(obsIterators,
+        MergeSortSpliterator<Entry<BigInteger, IObsData>> mergeSortIt = new MergeSortSpliterator<>(obsStreams,
                 (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));         
                
         // stream output of merge sort iterator + apply limit        
         return StreamSupport.stream(mergeSortIt, false)
-            .limit(filter.getLimit());
+            .limit(filter.getLimit())
+            .onClose(() -> mergeSortIt.close());
     }
     
     

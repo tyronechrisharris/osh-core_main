@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
-import java.util.Spliterator;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.h2.mvstore.DataUtils;
@@ -328,28 +327,28 @@ public class MVCommandStoreImpl implements ICommandStore
         
         // create command streams for each selected series
         // and keep all spliterators in array list
-        final var cmdIterators = new ArrayList<Spliterator<Entry<BigInteger, ICommandAck>>>(100);
-        cmdIterators.add(cmdSeries
+        final var cmdStreams = new ArrayList<Stream<Entry<BigInteger, ICommandAck>>>(100);
+        cmdStreams.add(cmdSeries
             .peek(s -> {
                 // make sure list size cannot go over a threshold
-                if (cmdIterators.size() >= maxSelectedSeriesOnJoin)
+                if (cmdStreams.size() >= maxSelectedSeriesOnJoin)
                     throw new IllegalStateException("Too many command streams or command receivers selected. Please refine your filter");
             })
             .flatMap(series -> {
                 Stream<Entry<BigInteger, ICommandAck>> cmdStream = getCommandStream(series, timeParams.issueTimeRange,
                     timeParams.currentTimeOnly || timeParams.latestResultOnly);
                 return getPostFilteredResultStream(cmdStream, filter);
-            })
-            .spliterator());        
+            }));        
         
         
         // stream and merge commands from all selected command streams and time periods
-        MergeSortSpliterator<Entry<BigInteger, ICommandAck>> mergeSortIt = new MergeSortSpliterator<>(cmdIterators,
+        MergeSortSpliterator<Entry<BigInteger, ICommandAck>> mergeSortIt = new MergeSortSpliterator<>(cmdStreams,
                 (e1, e2) -> e1.getValue().getActuationTime().compareTo(e2.getValue().getActuationTime()));         
                
         // stream output of merge sort iterator + apply limit        
         return StreamSupport.stream(mergeSortIt, false)
-            .limit(filter.getLimit());
+            .limit(filter.getLimit())
+            .onClose(() -> mergeSortIt.close());
     }
     
     

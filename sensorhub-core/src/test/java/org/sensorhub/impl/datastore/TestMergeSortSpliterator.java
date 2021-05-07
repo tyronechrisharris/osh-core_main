@@ -52,10 +52,10 @@ public class TestMergeSortSpliterator
     @Test
     public void testSortFewItems()
     {
-        ArrayList<Spliterator<Integer>> sources = new ArrayList<>();
-        sources.add(Arrays.asList(1,4,9).spliterator());
-        sources.add(Arrays.asList(2,5,7).spliterator());
-        sources.add(Arrays.asList(3,6,8).spliterator());
+        ArrayList<Stream<Integer>> sources = new ArrayList<>();
+        sources.add(Arrays.asList(1,4,9).stream());
+        sources.add(Arrays.asList(2,5,7).stream());
+        sources.add(Arrays.asList(3,6,8).stream());
         
         MergeSortSpliterator<Integer> mergedIt = new MergeSortSpliterator<>(sources, Integer::compare);
         checkSortOrder(mergedIt, 9);
@@ -65,10 +65,10 @@ public class TestMergeSortSpliterator
     @Test
     public void testSortWithDuplicates()
     {
-        ArrayList<Spliterator<Integer>> sources = new ArrayList<>();
-        sources.add(Arrays.asList(1,4,9).spliterator());
-        sources.add(Arrays.asList(2,4,5,7).spliterator());
-        sources.add(Arrays.asList(3,6,8,9).spliterator());
+        ArrayList<Stream<Integer>> sources = new ArrayList<>();
+        sources.add(Arrays.asList(1,4,9).stream());
+        sources.add(Arrays.asList(2,4,5,7).stream());
+        sources.add(Arrays.asList(3,6,8,9).stream());
         
         MergeSortSpliterator<Integer> mergedIt = new MergeSortSpliterator<>(sources, Integer::compare);
         checkSortOrder(mergedIt, 11);
@@ -78,10 +78,10 @@ public class TestMergeSortSpliterator
     @Test
     public void testSortManyItemsFromFewSources()
     {
-        ArrayList<Spliterator<Integer>> sources = new ArrayList<>();
-        sources.add(Stream.iterate(0, e -> e+3).limit(1000).spliterator());
-        sources.add(Stream.iterate(1, e -> e+3).limit(1000).spliterator());
-        sources.add(Stream.iterate(2, e -> e+3).limit(1000).spliterator());
+        ArrayList<Stream<Integer>> sources = new ArrayList<>();
+        sources.add(Stream.iterate(0, e -> e+3).limit(1000));
+        sources.add(Stream.iterate(1, e -> e+3).limit(1000));
+        sources.add(Stream.iterate(2, e -> e+3).limit(1000));
         
         MergeSortSpliterator<Integer> mergedIt = new MergeSortSpliterator<>(sources, Integer::compare);
         checkSortOrder(mergedIt, 3000);
@@ -91,10 +91,10 @@ public class TestMergeSortSpliterator
     @Test
     public void testSortFromVeryDifferentSizeSources()
     {
-        ArrayList<Spliterator<Integer>> sources = new ArrayList<>();
-        sources.add(Stream.iterate(0, e -> e+3).limit(400).spliterator());
-        sources.add(Stream.iterate(1, e -> e+3).limit(1000).spliterator());
-        sources.add(Stream.iterate(2, e -> e+3).limit(100).spliterator());
+        ArrayList<Stream<Integer>> sources = new ArrayList<>();
+        sources.add(Stream.iterate(0, e -> e+3).limit(400));
+        sources.add(Stream.iterate(1, e -> e+3).limit(1000));
+        sources.add(Stream.iterate(2, e -> e+3).limit(100));
         
         MergeSortSpliterator<Integer> mergedIt = new MergeSortSpliterator<>(sources, Integer::compare);
         checkSortOrder(mergedIt, 1500);
@@ -104,10 +104,10 @@ public class TestMergeSortSpliterator
     @Test
     public void testSortManyItemsFromManySources()
     {
-        ArrayList<Spliterator<Integer>> sources = new ArrayList<>();
+        ArrayList<Stream<Integer>> sources = new ArrayList<>();
         int numSources = 1000;
         for (int i=0; i<numSources;i++)
-            sources.add(Stream.iterate(i, e -> e+numSources).limit(1000).spliterator());
+            sources.add(Stream.iterate(i, e -> e+numSources).limit(1000));
         
         MergeSortSpliterator<Integer> mergedIt = new MergeSortSpliterator<>(sources, Integer::compare);
         checkSortOrder(mergedIt, 1000000);
@@ -117,12 +117,12 @@ public class TestMergeSortSpliterator
     @Test
     public void testSortManyItemsFromManySourcesRandom()
     {
-        ArrayList<Spliterator<Integer>> sources = new ArrayList<>();
+        ArrayList<Stream<Integer>> sources = new ArrayList<>();
         int numSources = 10000;
         for (int i=0; i<numSources;i++)
         {
             int step = (int)Math.random()*numSources;
-            sources.add(Stream.iterate(i, e -> e+step).limit(200).spliterator());
+            sources.add(Stream.iterate(i, e -> e+step).limit(200));
         }
         
         MergeSortSpliterator<Integer> mergedIt = new MergeSortSpliterator<>(sources, Integer::compare);
@@ -133,10 +133,10 @@ public class TestMergeSortSpliterator
     @Test(expected = IllegalStateException.class)
     public void testOutOfOrderSources()
     {
-        ArrayList<Spliterator<Integer>> sources = new ArrayList<>();
-        sources.add(Arrays.asList(1,9,4).spliterator());
-        sources.add(Arrays.asList(2,5,7).spliterator());
-        sources.add(Arrays.asList(3,6,8).spliterator());
+        ArrayList<Stream<Integer>> sources = new ArrayList<>();
+        sources.add(Arrays.asList(1,9,4).stream());
+        sources.add(Arrays.asList(2,5,7).stream());
+        sources.add(Arrays.asList(3,6,8).stream());
         
         MergeSortSpliterator<Integer> mergedIt = new MergeSortSpliterator<>(sources, Integer::compare);
         checkSortOrder(mergedIt, 9);
