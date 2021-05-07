@@ -655,6 +655,12 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected Collection<Long> parseResourceIds(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
     {
+        return parseResourceIds(paramName, queryParams, this.idEncoder);
+    }
+    
+        
+    protected Collection<Long> parseResourceIds(String paramName, final Map<String, String[]> queryParams, IdEncoder idEncoder) throws InvalidRequestException
+    {
         var allValues = new ArrayList<Long>();
         
         var paramValues = queryParams.get(paramName);

@@ -37,6 +37,7 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
+import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -54,6 +55,8 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     ProcedureObsDbWrapper db;
     ProcedureObsTransactionHandler transactionHandler;
     IdConverter idConverter;
+    IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
+    IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
     
     
     static class ObsHandlerContextData
@@ -230,9 +233,14 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         }
         
         // foi param
-        var foiIDs = parseResourceIds("foi", queryParams);
+        var foiIDs = parseResourceIds("foi", queryParams, foiIdEncoder);
         if (foiIDs != null && !foiIDs.isEmpty())
             builder.withFois(foiIDs);
+        
+        // datastream param
+        var dsIDs = parseResourceIds("datastream", queryParams, dsIdEncoder);
+        if (dsIDs != null && !dsIDs.isEmpty())
+            builder.withDataStreams(dsIDs);
         
         // use opensearch bbox param to filter spatially
         var bbox = parseBboxArg("bbox", queryParams);
