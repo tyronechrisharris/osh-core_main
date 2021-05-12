@@ -179,6 +179,21 @@ public class ResourceContext
     }
     
     
+    public boolean sendAuthenticateRequest()
+    {
+        try
+        {
+            req.authenticate(resp);            
+        }
+        catch (Exception e)
+        {
+            getLogger().error("Could not send authentication request", e);
+        }
+        
+        return false;
+    }
+    
+    
     public boolean sendSuccess(int code)
     {
         return sendSuccess(code, null);

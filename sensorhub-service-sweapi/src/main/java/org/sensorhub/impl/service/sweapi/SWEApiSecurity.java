@@ -91,38 +91,38 @@ public class SWEApiSecurity extends ModuleSecurity
     
     public SWEApiSecurity(SWEApiService service, boolean enable)
     {
-        super(service, "restapi", enable);
+        super(service, "swapi", enable);
         
         // register permission structure
-        api_read = new ItemPermission(rootPerm, "Read");
+        api_read = new ItemPermission(rootPerm, "get");
         proc_summary_permissions.read = new ItemPermission(api_read, NAME_PROC_SUMMARY, LABEL_PROC_SUMMARY);
         proc_details_permissions.read = new ItemPermission(api_read, NAME_PROC_DETAILS, LABEL_PROC_DETAILS);
         foi_permissions.read = new ItemPermission(api_read, NAME_FOI, LABEL_FOI);
         datastream_permissions.read = new ItemPermission(api_read, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.read = new ItemPermission(api_read, NAME_OBS, LABEL_OBS);
         
-        api_create = new ItemPermission(rootPerm, "Create");
+        api_create = new ItemPermission(rootPerm, "create");
         proc_summary_permissions.create = new ItemPermission(api_create, NAME_PROC_SUMMARY, LABEL_PROC_SUMMARY);
         proc_details_permissions.create = new ItemPermission(api_create, NAME_PROC_DETAILS, LABEL_PROC_DETAILS);
         foi_permissions.create = new ItemPermission(api_create, NAME_FOI, LABEL_FOI);
         datastream_permissions.create = new ItemPermission(api_create, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.create = new ItemPermission(api_create, NAME_OBS, LABEL_OBS);
         
-        api_update = new ItemPermission(rootPerm, "Update");
+        api_update = new ItemPermission(rootPerm, "update");
         proc_summary_permissions.update = new ItemPermission(api_update, NAME_PROC_SUMMARY, LABEL_PROC_SUMMARY);
         proc_details_permissions.update = new ItemPermission(api_update, NAME_PROC_DETAILS, LABEL_PROC_DETAILS);
         foi_permissions.update = new ItemPermission(api_update, NAME_FOI, LABEL_FOI);
         datastream_permissions.update = new ItemPermission(api_update, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.update = new ItemPermission(api_update, NAME_OBS, LABEL_OBS);
         
-        api_delete = new ItemPermission(rootPerm, "Delete");
+        api_delete = new ItemPermission(rootPerm, "delete");
         proc_summary_permissions.delete = new ItemPermission(api_delete, NAME_PROC_SUMMARY, LABEL_PROC_SUMMARY);
         proc_details_permissions.delete = new ItemPermission(api_delete, NAME_PROC_DETAILS, LABEL_PROC_DETAILS);
         foi_permissions.delete = new ItemPermission(api_delete, NAME_FOI, LABEL_FOI);
         datastream_permissions.delete = new ItemPermission(api_delete, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.delete = new ItemPermission(api_delete, NAME_OBS, LABEL_OBS);
         
-        api_stream = new ItemPermission(rootPerm, "Streaming");
+        api_stream = new ItemPermission(rootPerm, "stream");
         proc_summary_permissions.stream = new ItemPermission(api_stream, NAME_PROC_SUMMARY, LABEL_PROC_SUMMARY);
         proc_details_permissions.stream = new ItemPermission(api_stream, NAME_PROC_DETAILS, LABEL_PROC_DETAILS);
         foi_permissions.stream = new ItemPermission(api_stream, NAME_FOI, LABEL_FOI);

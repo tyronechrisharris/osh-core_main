@@ -58,7 +58,6 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
 {
     public static final String NOT_FOUND_ERROR_MSG = "Resource not found: %s";
     public static final String ALREADY_EXISTS_ERROR_MSG = "Resource already exists";
-    public static final String ACCESS_DENIED_ERROR_MSG = "Permission denied";
     public static final String UNSUPPORTED_FORMAT_ERROR_MSG = "Unsupported format: ";
     public static final String UNSUPPORTED_WEBSOCKET_MSG = "Websocket not unsupported on resource ";
     
@@ -120,7 +119,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (SecurityException e)
         {
-            return ctx.sendError(403, ACCESS_DENIED_ERROR_MSG);
+            return handleAuthException(ctx, e);
         }
     }
     
@@ -151,7 +150,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (SecurityException e)
         {
-            return ctx.sendError(403, ACCESS_DENIED_ERROR_MSG);
+            return handleAuthException(ctx, e);
         }
     }
     
@@ -182,7 +181,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (SecurityException e)
         {
-            return ctx.sendError(403, ACCESS_DENIED_ERROR_MSG);
+            return handleAuthException(ctx, e);
         }
     }
     
@@ -213,7 +212,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (SecurityException e)
         {
-            return ctx.sendError(403, ACCESS_DENIED_ERROR_MSG);
+            return handleAuthException(ctx, e);
         }
     }
     

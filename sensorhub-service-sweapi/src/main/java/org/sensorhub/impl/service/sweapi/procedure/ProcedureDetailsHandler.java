@@ -110,7 +110,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         }
         catch (SecurityException e)
         {
-            return ctx.sendError(403, ACCESS_DENIED_ERROR_MSG);
+            return handleAuthException(ctx, e);
         }
     }
     

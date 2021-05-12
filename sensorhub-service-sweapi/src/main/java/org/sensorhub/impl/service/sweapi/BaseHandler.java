@@ -22,6 +22,8 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 
 public abstract class BaseHandler implements IResourceHandler
 {
+    public static final String ACCESS_DENIED_ERROR_MSG = "Permission denied";
+    
     final Map<String, IResourceHandler> subResources = new HashMap<>();
 
     
@@ -63,6 +65,15 @@ public abstract class BaseHandler implements IResourceHandler
         }
         
         return resource;
+    }
+    
+    
+    protected boolean handleAuthException(final ResourceContext ctx, final SecurityException e)
+    {
+        if (ctx.getRequest().getRemoteUser() == null)
+            return ctx.sendAuthenticateRequest();
+        else
+            return ctx.sendError(403, ACCESS_DENIED_ERROR_MSG);
     }
 
 }

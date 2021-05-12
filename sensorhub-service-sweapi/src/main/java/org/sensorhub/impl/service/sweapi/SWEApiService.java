@@ -161,6 +161,10 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         if (servlet != null)
             servlet.destroy();
         servlet = null;
+        
+        // stop thread pool
+        if (threadPool != null)
+            threadPool.shutdown();
 
         setState(ModuleState.STOPPED);
     }
@@ -168,9 +172,11 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
 
     protected void deploy() throws SensorHubException
     {
+        var wildcardEndpoint = config.endPoint + "/*";
+        
         // deploy ourself to HTTP server
-        httpServer.deployServlet(servlet, config.endPoint + "/*");
-        httpServer.addServletSecurity(config.endPoint, config.security.requireAuth);
+        httpServer.deployServlet(servlet, wildcardEndpoint);
+        httpServer.addServletSecurity(wildcardEndpoint, config.security.requireAuth);
     }
 
 
