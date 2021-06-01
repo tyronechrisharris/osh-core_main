@@ -33,6 +33,7 @@ import org.sensorhub.api.obs.DataStreamRemovedEvent;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
+import org.sensorhub.api.obs.ObsEvent;
 import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
@@ -217,6 +218,12 @@ public class DataStreamTransactionHandler implements IEventListener
                 .withResult(record)
                 .build();
             
+            getDataEventPublisher().publish(new ObsEvent(
+                e.getTimeStamp(),
+                e.getProcedureUID(),
+                e.getOutputName(),
+                obs));
+            
             // add to store
             obsID = rootHandler.db.getObservationStore().add(obs);
         }
@@ -230,15 +237,22 @@ public class DataStreamTransactionHandler implements IEventListener
         // no checks since this is called at high rate
         //Asserts.checkNotNull(obs, IObsData.class);
         //checkInitialized();
+        var timeStamp = System.currentTimeMillis();
         
         // first send to event bus to minimize latency
         var foiID = obs.getFoiID();
         getDataEventPublisher().publish(new DataEvent(
-            System.currentTimeMillis(),
+            timeStamp,
             dsInfo.getProcedureID().getUniqueID(),
             dsInfo.getOutputName(),
             foiID == null || foiID == FeatureId.NULL_FEATURE ? null : foiID.getUniqueID(),
-            obs.getResult()));        
+            obs.getResult()));
+        
+        getDataEventPublisher().publish(new ObsEvent(
+            timeStamp,
+            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getOutputName(),
+            obs));
         
         // add to store
         return rootHandler.db.getObservationStore().add(obs);
