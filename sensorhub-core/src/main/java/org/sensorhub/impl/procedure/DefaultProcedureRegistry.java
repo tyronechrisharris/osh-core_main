@@ -231,10 +231,10 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
 
 
     @Override
-    @SuppressWarnings("unchecked")
-    public <T extends IProcedureDriver> WeakReference<T> getProcedure(String uid)
+    public WeakReference<IProcedureDriver> getProcedure(String uid)
     {
-        return (WeakReference<T>)getDriverHandler(uid).driver;
+        var driver = getDriverHandler(uid).driver;
+        return new WeakReference<IProcedureDriver>(driver);
     }
 
 

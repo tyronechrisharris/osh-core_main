@@ -67,9 +67,10 @@ public class TestStreamProcess implements IEventListener
         sensorCfg.id = FAKE_SENSOR1_ID;
         sensorCfg.name = "Sensor1";
         IModule<?> sensor = registry.loadModule(sensorCfg);
+        sensor.init();
         FakeSensorData sensorOutput = new FakeSensorData((FakeSensor)sensor, NAME_OUTPUT1, SAMPLING_PERIOD, SAMPLE_COUNT);
         ((FakeSensor)sensor).setDataInterfaces(sensorOutput);
-        sensor.init();
+        sensor.start();
         return (FakeSensor)sensor;
     }
     
@@ -123,10 +124,10 @@ public class TestStreamProcess implements IEventListener
     @Test
     public void testSMLSimpleProcess() throws Exception
     {
-        /*createSensorDataSource1();
+        createSensorDataSource1();
         String smlUrl = TestStreamProcess.class.getResource("/test-processchain.xml").getFile();
         IProcessModule<?> process = createSMLProcess(smlUrl);
-        runProcess(process);*/
+        runProcess(process);
     }
     
     
