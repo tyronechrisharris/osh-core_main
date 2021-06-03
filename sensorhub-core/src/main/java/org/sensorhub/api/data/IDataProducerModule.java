@@ -16,7 +16,7 @@ package org.sensorhub.api.data;
 
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.api.sensor.ISensorDriver;
+import org.sensorhub.api.procedure.IProcedureDriver;
 
 
 /**
@@ -29,7 +29,7 @@ import org.sensorhub.api.sensor.ISensorDriver;
  * @author Alex Robin
  * @date Sep 25, 2020
  */
-public interface IDataProducerModule<ConfigType extends ModuleConfig> extends IModule<ConfigType>, ISensorDriver 
+public interface IDataProducerModule<ConfigType extends ModuleConfig> extends IModule<ConfigType>, IProcedureDriver, IDataProducer 
 {
 
 }

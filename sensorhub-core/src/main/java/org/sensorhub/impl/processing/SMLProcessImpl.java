@@ -283,33 +283,8 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public Map<String, ? extends IStreamingDataInterface> getStatusOutputs()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-
-    @Override
-    public Map<String, ? extends IStreamingDataInterface> getObservationOutputs()
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-
-    @Override
-    public boolean isConnected()
-    {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-
-    @Override
     public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return Collections.emptyMap();
     }
 }
