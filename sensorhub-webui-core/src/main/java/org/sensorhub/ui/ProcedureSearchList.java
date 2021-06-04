@@ -78,8 +78,7 @@ public class ProcedureSearchList extends VerticalLayout
                     procFilter.withKeywords(keywords);
                 
                 // update table
-                updateTable(db, procFilter
-                    .build());
+                updateTable(db, procFilter.build());
             }
         });
         
@@ -154,5 +153,11 @@ public class ProcedureSearchList extends VerticalLayout
         
         return validTime.begin().truncatedTo(ChronoUnit.SECONDS) + " / " +
                (validTime.endsNow() ? "now" : validTime.end().truncatedTo(ChronoUnit.SECONDS));
+    }
+    
+    
+    public TreeTable getTable()
+    {
+        return table;
     }
 }

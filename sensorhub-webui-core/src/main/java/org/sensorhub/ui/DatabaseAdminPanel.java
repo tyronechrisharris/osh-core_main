@@ -14,21 +14,33 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.data.FieldProperty;
 import org.sensorhub.ui.data.MyBeanItem;
+import com.vaadin.event.Action;
+import com.vaadin.event.Action.Handler;
 import com.vaadin.server.FontAwesome;
+import com.vaadin.server.ThemeResource;
+import com.vaadin.shared.MouseEventDetails.MouseButton;
 import com.vaadin.ui.Alignment;
 import com.vaadin.v7.event.ItemClickEvent;
 import com.vaadin.v7.event.ItemClickEvent.ItemClickListener;
+import com.vaadin.v7.ui.TreeTable;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Window.CloseEvent;
+import com.vaadin.ui.Window.CloseListener;
 
 
 /**
@@ -44,6 +56,8 @@ import com.vaadin.ui.VerticalLayout;
 @SuppressWarnings("serial")
 public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabaseModule<?>> implements IModuleAdminPanel<IProcedureObsDatabaseModule<?>>
 {
+    private static final Action DELETE_PROCEDURE_ACTION = new Action("Delete All Procedure Data", new ThemeResource("icons/module_delete.png"));
+    
     VerticalLayout layout;
     ProcedureSearchList procedureTable;
     TabSheet dataStreamTabs;
@@ -95,19 +109,65 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
                 @Override
                 public void itemClick(ItemClickEvent event)
                 {
-                    try
-                    {
-                        // select and open module configuration
-                        String procUID = (String)event.getItem().getItemProperty(ProcedureSearchList.PROP_PROC_UID).getValue();
-                        if (procUID != null)
-                            showProcedureData(db, procUID);
-                    }
-                    catch (Exception e)
-                    {
-                        DisplayUtils.showErrorPopup("Unexpected error when selecting procedure", e);
+                    if (event.getButton() == MouseButton.LEFT)
+                    {                        
+                        try
+                        {
+                            // select and open module configuration
+                            String procUID = (String)event.getItem().getItemProperty(ProcedureSearchList.PROP_PROC_UID).getValue();
+                            if (procUID != null)
+                                showProcedureData(db, procUID);
+                        }
+                        catch (Exception e)
+                        {
+                            DisplayUtils.showErrorPopup("Unexpected error when selecting procedure", e);
+                        }
                     }
                 }
             });
+            
+            // also add context menu
+            procedureTable.getTable().addActionHandler(new Handler() {
+                @Override
+                public Action[] getActions(Object target, Object sender)
+                {
+                    List<Action> actions = new ArrayList<>(10);
+                    actions.add(DELETE_PROCEDURE_ACTION);
+                    return actions.toArray(new Action[0]);
+                }
+
+                @Override
+                public void handleAction(Action action, Object sender, Object target)
+                {
+                    String uid = (String)((TreeTable)sender).getValue();
+                    
+                    final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all data associated with procedure:<br/><b>" + uid + "</b>");
+                    popup.addCloseListener(new CloseListener() {
+                        @Override
+                        public void windowClose(CloseEvent e)
+                        {
+                            if (popup.isConfirmed())
+                            {
+                                // log action
+                                //logAction(action, selectedModule);
+                                
+                                db.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
+                                    .withProcedures(new ProcedureFilter.Builder()
+                                        .withUniqueIDs(uid)
+                                        .build())
+                                    .build());
+                                
+                                db.getProcedureStore().remove(uid);
+                                
+                                procedureTable.updateTable(db, new ProcedureFilter.Builder().build());
+                            }
+                        }
+                    });
+                    
+                    procedureTable.getUI().addWindow(popup);                    
+                }
+            });
+                        
             layout.addComponent(procedureTable);
             
             dataStreamTabs = new TabSheet();
