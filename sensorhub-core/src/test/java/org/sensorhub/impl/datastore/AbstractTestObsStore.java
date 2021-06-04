@@ -355,6 +355,56 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         forceReadBackFromStorage();
         checkRemoveAllKeys();
     }
+    
+    
+    @Test
+    public void testAddAndRemoveEntireDatastream() throws Exception
+    {
+        var ds1Key = addSimpleDataStream(10, "out1");
+        var ds2Key = addSimpleDataStream(20, "out2");
+        var ds3Key = addSimpleDataStream(30, "out3");
+        
+        addSimpleObsWithoutResultTime(ds1Key.getInternalID(), 13, Instant.parse("2000-01-01T00:00:00Z"), 50);
+        addSimpleObsWithoutResultTime(ds2Key.getInternalID(), 12, Instant.parse("2010-05-26T00:00:00Z"), 100);
+        addSimpleObsWithoutResultTime(ds3Key.getInternalID(), 89, Instant.parse("2020-08-14T10:00:00Z"), 120);
+        
+        forceReadBackFromStorage();
+        ObsFilter obsFilter;
+        
+        obsFilter = new ObsFilter.Builder()
+            .withDataStreams(ds1Key.getInternalID())
+            .build();
+        assertTrue(obsStore.countMatchingEntries(obsFilter) > 0);
+        
+        obsFilter = new ObsFilter.Builder()
+            .withDataStreams(ds2Key.getInternalID())
+            .build();
+        assertTrue(obsStore.countMatchingEntries(obsFilter) > 0);
+        
+        obsFilter = new ObsFilter.Builder()
+            .withDataStreams(ds3Key.getInternalID())
+            .build();
+        assertTrue(obsStore.countMatchingEntries(obsFilter) > 0);
+        
+        // remove datastream 2
+        obsStore.getDataStreams().remove(ds2Key);
+        forceReadBackFromStorage();
+        
+        obsFilter = new ObsFilter.Builder()
+            .withDataStreams(ds1Key.getInternalID())
+            .build();
+        assertTrue(obsStore.countMatchingEntries(obsFilter) > 0);
+        
+        obsFilter = new ObsFilter.Builder()
+            .withDataStreams(ds2Key.getInternalID())
+            .build();
+        assertTrue(obsStore.countMatchingEntries(obsFilter) == 0);
+        
+        obsFilter = new ObsFilter.Builder()
+            .withDataStreams(ds3Key.getInternalID())
+            .build();
+        assertTrue(obsStore.countMatchingEntries(obsFilter) > 0);
+    }
 
 
     protected void checkSelectedEntries(Stream<Entry<BigInteger, IObsData>> resultStream, Map<BigInteger, IObsData> expectedResults, ObsFilter filter)

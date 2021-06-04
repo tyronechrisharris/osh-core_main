@@ -140,5 +140,12 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
      * @param procedureStore
      */
     public void linkTo(IProcedureStore procedureStore);
+
+
+    /**
+     * Remove the datastream mapped to the given key and all observations
+     * associated to it.
+     */
+    public IDataStreamInfo remove(Object key);
     
 }

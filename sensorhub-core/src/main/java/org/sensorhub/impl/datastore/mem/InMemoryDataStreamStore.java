@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -262,11 +263,25 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     @Override
     public IDataStreamInfo remove(Object key)
     {
-        var dsKey = DataStoreUtils.checkDataStreamKey(key);
-        var oldValue = map.remove(dsKey);
-        if (oldValue != null)
-            procIdToDsKeys.get(oldValue.getProcedureID().getInternalID()).remove(dsKey);
-        return oldValue;
+        var dsKey = DataStoreUtils.checkDataStreamKey(key);        
+        var oldValue = new AtomicReference<IDataStreamInfo>();
+        
+        map.computeIfPresent(dsKey, (k, v) -> {
+            
+            // remove all associated obs
+            obsStore.removeEntries(new ObsFilter.Builder()
+                .withDataStreams(dsKey.getInternalID())
+                .build());
+            
+            // remove from secondary index
+            procIdToDsKeys.get(v.getProcedureID().getInternalID()).remove(dsKey);
+            
+            // remove entry
+            oldValue.set(v);
+            return null; 
+        });
+        
+        return oldValue.get();
     }
 
 
