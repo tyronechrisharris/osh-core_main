@@ -197,7 +197,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     
     
     @Override
-    public void stop()
+    protected void doStop()
     {
         if (wrapperProcess != null && wrapperProcess.isExecutable())
             wrapperProcess.stop();

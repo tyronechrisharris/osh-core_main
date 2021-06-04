@@ -45,7 +45,7 @@ public class TestStreamProcess implements IEventListener
 
     ModuleRegistry registry;
     DataStreamWriter writer;
-    int eventCount = 0;
+    volatile int eventCount = 0;
         
     
     @Before
@@ -147,6 +147,7 @@ public class TestStreamProcess implements IEventListener
                 System.out.println();
                 
                 eventCount++;
+                System.out.println(eventCount);
             }
             catch (IOException ex)
             {
