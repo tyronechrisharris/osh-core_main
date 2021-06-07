@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import net.opengis.OgcPropertyList;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.AbstractSWEIdentifiable;
@@ -123,10 +124,17 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         try
         {
             smlUtils.makeProcessExecutable(wrapperProcess, true);
+            wrapperProcess.setInstanceName("chain");
+            wrapperProcess.setParentLogger(getLogger());
+            wrapperProcess.init();
         }
         catch (SMLException e)
         {
             throw new ProcessingException("Cannot prepare process chain for execution", e);
+        }
+        catch (ProcessException e)
+        {
+            throw new ProcessingException(e.getMessage(), e.getCause());
         }
         
         // advertise process inputs and outputs
@@ -186,7 +194,6 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         // start processing thread
         try
         {
-            wrapperProcess.setParentLogger(getLogger());
             wrapperProcess.start();
         }
         catch (ProcessException e)
@@ -201,6 +208,40 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     {
         if (wrapperProcess != null && wrapperProcess.isExecutable())
             wrapperProcess.stop();
+    }
+    
+    
+    @Override
+    protected void beforeStart() throws SensorHubException
+    {
+        // register process with registry if attached to a hub
+        try
+        {
+            if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
+                getParentHub().getProcedureRegistry().register(this).get(); // for now, block here until init is also async
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            throw new ProcessingException("Error registering process", e.getCause());
+        }
+    }
+    
+    
+    @Override
+    protected void afterStop() throws SensorHubException
+    {
+        // unregister process if attached to a hub
+        try
+        {
+            if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
+                getParentHub().getProcedureRegistry().unregister(this).get();
+        }
+        catch (ExecutionException | InterruptedException e)
+        {
+            throw new ProcessingException("Error unregistering process", e.getCause());
+        }
+        
+        super.afterStop();
     }
 
 
