@@ -14,14 +14,14 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.processing;
 
-import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.event.Event;
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.data.DataEvent;
-import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.event.IEventListener;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.processing.OSHProcessInfo;
 import org.vast.process.ExecutableProcessImpl;
 import org.vast.process.ProcessException;
@@ -31,15 +31,26 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.Text;
 
 
-public class StreamDataSource extends ExecutableProcessImpl implements IEventListener, ISensorHubProcess
+/**
+ * <p>
+ * Process implementation used to feed data from any real-time datasource
+ * (received from event bus) into a SensorML processing chain.
+ * </p>
+ *
+ * @author Alex Robin
+ * @since July 12, 2017
+ */
+public class StreamDataSource extends ExecutableProcessImpl implements ISensorHubProcess
 {
     public static final OSHProcessInfo INFO = new OSHProcessInfo("datasource:stream", "Stream Data Source", null, StreamDataSource.class);
     public static final String PRODUCER_URI_PARAM = "producerURI";
     
     ISensorHub hub;
-    Text producerURI;
-    WeakReference<IDataProducer> dataSourceRef;
+    Text producerUriParam;
+    
+    String producerUri;
     boolean paused;
+    Subscription sub;
     
     
     public StreamDataSource()
@@ -48,11 +59,11 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
         SWEHelper fac = new SWEHelper();
         
         // param
-        producerURI = fac.createText()
+        producerUriParam = fac.createText()
             .definition(SWEHelper.getPropertyUri("ProducerUID"))
             .label("Producer Unique ID")
             .build();
-        paramData.add(PRODUCER_URI_PARAM, producerURI);
+        paramData.add(PRODUCER_URI_PARAM, producerUriParam);
         
         // output cannot be created until source URI param is set
     }
@@ -61,25 +72,32 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
     @Override
     public void notifyParamChange()
     {
-        String producerUri = producerURI.getData().getStringValue();
+        producerUri = producerUriParam.getData().getStringValue();
         
         if (producerUri != null)
         {
-            dataSourceRef = hub.getProcedureRegistry().getProcedure(producerUri);
-            var producer = dataSourceRef.get();
+            var db = hub.getDatabaseRegistry().getFederatedObsDatabase();
+            var procEntry = db.getProcedureStore().getCurrentVersionEntry(producerUri);
+            if (procEntry == null)
+                throw new IllegalStateException("Procedure with URI " + producerUri + " not found");
             
             // set process info
             ProcessInfo instanceInfo = new ProcessInfo(
                     processInfo.getUri(),
-                    producer.getName(),
+                    procEntry.getValue().getName(),
                     processInfo.getDescription(),
                     processInfo.getImplementationClass());
             this.processInfo = instanceInfo;
             
             // add outputs
-            outputData.clear();
-            for (IStreamingDataInterface output: producer.getOutputs().values())
-                outputData.add(output.getName(), output.getRecordDescription().copy());
+            outputData.clear();            
+            db.getDataStreamStore().select(new DataStreamFilter.Builder()
+                    .withProcedures(procEntry.getKey().getInternalID())
+                    .withCurrentVersion()
+                    .build())
+                .forEach(ds -> {
+                    outputData.add(ds.getOutputName(), ds.getRecordStructure().copy());
+                });
         }
     }
     
@@ -87,17 +105,62 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
     @Override
     public synchronized void start() throws ProcessException
     {
-        IDataProducer producer = dataSourceRef.get();
-        if (producer != null && !started)
+        if (!started)
         {
             started = true;
             
-            // TODO listen on event bus instead!!!
-            // start listening to events on all connected outputs
-            for (String outputName: outputConnections.keySet())
-                producer.getOutputs().get(outputName).registerListener(this);
+            var topics = new ArrayList<String>();
+            for (var output: outputData.getProperties())
+                topics.add(EventUtils.getDataStreamDataTopicID(producerUri, output.getName()));
             
-            getLogger().debug("Connected to data source '{}'", producer.getUniqueIdentifier());
+            hub.getEventBus().newSubscription(DataEvent.class)
+            .withTopicIDs(topics)
+            .subscribe(new Subscriber<DataEvent>() {
+
+                @Override
+                public void onSubscribe(Subscription subscription)
+                {
+                    sub = subscription;
+                    subscription.request(Long.MAX_VALUE);
+                }
+
+                @Override
+                public void onNext(DataEvent e)
+                {
+                    if (paused)
+                        return;
+                    
+                    String outputName = e.getOutputName();
+                    var output = outputData.getComponent(outputName);
+                    
+                    // process each data block
+                    for (DataBlock dataBlk: e.getRecords())
+                    {
+                        try
+                        {
+                            output.setData(dataBlk);    
+                            publishData(outputName);
+                        }
+                        catch (InterruptedException ex)
+                        {
+                            Thread.currentThread().interrupt();
+                        }
+                    }                  
+                }
+
+                @Override
+                public void onError(Throwable throwable)
+                {
+                    getLogger().error("Error receiving data from event bus", throwable);                    
+                }
+
+                @Override
+                public void onComplete()
+                {                    
+                }
+            });
+            
+            getLogger().debug("Connected to data source '{}'", producerUri);
         }
     }
     
@@ -112,16 +175,11 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
     @Override
     public synchronized void stop()
     {
-        IDataProducer producer = dataSourceRef.get();
-        if (producer != null && started)
+        if (started)
         {
             started = false;
-            
-            // unregister listeners from all outputs
-            for (IStreamingDataInterface output: producer.getOutputs().values())
-                output.unregisterListener(this);        
-            
-            getLogger().debug("Disconnected from data source '{}'", producer.getUniqueIdentifier());
+            sub.cancel();
+            getLogger().debug("Disconnected from data source '{}'", producerUri);
         }
     }
 
@@ -135,33 +193,6 @@ public class StreamDataSource extends ExecutableProcessImpl implements IEventLis
     public void resume()
     {
         this.paused = false;
-    }
-
-
-    @Override
-    public void handleEvent(Event e)
-    {
-        if (paused)
-            return;
-        
-        if (e instanceof DataEvent)
-        {
-            // process each data block
-            for (DataBlock dataBlk: ((DataEvent) e).getRecords())
-            {
-                String outputName = ((DataEvent) e).getOutputName();
-                outputData.getComponent(outputName).setData(dataBlk);            
-            
-                try
-                {
-                    publishData(outputName);
-                }
-                catch (InterruptedException ex)
-                {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        }
     }
 
 
