@@ -24,10 +24,9 @@ import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.database.IProcedureObsDatabase;
-import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
-import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.utils.MapWithWildcards;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,7 +140,6 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     
     protected void registerMapping(String uid, int dbNum)
     {
-        OshAsserts.checkValidUID(uid);
         Asserts.checkArgument(dbNum > 0, "Database number must be > 0");        
         
         // only insert mapping if not already registered by another database
@@ -155,14 +153,19 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
             IProcedureObsDatabase defaultDB = obsDatabases.get(0);
             if (defaultDB != null)
             {
-                FeatureKey key = defaultDB.getProcedureStore().remove(uid);
-                if (key != null)
-                {
-                    log.info("Database #{} now handles procedure {}. Removing all records from state DB", dbNum, uid);
-                    defaultDB.getObservationStore().getDataStreams().removeEntries(new DataStreamFilter.Builder()
-                        .withProcedures(key.getInternalID())
-                        .build());
-                }
+                var procFilter = new ProcedureFilter.Builder()
+                    .withUniqueIDs(uid)
+                    .build();
+                
+                var dsFilter = new DataStreamFilter.Builder()
+                    .withProcedures(procFilter)
+                    .build();
+                
+                defaultDB.getDataStreamStore().removeEntries(dsFilter);
+                var count = defaultDB.getProcedureStore().removeEntries(procFilter);
+                
+                if (count > 0)
+                    log.info("Database #{} now handles procedure(s) {}. Removing all records from state DB", dbNum, uid);
             }
         }
     }
