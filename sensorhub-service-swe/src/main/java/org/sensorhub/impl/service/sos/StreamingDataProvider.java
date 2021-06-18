@@ -310,11 +310,12 @@ public class StreamingDataProvider extends ProcedureDataProvider
      */
     protected void sendLatestRecords(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<DataEvent> consumer)
     {
+        var eventTime = System.currentTimeMillis();
         database.getObservationStore().select(obsFilter)
             .forEach(obs -> {
                 var dsInfoCache = dataStreams.get(obs.getDataStreamID());
                 consumer.onNext(new DataEvent(
-                    obs.getResultTime().toEpochMilli(),
+                    eventTime,
                     dsInfoCache.procUID,
                     dsInfoCache.resultStruct.getName(),
                     obs.getFoiID().getUniqueID(),
