@@ -35,6 +35,7 @@ import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.processing.ProcessingException;
+import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.module.AbstractModule;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.process.ProcessException;
@@ -106,6 +107,12 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
             {
                 wrapperProcess = (AggregateProcessImpl)smlUtils.readProcess(is);
                 //smlProcess = (AbstractProcessImpl)wrapperProcess.getComponent(PROCESS_NAME);
+                
+                OshAsserts.checkProcedureObject(wrapperProcess);
+                
+                // set default name if none set in SensorML file
+                if (wrapperProcess.getName() == null)
+                    wrapperProcess.setName(this.getName());
             }
             catch (Exception e)
             {
