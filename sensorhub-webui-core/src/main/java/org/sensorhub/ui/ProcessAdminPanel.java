@@ -107,7 +107,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
         // process flow section
         if (module instanceof SMLProcessImpl)
         {
-            addProcessFlowEditor((SMLProcessImpl)module);
+            //addProcessFlowEditor((SMLProcessImpl)module);
             this.config = (SMLProcessConfig)beanItem.getBean();
         }
     }
@@ -294,11 +294,11 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
     }
     
     
-    @Override
+    /*@Override
     protected void refreshContent()
     {
         ProcessFlowDiagram oldDiagram = diagram;
         diagram = new ProcessFlowDiagram(((SMLProcessImpl)module).getProcessChain());
         replaceComponent(oldDiagram, diagram);
-    }
+    }*/
 }
