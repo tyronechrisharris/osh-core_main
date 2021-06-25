@@ -17,8 +17,7 @@ osgi {
     
     // ignore some errors
     attributes('-fixupmessages': '''
-      Classes found in the wrong directory: \\{META-INF/versions/,
-      Input file does not exist: objenesis
+      Classes found in the wrong directory: \\{META-INF/versions/
     ''')
     
     // remove unused packages from imports
