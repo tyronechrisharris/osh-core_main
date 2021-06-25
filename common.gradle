@@ -109,10 +109,14 @@ subprojects {
           //attributes '-sources': true
           
           // add embedded jars to OSGi classpath
+          // only add jars that were not substituted with newer version by gradle
           def classpath = '.'
           def embeddedJars = ''
+          def runtimeDeps = project.configurations.runtimeClasspath.collect { it.name };
           project.configurations.embedded.each {
-            embeddedJars += 'lib/' + it.name + '=' + it.name + ';lib:=true,'
+            if (runtimeDeps.contains(it.name)) {
+              embeddedJars += 'lib/' + it.name + '=' + it.name + ';lib:=true,'
+            }
           }
           attributes '-includeresource': embeddedJars
           
