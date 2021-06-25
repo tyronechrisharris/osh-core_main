@@ -129,9 +129,11 @@ subprojects {
               def path = resourcesFolder.toPath().relativize(it.toPath())
               def osname = path.getName(2)
               def proc = path.getName(3)
+              if (!nativePaths.isEmpty())				
+                nativePaths += ', '
+              nativePaths += path.toString() + '; '
               nativePaths += 'osname=' + osname + '; '
-              nativePaths += 'processor=' + proc + '; '
-              nativePaths += path.toString() + ', '
+              nativePaths += 'processor=' + proc
             }
             attributes 'Bundle-NativeCode': nativePaths
           }
