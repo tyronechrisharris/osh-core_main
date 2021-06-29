@@ -42,6 +42,8 @@ import net.opengis.swe.v20.DataEncoding;
  */
 public class DataStreamInfo implements IDataStreamInfo
 {
+    protected String name;
+    protected String description;
     protected ProcedureId procedureID;
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
@@ -65,15 +67,14 @@ public class DataStreamInfo implements IDataStreamInfo
     @Override
     public String getName()
     {
-        return recordStruct.getLabel() != null ?
-            recordStruct.getLabel() : getOutputName();
+        return name;
     }
     
     
     @Override
     public String getDescription()
     {
-        return recordStruct.getDescription();
+        return description;
     }
 
 
@@ -126,10 +127,26 @@ public class DataStreamInfo implements IDataStreamInfo
 
         protected B copyFrom(IDataStreamInfo base)
         {
+            instance.name = base.getName();
+            instance.description = base.getDescription();
             instance.procedureID = base.getProcedureID();
             instance.recordStruct = base.getRecordStructure();
             instance.recordEncoding = base.getRecordEncoding();
             instance.validTime = base.getValidTime();
+            return (B)this;
+        }
+        
+        
+        public B withName(String name)
+        {
+            instance.name = name;
+            return (B)this;
+        }
+        
+        
+        public B withDescription(String desc)
+        {
+            instance.description = desc;
             return (B)this;
         }
 
@@ -165,10 +182,11 @@ public class DataStreamInfo implements IDataStreamInfo
         @Override
         public T build()
         {
+            Asserts.checkNotNullOrEmpty(instance.name, "name");
             Asserts.checkNotNull(instance.procedureID, "procedureID");
             Asserts.checkArgument(instance.procedureID.getInternalID() > 0, "procedure internalID must be > 0");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");
-            Asserts.checkNotNull(instance.getOutputName(), "outputName");
+            Asserts.checkNotNullOrEmpty(instance.getOutputName(), "outputName");
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");
             return super.build();
         }

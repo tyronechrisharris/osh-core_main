@@ -98,6 +98,8 @@ public class DataStreamTransactionHandler implements IEventListener
         
         // update datastream info
         var newDsInfo = new DataStreamInfo.Builder()
+            .withName(oldDsInfo.getName())
+            .withDescription(oldDsInfo.getDescription())
             .withProcedure(dsInfo.getProcedureID())
             .withRecordDescription(dataStruct)
             .withRecordEncoding(dataEncoding)

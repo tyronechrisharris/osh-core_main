@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
+import com.google.common.base.Strings;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -206,8 +207,13 @@ public class ProcedureTransactionHandler
         
         if (dsEntry == null)
         {
+            // retrieve parent procedure name
+            var procName = getProcedureStore().get(procKey).getName();
+            var dsName = Strings.isNullOrEmpty(dataStruct.getLabel()) ? outputName : dataStruct.getLabel();
+                
             // create new data stream
             newDsInfo = new DataStreamInfo.Builder()
+                .withName(procName + " - " + dsName)
                 .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
                 .withRecordDescription(dataStruct)
                 .withRecordEncoding(dataEncoding)
