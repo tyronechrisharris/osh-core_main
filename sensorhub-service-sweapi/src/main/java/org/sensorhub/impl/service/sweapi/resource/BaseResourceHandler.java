@@ -231,27 +231,33 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         // get resource key
         var key = getKey(ctx, id);
         if (key != null)
-        {
-            // fetch from data store
-            final V res = dataStore.get(key);
-            if (res != null)
-            {            
-                var queryParams = ctx.req.getParameterMap();
-                var responseFormat = parseFormat(queryParams);
-                ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
-                var binding = getBinding(ctx, false);
-                
-                // set HTTP headers
-                ctx.resp.setStatus(200);
-                ctx.resp.setContentType(responseFormat.getMimeType());
-                
-                // write a single resource to servlet output
-                binding.serialize(key, res, true);
-                return true;
-            }
+            return getByKey(ctx, key);
+        else
+            return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
+    }
+    
+    
+    protected boolean getByKey(final ResourceContext ctx, K key) throws InvalidRequestException, IOException
+    {
+        // fetch from data store
+        final V res = dataStore.get(key);
+        if (res != null)
+        {            
+            var queryParams = ctx.req.getParameterMap();
+            var responseFormat = parseFormat(queryParams);
+            ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
+            var binding = getBinding(ctx, false);
+            
+            // set HTTP headers
+            ctx.resp.setStatus(200);
+            ctx.resp.setContentType(responseFormat.getMimeType());
+            
+            // write a single resource to servlet output
+            binding.serialize(key, res, true);
+            return true;
         }
         
-        return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
+        return false;
     }
     
     

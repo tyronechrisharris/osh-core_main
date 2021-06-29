@@ -132,6 +132,9 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         rootHandler.addSubResource(dataStreamHandler);
         procedureHandler.addSubResource(dataStreamHandler);
         
+        var dataSchemaHandler = new DataStreamSchemaHandler(eventBus, db, security.datastream_permissions);
+        dataStreamHandler.addSubResource(dataSchemaHandler);
+        
         // observations
         var obsHandler = new ObsHandler(eventBus, db, security.obs_permissions);    
         rootHandler.addSubResource(obsHandler);

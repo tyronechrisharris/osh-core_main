@@ -17,7 +17,10 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.sensorhub.api.obs.IDataStreamInfo;
 import org.vast.ogc.gml.GeoJsonBindings;
+import net.opengis.swe.v20.BinaryBlock;
+import net.opengis.swe.v20.BinaryEncoding;
 
 
 public class ResourceFormat
@@ -102,6 +105,22 @@ public class ResourceFormat
     public String toString()
     {
         return mimeType;
+    }
+    
+    
+    public static boolean allowNonBinaryFormat(IDataStreamInfo dsInfo)
+    {
+        if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+        {
+            var enc = (BinaryEncoding)dsInfo.getRecordEncoding();
+            for (var member: enc.getMemberList())
+            {
+                if (member instanceof BinaryBlock)
+                    return false;
+            }
+        }
+        
+        return true;
     }
     
 }

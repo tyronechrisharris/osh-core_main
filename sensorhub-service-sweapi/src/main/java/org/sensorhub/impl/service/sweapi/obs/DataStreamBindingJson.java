@@ -28,17 +28,24 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
+import org.vast.data.DataIterator;
 import org.vast.data.TextEncodingImpl;
+import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
+import com.google.common.collect.Iterables;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import net.opengis.swe.v20.DataRecord;
+import net.opengis.swe.v20.Vector;
 
 
 public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
@@ -49,6 +56,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     SWEJsonStreamReader sweReader;
     JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
+    IdEncoder procIdEncoder = new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED);
     
     
     DataStreamBindingJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
@@ -128,6 +136,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             resultStruct.setDescription(description);
         
         var dsInfo = new DataStreamInfo.Builder()
+            .withName(name)
+            .withDescription(description)
             .withProcedure(new ProcedureId(1, "temp-uid")) // use dummy UID since it will be replaced later
             .withRecordDescription(resultStruct)
             .withRecordEncoding(resultEncoding)
@@ -141,7 +151,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
-        var publicProcID = encodeID(dsInfo.getProcedureID().getInternalID());
+        var publicProcID = procIdEncoder.encodeID(dsInfo.getProcedureID().getInternalID());
         
         writer.beginObject();
         
@@ -151,7 +161,10 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("procedure").value(Long.toString(publicProcID, 36));
+        writer.name("procedure").beginObject()
+            .name("id").value(Long.toString(publicProcID, 36))
+            .name("outputName").value(dsInfo.getOutputName())
+            .endObject();
         
         writer.name("validTime").beginArray()
             .value(dsInfo.getValidTime().begin().toString())
@@ -172,8 +185,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 .value(dsInfo.getResultTimeRange().begin().toString())
                 .value(dsInfo.getResultTimeRange().end().toString())
                 .endArray();
-        }
-        
+        }        
+                
         if (dsInfo.hasDiscreteResultTimes())
         {
             writer.name("runTimes").beginArray();
@@ -182,21 +195,33 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             writer.endArray();
         }
         
-        // result structure & encoding
-        try
+        // observed properties
+        writer.name("observedProperties").beginArray();
+        for (var obsProp: getObservables(dsInfo))
         {
-            writer.name("resultSchema");
-            sweWriter.resetContext();
-            sweBindings.writeDataComponent(sweWriter, dsInfo.getRecordStructure(), false);
-            
-            writer.name("resultEncoding");
-            sweWriter.resetContext();
-            sweBindings.writeAbstractEncoding(sweWriter, dsInfo.getRecordEncoding());
+            writer.beginObject();
+            if (obsProp.getDefinition() != null)
+                writer.name("definition").value(obsProp.getDefinition());
+            if (obsProp.getLabel() != null)
+                writer.name("label").value(obsProp.getLabel());
+            if (obsProp.getDescription() != null)
+                writer.name("description").value(obsProp.getDescription());
+            writer.endObject();
         }
-        catch (Exception e)
+        writer.endArray();
+        
+        // available formats
+        writer.name("formats").beginArray();
+        writer.value(ResourceFormat.OM_JSON.getMimeType());
+        if (!(dsInfo.getRecordEncoding() instanceof BinaryEncoding) ||
+            ResourceFormat.allowNonBinaryFormat(dsInfo))
         {
-            throw new IOException("Error writing SWE Common result structure", e);
+            writer.value(ResourceFormat.SWE_JSON.getMimeType());
+            writer.value(ResourceFormat.SWE_TEXT.getMimeType());
+            writer.value(ResourceFormat.SWE_XML.getMimeType());
         }
+        writer.value(ResourceFormat.SWE_BINARY.getMimeType());        
+        writer.endArray();
         
         if (showLinks)
         {
@@ -224,6 +249,30 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         writer.endObject();
         writer.flush();
+    }
+    
+    
+    protected Iterable<DataComponent> getObservables(IDataStreamInfo dsInfo)
+    {
+        return Iterables.filter(new DataIterator(dsInfo.getRecordStructure()), comp -> {
+            var def = comp.getDefinition();
+            
+            // skip vector coordinates
+            if (comp.getParent() != null && comp.getParent() instanceof Vector)
+                return false;
+            
+            // skip data records
+            if (comp instanceof DataRecord)
+                return false;
+            
+            // skip well known fields
+            if (SWEConstants.DEF_SAMPLING_TIME.equals(def) ||
+                SWEConstants.DEF_PHENOMENON_TIME.equals(def) ||
+                SWEConstants.DEF_SYSTEM_ID.equals(def))
+                return false;
+            
+            return true;
+        });
     }
 
 

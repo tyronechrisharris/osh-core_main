@@ -46,7 +46,6 @@ import org.vast.swe.fast.JsonDataWriter;
 import org.vast.swe.fast.JsonDataWriterGson;
 import org.vast.swe.fast.TextDataWriter;
 import org.vast.swe.fast.XmlDataWriter;
-import net.opengis.swe.v20.BinaryBlock;
 import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.TextEncoding;
 
@@ -144,7 +143,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
             {
                 dataParser = SWEHelper.createDataParser(dsInfo.getRecordEncoding());
             }
-            else if (allowNonBinaryFormat(dsInfo))
+            else if (ResourceFormat.allowNonBinaryFormat(dsInfo))
             {
                 if (format.isOneOf(ResourceFormat.SWE_TEXT))
                 {
@@ -206,7 +205,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
             {
                 dataWriter = SWEHelper.createDataWriter(dsInfo.getRecordEncoding());
             }
-            else if (allowNonBinaryFormat(dsInfo))
+            else if (ResourceFormat.allowNonBinaryFormat(dsInfo))
             {
                 if (format.equals(ResourceFormat.SWE_JSON))
                 {
@@ -231,22 +230,6 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
         dataWriter.setDataComponents(dsInfo.getRecordStructure());
         
         return dataWriter;
-    }
-    
-    
-    protected boolean allowNonBinaryFormat(IDataStreamInfo dsInfo)
-    {
-        if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
-        {
-            var enc = (BinaryEncoding)dsInfo.getRecordEncoding();
-            for (var member: enc.getMemberList())
-            {
-                if (member instanceof BinaryBlock)
-                    return false;
-            }
-        }
-        
-        return true;
     }
 
 
