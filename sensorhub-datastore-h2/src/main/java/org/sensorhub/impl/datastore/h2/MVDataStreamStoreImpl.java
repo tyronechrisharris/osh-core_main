@@ -41,6 +41,7 @@ import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
+import com.google.common.hash.Hashing;
 
 
 /**
@@ -112,9 +113,9 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                         getOutputName(),
                         getValidTime().begin());
                     
-                    var nextKey = dataStreamByProcIndex.higherKey(procDsKey);
+                    var nextKey = dataStreamByProcIndex.lowerKey(procDsKey); // use lower cause time sorting is reversed
                     if (nextKey != null &&
-                        nextKey.procedureID == procDsKey.internalID &&
+                        nextKey.procedureID == procDsKey.procedureID &&
                         nextKey.signalName.equals(procDsKey.signalName))
                         validTime = TimeExtent.period(validTime.begin(), Instant.ofEpochSecond(nextKey.validStartTime));
                 }
@@ -162,7 +163,18 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         
         // full-text index
         mapName = DATASTREAM_FULLTEXT_MAP_NAME + ":" + obsStore.getDatastoreName();
-        this.fullTextIndex = new FullTextIndex<>(mvStore, mapName, new MVVarLongDataType());
+        this.fullTextIndex = new FullTextIndex<>(mvStore, mapName, new MVVarLongDataType()) {
+            @Override
+            protected void addToTokenSet(IDataStreamInfo dsInfo, Set<String> tokenSet)
+            {
+                super.addToTokenSet(dsInfo, tokenSet);
+                
+                // add observable names and descriptions to full text index
+                DataStreamFilter.getTextContent(dsInfo).forEach(text -> {
+                    super.addToTokenSet(text, tokenSet);
+                });
+            }
+        };
 
         // ID provider
         this.idProvider = idProvider;

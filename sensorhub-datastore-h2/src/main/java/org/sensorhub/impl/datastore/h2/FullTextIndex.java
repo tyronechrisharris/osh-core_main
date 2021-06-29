@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -97,14 +96,14 @@ public class FullTextIndex<T extends IResource, K extends Comparable<?>>
     protected void addToTokenSet(T resource, Set<String> tokenSet)
     {
         if (!Strings.isNullOrEmpty(resource.getName()))
-            addToTokenSet(resource.getName(), analyzer, tokenSet);
+            addToTokenSet(resource.getName(), tokenSet);
         
         if (!Strings.isNullOrEmpty(resource.getDescription()))
-            addToTokenSet(resource.getDescription(), analyzer, tokenSet);
+            addToTokenSet(resource.getDescription(), tokenSet);
     }
     
     
-    protected void addToTokenSet(String fieldValue, Analyzer analyzer, Set<String> tokenSet)
+    protected void addToTokenSet(String fieldValue, Set<String> tokenSet)
     {
         try (TokenStream tokenStream = analyzer.tokenStream(null, fieldValue))
         {
@@ -128,7 +127,7 @@ public class FullTextIndex<T extends IResource, K extends Comparable<?>>
     {
         Set<String> tokens = new HashSet<>();
         for (String keyword: filter.getKeywords())
-            addToTokenSet(keyword, analyzer, tokens);
+            addToTokenSet(keyword, tokens);
         return tokens.stream();
     }
     

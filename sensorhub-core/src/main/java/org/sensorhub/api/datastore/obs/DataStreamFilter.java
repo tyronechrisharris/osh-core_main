@@ -17,7 +17,10 @@ package org.sensorhub.api.datastore.obs;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Objects;
 import java.util.SortedSet;
+import java.util.stream.Stream;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.feature.FoiFilter;
@@ -25,7 +28,10 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
+import org.vast.data.DataIterator;
+import org.vast.swe.SWEConstants;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.Longs;
 import net.opengis.swe.v20.DataComponent;
 
@@ -121,6 +127,16 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
         }
         
         return false;
+    }
+    
+    
+    @Override
+    public boolean testFullText(IDataStreamInfo res)
+    {
+        if (super.testFullText(res))
+            return true;
+        
+        return getTextContent(res).anyMatch(fullText::test);
     }
 
 
@@ -495,6 +511,27 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
                 }                
             };
         }
+    }
+    
+    
+    public static Stream<String> getTextContent(IDataStreamInfo dsInfo)
+    {
+        return Streams.stream((Iterator<DataComponent>)new DataIterator(dsInfo.getRecordStructure()))
+            .filter(comp -> {
+                // skip well known fields
+                var def = comp.getDefinition();
+                return !(SWEConstants.DEF_SAMPLING_TIME.equals(def) ||
+                         SWEConstants.DEF_PHENOMENON_TIME.equals(def) ||
+                         SWEConstants.DEF_SYSTEM_ID.equals(def));
+            })
+            .flatMap(comp -> {
+                var label = comp.getLabel();
+                if (label == null)
+                    label = comp.getName();
+                var description = comp.getDescription();
+                return Stream.of(label, description);
+            })
+            .filter(Objects::nonNull);
     }
 
 }
