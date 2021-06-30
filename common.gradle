@@ -120,21 +120,34 @@ subprojects {
           }
           attributes '-includeresource': embeddedJars
           
-          // native libs location
+          // auto-generate Bundle-NativeCode header if native libs are placed in
+          // the lib/native resource folder with the proper directory structure
           def resourcesFolder = new File(projectDir, '/src/main/resources')
           def nativeFolder = new File(resourcesFolder, '/lib/native')
           if (nativeFolder.exists()) {
+            def currentPlatform = ''
             def nativePaths = ''
             fileTree(dir: nativeFolder).files.each {
               def path = resourcesFolder.toPath().relativize(it.toPath())
+              if (path.nameCount != 5) {
+                throw new GradleException("Invalid native library path in resource folder: " + path +
+                  ". Path must be of the form 'lib/native/{osname}/{arch}/{libname}.{ext}'")
+              }
+              
+              // lib paths must be grouped by platform (os and processor)
               def osname = path.getName(2)
               def proc = path.getName(3)
-              if (!nativePaths.isEmpty())				
-                nativePaths += ', '
-              nativePaths += path.toString().replace('\\', '/') + '; '
-              nativePaths += 'osname=' + osname + '; '
-              nativePaths += 'processor=' + proc
+              def platform = 'osname=' + osname + '; processor=' + proc
+              if (platform != currentPlatform) {
+                if (!nativePaths.isEmpty())       
+                  nativePaths += ', '
+                nativePaths += platform
+                currentPlatform = platform;
+              }
+              
+              nativePaths += '; ' + path.toString().replace('\\', '/')
             }
+            
             attributes 'Bundle-NativeCode': nativePaths
           }
         }
