@@ -27,6 +27,7 @@ import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.feature.FoiHistoryHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
+import org.sensorhub.impl.service.sweapi.obs.DataStreamSchemaHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureDetailsHandler;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
