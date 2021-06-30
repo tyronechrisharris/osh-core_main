@@ -131,7 +131,7 @@ subprojects {
               def proc = path.getName(3)
               if (!nativePaths.isEmpty())				
                 nativePaths += ', '
-              nativePaths += path.toString() + '; '
+              nativePaths += path.toString().replace('\\', '/') + '; '
               nativePaths += 'osname=' + osname + '; '
               nativePaths += 'processor=' + proc
             }
