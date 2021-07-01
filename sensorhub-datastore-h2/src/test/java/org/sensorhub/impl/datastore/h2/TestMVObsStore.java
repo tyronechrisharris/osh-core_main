@@ -21,6 +21,7 @@ import org.h2.mvstore.MVStore;
 import org.junit.After;
 import org.junit.Test;
 import org.sensorhub.impl.datastore.AbstractTestObsStore;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 
 
 public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
@@ -55,7 +56,7 @@ public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
                 .cacheSize(10)
                 .open();
         
-        return MVObsStoreImpl.open(mvStore,
+        return MVObsStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,
             MVDataStoreInfo.builder()
                 .withName(OBS_DATASTORE_NAME)
                 .build());

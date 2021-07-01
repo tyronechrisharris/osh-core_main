@@ -22,6 +22,7 @@ import javax.xml.namespace.QName;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
@@ -31,10 +32,12 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.sensorhub.impl.datastore.h2.MVFeatureStoreImpl.IGeoTemporalFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
+import com.google.common.hash.Hashing;
 import net.opengis.gml.v32.AbstractGeometry;
 
 
@@ -61,10 +64,11 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
     /**
      * Opens an existing foi store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
+     * @param idProviderType Type of ID provider to use to generate new IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVFoiStoreImpl open(MVStore mvStore, MVDataStoreInfo newStoreInfo)
+    public static MVFoiStoreImpl open(MVStore mvStore, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -73,7 +77,18 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
             H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         }
         
-        return (MVFoiStoreImpl)new MVFoiStoreImpl().init(mvStore, dataStoreInfo, null);
+        // create ID provider
+        IdProvider<IGeoFeature> idProvider = null;
+        if (idProviderType == IdProviderType.UID_HASH)
+        {
+            var hashFunc = Hashing.murmur3_128(842156962);
+            idProvider = f -> {
+                var hc = hashFunc.hashUnencodedChars(f.getUniqueIdentifier());
+                return hc.asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
+            };
+        }
+        
+        return (MVFoiStoreImpl)new MVFoiStoreImpl().init(mvStore, dataStoreInfo, idProvider);
     }
     
     

@@ -79,22 +79,22 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
             mvStore.setVersionsToKeep(0);
             
             // open procedure store
-            procStore = MVProcedureStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+            procStore = MVProcedureStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(PROCEDURE_STORE_NAME)
                 .build());
             
             // open foi store
-            foiStore = MVFoiStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+            foiStore = MVFoiStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(FOI_STORE_NAME)
                 .build());
             
             // open observation store
-            obsStore = MVObsStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+            obsStore = MVObsStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(OBS_STORE_NAME)
                 .build());
             
             // open command store
-            cmdStore = MVCommandStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+            cmdStore = MVCommandStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(CMD_STORE_NAME)
                 .build());
             

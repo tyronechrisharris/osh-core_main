@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import org.h2.mvstore.MVStore;
 import org.junit.After;
 import org.sensorhub.impl.datastore.AbstractTestDataStreamStore;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 
 
 public class TestMVDataStreamStore extends AbstractTestDataStreamStore<MVDataStreamStoreImpl>
@@ -53,7 +54,7 @@ public class TestMVDataStreamStore extends AbstractTestDataStreamStore<MVDataStr
                 .cacheSize(10)
                 .open();
         
-        var obsStore = MVObsStoreImpl.open(mvStore,
+        var obsStore = MVObsStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,
             MVDataStoreInfo.builder()
                 .withName("OBS_STORE")
                 .build());

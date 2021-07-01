@@ -29,6 +29,12 @@ import org.sensorhub.api.database.DatabaseConfig;
  */
 public abstract class MVDatabaseConfig extends DatabaseConfig
 {
+    public enum IdProviderType
+    {
+        SEQUENTIAL,
+        UID_HASH
+    }
+    
     
     @Required
     @DisplayInfo(desc = "Path to database file")
@@ -41,6 +47,10 @@ public abstract class MVDatabaseConfig extends DatabaseConfig
     
     @DisplayInfo(desc = "Size of the auto-commit write buffer, in KB")
     public int autoCommitBufferSize = 1024;
+    
+    
+    @DisplayInfo(label = "ID Generator", desc = "Method used to generate new resource IDs")
+    public IdProviderType idProviderType = IdProviderType.SEQUENTIAL;
     
     
     @DisplayInfo(desc = "Set to compress underlying file storage")

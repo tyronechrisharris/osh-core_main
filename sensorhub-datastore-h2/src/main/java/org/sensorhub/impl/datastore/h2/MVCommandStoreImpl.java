@@ -35,6 +35,8 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.WriteBuffer;
 import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
 import org.sensorhub.api.datastore.command.CommandStatsQuery;
@@ -43,9 +45,11 @@ import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.MergeSortSpliterator;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
+import com.google.common.hash.Hashing;
 
 
 /**
@@ -122,10 +126,11 @@ public class MVCommandStoreImpl implements ICommandStore
      * Opens an existing command store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
      * @param procedureStore associated procedure descriptions data store
+     * @param idProviderType Type of ID provider to use to generate new command stream IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVCommandStoreImpl open(MVStore mvStore, MVDataStoreInfo newStoreInfo)
+    public static MVCommandStoreImpl open(MVStore mvStore, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -134,11 +139,25 @@ public class MVCommandStoreImpl implements ICommandStore
             H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         }
         
-        return new MVCommandStoreImpl().init(mvStore, dataStoreInfo);
+        // create ID provider
+        IdProvider<ICommandStreamInfo> idProvider = null;
+        if (idProviderType == IdProviderType.UID_HASH)
+        {
+            var hashFunc = Hashing.murmur3_128(741532149);
+            idProvider = dsInfo -> {
+                var hasher = hashFunc.newHasher();
+                hasher.putLong(dsInfo.getProcedureID().getInternalID());
+                hasher.putUnencodedChars(dsInfo.getControlInputName());
+                hasher.putLong(dsInfo.getValidTime().begin().toEpochMilli());
+                return hasher.hash().asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
+            };
+        }
+        
+        return new MVCommandStoreImpl().init(mvStore, dataStoreInfo, idProvider);
     }
     
     
-    private MVCommandStoreImpl init(MVStore mvStore, MVDataStoreInfo dataStoreInfo)
+    private MVCommandStoreImpl init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider<ICommandStreamInfo> dsIdProvider)
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);

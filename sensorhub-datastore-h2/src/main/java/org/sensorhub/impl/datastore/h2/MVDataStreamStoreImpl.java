@@ -41,7 +41,6 @@ import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
-import com.google.common.hash.Hashing;
 
 
 /**

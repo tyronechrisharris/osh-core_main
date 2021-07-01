@@ -21,6 +21,7 @@ import org.h2.mvstore.MVStore;
 import org.junit.After;
 import org.junit.Test;
 import org.sensorhub.impl.datastore.AbstractTestCommandStore;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 
 
 public class TestMVCommandStore extends AbstractTestCommandStore<MVCommandStoreImpl>
@@ -55,7 +56,7 @@ public class TestMVCommandStore extends AbstractTestCommandStore<MVCommandStoreI
                 .cacheSize(10)
                 .open();
         
-        return MVCommandStoreImpl.open(mvStore,
+        return MVCommandStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,
             MVDataStoreInfo.builder()
                 .withName(CMD_DATASTORE_NAME)
                 .build());

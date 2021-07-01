@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import org.h2.mvstore.MVStore;
 import org.junit.After;
 import org.sensorhub.impl.datastore.AbstractTestCommandStreamStore;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 
 
 public class TestMVCommandStreamStore extends AbstractTestCommandStreamStore<MVCommandStreamStoreImpl>
@@ -53,7 +54,7 @@ public class TestMVCommandStreamStore extends AbstractTestCommandStreamStore<MVC
                 .cacheSize(10)
                 .open();
         
-        var cmdStore = MVCommandStoreImpl.open(mvStore,
+        var cmdStore = MVCommandStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,
             MVDataStoreInfo.builder()
                 .withName("CMD_STORE")
                 .build());
