@@ -241,6 +241,7 @@ public class ProcedureTransactionHandler
                 !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding)))
             {
                 newDsInfo = new DataStreamInfo.Builder()
+                    .withName(oldDsInfo.getName())
                     .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
                     .withRecordDescription(dataStruct)
                     .withRecordEncoding(dataEncoding)
@@ -295,8 +296,13 @@ public class ProcedureTransactionHandler
         
         if (csEntry == null)
         {
+            // retrieve parent procedure name
+            var procName = getProcedureStore().get(procKey).getName();
+            var csName = Strings.isNullOrEmpty(dataStruct.getLabel()) ? commandName : dataStruct.getLabel();
+                
             // create new command stream
             newCsInfo = new CommandStreamInfo.Builder()
+                .withName(procName + " - " + csName)
                 .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
                 .withRecordDescription(dataStruct)
                 .withRecordEncoding(dataEncoding)
@@ -324,6 +330,7 @@ public class ProcedureTransactionHandler
                 !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), dataEncoding)))
             {
                 newCsInfo = new CommandStreamInfo.Builder()
+                    .withName(oldCsInfo.getName())
                     .withProcedure(new ProcedureId(procKey.getInternalID(), procUID))
                     .withRecordDescription(dataStruct)
                     .withRecordEncoding(dataEncoding)

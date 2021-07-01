@@ -76,6 +76,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     protected CommandStreamKey addCommandStream(ProcedureId procID, DataComponent recordStruct, TimeExtent validTime) throws DataStoreException
     {
         var builder = new CommandStreamInfo.Builder()
+            .withName(recordStruct.getName())
             .withProcedure(procID)
             .withRecordDescription(recordStruct)
             .withRecordEncoding(new TextEncodingImpl());

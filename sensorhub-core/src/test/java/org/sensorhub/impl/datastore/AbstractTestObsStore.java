@@ -84,6 +84,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         try
         {
             var dsInfo = new DataStreamInfo.Builder()
+                .withName(recordStruct.getName())
                 .withProcedure(new ProcedureId(procID, PROC_UID_PREFIX+procID))
                 .withRecordDescription(recordStruct)
                 .withRecordEncoding(new TextEncodingImpl())

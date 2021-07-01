@@ -88,6 +88,8 @@ public class CommandStreamTransactionHandler
         
         // update datastream info
         var newCsInfo = new CommandStreamInfo.Builder()
+            .withName(oldCsInfo.getName())
+            .withDescription(oldCsInfo.getDescription())
             .withProcedure(csInfo.getProcedureID())
             .withRecordDescription(dataStruct)
             .withRecordEncoding(dataEncoding)

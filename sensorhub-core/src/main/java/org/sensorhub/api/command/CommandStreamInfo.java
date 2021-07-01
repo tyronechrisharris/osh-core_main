@@ -32,6 +32,8 @@ import net.opengis.swe.v20.DataEncoding;
  */
 public class CommandStreamInfo implements ICommandStreamInfo
 {
+    protected String name;
+    protected String description;
     protected ProcedureId procedureID;
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
@@ -116,10 +118,26 @@ public class CommandStreamInfo implements ICommandStreamInfo
 
         protected B copyFrom(ICommandStreamInfo base)
         {
+            instance.name = base.getName();
+            instance.description = base.getDescription();
             instance.procedureID = base.getProcedureID();
             instance.recordStruct = base.getRecordStructure();
             instance.recordEncoding = base.getRecordEncoding();
             instance.validTime = base.getValidTime();
+            return (B)this;
+        }
+        
+        
+        public B withName(String name)
+        {
+            instance.name = name;
+            return (B)this;
+        }
+        
+        
+        public B withDescription(String desc)
+        {
+            instance.description = desc;
             return (B)this;
         }
 
@@ -155,6 +173,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
         @Override
         public T build()
         {
+            Asserts.checkNotNullOrEmpty(instance.name, "name");
             Asserts.checkNotNull(instance.procedureID, "procedureID");
             Asserts.checkArgument(instance.procedureID.getInternalID() > 0, "procedure internalID must be > 0");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");

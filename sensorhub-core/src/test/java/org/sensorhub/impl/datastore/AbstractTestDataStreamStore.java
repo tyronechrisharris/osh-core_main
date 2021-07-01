@@ -76,6 +76,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     protected DataStreamKey addDataStream(ProcedureId procID, DataComponent recordStruct, TimeExtent validTime) throws DataStoreException
     {
         var builder = new DataStreamInfo.Builder()
+            .withName(recordStruct.getName())
             .withProcedure(procID)
             .withRecordDescription(recordStruct)
             .withRecordEncoding(new TextEncodingImpl());

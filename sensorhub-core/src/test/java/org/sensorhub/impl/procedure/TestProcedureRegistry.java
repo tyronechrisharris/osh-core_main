@@ -103,10 +103,10 @@ public class TestProcedureRegistry
             assertEquals(2, stateDb.getDataStreamStore().size());
             var ds1 = stateDb.getDataStreamStore().getLatestVersion(sensor.getUniqueIdentifier(), NAME_OUTPUT1);
             assertEquals(NAME_OUTPUT1, ds1.getOutputName());
-            assertEquals(sensor.getOutputs().get(NAME_OUTPUT1).getRecordDescription().getLabel(), ds1.getName());
+            assertEquals(sensor.getCurrentDescription().getName() + " - " + sensor.getOutputs().get(NAME_OUTPUT1).getRecordDescription().getLabel(), ds1.getName());
             var ds2 = stateDb.getDataStreamStore().getLatestVersion(sensor.getUniqueIdentifier(), NAME_OUTPUT2);
             assertEquals(NAME_OUTPUT2, ds2.getOutputName());
-            assertEquals(sensor.getOutputs().get(NAME_OUTPUT2).getRecordDescription().getLabel(), ds2.getName());   
+            assertEquals(sensor.getCurrentDescription().getName() + " - " + sensor.getOutputs().get(NAME_OUTPUT2).getRecordDescription().getLabel(), ds2.getName());   
             
         })
         .thenCompose(nil -> {
@@ -199,11 +199,12 @@ public class TestProcedureRegistry
             System.out.println(stateDb.getDataStreamStore().size() + " datastream(s) registered");
             for (var sensor: sensorNet.getMembers().values())
             {
+                var sensorName = sensor.getCurrentDescription().getName();
                 for (var output: sensor.getOutputs().values())
                 {
                     var ds = stateDb.getDataStreamStore().getLatestVersion(sensor.getUniqueIdentifier(), output.getName());
                     assertEquals(output.getName(), ds.getOutputName());
-                    assertEquals(output.getRecordDescription().getLabel(), ds.getName());
+                    assertEquals(sensorName + " - " + output.getRecordDescription().getLabel(), ds.getName());
                 }
             }           
         })
@@ -294,9 +295,10 @@ public class TestProcedureRegistry
             System.out.println(stateDb.getDataStreamStore().size() + " datastream(s) registered");
             for (var output: sensorNet.getOutputs().values())
             {
+                var sensorName = sensorNet.getCurrentDescription().getName();
                 var ds = stateDb.getDataStreamStore().getLatestVersion(sensorNet.getUniqueIdentifier(), output.getName());
                 assertEquals(output.getName(), ds.getOutputName());
-                assertEquals(output.getRecordDescription().getLabel(), ds.getName());
+                assertEquals(sensorName + " - " + output.getRecordDescription().getLabel(), ds.getName());
             }           
         })
         .thenCompose(nil -> {

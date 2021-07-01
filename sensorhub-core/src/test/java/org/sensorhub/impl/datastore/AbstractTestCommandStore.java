@@ -85,6 +85,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
         try
         {
             var csInfo = new CommandStreamInfo.Builder()
+                .withName(recordStruct.getName())
                 .withProcedure(new ProcedureId(procID, PROC_UID_PREFIX+procID))
                 .withRecordDescription(recordStruct)
                 .withRecordEncoding(new TextEncodingImpl())
