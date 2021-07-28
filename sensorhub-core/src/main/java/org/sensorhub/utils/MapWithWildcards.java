@@ -67,24 +67,26 @@ public class MapWithWildcards<V> extends ConcurrentSkipListMap<String, V>
     }
     
     
-    @Override
-    public V put(String key, V value)
+    protected String fixKey(String key)
     {
         // replace wildcard with special char so it gets sorted before anything else with that prefix
         if (key.endsWith(WILDCARD_CHAR))
-            key = key.substring(0, key.length()-1) + END_PREFIX_CHAR;
+            return key.substring(0, key.length()-1) + END_PREFIX_CHAR;
         
-        return super.put(key, value);
+        return key;
+    }
+    
+    
+    @Override
+    public V put(String key, V value)
+    {   
+        return super.put(fixKey(key), value);
     }
     
     
     @Override
     public V putIfAbsent(String key, V value)
     {
-        var oldValue = get(key);
-        if (oldValue == null)
-            return put(key, value);
-        else
-            return oldValue;
+        return super.putIfAbsent(fixKey(key), value);
     }
 }
