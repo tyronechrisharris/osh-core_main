@@ -89,4 +89,18 @@ public class MapWithWildcards<V> extends ConcurrentSkipListMap<String, V>
     {
         return super.putIfAbsent(fixKey(key), value);
     }
+    
+    
+    @Override
+    public V remove(Object key)
+    {   
+        return super.remove(fixKey((String)key));
+    }
+    
+    
+    @Override
+    public boolean remove(Object key, Object value)
+    {   
+        return super.remove(fixKey((String)key), value);
+    }
 }
