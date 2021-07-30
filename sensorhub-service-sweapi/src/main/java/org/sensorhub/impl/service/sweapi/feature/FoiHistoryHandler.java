@@ -21,7 +21,7 @@ import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
-import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -46,7 +46,7 @@ public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IGeoFeature
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     

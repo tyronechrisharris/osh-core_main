@@ -22,7 +22,7 @@ import org.sensorhub.impl.module.JarModuleProvider;
 
 /**
  * <p>
- * Descriptor of SOS service module, needed for automatic discovery by
+ * Descriptor of SensorWeb API service module, needed for automatic discovery by
  * the ModuleRegistry.
  * </p>
  *

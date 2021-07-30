@@ -26,6 +26,7 @@ import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
@@ -58,7 +59,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         if (format.equals(ResourceFormat.JSON))
             return new DataStreamBindingJson(ctx, idEncoder, forReading);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     
@@ -70,13 +71,13 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
-        if (ctx.isEmpty() &&
+        if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof ProcedureHandler))
-            return ctx.sendError(405, "Datastreams can only be created within a Procedure");
+            throw ServiceErrors.unsupportedOperation("Datastreams can only be created within a Procedure");
         
-        return super.doPost(ctx);
+        super.doPost(ctx);
     }
 
 

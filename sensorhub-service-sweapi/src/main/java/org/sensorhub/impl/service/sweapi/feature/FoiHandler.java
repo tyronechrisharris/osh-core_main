@@ -26,6 +26,7 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -57,7 +58,7 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     
@@ -69,13 +70,13 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
-        if (ctx.isEmpty() &&
+        if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof ProcedureHandler))
-            return ctx.sendError(405, "Features of interest can only be created within a procedure's fois sub-collection");
+            throw ServiceErrors.unsupportedOperation("Features of interest can only be created within a procedure's fois sub-collection");
         
-        return super.doPost(ctx);
+        super.doPost(ctx);
     }
 
 

@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.resource;
 
 import java.io.IOException;
+import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 
 
 public interface IResourceHandler
@@ -23,16 +24,16 @@ public interface IResourceHandler
     String[] getNames();
     
     
-    boolean doGet(ResourceContext ctx) throws IOException;
+    void doGet(ResourceContext ctx) throws InvalidRequestException, IOException, SecurityException;
 
 
-    boolean doPost(ResourceContext ctx) throws IOException;
+    void doPost(ResourceContext ctx) throws InvalidRequestException, IOException, SecurityException;
 
 
-    boolean doPut(ResourceContext ctx) throws IOException;
+    void doPut(ResourceContext ctx) throws InvalidRequestException, IOException, SecurityException;
 
 
-    boolean doDelete(ResourceContext ctx) throws IOException;
+    void doDelete(ResourceContext ctx) throws InvalidRequestException, IOException, SecurityException;
 
 
     void addSubResource(IResourceHandler resource);

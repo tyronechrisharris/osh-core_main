@@ -17,33 +17,41 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
-import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Flow.Subscriber;
+import java.util.concurrent.Flow.Subscription;
+import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
+import org.sensorhub.impl.procedure.DataEventToObsConverter;
 import org.sensorhub.impl.procedure.DataStreamTransactionHandler;
 import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.sensorhub.impl.service.sweapi.stream.StreamHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 
 
 public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
@@ -51,12 +59,12 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     public static final int EXTERNAL_ID_SEED = 71145893;
     public static final String[] NAMES = { "observations", "obs" };
     
-    IEventBus eventBus;
-    ProcedureObsDbWrapper db;
-    ProcedureObsTransactionHandler transactionHandler;
-    IdConverter idConverter;
-    IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
-    IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
+    final IEventBus eventBus;
+    final ProcedureObsDbWrapper db;
+    final ProcedureObsTransactionHandler transactionHandler;
+    final IdConverter idConverter;
+    final IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
+    final IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
     
     
     static class ObsHandlerContextData
@@ -102,13 +110,13 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             contextData.dsHandler = transactionHandler.getDataStreamHandler(contextData.dsID);
             
             // try to parse featureOfInterest argument
-            String foiArg = ctx.getRequest().getParameter("foi");
+            String foiArg = ctx.getParameter("foi");
             if (foiArg != null)
             {
                 long publicFoiID = decodeID(ctx, foiArg);
                 var foi = db.getFoiStore().getCurrentVersion(publicFoiID);
                 if (foi == null)
-                    throw new InvalidRequestException("Invalid FOI ID");
+                    throw ServiceErrors.badRequest("Invalid FOI ID");
                 contextData.foiId = new FeatureId(
                     idConverter.toInternalID(publicFoiID),
                     foi.getUniqueIdentifier());
@@ -124,62 +132,119 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
-        if (ctx.isEmpty() &&
+        if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof DataStreamHandler))
-            return ctx.sendError(405, "Observations can only be created within a Datastream");
+            throw ServiceErrors.unsupportedOperation("Observations can only be created within a Datastream");
         
-        return super.doPost(ctx);
+        super.doPost(ctx);
     }
     
     
-    protected boolean stream(final ResourceContext ctx) throws InvalidRequestException, IOException
+    protected void stream(final ResourceContext ctx) throws InvalidRequestException, IOException
     {
         ctx.getSecurityHandler().checkPermission(permissions.stream);
+        var streamHandler = Asserts.checkNotNull(ctx.getStreamHandler(), StreamHandler.class);
         
-        var queryParams = ctx.getRequest().getParameterMap();
+        var dsID = ctx.getParentID();
+        if (dsID <= 0)
+            throw ServiceErrors.badRequest("Streaming is only supported on a specific datastream");
+        
+        var queryParams = ctx.getParameterMap();
         var filter = getFilter(ctx.getParentRef(), queryParams, 0, Long.MAX_VALUE);
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         
-        try
-        {
-            ctx.getWebsocketFactory().acceptWebSocket(new WebSocketCreator() {
-                @Override
-                public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
-                {
-                    try
-                    {
-                        if (req.getSubProtocols().contains("ingest"))
-                        {
-                            // get binding for parsing incoming obs records
-                            var binding = getBinding(ctx, true);                   
-                            return null;
-                        }
-                        else
-                            return new ObsWebSocketOut(ObsHandler.this, ctx);
-                        }
-                    catch (IOException e)
-                    {
-                        throw new IllegalStateException("Error handling websocket request", e);
-                    }
-                }
-            }, ctx.getRequest(), ctx.getResponse());
+        // continue when streaming actually starts        
+        ctx.getStreamHandler().setStartCallback(() -> {
+            ResourceBinding<BigInteger, IObsData> binding;
+            try
+            {
+                binding = getBinding(ctx, false);
+            }
+            catch (IOException e)
+            {
+                throw new IllegalStateException(e);
+            }
             
-            return true;
-        }
-        catch (Exception e)
-        {
-            String errorMsg = "Error while processing Websocket request";
-            ctx.getLogger().trace(errorMsg, e);
-            return ctx.sendError(400, errorMsg);
-        }
+            // prepare lazy loaded map of FOI UID to full FeatureId
+            var foiIdCache = CacheBuilder.newBuilder()
+                .maximumSize(100)
+                .expireAfterAccess(1, TimeUnit.MINUTES)
+                .build(new CacheLoader<String, FeatureId>() {
+                    @Override
+                    public FeatureId load(String uid) throws Exception
+                    {
+                        var fk = db.getFoiStore().getCurrentVersionKey(uid);
+                        return new FeatureId(fk.getInternalID(), uid);
+                    }                    
+                });
+            
+            // get datastream info and init event to obs converter
+            var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
+            var obsConverter = new DataEventToObsConverter(dsID, dsInfo, uid -> foiIdCache.getUnchecked(uid));
+            
+            // create subscriber
+            var subscriber = new Subscriber<DataEvent>() {
+                Subscription subscription;
+                
+                @Override
+                public void onSubscribe(Subscription subscription)
+                {
+                    this.subscription = subscription;
+                    subscription.request(Long.MAX_VALUE);
+                    ctx.getLogger().debug("Starting obs subscription " + System.identityHashCode(subscription));
+                                        
+                    // cancel subscription if streaming is stopped by client
+                    ctx.getStreamHandler().setCloseCallback(() -> {
+                        subscription.cancel();
+                        ctx.getLogger().debug("Cancelling obs subscription " + System.identityHashCode(subscription));
+                    });
+                }
+    
+                @Override
+                public void onNext(DataEvent item)
+                {
+                    obsConverter.toObs(item, obs -> {
+                        try
+                        {
+                            binding.serialize(null, obs, false);
+                            streamHandler.sendPacket();
+                        }
+                        catch (IOException e)
+                        {
+                            subscription.cancel();
+                            throw new CallbackException(e);
+                        } 
+                    });                       
+                }
+    
+                @Override
+                public void onError(Throwable e)
+                {
+                    ctx.getLogger().error("Error sending websocket data", e);
+                }
+    
+                @Override
+                public void onComplete()
+                {
+                    try { streamHandler.getOutputStream().close(); }
+                    catch (IOException e) { }
+                }
+            };
+            
+            var topic = EventUtils.getDataStreamDataTopicID(dsInfo);
+            eventBus.newSubscription(DataEvent.class)
+                .withTopicID(topic)
+                .withEventType(DataEvent.class)
+                .subscribe(subscriber);
+        });
     }
 
 
     @Override
-    protected BigInteger getKey(ResourceContext ctx, String id)
+    protected BigInteger getKey(ResourceContext ctx, String id) throws InvalidRequestException
     {
         try
         {
@@ -191,8 +256,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         }
         catch (NumberFormatException e)
         {
-            ctx.sendError(400, String.format("Invalid resource identifier: %s", id));
-            return null;
+            throw ServiceErrors.notFound();
         }
     }
     

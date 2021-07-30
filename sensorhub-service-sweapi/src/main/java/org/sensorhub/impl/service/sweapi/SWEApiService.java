@@ -142,6 +142,12 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         dataStreamHandler.addSubResource(obsHandler);
         foiHandler.addSubResource(obsHandler);
         
+        // obs statistics
+        //var obsStatsHandler = new ObsStatsHandler(eventBus, db, security.obs_permissions);
+        //rootHandler.addSubResource(obsStatsHandler);
+        //dataStreamHandler.addSubResource(obsStatsHandler);
+        //foiHandler.addSubResource(obsStatsHandler);
+        
         // sampled features
         /*var featureStore = new FeatureStoreWrapper(
             featureReadDatabase.getFeatureStore(), 
@@ -157,23 +163,6 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
     }
 
 
-    @Override
-    protected void doStop()
-    {
-        // undeploy servlet
-        undeploy();
-        if (servlet != null)
-            servlet.destroy();
-        servlet = null;
-        
-        // stop thread pool
-        if (threadPool != null)
-            threadPool.shutdown();
-
-        setState(ModuleState.STOPPED);
-    }
-
-
     protected void deploy() throws SensorHubException
     {
         var wildcardEndpoint = config.endPoint + "/*";
@@ -184,13 +173,32 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
     }
 
 
+    @Override
+    protected void doStop()
+    {
+        // undeploy servlet
+        undeploy();
+        
+        // stop thread pool
+        if (threadPool != null)
+            threadPool.shutdown();
+
+        setState(ModuleState.STOPPED);
+    }
+
+
     protected void undeploy()
     {
         // return silently if HTTP server missing on stop
         if (httpServer == null || !httpServer.isStarted())
             return;
 
-        httpServer.undeployServlet(servlet);
+        if (servlet != null)
+        {
+            httpServer.undeployServlet(servlet);
+            servlet.destroy();
+            servlet = null;
+        }            
     }
 
 

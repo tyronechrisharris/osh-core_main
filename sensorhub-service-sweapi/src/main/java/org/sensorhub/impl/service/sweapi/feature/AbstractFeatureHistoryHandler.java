@@ -25,6 +25,7 @@ import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBu
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
@@ -42,7 +43,7 @@ public abstract class AbstractFeatureHistoryHandler<
     extends ResourceHandler<FeatureKey, V, F, B, S>
 {
     static final Logger log = LoggerFactory.getLogger(AbstractFeatureHistoryHandler.class);
-    static final String VERSION_NOT_FOUND_ERROR_MSG = "Resource version not found: v%s";
+    
     public static final String[] NAMES = { "history" };
     
     
@@ -53,21 +54,21 @@ public abstract class AbstractFeatureHistoryHandler<
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot POST in history collection, use PUT on main resource URL with a new validTime");
+        throw ServiceErrors.unsupportedOperation("Cannot POST in history collection, use PUT on main resource URL with a new validTime");
     }
     
     
     @Override
-    public boolean doPut(ResourceContext ctx) throws IOException
+    public void doPut(ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot PUT in history collection, use PUT on main resource URL with a new validTime");
+        throw ServiceErrors.unsupportedOperation("Cannot PUT in history collection, use PUT on main resource URL with a new validTime");
     }
     
     
     @Override
-    protected boolean getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
@@ -75,29 +76,24 @@ public abstract class AbstractFeatureHistoryHandler<
         // internal ID & version number
         long internalID = ctx.getParentID();
         long version = getVersionNumber(ctx, id);
-        if (version < 0)
-            return false;
         
         var key = getKey(internalID, version);
         V res = dataStore.get(key);
         if (res == null)
-            return ctx.sendError(404, String.format(VERSION_NOT_FOUND_ERROR_MSG, id));
+            throw ServiceErrors.notFound();
         
-        var queryParams = ctx.getRequest().getParameterMap();
+        var queryParams = ctx.getParameterMap();
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         var binding = getBinding(ctx, false);
         
-        ctx.getResponse().setStatus(200);
-        ctx.getResponse().setContentType(responseFormat.getMimeType());
+        ctx.setResponseContentType(responseFormat.getMimeType());
         binding.serialize(key, res, true);
-        
-        return true;
     }
     
     
     @Override
-    protected boolean delete(final ResourceContext ctx, final String id) throws IOException
+    protected void delete(final ResourceContext ctx, final String id) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.delete);
@@ -105,44 +101,37 @@ public abstract class AbstractFeatureHistoryHandler<
         // internal ID & version number
         long internalID = ctx.getParentID();
         long version = getVersionNumber(ctx, id);
-        if (version < 0)
-            return false;
         
         // delete resource
         IFeature res = dataStore.remove(getKey(internalID, version));
-        if (res != null)
-            return ctx.sendSuccess(204);
-        else
-            return ctx.sendError(404, String.format(VERSION_NOT_FOUND_ERROR_MSG, id));
+        if (res == null)
+            throw ServiceErrors.notFound();
     }
     
     
-    protected long getVersionNumber(final ResourceContext ctx, final String id)
+    protected long getVersionNumber(final ResourceContext ctx, final String version) throws InvalidRequestException
     {
         try
         {
-            long timeStamp = Long.parseLong(id);
+            long num = Long.parseLong(version);
             
             // stop here if version is negative
-            if (timeStamp <= 0)
+            if (num <= 0)
                 throw new NumberFormatException();
             
-            return timeStamp;
+            return num;
         }
         catch (NumberFormatException e)
         {
-            ctx.sendError(400, String.format("Invalid version number: %s", id));
-            return -1;
+            throw ServiceErrors.badRequest(INVALID_VERSION_ERROR_MSG + version);
         }
     }
     
     
     @Override
-    protected IResourceHandler getSubResource(ResourceContext ctx, String id)
+    protected IResourceHandler getSubResource(ResourceContext ctx, String id) throws InvalidRequestException
     {
         IResourceHandler resource = getSubResource(ctx);
-        if (resource == null)
-            return null;
         
         long internalID = ctx.getParentRef().internalID;
         long version = getVersionNumber(ctx, id);

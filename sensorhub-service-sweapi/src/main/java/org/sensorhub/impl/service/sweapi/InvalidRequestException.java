@@ -20,15 +20,36 @@ import java.io.IOException;
 @SuppressWarnings("serial")
 public class InvalidRequestException extends IOException
 {
-
-    public InvalidRequestException(String msg)
+    
+    public enum ErrorCode
     {
-        super(msg);
+        UNSUPPORTED_OPERATION,
+        BAD_REQUEST,
+        NOT_FOUND,
+        BAD_PAYLOAD,
+        FORBIDDEN,
+        INTERNAL_ERROR
     }
     
     
-    public InvalidRequestException(String msg, Throwable e)
+    ErrorCode errorCode;
+    
+    
+    public InvalidRequestException(ErrorCode errorCode, String msg)
+    {
+        this(errorCode, msg, null);
+    }
+    
+    
+    public InvalidRequestException(ErrorCode errorCode, String msg, Throwable e)
     {
         super(msg, e);
+        this.errorCode = errorCode;
+    }
+    
+    
+    public ErrorCode getErrorCode()
+    {
+        return errorCode;
     }
 }

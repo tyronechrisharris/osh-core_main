@@ -72,13 +72,13 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         
         if (forReading)
         {
-            InputStream is = new BufferedInputStream(ctx.getRequest().getInputStream());
+            InputStream is = new BufferedInputStream(ctx.getInputStream());
             this.reader = getJsonReader(is);
             resultReader = getSweCommonParser(contextData.dsInfo, reader);
         }
         else
         {
-            var os = ctx.isWebSocket() ? ctx.getWebsocketOutputStream() : ctx.getResponse().getOutputStream();
+            var os = ctx.getOutputStream();
             this.writer = getJsonWriter(os, ctx.getPropertyFilter());
             this.resultWriters = new HashMap<>();
             
@@ -149,12 +149,12 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         
         var dsID = obs.getDataStreamID();
         var externalDsId = dsIdEncoder.encodeID(dsID);
-        writer.name("datastream").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
+        writer.name("datastreamId").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
         
         if (obs.getFoiID() != null && obs.getFoiID() != FeatureId.NULL_FEATURE)
         {
             var externalfoiId = foiIdEncoder.encodeID(obs.getFoiID().getInternalID());
-            writer.name("foi").value(Long.toString(externalfoiId, ResourceBinding.ID_RADIX));
+            writer.name("foiId").value(Long.toString(externalfoiId, ResourceBinding.ID_RADIX));
         }
         
         writer.name("phenomenonTime").value(obs.getPhenomenonTime().toString());

@@ -28,46 +28,34 @@ public class RootHandler extends BaseHandler
 
 
     @Override
-    public boolean doGet(ResourceContext ctx) throws IOException
+    public void doGet(ResourceContext ctx) throws IOException
     {
         IResourceHandler resource = getSubResource(ctx);
-        if (resource == null)
-            return false;
-        
-        return resource.doGet(ctx);
+        resource.doGet(ctx);
     }
 
 
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
         IResourceHandler resource = getSubResource(ctx);
-        if (resource == null)
-            return false;
-        
-        return resource.doPost(ctx);
+        resource.doPost(ctx);
     }
 
 
     @Override
-    public boolean doPut(ResourceContext ctx) throws IOException
+    public void doPut(ResourceContext ctx) throws IOException
     {
         IResourceHandler resource = getSubResource(ctx);
-        if (resource == null)
-            return false;
-        
-        return resource.doPut(ctx);
+        resource.doPut(ctx);
     }
 
 
     @Override
-    public boolean doDelete(ResourceContext ctx) throws IOException
+    public void doDelete(ResourceContext ctx) throws IOException
     {
         IResourceHandler resource = getSubResource(ctx);
-        if (resource == null)
-            return false;
-        
-        return resource.doDelete(ctx);
+        resource.doDelete(ctx);
     }
     
     

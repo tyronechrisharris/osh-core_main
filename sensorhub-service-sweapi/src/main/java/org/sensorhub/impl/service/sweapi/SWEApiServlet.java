@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import javax.servlet.AsyncContext;
@@ -25,13 +26,19 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.websocket.api.WebSocketBehavior;
 import org.eclipse.jetty.websocket.api.WebSocketPolicy;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
+import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.stream.WebSocketOut;
 import org.slf4j.Logger;
+import com.google.gson.stream.JsonWriter;
+import static javax.servlet.http.HttpServletResponse.*;
 
 
 @SuppressWarnings("serial")
@@ -40,6 +47,7 @@ public class SWEApiServlet extends HttpServlet
     static final String LOG_REQUEST_MSG = "{} {}{} (from ip={}, user={})";
     static final String INTERNAL_ERROR_MSG = "Internal server error";
     static final String INTERNAL_ERROR_LOG_MSG = INTERNAL_ERROR_MSG + " while processing request " + LOG_REQUEST_MSG;
+    static final String ACCESS_DENIED_ERROR_MSG = "Permission denied";
     static final String JSON_CONTENT_TYPE = "application/json";
 
     protected final SWEApiSecurity securityHandler;
@@ -97,14 +105,6 @@ public class SWEApiServlet extends HttpServlet
     }
     
     
-    @Override
-    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
-    {
-        logRequest(req);
-        super.service(req, resp);
-    }
-    
-    
     protected void setCurrentUser(HttpServletRequest req)
     {
         String userID = ISecurityManager.ANONYMOUS_USER;
@@ -118,20 +118,21 @@ public class SWEApiServlet extends HttpServlet
     {
         securityHandler.clearCurrentUser();
     }
+    
+    
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
+    {
+        logRequest(req);
+        super.service(req, resp);
+    }
 
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
         resp.setContentType(JSON_CONTENT_TYPE);
-        
-        // parse resource path
-        final ResourceContext ctx = createContext(req, resp);
-        if (ctx == null)
-        {
-            resp.setStatus(400);
-            return;
-        }
+        var ctx = createContext(req, resp);
         
         // handle request asynchronously
         try
@@ -143,10 +144,18 @@ public class SWEApiServlet extends HttpServlet
                     setCurrentUser(req);
                     rootHandler.doGet(ctx);
                 }
-                catch (Exception e)
+                catch (InvalidRequestException e)
+                {
+                    handleInvalidRequestException(req, resp, e);
+                }
+                catch (SecurityException e)
+                {
+                    handleAuthException(req, resp, e);
+                }
+                catch (Throwable e)
                 {
                     logError(req, e);
-                    sendError(500, INTERNAL_ERROR_MSG, resp);
+                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
                 }
                 finally
                 {                
@@ -158,7 +167,7 @@ public class SWEApiServlet extends HttpServlet
         catch (Exception e)
         {
             logError(req, e);
-            sendError(500, INTERNAL_ERROR_MSG, resp);
+            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
         }
     }
 
@@ -167,14 +176,7 @@ public class SWEApiServlet extends HttpServlet
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
         resp.setContentType(JSON_CONTENT_TYPE);
-        
-        // parse resource path
-        final ResourceContext ctx = createContext(req, resp);
-        if (ctx == null)
-        {
-            resp.setStatus(400);
-            return;
-        }
+        var ctx = createContext(req, resp);
         
         // handle request asynchronously
         try
@@ -185,11 +187,36 @@ public class SWEApiServlet extends HttpServlet
                 {
                     setCurrentUser(req);
                     rootHandler.doPost(ctx);
+                    
+                    var uriList = ctx.getResourceUris();
+                    if (uriList.size() == 1)
+                    {
+                        resp.setStatus(SC_CREATED);
+                        resp.setHeader("Location", uriList.iterator().next());
+                    }
+                    else if (!uriList.isEmpty())
+                    {
+                        // prepare to write JSON response
+                        JsonWriter writer = new JsonWriter(new OutputStreamWriter(resp.getOutputStream()));
+                        writer.beginArray();                        
+                        for (var uri: uriList)
+                            writer.value(uri);                        
+                        writer.endArray();
+                        writer.flush();
+                    }
+                }
+                catch (InvalidRequestException e)
+                {
+                    handleInvalidRequestException(req, resp, e);
+                }
+                catch (SecurityException e)
+                {
+                    handleAuthException(req, resp, e);
                 }
                 catch (Throwable e)
                 {
                     logError(req, e);
-                    sendError(500, INTERNAL_ERROR_MSG, resp);
+                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
                 }
                 finally
                 {                
@@ -201,7 +228,7 @@ public class SWEApiServlet extends HttpServlet
         catch (Exception e)
         {
             logError(req, e);
-            sendError(500, INTERNAL_ERROR_MSG, resp);
+            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
         }
     }
 
@@ -210,14 +237,7 @@ public class SWEApiServlet extends HttpServlet
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
         resp.setContentType(JSON_CONTENT_TYPE);
-        
-        // parse resource path
-        final ResourceContext ctx = createContext(req, resp);
-        if (ctx == null)
-        {
-            sendError(400, resp);
-            return;
-        }
+        var ctx = createContext(req, resp);
         
         // handle request asynchronously
         try
@@ -228,11 +248,20 @@ public class SWEApiServlet extends HttpServlet
                 {
                     setCurrentUser(req);
                     rootHandler.doPut(ctx);
+                    resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                }
+                catch (InvalidRequestException e)
+                {
+                    handleInvalidRequestException(req, resp, e);
+                }
+                catch (SecurityException e)
+                {
+                    handleAuthException(req, resp, e);
                 }
                 catch (Throwable e)
                 {
                     logError(req, e);
-                    sendError(500, INTERNAL_ERROR_MSG, resp);
+                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
                 }
                 finally
                 {                
@@ -244,7 +273,7 @@ public class SWEApiServlet extends HttpServlet
         catch (Exception e)
         {
             logError(req, e);
-            sendError(500, INTERNAL_ERROR_MSG, resp);
+            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
         }
     }
 
@@ -253,14 +282,7 @@ public class SWEApiServlet extends HttpServlet
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
         resp.setContentType(JSON_CONTENT_TYPE);
-        
-        // parse resource path
-        final ResourceContext ctx = createContext(req, resp);
-        if (ctx == null)
-        {
-            sendError(400, resp);
-            return;
-        }
+        var ctx = createContext(req, resp);
         
         // handle request asynchronously
         try
@@ -271,11 +293,20 @@ public class SWEApiServlet extends HttpServlet
                 {
                     setCurrentUser(req);
                     rootHandler.doDelete(ctx);
+                    resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                }
+                catch (InvalidRequestException e)
+                {
+                    handleInvalidRequestException(req, resp, e);
+                }
+                catch (SecurityException e)
+                {
+                    handleAuthException(req, resp, e);
                 }
                 catch (Throwable e)
                 {
                     logError(req, e);
-                    sendError(500, INTERNAL_ERROR_MSG, resp);
+                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
                 }
                 finally
                 {                
@@ -287,19 +318,40 @@ public class SWEApiServlet extends HttpServlet
         catch (Exception e)
         {
             logError(req, e);
-            sendError(500, INTERNAL_ERROR_MSG, resp);
+            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
         }
     }
     
     
-    protected ResourceContext createContext(HttpServletRequest req, HttpServletResponse resp)
+    protected ResourceContext createContext(HttpServletRequest req, HttpServletResponse resp) throws IOException
     {
         // check if we have an upgrade request for websockets
         if (wsFactory.isUpgradeRequest(req, resp))
-            return new ResourceContext(this, req, resp, wsFactory);
+        {
+            /*if (req.getSubProtocols().contains("ingest"))
+            {
+                // get binding for parsing incoming obs records
+                var binding = getBinding(ctx, true);                   
+                return null;
+            }
+            else
+            }*/
+            var ws = new WebSocketOut(getLogger());
+            
+            wsFactory.acceptWebSocket(new WebSocketCreator() {
+                @Override
+                public Object createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp)
+                {
+                    return ws;
+                }
+            }, req, resp);
+            
+            return new ResourceContext(this, req, resp, ws);
+        }
+        
+        // else just handle as regular HTTP request
         else
             return new ResourceContext(this, req, resp);
-        
     }
     
     
@@ -374,6 +426,51 @@ public class SWEApiServlet extends HttpServlet
     }
     
     
+    protected void handleInvalidRequestException(HttpServletRequest req, HttpServletResponse resp, InvalidRequestException e)
+    {
+        switch (e.getErrorCode())
+        {
+            case UNSUPPORTED_OPERATION:
+                sendError(SC_METHOD_NOT_ALLOWED, e.getMessage(), resp);
+                break;
+                
+            case BAD_REQUEST:
+                sendError(SC_BAD_REQUEST, e.getMessage(), resp);
+                break;
+                
+            case NOT_FOUND:
+                sendError(SC_NOT_FOUND, e.getMessage(), resp);
+                break;
+                
+            case FORBIDDEN:
+                sendError(SC_FORBIDDEN, e.getMessage(), resp);
+                break;
+                
+            default:
+                sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+        }
+    }
+    
+    
+    protected void handleAuthException(HttpServletRequest req, HttpServletResponse resp, SecurityException e)
+    {
+        try
+        {
+            if (req != null && resp != null)
+            {
+                if (req.getRemoteUser() == null)
+                    req.authenticate(resp);
+                else
+                    sendError(SC_FORBIDDEN, ACCESS_DENIED_ERROR_MSG, resp);
+            }
+        }
+        catch (Exception e1)
+        {
+            getLogger().error("Could not send authentication request", e1);
+        }
+    }
+    
+    
     public Logger getLogger()
     {
         return this.log;
@@ -383,6 +480,12 @@ public class SWEApiServlet extends HttpServlet
     public String getApiRootURL()
     {
         return rootUrl;
+    }
+    
+    
+    public IResourceHandler getRootHandler()
+    {
+        return rootHandler;
     }
 
 

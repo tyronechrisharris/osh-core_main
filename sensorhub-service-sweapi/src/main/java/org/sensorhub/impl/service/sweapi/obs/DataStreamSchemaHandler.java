@@ -25,6 +25,7 @@ import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -54,7 +55,7 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
         if (format.equals(ResourceFormat.JSON))
             return new DataStreamSchemaBindingJson(ctx, idEncoder, forReading);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     
@@ -66,49 +67,38 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot POST here, use PUT on main resource URL");
+        throw ServiceErrors.unsupportedOperation("Cannot POST here, use PUT on main resource URL");
     }
     
     
     @Override
-    public boolean doPut(final ResourceContext ctx) throws IOException
+    public void doPut(final ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot PUT here, use PUT on main resource URL");
+        throw ServiceErrors.unsupportedOperation("Cannot PUT here, use PUT on main resource URL");
     }
     
     
     @Override
-    public boolean doDelete(final ResourceContext ctx) throws IOException
+    public void doDelete(final ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot DELETE here, use DELETE on main resource URL");
+        throw ServiceErrors.unsupportedOperation("Cannot DELETE here, use DELETE on main resource URL");
     }
     
     
     @Override
-    public boolean doGet(ResourceContext ctx) throws IOException
+    public void doGet(ResourceContext ctx) throws IOException
     {
-        try
-        {
-            if (ctx.isEmpty())
-                return getById(ctx, "");
-            else
-                return ctx.sendError(404, "Invalid resource URL");
-        }
-        catch (InvalidRequestException e)
-        {
-            return ctx.sendError(400, e.getMessage());
-        }
-        catch (SecurityException e)
-        {
-            return handleAuthException(ctx, e);
-        }
+        if (ctx.isEndOfPath())
+            getById(ctx, "");
+        else
+            throw ServiceErrors.badRequest(INVALID_URI_ERROR_MSG);
     }
     
     
     @Override
-    protected boolean getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
@@ -119,9 +109,9 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
         // get resource key
         var key = getKey(parent.internalID);
         if (key != null)
-            return getByKey(ctx, key);
+            getByKey(ctx, key);
         else
-            return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
+            throw ServiceErrors.notFound();
     }
 
 

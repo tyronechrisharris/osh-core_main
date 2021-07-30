@@ -60,14 +60,11 @@ public abstract class ResourceHandler<
     
     
     @Override
-    protected K getKey(final ResourceContext ctx, final String id)
+    protected K getKey(final ResourceContext ctx, final String id) throws InvalidRequestException
     {
         // get resource ID
         long decodedID = decodeID(ctx, id);
-        if (decodedID <= 0)
-            return null;
-        else
-            return getKey(decodedID);
+        return getKey(decodedID);
     }
         
     

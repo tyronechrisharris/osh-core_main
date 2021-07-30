@@ -57,12 +57,12 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
         
         if (forReading)
         {
-            InputStream is = new BufferedInputStream(ctx.getRequest().getInputStream());
+            InputStream is = new BufferedInputStream(ctx.getInputStream());
             this.reader = getJsonReader(is);
         }
         else
         {
-            this.writer = getJsonWriter(ctx.getResponse().getOutputStream(), ctx.getPropertyFilter());
+            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
         }
     }
     

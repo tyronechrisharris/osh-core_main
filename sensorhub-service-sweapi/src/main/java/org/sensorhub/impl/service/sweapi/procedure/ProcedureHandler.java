@@ -28,9 +28,9 @@ import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
-import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
@@ -62,7 +62,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
         else if (format.equals(ResourceFormat.SML_JSON))
             return new ProcedureBindingSmlJson(ctx, idEncoder, forReading);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     
@@ -70,17 +70,6 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     protected boolean isValidID(long internalID)
     {
         return dataStore.contains(internalID);
-    }
-    
-    
-    @Override
-    protected IResourceHandler getSubResource(ResourceContext ctx, String id)
-    {
-        var handler = super.getSubResource(ctx, id);
-        if (handler == null)
-            return null;
-        
-        return handler;
     }
 
 

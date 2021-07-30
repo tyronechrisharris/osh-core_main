@@ -23,6 +23,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
@@ -50,7 +51,7 @@ public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureF
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     
@@ -62,12 +63,12 @@ public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureF
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
-        if (ctx.isEmpty() && !(ctx.getParentRef().type instanceof FeatureHandler))
-            return ctx.sendError(405, "Features can only be created within Feature Collections");
+        if (ctx.isEndOfPath() && !(ctx.getParentRef().type instanceof FeatureHandler))
+            throw ServiceErrors.unsupportedOperation("Features can only be created within Feature Collections");
         
-        return super.doPost(ctx);
+        super.doPost(ctx);
     }
 
 

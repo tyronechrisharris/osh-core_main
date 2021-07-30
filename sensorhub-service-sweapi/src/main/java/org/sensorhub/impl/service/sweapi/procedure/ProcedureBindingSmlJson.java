@@ -60,13 +60,13 @@ public class ProcedureBindingSmlJson extends ResourceBindingJson<FeatureKey, IPr
         
         if (forReading)
         {
-            InputStream is = new BufferedInputStream(ctx.getRequest().getInputStream());
+            InputStream is = new BufferedInputStream(ctx.getInputStream());
             this.reader = getJsonReader(is);
             this.smlReader = new SMLJsonStreamReader(reader);
         }
         else
         {
-            this.writer = getJsonWriter(ctx.getResponse().getOutputStream(), ctx.getPropertyFilter());
+            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
             this.smlWriter = new SMLJsonStreamWriter(writer);
         }
     }

@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
@@ -29,13 +28,13 @@ import org.sensorhub.impl.service.sweapi.BaseHandler;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
 import com.google.gson.JsonParseException;
-import com.google.gson.stream.JsonWriter;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -56,10 +55,9 @@ import com.vividsolutions.jts.io.WKTReader;
  */
 public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extends IDataStore<K, V, ?, F>> extends BaseHandler implements IResourceHandler
 {
-    public static final String NOT_FOUND_ERROR_MSG = "Resource not found: %s";
+    public static final String INVALID_VERSION_ERROR_MSG = "Invalid version number: ";
     public static final String ALREADY_EXISTS_ERROR_MSG = "Resource already exists";
-    public static final String UNSUPPORTED_FORMAT_ERROR_MSG = "Unsupported format: ";
-    public static final String UNSUPPORTED_WEBSOCKET_MSG = "Websocket not unsupported on resource ";
+    public static final String UNSUPPORTED_WEBSOCKET_MSG = "Websocket streaming not supported on this resource";
     
     protected final S dataStore;
     protected final IdEncoder idEncoder;
@@ -75,7 +73,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     
     protected abstract ResourceBinding<K, V> getBinding(ResourceContext ctx, boolean forReading) throws IOException;
-    protected abstract K getKey(final ResourceContext ctx, final String id);
+    protected abstract K getKey(final ResourceContext ctx, final String id) throws InvalidRequestException;
     protected abstract String encodeKey(final ResourceContext ctx, K key);
     protected abstract F getFilter(final ResourceRef parent, final Map<String, String[]> queryParams, long offset, long limit) throws InvalidRequestException;
     protected abstract K addEntry(final ResourceContext ctx, final V res) throws DataStoreException;
@@ -84,190 +82,152 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         
     
     @Override
-    public boolean doGet(final ResourceContext ctx) throws IOException
+    public void doGet(final ResourceContext ctx) throws IOException
     {
-        try
+        // if requesting from this resource collection
+        if (ctx.isEndOfPath())
         {
-            // if requesting from this resource collection
-            if (ctx.isEmpty())
-            {
-                if (ctx.getWebsocketFactory() != null)
-                    return stream(ctx);
-                else
-                    return list(ctx);
-            }
-            // next should be resource ID or 'count'
-            String id = ctx.popNextPathElt();
-            if (ctx.isEmpty())
-            {
-                if ("count".equals(id))
-                    return getElementCount(ctx);
-                else
-                    return getById(ctx, id);
-            }
-            
-            // next should be nested resource
-            IResourceHandler resource = getSubResource(ctx, id);
-            if (resource != null)
-                return resource.doGet(ctx);
-            
-            return false;
+            if (ctx.isStreamRequest())
+                stream(ctx);
+            else
+                list(ctx);
+            return;
         }
-        catch (InvalidRequestException e)
+        
+        // otherwise there should be a specific resource ID or 'count'
+        String id = ctx.popNextPathElt();
+        if (ctx.isEndOfPath())
         {
-            return ctx.sendError(400, e.getMessage());
+            if ("count".equals(id))
+                getElementCount(ctx);
+            else
+                getById(ctx, id);
+            return;
         }
-        catch (SecurityException e)
-        {
-            return handleAuthException(ctx, e);
-        }
+        
+        // next should be nested resource
+        IResourceHandler resource = getSubResource(ctx, id);
+        if (resource != null)
+            resource.doGet(ctx);
+        else
+            throw ServiceErrors.badRequest(INVALID_URI_ERROR_MSG);
     }
     
     
     @Override
-    public boolean doPost(final ResourceContext ctx) throws IOException
+    public void doPost(final ResourceContext ctx) throws IOException
     {
-        try
-        {
-            if (ctx.isEmpty())
-                return create(ctx);
-         
+        if (!ctx.isEndOfPath())
+        {        
             // next should be resource ID
             String id = ctx.popNextPathElt();
-            if (ctx.isEmpty())
-                return ctx.sendError(400, "Can only POST on collections");
+            if (ctx.isEndOfPath())
+                throw ServiceErrors.unsupportedOperation("Can only POST on collections");
             
             // next should be nested resource
             IResourceHandler resource = getSubResource(ctx, id);
             if (resource != null)
-                return resource.doPost(ctx);
-                
-            return false;
+                resource.doPost(ctx);
+            else
+                throw ServiceErrors.badRequest(INVALID_URI_ERROR_MSG);
         }
-        catch (InvalidRequestException e)
-        {
-            return ctx.sendError(400, e.getMessage());
-        }
-        catch (SecurityException e)
-        {
-            return handleAuthException(ctx, e);
-        }
+        else
+            create(ctx);
     }
     
     
     @Override
-    public boolean doPut(final ResourceContext ctx) throws IOException
+    public void doPut(final ResourceContext ctx) throws IOException
     {
-        try
+        if (ctx.isEndOfPath())
+            throw ServiceErrors.unsupportedOperation("Can only PUT on specific resource");
+     
+        // next should be resource ID
+        String id = ctx.popNextPathElt();
+        
+        if (!ctx.isEndOfPath())
         {
-            if (ctx.isEmpty())
-                return ctx.sendError(400, "Can only PUT on specific resource");
-         
-            // next should be resource ID
-            String id = ctx.popNextPathElt();
-            if (ctx.isEmpty())
-                return update(ctx, id);
-            
             // next should be nested resource
             IResourceHandler resource = getSubResource(ctx, id);
             if (resource != null)
-                return resource.doPut(ctx);
-                
-            return false;
+                resource.doPut(ctx);
+            else
+                throw ServiceErrors.badRequest(INVALID_URI_ERROR_MSG);
         }
-        catch (InvalidRequestException e)
-        {
-            return ctx.sendError(400, e.getMessage());
-        }
-        catch (SecurityException e)
-        {
-            return handleAuthException(ctx, e);
-        }
+        else
+            update(ctx, id);
     }
     
     
     @Override
-    public boolean doDelete(final ResourceContext ctx) throws IOException
+    public void doDelete(final ResourceContext ctx) throws IOException
     {
-        try
+        if (ctx.isEndOfPath())
+            throw ServiceErrors.unsupportedOperation("Can only DELETE a specific resource");
+     
+        // next should be resource ID
+        String id = ctx.popNextPathElt();
+        
+        if (!ctx.isEndOfPath())
         {
-            if (ctx.isEmpty())
-                return ctx.sendError(400, "Can only DELETE a specific resource");
-         
-            // next should be resource ID
-            String id = ctx.popNextPathElt();
-            if (ctx.isEmpty())
-                return delete(ctx, id);
-            
             // next should be nested resource
             IResourceHandler resource = getSubResource(ctx, id);
             if (resource != null)
-                return resource.doDelete(ctx);
-                
-            return false;
+                resource.doDelete(ctx);
+            else
+                throw ServiceErrors.badRequest(INVALID_URI_ERROR_MSG);
         }
-        catch (InvalidRequestException e)
-        {
-            return ctx.sendError(400, e.getMessage());
-        }
-        catch (SecurityException e)
-        {
-            return handleAuthException(ctx, e);
-        }
+        else
+            delete(ctx, id);
     }
     
     
-    protected boolean stream(final ResourceContext ctx) throws InvalidRequestException, IOException
+    protected void stream(final ResourceContext ctx) throws InvalidRequestException, IOException
     {
-        throw new InvalidRequestException(UNSUPPORTED_WEBSOCKET_MSG + ctx.getRequest().getPathInfo());
+        throw ServiceErrors.unsupportedOperation(UNSUPPORTED_WEBSOCKET_MSG);
     }
     
     
-    protected boolean getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
                 
         // get resource key
         var key = getKey(ctx, id);
-        if (key != null)
-            return getByKey(ctx, key);
-        else
-            return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
+        getByKey(ctx, key);
     }
     
     
-    protected boolean getByKey(final ResourceContext ctx, K key) throws InvalidRequestException, IOException
+    protected void getByKey(final ResourceContext ctx, K key) throws InvalidRequestException, IOException
     {
         // fetch from data store
         final V res = dataStore.get(key);
         if (res != null)
         {            
-            var queryParams = ctx.req.getParameterMap();
+            var queryParams = ctx.getParameterMap();
             var responseFormat = parseFormat(queryParams);
             ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
             var binding = getBinding(ctx, false);
             
-            // set HTTP headers
-            ctx.resp.setStatus(200);
-            ctx.resp.setContentType(responseFormat.getMimeType());
+            // set content type
+            ctx.setResponseContentType(responseFormat.getMimeType());
             
             // write a single resource to servlet output
             binding.serialize(key, res, true);
-            return true;
         }
-        
-        return false;
+        else
+            throw ServiceErrors.notFound();
     }
     
     
-    protected boolean list(final ResourceContext ctx) throws InvalidRequestException, IOException
+    protected void list(final ResourceContext ctx) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
         
         // parse offset & limit
-        var queryParams = ctx.req.getParameterMap();
+        var queryParams = ctx.getParameterMap();
         var offset = parseLongArg("offset", queryParams);
         if (offset == null)
             offset = 0L;
@@ -282,9 +242,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         
-        // set HTTP headers
-        ctx.resp.setStatus(200);
-        ctx.resp.setContentType(responseFormat.getMimeType());
+        // set content type
+        ctx.setResponseContentType(responseFormat.getMimeType());
         
         // stream and serialize all resources to servlet output
         var binding = getBinding(ctx, false);
@@ -307,7 +266,6 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             }
             
             binding.endCollection(getPagingLinks(ctx, offset, limit, count > limit));
-            return true;
         }
     }
     
@@ -315,7 +273,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected Collection<ResourceLink> getPagingLinks(final ResourceContext ctx, long offset, long limit, boolean hasMore) throws InvalidRequestException
     {
         var resourcePath = ctx.getApiRootURL() + "/" + getNames()[0];
-        var queryParams = ctx.getRequest().getParameterMap();
+        var queryParams = ctx.getParameterMap();
         var links = new ArrayList<ResourceLink>();
         
         // prev link
@@ -371,7 +329,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected boolean create(final ResourceContext ctx) throws IOException
+    protected void create(final ResourceContext ctx) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.create);
@@ -382,14 +340,10 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         try
         {
             // get content type
-            var format = ResourceFormat.fromMimeType(ctx.req.getContentType());
+            var format = ResourceFormat.fromMimeType(ctx.getRequestContentType());
             if (format == null)
-                return ctx.sendError(400, "Missing content type");
+                throw ServiceErrors.badRequest("Missing content type");
             ctx.setFormatOptions(format, null);
-            
-            // prepare to write JSON response
-            JsonWriter writer = new JsonWriter(new OutputStreamWriter(ctx.resp.getOutputStream()));
-            writer.beginArray();
             
             // parse one or more resource
             V res;
@@ -398,7 +352,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             {
                 try
                 {
-                    count++;            
+                    count++;
                     validate(res);
                 
                     // add resource to datastore
@@ -408,45 +362,30 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                     {
                         // encode resource ID and generate URL
                         String id = encodeKey(ctx, k);
-                        url = getCanonicalResourceUrl(id, ctx.req);
-                        ctx.getLogger().info("Added resource {}, URL={}", id, url);
+                        url = getCanonicalResourceUrl(id);
+                        ctx.getLogger().debug("Added resource {}", url);
                     }                    
                     
                     if (url != null)
-                    {
-                        if (ctx.resp.getStatus() == 200)
-                            ctx.resp.setStatus(201);
-                        writer.value(url);
-                    }                
-                    else
-                        ctx.writeError("Could not add resource", writer);
+                        ctx.addResourceUri(url);
                 }
                 catch (Exception e)
                 {
-                    ctx.writeError(e.getMessage(), writer);
+                    throw new IOException("Error ingesting entry", e);
                 }
             }
             
             if (count == 0)
-                return ctx.sendError(400, "No data provided");
-            else if (url == null)
-                ctx.resp.setStatus(400);            
-            else if (count == 1)
-                ctx.resp.setHeader("Location", url);
-            
-            writer.endArray();
-            writer.flush();
-            
-            return (url != null);
+                throw ServiceErrors.badRequest("No data provided");
         }
         catch (ResourceParseException e)
         {
-            return ctx.sendError(400, e.getMessage());
+            throw ServiceErrors.badRequest("Invalid payload: " + e.getMessage());
         }
     }
         
     
-    protected boolean update(final ResourceContext ctx, final String id) throws IOException
+    protected void update(final ResourceContext ctx, final String id) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.update);
@@ -454,47 +393,39 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         // get resource key
         var key = getKey(ctx, id);
         
-        if (key != null)
-        {        
-            // first parse resource
-            V res;
-            try
-            {
-                // get content type
-                var format = ResourceFormat.fromMimeType(ctx.req.getContentType());
-                if (format == null)
-                    return ctx.sendError(400, "Missing content type");
-                ctx.setFormatOptions(format, null);
-                
-                // parse one resource
-                var binding = getBinding(ctx, true);
-                res = binding.deserialize();
-                if (res == null)
-                    return ctx.sendError(400, "No data provided");
-                
-                validate(res);
-            }
-            catch (JsonParseException e)
-            {
-                return ctx.sendError(400, e.getMessage());
-            }
+        // parse payload
+        V res;
+        try
+        {
+            // get content type
+            var format = ResourceFormat.fromMimeType(ctx.getRequestContentType());
+            if (format == null)
+                throw ServiceErrors.badRequest("Missing content type");
+            ctx.setFormatOptions(format, null);
             
-            // update in datastore
-            try
-            {
-                if (updateEntry(ctx, key, res))
-                {
-                    ctx.getLogger().info("Updated resource {}, key={}", id, key);
-                    return ctx.sendSuccess(204);
-                }
-            }
-            catch (Exception e)
-            {
-                return ctx.sendError(500, e.getMessage());
-            }
+            // parse one resource
+            var binding = getBinding(ctx, true);
+            res = binding.deserialize();
+            if (res == null)
+                throw ServiceErrors.badRequest("No data provided");
+            
+            validate(res);
+        }
+        catch (JsonParseException e)
+        {
+            throw ServiceErrors.badRequest("Invalid payload: " + e.getMessage());
         }
         
-        return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
+        // update in datastore
+        try
+        {
+            if (updateEntry(ctx, key, res))
+                ctx.getLogger().debug("Updated resource {}, key={}", id, key);
+        }
+        catch (DataStoreException e)
+        {
+            throw new IOException("Error updating resource " + id, e);
+        }
     }
     
     
@@ -504,31 +435,24 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
         
     
-    protected boolean delete(final ResourceContext ctx, final String id) throws IOException
+    protected void delete(final ResourceContext ctx, final String id) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.delete);
         
         // get resource key
         var key = getKey(ctx, id);
-        if (key != null)
-        {
-            // delete from datastore
-            try
-            {
-                if (deleteEntry(ctx, key))
-                {
-                    ctx.getLogger().info("Deleted resource {}, key={}", id, key);
-                    return ctx.sendSuccess(204);
-                }
-            }
-            catch (Exception e)
-            {
-                return ctx.sendError(500, e.getMessage());
-            }
-        }
         
-        return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
+        // delete from datastore
+        try
+        {
+            if (deleteEntry(ctx, key))
+                ctx.getLogger().info("Deleted resource {}, key={}", id, key);
+        }
+        catch (DataStoreException e)
+        {
+            throw new IOException("Error deleting resource " + id, e);
+        }
     }
     
     
@@ -538,25 +462,23 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected boolean getElementCount(final ResourceContext ctx) throws InvalidRequestException, IOException
+    protected void getElementCount(final ResourceContext ctx) throws InvalidRequestException, IOException
     {
-        F filter = getFilter(ctx.getParentRef(), ctx.req.getParameterMap(), 0, Long.MAX_VALUE);
+        F filter = getFilter(ctx.getParentRef(), ctx.getParameterMap(), 0, Long.MAX_VALUE);
         
         // get count from datastore
         long count = dataStore.countMatchingEntries(filter);
         
         // write out as json
-        Writer writer = new OutputStreamWriter(ctx.resp.getOutputStream());
+        Writer writer = new OutputStreamWriter(ctx.getOutputStream());
         writer.write("{\"count\":");
         writer.write(Long.toString(count));
         writer.write('}');
         writer.flush();
-        
-        return true;
     }
     
     
-    protected IResourceHandler getSubResource(ResourceContext ctx, String id)
+    protected IResourceHandler getSubResource(ResourceContext ctx, String id) throws InvalidRequestException
     {
         IResourceHandler resource = getSubResource(ctx);
         if (resource == null)
@@ -564,24 +486,18 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         
         // decode internal ID for nested resource
         long internalID = decodeID(ctx, id);
-        if (internalID <= 0)
-            return null;
         
         // check that resource ID valid
         if (!isValidID(internalID))
-        {
-            ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
-            return null;
-        }
+            throw ServiceErrors.notFound(id);
                 
         ctx.setParent(this, internalID);
         return resource;
     }
     
     
-    protected String getCanonicalResourceUrl(final String id, final HttpServletRequest req)
+    protected String getCanonicalResourceUrl(final String id)
     {
-        //return req.getRequestURL().append('/').append(id).toString();
         StringBuilder buf = new StringBuilder();
         buf.append('/').append(getNames()[0]);
         buf.append('/').append(id);
@@ -589,7 +505,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected long decodeID(final ResourceContext ctx, final String id)
+    protected long decodeID(final ResourceContext ctx, final String id) throws InvalidRequestException
     {
         try
         {
@@ -598,14 +514,13 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             
             // stop here if hash is invalid
             if (decodedID <= 0)
-                ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
+                throw ServiceErrors.notFound(id);
             
             return decodedID;
         }
         catch (NumberFormatException e)
         {
-            ctx.sendError(400, String.format("Invalid resource identifier: %s", id));
-            return 0;
+            throw ServiceErrors.badRequest("Invalid resource ID: " + id);
         }
     }
     
@@ -624,7 +539,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                 {
                     item = item.trim();
                     if (item.isEmpty())
-                        throw new InvalidRequestException("Invalid select parameter: " + val);
+                        throw ServiceErrors.badRequest("Invalid select parameter: " + val);
                     
                     else if (item.startsWith("!"))
                         propFilter.excludedProps.add(item.substring(1));
@@ -633,7 +548,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                 }
                 
                 if (propFilter.includedProps.isEmpty() && propFilter.excludedProps.isEmpty())
-                    throw new InvalidRequestException("Invalid select parameter: " + val);
+                    throw ServiceErrors.badRequest("Invalid select parameter: " + val);
             }
             
             return propFilter;
@@ -685,7 +600,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                     }
                     catch (NumberFormatException e)
                     {
-                        throw new InvalidRequestException("Invalid resource ID: " + id);
+                        throw ServiceErrors.badRequest("Invalid resource ID: " + id);
                     }
                 }
             }
@@ -707,7 +622,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (Exception e)
         {
-            throw new InvalidRequestException("Invalid time parameter: " + timeVal);
+            throw ServiceErrors.badRequest("Invalid time parameter: " + timeVal);
         }
     }
     
@@ -730,7 +645,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (Exception e)
         {
-            throw new InvalidRequestException("Invalid bounding box: " + bboxCoords);
+            throw ServiceErrors.badRequest("Invalid bounding box: " + bboxCoords);
         }
     }
     
@@ -747,7 +662,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (ParseException e)
         {
-            throw new InvalidRequestException("Invalid geometry: " + wkt);
+            throw ServiceErrors.badRequest("Invalid geometry: " + wkt);
         }
     }
     
@@ -764,7 +679,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (NumberFormatException e)
         {
-            throw new InvalidRequestException("Invalid " + paramName + " parameter: " + paramValue);
+            throw ServiceErrors.badRequest("Invalid " + paramName + " parameter: " + paramValue);
         }
     }
     
@@ -795,7 +710,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         var paramValues = parseMultiValuesArg(paramName, queryParams);
         
         if (paramValues.size() > 1)
-            throw new InvalidRequestException("Too many '" + paramName + "' parameters in query");
+            throw ServiceErrors.badRequest("Parameter '" + paramName + "' must have a single value");
         
         if (paramValues.isEmpty())
             return null;

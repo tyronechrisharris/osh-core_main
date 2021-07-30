@@ -68,13 +68,13 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         if (forReading)
         {
-            InputStream is = new BufferedInputStream(ctx.getRequest().getInputStream());
+            InputStream is = new BufferedInputStream(ctx.getInputStream());
             this.reader = getJsonReader(is);
             this.sweReader = new SWEJsonStreamReader(reader);
         }
         else
         {
-            this.writer = getJsonWriter(ctx.getResponse().getOutputStream(), ctx.getPropertyFilter());
+            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
             this.sweWriter = new SWEJsonStreamWriter(writer);
         }
     }

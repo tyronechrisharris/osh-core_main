@@ -1,5 +1,5 @@
-description = 'OSH SWE REST API'
-ext.details = 'Implementation of OGC SWE REST API'
+description = 'OSH SensorWeb API'
+ext.details = 'Implementation of OGC SensorWeb API'
 
 
 dependencies {

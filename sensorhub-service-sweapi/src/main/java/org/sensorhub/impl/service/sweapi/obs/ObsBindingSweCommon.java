@@ -24,9 +24,8 @@ import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
-import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
-import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -66,13 +65,13 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
         var dsInfo = contextData.dsInfo;
         if (forReading)
         {
-            var is = ctx.getRequest().getInputStream();
+            var is = ctx.getInputStream();
             resultReader = getSweCommonParser(dsInfo, is, ctx.getFormat());
             timeStampIndexer = SWEHelper.getTimeStampIndexer(contextData.dsInfo.getRecordStructure());
         }
         else
         {
-            var os = ctx.isWebSocket() ? ctx.getWebsocketOutputStream() : ctx.getResponse().getOutputStream();
+            var os = ctx.getOutputStream();
             resultWriter = getSweCommonWriter(dsInfo, os, ctx.getPropertyFilter(), ctx.getFormat());
         }
     }
@@ -162,7 +161,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
         }
         
         if (dataParser == null)
-            throw new InvalidRequestException(BaseResourceHandler.UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
         
         dataParser.setInput(is);
         dataParser.setDataComponents(dsInfo.getRecordStructure());
@@ -224,7 +223,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
         }
         
         if (dataWriter == null)
-            throw new InvalidRequestException(BaseResourceHandler.UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
         
         dataWriter.setOutput(os);
         dataWriter.setDataComponents(dsInfo.getRecordStructure());

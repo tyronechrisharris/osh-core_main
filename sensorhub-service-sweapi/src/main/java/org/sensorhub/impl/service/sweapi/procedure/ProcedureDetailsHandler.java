@@ -28,6 +28,7 @@ import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -62,7 +63,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.SML_JSON))
             return new ProcedureBindingSmlJson(ctx, idEncoder, forReading);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     
@@ -74,49 +75,38 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot POST here, use PUT on main resource URL");
+        throw ServiceErrors.unsupportedOperation("Cannot POST here, use PUT on main resource URL");
     }
     
     
     @Override
-    public boolean doPut(final ResourceContext ctx) throws IOException
+    public void doPut(final ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot PUT here, use PUT on main resource URL");
+        throw ServiceErrors.unsupportedOperation("Cannot PUT here, use PUT on main resource URL");
     }
     
     
     @Override
-    public boolean doDelete(final ResourceContext ctx) throws IOException
+    public void doDelete(final ResourceContext ctx) throws IOException
     {
-        return ctx.sendError(405, "Cannot DELETE here, use DELETE on main resource URL");
+        throw ServiceErrors.unsupportedOperation("Cannot DELETE here, use DELETE on main resource URL");
     }
     
     
     @Override
-    public boolean doGet(ResourceContext ctx) throws IOException
+    public void doGet(ResourceContext ctx) throws IOException
     {
-        try
-        {
-            if (ctx.isEmpty())
-                return getById(ctx, "");
-            else
-                return ctx.sendError(404, "Invalid resource URL");
-        }
-        catch (InvalidRequestException e)
-        {
-            return ctx.sendError(400, e.getMessage());
-        }
-        catch (SecurityException e)
-        {
-            return handleAuthException(ctx, e);
-        }
+        if (ctx.isEndOfPath())
+            getById(ctx, "");
+        else
+            throw ServiceErrors.badRequest(INVALID_URI_ERROR_MSG);
     }
     
     
     @Override
-    protected boolean getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
@@ -128,12 +118,12 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         long internalID = parent.internalID;
         long version = parent.version;
         if (version < 0)
-            return false;
+            throw ServiceErrors.badRequest(INVALID_VERSION_ERROR_MSG + version);
         
         var key = getKey(internalID, version);
         AbstractProcess sml = dataStore.get(key).getFullDescription();
         if (sml == null)
-            return ctx.sendError(404, String.format(NOT_FOUND_ERROR_MSG, id));
+            throw ServiceErrors.notFound();
         
         // generate outputs from datastreams
         // + override ID
@@ -141,17 +131,13 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         sml = ProcedureUtils.addOutputsFromDatastreams(internalID, sml, dataStreamStore)
             .withId(idStr);
         
-        var queryParams = ctx.getRequest().getParameterMap();
+        var queryParams = ctx.getParameterMap();
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         var binding = getBinding(ctx, false);
         
-        ctx.getResponse().setStatus(200);
-        ctx.getResponse().setContentType(responseFormat.getMimeType());
-        
+        ctx.setResponseContentType(responseFormat.getMimeType());        
         binding.serialize(key, new ProcedureWrapper(sml), true);
-        
-        return true;
     }
 
 

@@ -22,7 +22,7 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 
 public abstract class BaseHandler implements IResourceHandler
 {
-    public static final String ACCESS_DENIED_ERROR_MSG = "Permission denied";
+    public static final String INVALID_URI_ERROR_MSG = "Invalid resource URI";
     
     final Map<String, IResourceHandler> subResources = new HashMap<>();
 
@@ -48,32 +48,17 @@ public abstract class BaseHandler implements IResourceHandler
     }
     
 
-    protected IResourceHandler getSubResource(ResourceContext ctx)
+    protected IResourceHandler getSubResource(ResourceContext ctx) throws InvalidRequestException
     {
-        if (ctx == null || ctx.isEmpty())
-        {
-            ctx.sendError(400, "Missing resource name");
-            return null;
-        }        
+        if (ctx == null || ctx.isEndOfPath())
+            throw ServiceErrors.badRequest("Missing resource name");
         
         String resourceName = ctx.popNextPathElt();
         IResourceHandler resource = subResources.get(resourceName);
         if (resource == null)
-        {
-            ctx.sendError(404, "Invalid resource name: '" + resourceName + "'");
-            return null;
-        }
+            throw ServiceErrors.badRequest("Invalid resource name: '" + resourceName + "'");
         
         return resource;
-    }
-    
-    
-    protected boolean handleAuthException(final ResourceContext ctx, final SecurityException e)
-    {
-        if (ctx.getRequest().getRemoteUser() == null)
-            return ctx.sendAuthenticateRequest();
-        else
-            return ctx.sendError(403, ACCESS_DENIED_ERROR_MSG);
     }
 
 }

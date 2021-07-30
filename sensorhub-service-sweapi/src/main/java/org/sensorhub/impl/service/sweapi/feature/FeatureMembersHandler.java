@@ -37,12 +37,12 @@ public class FeatureMembersHandler extends FeatureHandler
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
         //if (ctx.isEmpty() && !(ctx.getParentRef().type instanceof ProjectResourceType))
         //    return sendError(405, "Feature Collections can only be created within Projects", resp);
         
-        return super.doPost(ctx);
+        super.doPost(ctx);
     }
 
     

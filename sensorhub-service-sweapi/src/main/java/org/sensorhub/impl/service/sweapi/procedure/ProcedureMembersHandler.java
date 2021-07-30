@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
@@ -27,6 +26,7 @@ import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 
@@ -43,13 +43,13 @@ public class ProcedureMembersHandler extends ProcedureHandler
     
     
     @Override
-    public boolean doPost(ResourceContext ctx) throws IOException
+    public void doPost(ResourceContext ctx) throws IOException
     {
-        if (ctx.isEmpty() &&
+        if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof ProcedureHandler))
-            return ctx.sendError(405, "Procedures can only be created within a ProcedureGroup");
+            throw ServiceErrors.unsupportedOperation("Procedures can only be created within a ProcedureGroup");
         
-        return super.doPost(ctx);
+        super.doPost(ctx);
     }
 
 
@@ -96,7 +96,7 @@ public class ProcedureMembersHandler extends ProcedureHandler
     
     
     @Override
-    protected String getCanonicalResourceUrl(final String id, final HttpServletRequest req)
+    protected String getCanonicalResourceUrl(final String id)
     {
         return "/" + ProcedureHandler.NAMES[0] + "/" + id;
     }

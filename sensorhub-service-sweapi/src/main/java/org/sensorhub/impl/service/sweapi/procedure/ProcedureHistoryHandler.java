@@ -22,7 +22,7 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
-import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHistoryHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
@@ -47,7 +47,7 @@ public class ProcedureHistoryHandler extends AbstractFeatureHistoryHandler<IProc
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new ProcedureBindingGeoJson(ctx, idEncoder, forReading);
         else
-            throw new InvalidRequestException(UNSUPPORTED_FORMAT_ERROR_MSG + format);
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     
