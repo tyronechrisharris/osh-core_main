@@ -57,8 +57,8 @@ public class DataStoreUtils
     public static final String ERROR_EXISTING_COMMANDSTREAM = "Datastore already contains command stream for the same procedure, control input and validTime";
     
     public static final String ERROR_INVALID_FEATURE_KEY = "Key must be an instance of " + FeatureKey.class.getSimpleName();
-    public static final String ERROR_EXISTING_FEATURE = "Datastore already contains feature with the same UID: ";
-    public static final String ERROR_EXISTING_FEATURE_VERSION = "Datastore already contains feature with the same UID and validTime";
+    public static final String ERROR_EXISTING_FEATURE = "Datastore already contains entry with the same UID: ";
+    public static final String ERROR_EXISTING_FEATURE_VERSION = "Datastore already contains entry with the same UID and validTime";
     public static final String ERROR_UNKNOWN_PARENT_FEATURE = "Unknown parent feature: ";    
     
     public static final ICommandStore EMPTY_COMMAND_STORE = new EmptyCommandStore();
