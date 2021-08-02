@@ -32,7 +32,7 @@ public class SecurityConfig
     public boolean enableAccessControl = false;
     
     
-    @DisplayInfo(label="Require Authentication", desc="Set to require users to be authentified before they can use this module")
+    @DisplayInfo(label="Require Authentication", desc="Set to require remote users to be authentified before they can use this service")
     public boolean requireAuth = true;
     
     
