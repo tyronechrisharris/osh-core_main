@@ -18,7 +18,8 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -111,9 +112,9 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
                 var propName = reader.nextName();
                 
                 if ("phenomenonTime".equals(propName))
-                    obs.withPhenomenonTime(Instant.parse(reader.nextString()));
+                    obs.withPhenomenonTime(OffsetDateTime.parse(reader.nextString()).toInstant());
                 else if ("resultTime".equals(propName))
-                    obs.withResultTime(Instant.parse(reader.nextString()));
+                    obs.withResultTime(OffsetDateTime.parse(reader.nextString()).toInstant());
                 //else if ("foi".equals(propName))
                 //    obs.withFoi(id)
                 else if ("result".equals(propName))
@@ -127,6 +128,10 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
             
             reader.endObject();
         }
+        catch (DateTimeParseException e)
+        {
+            throw new ResourceParseException(INVALID_JSON_ERROR_MSG + "Invalid ISO8601 date/time at " + reader.getPath());
+        }
         catch (IllegalStateException | ReaderException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
@@ -135,7 +140,10 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         if (contextData.foiId != null)
             obs.withFoi(contextData.foiId);
         
-        return obs.build();
+        // also set timestamp
+        var newObs = obs.build();
+        newObs.getResult().setDoubleValue(0, newObs.getPhenomenonTime().toEpochMilli() / 1000.0);
+        return newObs;
     }
 
 

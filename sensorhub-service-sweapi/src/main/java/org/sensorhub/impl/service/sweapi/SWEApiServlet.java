@@ -437,6 +437,7 @@ public class SWEApiServlet extends HttpServlet
                 break;
                 
             case BAD_REQUEST:
+            case BAD_PAYLOAD:
                 sendError(SC_BAD_REQUEST, e.getMessage(), resp);
                 break;
                 
