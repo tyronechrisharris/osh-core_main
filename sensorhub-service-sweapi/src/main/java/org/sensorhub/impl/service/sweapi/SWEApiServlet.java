@@ -428,6 +428,8 @@ public class SWEApiServlet extends HttpServlet
     
     protected void handleInvalidRequestException(HttpServletRequest req, HttpServletResponse resp, InvalidRequestException e)
     {
+        log.debug("Invalid request ({}): {}", e.getErrorCode(), e.getMessage());
+        
         switch (e.getErrorCode())
         {
             case UNSUPPORTED_OPERATION:
@@ -456,6 +458,8 @@ public class SWEApiServlet extends HttpServlet
     {
         try
         {
+            log.debug("Not authorized: {}", e.getMessage());
+            
             if (req != null && resp != null)
             {
                 if (req.getRemoteUser() == null)

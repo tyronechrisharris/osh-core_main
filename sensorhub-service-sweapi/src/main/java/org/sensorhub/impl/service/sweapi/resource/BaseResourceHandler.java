@@ -34,7 +34,6 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
-import com.google.gson.JsonParseException;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -369,6 +368,10 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                     if (url != null)
                         ctx.addResourceUri(url);
                 }
+                catch (DataStoreException e)
+                {
+                    throw ServiceErrors.badRequest(e.getMessage());
+                }
                 catch (Exception e)
                 {
                     throw new IOException("Error ingesting entry", e);
@@ -380,7 +383,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (ResourceParseException e)
         {
-            throw ServiceErrors.badRequest("Invalid payload: " + e.getMessage());
+            throw ServiceErrors.invalidPayload(e.getMessage());
         }
     }
         
@@ -411,9 +414,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             
             validate(res);
         }
-        catch (JsonParseException e)
+        catch (ResourceParseException e)
         {
-            throw ServiceErrors.badRequest("Invalid payload: " + e.getMessage());
+            throw ServiceErrors.invalidPayload(e.getMessage());
         }
         
         // update in datastore

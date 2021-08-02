@@ -57,7 +57,7 @@ import com.google.common.cache.CacheLoader;
 public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
 {
     public static final int EXTERNAL_ID_SEED = 71145893;
-    public static final String[] NAMES = { "observations", "obs" };
+    public static final String[] NAMES = { "observations" };
     
     final IEventBus eventBus;
     final ProcedureObsDbWrapper db;
@@ -108,6 +108,8 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             // create transaction handler here so it can be reused multiple times
             contextData.dsID = idConverter.toInternalID(publicDsID);
             contextData.dsHandler = transactionHandler.getDataStreamHandler(contextData.dsID);
+            if (contextData.dsHandler == null)
+                throw ServiceErrors.notWritable();
             
             // try to parse featureOfInterest argument
             String foiArg = ctx.getParameter("foi");
@@ -155,19 +157,11 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         var filter = getFilter(ctx.getParentRef(), queryParams, 0, Long.MAX_VALUE);
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
+        var binding = getBinding(ctx, false);
         
         // continue when streaming actually starts        
         ctx.getStreamHandler().setStartCallback(() -> {
-            ResourceBinding<BigInteger, IObsData> binding;
-            try
-            {
-                binding = getBinding(ctx, false);
-            }
-            catch (IOException e)
-            {
-                throw new IllegalStateException(e);
-            }
-            
+                        
             // prepare lazy loaded map of FOI UID to full FeatureId
             var foiIdCache = CacheBuilder.newBuilder()
                 .maximumSize(100)

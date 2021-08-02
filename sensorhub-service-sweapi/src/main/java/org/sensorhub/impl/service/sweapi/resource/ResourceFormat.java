@@ -14,8 +14,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.resource;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.vast.ogc.gml.GeoJsonBindings;
@@ -25,8 +23,6 @@ import net.opengis.swe.v20.BinaryEncoding;
 
 public class ResourceFormat
 {
-    static Map<String, ResourceFormat> byMimeType = new HashMap<>();
-    
     public static ResourceFormat JSON = new ResourceFormat("application/json");
     public static ResourceFormat GEOJSON = new ResourceFormat(GeoJsonBindings.MIME_TYPE);
     
@@ -48,13 +44,6 @@ public class ResourceFormat
     public static ResourceFormat APPLI_XML = new ResourceFormat("application/xml");
     
     
-    static
-    {
-        byMimeType.put("application/json", JSON);
-        byMimeType.put(GeoJsonBindings.MIME_TYPE, GEOJSON);
-    }
-    
-    
     String mimeType;
     
     
@@ -63,18 +52,13 @@ public class ResourceFormat
         if (mimeType == null)
             return null;
         
-        var f = byMimeType.get(mimeType);
-        if (f == null)
-            f = new ResourceFormat(mimeType);
-        
-        return f;
+        return new ResourceFormat(mimeType);
     }
     
     
     private ResourceFormat(String mimeType)
     {
         this.mimeType = mimeType;
-        byMimeType.put(mimeType, this);
     }
     
     

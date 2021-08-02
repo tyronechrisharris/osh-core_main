@@ -21,6 +21,8 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 public class ServiceErrors
 {
     public static final String UNSUPPORTED_FORMAT_ERROR_MSG = "Unsupported format: ";
+    public static final String NOT_WRITABLE_ERROR_MSG = "Resource is not writable";
+    public static final String NOT_FOUND_ERROR_MSG = "Resource not found";
     
     
     private ServiceErrors() {}
@@ -38,20 +40,38 @@ public class ServiceErrors
     }
     
     
+    public static InvalidRequestException invalidPayload(String msg)
+    {
+        return new InvalidRequestException(ErrorCode.BAD_PAYLOAD, msg);
+    }
+    
+    
     public static InvalidRequestException unsupportedFormat(ResourceFormat format)
     {
         return new InvalidRequestException(ErrorCode.BAD_REQUEST, UNSUPPORTED_FORMAT_ERROR_MSG + format);
     }
     
     
+    public static InvalidRequestException notWritable()
+    {
+        return new InvalidRequestException(ErrorCode.BAD_REQUEST, NOT_WRITABLE_ERROR_MSG);
+    }
+    
+    
+    public static InvalidRequestException notWritable(String id)
+    {
+        return new InvalidRequestException(ErrorCode.BAD_REQUEST, NOT_WRITABLE_ERROR_MSG + ": " + id);
+    }
+    
+    
     public static InvalidRequestException notFound() 
     {
-        return new InvalidRequestException(ErrorCode.NOT_FOUND, "Resource not found");
+        return new InvalidRequestException(ErrorCode.NOT_FOUND, NOT_FOUND_ERROR_MSG);
     }
     
     
     public static InvalidRequestException notFound(String id) 
     {
-        return new InvalidRequestException(ErrorCode.NOT_FOUND, "Resource not found: " + id);
+        return new InvalidRequestException(ErrorCode.NOT_FOUND, NOT_FOUND_ERROR_MSG + ": " + id);
     }
 }

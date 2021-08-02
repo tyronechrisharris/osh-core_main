@@ -193,7 +193,26 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         sweWriter.setDataComponents(dsInfo.getRecordStructure());
         
         // filter out time component since it's already included in O&M
-        sweWriter.setDataComponentFilter(new IComponentFilter() {
+        sweWriter.setDataComponentFilter(getTimeStampFilter());        
+        return sweWriter;
+    }
+    
+    
+    protected JsonDataParserGson getSweCommonParser(IDataStreamInfo dsInfo, JsonReader reader)
+    {
+        // create JSON SWE parser
+        var sweParser = new JsonDataParserGson(reader);
+        sweParser.setDataComponents(dsInfo.getRecordStructure());        
+        
+        // filter out time component since it's already included in O&M
+        sweParser.setDataComponentFilter(getTimeStampFilter());        
+        return sweParser;
+    }
+    
+    
+    protected IComponentFilter getTimeStampFilter()
+    {
+        return new IComponentFilter() {
             @Override
             public boolean accept(DataComponent comp)
             {
@@ -204,17 +223,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
                 else
                     return true;
             }            
-        });
-        
-        return sweWriter;
-    }
-    
-    
-    protected JsonDataParserGson getSweCommonParser(IDataStreamInfo dsInfo, JsonReader reader)
-    {
-        var sweParser = new JsonDataParserGson(reader);
-        sweParser.setDataComponents(dsInfo.getRecordStructure());
-        return sweParser;
+        };
     }
     
     

@@ -17,9 +17,11 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -40,12 +42,14 @@ public class ResourceContext
     private final HttpServletRequest req;
     private final HttpServletResponse resp;
     private final StreamHandler streamHandler;
-    Deque<String> path;
-    Map<String, String[]> queryParams;
-    ResourceRef parentResource = new ResourceRef();
-    ResourceFormat format;
-    PropertyFilter propFilter;
-    Set<String> resourceUris;
+    private InputStream inputStream;
+    private Deque<String> path;
+    private Map<String, String[]> queryParams;
+    private String contentType;
+    private ResourceRef parentResource = new ResourceRef();
+    private ResourceFormat format;
+    private PropertyFilter propFilter;
+    private Set<String> resourceUris;
     
     
     /*
@@ -64,31 +68,62 @@ public class ResourceContext
     }
     
     
+    /*
+     * Constructor for classic HTTP requests
+     */
     public ResourceContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp)
     {
-        this(servlet, req, resp, null);
+        this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
+        this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
+        this.resp = Asserts.checkNotNull(resp, HttpServletResponse.class);
+        this.streamHandler = null;
+        this.path = splitPath(req.getPathInfo());
+        this.queryParams = req.getParameterMap();
+        this.contentType = req.getContentType();
     }
     
     
+    /*
+     * Constructor for streaming websocket requests
+     */
     public ResourceContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp, StreamHandler streamHandler)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
         this.resp = Asserts.checkNotNull(resp, HttpServletResponse.class);
-        this.streamHandler = streamHandler;
+        this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
         this.path = splitPath(req.getPathInfo());
         this.queryParams = req.getParameterMap();
+        this.contentType = req.getContentType();
     }
     
     
-    public ResourceContext(SWEApiServlet servlet, String path, Map<String, String[]> queryParams, StreamHandler streamHandler)
+    /*
+     * Constructor for other protocols providing their own path/params and input stream (e.g. MQTT publish)
+     */
+    public ResourceContext(SWEApiServlet servlet, URI resourceURI, InputStream is)
+    {
+        this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
+        this.req = null;
+        this.resp = null;
+        this.streamHandler = null;
+        this.inputStream = Asserts.checkNotNull(is, InputStream.class);
+        this.path = splitPath(resourceURI.getPath());
+        this.queryParams = parseQueryParams(resourceURI.getQuery());
+    }
+    
+    
+    /*
+     * Constructor for other protocols providing their own path/params and stream handler (e.g. MQTT subscribe)
+     */
+    public ResourceContext(SWEApiServlet servlet, URI resourceURI, StreamHandler streamHandler)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;
         this.resp = null;
         this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
-        this.path = splitPath(path);
-        this.queryParams = Asserts.checkNotNull(queryParams, "queryParams");
+        this.path = splitPath(resourceURI.getPath());
+        this.queryParams = parseQueryParams(resourceURI.getQuery());
     }
     
     
@@ -108,6 +143,26 @@ public class ResourceContext
         }
         
         return new ArrayDeque<String>(0);
+    }
+    
+    
+    private Map<String, String[]> parseQueryParams(String queryStr)
+    {
+        // parse query params
+        Map<String, String[]> params = new HashMap<>();
+        if (!Strings.isNullOrEmpty(queryStr))
+        {
+            for (var param: queryStr.split("&"))
+            {
+                var tokens = param.split("=");                    
+                if (tokens.length == 2)
+                    params.put(tokens[0], new String[] {tokens[1]});
+                else
+                    params.put(tokens[0], null);
+            }
+        }
+        
+        return params;
     }
     
     
@@ -185,7 +240,13 @@ public class ResourceContext
     
     public String getRequestContentType()
     {
-        return req != null ? req.getContentType() : null;            
+        return this.contentType;
+    }
+    
+    
+    public void setRequestContentType(String contentType)
+    {
+        this.contentType = contentType;
     }
     
     
@@ -193,64 +254,6 @@ public class ResourceContext
     {
         if (resp != null)
             resp.setContentType(mimeType);
-    }
-   
-    
-    
-    /*public boolean sendError(int code)
-    {
-        return sendError(code, null);
-    }
-    
-    
-    public boolean sendError(int code, String msg)
-    {
-        if (resp != null)
-            servlet.sendError(code, msg, resp);
-        return false;
-    }
-    
-    
-    public boolean sendSuccess(int code)
-    {
-        return sendSuccess(code, null);
-    }
-    
-    
-    public boolean sendSuccess(int code, String msg)
-    {
-        try
-        {
-            resp.setStatus(code);
-            if (msg != null)
-                resp.getOutputStream().write(msg.getBytes());
-        }
-        catch (IOException e)
-        {
-            getLogger().error("Could not send response", e);
-        }
-        
-        return true;
-    }
-    
-    
-    protected void writeError(String msg, JsonWriter writer) throws IOException
-    {
-        writer.beginObject();
-        writer.name("error").value(msg);
-        writer.endObject();
-    }*/
-    
-    
-    public Logger getLogger()
-    {
-        return servlet.getLogger();
-    }
-    
-    
-    public String getApiRootURL()
-    {
-        return servlet.getApiRootURL();
     }
     
     
@@ -278,11 +281,9 @@ public class ResourceContext
     
     public InputStream getInputStream() throws IOException
     {
-        /*return streamHandler != null ?
-            streamHandler.getInputStream() :
-            req.getInputStream();*/
-        return req != null ? req.getInputStream() : null;
+        return req != null ? req.getInputStream() : inputStream;
     }
+    
     
     public OutputStream getOutputStream() throws IOException
     {
@@ -295,12 +296,6 @@ public class ResourceContext
     public boolean isStreamRequest()
     {
         return streamHandler != null;
-    }
-    
-    
-    public SWEApiSecurity getSecurityHandler()
-    {
-        return servlet.getSecurityHandler();
     }
 
 
@@ -315,5 +310,23 @@ public class ResourceContext
         if (resourceUris == null)
             resourceUris = new LinkedHashSet<>();
         resourceUris.add(uri);
+    }
+    
+    
+    public String getApiRootURL()
+    {
+        return servlet.getApiRootURL();
+    }
+    
+    
+    public Logger getLogger()
+    {
+        return servlet.getLogger();
+    }
+    
+    
+    public SWEApiSecurity getSecurityHandler()
+    {
+        return servlet.getSecurityHandler();
     }
 }
