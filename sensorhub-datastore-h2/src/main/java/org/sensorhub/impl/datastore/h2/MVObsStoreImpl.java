@@ -44,6 +44,7 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.impl.datastore.DataStoreUtils;
@@ -602,7 +603,7 @@ public class MVObsStoreImpl implements IObsStore
         long end = phenomenonTimeRange.upperEndpoint().getEpochSecond();
         long dt = binSize.getSeconds();
         long t = start;
-        int numBins = (int)((end - start)/dt);
+        int numBins = (int)Math.ceil((double)(end - start)/dt);
         int[] counts = new int[numBins];
         
         for (int i = 0; i < counts.length; i++)
@@ -653,15 +654,18 @@ public class MVObsStoreImpl implements IObsStore
             return selectObsSeries(filter, timeParams)
                 .map(series -> {
                    var dsID = series.key.dataStreamID;
+                   var foiID = series.key.foiID > 0 ?
+                       new FeatureId(series.key.foiID, "urn:foi:unknown") :
+                       FeatureId.NULL_FEATURE;
                    
                    var seriesTimeRange = getObsSeriesPhenomenonTimeRange(series.id);
                    
                    // skip if requested phenomenon time range doesn't intersect series time range
                    var statsTimeRange = timeParams.phenomenonTimeRange;
-                   if (!statsTimeRange.isConnected(seriesTimeRange))
+                   if (seriesTimeRange == null || !statsTimeRange.isConnected(seriesTimeRange))
                        return null;
                    
-                   statsTimeRange = seriesTimeRange.intersection(seriesTimeRange);
+                   statsTimeRange = seriesTimeRange.intersection(statsTimeRange);
                    
                    var resultTimeRange = series.key.resultTime != Instant.MIN ?
                        Range.singleton(series.key.resultTime) : statsTimeRange;
@@ -670,6 +674,7 @@ public class MVObsStoreImpl implements IObsStore
                        
                    var obsStats = new ObsStats.Builder()
                        .withDataStreamID(dsID)
+                       .withFoiID(foiID)
                        .withPhenomenonTimeRange(TimeExtent.period(statsTimeRange))
                        .withResultTimeRange(TimeExtent.period(resultTimeRange))
                        .withTotalObsCount(obsCount);

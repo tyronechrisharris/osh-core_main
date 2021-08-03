@@ -95,7 +95,21 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
     @Override
     public Stream<ObsStats> getStatistics(ObsStatsQuery query)
     {
-        throw new UnsupportedOperationException();
+        try
+        {
+            if (viewFilter != null)
+            {
+                var filter = viewFilter.intersect(query.getObsFilter());
+                query = ObsStatsQuery.Builder.from(query)
+                    .selectObservations(filter)
+                    .build();
+            }
+            return delegate.getStatistics(query);
+        }
+        catch (EmptyFilterIntersection e)
+        {
+            return Stream.empty();
+        }
     }
     
     

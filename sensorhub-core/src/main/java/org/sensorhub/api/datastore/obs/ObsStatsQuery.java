@@ -144,7 +144,7 @@ public class ObsStatsQuery implements IQueryFilter
         }      
 
 
-        public B withLimit(int limit)
+        public B withLimit(long limit)
         {
             instance.limit = limit;
             return (B)this;
