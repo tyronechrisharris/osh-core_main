@@ -17,9 +17,7 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
@@ -32,11 +30,6 @@ import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
 import org.vast.util.Asserts;
-import org.vast.util.Bbox;
-import org.vast.util.TimeExtent;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
 
 
 /**
@@ -56,7 +49,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
 {
     public static final String INVALID_VERSION_ERROR_MSG = "Invalid version number: ";
     public static final String ALREADY_EXISTS_ERROR_MSG = "Resource already exists";
-    public static final String UNSUPPORTED_WEBSOCKET_MSG = "Websocket streaming not supported on this resource";
+    public static final String UNSUPPORTED_WEBSOCKET_MSG = "Streaming not supported on this resource";
     
     protected final S dataStore;
     protected final IdEncoder idEncoder;
@@ -269,65 +262,6 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected Collection<ResourceLink> getPagingLinks(final ResourceContext ctx, long offset, long limit, boolean hasMore) throws InvalidRequestException
-    {
-        var resourcePath = ctx.getApiRootURL() + "/" + getNames()[0];
-        var queryParams = ctx.getParameterMap();
-        var links = new ArrayList<ResourceLink>();
-        
-        // prev link
-        if (offset > 0)
-        {
-            var prevOffset = Math.max(0, offset-limit);
-            links.add(new ResourceLink.Builder()
-                .rel("prev")
-                .href(resourcePath + getQueryString(queryParams, prevOffset))
-                .type(ctx.getFormat().getMimeType())
-                .build());
-        }
-        
-        // next link
-        if (hasMore)
-        {
-            var nextOffset = offset+limit;
-            links.add(new ResourceLink.Builder()
-                .rel("next")
-                .href(resourcePath + getQueryString(queryParams, nextOffset))
-                .type(ctx.getFormat().getMimeType())
-                .build());
-        }
-        
-        return links;
-    }
-    
-    
-    String getQueryString(Map<String, String[]> queryParams, long offset)
-    {
-        offset = Math.max(0, offset);
-        
-        var buf = new StringBuilder();
-        buf.append('?');
-        
-        for (var e: queryParams.entrySet())
-        {
-            if (!"offset".equals(e.getKey()))
-            {
-                buf.append(e.getKey()).append("=");
-                for (var s: e.getValue())
-                    buf.append(s).append(',');
-                buf.setCharAt(buf.length()-1, '&');
-            }
-        }
-        
-        if (offset > 0)
-            buf.append("offset=").append(offset);
-        else
-            buf.setLength(buf.length()-1);
-        
-        return buf.toString();
-    }
-    
-    
     protected void create(final ResourceContext ctx) throws IOException
     {
         // check permissions
@@ -528,196 +462,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected PropertyFilter parseSelectArg(final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        var paramValues = queryParams.get("select");
-                
-        if (paramValues != null)
-        {
-            var propFilter = new PropertyFilter();
-            
-            for (String val: paramValues)
-            {
-                for (String item: val.split(","))
-                {
-                    item = item.trim();
-                    if (item.isEmpty())
-                        throw ServiceErrors.badRequest("Invalid select parameter: " + val);
-                    
-                    else if (item.startsWith("!"))
-                        propFilter.excludedProps.add(item.substring(1));
-                    else
-                        propFilter.includedProps.add(item);
-                }
-                
-                if (propFilter.includedProps.isEmpty() && propFilter.excludedProps.isEmpty())
-                    throw ServiceErrors.badRequest("Invalid select parameter: " + val);
-            }
-            
-            return propFilter;
-        }
-        
-        return null;
-    }
-    
-    
-    protected ResourceFormat parseFormat(final Map<String, String[]> queryParams)
-    {
-        var format = queryParams.get("f");
-        if (format == null)
-            format = queryParams.get("format");
-        
-        ResourceFormat rf = null;
-        if (format != null)
-            rf = ResourceFormat.fromMimeType(format[0]);
-        
-        if (rf == null)
-            rf = ResourceFormat.JSON; // defaults to json;
-        
-        return rf;
-    }
-    
-    
     protected Collection<Long> parseResourceIds(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
     {
         return parseResourceIds(paramName, queryParams, this.idEncoder);
-    }
-    
-        
-    protected Collection<Long> parseResourceIds(String paramName, final Map<String, String[]> queryParams, IdEncoder idEncoder) throws InvalidRequestException
-    {
-        var allValues = new ArrayList<Long>();
-        
-        var paramValues = queryParams.get(paramName);
-        if (paramValues != null)
-        {
-            for (String val: paramValues)
-            {
-                for (String id: val.split(","))
-                {
-                    try
-                    {
-                        long externalID = Long.parseLong(id, ResourceBinding.ID_RADIX);
-                        long internalID = idEncoder.decodeID(externalID);
-                        allValues.add(internalID);
-                    }
-                    catch (NumberFormatException e)
-                    {
-                        throw ServiceErrors.badRequest("Invalid resource ID: " + id);
-                    }
-                }
-            }
-        }
-        
-        return allValues;
-    }
-    
-    
-    protected TimeExtent parseTimeStampArg(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        var timeVal = getSingleParam(paramName, queryParams);
-        if (timeVal == null)
-            return null;
-        
-        try
-        {
-            return TimeExtent.parse(timeVal);
-        }
-        catch (Exception e)
-        {
-            throw ServiceErrors.badRequest("Invalid time parameter: " + timeVal);
-        }
-    }
-    
-    
-    protected Bbox parseBboxArg(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        var bboxCoords = parseMultiValuesArg(paramName, queryParams);
-        if (bboxCoords == null || bboxCoords.isEmpty())
-            return null;
-        
-        try
-        {
-            Bbox bbox = new Bbox();
-            bbox.setMinX(Double.parseDouble(bboxCoords.get(0)));
-            bbox.setMinY(Double.parseDouble(bboxCoords.get(1)));
-            bbox.setMaxX(Double.parseDouble(bboxCoords.get(2)));
-            bbox.setMaxY(Double.parseDouble(bboxCoords.get(3)));
-            bbox.checkValid();
-            return bbox;
-        }
-        catch (Exception e)
-        {
-            throw ServiceErrors.badRequest("Invalid bounding box: " + bboxCoords);
-        }
-    }
-    
-    
-    protected Geometry parseGeomArg(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        var wkt = getSingleParam(paramName, queryParams);
-        if (wkt == null)
-            return null;
-        
-        try
-        {
-            return new WKTReader().read(wkt);
-        }
-        catch (ParseException e)
-        {
-            throw ServiceErrors.badRequest("Invalid geometry: " + wkt);
-        }
-    }
-    
-    
-    protected Long parseLongArg(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        var paramValue = getSingleParam(paramName, queryParams);
-        if (paramValue == null)
-            return null;
-        
-        try
-        {
-            return Long.parseLong(paramValue);
-        }
-        catch (NumberFormatException e)
-        {
-            throw ServiceErrors.badRequest("Invalid " + paramName + " parameter: " + paramValue);
-        }
-    }
-    
-    
-    protected List<String> parseMultiValuesArg(String paramName, final Map<String, String[]> queryParams)
-    {
-        var allValues = new ArrayList<String>();
-        
-        var paramValues = queryParams.get(paramName);
-        if (paramValues != null)
-        {
-            for (String val: paramValues)
-            {
-                for (String item: val.split(","))
-                {
-                    if (!item.isBlank())
-                        allValues.add(item);
-                }
-            }
-        }
-        
-        return allValues;
-    }
-    
-    
-    protected String getSingleParam(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        var paramValues = parseMultiValuesArg(paramName, queryParams);
-        
-        if (paramValues.size() > 1)
-            throw ServiceErrors.badRequest("Parameter '" + paramName + "' must have a single value");
-        
-        if (paramValues.isEmpty())
-            return null;
-        
-        return paramValues.iterator().next();
     }
 }
