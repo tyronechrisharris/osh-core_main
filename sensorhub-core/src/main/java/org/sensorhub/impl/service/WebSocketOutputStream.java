@@ -39,7 +39,6 @@ public class WebSocketOutputStream extends ByteArrayOutputStream
     protected ByteBuffer buffer;
     protected Session session;
     protected boolean autoSendOnFlush;
-    protected boolean closed;
     
     
     public WebSocketOutputStream(Session session, int bufferSize, boolean autoSendOnFlush, Logger log)
@@ -57,7 +56,6 @@ public class WebSocketOutputStream extends ByteArrayOutputStream
     {
         if (session.isOpen())
             WebSocketUtils.closeSession(session, StatusCode.NORMAL, "Data provider done", log);
-        closed = true;
     }
     
 
@@ -71,7 +69,7 @@ public class WebSocketOutputStream extends ByteArrayOutputStream
     
     public void send() throws IOException
     {
-        if (closed)
+        if (!session.isOpen())
             throw new EOFException();
         
         // do nothing if no more bytes have been written since last call
