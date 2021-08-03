@@ -117,7 +117,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
         }
 
         @Override
-        public long getLastDescriptionUpdate()
+        public long getLatestDescriptionUpdate()
         {
             return 0;
         }

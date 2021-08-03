@@ -297,7 +297,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public synchronized long getLastDescriptionUpdate()
+    public synchronized long getLatestDescriptionUpdate()
     {
         return lastUpdatedProcess;
     }

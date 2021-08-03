@@ -54,7 +54,7 @@ public class DefaultLocationOutputLLA extends DefaultLocationOutput
 
 
     @Override
-    protected void updateLocation(double time, double x, double y, double z, boolean forceUpdate)
+    public void updateLocation(double time, double x, double y, double z, boolean forceUpdate)
     {
         // build new datablock
         DataBlock dataBlock = (latestRecord == null) ? outputStruct.createDataBlock() : latestRecord.renew();

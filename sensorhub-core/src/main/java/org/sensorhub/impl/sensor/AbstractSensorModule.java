@@ -379,7 +379,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public long getLastDescriptionUpdate()
+    public long getLatestDescriptionUpdate()
     {
         return lastUpdatedSensorDescription;
     }

@@ -83,7 +83,7 @@ public interface IProcedureDriver extends IEventProducer
      * @return Date/time of last description update as unix time (millis since 1970)
      * or {@link Long#MIN_VALUE} if description was never updated.
      */
-    public long getLastDescriptionUpdate();
+    public long getLatestDescriptionUpdate();
 
 
     /**

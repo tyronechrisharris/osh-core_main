@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -121,30 +120,31 @@ public abstract class AbstractSensorDriver implements ISensorDriver
      * Note that this also adds a location output allowing the sensor location to be updated
      * and reported dynamically afterwards
      */
-    protected void setSensorLocation(Instant time, double lat, double lon, double alt, boolean isFoi)
+    protected void setSamplingPointFoi(double lat, double lon, double alt)
     {
-        if (isFoi && (foiMap == null || foiMap.isEmpty()) )
-        {
-            // add 
-            SamplingPoint sf = new SamplingPoint();
-            sf.setId("FOI_" + getShortID());
-            sf.setUniqueIdentifier(getUniqueIdentifier() + "-foi");
-            sf.setName(getName());
-            sf.setDescription("Sampling point for " + getName());
-            sf.setHostedProcedureUID(getUniqueIdentifier());
-            Point point = new GMLFactory(true).newPoint();
-            point.setSrsName(SWEConstants.REF_FRAME_4979);
-            point.setSrsDimension(3);
-            point.setPos(new double[] {lat, lon, alt});
-            sf.setShape(point);
-            foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
-        }
-        
+        SamplingPoint sf = new SamplingPoint();
+        sf.setId("FOI_" + getShortID());
+        sf.setUniqueIdentifier(getUniqueIdentifier() + "-foi");
+        sf.setName(getName());
+        sf.setDescription("Sampling point for " + getName());
+        sf.setHostedProcedureUID(getUniqueIdentifier());
+        Point point = new GMLFactory(true).newPoint();
+        point.setSrsName(SWEConstants.REF_FRAME_4979);
+        point.setSrsDimension(3);
+        point.setPos(new double[] {lat, lon, alt});
+        sf.setShape(point);
+        foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
+    }
+    
+    
+    protected void addLocationOutput(double updatePeriod)
+    {        
         synchronized(obsOutputs)
         {
             if (locationOutput == null)
             {
-                locationOutput = new DefaultLocationOutputLLA(this, getLocalReferenceFrame(), Double.NaN);
+                // TODO deal with other CRS than 4979
+                locationOutput = new DefaultLocationOutputLLA(this, getLocalReferenceFrame(), updatePeriod);
                 addOutput(locationOutput, true);
             }
         }
@@ -246,7 +246,7 @@ public abstract class AbstractSensorDriver implements ISensorDriver
 
 
     @Override
-    public long getLastDescriptionUpdate()
+    public long getLatestDescriptionUpdate()
     {
         return lastUpdatedSensorDescription;
     }
