@@ -31,7 +31,6 @@ import org.vast.ogc.gml.IFeature;
 public class FeatureFilter extends FeatureFilterBase<IFeature>
 {        
     protected FeatureFilter parentFilter;
-    protected FeatureFilter memberFilter;
     
     
     /*
@@ -45,12 +44,6 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
     public FeatureFilter getParentFilter()
     {
         return parentFilter;
-    }
-
-
-    public FeatureFilter getMemberFilter()
-    {
-        return memberFilter;
     }
 
 
@@ -77,10 +70,6 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         var parentFilter = this.parentFilter != null ? this.parentFilter.intersect(otherFilter.parentFilter) : otherFilter.parentFilter;
         if (parentFilter != null)
             builder.withParents(parentFilter);
-        
-        var memberFilter = this.memberFilter != null ? this.memberFilter.intersect(otherFilter.memberFilter) : otherFilter.memberFilter;
-        if (parentFilter != null)
-            builder.withMembers(memberFilter);
         
         return builder;
     }
@@ -138,7 +127,6 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         {
             super.copyFrom(base);
             instance.parentFilter = base.parentFilter;
-            instance.memberFilter = base.memberFilter;
             return (B)this;
         }
         
@@ -200,32 +188,14 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         
         
         /**
-         * Select only feature collections with the matching members
-         * @param filter Member feature filter
+         * Select only features that have no parent
          * @return This builder for chaining
          */
-        public B withMembers(FeatureFilter filter)
+        public B withNoParent()
         {
-            instance.memberFilter = filter;
-            return (B)this;
-        }
-
-        
-        /**
-         * Keep only feature collections with the matching members.<br/>
-         * Call done() on the nested builder to go back to main builder.
-         * @return The {@link FeatureFilter} builder for chaining
-         */
-        public FeatureFilter.NestedBuilder<B> withMembers()
-        {
-            return new FeatureFilter.NestedBuilder<B>((B)this) {
-                @Override
-                public B done()
-                {
-                    FeatureFilterBuilder.this.withMembers(build());
-                    return (B)FeatureFilterBuilder.this;
-                }                
-            };
+            return withParents()
+                .withInternalIDs(0)
+                .done();
         }
     }
 }

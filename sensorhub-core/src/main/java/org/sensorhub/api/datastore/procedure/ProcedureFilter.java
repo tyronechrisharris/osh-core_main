@@ -34,9 +34,8 @@ import org.vast.ogc.om.IProcedure;
 public class ProcedureFilter extends FeatureFilterBase<IProcedure>
 {
     protected ProcedureFilter parentFilter;
-    protected ProcedureFilter memberFilter;
     protected DataStreamFilter dataStreamFilter;
-    
+
     
     /*
      * this class can only be instantiated using builder
@@ -47,12 +46,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     public ProcedureFilter getParentFilter()
     {
         return parentFilter;
-    }
-    
-    
-    public ProcedureFilter getMemberFilter()
-    {
-        return memberFilter;
     }
     
     
@@ -85,10 +78,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         var parentFilter = this.parentFilter != null ? this.parentFilter.intersect(otherFilter.parentFilter) : otherFilter.parentFilter;
         if (parentFilter != null)
             builder.withParents(parentFilter);
-        
-        var memberFilter = this.memberFilter != null ? this.memberFilter.intersect(otherFilter.memberFilter) : otherFilter.memberFilter;
-        if (parentFilter != null)
-            builder.withMembers(memberFilter);
         
         var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.intersect(otherFilter.dataStreamFilter) : otherFilter.dataStreamFilter;
         if (dataStreamFilter != null)
@@ -164,7 +153,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         {
             super.copyFrom(base);
             instance.parentFilter = base.parentFilter;
-            instance.memberFilter = base.memberFilter;
             instance.dataStreamFilter = base.dataStreamFilter;
             return (B)this;
         }
@@ -215,7 +203,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         
         
         /**
-         * Select only features belonging to the parent groups with
+         * Select only procedures belonging to the parent groups with
          * specific unique IDs
          * @param uids List of UIDs of parent procedure groups
          * @return This builder for chaining
@@ -229,32 +217,14 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         
         
         /**
-         * Select only procedure groups with the matching members
-         * @param filter Member procedure filter
+         * Select only procedures that have no parent
          * @return This builder for chaining
          */
-        public B withMembers(ProcedureFilter filter)
+        public B withNoParent()
         {
-            instance.memberFilter = filter;
-            return (B)this;
-        }
-
-        
-        /**
-         * Keep only procedure groups with the matching members.<br/>
-         * Call done() on the nested builder to go back to main builder.
-         * @return The {@link ProcedureFilter} builder for chaining
-         */
-        public ProcedureFilter.NestedBuilder<B> withMembers()
-        {
-            return new ProcedureFilter.NestedBuilder<B>((B)this) {
-                @Override
-                public B done()
-                {
-                    ProcedureFilterBuilder.this.withMembers(build());
-                    return (B)ProcedureFilterBuilder.this;
-                }                
-            };
+            return withParents()
+                .withInternalIDs(0)
+                .done();
         }
         
         
