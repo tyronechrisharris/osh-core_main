@@ -22,6 +22,8 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureBindingGeoJson;
+import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
+import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
@@ -53,7 +55,8 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
     }
     
     
-    protected GeoJsonBindings getJsonBindings(boolean showLinks)
+    @Override
+    protected GeoJsonBindings getJsonBindings()
     {
         return new GeoJsonBindings() {
             public IFeature readFeature(JsonReader reader) throws IOException
@@ -64,7 +67,7 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
             
             protected void writeCustomJsonProperties(JsonWriter writer, IFeature bean) throws IOException
             {
-                if (showLinks)
+                if (showLinks.get())
                 {
                     var links = new ArrayList<ResourceLink>();
                     
@@ -80,6 +83,20 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
                         .title("List of procedure group members")
                         .href("/" + ProcedureHandler.NAMES[0] + "/" +
                             bean.getId() + "/" + ProcedureMembersHandler.NAMES[0])
+                        .build());
+                    
+                    links.add(new ResourceLink.Builder()
+                        .rel("datastreams")
+                        .title("List of procedure datastreams")
+                        .href("/" + ProcedureHandler.NAMES[0] + "/" +
+                            bean.getId() + "/" + DataStreamHandler.NAMES[0])
+                        .build());
+                    
+                    links.add(new ResourceLink.Builder()
+                        .rel("fois")
+                        .title("List of procedure features of interest")
+                        .href("/" + ProcedureHandler.NAMES[0] + "/" +
+                            bean.getId() + "/" + FoiHandler.NAMES[0])
                         .build());
                     
                     writeLinksAsJson(writer, links);

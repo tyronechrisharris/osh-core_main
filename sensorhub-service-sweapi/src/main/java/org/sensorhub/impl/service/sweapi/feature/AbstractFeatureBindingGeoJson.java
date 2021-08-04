@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
@@ -44,16 +45,17 @@ import com.google.gson.stream.JsonWriter;
  */
 public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends ResourceBindingJson<FeatureKey, V>
 {
-    JsonReader reader;
-    JsonWriter writer;
-    GeoJsonBindings geoJsonBindings;
+    protected JsonReader reader;
+    protected JsonWriter writer;
+    protected GeoJsonBindings geoJsonBindings;
+    protected AtomicBoolean showLinks = new AtomicBoolean();
     
     
     public AbstractFeatureBindingGeoJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder);
         
-        this.geoJsonBindings = getJsonBindings(false);
+        this.geoJsonBindings = getJsonBindings();
         
         if (forReading)
         {
@@ -80,7 +82,6 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
         
-        var geoJsonBindings = getJsonBindings(false);
         return (V)geoJsonBindings.readFeature(reader);
     }
 
@@ -91,6 +92,7 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
         try
         {
             var f = getFeatureWithId(key, res);
+            this.showLinks.set(showLinks);
             geoJsonBindings.writeFeature(writer, f);
             writer.flush();
         }
@@ -125,7 +127,7 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
     }
     
     
-    protected GeoJsonBindings getJsonBindings(boolean showLinks)
+    protected GeoJsonBindings getJsonBindings()
     {
         return new GeoJsonBindings(true);
     }

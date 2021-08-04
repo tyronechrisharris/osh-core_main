@@ -236,7 +236,7 @@ public class DataStoreUtils
         
     public static <V extends IFeature, F extends FeatureFilterBase<? super V>> Stream<Long> selectFeatureIDs(IFeatureStoreBase<V,?,F> featureStore, F filter)
     {
-        if (filter.getInternalIDs() != null)
+        if (filter.getInternalIDs() != null && !filter.includeMembers())
         {
             // if only internal IDs were specified, no need to search the linked datastore
             return filter.getInternalIDs().stream();
@@ -258,7 +258,7 @@ public class DataStoreUtils
     
     public static Stream<Long> selectProcedureIDs(IProcedureStore procedureStore, ProcedureFilter filter)
     {
-        if (filter.getInternalIDs() != null)
+        if (filter.getInternalIDs() != null && !filter.includeMembers())
         {
             // if only internal IDs were specified, no need to search the linked datastore
             return filter.getInternalIDs().stream();

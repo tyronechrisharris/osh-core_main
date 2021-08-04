@@ -47,7 +47,7 @@ public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJs
     
     
     @Override
-    protected GeoJsonBindings getJsonBindings(boolean showLinks)
+    protected GeoJsonBindings getJsonBindings()
     {
         return new GeoJsonBindings(true) {
             @Override
