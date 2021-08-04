@@ -40,6 +40,7 @@ public class DefaultLocationOutputLLA extends DefaultLocationOutput
         GeoPosHelper fac = new GeoPosHelper();
 
         outputStruct = fac.createRecord()
+            .label("Sensor Location")
             .addSamplingTimeIsoUTC("time")
             .addField("location", fac.createVector()
                 .from(fac.newLocationVectorLLA(SWEConstants.DEF_SENSOR_LOC))
