@@ -78,15 +78,34 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     {
         super.buildFilter(parent, queryParams, builder);
         
+        var val = getSingleParam("recursive", queryParams);
+        boolean recursive =  (val != null && !val.equalsIgnoreCase("false"));
+        boolean parentSelected = false;
+        
         // parent ID
         var ids = parseResourceIds("parentId", queryParams);
         if (ids != null && !ids.isEmpty())
-            builder.withParents().withInternalIDs(ids).done();
+        {
+            parentSelected = true;
+            builder.withParents()
+                .withInternalIDs(ids)
+                .includeMembers(recursive)
+                .done();
+        } 
         
         // parent UID
         var uids = parseMultiValuesArg("parentUid", queryParams);
         if (uids != null && !uids.isEmpty())
-            builder.withParents().withUniqueIDs(uids).done();
+        {
+            parentSelected = true;
+            builder.withParents()
+                .withUniqueIDs(uids)
+                .includeMembers(recursive)
+                .done();
+        }
+        
+        if (!parentSelected && !recursive)
+            builder.withNoParent();
     }
 
 
