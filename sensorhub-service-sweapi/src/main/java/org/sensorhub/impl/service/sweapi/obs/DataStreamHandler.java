@@ -91,12 +91,21 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         
         // filter on parent if needed
         if (parent.internalID > 0)
-            builder.withProcedures(parent.internalID);
+        {
+            builder.withProcedures()
+                .withInternalIDs(parent.internalID)
+                .includeMembers(true)
+                .done();
+        }
         
         // foi param
         var foiIDs = parseResourceIds("foi", queryParams);
         if (foiIDs != null && !foiIDs.isEmpty())
-            builder.withFois().withInternalIDs(foiIDs);
+        {
+            builder.withFois()
+                .withInternalIDs(foiIDs)
+                .done();
+        }
     }
 
 
