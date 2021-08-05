@@ -433,11 +433,12 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 sensorDescription.setUniqueIdentifier(uniqueID);
 
             // name & description
+            sensorDescription.setDefinition(SWEConstants.DEF_SENSOR);
             if (sensorDescription.getName() == null && config.name != null)
                 sensorDescription.setName(config.name);
             if (sensorDescription.getDescription() == null && config.description != null)
                 sensorDescription.setDescription(config.description);
-
+            
             // time validity
             if (sensorDescription.getNumValidTimes() == 0)
             {
