@@ -57,6 +57,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     protected SortedSet<String> uniqueIDs;
     protected TemporalFilter validTime;
     protected SpatialFilter location;
+    protected boolean includeMembers;
     
     protected transient SortedSet<String> uidPrefixes;
     
@@ -84,6 +85,12 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     public SpatialFilter getLocationFilter()
     {
         return location;
+    }
+    
+    
+    public boolean includeMembers()
+    {
+        return includeMembers;
     }
 
 
@@ -169,6 +176,9 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         if (location != null)
             builder.withLocation(location);
         
+        var includeMembers = this.includeMembers || otherFilter.includeMembers;
+        builder.includeMembers(includeMembers);
+        
         return builder;
     }
 
@@ -202,6 +212,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
             instance.uniqueIDs = base.getUniqueIDs();
             instance.validTime = base.getValidTime();
             instance.location = base.getLocationFilter();
+            instance.includeMembers = base.includeMembers();
             return (B)this;
         }
         
@@ -414,6 +425,18 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
             instance.location = new SpatialFilter.Builder()
                     .withDistanceToPoint(center, dist)
                     .build();
+            return (B)this;
+        }
+        
+        
+        /**
+         * Also retrieve features that are member of a selected parent group
+         * @param include Set to true to include members
+         * @return This builder for chaining
+         */
+        public B includeMembers(boolean include)
+        {
+            instance.includeMembers = include;
             return (B)this;
         }
     }
