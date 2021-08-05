@@ -65,6 +65,13 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
                 return new ProcedureFeatureAdapter(f);
             }
             
+            protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
+            {
+                if (bean.getType() != null)
+                    writer.name("definition").value(bean.getType());
+                super.writeCommonFeatureProperties(writer, bean);
+            }
+            
             protected void writeCustomJsonProperties(JsonWriter writer, IFeature bean) throws IOException
             {
                 if (showLinks.get())
