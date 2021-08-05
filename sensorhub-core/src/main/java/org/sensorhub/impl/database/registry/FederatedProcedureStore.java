@@ -76,7 +76,13 @@ public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedur
             dataStreamFilterDispatchMap = parentDb.obsStore.dataStreamStore.getFilterDispatchMap(filter.getDataStreamFilter());
         
         if (filter.getParentFilter() != null)
-            parentFilterDispatchMap = getFilterDispatchMap(filter.getParentFilter());
+        {
+            // if parent ID 0 is selected (meaning top level resource)
+            // skip because we need to search all databases
+            var parentFilter = filter.getParentFilter();
+            if (parentFilter.getInternalIDs() == null || parentFilter.getInternalIDs().first() != 0)
+                parentFilterDispatchMap = getFilterDispatchMap(filter.getParentFilter());
+        }
         
         // merge both maps
         if (dataStreamFilterDispatchMap != null)
