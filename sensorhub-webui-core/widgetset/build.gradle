@@ -22,7 +22,7 @@ task compileWidgetset(type: JavaExec) {
   inputs.files(inputSource)
   outputs.dir(outputFolder)
   
-  main 'com.vaadin.tools.WidgetsetCompiler'
+  mainClass = 'com.vaadin.tools.WidgetsetCompiler'
   classpath inputSource
   classpath configurations.vaadin
   jvmArgs '-Xmx512M', '-Xss512M', '-Dgwt.persistentunitcachedir='+project.buildDir.canonicalPath
@@ -40,7 +40,7 @@ task compileTheme(type: JavaExec) {
   inputs.file(inputScss)
   outputs.file(outputCss)
   
-  main 'com.vaadin.sass.SassCompiler'
+  mainClass = 'com.vaadin.sass.SassCompiler'
   classpath sourceSets.main.resources.srcDirs
   classpath configurations.vaadin
   jvmArgs '-Xmx64M', '-Xss64M'
@@ -58,6 +58,7 @@ task cleanVaadin(type: Delete) {
   delete "$projectDir/src/main/resources/VAADIN/widgetsets"
 }
 
+compileWidgetset.dependsOn compileTheme
 processResources.dependsOn compileWidgetset
 processResources.dependsOn compileTheme
 clean.dependsOn cleanVaadin
