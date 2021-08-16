@@ -66,13 +66,13 @@ osgi {
     
     // fixup manifest to remove requirement introduced by vaadin osgi components
     doLast {
-      def manifestEntry = 'META-INF/MANIFEST.MF';
-      def newManifestFile = project.buildDirectory.file('MANIFEST.MF.fixed').get().getAsFile()
+      def manifestEntry = 'META-INF/MANIFEST.MF'
+      def newManifestFile = new File("$buildDir/MANIFEST.MF.fixed")
       
       // patch manifest directly in jar file
-      Path jarFilePath = archivePath.toPath();
+      Path jarFilePath = archivePath.toPath()
       FileSystems.newFileSystem(jarFilePath, null).withCloseable { fs ->
-          def manifest = fs.getPath(manifestEntry);          
+          def manifest = fs.getPath(manifestEntry)
           def newManifest = manifest.text.replaceAll("osgi.extender[\\s\\S]*?,", '')
           newManifestFile.text = newManifest
           manifest.text = newManifest
