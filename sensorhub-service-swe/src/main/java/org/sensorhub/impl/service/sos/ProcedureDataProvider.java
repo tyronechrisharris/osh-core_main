@@ -219,15 +219,24 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
     public CompletableFuture<RecordTemplate> getResultTemplate(GetResultTemplateRequest req) throws SOSException
     {
         String procUID = getProcedureUID(req.getOffering());
+        
+        var dsFilter = new DataStreamFilter.Builder()
+            .withProcedures().withUniqueIDs(procUID).done()
+            .withCurrentVersion();
+        
+        String outputName = SOSProviderUtils.getOutputNameFromObservableURIs(req.getObservables());
+        if (outputName != null)
+        {
+            dsFilter.withOutputNames(outputName);
+            req.getObservables().clear();
+        }
+        else
+            dsFilter.withObservedProperties(req.getObservables());            
 
         return CompletableFuture.supplyAsync(() -> {
             // get datastream entry from obs store
             var dsEntry = database.getDataStreamStore()
-                .selectEntries(new DataStreamFilter.Builder()
-                    .withProcedures().withUniqueIDs(procUID).done()
-                    .withObservedProperties(req.getObservables())
-                    .withCurrentVersion()
-                    .build())
+                .selectEntries(dsFilter.build())
                 .findFirst()
                 .orElseThrow(() -> new CompletionException(
                     new SOSException(SOSException.invalid_param_code, "observedProperty", null, 

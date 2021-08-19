@@ -30,6 +30,7 @@ import org.vast.util.TimeExtent;
 import com.google.common.base.Strings;
 import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataRecord;
+import net.opengis.swe.v20.Vector;
 
 
 public class CapabilitiesUpdater
@@ -88,12 +89,25 @@ public class CapabilitiesUpdater
                 obsDb.getDataStreamStore().select(dsFilter)
                    .forEach(dsInfo -> {
                                               
+                       // if we have no catch all observed property URI, generate an output URI
+                       if (!SOSProviderUtils.hasCatchAllObservedProperty(dsInfo.getRecordStructure()))
+                       {
+                           String defUri = SOSProviderUtils.getOutputURI(dsInfo.getOutputName());
+                           finalOffering.getObservableProperties().add(defUri);
+                       }
+                       
                        // iterate through all SWE components and add all definition URIs as observables
                        // this way only composites with URI will get added
                        DataIterator it = new DataIterator(dsInfo.getRecordStructure());
                        while (it.hasNext())
                        {
-                           String defUri = it.next().getDefinition();
+                           var comp = it.next();
+                           
+                           // skip vector coordinates if parent vector has a def
+                           if (comp.getParent() instanceof Vector && comp.getParent().getDefinition() != null)
+                               continue;
+                           
+                           String defUri = comp.getDefinition();
                            if (defUri != null &&
                                !defUri.equals(SWEConstants.DEF_SAMPLING_TIME) &&
                                !defUri.equals(SWEConstants.DEF_PHENOMENON_TIME))

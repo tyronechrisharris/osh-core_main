@@ -66,13 +66,17 @@ public class ResultTemplateSerializerJson extends AbstractAsyncSerializerStax<Ge
     {
         try
         {
-            // build filtered component tree, always keeping sampling time
-            DataComponent filteredStruct = resultTemplate.getDataStructure().copy();
-            request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
-            request.getObservables().add(SWEConstants.DEF_PHENOMENON_TIME);
-            filteredStruct.accept(new DataStructFilter(request.getObservables()));
+            DataComponent dataStruct = resultTemplate.getDataStructure().copy();
             
-            sweBindings.writeDataComponent(writer, filteredStruct, false);
+            if (!request.getObservables().isEmpty())
+            {
+                // build filtered component tree, always keeping sampling time
+                request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
+                request.getObservables().add(SWEConstants.DEF_PHENOMENON_TIME);
+                dataStruct.accept(new DataStructFilter(request.getObservables()));
+            }
+            
+            sweBindings.writeDataComponent(writer, dataStruct, false);
         }
         catch (XMLStreamException e)
         {

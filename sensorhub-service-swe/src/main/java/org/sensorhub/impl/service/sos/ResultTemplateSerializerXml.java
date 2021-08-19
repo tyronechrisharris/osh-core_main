@@ -98,15 +98,19 @@ public class ResultTemplateSerializerXml extends AbstractAsyncSerializerStax<Get
     {
         try
         {
-            // build filtered component tree, always keeping sampling time
-            DataComponent filteredStruct = resultTemplate.getDataStructure().copy();
-            request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
-            request.getObservables().add(SWEConstants.DEF_PHENOMENON_TIME);
-            filteredStruct.accept(new DataStructFilter(request.getObservables()));
+            DataComponent dataStruct = resultTemplate.getDataStructure().copy();
+            
+            if (!request.getObservables().isEmpty())
+            {
+                // build filtered component tree, always keeping sampling time
+                request.getObservables().add(SWEConstants.DEF_SAMPLING_TIME);
+                request.getObservables().add(SWEConstants.DEF_PHENOMENON_TIME);
+                dataStruct.accept(new DataStructFilter(request.getObservables()));
+            }
             
             // write response
             writer.writeStartElement(SOS_PREFIX, "resultStructure", SOS_NS_URI);            
-            sweBindings.writeDataComponent(writer, filteredStruct, false);
+            sweBindings.writeDataComponent(writer, dataStruct, false);
             writer.writeEndElement();
             
             writer.writeStartElement(SOS_PREFIX, "resultEncoding", SOS_NS_URI);            

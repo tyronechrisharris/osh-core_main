@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sos;
 
 import java.time.Instant;
+import java.util.Set;
 import javax.xml.namespace.QName;
 import net.opengis.fes.v20.BBOX;
 import net.opengis.swe.v20.DataArray;
@@ -43,6 +44,9 @@ public class SOSProviderUtils
 {
     static final QName EXT_REPLAY = new QName("replayspeed"); // kvp params are always lower case
     static final QName EXT_WS = new QName("websocket");
+    
+    static final String OUTPUT_DEF_URI_PREFIX = "urn:osh:datastream:";
+    static final String OUTPUT_DEF_URI_SUFFIX = ":all_properties";
     
     
     private SOSProviderUtils() {}
@@ -158,5 +162,47 @@ public class SOSProviderUtils
         obs.setResult(result);
 
         return obs;
+    }
+    
+    
+    public static boolean hasCatchAllObservedProperty(DataComponent dataStruct)
+    {
+        // ok if we have a def on the root component
+        if (dataStruct.getDefinition() != null)
+            return true;
+        
+        // not good if root is an array w/o def
+        if (dataStruct instanceof DataArray)
+            return false;
+        
+        // if root has no def, ok if there is a single component other than time with a def
+        return dataStruct.getComponentCount() == 2 &&
+            dataStruct.getComponent(1).getDefinition() != null;
+    }
+    
+    
+    public static String getOutputURI(String outputName)
+    {
+        return OUTPUT_DEF_URI_PREFIX + outputName + OUTPUT_DEF_URI_SUFFIX;
+    }
+    
+    
+    public static String getOutputName(String outputURI)
+    {
+        return outputURI
+            .replace(OUTPUT_DEF_URI_PREFIX, "")
+            .replace(OUTPUT_DEF_URI_SUFFIX, "");
+    }
+    
+    
+    public static String getOutputNameFromObservableURIs(Set<String> observedProperties)
+    {
+        for (var prop: observedProperties)
+        {
+            if (prop.startsWith(OUTPUT_DEF_URI_PREFIX))
+                return getOutputName(prop);
+        }
+        
+        return null;
     }
 }
