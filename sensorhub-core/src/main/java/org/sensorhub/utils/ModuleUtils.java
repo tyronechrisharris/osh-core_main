@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.regex.Pattern;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
@@ -45,6 +46,8 @@ public class ModuleUtils
     public static final String MODULE_DEPS = "OSH-Dependencies";
     
     public static final String LOG_MODULE_ID = "MODULE_ID";
+    
+    private static Pattern ENV_VAR_REGEX = Pattern.compile("\\$?\\$\\{(.+?)(:(.+?))?\\}");
     
     
     public static Manifest getManifest(Class<?> clazz)
@@ -164,7 +167,7 @@ public class ModuleUtils
      */
     public static Logger createModuleLogger(IModule<?> module)
     {
-        Asserts.checkNotNull(module, IModule.class);        
+        Asserts.checkNotNull(module, IModule.class);
         String moduleID = module.getLocalID();
 
         // if module config wasn't initialized or logback not available, use class logger
@@ -189,5 +192,61 @@ public class ModuleUtils
         {
             throw new IllegalStateException("Could not configure module logger", e);
         }
+    }
+    
+    
+    /**
+     * Performs variable expansion on a configuration string property.<br/>
+     * Variables are resolved by searching first the JVM system properties (i.e. set with -D)
+     * and then the environment variables.
+     * @param str The string to expand
+     * @return the string with all variable expanded
+     */
+    public static String expand(String str)
+    {
+        return expand(str, false);
+    }
+    
+    
+    public static String expand(String str, boolean honorLazyFlag)
+    {
+        var expandedStr = str;
+        var matcher = ENV_VAR_REGEX.matcher(str);
+        while (matcher.find())
+        {
+            var varStr = matcher.group();
+            String replaceStr;
+            
+            if (varStr.startsWith("$$") && honorLazyFlag)
+            {
+                // case of variable expanded lazily at run time
+                // this only works with String config params and allows the variable name to show
+                // up in the admin console. (e.g. paths and URLs)
+                // expand() must then be called again by the module itself.
+                continue;
+            }
+            else
+            {
+                // case of variable expanded at config load time (i.e. during json parsing)
+                var varName = matcher.group(1);
+                var defaultVal = matcher.group(3);
+                var envVal = getEnvVar(varName);
+                replaceStr = (envVal != null) ? envVal : 
+                             (defaultVal != null) ? defaultVal : "";
+                
+                expandedStr = expandedStr.replace(varStr, replaceStr);
+            }
+        }
+        
+        return expandedStr;
+    }
+    
+    
+    private static String getEnvVar(String varName)
+    {
+        var val = System.getProperty(varName);
+        if (val == null)
+            val = System.getenv(varName);
+        return val;
     }
 }

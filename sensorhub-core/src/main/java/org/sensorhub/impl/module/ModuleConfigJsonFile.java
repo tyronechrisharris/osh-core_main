@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -32,6 +33,7 @@ import java.util.UUID;
 import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.datastore.DataStoreFiltersTypeAdapterFactory;
+import org.sensorhub.utils.ModuleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -101,13 +103,13 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
                 @Override
                 public R read(JsonReader in) throws IOException
                 {
-                    JsonElement jsonElement = Streams.parse(in);                
+                    JsonElement jsonElement = Streams.parse(in);
                     TypeAdapter<R> delegate = gson.getDelegateAdapter(RuntimeTypeAdapterFactory.this, type);
                     
                     if (jsonElement.isJsonObject())
                     {
                         JsonElement typeField = jsonElement.getAsJsonObject().remove(typeFieldName);
-                                            
+                        
                         if (typeField != null)
                         {
                             String type = typeField.getAsString();
@@ -116,14 +118,14 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
                             {
                                 @SuppressWarnings("unchecked")
                                 Class<R> runtimeClass = (Class<R>)classFinder.findClass(type);
-                                delegate = gson.getDelegateAdapter(RuntimeTypeAdapterFactory.this, TypeToken.get(runtimeClass));                        
+                                delegate = gson.getDelegateAdapter(RuntimeTypeAdapterFactory.this, TypeToken.get(runtimeClass));
                             }
                             catch (ClassNotFoundException e)
                             {
                                 throw new IllegalStateException("Runtime class specified in JSON is invalid: " + type, e);
                             }
                         }
-                    }                    
+                    }
 
                     JsonReader jsonReader = new JsonTreeReader(jsonElement);
                     jsonReader.setLenient(true);
@@ -138,7 +140,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
                     String typeName = runtimeClass.getName();
                     TypeAdapter<R> delegate = gson.getDelegateAdapter(RuntimeTypeAdapterFactory.this, TypeToken.get(runtimeClass));
                     
-                    //JsonElement jsonElt = delegate.toJsonTree(value); // JsonTreeWriter is not lenient in this case                    
+                    //JsonElement jsonElt = delegate.toJsonTree(value); // JsonTreeWriter is not lenient in this case
                     JsonTreeWriter jsonWriter = new JsonTreeWriter();
                     jsonWriter.setLenient(true);
                     jsonWriter.setSerializeNulls(false);
@@ -190,7 +192,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
             .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
             .registerTypeAdapterFactory(new RuntimeTypeAdapterFactory<Object>(Object.class, OBJ_CLASS_FIELD))
             .registerTypeAdapterFactory(new DataStoreFiltersTypeAdapterFactory())
-            .setFieldNamingStrategy(new DataStoreFiltersTypeAdapterFactory.FieldNamingStrategy());        
+            .setFieldNamingStrategy(new DataStoreFiltersTypeAdapterFactory.FieldNamingStrategy());
         
         gson = builder.create();
         readJSON();
@@ -201,7 +203,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
     public List<ModuleConfig> getAllModulesConfigurations()
     {
         if (configMap.isEmpty())
-            readJSON();        
+            readJSON();
         return new ArrayList<>(configMap.values());
     }
     
@@ -300,7 +302,7 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
         try (FileReader reader = new FileReader(configFile))
         {
             Type collectionType = new TypeToken<List<ModuleConfig>>(){}.getType();
-            JsonReader jsonReader = new JsonReader(reader);
+            JsonReader jsonReader = new JsonReaderWithVarExpansion(reader);
             List<ModuleConfig> configList = gson.fromJson(jsonReader, collectionType);
             
             // build module map
@@ -331,6 +333,25 @@ public class ModuleConfigJsonFile implements IModuleConfigRepository
         catch (IOException e)
         {
             throw new IllegalStateException("Error while writing JSON config file " + configFile.getAbsolutePath(), e);
+        }
+    }
+    
+    
+    static class JsonReaderWithVarExpansion extends JsonReader
+    {
+        public JsonReaderWithVarExpansion(Reader in)
+        {
+            super(in);
+        }
+
+        @Override
+        public String nextString() throws IOException
+        {
+            var str = super.nextString();
+            return ModuleUtils.expand(str, true);
+            
+            // TODO save original string w/ variable so we can save it back
+            // if it wasn't set to a new value
         }
     }
 
