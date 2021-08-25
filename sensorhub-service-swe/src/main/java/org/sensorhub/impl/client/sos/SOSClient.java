@@ -22,6 +22,8 @@ import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
@@ -34,8 +36,11 @@ import org.sensorhub.api.common.SensorHubException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.cdm.common.DataStreamParser;
+import org.vast.ogc.om.IObservation;
+import org.vast.ogc.om.OMUtils;
 import org.vast.ows.OWSException;
 import org.vast.ows.OWSExceptionReader;
+import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.GetResultTemplateRequest;
 import org.vast.ows.sos.GetResultTemplateResponse;
@@ -43,8 +48,11 @@ import org.vast.ows.sos.SOSUtils;
 import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEHelper;
+import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
 import org.vast.xml.DOMHelper;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 
 /**
@@ -83,6 +91,58 @@ public class SOSClient
     }
     
     
+    public AbstractProcess getSensorDescription(String sensorUID) throws SensorHubException
+    {
+        return getSensorDescription(sensorUID, DescribeSensorRequest.DEFAULT_FORMAT);
+    }
+    
+    
+    public AbstractProcess getSensorDescription(String sensorUID, String format) throws SensorHubException
+    {
+        Asserts.checkNotNull(sensorUID, "sensorUID");
+        Asserts.checkNotNull(format, "format");
+        
+        try
+        {
+            DescribeSensorRequest req = new DescribeSensorRequest();
+            req.setGetServer(grRequest.getGetServer());
+            req.setVersion(grRequest.getVersion());
+            req.setProcedureID(sensorUID);
+            req.setFormat(format);
+            
+            InputStream is = sosUtils.sendGetRequest(req).getInputStream();
+            DOMHelper dom = new DOMHelper(new BufferedInputStream(is), false);
+            OWSExceptionReader.checkException(dom, dom.getBaseElement());
+            Element smlElt = dom.getElement("description/SensorDescription/data/*");
+            
+            SMLUtils smlUtils;
+            if (format.equals(DescribeSensorRequest.FORMAT_SML_V1) ||
+                format.equals(DescribeSensorRequest.FORMAT_SML_V1_01))
+            {
+                smlUtils = new SMLUtils(SMLUtils.V1_0);
+                if ("SensorML".equals(smlElt.getLocalName()))
+                    smlElt = dom.getElement(smlElt, "member/*");
+            }
+            else if (format.equals(DescribeSensorRequest.FORMAT_SML_V2) ||
+                format.equals(DescribeSensorRequest.FORMAT_SML_V2_1))
+            {
+                smlUtils = new SMLUtils(SMLUtils.V2_0);
+            }
+            else
+                throw new SensorHubException("Unsupported response format: " + format);
+            
+            AbstractProcess smlDesc = smlUtils.readProcess(dom, smlElt);
+            log.debug("Retrieved sensor description for sensor {}", sensorUID);
+            
+            return smlDesc;
+        }
+        catch (Exception e)
+        {
+            throw new SensorHubException("Cannot fetch SensorML description for sensor " + sensorUID, e);
+        }
+    }
+    
+    
     public void retrieveStreamDescription() throws SensorHubException
     {
         // create output definition
@@ -105,28 +165,39 @@ public class SOSClient
     }
     
     
-    public AbstractProcess getSensorDescription(String sensorUID) throws SensorHubException
+    public Collection<IObservation> getObservations(String procUID, TimeExtent timeRange) throws SensorHubException
     {
-
         try
         {
-            DescribeSensorRequest req = new DescribeSensorRequest();
+            GetObservationRequest req = new GetObservationRequest();
             req.setGetServer(grRequest.getGetServer());
             req.setVersion(grRequest.getVersion());
-            req.setProcedureID(sensorUID);            
+            req.setOffering(grRequest.getOffering());
+            req.getObservables().addAll(grRequest.getObservables());
+            req.getProcedures().add(procUID);
+            req.setTime(timeRange);
             
+            // parse observations
             InputStream is = sosUtils.sendGetRequest(req).getInputStream();
             DOMHelper dom = new DOMHelper(new BufferedInputStream(is), false);
             OWSExceptionReader.checkException(dom, dom.getBaseElement());
-            Element smlElt = dom.getElement("description/SensorDescription/data/*");
-            AbstractProcess smlDesc = new SMLUtils(SMLUtils.V2_0).readProcess(dom, smlElt);
-            log.debug("Retrieved sensor description for sensor {}", sensorUID);
+            NodeList obsElts = dom.getElements("observationData/*");
             
-            return smlDesc;
+            ArrayList<IObservation> obsList = new ArrayList<>();
+            OMUtils omUtils = new OMUtils(OMUtils.V2_0);
+            for (int i = 0; i < obsElts.getLength(); i++)
+            {
+                Element obsElt = (Element)obsElts.item(i);
+                IObservation obs = omUtils.readObservation(dom, obsElt);
+                obsList.add(obs);
+            }
+            
+            log.debug("Retrieved observations from {}", sosUtils.buildURLQuery(req));
+            return obsList;
         }
         catch (Exception e)
         {
-            throw new SensorHubException("Cannot fetch SensorML description for sensor " + sensorUID, e);
+            throw new SensorHubException("Error fetching observations", e);
         }
     }
 
