@@ -19,6 +19,7 @@ import org.sensorhub.api.security.IPermissionPath;
 import org.sensorhub.api.security.IRoleRegistry;
 import org.sensorhub.api.security.IUserInfo;
 import org.sensorhub.api.security.IUserPermissions;
+import org.sensorhub.impl.security.BasicSecurityRealmConfig.UserConfig;
 
 
 public class DefaultAuthorizerImpl implements IAuthorizer
@@ -50,7 +51,7 @@ public class DefaultAuthorizerImpl implements IAuthorizer
         }
         
         // check user own permissions
-        return hasPermission(user, requestedPerm);
+        return hasPermission((UserConfig)user, requestedPerm);
     }
     
     

@@ -26,7 +26,7 @@ import java.util.Map;
  * @author Alex Robin
  * @since Feb 23, 2016
  */
-public interface IUserInfo extends IUserPermissions
+public interface IUserInfo
 {
     public String getId();
     

@@ -24,6 +24,7 @@ import org.sensorhub.api.config.DisplayInfo.FieldType;
 import org.sensorhub.api.config.DisplayInfo.IdField;
 import org.sensorhub.api.security.IPermissionPath;
 import org.sensorhub.api.security.IUserInfo;
+import org.sensorhub.api.security.IUserPermissions;
 import org.sensorhub.api.security.IUserRole;
 import org.sensorhub.api.security.SecurityModuleConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
@@ -40,7 +41,7 @@ public class BasicSecurityRealmConfig extends SecurityModuleConfig
     
     
     @IdField("userID")
-    public static class UserConfig implements IUserInfo
+    public static class UserConfig implements IUserInfo, IUserPermissions
     {
         @SerializedName("id")
         @DisplayInfo(label="User ID")
