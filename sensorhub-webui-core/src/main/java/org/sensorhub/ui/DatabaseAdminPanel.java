@@ -148,18 +148,25 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
                         {
                             if (popup.isConfirmed())
                             {
-                                // log action
-                                //logAction(action, selectedModule);
-                                
-                                db.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
-                                    .withProcedures(new ProcedureFilter.Builder()
-                                        .withUniqueIDs(uid)
-                                        .build())
-                                    .build());
-                                
-                                db.getProcedureStore().remove(uid);
-                                
-                                procedureTable.updateTable(db, new ProcedureFilter.Builder().build());
+                                try
+                                {
+                                    // log action
+                                    //logAction(action, selectedModule);
+                                    
+                                    db.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
+                                        .withProcedures(new ProcedureFilter.Builder()
+                                            .withUniqueIDs(uid)
+                                            .build())
+                                        .build());
+                                    
+                                    db.getProcedureStore().remove(uid);
+                                    
+                                    procedureTable.updateTable(db, new ProcedureFilter.Builder().build());
+                                }
+                                catch (Exception e1)
+                                {
+                                    e1.printStackTrace();
+                                }
                             }
                         }
                     });
