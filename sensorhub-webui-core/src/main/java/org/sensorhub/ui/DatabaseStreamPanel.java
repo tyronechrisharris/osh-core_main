@@ -56,6 +56,7 @@ import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vividsolutions.jts.geom.Coordinate;
+import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.HasUom;
@@ -530,6 +531,12 @@ public class DatabaseStreamPanel extends VerticalLayout
             for (int i = 0; i < component.getComponentCount(); i++)
             {
                 DataComponent child = component.getComponent(i);
+                
+                // stop here if there is a variable size array
+                // TODO need to update indexer to support var size
+                if (child instanceof DataArray && ((DataArray)child).isVariableSize())
+                    break;
+                
                 addColumns(recordDef, child, table, indexers);
             }
         }
