@@ -345,14 +345,27 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     @Override
     public Stream<Entry<FeatureKey, T>> selectEntries(F filter, Set<VF> fields)
     {
-        var resultStream = getIndexedStream(filter);        
+        var resultStream = getIndexedStream(filter);
         
         // if no index used, just scan all features
         if (resultStream == null)
             resultStream = map.entrySet().stream();
         
+        // apply post filter
+        resultStream = resultStream.filter(e -> filter.test(e.getValue()));
+        
+        // if including group members
+        if (filter.includeMembers())
+        {         
+            resultStream = resultStream
+                .flatMap(e -> {
+                    var s1 = Stream.of(e);
+                    var s2 = getFeaturesByParent(e.getKey().getInternalID());
+                    return Stream.concat(s1, s2);
+                });
+        }
+        
         return resultStream
-            .filter(e -> filter.test(e.getValue()))
             .limit(filter.getLimit());
     }
 
