@@ -32,7 +32,7 @@ public class OshAsserts
     
     public static String checkValidUID(String uid, String idName)
     {
-        Asserts.checkNotNull(uid, idName);
+        Asserts.checkNotNull(uid, idName + " cannot be null");
         Asserts.checkArgument(uid.length() >= UID_MIN_CHARS, "{} must be at least {} characters long", idName, UID_MIN_CHARS);
         return uid;
     }
