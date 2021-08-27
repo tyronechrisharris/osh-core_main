@@ -39,7 +39,7 @@ public interface IProcedureWithDesc extends IProcedure
         var sml = getFullDescription();
         
         // use definition or generate default type
-        if (sml.getDefinition() != null)
+        if (sml != null && sml.getDefinition() != null)
         {
             return sml.getDefinition();
         }
