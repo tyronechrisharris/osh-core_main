@@ -27,7 +27,7 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.utils.SWEDataUtils;
@@ -57,7 +57,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
     ScalarIndexer timeStampIndexer;
 
     
-    ObsBindingSweCommon(ResourceContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
+    ObsBindingSweCommon(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
     {
         super(ctx, idEncoder);
         this.contextData = (ObsHandlerContextData)ctx.getData();

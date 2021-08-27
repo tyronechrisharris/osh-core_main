@@ -28,10 +28,10 @@ import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.vast.ogc.gml.IGeoFeature;
 
 
@@ -51,7 +51,7 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
 
 
     @Override
-    protected ResourceBinding<FeatureKey, IGeoFeature> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IGeoFeature> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -70,7 +70,7 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof ProcedureHandler))
@@ -116,7 +116,7 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
     
     
     @Override
-    protected FeatureKey addEntry(final ResourceContext ctx, final IGeoFeature foi) throws DataStoreException
+    protected FeatureKey addEntry(final RequestContext ctx, final IGeoFeature foi) throws DataStoreException
     {        
         var procHandler = transactionHandler.getProcedureHandler(ctx.getParentID());        
         return procHandler.addOrUpdateFoi(foi);

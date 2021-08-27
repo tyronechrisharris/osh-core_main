@@ -27,11 +27,11 @@ import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.vast.util.Asserts;
 
 
@@ -48,7 +48,7 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     
     
     @Override
-    protected ResourceBinding<DataStreamKey, IDataStreamInfo> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<DataStreamKey, IDataStreamInfo> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -67,28 +67,28 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation("Cannot POST here, use PUT on main resource URL");
     }
     
     
     @Override
-    public void doPut(final ResourceContext ctx) throws IOException
+    public void doPut(final RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation("Cannot PUT here, use PUT on main resource URL");
     }
     
     
     @Override
-    public void doDelete(final ResourceContext ctx) throws IOException
+    public void doDelete(final RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation("Cannot DELETE here, use DELETE on main resource URL");
     }
     
     
     @Override
-    public void doGet(ResourceContext ctx) throws IOException
+    public void doGet(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath())
             getById(ctx, "");
@@ -98,7 +98,7 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     
     
     @Override
-    protected void getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
@@ -131,20 +131,20 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     
     
     @Override
-    protected DataStreamKey addEntry(final ResourceContext ctx, final IDataStreamInfo res) throws DataStoreException
+    protected DataStreamKey addEntry(final RequestContext ctx, final IDataStreamInfo res) throws DataStoreException
     {        
         return null;
     }
     
     
     @Override
-    protected boolean updateEntry(final ResourceContext ctx, final DataStreamKey key, final IDataStreamInfo res) throws DataStoreException
+    protected boolean updateEntry(final RequestContext ctx, final DataStreamKey key, final IDataStreamInfo res) throws DataStoreException
     {        
         return false;
     }
     
     
-    protected boolean deleteEntry(final ResourceContext ctx, final DataStreamKey key) throws DataStoreException
+    protected boolean deleteEntry(final RequestContext ctx, final DataStreamKey key) throws DataStoreException
     {        
         return false;
     }

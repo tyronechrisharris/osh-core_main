@@ -24,16 +24,16 @@ public interface IResourceHandler
     String[] getNames();
     
     
-    void doGet(ResourceContext ctx) throws InvalidRequestException, IOException, SecurityException;
+    void doGet(RequestContext ctx) throws InvalidRequestException, IOException, SecurityException;
 
 
-    void doPost(ResourceContext ctx) throws InvalidRequestException, IOException, SecurityException;
+    void doPost(RequestContext ctx) throws InvalidRequestException, IOException, SecurityException;
 
 
-    void doPut(ResourceContext ctx) throws InvalidRequestException, IOException, SecurityException;
+    void doPut(RequestContext ctx) throws InvalidRequestException, IOException, SecurityException;
 
 
-    void doDelete(ResourceContext ctx) throws InvalidRequestException, IOException, SecurityException;
+    void doDelete(RequestContext ctx) throws InvalidRequestException, IOException, SecurityException;
 
 
     void addSubResource(IResourceHandler resource);

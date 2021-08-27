@@ -27,7 +27,7 @@ import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
@@ -59,7 +59,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     IdEncoder procIdEncoder = new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED);
     
     
-    DataStreamBindingJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    DataStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder);
         

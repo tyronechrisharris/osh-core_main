@@ -37,13 +37,13 @@ public abstract class ResourceBinding<K, V>
     public static final String INDENT = "  ";
     
     
-    protected final ResourceContext ctx;
+    protected final RequestContext ctx;
     protected final IdEncoder idEncoder; // encoder/decoder to obfuscate ids provided by service
     
     
-    protected ResourceBinding(ResourceContext ctx, IdEncoder idEncoder)
+    protected ResourceBinding(RequestContext ctx, IdEncoder idEncoder)
     {
-        this.ctx = Asserts.checkNotNull(ctx, ResourceContext.class);
+        this.ctx = Asserts.checkNotNull(ctx, RequestContext.class);
         this.idEncoder = Asserts.checkNotNull(idEncoder, IdEncoder.class);
     }
     

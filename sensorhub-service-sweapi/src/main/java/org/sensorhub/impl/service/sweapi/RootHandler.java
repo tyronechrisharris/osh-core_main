@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.sweapi;
 
 import java.io.IOException;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 
 
 public class RootHandler extends BaseHandler
@@ -32,7 +32,7 @@ public class RootHandler extends BaseHandler
 
 
     @Override
-    public void doGet(ResourceContext ctx) throws IOException
+    public void doGet(RequestContext ctx) throws IOException
     {
         IResourceHandler resource = getSubResource(ctx);
         resource.doGet(ctx);
@@ -40,7 +40,7 @@ public class RootHandler extends BaseHandler
 
 
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         checkReadOnly();
         IResourceHandler resource = getSubResource(ctx);
@@ -49,7 +49,7 @@ public class RootHandler extends BaseHandler
 
 
     @Override
-    public void doPut(ResourceContext ctx) throws IOException
+    public void doPut(RequestContext ctx) throws IOException
     {
         checkReadOnly();
         IResourceHandler resource = getSubResource(ctx);
@@ -58,7 +58,7 @@ public class RootHandler extends BaseHandler
 
 
     @Override
-    public void doDelete(ResourceContext ctx) throws IOException
+    public void doDelete(RequestContext ctx) throws IOException
     {
         checkReadOnly();
         IResourceHandler resource = getSubResource(ctx);

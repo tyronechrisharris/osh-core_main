@@ -22,7 +22,7 @@ import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.api.resource.ResourceKey;
 import org.vast.util.IResource;
 
@@ -60,7 +60,7 @@ public abstract class ResourceHandler<
     
     
     @Override
-    protected K getKey(final ResourceContext ctx, final String id) throws InvalidRequestException
+    protected K getKey(final RequestContext ctx, final String id) throws InvalidRequestException
     {
         // get resource ID
         long decodedID = decodeID(ctx, id);
@@ -107,14 +107,14 @@ public abstract class ResourceHandler<
     }
     
     
-    protected K addEntry(final ResourceContext ctx, final V res) throws DataStoreException
+    protected K addEntry(final RequestContext ctx, final V res) throws DataStoreException
     {        
         return dataStore.add(res);
     }
     
     
     @Override
-    protected String encodeKey(final ResourceContext ctx, K key)
+    protected String encodeKey(final RequestContext ctx, K key)
     {
         long externalID = idEncoder.encodeID(key.getInternalID());
         return Long.toString(externalID, ResourceBinding.ID_RADIX);

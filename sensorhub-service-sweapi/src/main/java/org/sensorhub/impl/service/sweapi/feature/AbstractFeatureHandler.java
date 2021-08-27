@@ -26,7 +26,7 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.vast.ogc.gml.IFeature;
 
 

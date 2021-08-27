@@ -31,10 +31,10 @@ import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 
 
 public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
@@ -53,7 +53,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
 
 
     @Override
-    protected ResourceBinding<FeatureKey, IProcedureWithDesc> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IProcedureWithDesc> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -118,7 +118,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     
     
     @Override
-    protected FeatureKey addEntry(final ResourceContext ctx, IProcedureWithDesc res) throws DataStoreException
+    protected FeatureKey addEntry(final RequestContext ctx, IProcedureWithDesc res) throws DataStoreException
     {        
         // cleanup sml description before storage
         var sml = res.getFullDescription();
@@ -141,7 +141,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     
     
     @Override
-    protected boolean updateEntry(final ResourceContext ctx, final FeatureKey key, IProcedureWithDesc res) throws DataStoreException
+    protected boolean updateEntry(final RequestContext ctx, final FeatureKey key, IProcedureWithDesc res) throws DataStoreException
     {        
         var procHandler = transactionHandler.getProcedureHandler(key.getInternalID());
         if (procHandler == null)
@@ -161,7 +161,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     }
     
     
-    protected boolean deleteEntry(final ResourceContext ctx, final FeatureKey key) throws DataStoreException
+    protected boolean deleteEntry(final RequestContext ctx, final FeatureKey key) throws DataStoreException
     {        
         var procHandler = transactionHandler.getProcedureHandler(key.getInternalID());
         if (procHandler == null)

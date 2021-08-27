@@ -24,7 +24,7 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
@@ -49,7 +49,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProcedureWithDesc>
 {
     
-    ProcedureBindingGeoJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    ProcedureBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
     }

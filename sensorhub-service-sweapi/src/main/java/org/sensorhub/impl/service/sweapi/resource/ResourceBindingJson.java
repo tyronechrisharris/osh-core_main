@@ -44,7 +44,7 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     public static final String INVALID_JSON_ERROR_MSG = "Invalid JSON: ";
     
     
-    protected ResourceBindingJson(ResourceContext ctx, IdEncoder idEncoder)
+    protected ResourceBindingJson(RequestContext ctx, IdEncoder idEncoder)
     {
         super(ctx, idEncoder);
     }

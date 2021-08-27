@@ -23,7 +23,7 @@ import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.vast.ogc.gml.IGeoFeature;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
@@ -39,7 +39,7 @@ public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IGeoFeature
 
 
     @Override
-    protected ResourceBinding<FeatureKey, IGeoFeature> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IGeoFeature> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         

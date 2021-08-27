@@ -21,7 +21,7 @@ import java.util.Collection;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.swe.SWEStaxBindings;
@@ -41,7 +41,7 @@ public class DataStreamSchemaBindingJson extends ResourceBindingJson<DataStreamK
     SWEJsonStreamWriter sweWriter;
     
     
-    DataStreamSchemaBindingJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    DataStreamSchemaBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder);
         

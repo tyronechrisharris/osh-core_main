@@ -35,9 +35,9 @@ import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 
 
 public class ObsStatsHandler extends BaseHandler
@@ -69,14 +69,14 @@ public class ObsStatsHandler extends BaseHandler
     }
     
     
-    protected ResourceBinding<BigInteger, ObsStats> getBinding(ResourceContext ctx) throws IOException
+    protected ResourceBinding<BigInteger, ObsStats> getBinding(RequestContext ctx) throws IOException
     {
         return new ObsStatsBindingJson(ctx);
     }
     
     
     @Override
-    public void doGet(final ResourceContext ctx) throws IOException
+    public void doGet(final RequestContext ctx) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
@@ -122,21 +122,21 @@ public class ObsStatsHandler extends BaseHandler
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
     }
     
     
     @Override
-    public void doPut(ResourceContext ctx) throws IOException
+    public void doPut(RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
     }
     
     
     @Override
-    public void doDelete(ResourceContext ctx) throws IOException
+    public void doDelete(RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
     }

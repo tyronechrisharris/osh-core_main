@@ -24,7 +24,7 @@ import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.vast.sensorML.SMLStaxBindings;
@@ -53,7 +53,7 @@ public class ProcedureBindingSmlJson extends ResourceBindingJson<FeatureKey, IPr
     SMLStaxBindings smlBindings;
     
     
-    ProcedureBindingSmlJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    ProcedureBindingSmlJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder);
         this.smlBindings = new SMLStaxBindings();

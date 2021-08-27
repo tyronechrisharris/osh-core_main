@@ -43,11 +43,11 @@ import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.stream.StreamHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
 import com.google.common.cache.CacheBuilder;
@@ -89,7 +89,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     
     
     @Override
-    protected ResourceBinding<BigInteger, IObsData> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<BigInteger, IObsData> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -135,7 +135,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof DataStreamHandler))
@@ -145,7 +145,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     }
     
     
-    protected void stream(final ResourceContext ctx) throws InvalidRequestException, IOException
+    protected void stream(final RequestContext ctx) throws InvalidRequestException, IOException
     {
         ctx.getSecurityHandler().checkPermission(permissions.stream);
         var streamHandler = Asserts.checkNotNull(ctx.getStreamHandler(), StreamHandler.class);
@@ -239,7 +239,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
 
 
     @Override
-    protected BigInteger getKey(ResourceContext ctx, String id) throws InvalidRequestException
+    protected BigInteger getKey(RequestContext ctx, String id) throws InvalidRequestException
     {
         try
         {
@@ -257,7 +257,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     
     
     @Override
-    protected String encodeKey(final ResourceContext ctx, BigInteger key)
+    protected String encodeKey(final RequestContext ctx, BigInteger key)
     {
         var externalID = key;
         return externalID.toString(ResourceBinding.ID_RADIX);
@@ -328,7 +328,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
 
 
     @Override
-    protected BigInteger addEntry(ResourceContext ctx, IObsData res) throws DataStoreException
+    protected BigInteger addEntry(RequestContext ctx, IObsData res) throws DataStoreException
     {
         var dsHandler = ((ObsHandlerContextData)ctx.getData()).dsHandler;
         return idConverter.toPublicID(dsHandler.addObs(res));

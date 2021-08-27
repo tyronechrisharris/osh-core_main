@@ -30,10 +30,10 @@ import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -56,7 +56,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
 
 
     @Override
-    protected ResourceBinding<FeatureKey, IProcedureWithDesc> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IProcedureWithDesc> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -75,28 +75,28 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation("Cannot POST here, use PUT on main resource URL");
     }
     
     
     @Override
-    public void doPut(final ResourceContext ctx) throws IOException
+    public void doPut(final RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation("Cannot PUT here, use PUT on main resource URL");
     }
     
     
     @Override
-    public void doDelete(final ResourceContext ctx) throws IOException
+    public void doDelete(final RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation("Cannot DELETE here, use DELETE on main resource URL");
     }
     
     
     @Override
-    public void doGet(ResourceContext ctx) throws IOException
+    public void doGet(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath())
             getById(ctx, "");
@@ -106,7 +106,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     
     
     @Override
-    protected void getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);

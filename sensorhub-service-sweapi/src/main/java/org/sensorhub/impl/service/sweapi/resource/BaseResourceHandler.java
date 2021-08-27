@@ -28,7 +28,7 @@ import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.vast.util.Asserts;
 
 
@@ -64,17 +64,17 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected abstract ResourceBinding<K, V> getBinding(ResourceContext ctx, boolean forReading) throws IOException;
-    protected abstract K getKey(final ResourceContext ctx, final String id) throws InvalidRequestException;
-    protected abstract String encodeKey(final ResourceContext ctx, K key);
+    protected abstract ResourceBinding<K, V> getBinding(RequestContext ctx, boolean forReading) throws IOException;
+    protected abstract K getKey(final RequestContext ctx, final String id) throws InvalidRequestException;
+    protected abstract String encodeKey(final RequestContext ctx, K key);
     protected abstract F getFilter(final ResourceRef parent, final Map<String, String[]> queryParams, long offset, long limit) throws InvalidRequestException;
-    protected abstract K addEntry(final ResourceContext ctx, final V res) throws DataStoreException;
+    protected abstract K addEntry(final RequestContext ctx, final V res) throws DataStoreException;
     protected abstract boolean isValidID(long internalID);
     protected abstract void validate(V resource) throws ResourceParseException;
         
     
     @Override
-    public void doGet(final ResourceContext ctx) throws IOException
+    public void doGet(final RequestContext ctx) throws IOException
     {
         // if requesting from this resource collection
         if (ctx.isEndOfPath())
@@ -107,7 +107,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     
     @Override
-    public void doPost(final ResourceContext ctx) throws IOException
+    public void doPost(final RequestContext ctx) throws IOException
     {
         if (!ctx.isEndOfPath())
         {        
@@ -129,7 +129,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     
     @Override
-    public void doPut(final ResourceContext ctx) throws IOException
+    public void doPut(final RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath())
             throw ServiceErrors.unsupportedOperation("Can only PUT on specific resource");
@@ -152,7 +152,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     
     @Override
-    public void doDelete(final ResourceContext ctx) throws IOException
+    public void doDelete(final RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath())
             throw ServiceErrors.unsupportedOperation("Can only DELETE a specific resource");
@@ -174,13 +174,13 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void stream(final ResourceContext ctx) throws InvalidRequestException, IOException
+    protected void stream(final RequestContext ctx) throws InvalidRequestException, IOException
     {
         throw ServiceErrors.unsupportedOperation(UNSUPPORTED_WEBSOCKET_MSG);
     }
     
     
-    protected void getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
@@ -191,7 +191,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void getByKey(final ResourceContext ctx, K key) throws InvalidRequestException, IOException
+    protected void getByKey(final RequestContext ctx, K key) throws InvalidRequestException, IOException
     {
         // fetch from data store
         final V res = dataStore.get(key);
@@ -213,7 +213,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void list(final ResourceContext ctx) throws InvalidRequestException, IOException
+    protected void list(final RequestContext ctx) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
@@ -262,7 +262,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void create(final ResourceContext ctx) throws IOException
+    protected void create(final RequestContext ctx) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.create);
@@ -322,7 +322,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
         
     
-    protected void update(final ResourceContext ctx, final String id) throws IOException
+    protected void update(final RequestContext ctx, final String id) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.update);
@@ -366,13 +366,13 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected boolean updateEntry(final ResourceContext ctx, final K key, final V res) throws DataStoreException
+    protected boolean updateEntry(final RequestContext ctx, final K key, final V res) throws DataStoreException
     {        
         return dataStore.replace(key, res) != null;
     }
         
     
-    protected void delete(final ResourceContext ctx, final String id) throws IOException
+    protected void delete(final RequestContext ctx, final String id) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.delete);
@@ -393,13 +393,13 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected boolean deleteEntry(final ResourceContext ctx, final K key) throws DataStoreException
+    protected boolean deleteEntry(final RequestContext ctx, final K key) throws DataStoreException
     {        
         return dataStore.remove(key) != null;
     }
     
     
-    protected void getElementCount(final ResourceContext ctx) throws InvalidRequestException, IOException
+    protected void getElementCount(final RequestContext ctx) throws InvalidRequestException, IOException
     {
         F filter = getFilter(ctx.getParentRef(), ctx.getParameterMap(), 0, Long.MAX_VALUE);
         
@@ -415,7 +415,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected IResourceHandler getSubResource(ResourceContext ctx, String id) throws InvalidRequestException
+    protected IResourceHandler getSubResource(RequestContext ctx, String id) throws InvalidRequestException
     {
         IResourceHandler resource = getSubResource(ctx);
         if (resource == null)
@@ -442,7 +442,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected long decodeID(final ResourceContext ctx, final String id) throws InvalidRequestException
+    protected long decodeID(final RequestContext ctx, final String id) throws InvalidRequestException
     {
         try
         {

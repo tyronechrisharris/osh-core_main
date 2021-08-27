@@ -20,8 +20,8 @@ import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.vast.ogc.gml.IGeoFeature;
 
 
@@ -37,7 +37,7 @@ public class FeatureMembersHandler extends FeatureHandler
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         //if (ctx.isEmpty() && !(ctx.getParentRef().type instanceof ProjectResourceType))
         //    return sendError(405, "Feature Collections can only be created within Projects", resp);

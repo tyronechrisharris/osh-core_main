@@ -36,7 +36,7 @@ import org.vast.util.Asserts;
 import com.google.common.base.Strings;
 
 
-public class ResourceContext
+public class RequestContext
 {
     private final SWEApiServlet servlet;
     private final HttpServletRequest req;
@@ -71,7 +71,7 @@ public class ResourceContext
     /*
      * Constructor for classic HTTP requests
      */
-    public ResourceContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp)
+    public RequestContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
@@ -86,7 +86,7 @@ public class ResourceContext
     /*
      * Constructor for streaming websocket requests
      */
-    public ResourceContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp, StreamHandler streamHandler)
+    public RequestContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp, StreamHandler streamHandler)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
@@ -101,7 +101,7 @@ public class ResourceContext
     /*
      * Constructor for other protocols providing their own path/params and input stream (e.g. MQTT publish)
      */
-    public ResourceContext(SWEApiServlet servlet, URI resourceURI, InputStream is)
+    public RequestContext(SWEApiServlet servlet, URI resourceURI, InputStream is)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;
@@ -116,7 +116,7 @@ public class ResourceContext
     /*
      * Constructor for other protocols providing their own path/params and stream handler (e.g. MQTT subscribe)
      */
-    public ResourceContext(SWEApiServlet servlet, URI resourceURI, StreamHandler streamHandler)
+    public RequestContext(SWEApiServlet servlet, URI resourceURI, StreamHandler streamHandler)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;

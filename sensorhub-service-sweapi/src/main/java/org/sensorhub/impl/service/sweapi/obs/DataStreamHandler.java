@@ -29,11 +29,11 @@ import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 
 
 public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStreamInfo, DataStreamFilter, DataStreamFilter.Builder, IDataStreamStore>
@@ -52,7 +52,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    protected ResourceBinding<DataStreamKey, IDataStreamInfo> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<DataStreamKey, IDataStreamInfo> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -71,7 +71,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof ProcedureHandler))
@@ -118,7 +118,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    protected DataStreamKey addEntry(final ResourceContext ctx, final IDataStreamInfo res) throws DataStoreException
+    protected DataStreamKey addEntry(final RequestContext ctx, final IDataStreamInfo res) throws DataStoreException
     {        
         var procID = ctx.getParentID();
         var procHandler = transactionHandler.getProcedureHandler(procID);
@@ -131,7 +131,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    protected boolean updateEntry(final ResourceContext ctx, final DataStreamKey key, final IDataStreamInfo res) throws DataStoreException
+    protected boolean updateEntry(final RequestContext ctx, final DataStreamKey key, final IDataStreamInfo res) throws DataStoreException
     {        
         var dsID = key.getInternalID();
         var dsHandler = transactionHandler.getDataStreamHandler(dsID);
@@ -143,7 +143,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     }
     
     
-    protected boolean deleteEntry(final ResourceContext ctx, final DataStreamKey key) throws DataStoreException
+    protected boolean deleteEntry(final RequestContext ctx, final DataStreamKey key) throws DataStoreException
     {        
         var dsID = key.getInternalID();
         

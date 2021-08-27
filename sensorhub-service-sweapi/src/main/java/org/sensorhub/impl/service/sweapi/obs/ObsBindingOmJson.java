@@ -34,7 +34,7 @@ import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
@@ -65,7 +65,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
 
     
-    ObsBindingOmJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
+    ObsBindingOmJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
     {
         super(ctx, idEncoder);
         this.contextData = (ObsHandlerContextData)ctx.getData();

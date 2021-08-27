@@ -27,9 +27,9 @@ import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IFeature;
@@ -54,21 +54,21 @@ public abstract class AbstractFeatureHistoryHandler<
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation("Cannot POST in history collection, use PUT on main resource URL with a new validTime");
     }
     
     
     @Override
-    public void doPut(ResourceContext ctx) throws IOException
+    public void doPut(RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation("Cannot PUT in history collection, use PUT on main resource URL with a new validTime");
     }
     
     
     @Override
-    protected void getById(final ResourceContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
@@ -93,7 +93,7 @@ public abstract class AbstractFeatureHistoryHandler<
     
     
     @Override
-    protected void delete(final ResourceContext ctx, final String id) throws IOException
+    protected void delete(final RequestContext ctx, final String id) throws IOException
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.delete);
@@ -109,7 +109,7 @@ public abstract class AbstractFeatureHistoryHandler<
     }
     
     
-    protected long getVersionNumber(final ResourceContext ctx, final String version) throws InvalidRequestException
+    protected long getVersionNumber(final RequestContext ctx, final String version) throws InvalidRequestException
     {
         try
         {
@@ -129,7 +129,7 @@ public abstract class AbstractFeatureHistoryHandler<
     
     
     @Override
-    protected IResourceHandler getSubResource(ResourceContext ctx, String id) throws InvalidRequestException
+    protected IResourceHandler getSubResource(RequestContext ctx, String id) throws InvalidRequestException
     {
         IResourceHandler resource = getSubResource(ctx);
         

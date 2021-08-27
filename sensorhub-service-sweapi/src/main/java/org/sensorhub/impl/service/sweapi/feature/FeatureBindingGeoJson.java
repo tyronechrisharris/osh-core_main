@@ -19,7 +19,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IGeoFeature;
@@ -40,7 +40,7 @@ public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IGeoFea
 {
     
     
-    FeatureBindingGeoJson(ResourceContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    FeatureBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
     }

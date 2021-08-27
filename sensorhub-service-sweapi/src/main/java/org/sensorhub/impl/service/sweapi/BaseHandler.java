@@ -22,7 +22,7 @@ import java.util.Map;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.vast.util.Bbox;
@@ -60,7 +60,7 @@ public abstract class BaseHandler implements IResourceHandler
     }
     
 
-    protected IResourceHandler getSubResource(ResourceContext ctx) throws InvalidRequestException
+    protected IResourceHandler getSubResource(RequestContext ctx) throws InvalidRequestException
     {
         if (ctx == null || ctx.isEndOfPath())
             throw ServiceErrors.badRequest("Missing resource name");
@@ -262,7 +262,7 @@ public abstract class BaseHandler implements IResourceHandler
     }
     
     
-    protected Collection<ResourceLink> getPagingLinks(final ResourceContext ctx, long offset, long limit, boolean hasMore) throws InvalidRequestException
+    protected Collection<ResourceLink> getPagingLinks(final RequestContext ctx, long offset, long limit, boolean hasMore) throws InvalidRequestException
     {
         var resourcePath = ctx.getApiRootURL() + "/" + getNames()[0];
         var queryParams = ctx.getParameterMap();

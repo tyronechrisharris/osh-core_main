@@ -27,8 +27,8 @@ import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 
 
 public class ProcedureMembersHandler extends ProcedureHandler
@@ -43,7 +43,7 @@ public class ProcedureMembersHandler extends ProcedureHandler
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof ProcedureHandler))
@@ -69,7 +69,7 @@ public class ProcedureMembersHandler extends ProcedureHandler
     
     
     @Override
-    protected FeatureKey addEntry(final ResourceContext ctx, IProcedureWithDesc res) throws DataStoreException
+    protected FeatureKey addEntry(final RequestContext ctx, IProcedureWithDesc res) throws DataStoreException
     {        
         // cleanup sml description before storage
         var sml = res.getFullDescription();

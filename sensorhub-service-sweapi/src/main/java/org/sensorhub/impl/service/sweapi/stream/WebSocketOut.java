@@ -21,7 +21,7 @@ import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.sensorhub.impl.service.WebSocketOutputStream;
 import org.sensorhub.impl.service.WebSocketUtils;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.slf4j.Logger;
 import org.vast.util.Asserts;
 
@@ -36,7 +36,7 @@ import org.vast.util.Asserts;
  */
 public class WebSocketOut implements WebSocketListener, StreamHandler
 {
-    ResourceContext ctx;
+    RequestContext ctx;
     Logger log;
     Session session;
     WebSocketOutputStream os;

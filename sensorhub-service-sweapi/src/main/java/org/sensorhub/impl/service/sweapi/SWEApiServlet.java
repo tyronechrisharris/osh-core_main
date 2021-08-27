@@ -34,7 +34,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.stream.WebSocketOut;
 import org.slf4j.Logger;
 import com.google.gson.stream.JsonWriter;
@@ -323,7 +323,7 @@ public class SWEApiServlet extends HttpServlet
     }
     
     
-    protected ResourceContext createContext(HttpServletRequest req, HttpServletResponse resp) throws IOException
+    protected RequestContext createContext(HttpServletRequest req, HttpServletResponse resp) throws IOException
     {
         // check if we have an upgrade request for websockets
         if (wsFactory.isUpgradeRequest(req, resp))
@@ -346,12 +346,12 @@ public class SWEApiServlet extends HttpServlet
                 }
             }, req, resp);
             
-            return new ResourceContext(this, req, resp, ws);
+            return new RequestContext(this, req, resp, ws);
         }
         
         // else just handle as regular HTTP request
         else
-            return new ResourceContext(this, req, resp);
+            return new RequestContext(this, req, resp);
     }
     
     

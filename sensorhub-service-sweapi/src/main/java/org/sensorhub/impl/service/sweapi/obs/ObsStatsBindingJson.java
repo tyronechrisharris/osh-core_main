@@ -21,7 +21,7 @@ import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.vast.json.JsonInliningWriter;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
@@ -35,7 +35,7 @@ public class ObsStatsBindingJson extends ResourceBindingJson<BigInteger, ObsStat
     IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
 
     
-    ObsStatsBindingJson(ResourceContext ctx) throws IOException
+    ObsStatsBindingJson(RequestContext ctx) throws IOException
     {
         super(ctx, new IdEncoder(0));        
         var os = ctx.getOutputStream();

@@ -24,9 +24,9 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
-import org.sensorhub.impl.service.sweapi.resource.ResourceContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.IGeoFeature;
 
@@ -44,7 +44,7 @@ public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureF
 
 
     @Override
-    protected ResourceBinding<FeatureKey, IGeoFeature> getBinding(ResourceContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IGeoFeature> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -63,7 +63,7 @@ public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureF
     
     
     @Override
-    public void doPost(ResourceContext ctx) throws IOException
+    public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() && !(ctx.getParentRef().type instanceof FeatureHandler))
             throw ServiceErrors.unsupportedOperation("Features can only be created within Feature Collections");
