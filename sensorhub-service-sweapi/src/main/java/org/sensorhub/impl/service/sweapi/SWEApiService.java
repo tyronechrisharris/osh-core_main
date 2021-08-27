@@ -75,6 +75,8 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
             obsWriteDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
                 .getModuleById(config.databaseID);
         }
+        else
+            obsWriteDatabase = null;
         
         // get existing or create new FilteredView from config
         if (config.exposedResources != null)
@@ -104,7 +106,8 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         var db = new ProcedureObsDbWrapper(obsReadDatabase, obsWriteDatabase, getParentHub().getDatabaseRegistry());
         
         // create resource handlers hierarchy
-        RootHandler rootHandler = new RootHandler();
+        var readOnly = obsWriteDatabase == null || obsWriteDatabase.isReadOnly();
+        RootHandler rootHandler = new RootHandler(readOnly);
         var eventBus = getParentHub().getEventBus();
         var security = (SWEApiSecurity)this.securityHandler;
         
@@ -215,6 +218,12 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
     public ExecutorService getThreadPool()
     {
         return threadPool;
+    }
+    
+    
+    public SWEApiServlet getServlet()
+    {
+        return servlet;
     }
 
 

@@ -45,7 +45,7 @@ public class ProcedureObsDbWrapper implements IProcedureObsDatabase
     public ProcedureObsDbWrapper(IProcedureObsDatabase readDb, IProcedureObsDatabase writeDb, IDatabaseRegistry dbRegistry)
     {
         Asserts.checkNotNull(readDb);
-        this.writeDb = Asserts.checkNotNull(writeDb);
+        this.writeDb = writeDb;
         
         // init public <-> internal ID converter
         this.idConverter = new DatabaseRegistryIdConverter(

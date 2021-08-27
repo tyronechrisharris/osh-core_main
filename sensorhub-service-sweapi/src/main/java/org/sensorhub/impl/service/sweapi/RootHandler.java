@@ -21,9 +21,13 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceContext;
 
 public class RootHandler extends BaseHandler
 {
+    static final String READ_ONLY_ERROR = "API is configured as read-only";
+    boolean readOnly;
     
-    public RootHandler()
+    
+    public RootHandler(boolean readOnly)
     {
+        this.readOnly = readOnly;
     }
 
 
@@ -38,6 +42,7 @@ public class RootHandler extends BaseHandler
     @Override
     public void doPost(ResourceContext ctx) throws IOException
     {
+        checkReadOnly();
         IResourceHandler resource = getSubResource(ctx);
         resource.doPost(ctx);
     }
@@ -46,6 +51,7 @@ public class RootHandler extends BaseHandler
     @Override
     public void doPut(ResourceContext ctx) throws IOException
     {
+        checkReadOnly();
         IResourceHandler resource = getSubResource(ctx);
         resource.doPut(ctx);
     }
@@ -54,6 +60,7 @@ public class RootHandler extends BaseHandler
     @Override
     public void doDelete(ResourceContext ctx) throws IOException
     {
+        checkReadOnly();
         IResourceHandler resource = getSubResource(ctx);
         resource.doDelete(ctx);
     }
@@ -63,5 +70,12 @@ public class RootHandler extends BaseHandler
     public String[] getNames()
     {
         return new String[0];
+    }
+    
+    
+    protected void checkReadOnly() throws IOException
+    {
+        if (readOnly)
+            throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
     }
 }

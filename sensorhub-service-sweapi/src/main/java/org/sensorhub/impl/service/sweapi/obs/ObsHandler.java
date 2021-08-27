@@ -82,7 +82,8 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         
         this.eventBus = eventBus;
         this.db = db;
-        this.transactionHandler = new ProcedureObsTransactionHandler(eventBus, db.getWriteDb());
+        this.transactionHandler = !db.isReadOnly() ?
+            new ProcedureObsTransactionHandler(eventBus, db.getWriteDb()) : null;
         this.idConverter = db.getIdConverter();
     }
     
