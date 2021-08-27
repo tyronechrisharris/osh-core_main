@@ -145,7 +145,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     }
     
     
-    protected void stream(final RequestContext ctx) throws InvalidRequestException, IOException
+    protected void subscribe(final RequestContext ctx) throws InvalidRequestException, IOException
     {
         ctx.getSecurityHandler().checkPermission(permissions.stream);
         var streamHandler = Asserts.checkNotNull(ctx.getStreamHandler(), StreamHandler.class);

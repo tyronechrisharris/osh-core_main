@@ -80,7 +80,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         if (ctx.isEndOfPath())
         {
             if (ctx.isStreamRequest())
-                stream(ctx);
+                subscribe(ctx);
             else
                 list(ctx);
             return;
@@ -174,7 +174,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void stream(final RequestContext ctx) throws InvalidRequestException, IOException
+    protected void subscribe(final RequestContext ctx) throws InvalidRequestException, IOException
     {
         throw ServiceErrors.unsupportedOperation(UNSUPPORTED_WEBSOCKET_MSG);
     }
