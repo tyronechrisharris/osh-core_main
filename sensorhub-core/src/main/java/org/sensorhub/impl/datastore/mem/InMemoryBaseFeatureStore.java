@@ -276,7 +276,9 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             // collect child ids from all selected parents
             var allIds = new HashSet<Long>();
             parentIDStream.forEach(id -> {
-                allIds.addAll(parentChildMap.get(id));
+                var children = parentChildMap.get(id);
+                if (children != null)
+                    allIds.addAll(children);
             });
             
             // use existing result stream and post-filter to check
