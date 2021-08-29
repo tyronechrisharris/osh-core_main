@@ -662,8 +662,12 @@ public class MVRadixTreeMap<K, V> extends MVMap<K, V>
                 // otherwise remove all values for the selected key
                 else if (p.getKeyCount() > 0)
                 {
-                    oldValue = getFirstValue(getValuePage(p));
-                    newPage = removeAllValues(p);
+                    Page valuePage = getValuePage(p);
+                    if (valuePage != null)
+                    {
+                        oldValue = getFirstValue(valuePage);
+                        newPage = removeAllValues(p);
+                    }
                 }
                 
                 // copy and update parent pages all the way to root
