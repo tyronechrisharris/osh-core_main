@@ -29,7 +29,6 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.impl.procedure.DataEventToObsConverter;
@@ -71,7 +70,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     {
         long dsID;
         IDataStreamInfo dsInfo;
-        FeatureId foiId;
+        long foiId;
         DataStreamTransactionHandler dsHandler;
     }
     
@@ -117,12 +116,9 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             if (foiArg != null)
             {
                 long publicFoiID = decodeID(ctx, foiArg);
-                var foi = db.getFoiStore().getCurrentVersion(publicFoiID);
-                if (foi == null)
+                if (!db.getFoiStore().contains(publicFoiID))
                     throw ServiceErrors.badRequest("Invalid FOI ID");
-                contextData.foiId = new FeatureId(
-                    idConverter.toInternalID(publicFoiID),
-                    foi.getUniqueIdentifier());
+                contextData.foiId = idConverter.toInternalID(publicFoiID);
             }
         }
         
@@ -160,20 +156,20 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         var binding = getBinding(ctx, false);
         
-        // continue when streaming actually starts        
+        // continue when streaming actually starts
         ctx.getStreamHandler().setStartCallback(() -> {
                         
             // prepare lazy loaded map of FOI UID to full FeatureId
             var foiIdCache = CacheBuilder.newBuilder()
                 .maximumSize(100)
                 .expireAfterAccess(1, TimeUnit.MINUTES)
-                .build(new CacheLoader<String, FeatureId>() {
+                .build(new CacheLoader<String, Long>() {
                     @Override
-                    public FeatureId load(String uid) throws Exception
+                    public Long load(String uid) throws Exception
                     {
                         var fk = db.getFoiStore().getCurrentVersionKey(uid);
-                        return new FeatureId(fk.getInternalID(), uid);
-                    }                    
+                        return fk.getInternalID();
+                    }
                 });
             
             // get datastream info and init event to obs converter
@@ -212,13 +208,13 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
                             subscription.cancel();
                             throw new CallbackException(e);
                         } 
-                    });                       
+                    });
                 }
     
                 @Override
                 public void onError(Throwable e)
                 {
-                    ctx.getLogger().error("Error sending websocket data", e);
+                    ctx.getLogger().error("Error while publishing obs data", e);
                 }
     
                 @Override

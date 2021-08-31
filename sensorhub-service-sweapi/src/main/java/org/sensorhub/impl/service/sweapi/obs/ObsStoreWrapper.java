@@ -22,7 +22,6 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
@@ -55,17 +54,13 @@ public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IObsDa
     {
         var dsInternalID = idConverter.toInternalID(obs.getDataStreamID());
         
-        var foiId = IObsData.NO_FOI;
-        if (obs.getFoiID() != foiId)
-        {
-            var foiInternalID = idConverter.toInternalID(obs.getFoiID().getInternalID()); 
-            var foiUID = obs.getFoiID().getUniqueID();
-            foiId = new FeatureId(foiInternalID, foiUID);
-        }
+        var foiInternalID = obs.hasFoi() ?
+            idConverter.toInternalID(obs.getFoiID()) :
+            IObsData.NO_FOI;
         
         obs = ObsData.Builder.from(obs)
             .withDataStream(dsInternalID)
-            .withFoi(foiId)
+            .withFoi(foiInternalID)
             .build();
         
         return toPublicKey(getWriteStore().add(obs));

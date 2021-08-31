@@ -15,9 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.procedure;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 import org.sensorhub.api.command.CommandStreamAddedEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
@@ -33,7 +31,6 @@ import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
@@ -53,6 +50,9 @@ import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import com.google.common.base.Strings;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -62,10 +62,10 @@ public class ProcedureTransactionHandler
     static final Logger log = LoggerFactory.getLogger(ProcedureTransactionHandler.class);
     
     protected final ProcedureObsTransactionHandler rootHandler;
-    protected final String procUID;    
+    protected final String procUID;
     protected FeatureKey procKey;
     protected String parentGroupUID;
-    protected Map<String, FeatureId> foiIdMap = new ConcurrentHashMap<>();
+    protected BiMap<String, Long> foiIdMap;
     protected boolean newlyCreated;
     
     
@@ -81,6 +81,7 @@ public class ProcedureTransactionHandler
         this.procUID = OshAsserts.checkValidUID(procUID);
         this.parentGroupUID = parentGroupUID;
         this.rootHandler = Asserts.checkNotNull(rootHandler);
+        this.foiIdMap = Maps.synchronizedBiMap(HashBiMap.create());
     }
     
     
@@ -125,7 +126,7 @@ public class ProcedureTransactionHandler
         if (procKey != null)
         {
             // send deleted event
-            getParentPublisher().publish(new ProcedureRemovedEvent(procUID, parentGroupUID));            
+            getParentPublisher().publish(new ProcedureRemovedEvent(procUID, parentGroupUID));
             return true;
         }
         
@@ -388,7 +389,7 @@ public class ProcedureTransactionHandler
                 isNew = false;
         }
         
-        foiIdMap.put(uid, new FeatureId(fk.getInternalID(), uid));
+        foiIdMap.put(uid, fk.getInternalID());
         
         if (isNew)
         {

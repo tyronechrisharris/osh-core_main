@@ -845,13 +845,12 @@ public class MVObsStoreImpl implements IObsStore
             {
                 MVTimeSeriesKey seriesKey = new MVTimeSeriesKey(
                     obs.getDataStreamID(),
-                    obs.getFoiID() == null ? 0 : obs.getFoiID().getInternalID(),
+                    obs.getFoiID(),
                     obs.getResultTime().equals(obs.getPhenomenonTime()) ? Instant.MIN : obs.getResultTime());
                 
                 MVTimeSeriesInfo series = obsSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
                     // also update the FOI to procedure mapping if needed
-                    if (obs.getFoiID() != null)
-                        obsSeriesByFoiIndex.putIfAbsent(seriesKey, Boolean.TRUE);
+                    obsSeriesByFoiIndex.putIfAbsent(seriesKey, Boolean.TRUE);
                     
                     return new MVTimeSeriesInfo(
                         obsRecordsIndex.isEmpty() ? 1 : obsRecordsIndex.lastKey().seriesID + 1);
@@ -885,7 +884,7 @@ public class MVObsStoreImpl implements IObsStore
                 MVTimeSeriesRecordKey obsKey = mapToInternalKey(key);
                 IObsData oldObs = obsRecordsIndex.replace(obsKey, obs);
                 if (oldObs == null)
-                    throw new UnsupportedOperationException("put can only be used to update existing keys");
+                    throw new UnsupportedOperationException("put can only be used to update existing entries");
                 return oldObs;
             }
             catch (Exception e)

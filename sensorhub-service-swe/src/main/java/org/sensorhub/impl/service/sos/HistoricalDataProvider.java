@@ -30,6 +30,7 @@ import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.SOSException;
+import org.vast.swe.SWEConstants;
 import org.vast.util.Asserts;
 
 
@@ -174,7 +175,10 @@ public class HistoricalDataProvider extends ProcedureDataProvider
                         // can reuse same structure since we are running in a single thread
                         var result = dsInfoCache.resultStruct;
                         result.setData(obs.getResult());
-                        return SOSProviderUtils.buildObservation(dsInfoCache.procUID, obs.getFoiID().getUniqueID(), result);
+                        
+                        var foi = obs.hasFoi() ? database.getFoiStore().getCurrentVersion(obs.getFoiID()) : null;
+                        var foiURI = foi != null ? foi.getUniqueIdentifier() : null;
+                        return SOSProviderUtils.buildObservation(dsInfoCache.procUID, foiURI, result);
                     })
             )
         );
@@ -205,7 +209,7 @@ public class HistoricalDataProvider extends ProcedureDataProvider
                 public void onNext(IObsData item)
                 {
                     consumer.onNext(toDataEvent(item));
-                }                
+                }
             };
             
             // notify consumer with subscription            
@@ -239,7 +243,7 @@ public class HistoricalDataProvider extends ProcedureDataProvider
             obs.getResultTime().toEpochMilli(),
             selectedDataStream.procUID,
             selectedDataStream.resultStruct.getName(),
-            obs.getFoiID().getUniqueID(),
+            SWEConstants.NIL_UNKNOWN,
             obs.getResult());
     }
 }

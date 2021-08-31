@@ -38,7 +38,7 @@ import net.opengis.swe.v20.DataBlock;
 public class ObsData implements IObsData
 {
     protected long dataStreamID = 0;
-    protected FeatureId foiID = IObsData.NO_FOI;
+    protected long foiID = FeatureId.NULL_FEATURE.getInternalID();
     protected Instant resultTime = null;
     protected Instant phenomenonTime = null;
     protected Map<String, Object> parameters = null;
@@ -60,7 +60,7 @@ public class ObsData implements IObsData
 
 
     @Override
-    public FeatureId getFoiID()
+    public long getFoiID()
     {
         return foiID;
     }
@@ -167,7 +167,7 @@ public class ObsData implements IObsData
         }
 
 
-        public B withFoi(FeatureId id)
+        public B withFoi(long id)
         {
             instance.foiID = id;
             return (B)this;

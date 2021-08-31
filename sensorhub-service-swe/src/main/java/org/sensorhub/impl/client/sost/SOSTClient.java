@@ -73,6 +73,7 @@ import org.vast.ows.swe.InsertSensorResponse;
 import org.vast.ows.swe.SWESUtils;
 import org.vast.ows.swe.UpdateSensorRequest;
 import org.vast.swe.Base64Encoder;
+import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEData;
 
 
@@ -826,7 +827,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             obs.getResultTime().toEpochMilli(),
             streamInfo.procUID,
             streamInfo.outputName,
-            obs.getFoiID().getUniqueID(),
+            SWEConstants.NIL_UNKNOWN,
             obs.getResult()), streamInfo);
     }
     

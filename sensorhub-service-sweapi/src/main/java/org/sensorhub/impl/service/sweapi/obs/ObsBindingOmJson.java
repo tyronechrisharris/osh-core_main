@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
@@ -137,7 +136,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
         
-        if (contextData.foiId != null)
+        if (contextData.foiId != 0)
             obs.withFoi(contextData.foiId);
         
         // also set timestamp
@@ -159,9 +158,9 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         var externalDsId = dsIdEncoder.encodeID(dsID);
         writer.name("datastreamId").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
         
-        if (obs.getFoiID() != null && obs.getFoiID() != FeatureId.NULL_FEATURE)
+        if (obs.hasFoi())
         {
-            var externalfoiId = foiIdEncoder.encodeID(obs.getFoiID().getInternalID());
+            var externalfoiId = foiIdEncoder.encodeID(obs.getFoiID());
             writer.name("foiId").value(Long.toString(externalfoiId, ResourceBinding.ID_RADIX));
         }
         

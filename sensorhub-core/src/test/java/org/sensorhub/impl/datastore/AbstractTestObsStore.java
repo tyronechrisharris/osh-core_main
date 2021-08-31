@@ -33,7 +33,6 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
@@ -129,7 +128,6 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     protected Map<BigInteger, IObsData> addSimpleObsWithoutResultTime(long dsID, long foiID, Instant startTime, int numObs, long timeStepMillis) throws Exception
     {
         Map<BigInteger, IObsData> addedObs = new LinkedHashMap<>();
-        FeatureId foi = foiID == 0 ? IObsData.NO_FOI : new FeatureId(foiID, FOI_UID_PREFIX + foiID);
         
         for (int i = 0; i < numObs; i++)
         {
@@ -139,7 +137,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
             ObsData obs = new ObsData.Builder()
                 .withDataStream(dsID)
-                .withFoi(foi)
+                .withFoi(foiID)
                 .withPhenomenonTime(startTime.plusMillis(timeStepMillis*i))
                 .withResult(data)
                 .build();

@@ -16,7 +16,6 @@ package org.sensorhub.impl.database.registry;
 
 import java.time.Instant;
 import java.util.Map;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IObsData;
 import com.vividsolutions.jts.geom.Geometry;
 import net.opengis.swe.v20.DataBlock;
@@ -48,7 +47,7 @@ public class ObsDelegate implements IObsData
     }
 
 
-    public FeatureId getFoiID()
+    public long getFoiID()
     {
         return delegate.getFoiID();
     }

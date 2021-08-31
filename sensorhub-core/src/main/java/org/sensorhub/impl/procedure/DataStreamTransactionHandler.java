@@ -15,7 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.procedure;
 
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -24,7 +23,6 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.obs.DataStreamDisabledEvent;
 import org.sensorhub.api.obs.DataStreamEnabledEvent;
@@ -39,6 +37,8 @@ import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -62,23 +62,27 @@ public class DataStreamTransactionHandler implements IEventListener
     protected String parentGroupUID;
     protected IEventPublisher dataEventPublisher;
     protected ScalarIndexer timeStampIndexer;
-    protected Map<String, FeatureId> foiIdMap;
+    protected Map<String, Long> foiUidToIdMap;
+    protected Map<Long, String> foiIdToUidMap;
     
     
     public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, ProcedureObsTransactionHandler rootHandler)
     {
-        this(dsKey, dsInfo, new HashMap<>(), rootHandler);
+        this(dsKey, dsInfo, HashBiMap.create(), rootHandler);
     }
     
     
-    public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, Map<String, FeatureId> foiIdMap, ProcedureObsTransactionHandler rootHandler)
+    public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, BiMap<String, Long> foiIdMap, ProcedureObsTransactionHandler rootHandler)
     {
         this.dsKey = dsKey;
         this.dsInfo = dsInfo;
         this.timeStampIndexer = SWEHelper.getTimeStampIndexer(dsInfo.getRecordStructure());
         this.rootHandler = rootHandler;
-        this.foiIdMap = Asserts.checkNotNull(foiIdMap, "foiIdMap");
         
+        Asserts.checkNotNull(foiIdMap, "foiIdMap");
+        this.foiUidToIdMap = foiIdMap;
+        this.foiIdToUidMap = foiIdMap.inverse();
+            
         getDataEventPublisher();
     }
     
@@ -180,26 +184,24 @@ public class DataStreamTransactionHandler implements IEventListener
         getDataEventPublisher().publish(e);
         
         // if event carries an FOI UID, try to fetch the full Id object
-        FeatureId foiId;
+        Long foiId;
         String foiUID = e.getFoiUID();
         if (foiUID != null)
         {
-            var fid = foiIdMap.get(foiUID);
-            if (fid != null)
-                foiId = fid;
-            else
+            foiId = foiUidToIdMap.get(foiUID);
+            if (foiId == null)
                 throw new IllegalStateException("Unknown FOI: " + foiUID);
         }
         
         // else use the single FOI if there is one
-        else if (foiIdMap.size() == 1)
+        else if (foiUidToIdMap.size() == 1)
         {
-            foiId = foiIdMap.values().iterator().next();
+            foiId = foiUidToIdMap.values().iterator().next();
         }
         
         // else don't associate to any FOI
         else
-            foiId = ObsData.NO_FOI;
+            foiId = IObsData.NO_FOI;
         
         // process all records
         BigInteger obsID = null;
@@ -242,12 +244,11 @@ public class DataStreamTransactionHandler implements IEventListener
         var timeStamp = System.currentTimeMillis();
         
         // first send to event bus to minimize latency
-        var foiID = obs.getFoiID();
         getDataEventPublisher().publish(new DataEvent(
             timeStamp,
             dsInfo.getProcedureID().getUniqueID(),
             dsInfo.getOutputName(),
-            foiID == null || foiID == FeatureId.NULL_FEATURE ? null : foiID.getUniqueID(),
+            obs.hasFoi() ? foiIdToUidMap.get(obs.getFoiID()) : null,
             obs.getResult()));
         
         getDataEventPublisher().publish(new ObsEvent(

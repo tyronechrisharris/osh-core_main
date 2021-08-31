@@ -31,6 +31,7 @@ import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.SOSException;
+import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
@@ -276,7 +277,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
                 return false;
         }
         
-        return true;        
+        return true;
     }
     
     
@@ -318,7 +319,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
                     eventTime,
                     dsInfoCache.procUID,
                     dsInfoCache.resultStruct.getName(),
-                    obs.getFoiID().getUniqueID(),
+                    SWEConstants.NIL_UNKNOWN,
                     obs.getResult()));
             });
     }

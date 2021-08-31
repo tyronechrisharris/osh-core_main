@@ -31,9 +31,9 @@ import net.opengis.swe.v20.DataBlock;
  */
 public interface IObsData
 {
-    public static final FeatureId NO_FOI = FeatureId.NULL_FEATURE;
-
-
+    public static final long NO_FOI = FeatureId.NULL_FEATURE.getInternalID();
+    
+    
     /**
      * @return The internal ID of the data stream that the observation is part of.
      */
@@ -44,13 +44,12 @@ public interface IObsData
      * @return The ID of the feature of interest that was observed.<br/>
      * This can be 0 if no feature of interest was reported.
      */
-    public FeatureId getFoiID();
+    public long getFoiID();
 
 
     public default boolean hasFoi()
     {
-        FeatureId id = getFoiID();
-        return id == null || id.getInternalID() == NO_FOI.getInternalID();
+        return getFoiID() != NO_FOI;
     }
 
 

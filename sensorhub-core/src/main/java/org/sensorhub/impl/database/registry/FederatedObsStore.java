@@ -113,15 +113,9 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     {
         long dsPublicId = registry.getPublicID(databaseID, obs.getDataStreamID());
         
-        long foiPublicId = registry.getPublicID(databaseID, obs.getFoiID().getInternalID());
-        FeatureId publicFoi = obs.hasFoi() ?
-            IObsData.NO_FOI :
-            new FeatureId(foiPublicId, obs.getFoiID().getUniqueID());
-                
-        /*return ObsData.Builder.from(obs)
-            .withDataStream(dsPublicId)
-            .withFoi(publicFoi)
-            .build();*/
+        long foiPublicId = obs.hasFoi() ?
+            registry.getPublicID(databaseID, obs.getFoiID()) :
+            IObsData.NO_FOI;
             
         // wrap original observation to return correct public IDs
         return new ObsDelegate(obs) {
@@ -132,10 +126,10 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
             }
 
             @Override
-            public FeatureId getFoiID()
+            public long getFoiID()
             {
-                return publicFoi;
-            }            
+                return foiPublicId;
+            }
         };
     }
     

@@ -20,7 +20,6 @@ import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IObsData;
 import net.opengis.swe.v20.DataBlock;
 import com.google.common.collect.Sets;
@@ -93,8 +92,8 @@ public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, Ob
     public default Stream<Long> selectObservedFois(ObsFilter filter)
     {
         return select(filter, Sets.newHashSet(ObsField.FOI_ID))
-            .filter(o -> o.getFoiID() != FeatureId.NULL_FEATURE)
-            .map(o -> o.getFoiID().getInternalID())
+            .filter(o -> o.getFoiID() != IObsData.NO_FOI)
+            .map(o -> o.getFoiID())
             .distinct();
     }
     

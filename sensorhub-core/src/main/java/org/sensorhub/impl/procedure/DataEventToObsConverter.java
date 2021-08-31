@@ -17,7 +17,6 @@ package org.sensorhub.impl.procedure;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.sensorhub.api.data.DataEvent;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.api.obs.ObsData;
@@ -42,11 +41,11 @@ public class DataEventToObsConverter
 {
     protected long dsID;
     protected IDataStreamInfo dsInfo;
-    protected Function<String, FeatureId> foiIdMapper;
+    protected Function<String, Long> foiIdMapper;
     protected ScalarIndexer timeStampIndexer;
     
     
-    public DataEventToObsConverter(long dsID, IDataStreamInfo dsInfo, Function<String, FeatureId> foiIdMapper)
+    public DataEventToObsConverter(long dsID, IDataStreamInfo dsInfo, Function<String, Long> foiIdMapper)
     {
         this.dsID = OshAsserts.checkValidInternalID(dsID);
         this.dsInfo = Asserts.checkNotNull(dsInfo, IDataStreamInfo.class);
@@ -58,20 +57,14 @@ public class DataEventToObsConverter
     public void toObs(DataEvent e, Consumer<IObsData> obsSink)
     {
         // if event carries an FOI UID, try to fetch the full Id object
-        FeatureId foiId;
+        Long foiId = IObsData.NO_FOI;
         String foiUID = e.getFoiUID();
         if (foiUID != null)
         {
-            var fid = foiIdMapper.apply(foiUID);
-            if (fid != null)
-                foiId = fid;
-            else
+            foiId = foiIdMapper.apply(foiUID);
+            if (foiId == null)
                 throw new IllegalStateException("Unknown FOI: " + foiUID);
         }
-        
-        // else don't associate to any FOI
-        else
-            foiId = ObsData.NO_FOI;
         
         // process all records
         for (DataBlock record: e.getRecords())

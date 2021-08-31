@@ -16,7 +16,6 @@ package org.sensorhub.api.datastore.obs;
 
 import java.time.Instant;
 import java.util.Objects;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
@@ -35,7 +34,7 @@ import org.vast.util.Asserts;
 public class ObsKey
 {
     protected long dataStreamID = 0;
-    protected FeatureId foiID = IObsData.NO_FOI;
+    protected long foiID = IObsData.NO_FOI;
     protected Instant resultTime = null;
     protected Instant phenomenonTime = null;
 
@@ -53,14 +52,14 @@ public class ObsKey
     }
 
 
-    public ObsKey(long dataStreamID, FeatureId foiID, Instant phenomenonTime)
+    public ObsKey(long dataStreamID, long foiID, Instant phenomenonTime)
     {
         this(dataStreamID, phenomenonTime);
-        this.foiID = Asserts.checkNotNull(foiID, FeatureId.class);
+        this.foiID = foiID;
     }
 
 
-    public ObsKey(long dataStreamID, FeatureId foiID, Instant resultTime, Instant phenomenonTime)
+    public ObsKey(long dataStreamID, long foiID, Instant resultTime, Instant phenomenonTime)
     {
         this(dataStreamID, foiID, phenomenonTime);
         this.resultTime = resultTime;
@@ -77,10 +76,9 @@ public class ObsKey
 
 
     /**
-     * @return The feature key for the feature of interest that was observed.<br/>
-     * This field cannot be null.
+     * @return The internal ID of the feature of interest that was observed.
      */
-    public FeatureId getFoiID()
+    public long getFoiID()
     {
         return foiID;
     }

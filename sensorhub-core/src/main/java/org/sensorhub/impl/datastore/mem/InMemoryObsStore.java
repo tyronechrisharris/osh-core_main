@@ -164,7 +164,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     Stream<Entry<ObsKey, IObsData>> getObsByFoi(long foiID)
     {
         return map.entrySet().stream()
-            .filter(e -> e.getValue().getFoiID().getInternalID() == foiID);
+            .filter(e -> e.getValue().getFoiID() == foiID);
     }
     
     
@@ -304,7 +304,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     {
         ObsKey key = new ObsKey(
             obs.getDataStreamID(),
-            obs.getFoiID().getInternalID(),
+            obs.getFoiID(),
             obs.getPhenomenonTime());
         map.remove(key);
         map.put(key, obs);
