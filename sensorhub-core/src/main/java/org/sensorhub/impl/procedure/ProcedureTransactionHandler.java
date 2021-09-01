@@ -350,7 +350,7 @@ public class ProcedureTransactionHandler
                 var csHandler = new CommandStreamTransactionHandler(csKey, oldCsInfo, rootHandler);
                 csHandler.update(dataStruct, dataEncoding);
                 newCsInfo = csHandler.getCommandStreamInfo();
-                log.debug("Updated comand stream {}#{}", procUID, commandName);
+                log.debug("Updated command stream {}#{}", procUID, commandName);
             }
             
             // else don't update and return existing key
@@ -371,22 +371,36 @@ public class ProcedureTransactionHandler
         DataStoreUtils.checkFeatureObject(foi);
         
         var uid = foi.getUniqueIdentifier();
-        boolean isNew = true;
+        boolean isNew;
         
         FeatureKey fk = rootHandler.db.getFoiStore().getCurrentVersionKey(uid);
         
         // store feature description if none was found
         if (fk == null)
+        {
             fk = getFoiStore().add(procKey.getInternalID(), foi);
+            isNew = true;
+            log.debug("Added FOI {}", foi.getUniqueIdentifier());
+            
+        }
         
         // otherwise add it only if its newer than the one already in storage
+        // otherwise update existing one
         else
         {
             var validTime = foi instanceof ITemporalFeature ? ((ITemporalFeature)foi).getValidTime() : null;
             if (validTime != null && fk.getValidStartTime().isBefore(validTime.begin()))
+            {
                 fk = getFoiStore().add(procKey.getInternalID(), foi);
+                isNew = true;
+                log.debug("Added FOI {}", foi.getUniqueIdentifier());
+            }
             else
+            {
+                getFoiStore().put(fk, foi);
                 isNew = false;
+                log.debug("Updated FOI {}", foi.getUniqueIdentifier());
+            }
         }
         
         foiIdMap.put(uid, fk.getInternalID());
