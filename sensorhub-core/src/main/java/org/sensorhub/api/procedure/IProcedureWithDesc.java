@@ -15,11 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.procedure;
 
 import org.vast.ogc.om.IProcedure;
-import org.vast.swe.SWEConstants;
-import net.opengis.sensorml.v20.AbstractPhysicalProcess;
 import net.opengis.sensorml.v20.AbstractProcess;
-import net.opengis.sensorml.v20.PhysicalComponent;
-import net.opengis.sensorml.v20.PhysicalSystem;
 
 
 /**
@@ -37,33 +33,7 @@ public interface IProcedureWithDesc extends IProcedure
     public default String getType()
     {
         var sml = getFullDescription();
-        
-        // use definition or generate default type
-        if (sml != null && sml.getDefinition() != null)
-        {
-            return sml.getDefinition();
-        }
-        else if (sml instanceof AbstractPhysicalProcess)
-        {
-            if (sml instanceof PhysicalComponent ||
-               (sml instanceof PhysicalSystem
-                   && ((PhysicalSystem)sml).getNumComponents() == 0)
-                   && ((PhysicalSystem)sml).getNumOutputs() <= 1)
-            {
-                if (sml.getNumOutputs() > 0)
-                    return SWEConstants.DEF_SENSOR;
-                else if (sml.getNumInputs() > 0)
-                    return SWEConstants.DEF_ACTUATOR;
-            }
-            
-            return SWEConstants.DEF_SYSTEM;
-        }
-        else if (sml instanceof AbstractProcess)
-        {
-            return SWEConstants.DEF_PROCESS;
-        }
-        else
-            return SWEConstants.NIL_UNKNOWN;
+        return sml != null ? sml.getType() : null;
     }
     
     

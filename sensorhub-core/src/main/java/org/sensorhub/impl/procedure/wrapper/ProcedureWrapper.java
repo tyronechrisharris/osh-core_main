@@ -120,6 +120,13 @@ public class ProcedureWrapper implements IProcedureWithDesc
     
 
     @Override
+    public String getType()
+    {
+        return processWrapper.getType();
+    }
+
+
+    @Override
     public TimeExtent getValidTime()
     {
         return processWrapper.getValidTime();
