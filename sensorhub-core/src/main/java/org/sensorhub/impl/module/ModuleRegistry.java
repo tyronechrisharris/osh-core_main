@@ -234,23 +234,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     }
     
     
-    public void waitForAllModulesLoaded()
-    {
-        synchronized (loadedModules)
-        {
-            try
-            {
-                while (!allModulesLoaded)                
-                    loadedModules.wait();
-            }
-            catch (InterruptedException e)
-            {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-    
-    
     /**
      * Instantiates and loads a module using the given configuration<br/>
      * This method is synchronous so it will block forever until the module is actually
@@ -682,7 +665,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 catch (Exception e)
                 {
                     log.error(IModule.CANNOT_STOP_MSG + MsgUtils.moduleString(module), e);
-                }            
+                }
             });
         }
         catch (Exception e)
@@ -726,12 +709,12 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 {
                     module.stop();
                     module.waitForState(ModuleState.STOPPED, DEFAULT_TIMEOUT_MS);
-                    module.start();                        
+                    module.start();
                 }
                 catch (Exception e)
                 {
                     log.error("Cannot restart module " + MsgUtils.moduleString(module), e);
-                }            
+                }
             });
         }
         catch (Exception e)
@@ -876,7 +859,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     
     
     @Override
-    public synchronized Collection<IModule<?>> getLoadedModules()
+    public Collection<IModule<?>> getLoadedModules()
     {
         return Collections.unmodifiableCollection(loadedModules.values());
     }
@@ -889,7 +872,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * @return list of module instances of the specified type
      */
     @SuppressWarnings("unchecked")
-    public synchronized <T> Collection<T> getLoadedModules(Class<T> moduleType)
+    public <T> Collection<T> getLoadedModules(Class<T> moduleType)
     {
         ArrayList<T> matchingModules = new ArrayList<>();
         
@@ -909,7 +892,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * @return The matching module or null if none were found
      */
     @SuppressWarnings("unchecked")
-    public synchronized <T> T getModuleByType(Class<T> moduleType)
+    public <T> T getModuleByType(Class<T> moduleType)
     {
         for (IModule<?> module: getLoadedModules())
         {
@@ -1230,7 +1213,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             // forward events to event bus
             // events from all modules are published in the same group
             IEventPublisher modulePublisher = hub.getEventBus().getPublisher(EVENT_GROUP_ID, e.getSourceID());
-            modulePublisher.publish(e);            
+            modulePublisher.publish(e);
         }
     }
     

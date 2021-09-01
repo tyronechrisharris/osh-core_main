@@ -106,6 +106,11 @@ public class SensorHub implements ISensorHub
             this.databaseRegistry = new DefaultDatabaseRegistry(this);
             this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
             
+            // init service managers
+            this.securityManager = new SecurityManagerImpl(this);
+            this.networkManager = new NetworkManagerImpl(this);
+            this.processingManager = new ProcessingManagerImpl(this);
+            
             // prepare client authenticator (e.g. for HTTP connections, etc...)
             ClientAuth.createInstance("keystore");
                     
@@ -198,28 +203,22 @@ public class SensorHub implements ISensorHub
     
     
     @Override
-    public synchronized INetworkManager getNetworkManager()
+    public INetworkManager getNetworkManager()
     {
-        if (networkManager == null)
-            networkManager = new NetworkManagerImpl(this);
         return networkManager;
     }
     
     
     @Override
-    public synchronized ISecurityManager getSecurityManager()
+    public ISecurityManager getSecurityManager()
     {
-        if (securityManager == null)
-            securityManager = new SecurityManagerImpl(this);
         return securityManager;
     }
     
     
     @Override
-    public synchronized IProcessingManager getProcessingManager()
+    public IProcessingManager getProcessingManager()
     {
-        if (processingManager == null)
-            processingManager = new ProcessingManagerImpl(this);
         return processingManager;
     }
     
