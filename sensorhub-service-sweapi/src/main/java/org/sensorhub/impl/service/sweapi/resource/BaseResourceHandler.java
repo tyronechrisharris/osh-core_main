@@ -187,6 +187,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                 
         // get resource key
         var key = getKey(ctx, id);
+        if (key == null)
+            throw ServiceErrors.notFound(id);
+        
         getByKey(ctx, key);
     }
     
