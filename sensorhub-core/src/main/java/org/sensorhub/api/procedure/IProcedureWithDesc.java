@@ -46,7 +46,9 @@ public interface IProcedureWithDesc extends IProcedure
         else if (sml instanceof AbstractPhysicalProcess)
         {
             if (sml instanceof PhysicalComponent ||
-               (sml instanceof PhysicalSystem && ((PhysicalSystem)sml).getNumComponents() == 0))
+               (sml instanceof PhysicalSystem
+                   && ((PhysicalSystem)sml).getNumComponents() == 0)
+                   && ((PhysicalSystem)sml).getNumOutputs() <= 1)
             {
                 if (sml.getNumOutputs() > 0)
                     return SWEConstants.DEF_SENSOR;
