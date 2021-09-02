@@ -17,7 +17,6 @@ package org.sensorhub.api.obs;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
@@ -27,9 +26,8 @@ import net.opengis.swe.v20.DataBlock;
 
 /**
  * <p>
- * Immutable object representing observation data (result, foi ID, sampling
- * geometry, validity period, observation parameters) stored in an observation
- * store.
+ * Immutable object representing observation data and that can be stored in
+ * an observation datastore.
  * </p>
  *
  * @author Alex Robin
@@ -38,7 +36,7 @@ import net.opengis.swe.v20.DataBlock;
 public class ObsData implements IObsData
 {
     protected long dataStreamID = 0;
-    protected long foiID = FeatureId.NULL_FEATURE.getInternalID();
+    protected long foiID = IObsData.NO_FOI;
     protected Instant resultTime = null;
     protected Instant phenomenonTime = null;
     protected Map<String, Object> parameters = null;
@@ -213,6 +211,9 @@ public class ObsData implements IObsData
         
         public T build()
         {
+            Asserts.checkArgument(instance.dataStreamID >= 0, "dataStreamID must be >= 0");
+            Asserts.checkArgument(instance.foiID >= 0, "foiID must be >= 0");
+            Asserts.checkNotNull(instance.phenomenonTime, "phenomenonTime");
             Asserts.checkNotNull(instance.result, "result");
             return super.build();
         }

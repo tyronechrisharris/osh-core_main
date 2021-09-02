@@ -535,7 +535,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         // proc1, no foi
         filter = new ObsFilter.Builder()
             .withDataStreams(ds1.getInternalID())
-            .withFois(0L)
+            .withFois(IObsData.NO_FOI)
             .build();
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, proc1Batch3, filter);
