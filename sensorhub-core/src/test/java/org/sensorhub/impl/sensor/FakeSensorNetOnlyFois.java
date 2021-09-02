@@ -26,8 +26,8 @@ import net.opengis.gml.v32.impl.GMLFactory;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IMultiSourceDataProducer;
-import org.vast.ogc.gml.GenericFeature;
 import org.vast.ogc.gml.GenericFeatureImpl;
+import org.vast.ogc.gml.IFeature;
 import com.google.common.collect.ImmutableList;
 
 
@@ -54,7 +54,7 @@ public class FakeSensorNetOnlyFois extends FakeSensor implements IMultiSourceDat
     }
     
     
-    public void addFois(int numFois, Consumer<GenericFeature> foiConfigurator)
+    public void addFois(int numFois, Consumer<IFeature> foiConfigurator)
     {
         for (int foiIdx = 1; foiIdx <= numFois; foiIdx++)
         {

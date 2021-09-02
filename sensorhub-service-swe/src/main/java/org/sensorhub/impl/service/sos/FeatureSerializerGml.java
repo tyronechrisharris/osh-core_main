@@ -24,7 +24,6 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import org.vast.ogc.OGCRegistry;
 import org.vast.ogc.gml.GMLStaxBindings;
-import org.vast.ogc.gml.GenericFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
@@ -115,12 +114,8 @@ public class FeatureSerializerGml extends AbstractAsyncSerializerStax<GetFeature
             if (firstRecord)
             {
                 gmlBindings.ensureNamespaceDecl(writer, f.getQName());
-                if (f instanceof GenericFeature)
-                {
-                    for (Entry<QName, Object> prop: ((GenericFeature)foi).getProperties().entrySet())
-                        gmlBindings.ensureNamespaceDecl(writer, prop.getKey());
-                }
-
+                for (Entry<QName, Object> prop: foi.getProperties().entrySet())
+                    gmlBindings.ensureNamespaceDecl(writer, prop.getKey());
                 firstRecord = false;
             }
 

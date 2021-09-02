@@ -17,6 +17,8 @@ package org.sensorhub.impl.service.sweapi.feature;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import javax.xml.namespace.QName;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -94,6 +96,12 @@ public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IGeoFea
             public AbstractGeometry getGeometry()
             {
                 return f.getGeometry();
+            }
+            
+            @Override
+            public Map<QName, Object> getProperties()
+            {
+                return f.getProperties();
             }
         };
     }

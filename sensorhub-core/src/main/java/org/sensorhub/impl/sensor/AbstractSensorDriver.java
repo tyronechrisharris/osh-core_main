@@ -116,15 +116,13 @@ public abstract class AbstractSensorDriver implements ISensorDriver
 
 
     /**
-     * Sets the sensor lat/lon/alt location (EPSG 4979).<br/>
-     * Note that this also adds a location output allowing the sensor location to be updated
-     * and reported dynamically afterwards
+     * Sets the foi to be a sampling point at lat/lon/alt location (EPSG 4979).
      */
     protected void setSamplingPointFoi(double lat, double lon, double alt)
     {
         SamplingPoint sf = new SamplingPoint();
         sf.setId("FOI_" + getShortID());
-        sf.setUniqueIdentifier(getUniqueIdentifier() + "-foi");
+        sf.setUniqueIdentifier(getUniqueIdentifier() + ":foi");
         sf.setName(getName());
         sf.setDescription("Sampling point for " + getName());
         sf.setHostedProcedureUID(getUniqueIdentifier());
@@ -294,7 +292,7 @@ public abstract class AbstractSensorDriver implements ISensorDriver
     @Override
     public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
     {
-        return foiMap;            
+        return foiMap;
     }
 
 

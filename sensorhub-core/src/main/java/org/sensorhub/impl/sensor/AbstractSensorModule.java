@@ -175,7 +175,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 // add 
                 SamplingPoint sf = new SamplingPoint();
                 sf.setId("FOI_" + xmlID);
-                sf.setUniqueIdentifier(uniqueID + "-foi");
+                sf.setUniqueIdentifier(uniqueID + ":foi");
                 if (config.name != null)
                     sf.setName(config.name);
                 sf.setDescription("Sampling point for " + config.name);
@@ -184,7 +184,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 point.setSrsName(SWEConstants.REF_FRAME_4979);
                 point.setSrsDimension(3);
                 point.setPos(new double[] {loc.lat, loc.lon, loc.alt});
-                sf.setShape(point);                
+                sf.setShape(point);
                 foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
             }
         }
@@ -620,7 +620,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     @Override
     public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
     {
-        return foiMap;            
+        return foiMap;
     }
 
 

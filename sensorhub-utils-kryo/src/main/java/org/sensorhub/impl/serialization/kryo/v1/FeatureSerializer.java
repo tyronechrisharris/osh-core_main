@@ -16,7 +16,6 @@ package org.sensorhub.impl.serialization.kryo.v1;
 
 import javax.xml.namespace.QName;
 import org.vast.ogc.gml.GMLStaxBindings;
-import org.vast.ogc.gml.GenericFeature;
 import org.vast.ogc.gml.GenericTemporalFeatureImpl;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
@@ -26,6 +25,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.gml.v32.LineString;
 import net.opengis.gml.v32.LinearRing;
@@ -61,7 +61,7 @@ public class FeatureSerializer extends Serializer<IFeature>
     public void write(Kryo kryo, Output output, IFeature f)
     {
         //output.writeString(f.getId());
-        output.writeString(f instanceof GenericFeature ? ((GenericFeature)f).getQName().toString() : "Feature");
+        output.writeString(f instanceof AbstractFeature ? ((AbstractFeature)f).getQName().toString() : "Feature");
         
         // common properties
         output.writeString(f.getUniqueIdentifier());
