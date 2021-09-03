@@ -356,17 +356,6 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         // apply post filter
         resultStream = resultStream.filter(e -> filter.test(e.getValue()));
         
-        // if including group members
-        if (filter.includeMembers())
-        {         
-            resultStream = resultStream
-                .flatMap(e -> {
-                    var s1 = Stream.of(e);
-                    var s2 = getFeaturesByParent(e.getKey().getInternalID());
-                    return Stream.concat(s1, s2);
-                });
-        }
-        
         return resultStream
             .limit(filter.getLimit());
     }
@@ -403,7 +392,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     @Override
     public T get(Object key)
     {
-        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);                
+        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);
         return map.get(fk);
     }
 
@@ -461,7 +450,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         map.put(fk, feature);*/
         
         // update other indexes
-        uidMap.put(feature.getUniqueIdentifier(), fk);        
+        uidMap.put(feature.getUniqueIdentifier(), fk);
         if (feature instanceof IGeoFeature)
             addToSpatialIndex(fk, (IGeoFeature)feature);
         

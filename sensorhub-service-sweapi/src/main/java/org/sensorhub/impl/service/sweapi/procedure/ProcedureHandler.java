@@ -78,8 +78,8 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     {
         super.buildFilter(parent, queryParams, builder);
         
-        var val = getSingleParam("recursive", queryParams);
-        boolean recursive =  (val != null && !val.equalsIgnoreCase("false"));
+        var val = getSingleParam("searchMembers", queryParams);
+        boolean searchMembers =  (val != null && !val.equalsIgnoreCase("false"));
         boolean parentSelected = false;
         
         // parent ID
@@ -89,7 +89,6 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
             parentSelected = true;
             builder.withParents()
                 .withInternalIDs(ids)
-                .includeMembers(recursive)
                 .done();
         } 
         
@@ -100,11 +99,10 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
             parentSelected = true;
             builder.withParents()
                 .withUniqueIDs(uids)
-                .includeMembers(recursive)
                 .done();
         }
         
-        if (!parentSelected && !recursive)
+        if (!parentSelected && !searchMembers)
             builder.withNoParent();
     }
 

@@ -89,7 +89,6 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
         {
             builder.withParents()
                 .withInternalIDs(parent.internalID)
-                .includeMembers(true)
                 .done();
         }
         else
