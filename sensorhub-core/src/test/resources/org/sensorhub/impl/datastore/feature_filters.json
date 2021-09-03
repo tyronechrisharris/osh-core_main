@@ -17,7 +17,7 @@
         }
     },
     {
-        "withMembers": {
+        "withParents": {
             "fullText": {
                 "keywords": ["building", "room"]
             },

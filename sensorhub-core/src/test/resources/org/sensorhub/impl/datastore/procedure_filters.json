@@ -54,19 +54,5 @@
         "fullText": {
             "keywords": []
         }
-    },
-    {
-        "withMembers": {
-            "withDatastreams": {
-                "observedProperties": [
-                    "http://blabla/air_pressure",
-                    "http://blabla/air_temperature",
-                    "http://blabla/wind_speed"
-                ]
-            }
-        },
-        "fullText": {
-            "keywords": []
-        }
     }
 ]
