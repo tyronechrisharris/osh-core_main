@@ -32,7 +32,7 @@ public interface IDataProducer extends IProcedureDriver
     
     /**
      * Retrieves the list of all outputs
-     * @return read-only map of output names -> data interface objects
+     * @return read-only map of output names to data interface objects
      */
     public Map<String, ? extends IStreamingDataInterface> getOutputs();
     
@@ -40,7 +40,7 @@ public interface IDataProducer extends IProcedureDriver
     /**
      * Retrieves the list of all features of interest for which this producer
      * is currently generating data
-     * @return Read-only map of FOI unique IDs -> feature objects
+     * @return Read-only map of FOI unique IDs to feature objects
      */
     public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest();
     

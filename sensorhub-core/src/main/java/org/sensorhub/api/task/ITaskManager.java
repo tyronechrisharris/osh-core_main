@@ -41,7 +41,7 @@ public interface ITaskManager
     
     /**
      * Retrieves the list of all tasks currently being processed by this procedure
-     * @return Read-only map of FOI unique IDs -> feature objects
+     * @return Read-only map of task IDs to task objects
      */
     public Map<Long, ? extends ITask> getCurrentTasks();
     

@@ -31,7 +31,7 @@ public interface ICommandReceiver extends IProcedureDriver
     
     /**
      * Retrieves the list of data inputs
-     * @return map of output names -> data interface objects
+     * @return map of output names to data interface objects
      */
     public Map<String, ? extends IStreamingControlInterface> getCommandInputs();
 }

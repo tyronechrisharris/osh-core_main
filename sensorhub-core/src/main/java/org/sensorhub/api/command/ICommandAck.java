@@ -57,7 +57,7 @@ public interface ICommandAck extends ICommandData
     
     /**
      * @return The exception raised while executing the command if status was
-     * {@link FAILED}, null otherwise
+     * {@link CommandStatusCode#FAILED}, null otherwise
      */
     Exception getError();
 }

@@ -29,8 +29,8 @@ import net.opengis.swe.v20.DataComponent;
  * for immediate execution and return only a simple ACK. Procedures requiring
  * more control of the lifecycle of tasks (priority handling, scheduling, etc.)
  * and the ability to report about their state, like it is often the case with
- * long running tasks, should implement the {@link ITaskManager} interface
- * in addition.
+ * long running tasks, should implement the {@link org.sensorhub.api.task.ITaskManager
+ * ITaskManager} interface in addition.
  * </p>
  *
  * @author Alex Robin
@@ -77,8 +77,8 @@ public interface IStreamingControlInterface extends IEventProducer
      * may not have finished executing at this point. Command success/failure is
      * notified separately using the provided callback<br/>
      * If an error can be detected early, the future will complete exceptionally
-     * with a {@link CompletionException}. Otherwise, the ACK object will contain
-     * the exception.
+     * with a {@link java.util.concurrent.CompletionException CompletionException}.
+     * Otherwise, the ACK object will contain the exception.
      */
     public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback);
     

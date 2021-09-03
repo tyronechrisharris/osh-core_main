@@ -39,7 +39,7 @@ public class FoiEvent extends ProcedureEvent
 
 
     /**
-     * Creates a {@link Type#NEW_FOI} event with only the feature ID
+     * Creates a new event with only the feature UID
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
      * @param procUID Unique ID of producer that generated the event
      * @param foiUID Unique ID of feature of interest
@@ -54,7 +54,7 @@ public class FoiEvent extends ProcedureEvent
 
 
 	/**
-	 * Creates a {@link Type#NEW_FOI} event with only the feature ID
+	 * Creates a new event with only the feature UID
 	 * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
      * @param producer Producer that generated the event
 	 * @param foiUID Unique ID of feature of interest
@@ -71,7 +71,7 @@ public class FoiEvent extends ProcedureEvent
 
 
 	/**
-     * Creates a {@link Type#NEW_FOI} event with an attached feature object
+     * Creates a new event with an attached feature object
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
      * @param producer producer that generated the event
      * @param foi feature object

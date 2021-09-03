@@ -43,7 +43,7 @@ public interface IDataProcess extends IDataProducer, ICommandReceiver
      * <br/><br/>
      * Note that only inputs that are not connected to data sources will be
      * available for external trigger via the command interface
-     * @return Read-only map of input name -> input descriptor
+     * @return Read-only map of input name to input descriptor
      */
     public Map<String, DataComponent> getInputs();
     
@@ -54,11 +54,11 @@ public interface IDataProcess extends IDataProducer, ICommandReceiver
      * The list contains both fixed and taskable parameters. Parameters that
      * are taskable (i.e. that can be changed after the process is started)
      * must be marked as 'updatable'. Such parameters can be changed using
-     * the command interface (see {@link IStreamingControlInterface}).
+     * the command interface (see {@link org.sensorhub.api.command.IStreamingControlInterface IStreamingControlInterface}).
      * <br/><br/>
      * Note that changing the value of components in the parameter descriptors
      * (even when they are marked as 'updatable') has no effect.
-     * @return Read-only map of parameter name -> parameter descriptor
+     * @return Read-only map of parameter name to parameter descriptor
      */
     public Map<String, DataComponent> getParameters();
     

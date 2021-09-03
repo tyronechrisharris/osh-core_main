@@ -404,7 +404,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
         /**
          * Keep only commands from command streams matching the filter.<br/>
          * Call done() on the nested builder to go back to main builder.
-         * @return The {@link DataStreamFilter} builder for chaining
+         * @return The {@link CommandStreamFilter} builder for chaining
          */
         public CommandStreamFilter.NestedBuilder<B> withCommandStreams()
         {

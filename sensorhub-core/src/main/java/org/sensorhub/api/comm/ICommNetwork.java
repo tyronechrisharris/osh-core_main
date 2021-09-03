@@ -105,7 +105,7 @@ public interface ICommNetwork<ConfigType extends ModuleConfig> extends IModule<C
     
     /**
      * @return the list of networks available with this module
-     * -> move to INetworkManager
+     * TODO: move to INetworkManager
      */
     public Collection<? extends INetworkInfo> getAvailableNetworks();
 }

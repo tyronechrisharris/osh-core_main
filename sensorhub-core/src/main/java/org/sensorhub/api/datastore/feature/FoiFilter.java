@@ -242,7 +242,6 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
         /**
          * Select only FOIs that are sampling the features matching the filter.<br/>
          * Call done() on the nested builder to go back to main builder.
-         * @param sampledFeatures Sampled features filter
          * @return The {@link FeatureFilter} builder for chaining
          */
         public FeatureFilter.NestedBuilder<B> withSampledFeatures()

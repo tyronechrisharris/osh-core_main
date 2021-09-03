@@ -253,7 +253,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * This method is synchronous so it will block until the module is actually loaded,
      * (and started if 'autostart' was true), the timeout occurs or an exception is thrown
      * @param config Configuration class to use to instantiate the module
-     * @param timeOut Maximum time to wait for load and startup to complete (or <= 0 to wait forever)
+     * @param timeOut Maximum time to wait for load and startup to complete (or 0 to wait forever)
      * @return loaded module instance
      * @throws SensorHubException 
      */
@@ -420,7 +420,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * This method is synchronous so it will block until the module is actually initialized,
      * the timeout occurs or an exception is thrown
      * @param moduleID Local ID of module to initialize
-     * @param timeOut Maximum time to wait for init to complete (or <= 0 to wait forever)
+     * @param timeOut Maximum time to wait for init to complete (or 0 to wait forever)
      * @return module Loaded module with the given moduleID
      * @throws SensorHubException if an error occurs during init
      */
@@ -513,7 +513,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * This method is synchronous so it will block until the module is actually started,
      * the timeout occurs or an exception is thrown
      * @param moduleID Local ID of module to start
-     * @param timeOut Maximum time to wait for startup to complete (or <= 0 to wait forever)
+     * @param timeOut Maximum time to wait for startup to complete (or 0 to wait forever)
      * @return module Loaded module with the given moduleID
      * @throws SensorHubException if an error occurs during startup
      */
@@ -614,7 +614,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * This method is synchronous so it will block until the module is actually stopped,
      * the timeout occurs or an exception is thrown
      * @param moduleID Local ID of module to enable
-     * @param timeOut Maximum time to wait for shutdown to complete (or <= 0 to wait forever)
+     * @param timeOut Maximum time to wait for shutdown to complete (or 0 to wait forever)
      * @return module Loaded module with the given moduleID
      * @throws SensorHubException if an error occurs during shutdown
      */

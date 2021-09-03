@@ -80,7 +80,7 @@ public interface IDatabaseRegistry
 
 
     /**
-     * Helper method to register several procedure -> database mappings at once.
+     * Helper method to register several procedure/database mappings at once.
      * @see {@link #register(String, IProcedureObsDatabase)}.
      * @param procedureUIDs Unique IDs of procedures to associate with the database
      * @param db The database instance
@@ -102,7 +102,7 @@ public interface IDatabaseRegistry
 
 
     /**
-     * Helper method to unregister several procedure -> database mappings at once.
+     * Helper method to unregister several procedure/database mappings at once.
      * @see {@link #unregister(String, IProcedureObsDatabase)}.
      * @param procedureUIDs Unique IDs of procedures previously associated with
      * the specified database

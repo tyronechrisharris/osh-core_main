@@ -30,7 +30,7 @@ public interface IProcedureGroupDriver<T extends IProcedureDriver> extends IProc
 {
 
     /**
-     * @return Map of member procedures (ID -> IProcedure object)
+     * @return Map of UID to member procedures
      */
     public Map<String, ? extends T> getMembers();
 }
