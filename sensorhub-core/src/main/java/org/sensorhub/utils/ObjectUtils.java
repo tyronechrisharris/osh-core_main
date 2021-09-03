@@ -11,6 +11,7 @@ package org.sensorhub.utils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 
@@ -65,13 +66,18 @@ public class ObjectUtils
                         Object val = f.get(object);
                         if (!hideNulls || val != null)
                         {
-                            String objString = val == null ? "null" : 
-                                val.getClass().getSimpleName().contains("$$Lambda$") ? "lambda" : val.toString();
+                            String objString =
+                                (val == null) ? "null" : 
+                                val.getClass().getSimpleName().contains("$$Lambda$") ? "lambda" :
+                                f.getType() == double[].class ? Arrays.toString((double[])val) :
+                                f.getType() == float[].class ? Arrays.toString((float[])val) :
+                                f.getType() == int[].class ? Arrays.toString((int[])val) :
+                                val.toString();
                             sb.append(f.getName()).append(": ").append(objString).append(", ");
                         }
                     }
                     catch (IllegalAccessException e)
-                    {                        
+                    {
                     }
                 }
             }
