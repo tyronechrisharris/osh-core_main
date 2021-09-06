@@ -151,6 +151,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
         
         // setup security
         httpServer.addServletSecurity("/admin/*", true);
+        httpServer.addServletSecurity("/VAADIN/*", true);
         
         setState(ModuleState.STARTED);
     }
