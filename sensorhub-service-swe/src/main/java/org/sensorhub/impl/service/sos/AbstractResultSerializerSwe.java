@@ -103,8 +103,11 @@ public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerialize
     protected void writeRecord(DataEvent item) throws IOException
     {
         for (var rec: item.getRecords())
+        {
             writer.write(rec);
-        writer.flush();
+            if (!multipleRecords)
+                writer.flush();
+        }
     }
     
     

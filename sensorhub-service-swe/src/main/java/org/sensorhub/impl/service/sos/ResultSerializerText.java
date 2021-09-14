@@ -78,6 +78,8 @@ public class ResultSerializerText extends AbstractResultSerializerSwe
     @Override
     protected void afterRecords() throws IOException
     {
+        writer.flush();
+        
         // close xml wrapper if needed
         if (request.isXmlWrapper())
         {

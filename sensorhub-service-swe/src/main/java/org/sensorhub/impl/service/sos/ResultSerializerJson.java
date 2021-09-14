@@ -60,7 +60,7 @@ public class ResultSerializerJson extends AbstractResultSerializerSwe
     @Override
     protected void writeRecord(DataEvent item) throws IOException
     {
-        super.writeRecord(item);        
+        super.writeRecord(item);
         if (!multipleRecords)
             os.write('\n');
     }
