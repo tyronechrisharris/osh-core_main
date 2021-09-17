@@ -421,7 +421,13 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     @Override
     public void handleEvent(Event e)
     {
-        if (e instanceof ProcedureEvent)
+        if (e instanceof FoiEvent)
+        {
+            if (((FoiEvent) e).getFoi() != null)
+                register(((FoiEvent) e).getFoi());
+        }    
+        
+        else if (e instanceof ProcedureEvent)
         {
             // register item if needed
             if (driver != null && driver.isEnabled())
@@ -438,12 +444,6 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
                 }
             }
         }
-        
-        else if (e instanceof FoiEvent)
-        {
-            if (((FoiEvent) e).getFoi() != null)
-                register(((FoiEvent) e).getFoi());
-        }        
     }
     
     
