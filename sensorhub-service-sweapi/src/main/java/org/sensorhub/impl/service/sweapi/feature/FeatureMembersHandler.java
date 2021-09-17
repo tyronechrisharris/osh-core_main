@@ -22,7 +22,7 @@ import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
 public class FeatureMembersHandler extends FeatureHandler
@@ -62,7 +62,7 @@ public class FeatureMembersHandler extends FeatureHandler
 
 
     @Override
-    protected void validate(IGeoFeature resource)
+    protected void validate(IFeature resource)
     {
         // TODO Auto-generated method stub
         

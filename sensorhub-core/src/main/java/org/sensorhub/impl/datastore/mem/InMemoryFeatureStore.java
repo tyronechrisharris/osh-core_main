@@ -21,7 +21,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 
 
@@ -35,7 +35,7 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryFeatureStore extends InMemoryBaseFeatureStore<IGeoFeature, FeatureField, FeatureFilter> implements IFeatureStore
+public class InMemoryFeatureStore extends InMemoryBaseFeatureStore<IFeature, FeatureField, FeatureFilter> implements IFeatureStore
 {
     
     public InMemoryFeatureStore()
@@ -44,14 +44,14 @@ public class InMemoryFeatureStore extends InMemoryBaseFeatureStore<IGeoFeature, 
     }
     
     
-    public InMemoryFeatureStore(IdProvider<? super IGeoFeature> idProvider)
+    public InMemoryFeatureStore(IdProvider<? super IFeature> idProvider)
     {
         this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
     }
     
     
     @Override
-    protected Stream<Entry<FeatureKey, IGeoFeature>> getIndexedStream(FeatureFilter filter)
+    protected Stream<Entry<FeatureKey, IFeature>> getIndexedStream(FeatureFilter filter)
     {
         var resultStream = super.getIndexedStream(filter);
         

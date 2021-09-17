@@ -15,7 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore.feature;
 
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
 /**
@@ -26,7 +26,7 @@ import org.vast.ogc.gml.IGeoFeature;
  * @author Alex Robin
  * @date Mar 19, 2018
  */
-public interface IFeatureStore extends IFeatureStoreBase<IGeoFeature, FeatureField, FeatureFilter>
+public interface IFeatureStore extends IFeatureStoreBase<IFeature, FeatureField, FeatureFilter>
 {
  
     @Override

@@ -26,13 +26,14 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.TimeExtent;
 import net.opengis.gml.v32.AbstractGeometry;
 
 
-public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FeatureField, FeatureFilter> implements IFeatureStore
+public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FeatureField, FeatureFilter> implements IFeatureStore
 {
 
     protected MVFeatureStoreImpl()
@@ -63,7 +64,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, Feat
     
     
     @Override
-    protected Stream<Entry<MVFeatureParentKey, IGeoFeature>> getIndexedStream(FeatureFilter filter)
+    protected Stream<Entry<MVFeatureParentKey, IFeature>> getIndexedStream(FeatureFilter filter)
     {
         var resultStream = super.getIndexedStream(filter);
         
@@ -99,11 +100,11 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, Feat
 
 
     @Override
-    public Stream<Entry<FeatureKey, IGeoFeature>> selectEntries(FeatureFilter filter, Set<FeatureField> fields)
+    public Stream<Entry<FeatureKey, IFeature>> selectEntries(FeatureFilter filter, Set<FeatureField> fields)
     {
         // update validTime in the case it ends at now and there is a
         // more recent version of the procedure description available
-        Stream<Entry<FeatureKey, IGeoFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
+        Stream<Entry<FeatureKey, IFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
             if (e.getValue() instanceof ITemporalFeature)
             {
                 var f = (ITemporalFeature)e.getValue();
@@ -127,7 +128,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, Feat
                     }                
                 };
                 
-                return new DataUtils.MapEntry<FeatureKey, IGeoFeature>(e.getKey(), fWrap);
+                return new DataUtils.MapEntry<FeatureKey, IFeature>(e.getKey(), fWrap);
             }
             else
                 return e;

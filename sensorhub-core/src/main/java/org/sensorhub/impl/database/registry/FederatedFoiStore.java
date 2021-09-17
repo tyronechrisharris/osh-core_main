@@ -26,7 +26,7 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
 /**
@@ -38,7 +38,7 @@ import org.vast.ogc.gml.IGeoFeature;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedFoiStore extends FederatedBaseFeatureStore<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
+public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiField, FoiFilter> implements IFoiStore
 {
         
     FederatedFoiStore(IDatabaseRegistry registry, FederatedObsDatabase db)
@@ -112,7 +112,7 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IGeoFeature, Fo
     @Override
     public void linkTo(IProcedureStore procStore)
     {
-        throw new UnsupportedOperationException();        
+        throw new UnsupportedOperationException();
     }
     
     

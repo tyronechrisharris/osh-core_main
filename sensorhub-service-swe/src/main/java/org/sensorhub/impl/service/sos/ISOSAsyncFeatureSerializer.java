@@ -14,7 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sos;
 
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
 
 
@@ -26,7 +26,7 @@ import org.vast.ows.sos.GetFeatureOfInterestRequest;
  * @author Alex Robin
  * @date Nov 25, 2020
  */
-public interface ISOSAsyncFeatureSerializer extends IAsyncResponseSerializer<GetFeatureOfInterestRequest, IGeoFeature>
+public interface ISOSAsyncFeatureSerializer extends IAsyncResponseSerializer<GetFeatureOfInterestRequest, IFeature>
 {
         
 }

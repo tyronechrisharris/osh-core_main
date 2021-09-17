@@ -24,6 +24,7 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.util.Asserts;
 import com.google.gson.stream.JsonWriter;
@@ -38,7 +39,7 @@ import net.opengis.gml.v32.AbstractGeometry;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IGeoFeature>
+public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
 {
     
     
@@ -60,10 +61,10 @@ public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IGeoFea
     
     
     @Override
-    protected IGeoFeature getFeatureWithId(FeatureKey key, IGeoFeature f)
+    protected IFeature getFeatureWithId(FeatureKey key, IFeature f)
     {
         Asserts.checkNotNull(key, FeatureKey.class);
-        Asserts.checkNotNull(f, IGeoFeature.class);
+        Asserts.checkNotNull(f, IFeature.class);
         
         return new IGeoFeature() {
             
@@ -95,7 +96,8 @@ public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IGeoFea
             @Override
             public AbstractGeometry getGeometry()
             {
-                return f.getGeometry();
+                return f instanceof IGeoFeature ?
+                    ((IGeoFeature)f).getGeometry() : null;
             }
             
             @Override

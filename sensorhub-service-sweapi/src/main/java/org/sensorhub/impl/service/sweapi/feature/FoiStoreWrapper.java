@@ -21,10 +21,10 @@ import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.impl.service.sweapi.IdConverter;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
-public class FoiStoreWrapper extends AbstractFeatureStoreWrapper<IGeoFeature, FoiField, FoiFilter, IFoiStore> implements IFoiStore
+public class FoiStoreWrapper extends AbstractFeatureStoreWrapper<IFeature, FoiField, FoiFilter, IFoiStore> implements IFoiStore
 {
 
     public FoiStoreWrapper(IFoiStore readStore, IFoiStore writeStore, IdConverter idConverter)

@@ -58,7 +58,7 @@ import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.utils.SerialExecutor;
 import org.sensorhub.utils.CallbackException;
 import org.vast.cdm.common.DataStreamWriter;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.ObservationImpl;
 import org.vast.ows.GetCapabilitiesRequest;
@@ -550,7 +550,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     .withPhenomenonTime().withCurrentTime().done()
                     .build())
                 .findFirst().ifPresent(id -> {
-                    IGeoFeature foi = dataBaseView.getFoiStore().getCurrentVersion(id);
+                    IFeature foi = dataBaseView.getFoiStore().getCurrentVersion(id);
                     if (foi != null)
                         obsTemplate.setFeatureOfInterest(foi);
                 });

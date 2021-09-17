@@ -68,7 +68,7 @@ import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory;
  * @param <StoreType> type of datastore under test
  * @since Apr 14, 2018
  */
-public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBase<IGeoFeature, FeatureField, FeatureFilter>>
+public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBase<IFeature, FeatureField, FeatureFilter>>
 {
     protected String DATASTORE_NAME = "test-features";
     protected String UID_PREFIX = "urn:domain:features:";
@@ -338,11 +338,11 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     private void checkFeaturesBbox(Bbox bbox)
     {
         Bbox expectedBbox = new Bbox();
-        for (IGeoFeature f: allFeatures.values())
+        for (IFeature f: allFeatures.values())
         {
-            if (f.getGeometry() != null)
+            if (f instanceof IGeoFeature && ((IGeoFeature)f).getGeometry() != null)
             {
-                Envelope env = f.getGeometry().getGeomEnvelope();
+                Envelope env = ((IGeoFeature)f).getGeometry().getGeomEnvelope();
                 expectedBbox.add(GMLUtils.envelopeToBbox(env));
             }
         }
@@ -397,10 +397,10 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    private void checkMapValues(Collection<IGeoFeature> mapValues)
+    private void checkMapValues(Collection<IFeature> mapValues)
     {
         mapValues.forEach(f1 -> {
-            IGeoFeature f2 = allFeatures.get(getKey(f1));
+            IFeature f2 = allFeatures.get(getKey(f1));
             if (f2 == null || !f2.getUniqueIdentifier().equals(f1.getUniqueIdentifier()))
                 fail("No matching feature in reference list: " + f1);
         });
@@ -415,7 +415,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    protected void checkFeaturesEqual(IGeoFeature f1, IGeoFeature f2)
+    protected void checkFeaturesEqual(IFeature f1, IFeature f2)
     {
         assertEquals(f1.getClass(), f2.getClass());
         assertEquals(f1.getUniqueIdentifier(), f2.getUniqueIdentifier());
@@ -423,8 +423,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         if (f1 instanceof ITemporalFeature)
             assertEquals(((ITemporalFeature)f1).getValidTime(), ((ITemporalFeature)f2).getValidTime());
         
-        if (f1.getGeometry() != null)
-            assertEquals(f1.getGeometry().getClass(), f2.getGeometry().getClass());
+        if (f1 instanceof IGeoFeature && ((IGeoFeature)f1).getGeometry() != null)
+            assertEquals(((IGeoFeature)f1).getGeometry().getClass(), ((IGeoFeature)f2).getGeometry().getClass());
     }
     
     
@@ -432,7 +432,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         long t0 = System.currentTimeMillis();
         allFeatures.forEach((k, f1) -> {
-            IGeoFeature f2 = featureStore.get(k);
+            IFeature f2 = featureStore.get(k);
             assertTrue("Feature " + k + " not found in datastore", f2 != null);
             checkFeaturesEqual(f1, f2);
         });
@@ -544,12 +544,12 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    protected void checkSelectedEntries(FeatureFilter filter, Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Map<FeatureKey, IGeoFeature> expectedResults)
+    protected void checkSelectedEntries(FeatureFilter filter, Stream<Entry<FeatureKey, IFeature>> resultStream, Map<FeatureKey, IGeoFeature> expectedResults)
     {
         if (filter != null)
             System.out.println("\nSelect with " + filter);
         
-        Map<FeatureKey, IGeoFeature> resultMap = resultStream
+        Map<FeatureKey, IFeature> resultMap = resultStream
             .peek(e -> System.out.println(e.getKey() + ": " + e.getValue().getUniqueIdentifier()))
             .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         System.out.println("Selected " + resultMap.size() + " entries");
@@ -567,7 +567,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    protected void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Set<String> expectedIds, Range<Instant> timeRange)
+    protected void checkSelectedEntries(Stream<Entry<FeatureKey, IFeature>> resultStream, Set<String> expectedIds, Range<Instant> timeRange)
     {
         boolean lastVersion = timeRange.lowerEndpoint() == Instant.MAX && timeRange.upperEndpoint() == Instant.MAX;
         System.out.println("\nSelect " + expectedIds + " within " +  (lastVersion ? "LATEST" : timeRange));
@@ -583,7 +583,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    protected void checkSelectedEntries(Stream<Entry<FeatureKey, IGeoFeature>> resultStream, Geometry roi, Range<Instant> timeRange)
+    protected void checkSelectedEntries(Stream<Entry<FeatureKey, IFeature>> resultStream, Geometry roi, Range<Instant> timeRange)
     {
         System.out.println("\nSelect " + roi + " within " + timeRange);
         
@@ -601,7 +601,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     @Test
     public void testSelectByInternalID() throws Exception
     {
-        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
+        Stream<Entry<FeatureKey, IFeature>> resultStream;
         Range<Instant> timeRange;
                 
         addNonGeoFeatures(0, 50);
@@ -621,7 +621,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     @Test
     public void testSelectByUIDAndTime() throws Exception
     {
-        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
+        Stream<Entry<FeatureKey, IFeature>> resultStream;
         Set<String> uids;
         Range<Instant> timeRange;
         
@@ -697,7 +697,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     @Test
     public void testSelectByUIDWithWildcard() throws Exception
     {
-        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
+        Stream<Entry<FeatureKey, IFeature>> resultStream;
         
         addNonGeoFeatures(0, 50);
         
@@ -719,7 +719,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     @Test
     public void testSelectByRoi() throws Exception
     {
-        Stream<Entry<FeatureKey, IGeoFeature>> resultStream;
+        Stream<Entry<FeatureKey, IFeature>> resultStream;
         Geometry roi;
         Range<Instant> timeRange;
         
@@ -827,7 +827,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         var it = allFeatures.values().iterator();
         while (it.hasNext())
         {
-            var f = (IGeoFeature)it.next();
+            var f = it.next();
             if (preparedGeom.intersects((Geometry)f.getGeometry()))
                 it.remove();
         }

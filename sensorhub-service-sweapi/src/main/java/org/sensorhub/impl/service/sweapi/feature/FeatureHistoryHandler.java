@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
 public class FeatureHistoryHandler extends FeatureHandler
@@ -29,7 +29,7 @@ public class FeatureHistoryHandler extends FeatureHandler
 
 
     @Override
-    protected void validate(IGeoFeature resource)
+    protected void validate(IFeature resource)
     {
         // TODO Auto-generated method stub
         

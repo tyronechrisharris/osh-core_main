@@ -32,10 +32,10 @@ import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
-public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
+public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
 {
     public static final int EXTERNAL_ID_SEED = 433584715;
     public static final String[] NAMES = { "featuresOfInterest", "fois" };
@@ -51,7 +51,7 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
 
 
     @Override
-    protected ResourceBinding<FeatureKey, IGeoFeature> getBinding(RequestContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IFeature> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -107,7 +107,7 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
 
 
     @Override
-    protected void validate(IGeoFeature resource)
+    protected void validate(IFeature resource)
     {
         // TODO Auto-generated method stub
         
@@ -115,9 +115,9 @@ public class FoiHandler extends AbstractFeatureHandler<IGeoFeature, FoiFilter, F
     
     
     @Override
-    protected FeatureKey addEntry(final RequestContext ctx, final IGeoFeature foi) throws DataStoreException
+    protected FeatureKey addEntry(final RequestContext ctx, final IFeature foi) throws DataStoreException
     {        
-        var procHandler = transactionHandler.getProcedureHandler(ctx.getParentID());        
+        var procHandler = transactionHandler.getProcedureHandler(ctx.getParentID());
         return procHandler.addOrUpdateFoi(foi);
     }
 

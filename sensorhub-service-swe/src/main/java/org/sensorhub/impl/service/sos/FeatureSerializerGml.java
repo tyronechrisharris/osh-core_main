@@ -24,14 +24,13 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import org.vast.ogc.OGCRegistry;
 import org.vast.ogc.gml.GMLStaxBindings;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ows.OWSUtils;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
 import org.vast.ows.sos.SOSUtils;
 import org.vast.sensorML.SMLStaxBindings;
 import org.vast.xml.IndentingXMLStreamWriter;
 import org.vast.xml.XMLImplFinder;
-import net.opengis.gml.v32.AbstractFeature;
 
 
 /**
@@ -42,7 +41,7 @@ import net.opengis.gml.v32.AbstractFeature;
  * @author Alex Robin
  * @date Nov 25, 2020
  */
-public class FeatureSerializerGml extends AbstractAsyncSerializerStax<GetFeatureOfInterestRequest, IGeoFeature> implements ISOSAsyncFeatureSerializer
+public class FeatureSerializerGml extends AbstractAsyncSerializerStax<GetFeatureOfInterestRequest, IFeature> implements ISOSAsyncFeatureSerializer
 {
     private static final String DEFAULT_VERSION = "2.0.0";
     private static final String SOS_PREFIX = "sos";
@@ -104,23 +103,21 @@ public class FeatureSerializerGml extends AbstractAsyncSerializerStax<GetFeature
     
     
     @Override
-    protected void writeRecord(IGeoFeature foi) throws IOException
+    protected void writeRecord(IFeature foi) throws IOException
     {
         try
         {
-            var f = (AbstractFeature)foi;
-            
             // write namespace on root because in many cases it is common to all features
             if (firstRecord)
             {
-                gmlBindings.ensureNamespaceDecl(writer, f.getQName());
+                gmlBindings.ensureNamespaceDecl(writer, GMLStaxBindings.getFeatureQName(foi));
                 for (Entry<QName, Object> prop: foi.getProperties().entrySet())
                     gmlBindings.ensureNamespaceDecl(writer, prop.getKey());
                 firstRecord = false;
             }
 
             writer.writeStartElement(SOS_NS_URI, "featureMember");
-            gmlBindings.writeAbstractFeature(writer, f);
+            gmlBindings.writeGenericFeature(writer, foi);
             writer.writeEndElement();
             writer.flush();
         }

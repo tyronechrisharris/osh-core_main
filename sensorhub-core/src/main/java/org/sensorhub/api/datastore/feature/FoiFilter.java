@@ -18,7 +18,7 @@ import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
 /**
@@ -30,7 +30,7 @@ import org.vast.ogc.gml.IGeoFeature;
  * @author Alex Robin
  * @date Apr 5, 2018
  */
-public class FoiFilter extends FeatureFilterBase<IGeoFeature>
+public class FoiFilter extends FeatureFilterBase<IFeature>
 {
     protected ProcedureFilter parentFilter;
     protected FeatureFilter sampledFeatureFilter;
@@ -68,7 +68,7 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
     @Override
-    public FoiFilter intersect(ResourceFilter<IGeoFeature> filter) throws EmptyFilterIntersection
+    public FoiFilter intersect(ResourceFilter<IFeature> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
@@ -150,7 +150,7 @@ public class FoiFilter extends FeatureFilterBase<IGeoFeature>
     public static abstract class FoiFilterBuilder<
             B extends FoiFilterBuilder<B, F>,
             F extends FoiFilter>
-        extends FeatureFilterBaseBuilder<B, IGeoFeature, FoiFilter>
+        extends FeatureFilterBaseBuilder<B, IFeature, FoiFilter>
     {    
         
         protected FoiFilterBuilder(F instance)

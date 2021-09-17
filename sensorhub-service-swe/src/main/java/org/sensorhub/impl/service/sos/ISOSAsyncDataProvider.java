@@ -19,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow.Subscriber;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.impl.service.swe.RecordTemplate;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.IProcedure;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
@@ -92,7 +92,7 @@ public interface ISOSAsyncDataProvider
      * @throws SOSException if the error should be reported to the SOS client (client-side error)
      * @throws IOException if the error should not be reported to the SOS client (internal server error)
      */
-    public void getFeaturesOfInterest(GetFeatureOfInterestRequest req, Subscriber<IGeoFeature> consumer) throws SOSException, IOException;
+    public void getFeaturesOfInterest(GetFeatureOfInterestRequest req, Subscriber<IFeature> consumer) throws SOSException, IOException;
 
 
     /**

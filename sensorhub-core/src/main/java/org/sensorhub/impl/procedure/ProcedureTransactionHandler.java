@@ -46,7 +46,7 @@ import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.DataComponentChecks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import com.google.common.base.Strings;
@@ -366,7 +366,7 @@ public class ProcedureTransactionHandler
     }
     
     
-    public synchronized FeatureKey addOrUpdateFoi(IGeoFeature foi) throws DataStoreException
+    public synchronized FeatureKey addOrUpdateFoi(IFeature foi) throws DataStoreException
     {
         DataStoreUtils.checkFeatureObject(foi);
         

@@ -34,7 +34,7 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.sensorhub.impl.datastore.h2.MVFeatureStoreImpl.IGeoTemporalFeature;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.hash.Hashing;
@@ -50,7 +50,7 @@ import net.opengis.gml.v32.AbstractGeometry;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
+public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, FoiFilter> implements IFoiStore
 {
     IProcedureStore procStore;
     IObsStore obsStore;
@@ -78,7 +78,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
         }
         
         // create ID provider
-        IdProvider<IGeoFeature> idProvider = null;
+        IdProvider<IFeature> idProvider = null;
         if (idProviderType == IdProviderType.UID_HASH)
         {
             var hashFunc = Hashing.murmur3_128(842156962);
@@ -103,7 +103,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
     
     
     @Override
-    protected Stream<Entry<MVFeatureParentKey, IGeoFeature>> getIndexedStream(FoiFilter filter)
+    protected Stream<Entry<MVFeatureParentKey, IFeature>> getIndexedStream(FoiFilter filter)
     {
         var resultStream = super.getIndexedStream(filter);
         
@@ -118,7 +118,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
             }
             else
             {
-                var parentIDs = parentIDStream.collect(Collectors.toSet());                
+                var parentIDs = parentIDStream.collect(Collectors.toSet());
                 resultStream = resultStream.filter(
                     e -> parentIDs.contains(((MVFeatureParentKey)e.getKey()).getParentID()));
                 
@@ -151,11 +151,11 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
 
 
     @Override
-    public Stream<Entry<FeatureKey, IGeoFeature>> selectEntries(FoiFilter filter, Set<FoiField> fields)
+    public Stream<Entry<FeatureKey, IFeature>> selectEntries(FoiFilter filter, Set<FoiField> fields)
     {
         // update validTime in the case it ends at now and there is a
-        // more recent version of the procedure description available
-        Stream<Entry<FeatureKey, IGeoFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
+        // more recent version of the feature description available
+        Stream<Entry<FeatureKey, IFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
             if (e.getValue() instanceof IGeoTemporalFeature)
             {
                 var f = (IGeoTemporalFeature)e.getValue();
@@ -183,10 +183,10 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IGeoFeature, FoiField
                         }
                         
                         return validTime;
-                    }                  
+                    }
                 };
                 
-                return new DataUtils.MapEntry<FeatureKey, IGeoFeature>(e.getKey(), procWrap);
+                return new DataUtils.MapEntry<FeatureKey, IFeature>(e.getKey(), procWrap);
             }
             
             return e;

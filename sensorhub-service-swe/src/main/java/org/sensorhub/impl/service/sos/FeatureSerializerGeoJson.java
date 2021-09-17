@@ -19,7 +19,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import javax.servlet.AsyncContext;
 import org.vast.ogc.gml.GeoJsonBindings;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
 import com.google.gson.stream.JsonWriter;
 
@@ -32,7 +32,7 @@ import com.google.gson.stream.JsonWriter;
  * @author Alex Robin
  * @date Nov 25, 2020
  */
-public class FeatureSerializerGeoJson extends AbstractAsyncSerializer<GetFeatureOfInterestRequest, IGeoFeature> implements ISOSAsyncFeatureSerializer
+public class FeatureSerializerGeoJson extends AbstractAsyncSerializer<GetFeatureOfInterestRequest, IFeature> implements ISOSAsyncFeatureSerializer
 {
     GeoJsonBindings geoJsonBindings;
     JsonWriter jsonWriter;
@@ -47,8 +47,8 @@ public class FeatureSerializerGeoJson extends AbstractAsyncSerializer<GetFeature
         try
         {
             asyncCtx.getResponse().setContentType(GeoJsonBindings.MIME_TYPE);
-            var osw = new OutputStreamWriter(os, StandardCharsets.UTF_8.name());        
-            jsonWriter = new JsonWriter(osw);            
+            var osw = new OutputStreamWriter(os, StandardCharsets.UTF_8.name());
+            jsonWriter = new JsonWriter(osw);
             jsonWriter.setLenient(true);
             jsonWriter.setSerializeNulls(false);
             jsonWriter.setIndent("  ");
@@ -71,7 +71,7 @@ public class FeatureSerializerGeoJson extends AbstractAsyncSerializer<GetFeature
     
     
     @Override
-    protected void writeRecord(IGeoFeature foi) throws IOException
+    protected void writeRecord(IFeature foi) throws IOException
     {
         try
         {

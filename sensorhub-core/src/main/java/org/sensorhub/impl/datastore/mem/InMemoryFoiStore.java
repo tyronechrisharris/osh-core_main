@@ -26,7 +26,7 @@ import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 
 
@@ -40,7 +40,7 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IGeoFeature, FoiField, FoiFilter> implements IFoiStore
+public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IFeature, FoiField, FoiFilter> implements IFoiStore
 {
     IProcedureStore procStore;
     IObsStore obsStore;
@@ -52,9 +52,9 @@ public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IGeoFeature, FoiF
     }
     
     
-    public InMemoryFoiStore(IdProvider<? super IGeoFeature> idProvider)
+    public InMemoryFoiStore(IdProvider<? super IFeature> idProvider)
     {
-        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);            
+        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
     }
     
     
@@ -69,7 +69,7 @@ public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IGeoFeature, FoiF
     
     
     @Override
-    protected Stream<Entry<FeatureKey, IGeoFeature>> getIndexedStream(FoiFilter filter)
+    protected Stream<Entry<FeatureKey, IFeature>> getIndexedStream(FoiFilter filter)
     {
         var resultStream = super.getIndexedStream(filter);
         

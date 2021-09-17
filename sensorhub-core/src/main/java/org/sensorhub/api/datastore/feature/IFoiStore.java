@@ -18,7 +18,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
 /**
@@ -29,7 +29,7 @@ import org.vast.ogc.gml.IGeoFeature;
  * @author Alex Robin
  * @date Apr 5, 2018
  */
-public interface IFoiStore extends IFeatureStoreBase<IGeoFeature, FoiField, FoiFilter>
+public interface IFoiStore extends IFeatureStoreBase<IFeature, FoiField, FoiFilter>
 {
     
     public static class FoiField extends FeatureField

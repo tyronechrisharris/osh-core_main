@@ -28,10 +28,10 @@ import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
-public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureFilter, FeatureFilter.Builder, IFeatureStore>
+public class FeatureHandler extends AbstractFeatureHandler<IFeature, FeatureFilter, FeatureFilter.Builder, IFeatureStore>
 {
     public static final int EXTERNAL_ID_SEED = 815420;
     public static final String[] NAMES = { "features" };
@@ -44,7 +44,7 @@ public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureF
 
 
     @Override
-    protected ResourceBinding<FeatureKey, IGeoFeature> getBinding(RequestContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IFeature> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -87,7 +87,7 @@ public class FeatureHandler extends AbstractFeatureHandler<IGeoFeature, FeatureF
 
 
     @Override
-    protected void validate(IGeoFeature resource)
+    protected void validate(IFeature resource)
     {
         // TODO Auto-generated method stub
         

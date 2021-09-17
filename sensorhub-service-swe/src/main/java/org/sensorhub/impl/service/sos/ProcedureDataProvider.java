@@ -38,7 +38,7 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.impl.procedure.ProcedureUtils;
 import org.sensorhub.impl.service.swe.RecordTemplate;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.JTSUtils;
 import org.vast.ogc.om.IProcedure;
 import org.vast.ows.sos.GetFeatureOfInterestRequest;
@@ -282,7 +282,7 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
 
 
     @Override
-    public void getFeaturesOfInterest(GetFeatureOfInterestRequest req, Subscriber<IGeoFeature> consumer) throws SOSException, IOException
+    public void getFeaturesOfInterest(GetFeatureOfInterestRequest req, Subscriber<IFeature> consumer) throws SOSException, IOException
     {
         // build filter
         var foiFilter = new FoiFilter.Builder();
