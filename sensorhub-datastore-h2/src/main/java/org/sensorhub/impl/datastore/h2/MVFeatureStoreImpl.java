@@ -35,13 +35,12 @@ import net.opengis.gml.v32.AbstractGeometry;
 
 public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FeatureField, FeatureFilter> implements IFeatureStore
 {
-
+    interface IGeoTemporalFeature extends IGeoFeature, ITemporalFeature {}
+    
+    
     protected MVFeatureStoreImpl()
     {
     }
-    
-    
-    interface IGeoTemporalFeature extends IGeoFeature, ITemporalFeature {}
     
     
     /**
@@ -115,7 +114,12 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
                     public String getName() { return f.getName(); }
                     public String getDescription() { return f.getDescription(); }
                     public Map<QName, Object> getProperties() { return f.getProperties(); }
-                    public AbstractGeometry getGeometry() { return ((IGeoFeature)f).getGeometry(); }
+                    
+                    public AbstractGeometry getGeometry()
+                    {
+                        return f instanceof IGeoFeature ?
+                            ((IGeoFeature)f).getGeometry() : null;
+                    }
                     
                     public TimeExtent getValidTime()
                     {
@@ -125,7 +129,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
                             return TimeExtent.period(f.getValidTime().begin(), nextKey.getValidStartTime());
                         else
                             return f.getValidTime();
-                    }                
+                    }
                 };
                 
                 return new DataUtils.MapEntry<FeatureKey, IFeature>(e.getKey(), fWrap);
