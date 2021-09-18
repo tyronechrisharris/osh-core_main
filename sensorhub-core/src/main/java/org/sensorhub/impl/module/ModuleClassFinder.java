@@ -41,7 +41,7 @@ public class ModuleClassFinder
     
     
     public ModuleClassFinder()
-    {        
+    {
     }
     
     
@@ -91,7 +91,7 @@ public class ModuleClassFinder
                 var moduleRefs = osgiContext.getServiceReferences(IModuleProvider.class, null);
                 for (var ref: moduleRefs)
                 {
-                    var m = osgiContext.getService(ref);                    
+                    var m = osgiContext.getService(ref);
                     if (moduleClass.isAssignableFrom(m.getModuleClass()))
                         availableModules.add(m);
                 }
@@ -103,17 +103,20 @@ public class ModuleClassFinder
         else
         {
             ServiceLoader<IModuleProvider> sl = ServiceLoader.load(IModuleProvider.class);
-            try
+            var it = sl.iterator();
+            
+            while (it.hasNext())
             {
-                for (IModuleProvider provider: sl)
+                try
                 {
+                    IModuleProvider provider = it.next();
                     if (moduleClass.isAssignableFrom(provider.getModuleClass()))
                         availableModules.add(provider);
                 }
-            }
-            catch (ServiceConfigurationError e)
-            {
-                log.error("{}: {}", ServiceConfigurationError.class.getName(), e.getMessage());
+                catch (ServiceConfigurationError e)
+                {
+                    log.error("{}: {}", ServiceConfigurationError.class.getName(), e.getMessage());
+                }
             }
         }
         
