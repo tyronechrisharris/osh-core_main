@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.sensorhub.api.ISensorHub;
@@ -37,7 +39,7 @@ import org.sensorhub.impl.database.obs.ProcedureObsEventDatabaseConfig;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 
 
@@ -62,7 +64,8 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     IProcedureObsDatabase federatedDb;
     ReadWriteLock lock = new ReentrantReadWriteLock();
     Map<String, ProcedureDriverTransactionHandler> driverHandlers = new ConcurrentSkipListMap<>();
-
+    Executor executor = ForkJoinPool.commonPool();
+    
 
     public DefaultProcedureRegistry(ISensorHub hub, DatabaseConfig stateDbConfig)
     {
@@ -84,7 +87,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             procStateDb = new ProcedureObsEventDatabase();
             procStateDb.setParentHub(hub);
             procStateDb.init(dbListenerConfig);
-            procStateDb.start();            
+            procStateDb.start();
         }
         catch (Exception e)
         {
@@ -93,7 +96,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     }
 
 
-    public synchronized CompletableFuture<Boolean> register(IProcedureDriver driver)
+    public CompletableFuture<Boolean> register(IProcedureDriver driver)
     {
         Asserts.checkNotNull(driver, IProcedureDriver.class);
         String procUID = OshAsserts.checkValidUID(driver.getUniqueIdentifier());
@@ -115,6 +118,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             var isNew = oldHandler == null;
             if (!isNew)
             {
+                // only allow the same driver to re-register with same UID
                 IProcedureDriver registeredDriver = oldHandler.driver;
                 if (registeredDriver != null && registeredDriver != driver)
                     throw new IllegalArgumentException("A procedure with UID " + procUID + " is already registered");
@@ -122,10 +126,10 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
                 // cleanup previous handler
                 oldHandler.doUnregister(false);
             }
-                
+            
             DefaultProcedureRegistry.log.info("Registering procedure {}", driver.getUniqueIdentifier());
             var db = getDatabaseForDriver(driver);
-            var baseHandler = new ProcedureRegistryTransactionHandler(getParentHub().getEventBus(), db);
+            var baseHandler = new ProcedureRegistryTransactionHandler(getParentHub().getEventBus(), db, executor);
             
             // create or update entry in DB
             try
@@ -145,7 +149,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
             }
             
             return isNew;
-        });
+        }, executor);
     }
     
     
@@ -176,7 +180,7 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     {
         var handler = driverHandlers.get(procUID);
         if (handler == null)
-            throw new IllegalStateException("Procedure " + procUID + " is not registered");        
+            throw new IllegalStateException("Procedure " + procUID + " is not registered");
         
         return handler;
     }
@@ -220,10 +224,10 @@ public class DefaultProcedureRegistry implements IProcedureRegistry
     
     
     @Override
-    public CompletableFuture<Boolean> register(IProcedureDriver proc, IGeoFeature foi)
+    public CompletableFuture<Boolean> register(IProcedureDriver proc, IFeature foi)
     {
         Asserts.checkNotNull(proc, IProcedureDriver.class);
-        Asserts.checkNotNull(foi, IGeoFeature.class);
+        Asserts.checkNotNull(foi, IFeature.class);
         var procUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
         return getDriverHandler(procUID).register(foi);

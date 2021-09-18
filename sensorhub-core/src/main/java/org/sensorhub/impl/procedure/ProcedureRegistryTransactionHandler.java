@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.procedure;
 
+import java.util.concurrent.Executor;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.IEventBus;
@@ -21,16 +22,19 @@ import org.sensorhub.api.event.IEventBus;
 
 public class ProcedureRegistryTransactionHandler extends ProcedureObsTransactionHandler
 {
+    Executor parentExecutor;
+    
 
-    public ProcedureRegistryTransactionHandler(IEventBus eventBus, IProcedureObsDatabase db)
+    public ProcedureRegistryTransactionHandler(IEventBus eventBus, IProcedureObsDatabase db, Executor parentExecutor)
     {
         super(eventBus, db);
+        this.parentExecutor = parentExecutor;
     }
     
     
     protected ProcedureDriverTransactionHandler createProcedureHandler(FeatureKey procKey, String procUID)
     {
-        return new ProcedureDriverTransactionHandler(procKey, procUID, null, this);
+        return new ProcedureDriverTransactionHandler(procKey, procUID, null, this, parentExecutor);
     }
 
 }

@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.impl.SensorHub;
 import org.vast.ogc.gml.GMLUtils;
+import org.vast.ogc.gml.IGeoFeature;
 import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEConstants;
 
@@ -52,7 +53,7 @@ public class TestSensorPosition
     protected void checkFoiLocation(FakeSensorWithPos sensor) throws Exception
     {
         var fois = sensor.getCurrentFeaturesOfInterest().values();
-        var f = fois.stream().findFirst().get();
+        var f = (IGeoFeature)fois.stream().findFirst().get();
         new GMLUtils(GMLUtils.V3_2).writeFeature(System.out, (AbstractFeature)f, true);
         System.out.println('\n');
         

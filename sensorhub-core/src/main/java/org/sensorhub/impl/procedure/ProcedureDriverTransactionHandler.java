@@ -19,27 +19,26 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import org.sensorhub.api.command.CommandEvent;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandReceiver;
 import org.sensorhub.api.command.IStreamingControlInterface;
-import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.feature.FoiAddedEvent;
-import org.sensorhub.api.obs.DataStreamAddedEvent;
-import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
+import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.procedure.ProcedureEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
+import org.sensorhub.utils.SerialExecutor;
 import org.vast.data.TextEncodingImpl;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -53,16 +52,18 @@ import org.vast.util.TimeExtent;
  */
 public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandler implements IEventListener
 {
-    protected IProcedureDriver driver; // reference to live procedure
-    protected Map<String, DataStreamTransactionHandler> dataStreamHandlers = new HashMap<>();
-    protected Map<String, CommandStreamTransactionHandler> commandStreamHandlers = new HashMap<>();
-    protected Map<String, ProcedureDriverTransactionHandler> memberHandlers = new HashMap<>();
-    protected Map<String, Subscription> commandSubscriptions = new HashMap<>();
+    IProcedureDriver driver; // reference to live procedure
+    Map<String, DataStreamTransactionHandler> dataStreamHandlers = new HashMap<>();
+    Map<String, CommandStreamTransactionHandler> commandStreamHandlers = new HashMap<>();
+    Map<String, ProcedureDriverTransactionHandler> memberHandlers = new HashMap<>();
+    Map<String, Subscription> commandSubscriptions = new HashMap<>();
+    Executor executor;
     
     
-    protected ProcedureDriverTransactionHandler(FeatureKey procKey, String procUID, String parentGroupUID, ProcedureObsTransactionHandler rootHandler)
+    protected ProcedureDriverTransactionHandler(FeatureKey procKey, String procUID, String parentGroupUID, ProcedureObsTransactionHandler rootHandler, Executor parentExecutor)
     {
         super(procKey, procUID, parentGroupUID, rootHandler);
+        this.executor = new SerialExecutor(parentExecutor);
     }
     
     
@@ -74,7 +75,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         // enable and start listening to driver events
         enable();
         driver.registerListener(this);
-                
+        
         // if data producer, register fois and datastreams
         if (driver instanceof IDataProducer)
         {
@@ -104,7 +105,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
 
         if (DefaultProcedureRegistry.log.isInfoEnabled())
         {
-            var msg = String.format("Procedure registered: %s", procUID);            
+            var msg = String.format("Procedure registered: %s", procUID);
             DefaultProcedureRegistry.log.info("{} ({} FOIs, {} datastreams, {} command inputs, {} members)",
                     msg,
                     driver instanceof IDataProducer ? ((IDataProducer)driver).getCurrentFeaturesOfInterest().size() : 0,
@@ -118,7 +119,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     protected void doUnregister(boolean sendEvents)
     {
         driver.unregisterListener(this);
-                        
+        
         // unregister members recursively
         for (var memberHandler: memberHandlers.values())
             memberHandler.doUnregister(sendEvents);
@@ -143,7 +144,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
         // if taskable procedure, unregister command streams
         if (driver instanceof ICommandReceiver)
         {
-            // TODO cleanup command inputs          
+            // TODO cleanup command inputs
         }
         commandStreamHandlers.clear();
         
@@ -153,14 +154,38 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
     
     
-    protected CompletableFuture<Boolean> registerMember(IProcedureDriver proc)
+    public CompletableFuture<Boolean> update(IProcedureDriver proc)
+    {
+        Asserts.checkNotNull(proc, IProcedureDriver.class);
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try { return doUpdate(proc); }
+            catch (DataStoreException e) { throw new CompletionException(e); }
+        }, executor);
+    }
+    
+    
+    protected boolean doUpdate(IProcedureDriver proc) throws DataStoreException
+    {
+        Asserts.checkNotNull(proc, IProcedureDriver.class);
+        
+        var procWrapper = new ProcedureWrapper(proc.getCurrentDescription())
+            .hideOutputs()
+            .hideTaskableParams()
+            .defaultToValidFromNow();
+        
+        return update(procWrapper);
+    }
+    
+    
+    public CompletableFuture<Boolean> registerMember(IProcedureDriver proc)
     {
         Asserts.checkNotNull(proc, IProcedureDriver.class);
         
         return CompletableFuture.supplyAsync(() -> {
             try { return doRegisterMember(proc, null); }
             catch (DataStoreException e) { throw new CompletionException(e); }
-        });
+        }, executor);
     }
     
     
@@ -198,14 +223,14 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
     
     
-    protected CompletableFuture<Boolean> unregisterMember(IProcedureDriver proc)
+    public CompletableFuture<Boolean> unregisterMember(IProcedureDriver proc)
     {
         Asserts.checkNotNull(driver, IProcedureDriver.class);
         
         return CompletableFuture.supplyAsync(() -> {
             try { return doUnregisterMember(proc); }
             catch (DataStoreException e) { throw new CompletionException(e); }
-        });
+        }, executor);
     }
     
     
@@ -222,14 +247,14 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
 
 
-    protected CompletableFuture<Boolean> register(IStreamingDataInterface output)
+    public CompletableFuture<Boolean> register(IStreamingDataInterface output)
     {
         Asserts.checkNotNull(output, IStreamingDataInterface.class);
         
         return CompletableFuture.supplyAsync(() -> {
             try { return doRegister(output); }
             catch (DataStoreException e) { throw new CompletionException(e); }
-        });
+        }, executor);
     }
     
     
@@ -266,7 +291,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
 
 
-    protected CompletableFuture<Void> unregister(IStreamingDataInterface output)
+    public CompletableFuture<Void> unregister(IStreamingDataInterface output)
     {
         doUnregister(output);
         return CompletableFuture.completedFuture(null);
@@ -286,14 +311,14 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
 
 
-    protected CompletableFuture<Boolean> register(IStreamingControlInterface controlInput)
+    public CompletableFuture<Boolean> register(IStreamingControlInterface controlInput)
     {
         Asserts.checkNotNull(controlInput, IStreamingControlInterface.class);
         
         return CompletableFuture.supplyAsync(() -> {
             try { return doRegister(controlInput); }
             catch (DataStoreException e) { throw new CompletionException(e); }
-        });
+        }, executor);
     }
     
     
@@ -346,7 +371,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
             {
                 CompletableFuture.runAsync(() -> {
                     sendCommand(item.getCommands().iterator());
-                });                
+                });
             }
             
             protected void sendCommand(Iterator<ICommandData> commands)
@@ -372,12 +397,12 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
             @Override
             public void onComplete()
             {
-            }            
+            }
         });
     }
 
 
-    protected CompletableFuture<Void> unregister(IStreamingControlInterface commandStream)
+    public CompletableFuture<Void> unregister(IStreamingControlInterface commandStream)
     {
         doUnregister(commandStream);
         return CompletableFuture.completedFuture(null);
@@ -400,48 +425,50 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     }
 
 
-    protected CompletableFuture<Boolean> register(IGeoFeature foi)
+    public CompletableFuture<Boolean> register(IFeature foi)
     {
-        Asserts.checkNotNull(foi, IGeoFeature.class);
+        Asserts.checkNotNull(foi, IFeature.class);
         OshAsserts.checkValidUID(foi.getUniqueIdentifier());
         
         return CompletableFuture.supplyAsync(() -> {
             try { return doRegister(foi); }
             catch (DataStoreException e) { throw new CompletionException(e); }
-        });
+        }, executor);
     }
     
     
-    protected synchronized boolean doRegister(IGeoFeature foi) throws DataStoreException
+    protected synchronized boolean doRegister(IFeature foi) throws DataStoreException
     {
         addOrUpdateFoi(foi);
         return false;
     }
 
 
+    /*
+     * Catch ProcedureChangedEvents from procedure or its members
+     */
     @Override
     public void handleEvent(Event e)
     {
-        if (e instanceof FoiAddedEvent)
-        {
-            if (((FoiEvent) e).getFoi() != null)
-                register(((FoiEvent) e).getFoi());
-        }    
-        
-        else if (e instanceof ProcedureEvent)
+        if (e instanceof ProcedureEvent)
         {
             // register item if needed
             if (driver != null && driver.isEnabled())
             {
-                if (driver instanceof IDataProducer)
+                var driverUid = driver.getUniqueIdentifier();
+                var eventUid = ((ProcedureEvent) e).getProcedureUID();
+                
+                if (e instanceof ProcedureChangedEvent && driverUid.equals(eventUid))
                 {
-                    var outputs = ((IDataProducer)driver).getOutputs();
-                    
-                    if (e instanceof DataStreamAddedEvent || e instanceof DataStreamChangedEvent)
-                        register(outputs.get(((DataStreamAddedEvent)e).getOutputName()));
-                    else if (e instanceof DataStreamAddedEvent)
-                        register(outputs.get(((DataStreamAddedEvent)e).getOutputName()));
-                    // TODO handle all event types and redirect to register methods when appropriate
+                    // update main procedure
+                    update(driver);
+                }
+                
+                else if ((e instanceof ProcedureChangedEvent) && driver instanceof IProcedureGroupDriver)
+                {
+                    var memberProc = ((IProcedureGroupDriver<?>) driver).getMembers().get(eventUid);
+                    if (memberProc != null)
+                        registerMember(memberProc);
                 }
             }
         }
@@ -450,7 +477,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     
     protected ProcedureDriverTransactionHandler createMemberProcedureHandler(FeatureKey memberKey, String memberUID)
     {
-        return new ProcedureDriverTransactionHandler(memberKey, memberUID, procUID, rootHandler);
+        return new ProcedureDriverTransactionHandler(memberKey, memberUID, procUID, rootHandler, executor);
     }
 
 }
