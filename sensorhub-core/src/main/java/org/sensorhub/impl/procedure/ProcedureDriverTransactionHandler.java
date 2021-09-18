@@ -32,6 +32,7 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
+import org.sensorhub.api.feature.FoiAddedEvent;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
 import org.sensorhub.api.obs.DataStreamChangedEvent;
 import org.sensorhub.api.procedure.IProcedureDriver;
@@ -40,7 +41,7 @@ import org.sensorhub.api.procedure.ProcedureEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
 import org.vast.data.TextEncodingImpl;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 
@@ -421,7 +422,7 @@ public class ProcedureDriverTransactionHandler extends ProcedureTransactionHandl
     @Override
     public void handleEvent(Event e)
     {
-        if (e instanceof FoiEvent)
+        if (e instanceof FoiAddedEvent)
         {
             if (((FoiEvent) e).getFoi() != null)
                 register(((FoiEvent) e).getFoi());

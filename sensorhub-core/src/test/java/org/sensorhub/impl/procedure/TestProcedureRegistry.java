@@ -263,9 +263,39 @@ public class TestProcedureRegistry
         FakeSensorNetOnlyFois sensorNet = new FakeSensorNetOnlyFois();
         sensorNet.setConfiguration(new SensorConfig());
         sensorNet.init();
-        sensorNet.setDataInterfaces(new FakeSensorData2(sensorNet, NAME_OUTPUT1, 0.05, numObs, obsFoiMap));
+        sensorNet.setDataInterfaces(new FakeSensorData2(sensorNet, NAME_OUTPUT2, 0.05, numObs, obsFoiMap));
         sensorNet.addFois(numFois);
-                
+        checkSensorArray(sensorNet, numFois, numObs, obsFoiMap);
+    }
+    
+    
+    @Test
+    public void testRegisterSensorArrayWithDynamicFois() throws Exception
+    {
+        int numFois = 5;
+        int numObs = 100;
+        var obsFoiMap = new TreeMap<Integer, Integer>();
+        obsFoiMap.put(3, 1);
+        obsFoiMap.put(4, 2);
+        obsFoiMap.put(8, 1);
+        obsFoiMap.put(10, 15);
+        obsFoiMap.put(12, 4);
+        obsFoiMap.put(15, 2);
+        obsFoiMap.put(17, 3);
+        obsFoiMap.put(19, 5);
+        obsFoiMap.put(21, 55);
+        FakeSensorNetOnlyFois sensorNet = new FakeSensorNetOnlyFois();
+        sensorNet.setParentHub(hub);
+        sensorNet.setConfiguration(new SensorConfig());
+        sensorNet.init();
+        sensorNet.setDataInterfaces(new FakeSensorData2(sensorNet, NAME_OUTPUT2, 0.05, numObs, obsFoiMap));
+        sensorNet.addFois(numFois);
+        checkSensorArray(sensorNet, numFois, numObs, obsFoiMap);
+    }
+    
+    
+    protected void checkSensorArray(FakeSensorNetOnlyFois sensorNet, int numInitFois, int numObs, TreeMap<Integer, Integer> obsFoiMap) throws Exception
+    {
         assertEquals(0, stateDb.getProcedureStore().size());
         assertEquals(0, stateDb.getFoiStore().size());
         
@@ -283,7 +313,7 @@ public class TestProcedureRegistry
             System.out.println(stateDb.getFoiStore().size() + " FOIs registered");
             for (var foiUID: sensorNet.getCurrentFeaturesOfInterest().keySet())
                 assertTrue("Missing FOI in DB: " + foiUID, stateDb.getFoiStore().contains(foiUID));
-            assertEquals(numFois, stateDb.getFoiStore().size());
+            assertEquals(numInitFois, stateDb.getFoiStore().size());
             
             // check no members are in DB
             var numRegisteredMembers = stateDb.getProcedureStore().countMatchingEntries(new ProcedureFilter.Builder()
@@ -303,11 +333,11 @@ public class TestProcedureRegistry
         })
         .thenCompose(nil -> {
             // check data is forwarded to event bus
-            var topic = EventUtils.getDataStreamDataTopicID(sensorNet.getOutputs().get(NAME_OUTPUT1));
+            var topic = EventUtils.getDataStreamDataTopicID(sensorNet.getOutputs().get(NAME_OUTPUT2));
             System.out.println("Subscribe to channel " + topic);
             hub.getEventBus().newSubscription(DataEvent.class)
                 .withEventType(DataEvent.class)
-                .withTopicID(topic)                     
+                .withTopicID(topic)
                 .consume(e -> {
                     var foiStr = e.getFoiUID() != null ? e.getFoiUID() : NO_FOI;
                     System.out.println("Record received from " + e.getSourceID() +
@@ -324,7 +354,7 @@ public class TestProcedureRegistry
             
             return sensorNet.startSendingData();
         })
-        .thenRun(() -> {            
+        .thenRun(() -> {
             // check latest records are in DB (one per foi)
             var observedFois = Sets.newHashSet(obsFoiMap.values());
             assertEquals(observedFois.size()+1, stateDb.getObservationStore().size());

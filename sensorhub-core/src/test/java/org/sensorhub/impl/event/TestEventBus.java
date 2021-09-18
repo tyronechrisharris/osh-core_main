@@ -22,9 +22,9 @@ import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.event.Event;
-import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.event.IEventPublisher;
+import org.sensorhub.api.feature.FoiAddedEvent;
 import org.sensorhub.test.AsyncTests;
 import com.google.common.collect.Sets;
 
@@ -410,7 +410,7 @@ public class TestEventBus
             if (i % 2 == 0)
                 pub.publish(new TestEvent(procUID, "test", 0));
             else
-                pub.publish(new FoiEvent(System.currentTimeMillis(), procUID, foiUID, Instant.now()));
+                pub.publish(new FoiAddedEvent(System.currentTimeMillis(), procUID, foiUID, Instant.now()));
         }
 
         assertTrue("Not enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));

@@ -21,7 +21,7 @@ import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.IProcedureStateDatabase;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
 /**
@@ -92,7 +92,7 @@ public interface IProcedureRegistry
      * @return A future that will be completed when the feature of interest is
      * successfully registered or report an exception if an error occurred.
      */
-    public CompletableFuture<Boolean> register(IProcedureDriver proc, IGeoFeature foi);
+    public CompletableFuture<Boolean> register(IProcedureDriver proc, IFeature foi);
 
 
     /**

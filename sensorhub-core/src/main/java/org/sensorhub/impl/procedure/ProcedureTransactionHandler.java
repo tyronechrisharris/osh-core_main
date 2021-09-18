@@ -19,7 +19,6 @@ import java.util.Map.Entry;
 import org.sensorhub.api.command.CommandStreamAddedEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
-import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
@@ -31,6 +30,7 @@ import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventPublisher;
+import org.sensorhub.api.feature.FoiAddedEvent;
 import org.sensorhub.api.obs.DataStreamAddedEvent;
 import org.sensorhub.api.obs.DataStreamInfo;
 import org.sensorhub.api.obs.IDataStreamInfo;
@@ -103,7 +103,7 @@ public class ProcedureTransactionHandler
             getProcedureStore().put(procKey, proc);
         }
         else
-            throw new DataStoreException("A version of the procedure description with a more recent valid time already exists");                
+            throw new DataStoreException("A version of the procedure description with a more recent valid time already exists");
         
         return true;
     }
@@ -407,7 +407,7 @@ public class ProcedureTransactionHandler
         
         if (isNew)
         {
-            getEventPublisher().publish(new FoiEvent(
+            getEventPublisher().publish(new FoiAddedEvent(
                 System.currentTimeMillis(),
                 procUID,
                 foi.getUniqueIdentifier(),

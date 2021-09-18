@@ -16,7 +16,7 @@ package org.sensorhub.api.data;
 
 import java.util.Map;
 import org.sensorhub.api.procedure.IProcedureDriver;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 
 
 /**
@@ -42,6 +42,6 @@ public interface IDataProducer extends IProcedureDriver
      * is currently generating data
      * @return Read-only map of FOI unique IDs to feature objects
      */
-    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest();
+    public Map<String, ? extends IFeature> getCurrentFeaturesOfInterest();
     
 }

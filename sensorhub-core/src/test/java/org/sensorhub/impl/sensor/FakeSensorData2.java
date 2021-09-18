@@ -27,13 +27,12 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataType;
-import org.sensorhub.api.data.FoiEvent;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.data.DataEvent;
 import org.vast.data.BinaryComponentImpl;
 import org.vast.data.DataBlockByte;
+import org.vast.ogc.gml.IFeature;
 import org.vast.swe.SWEHelper;
 
 
@@ -171,19 +170,32 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
                 // if testing multisource producer
                 String foiUID = null;
                 IDataProducer producer = FakeSensorData2.this.getParentProducer();
-                if (obsFoiMap != null && producer instanceof IMultiSourceDataProducer)
+                if (obsFoiMap != null)
                 {
                     var foiEntry = obsFoiMap.floorEntry(sampleCount);
                     if (foiEntry != null)
                     {
                         Integer foiNum = foiEntry.getValue();
                         foiUID = ((FakeSensor)producer).getFoiUID(foiNum);
-                        var foi = producer.getCurrentFeaturesOfInterest().get(foiUID);
-                        if (foi != null)
+                        IFeature foi = producer.getCurrentFeaturesOfInterest().get(foiUID);
+                        
+                        // create feature dynamically if it doesn't exist
+                        if (foi == null)
                         {
-                            eventHandler.publish(new FoiEvent(latestRecordTime, getParentProducer(), foi, Instant.ofEpochMilli(latestRecordTime)));
-                            System.out.println("Observing FOI #" + foiNum + " (" + foiUID + ")");
+                            var parentProducer = (FakeSensorNetOnlyFois)producer;
+                            foi = parentProducer.addFoi(foiNum);
+                            try {
+                                System.out.println("Registering new FOI #" + foiNum);
+                                parentProducer.getParentHub().getProcedureRegistry().register(parentProducer, foi).get();
+                            }catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
                         }
+                        else
+                            
+                        
+                        if (foi != null)
+                            System.out.println("Observing FOI #" + foiNum + " (" + foiUID + ")");
                     }
                 }
                 

@@ -12,12 +12,13 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.data;
+package org.sensorhub.api.feature;
 
 import java.time.Instant;
+import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.procedure.ProcedureEvent;
 import org.sensorhub.api.utils.OshAsserts;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 
 
@@ -30,9 +31,9 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @since Apr 23, 2015
  */
-public class FoiEvent extends ProcedureEvent
+public class FoiAddedEvent extends ProcedureEvent
 {
-    protected IGeoFeature foi;
+    protected IFeature foi;
 	protected String foiUID;
 	protected Instant startTime;
 	//protected Instant stopTime;
@@ -45,7 +46,7 @@ public class FoiEvent extends ProcedureEvent
      * @param foiUID Unique ID of feature of interest
      * @param startTime Time at which observation of the FoI started
      */
-	public FoiEvent(long timeStamp, String procUID, String foiUID, Instant startTime)
+	public FoiAddedEvent(long timeStamp, String procUID, String foiUID, Instant startTime)
     {
         super(timeStamp, procUID);
         this.foiUID = OshAsserts.checkValidUID(foiUID);
@@ -60,7 +61,7 @@ public class FoiEvent extends ProcedureEvent
 	 * @param foiUID Unique ID of feature of interest
      * @param startTime Time at which observation of the FoI started
 	 */
-	public FoiEvent(long timeStamp, IDataProducer producer, String foiUID, Instant startTime)
+	public FoiAddedEvent(long timeStamp, IDataProducer producer, String foiUID, Instant startTime)
 	{
 	    this(timeStamp,
 	        producer.getUniqueIdentifier(),
@@ -77,7 +78,7 @@ public class FoiEvent extends ProcedureEvent
      * @param foi feature object
 	 * @param startTime time at which observation of the FoI started
      */
-	public FoiEvent(long timeStamp, IDataProducer producer, IGeoFeature foi, Instant startTime)
+	public FoiAddedEvent(long timeStamp, IDataProducer producer, IFeature foi, Instant startTime)
     {
 	    this(timeStamp,
 	        producer.getUniqueIdentifier(),
@@ -102,7 +103,7 @@ public class FoiEvent extends ProcedureEvent
      * or null if the description was already registered by some other means.
      * (in this case, only the UID is provided in the event)
      */
-	public IGeoFeature getFoi()
+	public IFeature getFoi()
     {
         return foi;
     }

@@ -14,24 +14,19 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import javax.xml.namespace.QName;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.impl.GMLFactory;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.IFeature;
-import com.google.common.collect.ImmutableList;
 
 
-public class FakeSensorNetOnlyFois extends FakeSensor implements IMultiSourceDataProducer
+public class FakeSensorNetOnlyFois extends FakeSensor
 {
     public static final String SENSORNET_UID = "urn:sensors:mysensornet:001";
     public static final String FOI_UID_PREFIX = SENSORNET_UID + ":fois:";
@@ -50,35 +45,25 @@ public class FakeSensorNetOnlyFois extends FakeSensor implements IMultiSourceDat
     
     public void addFois(int numFois)
     {
-        addFois(numFois, null);
-    }
-    
-    
-    public void addFois(int numFois, Consumer<IFeature> foiConfigurator)
-    {
         for (int foiIdx = 1; foiIdx <= numFois; foiIdx++)
-        {
-            QName fType = new QName("http://myNsUri", "MyFeature");
-            String foiUID = getFoiUID(foiIdx);
-            var foi = new GenericFeatureImpl(fType);
-            foi.setId("F" + foiIdx);
-            foi.setUniqueIdentifier(foiUID);
-            foi.setName("FOI" + foiIdx);
-            foi.setDescription("This is feature of interest #" + foiIdx);
-            Point p = gmlFac.newPoint();
-            p.setPos(new double[] {foiIdx, foiIdx, 0.0});
-            foi.setGeometry(p);
-            if (foiConfigurator != null)
-                foiConfigurator.accept(foi);
-            fois.put(foiUID, foi);
-        }
+            addFoi(foiIdx);
     }
-
-
-    @Override
-    public Map<String, ? extends IDataProducer> getMembers()
+    
+    
+    public IFeature addFoi(int foiIdx)
     {
-        return Collections.emptyMap();
+        QName fType = new QName("http://myNsUri", "MyFeature");
+        String foiUID = getFoiUID(foiIdx);
+        var foi = new GenericFeatureImpl(fType);
+        foi.setId("F" + foiIdx);
+        foi.setUniqueIdentifier(foiUID);
+        foi.setName("FOI" + foiIdx);
+        foi.setDescription("This is feature of interest #" + foiIdx);
+        Point p = gmlFac.newPoint();
+        p.setPos(new double[] {foiIdx, foiIdx, 0.0});
+        foi.setGeometry(p);
+        fois.put(foiUID, foi);
+        return foi;
     }
 
 
@@ -93,16 +78,6 @@ public class FakeSensorNetOnlyFois extends FakeSensor implements IMultiSourceDat
     public String getFoiUID(int foiNum)
     {
         return String.format(FOI_UID_PREFIX + "%03d", foiNum);
-    }
-
-
-    @Override
-    public Collection<String> getProceduresWithFoi(String foiID)
-    {
-        if (fois.containsKey(foiID))
-            return ImmutableList.of(getUniqueIdentifier());
-        else
-            return Collections.emptyList();
     }
     
 }

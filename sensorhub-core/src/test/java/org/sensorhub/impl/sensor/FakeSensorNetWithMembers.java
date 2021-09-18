@@ -15,7 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -31,7 +30,6 @@ import net.opengis.sensorml.v20.PhysicalComponent;
 import net.opengis.sensorml.v20.PhysicalSystem;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.data.IMultiSourceDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.procedure.IProcedureDriver;
@@ -40,11 +38,10 @@ import org.sensorhub.impl.event.EventSourceInfo;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.IGeoFeature;
 import org.vast.sensorML.SMLFactory;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 
-public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSourceDataProducer
+public class FakeSensorNetWithMembers extends FakeSensor implements IProcedureGroupDriver<IDataProducer>
 {
     static String SENSORNET_UID = "urn:sensors:mysensornet:001";
     static String MEMBER_UID_PREFIX = ":S";
@@ -203,17 +200,6 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IMultiSource
     public String getFoiUID(int foiNum)
     {
         return String.format("%s%s%03d:foi", FakeSensorNetWithMembers.this.uniqueID, MEMBER_UID_PREFIX, foiNum);
-    }
-
-
-    @Override
-    public Collection<String> getProceduresWithFoi(String foiUID)
-    {
-        if (!allFois.containsKey(foiUID))
-            return Collections.emptySet();
-        
-        String memberUID = foiUID.substring(0, foiUID.indexOf(":foi:"));
-        return ImmutableList.of(memberUID);
     }
     
 
