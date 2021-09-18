@@ -49,9 +49,10 @@ import org.sensorhub.api.sensor.PositionConfig.LLALocation;
 import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
+import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.MsgUtils;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.SamplingPoint;
 import org.vast.sensorML.PhysicalSystemImpl;
 import org.vast.sensorML.SMLUtils;
@@ -108,7 +109,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected boolean randomUniqueID;
     protected volatile String xmlID;
     protected volatile String uniqueID;
-    protected volatile Map<String, IGeoFeature> foiMap;
+    protected volatile Map<String, IFeature> foiMap;
 
 
     @Override
@@ -288,6 +289,29 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
                 // TODO deal with other CRS than 4979
                 locationOutput = new DefaultLocationOutputLLA(this, getLocalFrameID(), updatePeriod);
                 addOutput(locationOutput, true);
+            }
+        }
+    }
+    
+    
+    protected void addFoi(IFeature foi)
+    {
+        Asserts.checkNotNull(foi, IFeature.class);
+        OshAsserts.checkValidUID(foi.getUniqueIdentifier());
+        
+        // add to driver map
+        foiMap.put(foi.getUniqueIdentifier(), foi);
+        
+        // also register it if driver is already started
+        if (isStarted())
+        {
+            try
+            {
+                getParentHub().getProcedureRegistry().register(this, foi).get();
+            }
+            catch (InterruptedException | ExecutionException e)
+            {
+                throw new IllegalStateException("Error registering new FOI", e);
             }
         }
     }
@@ -618,9 +642,9 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
+    public Map<String, ? extends IFeature> getCurrentFeaturesOfInterest()
     {
-        return foiMap;
+        return Collections.unmodifiableMap(foiMap);
     }
 
 
