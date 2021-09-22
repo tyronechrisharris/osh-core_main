@@ -24,6 +24,7 @@ import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.event.BasicEventHandler;
+import org.sensorhub.utils.ConfigValidator;
 import org.sensorhub.utils.ModuleUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.slf4j.Logger;
@@ -400,7 +401,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 afterInit();
                 
                 if (!initAsync)
-                    setState(ModuleState.INITIALIZED);                
+                    setState(ModuleState.INITIALIZED);
             }
             catch (Exception e)
             {
@@ -429,6 +430,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected void beforeInit() throws SensorHubException
     {
         Asserts.checkState(config != null, "Configuration must be set before calling init()");
+        new ConfigValidator().validate(config);
     }
 
 

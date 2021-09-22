@@ -32,7 +32,6 @@ import org.sensorhub.impl.service.ogc.OGCServiceConfig;
  */
 public class SWEServiceConfig extends OGCServiceConfig
 {
-    @Required
     @DisplayInfo(desc="Metadata of procedure group that will be created to contain all procedures/sensors "
         + "registered through this service. Only sensors in this group will be modifiable by this service")
     public VirtualProcedureGroupConfig virtualSensorGroup = null;

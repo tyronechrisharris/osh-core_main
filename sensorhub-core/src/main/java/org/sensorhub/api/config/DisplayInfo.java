@@ -60,8 +60,10 @@ public @interface DisplayInfo
     @Target(ElementType.FIELD)
     public @interface ValueRange
     {
-        public int min() default Integer.MIN_VALUE;
-        public int max() default Integer.MAX_VALUE;
+        public long min() default 0;
+        public long max() default Integer.MAX_VALUE;
+        public boolean minExclusive() default false;
+        public boolean maxExclusive() default false;
     }
     
     

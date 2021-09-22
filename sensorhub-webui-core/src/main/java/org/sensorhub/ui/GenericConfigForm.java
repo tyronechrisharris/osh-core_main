@@ -411,7 +411,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             if (range != null)
             {
                 String msg = String.format("Value should be within [%d - %d] range", range.min(), range.max());
-                field.addValidator(new IntegerRangeValidator(msg, range.min(), range.max()));
+                field.addValidator(new IntegerRangeValidator(msg, (int)range.min(), (int)range.max()));
             }
         }
         

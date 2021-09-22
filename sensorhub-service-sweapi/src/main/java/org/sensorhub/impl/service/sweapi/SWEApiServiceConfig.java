@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sweapi;
 import java.util.ArrayList;
 import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
-import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.security.SecurityConfig;
 import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseViewConfig;
 import org.sensorhub.impl.sensor.VirtualProcedureGroupConfig;
@@ -34,7 +33,6 @@ import org.sensorhub.impl.service.ogc.OGCServiceConfig;
  */
 public class SWEApiServiceConfig extends OGCServiceConfig
 {
-    @Required
     @DisplayInfo(desc="Metadata of procedure group that will be created to contain all sensors "
         + "registered through this service. Only sensors in this group will be modifiable by this service")
     public VirtualProcedureGroupConfig virtualSensorGroup = null;

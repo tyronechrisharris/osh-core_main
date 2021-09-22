@@ -57,6 +57,7 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
             dbConfig = (DatabaseConfig)config.dbConfig.clone();
             dbConfig.id = getLocalID();
             dbConfig.name = getName();
+            dbConfig.databaseNum = 0;
             Class<?> clazz = Class.forName(dbConfig.moduleClass);
             
             @SuppressWarnings("unchecked")
