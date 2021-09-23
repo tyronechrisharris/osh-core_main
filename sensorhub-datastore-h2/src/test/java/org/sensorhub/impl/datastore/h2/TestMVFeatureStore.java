@@ -31,7 +31,7 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
     protected MVFeatureStoreImpl initStore() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
-        dbFile.deleteOnExit();        
+        dbFile.deleteOnExit();
         return openMVStore();
     }
     
@@ -45,7 +45,11 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
     private MVFeatureStoreImpl openMVStore()
     {
         if (mvStore != null)
+        {
+            mvStore.commit();
             mvStore.close();
+            System.out.println("MVStore flushed to disk");
+        }
         
         mvStore = new MVStore.Builder()
                 .fileName(dbFile.getAbsolutePath())
@@ -72,7 +76,7 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
             Files.list(dbFile.toPath().getParent())
                  .filter(f -> f.getFileName().toString().startsWith(DB_FILE_PREFIX))
                  .forEach(f -> f.toFile().delete());
-        }            
+        }
     }
 
 }
