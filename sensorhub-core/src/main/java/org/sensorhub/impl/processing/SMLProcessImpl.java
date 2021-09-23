@@ -168,12 +168,13 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         {
             String ioName = ioList.getProperty(i).getName();
             AbstractSWEIdentifiable ioDesc = ioList.get(i);
+            
             DataComponent ioComponent = SMLHelper.getIOComponent(ioDesc);
-            ioComponent.setName(ioName);
-            ioMap.put(ioName, ioComponent.copy());
+            DataComponent ioCompCopy = ioComponent.copy();
+            ioMap.put(ioName, ioCompCopy);
             
             if (isOutput)
-                outputInterfaces.put(ioName, new SMLOutputInterface(this, ioComponent));
+                outputInterfaces.put(ioName, new SMLOutputInterface(this, ioCompCopy, ioComponent));
         }
     }
     

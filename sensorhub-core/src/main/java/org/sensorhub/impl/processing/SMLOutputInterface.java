@@ -77,7 +77,7 @@ class SMLOutputInterface implements IStreamingDataInterface
     };
     
 
-    protected SMLOutputInterface(SMLProcessImpl parentProcess, DataComponent outputDef) throws ProcessingException
+    protected SMLOutputInterface(SMLProcessImpl parentProcess, DataComponent outputDef, DataComponent chainOutput) throws ProcessingException
     {
         this.parentProcess = parentProcess;
         this.outputDef = outputDef;
@@ -86,7 +86,7 @@ class SMLOutputInterface implements IStreamingDataInterface
         
         try
         {
-            parentProcess.wrapperProcess.connect(outputDef, outputQueue);
+            parentProcess.wrapperProcess.connect(chainOutput, outputQueue);
         }
         catch (ProcessException e)
         {
