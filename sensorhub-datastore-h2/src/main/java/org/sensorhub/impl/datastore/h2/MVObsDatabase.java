@@ -54,14 +54,21 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     
     
     @Override
+    protected void beforeInit() throws SensorHubException
+    {
+        super.beforeInit();
+        
+        // check file path is valid
+        if (!FileUtils.isSafeFilePath(config.storagePath))
+            throw new DataStoreException("Storage path contains illegal characters: " + config.storagePath);
+    }
+    
+    
+    @Override
     protected void doStart() throws SensorHubException
     {
         try
         {
-            // check file path is valid
-            if (!FileUtils.isSafeFilePath(config.storagePath))
-                throw new DataStoreException("Storage path contains illegal characters: " + config.storagePath);
-            
             MVStore.Builder builder = new MVStore.Builder().fileName(config.storagePath);
             
             if (config.readOnly)
@@ -69,7 +76,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
             
             if (config.memoryCacheSize > 0)
                 builder.cacheSize(config.memoryCacheSize/1024);
-                                      
+            
             if (config.autoCommitBufferSize > 0)
                 builder.autoCommitBufferSize(config.autoCommitBufferSize);
             
@@ -77,6 +84,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
                 builder.compress();
             
             mvStore = builder.open();
+            mvStore.setAutoCommitDelay(config.autoCommitPeriod*1000);
             mvStore.setVersionsToKeep(0);
             
             // open procedure store
@@ -104,7 +112,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
             foiStore.linkTo(obsStore);
             obsStore.linkTo(foiStore);
             obsStore.getDataStreams().linkTo(procStore);
-            cmdStore.getCommandStreams().linkTo(procStore);            
+            cmdStore.getCommandStreams().linkTo(procStore);
         }
         catch (Exception e)
         {
@@ -134,6 +142,9 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     {
         if (mvStore != null) 
         {
+            // must call commit first to make sure kryo persistent class resolver
+            // is updated before we serialize it again in close
+            mvStore.commit();
             mvStore.close();
             mvStore = null;
         }
@@ -183,7 +194,7 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
     public void commit()
     {
         checkStarted();
-        mvStore.commit();        
+        mvStore.commit();
     }
     
     

@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import javax.validation.constraints.*;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.api.database.DatabaseConfig;
@@ -37,18 +38,27 @@ public abstract class MVDatabaseConfig extends DatabaseConfig
     
     
     @Required
+    @NotBlank
     @DisplayInfo(desc = "Path to database file")
     public String storagePath;
     
     
+    @Min(value = 0)
     @DisplayInfo(desc = "Memory cache size for page chunks, in KB")
     public int memoryCacheSize = 5 * 1024;
     
     
+    @Min(value = 0)
     @DisplayInfo(desc = "Size of the auto-commit write buffer, in KB")
     public int autoCommitBufferSize = 1024;
     
     
+    @Min(value = 0)
+    @DisplayInfo(desc = "Max delay between auto-commit execution, in seconds. 0 to disable time-based auto-commit")
+    public int autoCommitPeriod = 10;
+    
+    
+    @NotNull
     @DisplayInfo(label = "ID Generator", desc = "Method used to generate new resource IDs")
     public IdProviderType idProviderType = IdProviderType.SEQUENTIAL;
     
