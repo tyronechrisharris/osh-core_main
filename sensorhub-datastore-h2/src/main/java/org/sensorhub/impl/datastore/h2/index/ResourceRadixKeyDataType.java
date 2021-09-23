@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2;
+package org.sensorhub.impl.datastore.h2.index;
 
 import org.h2.mvstore.RadixKeyBytesDataType;
 import org.sensorhub.api.resource.ResourceKey;

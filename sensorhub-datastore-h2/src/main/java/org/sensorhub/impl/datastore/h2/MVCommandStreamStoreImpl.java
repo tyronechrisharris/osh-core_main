@@ -39,6 +39,7 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.command.CommandStreamInfoWrapper;
 import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
+import org.sensorhub.impl.datastore.h2.index.FullTextIndex;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 

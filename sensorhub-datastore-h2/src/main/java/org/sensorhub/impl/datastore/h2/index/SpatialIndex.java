@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2;
+package org.sensorhub.impl.datastore.h2.index;
 
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -25,6 +25,7 @@ import org.h2.mvstore.rtree.SpatialKey;
 import org.h2.mvstore.rtree.MVRTreeMap.RTreeCursor;
 import org.h2.mvstore.type.DataType;
 import org.sensorhub.api.datastore.SpatialFilter;
+import org.sensorhub.impl.datastore.h2.H2Utils;
 import org.vast.util.Bbox;
 import org.vast.util.IResource;
 

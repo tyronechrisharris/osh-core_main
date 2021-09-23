@@ -39,6 +39,8 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.SpliteratorWrapper;
+import org.sensorhub.impl.datastore.h2.index.FullTextIndex;
+import org.sensorhub.impl.datastore.h2.index.SpatialIndex;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.gml.IGeoFeature;

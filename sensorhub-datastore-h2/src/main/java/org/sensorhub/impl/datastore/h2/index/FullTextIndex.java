@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2;
+package org.sensorhub.impl.datastore.h2.index;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -132,7 +132,7 @@ public class FullTextIndex<T extends IResource, K extends Comparable<?>>
     }
     
     
-    protected Stream<K> addFullTextPostFilter(Stream<K> pkStream, FullTextFilter filter)
+    public Stream<K> addFullTextPostFilter(Stream<K> pkStream, FullTextFilter filter)
     {
         Set<byte[]> keywordSet = getKeywordStream(filter)
             .map(String::getBytes)
