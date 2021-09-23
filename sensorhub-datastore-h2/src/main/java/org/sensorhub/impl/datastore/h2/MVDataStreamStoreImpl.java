@@ -54,9 +54,9 @@ import org.vast.util.TimeExtent;
  */
 public class MVDataStreamStoreImpl implements IDataStreamStore
 {
-    private static final String DATASTREAM_MAP_NAME = "@dstreams";
-    private static final String DATASTREAM_PROC_MAP_NAME = "@dstreams_proc";
-    private static final String DATASTREAM_FULLTEXT_MAP_NAME = "@dstreams_text";
+    private static final String DATASTREAM_MAP_NAME = "datastreams_records";
+    private static final String DATASTREAM_PROC_MAP_NAME = "datastreams_proc";
+    private static final String DATASTREAM_FULLTEXT_MAP_NAME = "datastreams_text";
 
     protected MVStore mvStore;
     protected MVObsStoreImpl obsStore;
@@ -150,19 +150,19 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         this.mvStore = Asserts.checkNotNull(obsStore.mvStore, MVStore.class);
 
         // open observation map
-        String mapName = DATASTREAM_MAP_NAME + ":" + obsStore.getDatastoreName();
+        String mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_MAP_NAME;
         this.dataStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<DataStreamKey, IDataStreamInfo>()
                 .keyType(new MVDataStreamKeyDataType())
                 .valueType(new MVDataStreamInfoDataType()));
 
         // open observation series map
-        mapName = DATASTREAM_PROC_MAP_NAME + ":" + obsStore.getDatastoreName();
+        mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_PROC_MAP_NAME;
         this.dataStreamByProcIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesProcKey, Boolean>()
                 .keyType(new MVTimeSeriesProcKeyDataType())
                 .valueType(new MVVoidDataType()));
         
         // full-text index
-        mapName = DATASTREAM_FULLTEXT_MAP_NAME + ":" + obsStore.getDatastoreName();
+        mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_FULLTEXT_MAP_NAME;
         this.fullTextIndex = new FullTextIndex<>(mvStore, mapName, new MVVarLongDataType()) {
             @Override
             protected void addToTokenSet(IDataStreamInfo dsInfo, Set<String> tokenSet)

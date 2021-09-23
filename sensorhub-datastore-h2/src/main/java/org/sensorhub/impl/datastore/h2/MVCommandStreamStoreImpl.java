@@ -54,9 +54,9 @@ import org.vast.util.TimeExtent;
  */
 public class MVCommandStreamStoreImpl implements ICommandStreamStore
 {
-    private static final String CMDSTREAM_MAP_NAME = "@cmdstreams";
-    private static final String CDMSTREAM_PROC_MAP_NAME = "@cmdstreams_proc";
-    private static final String CMDSTREAM_FULLTEXT_MAP_NAME = "@cmdstreams_text";
+    private static final String CMDSTREAM_MAP_NAME = "cmdstreams_records";
+    private static final String CDMSTREAM_PROC_MAP_NAME = "cmdstreams_proc";
+    private static final String CMDSTREAM_FULLTEXT_MAP_NAME = "cmdstreams_text";
 
     protected MVStore mvStore;
     protected MVCommandStoreImpl commandStore;
@@ -150,19 +150,19 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         this.mvStore = Asserts.checkNotNull(cmdStore.mvStore, MVStore.class);
 
         // open command stream map
-        String mapName = CMDSTREAM_MAP_NAME + ":" + cmdStore.getDatastoreName();
+        String mapName = cmdStore.getDatastoreName() + ":" + CMDSTREAM_MAP_NAME;
         this.cmdStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<CommandStreamKey, ICommandStreamInfo>()
                 .keyType(new MVCommandStreamKeyDataType())
                 .valueType(new MVCommandStreamInfoDataType()));
 
         // procedure index
-        mapName = CDMSTREAM_PROC_MAP_NAME + ":" + cmdStore.getDatastoreName();
+        mapName = cmdStore.getDatastoreName() + ":" + CDMSTREAM_PROC_MAP_NAME;
         this.cmdStreamByProcIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesProcKey, Boolean>()
                 .keyType(new MVTimeSeriesProcKeyDataType())
                 .valueType(new MVVoidDataType()));
         
         // full-text index
-        mapName = CMDSTREAM_FULLTEXT_MAP_NAME + ":" + cmdStore.getDatastoreName();
+        mapName = cmdStore.getDatastoreName() + ":" + CMDSTREAM_FULLTEXT_MAP_NAME;
         this.fullTextIndex = new FullTextIndex<>(mvStore, mapName, new MVVarLongDataType());
 
         // ID provider

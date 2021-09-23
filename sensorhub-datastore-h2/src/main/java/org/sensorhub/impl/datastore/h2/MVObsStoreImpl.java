@@ -75,11 +75,9 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class MVObsStoreImpl implements IObsStore
 {
-    private static final String OBS_RECORDS_MAP_NAME = "@obs_records";
-    private static final String OBS_SERIES_MAP_NAME = "@obs_series";
-    private static final String OBS_SERIES_FOI_MAP_NAME = "@obs_series_foi";
-    //static final Instant LOWEST_TIME_KEY = Instant.MIN.plusSeconds(1);
-    //static final Instant HIGHEST_TIME_KEY = Instant.MAX;
+    private static final String OBS_RECORDS_MAP_NAME = "obs_records";
+    private static final String OBS_SERIES_MAP_NAME = "obs_series";
+    private static final String OBS_SERIES_FOI_MAP_NAME = "obs_series_foi";
     
     protected MVStore mvStore;
     protected MVDataStoreInfo dataStoreInfo;
@@ -164,18 +162,18 @@ public class MVObsStoreImpl implements IObsStore
         this.dataStreamStore = new MVDataStreamStoreImpl(this, dsIdProvider); 
                         
         // open observation map
-        String mapName = OBS_RECORDS_MAP_NAME + ":" + dataStoreInfo.name;
+        String mapName = dataStoreInfo.getName() + ":" + OBS_RECORDS_MAP_NAME;
         this.obsRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, IObsData>()
                 .keyType(new MVTimeSeriesRecordKeyDataType())
                 .valueType(new MVObsDataType()));
         
         // open observation series map
-        mapName = OBS_SERIES_MAP_NAME + ":" + dataStoreInfo.name;
+        mapName = dataStoreInfo.getName() + ":" + OBS_SERIES_MAP_NAME;
         this.obsSeriesMainIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesKey, MVTimeSeriesInfo>()
                 .keyType(new MVObsSeriesKeyByDataStreamDataType())
                 .valueType(new MVTimeSeriesInfoDataType()));
         
-        mapName = OBS_SERIES_FOI_MAP_NAME + ":" + dataStoreInfo.name;
+        mapName = dataStoreInfo.getName() + ":" + OBS_SERIES_FOI_MAP_NAME;
         this.obsSeriesByFoiIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesKey, Boolean>()
                 .keyType(new MVObsSeriesKeyByFoiDataType())
                 .valueType(new MVVoidDataType()));

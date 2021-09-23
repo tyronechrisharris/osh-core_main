@@ -70,10 +70,8 @@ import com.google.common.hash.Hashing;
  */
 public class MVCommandStoreImpl implements ICommandStore
 {
-    private static final String CMD_RECORDS_MAP_NAME = "@cmd_records";
-    private static final String CMD_SERIES_MAP_NAME = "@cmd_series";
-    //static final Instant LOWEST_TIME_KEY = Instant.MIN.plusSeconds(1);
-    //static final Instant HIGHEST_TIME_KEY = Instant.MAX;
+    private static final String CMD_RECORDS_MAP_NAME = "cmd_records";
+    private static final String CMD_SERIES_MAP_NAME = "cmd_series";
     
     protected MVStore mvStore;
     protected MVDataStoreInfo dataStoreInfo;
@@ -164,13 +162,13 @@ public class MVCommandStoreImpl implements ICommandStore
         this.cmdStreamStore = new MVCommandStreamStoreImpl(this, null); 
                         
         // commands map
-        String mapName = CMD_RECORDS_MAP_NAME + ":" + dataStoreInfo.name;
+        String mapName = dataStoreInfo.getName() + ":" + CMD_RECORDS_MAP_NAME;
         this.cmdRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, ICommandAck>()
                 .keyType(new MVTimeSeriesRecordKeyDataType())
                 .valueType(new MVCommandDataType()));
         
         // commands series map
-        mapName = CMD_SERIES_MAP_NAME + ":" + dataStoreInfo.name;
+        mapName = dataStoreInfo.getName() + ":" + CMD_SERIES_MAP_NAME;
         this.cmdSeriesMainIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesKey, MVTimeSeriesInfo>()
                 .keyType(new MVCommandSeriesKeyByCommandStreamDataType())
                 .valueType(new MVTimeSeriesInfoDataType()));

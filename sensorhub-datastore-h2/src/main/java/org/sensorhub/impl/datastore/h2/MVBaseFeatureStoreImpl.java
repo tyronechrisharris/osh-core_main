@@ -63,11 +63,11 @@ import org.vast.util.Bbox;
  */
 public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super V>> implements IFeatureStoreBase<V, VF, F>
 {
-    private static final String FEATURE_IDS_MAP_NAME = "@feature_ids";
-    private static final String FEATURE_UIDS_MAP_NAME = "@feature_uids";
-    private static final String FEATURE_RECORDS_MAP_NAME = "@feature_records";
-    private static final String FEATURE_SPATIAL_INDEX_MAP_NAME = "@feature_geom";
-    private static final String FEATURE_FULLTEXT_MAP_NAME = "@feature_text";
+    private static final String FEATURE_IDS_MAP_NAME = "feature_ids";
+    private static final String FEATURE_UIDS_MAP_NAME = "feature_uids";
+    private static final String FEATURE_RECORDS_MAP_NAME = "feature_records";
+    private static final String FEATURE_SPATIAL_INDEX_MAP_NAME = "feature_geom";
+    private static final String FEATURE_FULLTEXT_MAP_NAME = "feature_text";
 
     protected MVStore mvStore;
     protected MVDataStoreInfo dataStoreInfo;
@@ -118,27 +118,27 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
         
         // feature records map
-        String mapName = FEATURE_RECORDS_MAP_NAME + ":" + dataStoreInfo.name;
+        String mapName = dataStoreInfo.getName() + ":" + FEATURE_RECORDS_MAP_NAME;
         this.featuresIndex = mvStore.openMap(mapName, 
                 new MVBTreeMap.Builder<MVFeatureParentKey, V>()
                          .keyType(new MVFeatureParentKeyDataType(true))
-                         .valueType(new KryoDataType()));
+                         .valueType(getFeatureDataType(kryoClassIdMap)));
                 
         // feature IDs to main index
-        mapName = FEATURE_IDS_MAP_NAME + ":" + dataStoreInfo.name;
+        mapName = dataStoreInfo.getName() + ":" + FEATURE_IDS_MAP_NAME;
         this.idsIndex = mvStore.openMap(mapName, 
                 new MVBTreeMap.Builder<MVFeatureParentKey, Boolean>()
                         .keyType(new MVFeatureParentKeyByIdDataType())
                         .valueType(new MVVoidDataType()));
         
         // feature unique IDs to main index
-        mapName = FEATURE_UIDS_MAP_NAME + ":" + dataStoreInfo.name;
+        mapName = dataStoreInfo.getName() + ":" + FEATURE_UIDS_MAP_NAME;
         this.uidsIndex = mvStore.openMap(mapName, 
                 new MVBTreeMap.Builder<String, MVFeatureParentKey>()
                         .valueType(new MVFeatureParentKeyDataType(false)));
                 
         // spatial index
-        mapName = FEATURE_SPATIAL_INDEX_MAP_NAME + ":" + dataStoreInfo.name;
+        mapName = dataStoreInfo.getName() + ":" + FEATURE_SPATIAL_INDEX_MAP_NAME;
         this.spatialIndex = new SpatialIndex<>(mvStore, mapName, new MVFeatureParentKeyDataType(true)) {
             @Override
             protected SpatialKey getSpatialKey(MVFeatureParentKey key, IFeature f)
@@ -156,7 +156,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         };
         
         // full-text index
-        mapName = FEATURE_FULLTEXT_MAP_NAME + ":" + dataStoreInfo.getName();
+        mapName = dataStoreInfo.getName() + ":" + FEATURE_FULLTEXT_MAP_NAME;
         this.fullTextIndex = new FullTextIndex<>(mvStore, mapName, new MVFeatureParentKeyDataType(false));
         
         // Id provider
