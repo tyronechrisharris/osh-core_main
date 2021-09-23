@@ -454,6 +454,7 @@ public class MVObsStoreImpl implements IObsStore
             var obsStream = filter.getInternalIDs().stream()
                 .map(k -> mapToInternalKey(k))
                 .map(k -> obsRecordsIndex.getEntry(k))
+                .filter(Objects::nonNull)
                 .map(e -> mapToPublicEntry(e));
             
             return getPostFilteredResultStream(obsStream, filter);
