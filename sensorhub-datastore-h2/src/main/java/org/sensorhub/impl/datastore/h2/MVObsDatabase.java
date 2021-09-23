@@ -41,6 +41,7 @@ import org.sensorhub.utils.FileUtils;
 public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implements IProcedureObsDatabase, IProcedureObsDatabaseModule<MVObsDatabaseConfig>
 {
     public final static int CURRENT_VERSION = 1;
+    final static String KRYO_CLASS_MAP_NAME = "kryo_class_map";
     final static String PROCEDURE_STORE_NAME = "proc_store";
     final static String FOI_STORE_NAME = "foi_store";
     final static String OBS_STORE_NAME = "obs_store";

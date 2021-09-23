@@ -120,7 +120,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
         
         // persistent class mappings for Kryo
-        var kryoClassIdMap = mvStore.openMap("kryoClassMap", new MVBTreeMap.Builder<String, Integer>());
+        var kryoClassIdMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
         
         // feature records map
         String mapName = dataStoreInfo.getName() + ":" + FEATURE_RECORDS_MAP_NAME;
@@ -157,7 +157,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 
                 int hashID = Objects.hash(key.getInternalID(), key.getValidStartTime());
                 return H2Utils.getBoundingRectangle(hashID, gf.getGeometry());
-            }            
+            }
         };
         
         // full-text index
