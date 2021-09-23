@@ -724,7 +724,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             try
             {
                 // add to main index
-                V oldValue = featuresIndex.put(fk, f);
+                V oldValue = featuresIndex.put(fk, wrap(f));
                 
                 // check if we're allowed to replace existing entry
                 boolean isNewEntry = (oldValue == null);
@@ -759,8 +759,14 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             }
         }
     }
-
-
+    
+    
+    protected V wrap(V feature)
+    {
+        return feature;
+    }
+    
+    
     @Override
     public synchronized V remove(Object key)
     {

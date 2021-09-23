@@ -35,6 +35,11 @@ import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.sensorhub.impl.datastore.h2.MVFeatureStoreImpl.IGeoTemporalFeature;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.om.MovingFeature;
+import org.vast.ogc.om.SamplingCurve;
+import org.vast.ogc.om.SamplingPoint;
+import org.vast.ogc.om.SamplingSphere;
+import org.vast.ogc.om.SamplingSurface;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.hash.Hashing;
@@ -54,6 +59,12 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
 {
     IProcedureStore procStore;
     IObsStore obsStore;
+    Set<Class<?>> allowedFeatureClasses = Set.of(
+        SamplingPoint.class,
+        SamplingCurve.class,
+        SamplingSurface.class,
+        SamplingSphere.class,
+        MovingFeature.class);
     
     
     protected MVFoiStoreImpl()
@@ -203,6 +214,16 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
     protected Stream<Long> selectParentIDs(ProcedureFilter parentFilter)
     {
         return DataStoreUtils.selectFeatureIDs(procStore, parentFilter);
+    }
+    
+    
+    @Override
+    protected IFeature wrap(IFeature feature)
+    {
+        if (allowedFeatureClasses.contains(feature.getClass()))
+            return feature;
+        else
+            return new FeatureWrapper(feature);
     }
 
 
