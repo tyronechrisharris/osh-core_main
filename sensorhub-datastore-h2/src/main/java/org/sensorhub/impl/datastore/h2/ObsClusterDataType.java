@@ -16,7 +16,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import java.time.Instant;
 import org.vast.util.Bbox;
-import com.google.common.collect.Range;
+import org.vast.util.TimeExtent;
 
 
 /**
@@ -31,9 +31,12 @@ class ObsClusterDataType extends KryoDataType
 {
     ObsClusterDataType()
     {
-        // pre-register known types with Kryo
-        registeredClasses.put(20, Range.class);
-        registeredClasses.put(21, Instant.class);
-        registeredClasses.put(22, Bbox.class);
+        this.configurator = kryo -> {
+            
+            // pre-register known types with Kryo
+            kryo.register(TimeExtent.class, 20);
+            kryo.register(Instant.class, 21);
+            kryo.register(Bbox.class, 22);
+        };
     }
 }

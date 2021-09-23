@@ -28,45 +28,48 @@ class MVDataStreamInfoDataType extends KryoDataType
 {
     MVDataStreamInfoDataType()
     {
-        // pre-register known types with Kryo
-        registeredClasses.put(20, Instant.class);
-        registeredClasses.put(21, ArrayList.class);
-        registeredClasses.put(22, HashMap.class);
-        registeredClasses.put(23, String[].class);
-        registeredClasses.put(40, DataStreamInfo.class);
-        registeredClasses.put(41, FeatureId.class);
-        registeredClasses.put(50, DataRecordImpl.class);
-        registeredClasses.put(51, VectorImpl.class);
-        registeredClasses.put(52, DataArrayImpl.class);
-        registeredClasses.put(53, MatrixImpl.class);
-        registeredClasses.put(54, DataChoiceImpl.class);
-        registeredClasses.put(55, BooleanImpl.class);
-        registeredClasses.put(56, TextImpl.class);
-        registeredClasses.put(57, CategoryImpl.class);
-        registeredClasses.put(58, CountImpl.class);
-        registeredClasses.put(59, QuantityImpl.class);
-        registeredClasses.put(60, TimeImpl.class);
-        registeredClasses.put(61, CategoryRangeImpl.class);
-        registeredClasses.put(62, CountRangeImpl.class);
-        registeredClasses.put(63, QuantityRangeImpl.class);
-        registeredClasses.put(64, TimeRangeImpl.class);
-        registeredClasses.put(80, OgcPropertyImpl.class);
-        registeredClasses.put(81, OgcPropertyList.class);
-        registeredClasses.put(82, DataComponentProperty.class);
-        registeredClasses.put(83, DataComponentPropertyList.class);
-        registeredClasses.put(84, AllowedTokensImpl.class);
-        registeredClasses.put(85, AllowedValuesImpl.class);
-        registeredClasses.put(86, AllowedTimesImpl.class);
-        registeredClasses.put(87, NilValuesImpl.class);
-        registeredClasses.put(88, NilValueImpl.class);
-        registeredClasses.put(89, UnitReferenceImpl.class);
-        registeredClasses.put(90, EncodedValuesImpl.class);
-        registeredClasses.put(91, TextEncodingImpl.class);
-        registeredClasses.put(92, JSONEncodingImpl.class);
-        registeredClasses.put(93, XMLEncodingImpl.class);
-        registeredClasses.put(94, BinaryEncodingImpl.class);
-        registeredClasses.put(95, BinaryComponentImpl.class);
-        registeredClasses.put(96, BinaryBlockImpl.class);
-        registeredClasses.put(97, DateTimeOrDouble.class);
+        this.configurator = kryo -> {
+            
+            // pre-register known types with Kryo
+            kryo.register(Instant.class, 20);
+            kryo.register(ArrayList.class, 21);
+            kryo.register(HashMap.class, 22);
+            kryo.register(String[].class, 23);
+            kryo.register(DataStreamInfo.class, 40);
+            kryo.register(FeatureId.class, 41);
+            kryo.register(DataRecordImpl.class, 50);
+            kryo.register(VectorImpl.class, 51);
+            kryo.register(DataArrayImpl.class, 52);
+            kryo.register(MatrixImpl.class, 53);
+            kryo.register(DataChoiceImpl.class, 54);
+            kryo.register(BooleanImpl.class, 55);
+            kryo.register(TextImpl.class, 56);
+            kryo.register(CategoryImpl.class, 57);
+            kryo.register(CountImpl.class, 58);
+            kryo.register(QuantityImpl.class, 59);
+            kryo.register(TimeImpl.class, 60);
+            kryo.register(CategoryRangeImpl.class, 61);
+            kryo.register(CountRangeImpl.class, 62);
+            kryo.register(QuantityRangeImpl.class, 63);
+            kryo.register(TimeRangeImpl.class, 64);
+            kryo.register(OgcPropertyImpl.class, 80);
+            kryo.register(OgcPropertyList.class, 81);
+            kryo.register(DataComponentProperty.class, 82);
+            kryo.register(DataComponentPropertyList.class, 83);
+            kryo.register(AllowedTokensImpl.class, 84);
+            kryo.register(AllowedValuesImpl.class, 85);
+            kryo.register(AllowedTimesImpl.class, 86);
+            kryo.register(NilValuesImpl.class, 87);
+            kryo.register(NilValueImpl.class, 88);
+            kryo.register(UnitReferenceImpl.class, 89);
+            kryo.register(EncodedValuesImpl.class, 90);
+            kryo.register(TextEncodingImpl.class, 91);
+            kryo.register(JSONEncodingImpl.class, 92);
+            kryo.register(XMLEncodingImpl.class, 93);
+            kryo.register(BinaryEncodingImpl.class, 94);
+            kryo.register(BinaryComponentImpl.class, 95);
+            kryo.register(BinaryBlockImpl.class, 96);
+            kryo.register(DateTimeOrDouble.class, 97);
+        };
     }
 }

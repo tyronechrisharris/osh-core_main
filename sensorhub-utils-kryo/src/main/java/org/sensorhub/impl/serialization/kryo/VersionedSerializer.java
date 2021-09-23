@@ -16,14 +16,22 @@ package org.sensorhub.impl.serialization.kryo;
 
 import java.util.Arrays;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.SerializerFactory;
+import com.esotericsoftware.kryo.SerializerFactory.BaseSerializerFactory;
+import com.esotericsoftware.kryo.SerializerFactory.SingletonSerializerFactory;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.google.common.collect.ImmutableMap;
 
 
 public class VersionedSerializer<T> extends Serializer<T>
 {
+    static Logger log = LoggerFactory.getLogger(VersionedSerializer.class);
+    
     final SerializerEntry[] serializers;
     final int currentVersion;
     final Serializer<T> currentVersionSerializer;
@@ -36,7 +44,7 @@ public class VersionedSerializer<T> extends Serializer<T>
     }
     
     
-    public VersionedSerializer(Map<Integer, Serializer<T>> serializers, int currentVersion)
+    public VersionedSerializer(Map<Integer, ? extends Serializer<T>> serializers, int currentVersion)
     {
         this.currentVersion = currentVersion;
         this.currentVersionSerializer = serializers.get(currentVersion);
@@ -71,6 +79,8 @@ public class VersionedSerializer<T> extends Serializer<T>
     @Override
     public void write(Kryo kryo, Output output, T object)
     {
+        if (log.isTraceEnabled())
+            log.trace("Writing {}, version {}", object.getClass(), currentVersion);
         output.writeVarInt(currentVersion, true);
         currentVersionSerializer.write(kryo, output, object);
     }
@@ -99,7 +109,43 @@ public class VersionedSerializer<T> extends Serializer<T>
             }
         }
         
+        if (log.isTraceEnabled())
+            log.trace("Reading {}, version {}", type, readVersion);
         return reader.read(kryo, input, type);
+    }
+    
+    
+    public static <T> SerializerFactory<VersionedSerializer<T>>factory(Map<Integer, ? extends Serializer<T>> serializers, int currentVersion)
+    {
+        return new SingletonSerializerFactory<>(new VersionedSerializer<T>(serializers, currentVersion));
+    }
+    
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static <T> SerializerFactory<VersionedSerializer<T>>factory2(Map<Integer, ? extends SerializerFactory<? extends Serializer>> factories, int currentVersion)
+    {
+        return new BaseSerializerFactory<>() {
+            public VersionedSerializer<T> newSerializer(Kryo kryo, Class type)
+            {
+                // create serializer map
+                var mapBuilder = ImmutableMap.<Integer, Serializer<T>>builder();
+                factories.forEach((version, fac) -> {
+                    var serializer = fac.newSerializer(kryo, type);
+                    mapBuilder.put(version, serializer);
+                });                
+                var serializers = mapBuilder.build();
+                
+                if (log.isTraceEnabled())
+                {
+                    var buf = new StringBuilder();
+                    for (var s: serializers.entrySet())
+                        buf.append("Version " + s.getKey() + " -> " + s.getValue().getClass());
+                    log.trace("Serializers for " + type + ": " + buf.toString());
+                }
+                
+                return new VersionedSerializer<T>(serializers, currentVersion);
+            }
+        };
     }
 
 }

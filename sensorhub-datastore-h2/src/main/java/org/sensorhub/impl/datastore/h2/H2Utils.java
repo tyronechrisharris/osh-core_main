@@ -53,8 +53,11 @@ public class H2Utils
     {
         StoreInfoDataType()
         {
-            // pre-register known types with Kryo
-            registeredClasses.put(20, MVDataStoreInfo.class);
+            this.configurator = kryo -> {
+                
+                // pre-register known types with Kryo
+                kryo.register(MVDataStoreInfo.class, 20);
+            };
         }
     }
     

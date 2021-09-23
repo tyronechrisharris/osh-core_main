@@ -20,7 +20,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.xml.namespace.QName;
 import org.h2.mvstore.DataUtils;
+import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
+import org.h2.mvstore.type.DataType;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -83,6 +85,13 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
         }
         
         return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo, idProvider);
+    }
+    
+    
+    @Override
+    protected DataType getFeatureDataType(MVMap<String, Integer> kryoClassMap)
+    {
+        return new ProcedureDataType(kryoClassMap);
     }
     
     

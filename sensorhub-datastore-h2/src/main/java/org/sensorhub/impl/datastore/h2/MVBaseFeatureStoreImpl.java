@@ -27,9 +27,11 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.h2.mvstore.MVBTreeMap;
+import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.rtree.SpatialKey;
+import org.h2.mvstore.type.DataType;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.TemporalFilter;
@@ -117,6 +119,9 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
         
+        // persistent class mappings for Kryo
+        var kryoClassIdMap = mvStore.openMap("kryoClassMap", new MVBTreeMap.Builder<String, Integer>());
+        
         // feature records map
         String mapName = dataStoreInfo.getName() + ":" + FEATURE_RECORDS_MAP_NAME;
         this.featuresIndex = mvStore.openMap(mapName, 
@@ -173,7 +178,13 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         
         return this;
     }
-        
+    
+    
+    protected DataType getFeatureDataType(MVMap<String, Integer> kryoClassMap)
+    {
+        return new FeatureDataType(kryoClassMap);
+    }
+
 
     @Override
     public String getDatastoreName()
@@ -214,7 +225,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         
         // add to store
         put(newKey, feature, existingKey == null, false);
-        return newKey;       
+        return newKey;
     }
     
     

@@ -29,7 +29,10 @@ public class FoiPeriodDataType extends KryoDataType
 {
     FoiPeriodDataType()
     {
-        // pre-register known types with Kryo
-        registeredClasses.put(20, Instant.class);
+        this.configurator = kryo -> {
+            
+            // pre-register known types with Kryo
+            kryo.register(Instant.class, 20);
+        };
     }
 }

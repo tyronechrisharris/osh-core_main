@@ -14,7 +14,11 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.time.Instant;
+import org.h2.mvstore.MVMap;
+import org.sensorhub.impl.datastore.h2.index.PersistentClassResolver;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import net.opengis.OgcPropertyList;
+import net.opengis.sensorml.v20.PhysicalSystem;
 
 
 /**
@@ -27,12 +31,16 @@ import java.time.Instant;
  */
 public class ProcedureDataType extends KryoDataType
 {
-    ProcedureDataType()
+    ProcedureDataType(MVMap<String, Integer> kryoClassMap)
     {
-        // pre-register known types with Kryo
-        registeredClasses.put(20, Instant.class);
-        
-        // register serializer for Guava Range objects
-        //serializers.put(Range.class, new KryoUtils.TimeRangeSerializer());
+        this.classResolver = new PersistentClassResolver(kryoClassMap);
+        this.configurator = kryo -> {
+            
+            // avoid using collection serializer on OgcPropertyList because
+            // the add method doesn't behave as expected
+            kryo.addDefaultSerializer(OgcPropertyList.class, FieldSerializer.class);
+            
+            
+        };
     }
 }

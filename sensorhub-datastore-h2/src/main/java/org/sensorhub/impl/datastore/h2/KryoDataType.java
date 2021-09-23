@@ -15,26 +15,33 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.nio.ByteBuffer;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.function.Consumer;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.objenesis.strategy.StdInstantiatorStrategy;
+import org.sensorhub.impl.datastore.h2.index.PersistentClassResolver;
+import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.esotericsoftware.kryo.ClassResolver;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Kryo.DefaultInstantiatorStrategy;
-import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.SerializerFactory;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import net.opengis.OgcPropertyList;
+import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
+import com.esotericsoftware.kryo.util.Pool;
+import com.google.common.collect.ImmutableMap;
 
 
 public class KryoDataType implements DataType
 {
+    static Logger log = LoggerFactory.getLogger(KryoDataType.class);
+    
+    //final Pool<KryoInstance> kryoPool;
     final ThreadLocal<KryoInstance> kryoLocal;
-    protected final Map<Integer, Class<?>> registeredClasses = new LinkedHashMap<>();
-    protected final Map<Class<?>, Serializer<?>> serializers = new LinkedHashMap<>();
+    protected ClassResolver classResolver;
+    protected Consumer<Kryo> configurator;
+    protected SerializerFactory<?> defaultObjectSerializer;
     protected int averageRecordSize, maxRecordSize;
     
     
@@ -44,26 +51,26 @@ public class KryoDataType implements DataType
         Output output;
         Input input;
         
-        KryoInstance(Map<Integer, Class<?>> registeredClasses, Map<Class<?>, Serializer<?>> serializers, int bufferSize, int maxBufferSize)
+        KryoInstance(SerializerFactory<?> defaultObjectSerializer, ClassResolver classResolver, Consumer<Kryo> configurator, int bufferSize, int maxBufferSize)
         {
-            kryo = new Kryo();
+            kryo = classResolver != null ? new Kryo(classResolver, null) : new Kryo();
+            kryo.setRegistrationRequired(false);
+            kryo.setReferences(true);
             
             // instantiate classes using default (private) constructor when available
             // or using direct JVM technique when needed
             kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
             
-            // pre-register custom serializers
-            for (Entry<Class<?>, Serializer<?>> entry: serializers.entrySet())
-                kryo.addDefaultSerializer(entry.getKey(), entry.getValue());
+            // set default object serializer
+            kryo.setDefaultSerializer(defaultObjectSerializer);
             
-            // avoid using collection serializer on OgcPropertyList because
-            // the add method doesn't behave as expected
-            kryo.addDefaultSerializer(OgcPropertyList.class, FieldSerializer.class);
+            // configure kryo instance
+            if (configurator != null)
+                configurator.accept(kryo);
             
-            // pre-register data block classes to reduce storage size
-            // don't change the order to stay compatible with old storage files!!
-            for (Entry<Integer, Class<?>> entry: registeredClasses.entrySet())                
-                kryo.register(entry.getValue(), entry.getKey());
+            // load persistent class mappings if needed
+            if (classResolver instanceof PersistentClassResolver)
+                ((PersistentClassResolver) classResolver).loadMappings();
             
             input = new Input();
             output = new Output(bufferSize, maxBufferSize);
@@ -79,13 +86,44 @@ public class KryoDataType implements DataType
     
     public KryoDataType(final int maxRecordSize)
     {
+        //Log.set(Log.LEVEL_TRACE);
         this.maxRecordSize = maxRecordSize;
+        
+        // set default serializer to our versioned serializer
+        this.defaultObjectSerializer = VersionedSerializer.<Object>factory2(ImmutableMap.of(
+            MVObsDatabase.CURRENT_VERSION, new SerializerFactory.FieldSerializerFactory()),
+            MVObsDatabase.CURRENT_VERSION);
+        
+        /*// use both a pool and thread local
+        // we get the object from thread local everytime
+        this.kryoPool = new Pool<KryoInstance>(true, false, 1024) {
+            @Override
+            protected KryoInstance create()
+            {
+                return new KryoInstance(defaultObjectSerializer, classResolver, configurator, 2*averageRecordSize, maxRecordSize);
+            }
+        };
         
         this.kryoLocal = new ThreadLocal<KryoInstance>()
         {
             public KryoInstance initialValue()
             {
-                return new KryoInstance(registeredClasses, serializers, 2*averageRecordSize, maxRecordSize);
+                return kryoPool.obtain();
+            }
+            
+            public void remove()
+            {
+                kryoPool.free(this.get());
+                super.remove();
+            }
+        };*/
+        
+        this.kryoLocal = new ThreadLocal<KryoInstance>()
+        {
+            public KryoInstance initialValue()
+            {
+                log.debug("Loading Kryo instance for " + KryoDataType.this.getClass().getSimpleName());
+                return new KryoInstance(defaultObjectSerializer, classResolver, configurator, 2*averageRecordSize, maxRecordSize);
             }
         };
     }
@@ -114,7 +152,7 @@ public class KryoDataType implements DataType
         
         KryoInstance kryoI = kryoLocal.get();
         Kryo kryo = kryoI.kryo;
-        Output output = kryoI.output;        
+        Output output = kryoI.output;
         output.setPosition(0);
         
         //kryo.writeObjectOrNull(output, obj, objectType);

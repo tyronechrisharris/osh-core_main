@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.serialization.kryo.v1;
 
 import javax.xml.namespace.QName;
+import org.vast.ogc.gml.ExtensibleFeatureImpl;
 import org.vast.ogc.gml.GMLStaxBindings;
 import org.vast.ogc.gml.GenericTemporalFeatureImpl;
 import org.vast.ogc.gml.IFeature;
@@ -27,10 +28,6 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.AbstractGeometry;
-import net.opengis.gml.v32.LineString;
-import net.opengis.gml.v32.LinearRing;
-import net.opengis.gml.v32.Point;
-import net.opengis.gml.v32.Polygon;
 import net.opengis.gml.v32.impl.GMLFactory;
 
 
@@ -45,9 +42,7 @@ import net.opengis.gml.v32.impl.GMLFactory;
 public class FeatureSerializer extends Serializer<IFeature>
 {
     static final int VERSION = 1;
-    static final String UNKNOWN_GEOM_ERROR = "Unsupported geometry type: ";
     static final QName DEFAULT_QNAME = new QName(GMLStaxBindings.NS_URI, "Feature");
-    static enum GeomType {NULL, POINT, LINESTRING, POLYGON}
     
     GMLFactory gmlFactory = new GMLFactory(true);
     
@@ -61,7 +56,7 @@ public class FeatureSerializer extends Serializer<IFeature>
     public void write(Kryo kryo, Output output, IFeature f)
     {
         //output.writeString(f.getId());
-        output.writeString(f instanceof AbstractFeature ? ((AbstractFeature)f).getQName().toString() : "Feature");
+        output.writeString(f instanceof AbstractFeature ? ((AbstractFeature)f).getQName().toString() : null);
         
         // common properties
         output.writeString(f.getUniqueIdentifier());
@@ -70,15 +65,16 @@ public class FeatureSerializer extends Serializer<IFeature>
         
         // geometry
         AbstractGeometry geom = null;
-        if (f instanceof IGeoFeature)
+        if (f instanceof IGeoFeature &&
+            !(f instanceof ExtensibleFeatureImpl && ((ExtensibleFeatureImpl) f).hasCustomGeomProperty()))
             geom = ((IGeoFeature) f).getGeometry();
-        writeGeometry(output, geom);
+        kryo.writeClassAndObject(output, geom);
         
         // valid time
         TimeExtent validTime = null;
         if (f instanceof ITemporalFeature)
             validTime = ((ITemporalFeature) f).getValidTime();
-        KryoUtils.writeTimeExtent(output, validTime);
+        kryo.writeClassAndObject(output, validTime);
         
         // properties
         output.writeVarInt(f.getProperties().size(), true);
@@ -103,12 +99,12 @@ public class FeatureSerializer extends Serializer<IFeature>
         f.setDescription(input.readString());
         
         // geom
-        var geom = readGeometry(input);
+        var geom = (AbstractGeometry)kryo.readClassAndObject(input);
         if (geom != null)
             f.setGeometry(geom);
         
         // valid time
-        var validTime = KryoUtils.readTimeExtent(input);
+        var validTime = (TimeExtent)kryo.readClassAndObject(input);
         if (validTime != null)
             f.setValidTime(validTime);
         
@@ -122,116 +118,5 @@ public class FeatureSerializer extends Serializer<IFeature>
         }
         
         return f;
-    }
-    
-    
-    protected void writeGeometry(Output output, AbstractGeometry g)
-    {
-        // geom type
-        if (g == null)
-        {
-            output.writeByte(GeomType.NULL.ordinal());
-            return;
-        }
-        
-        // SRS name and dimensionality
-        output.writeString(g.getSrsName());
-        output.writeByte(g.getSrsDimension());        
-        
-        if (g instanceof Point)
-        {
-            output.writeByte(GeomType.POINT.ordinal());
-            writePosList(output, ((Point) g).getPos());
-        }
-        else if (g instanceof LineString)
-        {
-            output.writeByte(GeomType.LINESTRING.ordinal());
-            writePosList(output, ((LineString) g).getPosList());
-        }
-        else if (g instanceof Polygon)
-        {
-            output.writeByte(GeomType.POLYGON.ordinal());
-            // exterior
-            double[] posList = ((Polygon) g).getExterior().getPosList();
-            writePosList(output, posList);
-            // holes
-            int numHoles = ((Polygon) g).getNumInteriors();
-            output.writeVarInt(numHoles, true);
-            if (numHoles > 0)
-            {
-                for (LinearRing hole: ((Polygon) g).getInteriorList())
-                    writePosList(output, hole.getPosList());
-            }
-        }
-        else
-            throw new IllegalStateException(UNKNOWN_GEOM_ERROR + g.getClass().getCanonicalName());
-    }
-    
-    
-    protected void writePosList(Output output, double[] posList)
-    {
-        output.writeVarInt(posList.length, true);
-        output.writeDoubles(posList, 0, posList.length);
-    }
-    
-    
-    protected AbstractGeometry readGeometry(Input input)
-    {
-        int geomTypeIndex = input.readByte();
-        if (geomTypeIndex == GeomType.NULL.ordinal())
-            return null;
-        if (geomTypeIndex > GeomType.values().length)
-            throw new IllegalStateException(UNKNOWN_GEOM_ERROR + geomTypeIndex);
-                
-        // SRS name and dimensionality
-        var srsName = input.readString();
-        var srsDims = input.readByte();
-        
-        var geomType = GeomType.values()[geomTypeIndex];
-        AbstractGeometry g = null;
-        switch (geomType)
-        {
-            case POINT:
-                g = gmlFactory.newPoint();
-                ((Point)g).setPos(readPosList(input));
-                break;
-                
-            case LINESTRING:
-                g = gmlFactory.newLineString();
-                ((LineString)g).setPosList(readPosList(input));
-                break;
-                
-            case POLYGON:
-                g = gmlFactory.newPolygon();
-                ((Polygon)g).setExterior(readLinearRing(input));
-                int numHoles = input.readVarInt(true);
-                for (int i=0; i<numHoles;i++)
-                    ((Polygon)g).addInterior(readLinearRing(input));
-                break;
-                
-            default:
-                throw new IllegalStateException(UNKNOWN_GEOM_ERROR + geomType);
-        }
-        
-        if (srsName != null)
-            g.setSrsName(srsName);
-        g.setSrsDimension(srsDims);
-        
-        return g;
-    }
-    
-    
-    protected double[] readPosList(Input input)
-    {
-        int l = input.readVarInt(true);
-        return input.readDoubles(l);
-    }
-    
-    
-    protected LinearRing readLinearRing(Input input)
-    {
-        LinearRing ring = gmlFactory.newLinearRing();
-        ring.setPosList(readPosList(input));
-        return ring;
     }
 }

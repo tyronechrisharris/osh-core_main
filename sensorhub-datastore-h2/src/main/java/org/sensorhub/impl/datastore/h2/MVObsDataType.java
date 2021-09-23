@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import org.sensorhub.api.obs.ObsData;
@@ -54,34 +55,38 @@ class MVObsDataType extends KryoDataType
 {
     MVObsDataType()
     {
-        // pre-register known types with Kryo
-        registeredClasses.put(20, ObsData.class);
-        registeredClasses.put(30, HashMap.class);
-        registeredClasses.put(31, Entry.class);
-        registeredClasses.put(32, Entry[].class);
-        registeredClasses.put(100, DataBlockBoolean.class);
-        registeredClasses.put(101, DataBlockByte.class);
-        registeredClasses.put(102, DataBlockUByte.class);
-        registeredClasses.put(103, DataBlockShort.class);
-        registeredClasses.put(104, DataBlockUShort.class);
-        registeredClasses.put(105, DataBlockInt.class);
-        registeredClasses.put(106, DataBlockUInt.class);
-        registeredClasses.put(107, DataBlockLong.class);
-        registeredClasses.put(108, DataBlockFloat.class);
-        registeredClasses.put(109, DataBlockDouble.class);
-        registeredClasses.put(110, DataBlockString.class);
-        registeredClasses.put(111, AbstractDataBlock[].class);
-        registeredClasses.put(112, DataBlockTuple.class);
-        registeredClasses.put(113, DataBlockParallel.class);
-        registeredClasses.put(114, DataBlockMixed.class);
-        registeredClasses.put(115, DataBlockCompressed.class);
-        registeredClasses.put(200, Coordinate.class);
-        registeredClasses.put(201, Coordinate[].class);
-        registeredClasses.put(202, CoordinateArraySequence.class);
-        registeredClasses.put(203, JTSCoordinatesDoubleArray.class);
-        registeredClasses.put(210, Point.class);
-        registeredClasses.put(211, LineString.class);
-        registeredClasses.put(212, LinearRing.class);
-        registeredClasses.put(213, Polygon.class);
+        this.configurator = kryo -> {
+            
+            // pre-register known types with Kryo
+            kryo.register(ObsData.class, 20);
+            kryo.register(Instant.class, 30);
+            kryo.register(HashMap.class, 31);
+            kryo.register(Entry.class, 32);
+            kryo.register(Entry[].class, 33);
+            kryo.register(DataBlockBoolean.class, 100);
+            kryo.register(DataBlockByte.class, 101);
+            kryo.register(DataBlockUByte.class, 102);
+            kryo.register(DataBlockShort.class, 103);
+            kryo.register(DataBlockUShort.class, 104);
+            kryo.register(DataBlockInt.class, 105);
+            kryo.register(DataBlockUInt.class, 106);
+            kryo.register(DataBlockLong.class, 107);
+            kryo.register(DataBlockFloat.class, 108);
+            kryo.register(DataBlockDouble.class, 109);
+            kryo.register(DataBlockString.class, 110);
+            kryo.register(AbstractDataBlock[].class, 111);
+            kryo.register(DataBlockTuple.class, 112);
+            kryo.register(DataBlockParallel.class, 113);
+            kryo.register(DataBlockMixed.class, 114);
+            kryo.register(DataBlockCompressed.class, 115);
+            kryo.register(Coordinate.class, 200);
+            kryo.register(Coordinate[].class, 201);
+            kryo.register(CoordinateArraySequence.class, 202);
+            kryo.register(JTSCoordinatesDoubleArray.class, 203);
+            kryo.register(Point.class, 210);
+            kryo.register(LineString.class, 211);
+            kryo.register(LinearRing.class, 212);
+            kryo.register(Polygon.class, 213);
+        };
     }
 }
