@@ -516,7 +516,7 @@ public class MVObsStoreImpl implements IObsStore
                     return getObsSeriesByDataStream(dsID, timeParams.resultTimeRange, timeParams.latestResultOnly)
                         .filter(s -> {
                             var timeRange = getObsSeriesPhenomenonTimeRange(s.id);
-                            return timeRange.isConnected(timeParams.phenomenonTimeRange);
+                            return timeRange != null && timeRange.isConnected(timeParams.phenomenonTimeRange);
                         })
                         .map(s -> s.key.foiID)
                         .distinct();
