@@ -30,7 +30,7 @@ class MVObsDataType extends KryoDataType
 {
     MVObsDataType(MVMap<String, Integer> kryoClassMap)
     {
-        this.classResolver = new PersistentClassResolver(kryoClassMap);
+        this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
             // pre-register known types with Kryo
         };

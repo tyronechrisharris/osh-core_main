@@ -32,7 +32,7 @@ public class ProcedureDataType extends KryoDataType
 {
     ProcedureDataType(MVMap<String, Integer> kryoClassMap)
     {
-        this.classResolver = new PersistentClassResolver(kryoClassMap);
+        this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
             
             // avoid using collection serializer on OgcPropertyList because

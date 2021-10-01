@@ -16,6 +16,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.objenesis.strategy.StdInstantiatorStrategy;
@@ -29,7 +30,6 @@ import com.esotericsoftware.kryo.SerializerFactory;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
-import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -39,13 +39,13 @@ public class KryoDataType implements DataType
     
     //final Pool<KryoInstance> kryoPool;
     final ThreadLocal<KryoInstance> kryoLocal;
-    protected ClassResolver classResolver;
+    protected Supplier<ClassResolver> classResolver;
     protected Consumer<Kryo> configurator;
     protected SerializerFactory<?> defaultObjectSerializer;
     protected int averageRecordSize, maxRecordSize;
     
     
-    static class KryoInstance
+    class KryoInstance
     {
         Kryo kryo;
         Output output;
@@ -123,7 +123,12 @@ public class KryoDataType implements DataType
             public KryoInstance initialValue()
             {
                 //log.debug("Loading Kryo instance for " + KryoDataType.this.getClass().getSimpleName());
-                return new KryoInstance(defaultObjectSerializer, classResolver, configurator, 2*averageRecordSize, maxRecordSize);
+                return new KryoInstance(
+                    defaultObjectSerializer,
+                    classResolver != null ? classResolver.get() : null,
+                    configurator,
+                    2*averageRecordSize,
+                    maxRecordSize);
             }
         };
     }

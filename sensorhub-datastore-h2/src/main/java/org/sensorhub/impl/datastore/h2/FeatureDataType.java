@@ -37,7 +37,7 @@ class FeatureDataType extends KryoDataType
     
     FeatureDataType(MVMap<String, Integer> kryoClassMap)
     {
-        this.classResolver = new FeatureClassResolver(kryoClassMap);
+        this.classResolver = () -> new FeatureClassResolver(kryoClassMap);
         this.configurator = kryo -> {
             
             // setup generic feature serializer
