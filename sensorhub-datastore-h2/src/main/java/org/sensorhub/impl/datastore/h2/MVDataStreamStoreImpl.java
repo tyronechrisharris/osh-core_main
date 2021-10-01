@@ -156,7 +156,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         String mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_MAP_NAME;
         this.dataStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<DataStreamKey, IDataStreamInfo>()
                 .keyType(new MVDataStreamKeyDataType())
-                .valueType(new MVDataStreamInfoDataType(kryoClassMap)));
+                .valueType(new DataStreamInfoDataType(kryoClassMap)));
 
         // open observation series map
         mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_PROC_MAP_NAME;

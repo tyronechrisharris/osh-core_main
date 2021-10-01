@@ -21,9 +21,9 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import net.opengis.OgcPropertyList;
 
 
-class MVDataStreamInfoDataType extends KryoDataType
+class CommandStreamInfoDataType extends KryoDataType
 {
-    MVDataStreamInfoDataType(MVMap<String, Integer> kryoClassMap)
+    CommandStreamInfoDataType(MVMap<String, Integer> kryoClassMap)
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {

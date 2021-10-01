@@ -168,7 +168,7 @@ public class MVObsStoreImpl implements IObsStore
         String mapName = dataStoreInfo.getName() + ":" + OBS_RECORDS_MAP_NAME;
         this.obsRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, IObsData>()
                 .keyType(new MVTimeSeriesRecordKeyDataType())
-                .valueType(new MVObsDataType(kryoClassMap)));
+                .valueType(new ObsDataType(kryoClassMap)));
         
         // open observation series map
         mapName = dataStoreInfo.getName() + ":" + OBS_SERIES_MAP_NAME;

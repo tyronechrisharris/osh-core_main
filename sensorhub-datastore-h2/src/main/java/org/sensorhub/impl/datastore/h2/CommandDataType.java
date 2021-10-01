@@ -17,20 +17,23 @@ package org.sensorhub.impl.datastore.h2;
 import org.h2.mvstore.MVMap;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import net.opengis.OgcPropertyList;
 
 
-class MVCommandStreamInfoDataType extends KryoDataType
+/**
+ * <p>
+ * H2 DataType implementation for CommandData objects
+ * </p>
+ *
+ * @author Alex Robin
+ * @date Apr 7, 2018
+ */
+class CommandDataType extends KryoDataType
 {
-    MVCommandStreamInfoDataType(MVMap<String, Integer> kryoClassMap)
+    CommandDataType(MVMap<String, Integer> kryoClassMap)
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
-            
-            // avoid using collection serializer on OgcPropertyList because
-            // the add method doesn't behave as expected
-            kryo.addDefaultSerializer(OgcPropertyList.class, FieldSerializer.class);
+            // register custom serializers
         };
     }
 }

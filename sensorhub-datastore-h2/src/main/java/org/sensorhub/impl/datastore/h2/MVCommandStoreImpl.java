@@ -168,7 +168,7 @@ public class MVCommandStoreImpl implements ICommandStore
         String mapName = dataStoreInfo.getName() + ":" + CMD_RECORDS_MAP_NAME;
         this.cmdRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, ICommandAck>()
                 .keyType(new MVTimeSeriesRecordKeyDataType())
-                .valueType(new MVCommandDataType(kryoClassMap)));
+                .valueType(new CommandDataType(kryoClassMap)));
         
         // commands series map
         mapName = dataStoreInfo.getName() + ":" + CMD_SERIES_MAP_NAME;

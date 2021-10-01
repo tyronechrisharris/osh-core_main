@@ -21,15 +21,15 @@ import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 
 /**
  * <p>
- * H2 DataType implementation for CommandData objects
+ * H2 DataType implementation for ObsData objects
  * </p>
  *
  * @author Alex Robin
  * @date Apr 7, 2018
  */
-class MVCommandDataType extends KryoDataType
+class ObsDataType extends KryoDataType
 {
-    MVCommandDataType(MVMap<String, Integer> kryoClassMap)
+    ObsDataType(MVMap<String, Integer> kryoClassMap)
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {

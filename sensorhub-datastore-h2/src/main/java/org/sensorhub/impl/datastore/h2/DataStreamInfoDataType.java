@@ -17,23 +17,20 @@ package org.sensorhub.impl.datastore.h2;
 import org.h2.mvstore.MVMap;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import net.opengis.OgcPropertyList;
 
 
-/**
- * <p>
- * H2 DataType implementation for ObsData objects
- * </p>
- *
- * @author Alex Robin
- * @date Apr 7, 2018
- */
-class MVObsDataType extends KryoDataType
+class DataStreamInfoDataType extends KryoDataType
 {
-    MVObsDataType(MVMap<String, Integer> kryoClassMap)
+    DataStreamInfoDataType(MVMap<String, Integer> kryoClassMap)
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
-            // register custom serializers
+            
+            // avoid using collection serializer on OgcPropertyList because
+            // the add method doesn't behave as expected
+            kryo.addDefaultSerializer(OgcPropertyList.class, FieldSerializer.class);
         };
     }
 }

@@ -156,7 +156,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         String mapName = cmdStore.getDatastoreName() + ":" + CMDSTREAM_MAP_NAME;
         this.cmdStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<CommandStreamKey, ICommandStreamInfo>()
                 .keyType(new MVCommandStreamKeyDataType())
-                .valueType(new MVCommandStreamInfoDataType(kryoClassMap)));
+                .valueType(new CommandStreamInfoDataType(kryoClassMap)));
 
         // procedure index
         mapName = cmdStore.getDatastoreName() + ":" + CDMSTREAM_PROC_MAP_NAME;
