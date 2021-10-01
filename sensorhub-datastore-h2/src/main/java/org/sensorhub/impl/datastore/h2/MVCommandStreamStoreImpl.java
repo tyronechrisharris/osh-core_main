@@ -148,12 +148,15 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
     {
         this.commandStore = Asserts.checkNotNull(cmdStore, MVCommandStoreImpl.class);
         this.mvStore = Asserts.checkNotNull(cmdStore.mvStore, MVStore.class);
+        
+        // persistent class mappings for Kryo
+        var kryoClassMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
 
         // open command stream map
         String mapName = cmdStore.getDatastoreName() + ":" + CMDSTREAM_MAP_NAME;
         this.cmdStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<CommandStreamKey, ICommandStreamInfo>()
                 .keyType(new MVCommandStreamKeyDataType())
-                .valueType(new MVCommandStreamInfoDataType()));
+                .valueType(new MVCommandStreamInfoDataType(kryoClassMap)));
 
         // procedure index
         mapName = cmdStore.getDatastoreName() + ":" + CDMSTREAM_PROC_MAP_NAME;

@@ -30,7 +30,12 @@ import com.esotericsoftware.kryo.util.Util;
 /**
  * <p>
  * Extension of Kryo class resolver to persist class <-> id mappings in the
- * database itself
+ * database itself.<br/>
+ * When this persistent class map is used, the MVStore needs to be committed
+ * twice on close to make sure the mappings are also serialized. This is
+ * needed because the class mappings are updated during serialization of
+ * the main pages using KryoDataType and thus are not always committed to
+ * disk at the same time.
  * </p>
  *
  * @author Alex Robin
@@ -71,7 +76,7 @@ public class PersistentClassResolver implements ClassResolver
                 var className = entry.getKey();
                 var classId = entry.getValue();
                 register(Class.forName(className), classId);
-                log.debug("Loading class mapping: {} -> {}", className, classId);
+                log.trace("Loading class mapping: {} -> {}", className, classId);
                 
                 if (classId > lastId)
                     lastId = classId;
@@ -108,7 +113,7 @@ public class PersistentClassResolver implements ClassResolver
                 classId = classNameToIdMap.computeIfAbsent(type.getName(), name -> {
                     // keep 10 slots for primitive types registered by Kryo
                     var nextId = classNameToIdMap.size()+10;
-                    log.debug("Adding class mapping: {} -> {}", clazz, nextId);
+                    log.trace("Adding class mapping: {} -> {}", clazz, nextId);
                     return nextId;
                 });
             }

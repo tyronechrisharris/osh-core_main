@@ -120,14 +120,14 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
         
         // persistent class mappings for Kryo
-        var kryoClassIdMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
+        var kryoClassMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
         
         // feature records map
         String mapName = dataStoreInfo.getName() + ":" + FEATURE_RECORDS_MAP_NAME;
         this.featuresIndex = mvStore.openMap(mapName, 
                 new MVBTreeMap.Builder<MVFeatureParentKey, V>()
                          .keyType(new MVFeatureParentKeyDataType(true))
-                         .valueType(getFeatureDataType(kryoClassIdMap)));
+                         .valueType(getFeatureDataType(kryoClassMap)));
                 
         // feature IDs to main index
         mapName = dataStoreInfo.getName() + ":" + FEATURE_IDS_MAP_NAME;

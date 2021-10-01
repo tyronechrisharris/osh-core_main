@@ -18,7 +18,6 @@ import org.h2.mvstore.MVMap;
 import org.sensorhub.impl.datastore.h2.index.PersistentClassResolver;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import net.opengis.OgcPropertyList;
-import net.opengis.sensorml.v20.PhysicalSystem;
 
 
 /**
@@ -39,8 +38,6 @@ public class ProcedureDataType extends KryoDataType
             // avoid using collection serializer on OgcPropertyList because
             // the add method doesn't behave as expected
             kryo.addDefaultSerializer(OgcPropertyList.class, FieldSerializer.class);
-            
-            
         };
     }
 }

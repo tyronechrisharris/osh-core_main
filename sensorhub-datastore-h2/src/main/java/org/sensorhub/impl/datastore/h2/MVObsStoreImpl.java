@@ -159,13 +159,16 @@ public class MVObsStoreImpl implements IObsStore
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
-        this.dataStreamStore = new MVDataStreamStoreImpl(this, dsIdProvider); 
-                        
+        this.dataStreamStore = new MVDataStreamStoreImpl(this, dsIdProvider);
+        
+        // persistent class mappings for Kryo
+        var kryoClassMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
+        
         // open observation map
         String mapName = dataStoreInfo.getName() + ":" + OBS_RECORDS_MAP_NAME;
         this.obsRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, IObsData>()
                 .keyType(new MVTimeSeriesRecordKeyDataType())
-                .valueType(new MVObsDataType()));
+                .valueType(new MVObsDataType(kryoClassMap)));
         
         // open observation series map
         mapName = dataStoreInfo.getName() + ":" + OBS_SERIES_MAP_NAME;

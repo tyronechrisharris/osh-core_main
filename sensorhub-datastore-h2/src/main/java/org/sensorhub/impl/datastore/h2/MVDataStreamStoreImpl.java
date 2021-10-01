@@ -148,12 +148,15 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     {
         this.obsStore = Asserts.checkNotNull(obsStore, MVObsStoreImpl.class);
         this.mvStore = Asserts.checkNotNull(obsStore.mvStore, MVStore.class);
+        
+        // persistent class mappings for Kryo
+        var kryoClassMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
 
         // open observation map
         String mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_MAP_NAME;
         this.dataStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<DataStreamKey, IDataStreamInfo>()
                 .keyType(new MVDataStreamKeyDataType())
-                .valueType(new MVDataStreamInfoDataType()));
+                .valueType(new MVDataStreamInfoDataType(kryoClassMap)));
 
         // open observation series map
         mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_PROC_MAP_NAME;

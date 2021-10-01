@@ -196,7 +196,6 @@ public class KryoDataType implements DataType
         Input input = kryoI.input;
         
         input.setBuffer(buff.array(), buff.position(), buff.remaining());
-        //Object obj = kryo.readObjectOrNull(input, objectType);
         Object obj = kryo.readClassAndObject(input);
         buff.position(input.position());
         
