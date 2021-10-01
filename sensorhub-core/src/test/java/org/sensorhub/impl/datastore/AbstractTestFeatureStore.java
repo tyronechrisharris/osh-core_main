@@ -198,7 +198,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     
     protected void addSamplingPoints2D(int startIndex, int numFeatures) throws Exception
     {
-        addGeoFeaturesPoint2D(0L, startIndex, numFeatures);
+        addSamplingPoints2D(0L, startIndex, numFeatures);
     }
     
     
@@ -464,6 +464,10 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         useAdd = true;
         
         addGeoFeaturesPoint2D(10, 33);
+        assertEquals(allFeatures.size(), featureStore.size());
+        getAndCheckFeatures();
+        
+        addSamplingPoints2D(44, 5);
         assertEquals(allFeatures.size(), featureStore.size());
         getAndCheckFeatures();
         

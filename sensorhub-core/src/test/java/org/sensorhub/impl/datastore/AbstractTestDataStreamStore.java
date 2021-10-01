@@ -203,7 +203,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     {
         // add N different datastreams
         var now = TimeExtent.beginAt(Instant.now());
-        int numDs = 1;
+        int numDs = 50;
         for (int i = 1; i <= numDs; i++)
         {
             long procID = i;

@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.objenesis.strategy.StdInstantiatorStrategy;
-import org.sensorhub.impl.datastore.h2.index.PersistentClassResolver;
+import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,7 +122,7 @@ public class KryoDataType implements DataType
         {
             public KryoInstance initialValue()
             {
-                log.debug("Loading Kryo instance for " + KryoDataType.this.getClass().getSimpleName());
+                //log.debug("Loading Kryo instance for " + KryoDataType.this.getClass().getSimpleName());
                 return new KryoInstance(defaultObjectSerializer, classResolver, configurator, 2*averageRecordSize, maxRecordSize);
             }
         };

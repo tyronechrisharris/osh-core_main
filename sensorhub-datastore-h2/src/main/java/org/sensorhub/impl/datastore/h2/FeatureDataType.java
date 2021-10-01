@@ -15,7 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
-import org.sensorhub.impl.datastore.h2.index.PersistentClassResolver;
+import org.sensorhub.impl.datastore.h2.kryo.FeatureClassResolver;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.gml.IFeature;
@@ -37,7 +37,7 @@ class FeatureDataType extends KryoDataType
     
     FeatureDataType(MVMap<String, Integer> kryoClassMap)
     {
-        this.classResolver = new PersistentClassResolver(kryoClassMap);
+        this.classResolver = new FeatureClassResolver(kryoClassMap);
         this.configurator = kryo -> {
             
             // setup generic feature serializer

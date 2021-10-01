@@ -15,7 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
-import org.sensorhub.impl.datastore.h2.index.PersistentClassResolver;
+import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 
 
 /**

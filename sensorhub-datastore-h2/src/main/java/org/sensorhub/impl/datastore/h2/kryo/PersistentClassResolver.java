@@ -12,7 +12,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2.index;
+package org.sensorhub.impl.datastore.h2.kryo;
 
 import org.h2.mvstore.MVMap;
 import org.slf4j.Logger;
