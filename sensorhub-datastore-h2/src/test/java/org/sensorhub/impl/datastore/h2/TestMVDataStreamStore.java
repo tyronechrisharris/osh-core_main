@@ -46,7 +46,11 @@ public class TestMVDataStreamStore extends AbstractTestDataStreamStore<MVDataStr
     private MVDataStreamStoreImpl openMVStore()
     {
         if (mvStore != null)
+        {
+            mvStore.commit();
             mvStore.close();
+            System.out.println("MVStore flushed to disk");
+        }
         
         mvStore = new MVStore.Builder()
                 .fileName(dbFile.getAbsolutePath())

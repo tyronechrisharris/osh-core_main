@@ -48,7 +48,11 @@ public class TestMVCommandStore extends AbstractTestCommandStore<MVCommandStoreI
     private MVCommandStoreImpl openMVStore()
     {
         if (mvStore != null)
+        {
+            mvStore.commit();
             mvStore.close();
+            System.out.println("MVStore flushed to disk");
+        }
         
         mvStore = new MVStore.Builder()
                 .fileName(dbFile.getAbsolutePath())

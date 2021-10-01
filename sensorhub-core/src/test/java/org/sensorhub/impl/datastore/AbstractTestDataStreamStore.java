@@ -165,6 +165,10 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         }        
 
         assertArrayEquals(os1.toByteArray(), os2.toByteArray());
+        
+        // also check that parent references are set properly
+        for (int i = 0; i < c2.getComponentCount(); i++)
+            assertTrue(c2.getComponent(i).getParent() == c2);
     }
 
 
@@ -199,14 +203,23 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     {
         // add N different datastreams
         var now = TimeExtent.beginAt(Instant.now());
-        int numDs = 100;
-        for (int i = 1; i < numDs; i++)
+        int numDs = 1;
+        for (int i = 1; i <= numDs; i++)
         {
             long procID = i;
             addSimpleDataStream(procID, "test1", now);
         }
         
-        // read back and check
+        // get and check
+        for (Entry<DataStreamKey, IDataStreamInfo> entry: allDataStreams.entrySet())
+        {
+            IDataStreamInfo dsInfo = dataStreamStore.get(entry.getKey());
+            assertEquals(entry.getValue().getProcedureID(), dsInfo.getProcedureID());
+            assertEquals(entry.getValue().getOutputName(), dsInfo.getOutputName());
+            checkDataComponentEquals(entry.getValue().getRecordStructure(), dsInfo.getRecordStructure());
+        }
+        
+        // read back and check again
         forceReadBackFromStorage();
         for (Entry<DataStreamKey, IDataStreamInfo> entry: allDataStreams.entrySet())
         {
