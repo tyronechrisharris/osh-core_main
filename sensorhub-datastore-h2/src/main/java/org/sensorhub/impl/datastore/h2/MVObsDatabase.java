@@ -14,8 +14,14 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.time.Instant;
 import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
+import org.h2.mvstore.MVStoreTool;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IProcedureObsDatabaseModule;
 import org.sensorhub.api.database.IProcedureObsDatabase;
@@ -149,6 +155,33 @@ public class MVObsDatabase extends AbstractModule<MVObsDatabaseConfig> implement
             mvStore.close();
             mvStore = null;
         }
+        
+        // log store info if debug is enabled
+        if (getLogger().isDebugEnabled() && new File(config.storagePath).exists())
+        {
+            try
+            {
+                // log summary info
+                var strWriter = new StringWriter();
+                MVStoreTool.info(config.storagePath, strWriter);
+                getLogger().debug(strWriter.toString());
+                
+                // dump detailed DB structure to file
+                var dumpFileName = getName().toLowerCase().replace(' ', '_') + ".dump-" + Instant.now().getEpochSecond() + ".txt";
+                var dumpFileWriter = new FileWriter(dumpFileName);
+                dumpFileWriter.append(strWriter.getBuffer());
+                dumpFileWriter.append('\n');
+                MVStoreTool.dump(config.storagePath, dumpFileWriter, true);
+            }
+            catch (IOException e)
+            {
+                throw new SensorHubException("Error printing MVStore info", e);
+            }
+        }
+        
+        // compact store if requested
+        if (config.compactOnClose)
+            MVStoreTool.compact(config.storagePath, false);
     }
 
 

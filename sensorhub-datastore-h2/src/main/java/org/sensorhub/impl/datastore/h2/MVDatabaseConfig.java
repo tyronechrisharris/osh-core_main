@@ -69,5 +69,9 @@ public abstract class MVDatabaseConfig extends DatabaseConfig
     
     @DisplayInfo(desc = "Set to open the database as read-only")
     public boolean readOnly = false;
+    
+    
+    @DisplayInfo(desc = "Set to compact the database file when the database module is stopped or restarted")
+    public boolean compactOnClose = true;
 
 }
