@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2;
+package org.sensorhub.impl.datastore.h2.kryo;
 
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.objenesis.strategy.StdInstantiatorStrategy;
-import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import org.sensorhub.impl.datastore.h2.MVObsDatabase;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

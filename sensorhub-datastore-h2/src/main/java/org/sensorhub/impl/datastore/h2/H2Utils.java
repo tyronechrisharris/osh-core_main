@@ -23,6 +23,7 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.rtree.SpatialKey;
 import org.sensorhub.api.datastore.TemporalFilter;
+import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.vast.util.Asserts;
 import com.google.common.collect.Range;
 import com.vividsolutions.jts.geom.Envelope;

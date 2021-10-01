@@ -16,6 +16,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
 import org.sensorhub.impl.datastore.h2.kryo.FeatureClassResolver;
+import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.gml.IFeature;
@@ -45,7 +46,7 @@ class FeatureDataType extends KryoDataType
                 MVObsDatabase.CURRENT_VERSION, new org.sensorhub.impl.serialization.kryo.v1.FeatureSerializer()),
                 MVObsDatabase.CURRENT_VERSION));
             
-            // but use defailt serializer for the following well-known feature types
+            // but use default serializer for the following well-known feature types
             kryo.addDefaultSerializer(FeatureRef.class, defaultObjectSerializer);
             kryo.addDefaultSerializer(ProcedureRef.class, defaultObjectSerializer);
             kryo.addDefaultSerializer(SamplingFeature.class, defaultObjectSerializer);

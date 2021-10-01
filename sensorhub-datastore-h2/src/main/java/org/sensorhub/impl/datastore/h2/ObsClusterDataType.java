@@ -14,9 +14,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.time.Instant;
-import org.vast.util.Bbox;
-import org.vast.util.TimeExtent;
+import org.h2.mvstore.MVMap;
+import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
+import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 
 
 /**
@@ -29,14 +29,11 @@ import org.vast.util.TimeExtent;
  */
 class ObsClusterDataType extends KryoDataType
 {
-    ObsClusterDataType()
+    ObsClusterDataType(MVMap<String, Integer> kryoClassMap)
     {
+        this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
-            
-            // pre-register known types with Kryo
-            kryo.register(TimeExtent.class, 20);
-            kryo.register(Instant.class, 21);
-            kryo.register(Bbox.class, 22);
+            // register custom serializers
         };
     }
 }
