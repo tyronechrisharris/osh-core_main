@@ -14,11 +14,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.xml.namespace.QName;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -31,14 +29,13 @@ import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.feature.FeatureWrapper;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
-import org.sensorhub.impl.datastore.h2.MVFeatureStoreImpl.IGeoTemporalFeature;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.hash.Hashing;
-import net.opengis.gml.v32.AbstractGeometry;
 
 
 /**
@@ -156,20 +153,12 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
         // update validTime in the case it ends at now and there is a
         // more recent version of the feature description available
         Stream<Entry<FeatureKey, IFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
-            if (e.getValue() instanceof IGeoTemporalFeature)
+            var f = e.getValue();
+            if (f.getValidTime() != null)
             {
-                var f = (IGeoTemporalFeature)e.getValue();
-                var procWrap = new IGeoTemporalFeature()
+                var foiWrap = new FeatureWrapper(f)
                 {
                     TimeExtent validTime;
-                    
-                    public String getId() { return f.getId(); }
-                    public String getUniqueIdentifier() { return f.getUniqueIdentifier(); }
-                    public String getName() { return f.getName(); }
-                    public String getDescription() { return f.getDescription(); }
-                    public AbstractGeometry getGeometry() { return f.getGeometry(); }
-                    public Map<QName, Object> getProperties() { return f.getProperties(); } 
-                    
                     public TimeExtent getValidTime()
                     {
                         if (validTime == null)
@@ -186,7 +175,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
                     }
                 };
                 
-                return new DataUtils.MapEntry<FeatureKey, IFeature>(e.getKey(), procWrap);
+                return new DataUtils.MapEntry<FeatureKey, IFeature>(e.getKey(), foiWrap);
             }
             
             return e;

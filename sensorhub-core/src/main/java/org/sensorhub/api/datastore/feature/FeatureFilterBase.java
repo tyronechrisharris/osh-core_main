@@ -28,8 +28,6 @@ import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.IGeoFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
@@ -137,19 +135,17 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
         
         // if feature doesn't have temporal validity, it means it's always valid
         // so the result depends on temporal operator!
-        if (!(f instanceof ITemporalFeature) || ((ITemporalFeature)f).getValidTime() == null)
+        if (f.getValidTime() == null)
             return validTime.test(TimeExtent.ALL_TIMES);
         else
-            return validTime.test(((ITemporalFeature)f).getValidTime());
+            return validTime.test(f.getValidTime());
     }
     
     
     public boolean testLocation(IFeature f)
     {
-        return (location == null ||
-                (f instanceof IGeoFeature &&
-                ((IGeoFeature)f).getGeometry() != null && 
-                location.test((Geometry)((IGeoFeature)f).getGeometry())));
+        return location == null ||
+               (f.getGeometry() != null && location.test((Geometry)f.getGeometry()));
     }
     
     

@@ -25,7 +25,7 @@ import net.opengis.swe.v20.SimpleComponent;
 import net.opengis.swe.v20.Vector;
 import org.vast.ogc.def.DefinitionRef;
 import org.vast.ogc.gml.FeatureRef;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IObservation;
 import org.vast.ogc.om.ObservationImpl;
 import org.vast.ogc.om.ProcedureRef;
@@ -154,7 +154,7 @@ public class SOSProviderUtils
         // create observation object        
         ObservationImpl obs = new ObservationImpl();
         obs.setType(getObsType(result));
-        obs.setFeatureOfInterest(new FeatureRef<IGeoFeature>(foiURI));
+        obs.setFeatureOfInterest(new FeatureRef<IFeature>(foiURI));
         obs.setObservedProperty(new DefinitionRef(obsPropDef));
         obs.setProcedure(new ProcedureRef(procURI));
         obs.setPhenomenonTime(phenTime);

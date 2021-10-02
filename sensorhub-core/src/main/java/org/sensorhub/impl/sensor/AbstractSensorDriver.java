@@ -30,7 +30,7 @@ import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.sensor.ISensorDriver;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.event.BasicEventHandler;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.SamplingPoint;
 import org.vast.sensorML.PhysicalSystemImpl;
 import org.vast.swe.SWEConstants;
@@ -77,7 +77,7 @@ public abstract class AbstractSensorDriver implements ISensorDriver
     protected volatile long lastUpdatedSensorDescription = Long.MIN_VALUE;
 
     protected volatile boolean enabled;
-    protected volatile Map<String, IGeoFeature> foiMap;
+    protected volatile Map<String, IFeature> foiMap;
 
     
     protected AbstractSensorDriver(String uid, String shortID)
@@ -290,9 +290,9 @@ public abstract class AbstractSensorDriver implements ISensorDriver
 
 
     @Override
-    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
+    public Map<String, ? extends IFeature> getCurrentFeaturesOfInterest()
     {
-        return foiMap;
+        return Collections.unmodifiableMap(foiMap);
     }
 
 

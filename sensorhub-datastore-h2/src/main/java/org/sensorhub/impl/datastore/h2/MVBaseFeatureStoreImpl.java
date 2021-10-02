@@ -45,8 +45,6 @@ import org.sensorhub.impl.datastore.h2.index.FullTextIndex;
 import org.sensorhub.impl.datastore.h2.index.SpatialIndex;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.IGeoFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 
@@ -148,15 +146,11 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             @Override
             protected SpatialKey getSpatialKey(MVFeatureParentKey key, IFeature f)
             {
-                if (!(f instanceof IGeoFeature))
-                    return null;
-                
-                IGeoFeature gf = (IGeoFeature)f;
-                if (gf.getGeometry() == null)
+                if (f.getGeometry() == null)
                     return null;
                 
                 int hashID = Objects.hash(key.getInternalID(), key.getValidStartTime());
-                return H2Utils.getBoundingRectangle(hashID, gf.getGeometry());
+                return H2Utils.getBoundingRectangle(hashID, f.getGeometry());
             }
         };
         
@@ -251,8 +245,8 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         // get valid start time from feature object
         // or use default value if no valid time is set
         Instant validStartTime;
-        if (f instanceof ITemporalFeature && ((ITemporalFeature)f).getValidTime() != null)
-            validStartTime = ((ITemporalFeature)f).getValidTime().begin();
+        if (f.getValidTime() != null)
+            validStartTime = f.getValidTime().begin();
         else
             validStartTime = FeatureKey.TIMELESS; // default value meaning feature is always valid
         

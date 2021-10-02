@@ -17,20 +17,15 @@ package org.sensorhub.impl.service.sweapi.feature;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import javax.xml.namespace.QName;
 import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.feature.FeatureWrapper;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.IGeoFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
-import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonWriter;
-import net.opengis.gml.v32.AbstractGeometry;
 
 
 /**
@@ -43,8 +38,6 @@ import net.opengis.gml.v32.AbstractGeometry;
  */
 public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
 {
-    interface IGeoTemporalFeature extends IGeoFeature, ITemporalFeature {}
-    
     
     FeatureBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
@@ -69,32 +62,12 @@ public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeatur
         Asserts.checkNotNull(key, FeatureKey.class);
         Asserts.checkNotNull(f, IFeature.class);
         
-        return new IGeoTemporalFeature() {
-            
-            public String getUniqueIdentifier() { return f.getUniqueIdentifier(); }
-            public String getName() { return f.getName(); }
-            public String getDescription() { return f.getDescription(); }
-            public Map<QName, Object> getProperties() { return f.getProperties(); }
-
+        return new FeatureWrapper(f) {
             @Override
             public String getId()
             {
                 var externalID = FeatureBindingGeoJson.this.encodeID(key.getInternalID());
                 return Long.toString(externalID, ResourceBinding.ID_RADIX);
-            }
-            
-            @Override
-            public AbstractGeometry getGeometry()
-            {
-                return f instanceof IGeoFeature ?
-                    ((IGeoFeature)f).getGeometry() : null;
-            }
-
-            @Override
-            public TimeExtent getValidTime()
-            {
-                return f instanceof ITemporalFeature ?
-                    ((ITemporalFeature)f).getValidTime() : null;
             }
         };
     }

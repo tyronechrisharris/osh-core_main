@@ -36,7 +36,7 @@ import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.vast.ogc.gml.GenericFeatureImpl;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.sensorML.SMLFactory;
 import com.google.common.collect.ImmutableMap;
 
@@ -53,7 +53,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IProcedureGr
     public class FakeDataProducer implements IDataProducer
     {
         PhysicalComponent sensor;
-        Map<String, IGeoFeature> fois;
+        Map<String, IFeature> fois;
         Map<String, IStreamingDataInterface> outputs = new HashMap<>();
         EventSourceInfo eventSrcInfo;
         
@@ -126,7 +126,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IProcedureGr
         }
 
         @Override
-        public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
+        public Map<String, ? extends IFeature> getCurrentFeaturesOfInterest()
         {
             return fois;
         }

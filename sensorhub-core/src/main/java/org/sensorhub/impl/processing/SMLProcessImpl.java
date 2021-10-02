@@ -37,7 +37,7 @@ import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.processing.ProcessingException;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.module.AbstractModule;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeature;
 import org.vast.process.ProcessException;
 import org.vast.sensorML.AggregateProcessImpl;
 import org.vast.sensorML.SMLException;
@@ -332,7 +332,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public Map<String, ? extends IGeoFeature> getCurrentFeaturesOfInterest()
+    public Map<String, ? extends IFeature> getCurrentFeaturesOfInterest()
     {
         return Collections.emptyMap();
     }

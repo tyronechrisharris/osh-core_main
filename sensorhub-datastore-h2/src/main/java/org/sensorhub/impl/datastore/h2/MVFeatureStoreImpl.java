@@ -14,29 +14,23 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.xml.namespace.QName;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.api.feature.FeatureWrapper;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.IGeoFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.TimeExtent;
-import net.opengis.gml.v32.AbstractGeometry;
 
 
 public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FeatureField, FeatureFilter> implements IFeatureStore
 {
-    interface IGeoTemporalFeature extends IGeoFeature, ITemporalFeature {}
-    
     
     protected MVFeatureStoreImpl()
     {
@@ -104,31 +98,25 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
         // update validTime in the case it ends at now and there is a
         // more recent version of the procedure description available
         Stream<Entry<FeatureKey, IFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
-            if (e.getValue() instanceof ITemporalFeature)
+            var f = e.getValue();
+            if (f.getValidTime() != null)
             {
-                var f = (ITemporalFeature)e.getValue();
-                var fWrap = new IGeoTemporalFeature()
+                var fWrap = new FeatureWrapper(f)
                 {
-                    public String getId() { return f.getId(); }
-                    public String getUniqueIdentifier() { return f.getUniqueIdentifier(); }
-                    public String getName() { return f.getName(); }
-                    public String getDescription() { return f.getDescription(); }
-                    public Map<QName, Object> getProperties() { return f.getProperties(); }
-                    
-                    public AbstractGeometry getGeometry()
-                    {
-                        return f instanceof IGeoFeature ?
-                            ((IGeoFeature)f).getGeometry() : null;
-                    }
-                    
+                    TimeExtent validTime;
                     public TimeExtent getValidTime()
                     {
-                        var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
-                        if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
-                            f.getValidTime() != null && f.getValidTime().endsNow())
-                            return TimeExtent.period(f.getValidTime().begin(), nextKey.getValidStartTime());
-                        else
-                            return f.getValidTime();
+                        if (validTime == null)
+                        {
+                            var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
+                            if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
+                                f.getValidTime() != null && f.getValidTime().endsNow())
+                                validTime = TimeExtent.period(f.getValidTime().begin(), nextKey.getValidStartTime());
+                            else
+                                validTime = f.getValidTime();
+                        }
+                        
+                        return validTime;
                     }
                 };
                 

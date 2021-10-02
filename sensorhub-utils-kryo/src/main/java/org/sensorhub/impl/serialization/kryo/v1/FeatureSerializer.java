@@ -15,12 +15,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.serialization.kryo.v1;
 
 import javax.xml.namespace.QName;
-import org.vast.ogc.gml.ExtensibleFeatureImpl;
 import org.vast.ogc.gml.GMLStaxBindings;
 import org.vast.ogc.gml.GenericTemporalFeatureImpl;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.IGeoFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.TimeExtent;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
@@ -64,16 +61,11 @@ public class FeatureSerializer extends Serializer<IFeature>
         output.writeString(f.getDescription());
         
         // geometry
-        AbstractGeometry geom = null;
-        if (f instanceof IGeoFeature &&
-            !(f instanceof ExtensibleFeatureImpl && ((ExtensibleFeatureImpl) f).hasCustomGeomProperty()))
-            geom = ((IGeoFeature) f).getGeometry();
+        var geom = !f.hasCustomGeomProperty() ? f.getGeometry() : null;
         kryo.writeClassAndObject(output, geom);
         
         // valid time
-        TimeExtent validTime = null;
-        if (f instanceof ITemporalFeature)
-            validTime = ((ITemporalFeature) f).getValidTime();
+        var validTime = !f.hasCustomTimeProperty() ? f.getValidTime() : null;
         kryo.writeClassAndObject(output, validTime);
         
         // properties

@@ -12,76 +12,74 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.procedure;
+package org.sensorhub.api.feature;
 
 import java.util.Map;
 import javax.xml.namespace.QName;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.TimeExtent;
-import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.gml.v32.AbstractGeometry;
 
 
 /**
  * <p>
- * Helper class to adapt a regular IFeature to the IProcedure interface
+ * Utility class for wrapping a feature and overidding some of its behavior
  * </p>
  *
  * @author Alex Robin
- * @since Jan 7, 2021
+ * @since Oct 2, 2021
  */
-public class ProcedureFeatureAdapter implements IProcedureWithDesc
+public class FeatureWrapper implements IFeature
 {
-    IFeature delegate;
-    
+    IFeature f;
 
-    public ProcedureFeatureAdapter(IFeature f)
+
+    public FeatureWrapper(IFeature delegate)
     {
-        this.delegate = f;
+        this.f = delegate;
     }
-    
-    
+
+
+    @Override
     public String getId()
     {
-        return delegate.getId();
+        return f.getId();
     }
-    
+
 
     public String getUniqueIdentifier()
     {
-        return delegate.getUniqueIdentifier();
+        return f.getUniqueIdentifier();
     }
-    
+
 
     public String getName()
     {
-        return delegate.getName();
+        return f.getName();
     }
-    
 
-    public Map<QName, Object> getProperties()
-    {
-        return delegate.getProperties();
-    }
-    
 
     public String getDescription()
     {
-        return delegate.getDescription();
+        return f.getDescription();
     }
-    
+
+
+    public Map<QName, Object> getProperties()
+    {
+        return f.getProperties();
+    }
+
+
+    public AbstractGeometry getGeometry()
+    {
+        return f.getGeometry();
+    }
+
 
     @Override
     public TimeExtent getValidTime()
     {
-        return delegate.getValidTime();
+        return f.getValidTime();
     }
-    
-
-    @Override
-    public AbstractProcess getFullDescription()
-    {
-        return null;
-    }    
-    
 }

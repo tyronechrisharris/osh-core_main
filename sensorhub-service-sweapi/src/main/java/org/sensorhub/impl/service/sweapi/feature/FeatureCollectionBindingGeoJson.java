@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.Collections;
 import javax.xml.namespace.QName;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.feature.IFeatureCollection;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
@@ -27,7 +26,7 @@ import org.vast.ogc.gml.GenericFeature;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.IGeoFeature;
+import org.vast.ogc.gml.IFeatureCollection;
 import org.vast.util.Asserts;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
@@ -35,7 +34,7 @@ import com.google.gson.stream.JsonWriter;
 import net.opengis.gml.v32.AbstractGeometry;
 
 
-public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJson<IGeoFeature>
+public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
 {
     public static final int EXTERNAL_ID_SEED = 7352181;
     
@@ -102,7 +101,7 @@ public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJs
     
     
     @Override
-    protected IFeatureCollection getFeatureWithId(FeatureKey key, IGeoFeature f)
+    protected IFeatureCollection getFeatureWithId(FeatureKey key, IFeature f)
     {
         Asserts.checkNotNull(key, FeatureKey.class);
         Asserts.checkNotNull(f, IFeatureCollection.class);

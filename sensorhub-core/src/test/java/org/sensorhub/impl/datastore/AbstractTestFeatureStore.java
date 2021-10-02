@@ -46,8 +46,6 @@ import org.vast.ogc.gml.GMLUtils;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.GenericTemporalFeatureImpl;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.IGeoFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.ogc.om.SamplingPoint;
 import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
@@ -77,7 +75,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
     protected StoreType featureStore;
     protected GMLFactory gmlFac = new GMLFactory(true);
-    protected Map<FeatureKey, IGeoFeature> allFeatures = new LinkedHashMap<>();
+    protected Map<FeatureKey, IFeature> allFeatures = new LinkedHashMap<>();
     protected Map<FeatureKey, Long> allParents = new LinkedHashMap<>();
     protected boolean useAdd;
     protected String[] featureTypes = {"building", "road", "waterbody"};
@@ -97,8 +95,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     protected void setCommonFeatureProperties(AbstractFeature f, int num)
     {
         String idPrefix = "F";
-        if (f instanceof ITemporalFeature)
-            idPrefix += "T";        
+        if (f.getValidTime() != null)
+            idPrefix += "T";
         if (f.isSetGeometry())
             idPrefix += "G";
         
@@ -111,8 +109,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     
     protected FeatureKey getKey(IFeature f)
     {
-        Instant validStartTime = (f instanceof ITemporalFeature) ? 
-            ((ITemporalFeature)f).getValidTime().begin() :
+        Instant validStartTime = f.getValidTime() != null ?
+            f.getValidTime().begin() :
             Instant.MIN;
         
         return new FeatureKey(
@@ -340,9 +338,9 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         Bbox expectedBbox = new Bbox();
         for (IFeature f: allFeatures.values())
         {
-            if (f instanceof IGeoFeature && ((IGeoFeature)f).getGeometry() != null)
+            if (f.getGeometry() != null)
             {
-                Envelope env = ((IGeoFeature)f).getGeometry().getGeomEnvelope();
+                Envelope env = f.getGeometry().getGeomEnvelope();
                 expectedBbox.add(GMLUtils.envelopeToBbox(env));
             }
         }
@@ -419,12 +417,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         //assertEquals(f1.getClass(), f2.getClass());
         assertEquals(f1.getUniqueIdentifier(), f2.getUniqueIdentifier());
-        
-        if (f1 instanceof ITemporalFeature)
-            assertEquals(((ITemporalFeature)f1).getValidTime(), ((ITemporalFeature)f2).getValidTime());
-        
-        if (f1 instanceof IGeoFeature && ((IGeoFeature)f1).getGeometry() != null)
-            assertEquals(((IGeoFeature)f1).getGeometry().getClass(), ((IGeoFeature)f2).getGeometry().getClass());
+        assertEquals(f1.getValidTime(), f2.getValidTime());
+        assertEquals(f1.getGeometry(), f2.getGeometry());
     }
     
     
@@ -503,10 +497,10 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             assertEquals(expectedCurrentVersionTime.toInstant(), fk.getValidStartTime());
             
             var f = featureStore.getCurrentVersion(i+1);
-            assertEquals(expectedCurrentVersionTime.toInstant(), ((ITemporalFeature)f).getValidTime().begin());
+            assertEquals(expectedCurrentVersionTime.toInstant(), f.getValidTime().begin());
             
             f = featureStore.getCurrentVersion(UID_PREFIX + "FT" + i);
-            assertEquals(expectedCurrentVersionTime.toInstant(), ((ITemporalFeature)f).getValidTime().begin());
+            assertEquals(expectedCurrentVersionTime.toInstant(), f.getValidTime().begin());
         }
     }
     
@@ -548,7 +542,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     }
     
     
-    protected void checkSelectedEntries(FeatureFilter filter, Stream<Entry<FeatureKey, IFeature>> resultStream, Map<FeatureKey, IGeoFeature> expectedResults)
+    protected void checkSelectedEntries(FeatureFilter filter, Stream<Entry<FeatureKey, IFeature>> resultStream, Map<FeatureKey, IFeature> expectedResults)
     {
         if (filter != null)
             System.out.println("\nSelect with " + filter);
@@ -576,11 +570,11 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         boolean lastVersion = timeRange.lowerEndpoint() == Instant.MAX && timeRange.upperEndpoint() == Instant.MAX;
         System.out.println("\nSelect " + expectedIds + " within " +  (lastVersion ? "LATEST" : timeRange));
         
-        Map<FeatureKey, IGeoFeature> expectedResults = new TreeMap<>();
+        Map<FeatureKey, IFeature> expectedResults = new TreeMap<>();
         allFeatures.entrySet().stream()
             .filter(e -> expectedIds.contains(e.getValue().getUniqueIdentifier()))
-            .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
-                         timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
+            .filter(e -> e.getValue().getValidTime() == null ||
+                         timeRange.isConnected(e.getValue().getValidTime().asRange()))
             .forEach(e -> expectedResults.put(e.getKey(), e.getValue()));
         
         checkSelectedEntries(null, resultStream, expectedResults);
@@ -591,11 +585,11 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         System.out.println("\nSelect " + roi + " within " + timeRange);
         
-        Map<FeatureKey, IGeoFeature> expectedResults = new TreeMap<>();
+        Map<FeatureKey, IFeature> expectedResults = new TreeMap<>();
         allFeatures.entrySet().stream()
             .filter(e -> e.getValue().getGeometry() != null && ((Geometry)e.getValue().getGeometry()).intersects(roi))
-            .filter(e -> !(e.getValue() instanceof ITemporalFeature) ||
-                         timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange()))
+            .filter(e -> e.getValue().getValidTime() == null ||
+                         timeRange.isConnected(e.getValue().getValidTime().asRange()))
             .forEach(e -> expectedResults.put(e.getKey(), e.getValue()));
         
         checkSelectedEntries(null, resultStream, expectedResults);
@@ -796,7 +790,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         var it = allFeatures.values().iterator();
         while (it.hasNext())
         {
-            var f = (ITemporalFeature)it.next();
+            var f = it.next();
             if (f.getValidTime().begin().isBefore(timeFilter.end()))
                 it.remove();
         }
@@ -857,7 +851,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             .withParents(group1Id, group3Id)
             .build();
         
-        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+        Map<FeatureKey, IFeature> expectedResults = allFeatures.entrySet().stream()
             .filter(e -> {
                 var parentID = allParents.get(e.getKey());
                 return parentID == group1Id || parentID == group3Id;
@@ -890,14 +884,14 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
             .build();
         
-        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+        Map<FeatureKey, IFeature> expectedResults = allFeatures.entrySet().stream()
             .filter(e -> {
                 var parentID = allParents.get(e.getKey());
                 return parentID == group1Id || parentID == group3Id;
             })
             .filter(e -> {
-                return !(e.getValue() instanceof ITemporalFeature) ||
-                    timeRange.isConnected(((ITemporalFeature)e.getValue()).getValidTime().asRange());
+                return e.getValue().getValidTime() == null ||
+                    timeRange.isConnected(e.getValue().getValidTime().asRange());
             })
             .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
@@ -919,8 +913,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 return parentID == group1Id || parentID == group3Id;
             })
             .filter(e -> {
-                return !(e.getValue() instanceof ITemporalFeature) ||
-                    ((ITemporalFeature)e.getValue()).getValidTime().asRange().contains(currentTime);
+                return e.getValue().getValidTime() == null ||
+                    e.getValue().getValidTime().asRange().contains(currentTime);
             })             
             .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
@@ -942,8 +936,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 return parentID == group2Id || parentID == group3Id;
             })
             .filter(e -> {
-                return !(e.getValue() instanceof ITemporalFeature) ||
-                    ((ITemporalFeature)e.getValue()).getValidTime().asRange().contains(timeInstant);
+                return e.getValue().getValidTime() == null ||
+                    e.getValue().getValidTime().asRange().contains(timeInstant);
             })             
             .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
@@ -967,7 +961,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             .withParents(UID_PREFIX + "col3")
             .build();
         
-        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+        Map<FeatureKey, IFeature> expectedResults = allFeatures.entrySet().stream()
             .filter(e -> {
                 var parentID = allParents.get(e.getKey());
                 return parentID == group3Id;
@@ -989,7 +983,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             .withKeywords(featureTypes[0])
             .build();
         
-        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+        Map<FeatureKey, IFeature> expectedResults = allFeatures.entrySet().stream()
             .filter(e -> e.getValue().getDescription().contains(featureTypes[0]))
             .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
@@ -1030,7 +1024,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             .withLocationIntersecting(roi)
             .build();
         
-        Map<FeatureKey, IGeoFeature> expectedResults = allFeatures.entrySet().stream()
+        Map<FeatureKey, IFeature> expectedResults = allFeatures.entrySet().stream()
             .filter(e -> e.getValue().getDescription().contains(featureTypes[0]) &&
                 ((Geometry)e.getValue().getGeometry()).intersects(roi))
             .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));

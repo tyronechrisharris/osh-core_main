@@ -29,7 +29,6 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -61,7 +60,7 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
         return new GeoJsonBindings() {
             public IFeature readFeature(JsonReader reader) throws IOException
             {
-                var f = (ITemporalFeature)super.readFeature(reader);
+                var f = super.readFeature(reader);
                 return new ProcedureFeatureAdapter(f);
             }
             

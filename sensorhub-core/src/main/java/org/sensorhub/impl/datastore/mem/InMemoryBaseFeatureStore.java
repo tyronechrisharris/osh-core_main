@@ -35,8 +35,6 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.IGeoFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Bbox;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.index.quadtree.Quadtree;
@@ -148,8 +146,8 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         // get valid start time from feature object
         // or use default value (meaning always valid) if no valid time is set
         Instant validStartTime;
-        if (f instanceof ITemporalFeature && ((ITemporalFeature)f).getValidTime() != null)
-            validStartTime = ((ITemporalFeature)f).getValidTime().begin();
+        if (f.getValidTime() != null)
+            validStartTime = f.getValidTime().begin();
         else
             validStartTime = FeatureKey.TIMELESS;
         
@@ -451,14 +449,13 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         
         // update other indexes
         uidMap.put(feature.getUniqueIdentifier(), fk);
-        if (feature instanceof IGeoFeature)
-            addToSpatialIndex(fk, (IGeoFeature)feature);
+        addToSpatialIndex(fk, feature);
         
         return old;
     }
     
     
-    protected void addToSpatialIndex(FeatureKey key, IGeoFeature feature)
+    protected void addToSpatialIndex(FeatureKey key, IFeature feature)
     {
         if (feature.getGeometry() != null)
         {

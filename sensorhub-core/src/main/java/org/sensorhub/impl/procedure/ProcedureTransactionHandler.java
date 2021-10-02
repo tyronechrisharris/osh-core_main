@@ -47,7 +47,6 @@ import org.sensorhub.utils.DataComponentChecks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.gml.ITemporalFeature;
 import org.vast.util.Asserts;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
@@ -388,8 +387,7 @@ public class ProcedureTransactionHandler
         // otherwise update existing one
         else
         {
-            var validTime = foi instanceof ITemporalFeature ? ((ITemporalFeature)foi).getValidTime() : null;
-            if (validTime != null && fk.getValidStartTime().isBefore(validTime.begin()))
+            if (foi.getValidTime() != null && fk.getValidStartTime().isBefore(foi.getValidTime().begin()))
             {
                 fk = getFoiStore().add(procKey.getInternalID(), foi);
                 isNew = true;
