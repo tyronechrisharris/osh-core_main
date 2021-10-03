@@ -57,7 +57,7 @@ public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
         mvStore = new MVStore.Builder()
                 .fileName(dbFile.getAbsolutePath())
                 .autoCommitBufferSize(10)
-                .cacheSize(10)
+                .cacheSize(1)
                 .open();
         
         return MVObsStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,

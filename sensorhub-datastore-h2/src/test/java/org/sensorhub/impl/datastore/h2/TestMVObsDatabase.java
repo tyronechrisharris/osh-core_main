@@ -49,6 +49,7 @@ public class TestMVObsDatabase extends AbstractTestObsDatabase<MVObsDatabase>
         MVObsDatabase db = new MVObsDatabase();
         var config = new MVObsDatabaseConfig();
         config.storagePath = dbFile.getAbsolutePath();
+        config.databaseNum = 1;
         db.setConfiguration(config);
         db.init();
         db.start();

@@ -54,7 +54,7 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
         mvStore = new MVStore.Builder()
                 .fileName(dbFile.getAbsolutePath())
                 .autoCommitBufferSize(100)
-                .cacheSize(10)
+                .cacheSize(1)
                 .open();
         
         return MVFeatureStoreImpl.open(mvStore, MVDataStoreInfo.builder()

@@ -163,12 +163,17 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         QName fType = new QName("http://mydomain/features", "MyFeature");
         
+        long t0 = System.currentTimeMillis();
         for (int i = startIndex; i < startIndex+numFeatures; i++)
         {
             AbstractFeature f = new GenericFeatureImpl(fType);
             setCommonFeatureProperties(f, i);
             addOrPutFeature(parentID, f);
         }
+        long t1 = System.currentTimeMillis();
+        
+        System.out.println("Inserted " + numFeatures + " features in " + (t1-t0) + "ms" +
+            " starting at #" + startIndex);
     }
     
     
@@ -182,6 +187,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         QName fType = new QName("http://mydomain/features", "MyPointFeature");
         
+        long t0 = System.currentTimeMillis();
         for (int i = startIndex; i < startIndex+numFeatures; i++)
         {
             AbstractFeature f = new GenericFeatureImpl(fType);
@@ -191,6 +197,10 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             setCommonFeatureProperties(f, i);
             addOrPutFeature(parentID, f);
         }
+        long t1 = System.currentTimeMillis();
+        
+        System.out.println("Inserted " + numFeatures + " point features in " + (t1-t0) + "ms" +
+            " starting at #" + startIndex);
     }
     
     
@@ -202,6 +212,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     
     protected void addSamplingPoints2D(long parentID, int startIndex, int numFeatures) throws Exception
     {
+        long t0 = System.currentTimeMillis();
         for (int i = startIndex; i < startIndex+numFeatures; i++)
         {
             SamplingPoint sp = new SamplingPoint();
@@ -211,6 +222,10 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             setCommonFeatureProperties(sp, i);
             addOrPutFeature(parentID, sp);
         }
+        long t1 = System.currentTimeMillis();
+        
+        System.out.println("Inserted " + numFeatures + " sampling point features in " + (t1-t0) + "ms" +
+            " starting at #" + startIndex);
     }
     
     
@@ -236,6 +251,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         QName fType = new QName("http://mydomain/features", "MyTimeFeature");
         
+        long t0 = System.currentTimeMillis();
         for (int i = startIndex; i < startIndex+numFeatures; i++)
         {
             // add feature with 5 different time periods
@@ -249,6 +265,10 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 addOrPutFeature(parentID, f);
             }
         }
+        long t1 = System.currentTimeMillis();
+        
+        System.out.println("Inserted " + numFeatures + " temporal features in " + (t1-t0) + "ms" +
+            " starting at #" + startIndex);
     }
     
     
@@ -262,6 +282,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         QName fType = new QName("http://mydomain/features", "MyGeoTimeFeature");
         
+        long t0 = System.currentTimeMillis();
         for (int i = startIndex; i < startIndex+numFeatures; i++)
         {
             // add feature with 5 different time periods
@@ -282,6 +303,10 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
                 addOrPutFeature(parentID, f);
             }
         }
+        long t1 = System.currentTimeMillis();
+        
+        System.out.println("Inserted " + numFeatures + " spatio temporal features in " + (t1-t0) + "ms" +
+            " starting at #" + startIndex);
     }
     
     

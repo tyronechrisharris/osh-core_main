@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore;
 
-import static org.junit.Assert.*;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import org.junit.Before;

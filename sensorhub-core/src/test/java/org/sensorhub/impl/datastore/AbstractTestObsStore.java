@@ -16,16 +16,25 @@ package org.sensorhub.impl.datastore;
 
 import static org.junit.Assert.*;
 import java.math.BigInteger;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -62,8 +71,8 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     protected static String FOI_UID_PREFIX = "urn:osh:test:foi:";
     
     protected StoreType obsStore;
-    protected Map<DataStreamKey, IDataStreamInfo> allDataStreams = new LinkedHashMap<>();
-    protected Map<BigInteger, IObsData> allObs = new LinkedHashMap<>();
+    protected Map<DataStreamKey, IDataStreamInfo> allDataStreams = new ConcurrentHashMap<>();
+    protected Map<BigInteger, IObsData> allObs = new ConcurrentHashMap<>();
 
 
     protected abstract StoreType initStore() throws Exception;
@@ -119,9 +128,9 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    protected void addSimpleObsWithoutResultTime(long dsID, long foiID, Instant startTime, int numObs) throws Exception
+    protected Map<BigInteger, IObsData> addSimpleObsWithoutResultTime(long dsID, long foiID, Instant startTime, int numObs) throws Exception
     {
-        addSimpleObsWithoutResultTime(dsID, foiID, startTime, numObs, 60000);
+        return addSimpleObsWithoutResultTime(dsID, foiID, startTime, numObs, 60000);
     }
 
 
@@ -129,6 +138,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     {
         Map<BigInteger, IObsData> addedObs = new LinkedHashMap<>();
         
+        long t0 = System.currentTimeMillis();
         for (int i = 0; i < numObs; i++)
         {
             DataBlockDouble data = new DataBlockDouble(5);
@@ -145,8 +155,9 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
             BigInteger key = addObservation(obs);
             addedObs.put(key, obs);
         }
-
-        System.out.println("Inserted " + numObs + " observations " +
+        long t1 = System.currentTimeMillis();
+        
+        System.out.println("Inserted " + numObs + " observations in " + (t1-t0) + "ms, " +
             "with dataStreamID=" + dsID + ", foiID=" + foiID + " starting on " + startTime);
 
         return addedObs;
@@ -711,592 +722,205 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    /*
-    ///////////////////////
-    // Performance Tests //
-    ///////////////////////
-
-    @Test
-    public void testPutThroughput() throws Exception
-    {
-        System.out.println("Write Throughput (put operations)");
-
-        int numFeatures = 100000;
-        long t0 = System.currentTimeMillis();
-        //addSamplingPoints2D(0, numFeatures);
-        addNonGeoFeatures(0, numFeatures);
-        //addTemporalGeoFeatures(0, numFeatures);
-        featureStore.sync();
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(numFeatures/dt*1000);
-        System.out.println(String.format("Simple Features: %d writes/s", throughPut));
-        assertTrue(throughPut > 50000);
-
-        numFeatures = 10000;
-        t0 = System.currentTimeMillis();
-        addSamplingPoints2D(0, numFeatures);
-        featureStore.sync();
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(numFeatures/dt*1000);
-        System.out.println(String.format("Geo Features: %d writes/s", throughPut));
-        assertTrue(throughPut > 10000);
-
-        numFeatures = 10000;
-        t0 = System.currentTimeMillis();
-        addTemporalGeoFeatures(0, numFeatures);
-        featureStore.sync();
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(numFeatures/dt*1000*NUM_TIME_ENTRIES_PER_FEATURE);
-        System.out.println(String.format("Spatio-temporal features: %d writes/s", throughPut));
-        assertTrue(throughPut > 10000);
-    }
-
-
-    @Test
-    public void testGetThroughput() throws Exception
-    {
-        System.out.println("Read Throughput (get operations)");
-
-        int numFeatures = 100000;
-        addNonGeoFeatures(0, numFeatures);
-
-        // sequential reads
-        int numReads = numFeatures;
-        long t0 = System.currentTimeMillis();
-        for (int i = 0; i < numReads; i++)
-        {
-            String uid = UID_PREFIX + "F" + i;
-            FeatureKey key = FeatureKey.builder()
-                    .withUniqueID(uid)
-                    .build();
-
-            AbstractFeature f = featureStore.get(key);
-            assertEquals(uid, f.getUniqueIdentifier());
-        }
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(numReads/dt*1000);
-        System.out.println(String.format("Sequential Reads: %d reads/s", throughPut));
-        assertTrue(throughPut > 100000);
-
-        // random reads
-        numReads = 10000;
-        t0 = System.currentTimeMillis();
-        for (int i = 0; i < numReads; i++)
-        {
-            String uid = UID_PREFIX + "F" + (int)(Math.random()*(numFeatures-1));
-            FeatureKey key = FeatureKey.builder()
-                    .withUniqueID(uid)
-                    .build();
-
-            AbstractFeature f = featureStore.get(key);
-            assertEquals(uid, f.getUniqueIdentifier());
-        }
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(numReads/dt*1000);
-        System.out.println(String.format("Random Reads: %d reads/s", throughPut));
-        assertTrue(throughPut > 10000);
-    }
-
-
-    @Test
-    public void testScanThroughput() throws Exception
-    {
-        System.out.println("Scan Throughput (cursor iteration)");
-
-        int numFeatures = 100000;
-        addNonGeoFeatures(0, numFeatures);
-
-        // warm up
-        long count = featureStore.keySet().stream().count();
-
-        // key scan
-        long t0 = System.currentTimeMillis();
-        count = featureStore.keySet().stream().count();
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(count/dt*1000);
-        System.out.println(String.format("Key Scan: %d reads/s", throughPut));
-        assertTrue(throughPut > 200000);
-
-        // entry scan
-        t0 = System.currentTimeMillis();
-        count = featureStore.entrySet().stream().count();
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(count/dt*1000);
-        System.out.println(String.format("Entry Scan: %d reads/s", throughPut));
-        assertTrue(throughPut > 200000);
-    }
-
-
-    @Test
-    public void testTemporalFilterThroughput() throws Exception
-    {
-        System.out.println("Temporal Query Throughput (select operation w/ temporal filter)");
-
-        int numFeatures = 20000;
-        addTemporalFeatures(0, numFeatures);
-
-        // spatial filter with all features
-        Instant date0 = featureStore.keySet().iterator().next().getValidStartTime();
-        FeatureFilter filter = new FeatureFilter.Builder()
-                .withValidTimeDuring(date0, date0.plus(numFeatures+NUM_TIME_ENTRIES_PER_FEATURE*30*24, ChronoUnit.HOURS))
-                .build();
-
-        long t0 = System.currentTimeMillis();
-        long count = featureStore.selectEntries(filter).count();//.forEach(entry -> count.incrementAndGet());
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(count/dt*1000);
-        System.out.println(String.format("Entry Stream: %d reads/s", throughPut));
-        assertTrue(throughPut > 50000);
-        assertEquals(numFeatures*NUM_TIME_ENTRIES_PER_FEATURE, count);
-    }
-
-
-
-    @Test
-    public void testSpatialFilterThroughput() throws Exception
-    {
-        System.out.println("Geo Query Throughput (select operation w/ spatial filter)");
-
-        int numFeatures = 100000;
-        addSamplingPoints2D(0, numFeatures);
-
-        // spatial filter with all features
-        FeatureFilter filter = new FeatureFilter.Builder()
-                .withLocationWithin(featureStore.getFeaturesBbox())
-                .build();
-
-        long t0 = System.currentTimeMillis();
-        long count = featureStore.selectEntries(filter).count();
-        double dt = System.currentTimeMillis() - t0;
-        int throughPut = (int)(count/dt*1000);
-        System.out.println(String.format("Entry Stream: %d reads/s", throughPut));
-        assertTrue(throughPut > 50000);
-        assertEquals(numFeatures, count);
-
-        // with geo temporal features
-        int numFeatures2 = 20000;
-        addTemporalGeoFeatures(1000, numFeatures2);
-
-        // spatial filter with all features
-        filter = new FeatureFilter.Builder()
-                .withValidTimeDuring(Instant.MIN, Instant.MAX)
-                .withLocationWithin(featureStore.getFeaturesBbox())
-                .build();
-
-        t0 = System.currentTimeMillis();
-        count = featureStore.selectEntries(filter).count();
-        dt = System.currentTimeMillis() - t0;
-        throughPut = (int)(count/dt*1000);
-        System.out.println(String.format("Entry Stream: %d reads/s", throughPut));
-        assertTrue(throughPut > 50000);
-        assertEquals(numFeatures+numFeatures2*NUM_TIME_ENTRIES_PER_FEATURE, count);
-    }
-
-
-
     ///////////////////////
     // Concurrency Tests //
     ///////////////////////
-
-    /*long refTime;
-    int numWrittenMetadataObj;
-    int numWrittenRecords;
-    volatile int numWriteThreadsRunning;
-
-    protected void startWriteRecordsThreads(final ExecutorService exec,
-                                            final int numWriteThreads,
-                                            final DataComponent recordDef,
-                                            final double timeStep,
-                                            final int testDurationMs,
-                                            final Collection<Throwable> errors)
+    
+    static class ObsBatch
     {
-        numWriteThreadsRunning = numWriteThreads;
-
-        for (int i=0; i<numWriteThreads; i++)
+        long dsID;
+        long foiID;
+        Instant startTime;
+        long timeStepMillis;
+        int numObs;
+        volatile Map<BigInteger, IObsData> expectedObs;
+    }
+    
+    protected CompletableFuture<?> addObsConcurrent(List<ObsBatch> series)
+    {
+        var futures = new CompletableFuture[series.size()];
+        
+        int t = 0;
+        for (var s: series)
         {
-            final int count = i;
-            exec.submit(new Runnable() {
-                @Override
-                public void run()
+            var f = CompletableFuture.runAsync(() -> {
+                try
                 {
-                    long startTimeOffset = System.currentTimeMillis() - refTime;
-                    System.out.format("Begin Write Records Thread %d @ %dms\n", Thread.currentThread().getId(), startTimeOffset);
-
-                    try
-                    {
-                        List<DataBlock> dataList = writeRecords(recordDef, count*10000., timeStep, Integer.MAX_VALUE, testDurationMs);
-                        synchronized(AbstractTestFeatureStore.this) {
-                            numWrittenRecords += dataList.size();
-                        }
-                    }
-                    catch (Throwable e)
-                    {
-                        errors.add(e);
-                        //exec.shutdownNow();
-                    }
-
-                    synchronized(AbstractTestFeatureStore.this) {
-                        numWriteThreadsRunning--;
-                    }
-
-                    long stopTimeOffset = System.currentTimeMillis() - refTime;
-                    System.out.format("End Write Records Thread %d @ %dms\n", Thread.currentThread().getId(), stopTimeOffset);
+                    var addedObs = addSimpleObsWithoutResultTime(s.dsID, s.foiID, s.startTime, s.numObs, s.timeStepMillis);
+                    s.expectedObs = addedObs;
+                }
+                catch (Exception e)
+                {
+                    throw new RuntimeException(e);
                 }
             });
+            
+            futures[t++] = f;
         }
+        
+        return CompletableFuture.allOf(futures);
     }
-
-
-    protected void startReadRecordsThreads(final ExecutorService exec,
-                                           final int numReadThreads,
-                                           final DataComponent recordDef,
-                                           final double timeStep,
-                                           final Collection<Throwable> errors)
+    
+    
+    protected void readAndCheckSeries(List<ObsBatch> series)
     {
-        for (int i=0; i<numReadThreads; i++)
+        var foiSet = new HashSet<Long>();
+        
+        for (var s: series)
         {
-            exec.submit(new Runnable() {
-                @Override
+            foiSet.add(s.foiID);
+            System.out.println(s.foiID + ": " + s.expectedObs.size());
+            var filter = new ObsFilter.Builder()
+                .withDataStreams(s.dsID)
+                .withFois(s.foiID)
+                .build();
+            checkSelectedEntries(obsStore.selectEntries(filter), s.expectedObs, filter);
+        }
+        
+        // check all fois are present
+        var numFois = obsStore.selectObservedFois(obsStore.selectAllFilter())
+            .peek(foi -> { assertTrue(foiSet.contains(foi)); })
+            .count();
+        assertEquals(foiSet.size(), numFois);
+    }
+    
+    
+    protected void addAndCheckObsConcurrent(List<ObsBatch> series)
+    {
+        int totalObs = 0;
+        for (var s: series)
+            totalObs += s.numObs;
+        
+        int numObs = totalObs;
+        long t0 = System.currentTimeMillis();
+        addObsConcurrent(series).thenRun(() -> {
+            readAndCheckSeries(series);
+            
+            double dt = System.currentTimeMillis() - t0;
+            int throughPut = (int)(numObs/dt*1000);
+            System.out.println(String.format("Simple Obs: %d writes/s", throughPut));
+            
+            try { forceReadBackFromStorage(); }
+            catch (Exception e) { throw new RuntimeException(e); }
+            
+            readAndCheckSeries(series);
+        }).join();
+    }
+    
+    
+    protected AtomicInteger selectObsConcurrent(List<ObsBatch> series, int numThreads)
+    {
+        var exec = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
+        var requestCounter = new AtomicInteger();
+        
+        for (int t = 0; t < numThreads; t++)
+        {
+            var r = new Runnable() {
                 public void run()
                 {
-                    long tid = Thread.currentThread().getId();
-                    long startTimeOffset = System.currentTimeMillis() - refTime;
-                    System.out.format("Begin Read Records Thread %d @ %dms\n", tid, startTimeOffset);
-                    int readCount = 0;
-
-                    try
-                    {
-                        while (numWriteThreadsRunning > 0 && !Thread.interrupted())
-                        {
-                            //System.out.println(numWriteThreadsRunning);
-                            double[] timeRange = storage.getRecordsTimeRange(recordDef.getName());
-                            if (Double.isNaN(timeRange[0]))
-                                continue;
-                            //double[] timeRange = new double[] {0.0, 110000.0};
-
-                            //System.out.format("Read Thread %d, Loop %d\n", Thread.currentThread().getId(), j+1);
-                            final double begin = timeRange[0] + Math.random() * (timeRange[1] - timeRange[0]);
-                            final double end = begin + Math.max(timeStep*100., Math.random() * (timeRange[1] - begin));
-
-                            // prepare filter
-                            IDataFilter filter = new DataFilter(recordDef.getName()) {
-                                @Override
-                                public double[] getTimeStampRange() { return new double[] {begin, end}; }
-                            };
-
-                            // retrieve records
-                            Iterator<? extends IDataRecord> it = storage.getRecordIterator(filter);
-
-                            // check records time stamps and order
-                            //System.out.format("Read Thread %d, [%f-%f]\n", Thread.currentThread().getId(), begin, end);
-                            double lastTimeStamp = Double.NEGATIVE_INFINITY;
-                            while (it.hasNext())
-                            {
-                                IDataRecord rec = it.next();
-                                double timeStamp = rec.getKey().timeStamp;
-
-                                //System.out.format("Read Thread %d, %f\n", Thread.currentThread().getId(), timeStamp);
-                                assertTrue(tid + ": Time steps are not increasing: " + timeStamp + "<" + lastTimeStamp , timeStamp > lastTimeStamp);
-                                assertTrue(tid + ": Time stamp lower than begin: " + timeStamp + "<" + begin , timeStamp >= begin);
-                                assertTrue(tid + ": Time stamp higher than end: " + timeStamp + ">" + end, timeStamp <= end);
-                                lastTimeStamp = timeStamp;
-                                readCount++;
-                            }
-
-                            Thread.sleep(1);
-                        }
-                    }
-                    catch (Throwable e)
-                    {
-                        errors.add(e);
-                        //exec.shutdownNow();
-                    }
-
-                    long stopTimeOffset = System.currentTimeMillis() - refTime;
-                    System.out.format("End Read Records Thread %d @%dms - %d read ops\n", Thread.currentThread().getId(), stopTimeOffset, readCount);
+                    // select random series and start/stop times
+                    var s = series.get((int)Math.floor(Math.random()*series.size()));
+                    var duration = s.timeStepMillis * s.numObs;
+                    var begin = s.startTime.plus(Duration.ofMillis((long)(Math.random()*duration)));
+                    var end = begin.plus(Duration.ofMillis((long)(Math.random()*duration)));
+                    
+                    // scan all results
+                    obsStore.select(new ObsFilter.Builder()
+                        .withDataStreams(s.dsID)
+                        .withFois(s.foiID)
+                        .withPhenomenonTimeDuring(begin, end)
+                        .build()).count();
+                    requestCounter.incrementAndGet();
+                    
+                    exec.schedule(this, 10, TimeUnit.MILLISECONDS);
                 }
-            });
+            };
+            
+            exec.submit(r);
         }
+        
+        return requestCounter;
     }
-
-
-    protected void startWriteMetadataThreads(final ExecutorService exec,
-                                             final int numWriteThreads,
-                                             final Collection<Throwable> errors)
+    
+    
+    @Test
+    public void testConcurrentAdd1() throws Exception
     {
-        for (int i=0; i<numWriteThreads; i++)
+        System.out.println();
+        System.out.println("Write Throughput (concurrent add operations)");
+
+        // 1 datastream, 1 thread per foi
+        var dsKey = addSimpleDataStream(10, "out1");
+        int numObs = 100000;
+        int numFois = 100;
+        var obsSeries = new ArrayList<ObsBatch>(numFois);
+        for (int foi = 1; foi <= numFois; foi++)
         {
-            final int startCount = i*1000000;
-            exec.submit(new Runnable() {
-                @Override
-                public void run()
-                {
-                    long startTimeOffset = System.currentTimeMillis() - refTime;
-                    System.out.format("Begin Write Desc Thread %d @%dms\n", Thread.currentThread().getId(), startTimeOffset);
-
-                    try
-                    {
-                        int count = startCount;
-                        while (numWriteThreadsRunning > 0 && !Thread.interrupted())
-                        {
-                            // create description
-                            //SWEHelper helper = new SWEHelper();
-                            SMLFactory smlFac = new SMLFactory();
-                            GMLFactory gmlFac = new GMLFactory();
-
-                            PhysicalSystem system = new PhysicalSystemImpl();
-                            system.setUniqueIdentifier("TEST" + count++);
-                            system.setName("blablabla");
-                            system.setDescription("this is the description of my sensor that can be pretty long");
-
-                            IdentifierList identifierList = smlFac.newIdentifierList();
-                            system.addIdentification(identifierList);
-
-                            Term term;
-                            term = smlFac.newTerm();
-                            term.setDefinition(SWEHelper.getPropertyUri("Manufacturer"));
-                            term.setLabel("Manufacturer Name");
-                            term.setValue("My manufacturer");
-                            identifierList.addIdentifier2(term);
-
-                            term = smlFac.newTerm();
-                            term.setDefinition(SWEHelper.getPropertyUri("ModelNumber"));
-                            term.setLabel("Model Number");
-                            term.setValue("SENSOR_2365");
-                            identifierList.addIdentifier2(term);
-
-                            term = smlFac.newTerm();
-                            term.setDefinition(SWEHelper.getPropertyUri("SerialNumber"));
-                            term.setLabel("Serial Number");
-                            term.setValue("FZEFZE154618989");
-                            identifierList.addIdentifier2(term);
-
-                            // generate unique time stamp
-                            TimePosition timePos = gmlFac.newTimePosition(startCount + System.currentTimeMillis()/1000.);
-                            TimeInstant validTime = gmlFac.newTimeInstant(timePos);
-                            system.addValidTimeAsTimeInstant(validTime);
-
-                            // add to storage
-                            storage.storeDataSourceDescription(system);
-                            //storage.commit();
-
-                            synchronized(AbstractTestFeatureStore.this) {
-                                numWrittenMetadataObj++;
-                            }
-
-                            Thread.sleep(5);
-                        }
-                    }
-                    catch (Throwable e)
-                    {
-                        errors.add(e);
-                        //exec.shutdownNow();
-                    }
-
-                    long stopTimeOffset = System.currentTimeMillis() - refTime;
-                    System.out.format("End Write Desc Thread %d @%dms\n", Thread.currentThread().getId(), stopTimeOffset);
-                }
-            });
+            var s = new ObsBatch();
+            s.dsID = dsKey.getInternalID();
+            s.foiID = foi;
+            s.startTime = Instant.parse("2000-01-01T00:00:00Z").plus((long)(Math.random()*60), ChronoUnit.SECONDS);
+            s.numObs = numObs/numFois;
+            obsSeries.add(s);
         }
+        addAndCheckObsConcurrent(obsSeries);
     }
-
-
-    protected void startReadMetadataThreads(final ExecutorService exec,
-            final int numReadThreads,
-            final Collection<Throwable> errors)
+    
+    
+    @Test
+    public void testConcurrentAdd2() throws Exception
     {
-        for (int i = 0; i < numReadThreads; i++)
+        // 1 datastream per thread
+        int numObs = 100000;
+        int numDs = 100;
+        var obsSeries = new ArrayList<ObsBatch>(numDs);
+        for (int ds = 1; ds <= numDs; ds++)
         {
-            exec.submit(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    long tid = Thread.currentThread().getId();
-                    long startTimeOffset = System.currentTimeMillis() - refTime;
-                    System.out.format("Begin Read Desc Thread %d @ %dms\n", tid, startTimeOffset);
-                    int readCount = 0;
-
-                    try
-                    {
-                        while (numWriteThreadsRunning > 0 && !Thread.interrupted())
-                        {
-                            AbstractProcess p = storage.getLatestDataSourceDescription();
-                            if (p != null)
-                                assertTrue("Missing valid time", p.getValidTimeList().size() > 0);
-                            readCount++;
-                            Thread.sleep(1);
-                        }
-                    }
-                    catch (Throwable e)
-                    {
-                        errors.add(e);
-                        //exec.shutdownNow();
-                    }
-
-                    long stopTimeOffset = System.currentTimeMillis() - refTime;
-                    System.out.format("End Read Desc Thread %d @%dms - %d read ops\n", Thread.currentThread().getId(), stopTimeOffset, readCount);
-                }
-            });
+            var s = new ObsBatch();
+            s.dsID = addSimpleDataStream(10, "out" + (ds+1)).getInternalID();
+            s.foiID = (long)(Math.random()*10)+1;
+            s.startTime = Instant.parse("1980-01-01T01:36:00Z").plus(ds, ChronoUnit.MINUTES);
+            s.numObs = numObs/numDs;
+            obsSeries.add(s);
         }
-    }
-
-
-    protected void checkForAsyncErrors(Collection<Throwable> errors) throws Throwable
-    {
-        // report errors
-        System.out.println(errors.size() + " error(s)");
-        for (Throwable e: errors)
-            e.printStackTrace();
-        if (!errors.isEmpty())
-            throw errors.iterator().next();
-    }
-
-
-    protected void checkRecordsInStorage(final DataComponent recordDef) throws Throwable
-    {
-        System.out.println(numWrittenRecords + " records written");
-
-        // check number of records
-        int recordCount = storage.getNumRecords(recordDef.getName());
-        assertEquals("Wrong number of records in storage", numWrittenRecords, recordCount);
-
-        // check number of records returned by iterator
-        recordCount = 0;
-        Iterator<?> it = storage.getRecordIterator(new DataFilter(recordDef.getName()));
-        while (it.hasNext())
-        {
-            it.next();
-            recordCount++;
-        }
-        assertEquals("Wrong number of records returned by iterator", numWrittenRecords, recordCount);
-    }
-
-
-    protected void checkMetadataInStorage() throws Throwable
-    {
-        System.out.println(numWrittenMetadataObj + " metadata objects written");
-
-        int descCount = 0;
-        List<AbstractProcess> descList = storage.getDataSourceDescriptionHistory(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-        for (AbstractProcess desc: descList)
-        {
-            assertTrue(desc instanceof PhysicalSystem);
-            assertEquals("blablabla", desc.getName());
-            assertTrue(desc.getUniqueIdentifier().startsWith("TEST"));
-            descCount++;
-        }
-        assertEquals("Wrong number of metadata objects in storage", numWrittenMetadataObj, descCount);
-
-        AbstractProcess desc = storage.getLatestDataSourceDescription();
-        assertTrue(desc instanceof PhysicalSystem);
+        addAndCheckObsConcurrent(obsSeries);
     }
 
 
     @Test
-    public void testConcurrentWriteRecords() throws Throwable
+    public void testConcurrentReadWrite() throws Throwable
     {
-        final DataComponent recordDef = createDs2();
-        ExecutorService exec = Executors.newCachedThreadPool();
-        final Collection<Throwable> errors = Collections.synchronizedCollection(new ArrayList<Throwable>());
-
-        int numWriteThreads = 10;
-        int testDurationMs = 2000;
-        refTime = System.currentTimeMillis();
-
-        startWriteRecordsThreads(exec, numWriteThreads, recordDef, 0.1, testDurationMs, errors);
-
-        exec.shutdown();
-        exec.awaitTermination(testDurationMs*2, TimeUnit.MILLISECONDS);
-
-        forceReadBackFromStorage();
-        checkRecordsInStorage(recordDef);
-        checkForAsyncErrors(errors);
+        // 1 datastream per thread
+        int numObs = 100000;
+        int numDs = 100;
+        var obsSeries = new ArrayList<ObsBatch>(numDs);
+        for (int ds = 1; ds <= numDs; ds++)
+        {
+            var s = new ObsBatch();
+            s.dsID = addSimpleDataStream(10, "out" + (ds+1)).getInternalID();
+            s.foiID = (long)(Math.random()*10)+1;
+            s.startTime = Instant.parse("1980-01-01T01:36:00Z").plus(ds, ChronoUnit.MINUTES);
+            s.numObs = numObs/numDs;
+            obsSeries.add(s);
+        }
+        
+        // start read threads
+        var reqCount = selectObsConcurrent(obsSeries, 10);
+        
+        // wait for end of writes and check datastore content
+        long t0 = System.currentTimeMillis();
+        addObsConcurrent(obsSeries).thenRun(() -> {
+            readAndCheckSeries(obsSeries);
+            
+            double dt = System.currentTimeMillis() - t0;
+            int throughPut = (int)(numObs/dt*1000);
+            System.out.println(String.format("Simple Obs: %d writes/s", throughPut));
+            System.out.println(String.format("%d requests", reqCount.get()));
+            
+            try { forceReadBackFromStorage(); }
+            catch (Exception e) { throw new RuntimeException(e); }
+            
+            readAndCheckSeries(obsSeries);
+        }).join();
     }
-
-
-    @Test
-    public void testConcurrentWriteMetadata() throws Throwable
-    {
-        ExecutorService exec = Executors.newCachedThreadPool();
-        final Collection<Throwable> errors = Collections.synchronizedCollection(new ArrayList<Throwable>());
-
-        int numWriteThreads = 10;
-        int testDurationMs = 2000;
-        refTime = System.currentTimeMillis();
-
-        numWriteThreadsRunning = 1;
-        startWriteMetadataThreads(exec, numWriteThreads, errors);
-
-        Thread.sleep(testDurationMs);
-        numWriteThreadsRunning = 0;
-
-        exec.shutdown();
-        exec.awaitTermination(testDurationMs*2, TimeUnit.MILLISECONDS);
-
-        forceReadBackFromStorage();
-        checkMetadataInStorage();
-        checkForAsyncErrors(errors);
-    }
-
-
-    @Test
-    public void testConcurrentWriteThenReadRecords() throws Throwable
-    {
-        DataComponent recordDef = createDs2();
-        ExecutorService exec = Executors.newCachedThreadPool();
-        Collection<Throwable> errors = Collections.synchronizedCollection(new ArrayList<Throwable>());
-
-        int numWriteThreads = 10;
-        int numReadThreads = 10;
-        int testDurationMs = 1000;
-        double timeStep = 0.1;
-        refTime = System.currentTimeMillis();
-
-        startWriteRecordsThreads(exec, numWriteThreads, recordDef, timeStep, testDurationMs, errors);
-
-        exec.shutdown();
-        exec.awaitTermination(testDurationMs*2, TimeUnit.MILLISECONDS);
-        exec = Executors.newCachedThreadPool();
-        numWriteThreadsRunning = 1;
-
-        checkForAsyncErrors(errors);
-        forceReadBackFromStorage();
-
-        errors.clear();
-        startReadRecordsThreads(exec, numReadThreads, recordDef, timeStep, errors);
-
-        Thread.sleep(testDurationMs);
-        numWriteThreadsRunning = 0; // manually stop reading after sleep period
-        exec.shutdown();
-        exec.awaitTermination(1000, TimeUnit.MILLISECONDS);
-
-        checkForAsyncErrors(errors);
-        checkRecordsInStorage(recordDef);
-    }
-
-
-    @Test
-    public void testConcurrentReadWriteRecords() throws Throwable
-    {
-        final DataComponent recordDef = createDs2();
-        final ExecutorService exec = Executors.newCachedThreadPool();
-        final Collection<Throwable> errors = Collections.synchronizedCollection(new ArrayList<Throwable>());
-
-        int numWriteThreads = 10;
-        int numReadThreads = 10;
-        int testDurationMs = 2000;
-        double timeStep = 0.1;
-        refTime = System.currentTimeMillis();
-
-        startWriteRecordsThreads(exec, numWriteThreads, recordDef, timeStep, testDurationMs, errors);
-        startReadRecordsThreads(exec, numReadThreads, recordDef, timeStep, errors);
-
-        exec.shutdown();
-        exec.awaitTermination(testDurationMs*200, TimeUnit.MILLISECONDS);
-
-        forceReadBackFromStorage();
-        checkForAsyncErrors(errors);
-        checkRecordsInStorage(recordDef);
-    }*/
 }
