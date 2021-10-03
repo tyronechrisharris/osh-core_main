@@ -30,6 +30,7 @@ import com.esotericsoftware.kryo.SerializerFactory;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
+import com.esotericsoftware.kryo.util.Pool;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -37,15 +38,15 @@ public class KryoDataType implements DataType
 {
     static Logger log = LoggerFactory.getLogger(KryoDataType.class);
     
-    //final Pool<KryoInstance> kryoPool;
-    final ThreadLocal<KryoInstance> kryoLocal;
+    final Pool<KryoInstance> kryoPool;
+    //final ThreadLocal<KryoInstance> kryoLocal;
     protected Supplier<ClassResolver> classResolver;
     protected Consumer<Kryo> configurator;
     protected SerializerFactory<?> defaultObjectSerializer;
     protected int averageRecordSize, maxRecordSize;
     
     
-    class KryoInstance
+    static class KryoInstance
     {
         Kryo kryo;
         Output output;
@@ -74,6 +75,11 @@ public class KryoDataType implements DataType
             
             input = new Input();
             output = new Output(bufferSize, maxBufferSize);
+            
+            log.debug("{}: kryo={}, classResolver={}", 
+                Thread.currentThread(),
+                System.identityHashCode(kryo),
+                System.identityHashCode(classResolver));
         }
     }
     
@@ -94,35 +100,11 @@ public class KryoDataType implements DataType
             MVObsDatabase.CURRENT_VERSION, new SerializerFactory.FieldSerializerFactory()),
             MVObsDatabase.CURRENT_VERSION);
         
-        /*// use both a pool and thread local
-        // we get the object from thread local everytime
-        this.kryoPool = new Pool<KryoInstance>(true, false, 1024) {
+        // use a pool of kryo objects
+        this.kryoPool = new Pool<KryoInstance>(true, false, 2*Runtime.getRuntime().availableProcessors()) {
             @Override
             protected KryoInstance create()
             {
-                return new KryoInstance(defaultObjectSerializer, classResolver, configurator, 2*averageRecordSize, maxRecordSize);
-            }
-        };
-        
-        this.kryoLocal = new ThreadLocal<KryoInstance>()
-        {
-            public KryoInstance initialValue()
-            {
-                return kryoPool.obtain();
-            }
-            
-            public void remove()
-            {
-                kryoPool.free(this.get());
-                super.remove();
-            }
-        };*/
-        
-        this.kryoLocal = new ThreadLocal<KryoInstance>()
-        {
-            public KryoInstance initialValue()
-            {
-                //log.debug("Loading Kryo instance for " + KryoDataType.this.getClass().getSimpleName());
                 return new KryoInstance(
                     defaultObjectSerializer,
                     classResolver != null ? classResolver.get() : null,
@@ -131,14 +113,35 @@ public class KryoDataType implements DataType
                     maxRecordSize);
             }
         };
+        
+        /*// we get the object from thread local everytime
+        this.kryoLocal = new ThreadLocal<KryoInstance>()
+        {
+            public KryoInstance initialValue()
+            {
+                //log.debug("Loading Kryo instance for " + KryoDataType.this.getClass().getSimpleName());
+                
+                return new KryoInstance(
+                    defaultObjectSerializer,
+                    classResolver != null ? classResolver.get() : null,
+                    configurator,
+                    2*averageRecordSize,
+                    maxRecordSize);
+            }
+        };*/
     }
     
     
-    @Override
-    public int compare(Object a, Object b)
+    protected KryoInstance getKryo()
     {
-        // don't care since we won't use this for keys
-        return 0;
+        //return kryoLocal.get();
+        return kryoPool.obtain();
+    }
+    
+    
+    protected void releaseKryo(KryoInstance kryoI)
+    {
+        kryoPool.free(kryoI);
     }
 
 
@@ -153,9 +156,46 @@ public class KryoDataType implements DataType
     @Override
     public void write(WriteBuffer buff, Object obj)
     {
-        initRecordSize(obj);
+        KryoInstance kryoI = getKryo();
+        write(buff, obj, kryoI);
+        releaseKryo(kryoI);
+    }
+
+
+    @Override
+    public void write(WriteBuffer buff, Object[] obj, int len, boolean key)
+    {
+        KryoInstance kryoI = getKryo();
+        for (int i = 0; i < len; i++)
+            write(buff, obj[i], kryoI);
+        releaseKryo(kryoI);
+    }
+
+
+    @Override
+    public Object read(ByteBuffer buff)
+    {
+        KryoInstance kryoI = getKryo();
+        var obj = read(buff, kryoI);
+        releaseKryo(kryoI);
+        return obj;
+    }
+
+
+    @Override
+    public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
+    {
+        KryoInstance kryoI = getKryo();
+        for (int i = 0; i < len; i++)
+            obj[i] = read(buff, kryoI);
+        releaseKryo(kryoI);
+    }
+    
+    
+    protected void write(WriteBuffer buff, Object obj, KryoInstance kryoI)
+    {
+        initRecordSize(obj, kryoI);
         
-        KryoInstance kryoI = kryoLocal.get();
         Kryo kryo = kryoI.kryo;
         Output output = kryoI.output;
         output.setPosition(0);
@@ -174,7 +214,17 @@ public class KryoDataType implements DataType
     {
         if (averageRecordSize <= 0)
         {
-            KryoInstance kryoI = kryoLocal.get();
+            KryoInstance kryoI = getKryo();
+            initRecordSize(obj, kryoI);
+            releaseKryo(kryoI);
+        }
+    }
+    
+    
+    protected void initRecordSize(Object obj, KryoInstance kryoI)
+    {
+        if (averageRecordSize <= 0)
+        {
             Kryo kryo = kryoI.kryo;
             Output output = kryoI.output;
             output.setPosition(0);
@@ -183,20 +233,10 @@ public class KryoDataType implements DataType
             output.setBuffer(new byte[averageRecordSize*2], maxRecordSize);
         }
     }
-
-
-    @Override
-    public void write(WriteBuffer buff, Object[] obj, int len, boolean key)
+    
+    
+    protected Object read(ByteBuffer buff, KryoInstance kryoI)
     {
-        for (int i = 0; i < len; i++)
-            write(buff, obj[i]);
-    }
-
-
-    @Override
-    public Object read(ByteBuffer buff)
-    {
-        KryoInstance kryoI = kryoLocal.get();
         Kryo kryo = kryoI.kryo;
         Input input = kryoI.input;
         
@@ -206,13 +246,13 @@ public class KryoDataType implements DataType
         
         return obj;
     }
-
-
+    
+    
     @Override
-    public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
+    public int compare(Object a, Object b)
     {
-        for (int i = 0; i < len; i++)
-            obj[i] = read(buff);
+        // can be overriden by subclass if object is used as key
+        return 0;
     }
 
 }
