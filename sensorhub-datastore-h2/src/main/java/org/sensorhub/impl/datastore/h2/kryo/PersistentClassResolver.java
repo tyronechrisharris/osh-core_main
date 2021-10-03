@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore.h2.kryo;
 import org.h2.mvstore.MVMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.util.Asserts;
 import com.esotericsoftware.kryo.ClassResolver;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Registration;
@@ -35,7 +36,9 @@ import com.esotericsoftware.kryo.util.Util;
  * twice on close to make sure the mappings are also serialized. This is
  * needed because the class mappings are updated during serialization of
  * the main pages using KryoDataType and thus are not always committed to
- * disk at the same time.
+ * disk at the same time.<br/>
+ * This class is NOT threadsafe although the underlying persistent map is. 
+ * So a different instance must be attached to each Kryo instance.
  * </p>
  *
  * @author Alex Robin
@@ -59,13 +62,12 @@ public class PersistentClassResolver implements ClassResolver
     }
     
     
-    public synchronized void loadMappings()
+    public void loadMappings()
     {
-        if (mappingsLoaded)
-            return;
+        //if (mappingsLoaded)
+        //    return;
         
         // preload mappings on startup
-        int lastId = 0;
         var it = classNameToIdMap.entrySet().iterator();
         while (it.hasNext())
         {
@@ -75,11 +77,11 @@ public class PersistentClassResolver implements ClassResolver
             {
                 var className = entry.getKey();
                 var classId = entry.getValue();
-                register(Class.forName(className), classId);
-                log.trace("Loading class mapping: {} -> {}", className, classId);
-                
-                if (classId > lastId)
-                    lastId = classId;
+                if (!idToRegistration.containsKey(classId))
+                {
+                    register(Class.forName(className), classId);
+                    log.trace("Loading class mapping: {} -> {}", className, classId);
+                }
             }
             catch (ClassNotFoundException e)
             {
@@ -87,7 +89,7 @@ public class PersistentClassResolver implements ClassResolver
             }
         }
         
-        mappingsLoaded = true;
+        //mappingsLoaded = true;
     }
     
     
@@ -138,7 +140,17 @@ public class PersistentClassResolver implements ClassResolver
         if (classId == Kryo.NULL)
             return null;
         
-        return idToRegistration.get(classId-1);
+        var reg = idToRegistration.get(classId-1);
+        if (reg == null)
+        {
+            // if class id is unknown, it's probably because mappings
+            // were updated so reload them
+            // this rescans the entire map but it's ok since it shouldn't happen too often
+            loadMappings();
+            reg = idToRegistration.get(classId-1);
+        }
+        
+        return Asserts.checkNotNull(reg, Registration.class);
     }
     
     
