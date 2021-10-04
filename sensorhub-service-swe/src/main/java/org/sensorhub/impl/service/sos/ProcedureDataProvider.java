@@ -286,16 +286,25 @@ public abstract class ProcedureDataProvider implements ISOSAsyncDataProvider
     {
         // build filter
         var foiFilter = new FoiFilter.Builder();
+        
         if (req.getFoiIDs() != null && !req.getFoiIDs().isEmpty())
             foiFilter.withUniqueIDs(req.getFoiIDs());
+        
         if (req.getProcedures() != null && !req.getProcedures().isEmpty())
+        {
             foiFilter.withObservations(new ObsFilter.Builder()
                 .withProcedures(new ProcedureFilter.Builder()
                     .withUniqueIDs(req.getProcedures())
                     .build())
                 .build());
+            /*foiFilter.withParents()
+                .withUniqueIDs(req.getProcedures())
+                .done();*/
+        }
+        
         if (req.getSpatialFilter() != null)
             foiFilter.withLocation(toDbFilter(req.getSpatialFilter()));
+        
         foiFilter.withCurrentVersion();
         
         // notify consumer with subscription
