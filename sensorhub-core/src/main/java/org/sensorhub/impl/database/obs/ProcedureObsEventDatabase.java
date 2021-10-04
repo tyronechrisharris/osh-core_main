@@ -133,13 +133,6 @@ public class ProcedureObsEventDatabase extends AbstractModule<ProcedureObsEventD
         return Collections.unmodifiableCollection(config.procedureUIDs);
     }
     
-    
-    @Override
-    public boolean isProcessEvents()
-    {
-        return config.processEvents;
-    }
-    
 
     public Integer getDatabaseNum()
     {

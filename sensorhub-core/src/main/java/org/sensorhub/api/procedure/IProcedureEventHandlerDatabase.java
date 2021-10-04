@@ -32,7 +32,4 @@ public interface IProcedureEventHandlerDatabase extends IProcedureObsDatabase
         
     Collection<String> getHandledProcedures();
     
-    
-    boolean isProcessEvents();
-    
 }

@@ -53,10 +53,6 @@ public class ProcedureObsEventDatabaseConfig extends DatabaseConfig
     public int minCommitPeriod = 10000;
     
     
-    @DisplayInfo(desc="Set to false to stop storing data of received events in underlying storage")
-    public boolean processEvents = true;
-    
-    
     public ProcedureObsEventDatabaseConfig()
     {
         this.moduleClass = ProcedureObsEventDatabase.class.getCanonicalName();
