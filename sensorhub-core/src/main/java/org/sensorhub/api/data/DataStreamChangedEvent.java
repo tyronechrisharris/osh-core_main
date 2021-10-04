@@ -30,9 +30,9 @@ public class DataStreamChangedEvent extends DataStreamEvent
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(long, String, String)
      */
-    public DataStreamChangedEvent(long timeStamp, String procUID, String outputName)
+    public DataStreamChangedEvent(long timeStamp, String sysUID, String outputName)
     {
-        super(timeStamp, procUID, outputName);
+        super(timeStamp, sysUID, outputName);
     }
     
     
@@ -40,9 +40,9 @@ public class DataStreamChangedEvent extends DataStreamEvent
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(String, String)
      */
-    public DataStreamChangedEvent(String procUID, String outputName)
+    public DataStreamChangedEvent(String sysUID, String outputName)
     {
-        super(procUID, outputName);
+        super(sysUID, outputName);
     }
     
     

@@ -18,7 +18,6 @@ package org.sensorhub.api.command;
 /**
  * <p>
  * Event sent when a command stream (i.e. tasking/control input) is enabled
- * by a procedure
  * </p>
  *
  * @author Alex Robin
@@ -31,9 +30,9 @@ public class CommandStreamEnabledEvent extends CommandStreamEvent
      * Pass-through to super class constructor
      * @see CommandStreamEvent#CommandStreamEvent(long, String, String)
      */
-    public CommandStreamEnabledEvent(long timeStamp, String procUID, String controlInputName)
+    public CommandStreamEnabledEvent(long timeStamp, String sysUID, String controlInputName)
     {
-        super(timeStamp, procUID, controlInputName);
+        super(timeStamp, sysUID, controlInputName);
     }
     
     
@@ -41,9 +40,9 @@ public class CommandStreamEnabledEvent extends CommandStreamEvent
      * Pass-through to super class constructor
      * @see CommandStreamEvent#CommandStreamEvent(String, String)
      */
-    public CommandStreamEnabledEvent(String procUID, String controlInputName)
+    public CommandStreamEnabledEvent(String sysUID, String controlInputName)
     {
-        super(procUID, controlInputName);
+        super(sysUID, controlInputName);
     }
     
     

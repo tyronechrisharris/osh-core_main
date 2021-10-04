@@ -20,19 +20,19 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
-import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
+import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.vast.sensorML.SMLHelper;
 import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
 @Ignore
-public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDatabase>
+public abstract class AbstractTestObsDatabase<DbType extends IObsSystemDatabase>
 {
     protected static String PROC_UID_PREFIX = "urn:osh:test:sensor:";
     protected static String FOI_UID_PREFIX = "urn:osh:test:foi:";
@@ -65,7 +65,7 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
     }
     
     
-    protected long[] addProcedures(int... uidSuffixes)
+    protected long[] addSystems(int... uidSuffixes)
     {
         try
         {
@@ -75,10 +75,10 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
             {
                 AbstractProcess p = new SMLHelper().createPhysicalComponent()
                     .uniqueID(PROC_UID_PREFIX + uidSuffixes[i])
-                    .name("Procedure #" + (char)(uidSuffixes[i]+65))
+                    .name("System #" + (char)(uidSuffixes[i]+65))
                     .build();
-                var procWrapper = new ProcedureWrapper(p);
-                internalIDs[i] = obsDb.getProcedureStore().add(procWrapper).getInternalID();
+                var procWrapper = new SystemWrapper(p);
+                internalIDs[i] = obsDb.getSystemDescStore().add(procWrapper).getInternalID();
             }
 
             return internalIDs;
@@ -91,24 +91,24 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
     
     
     @Test
-    public void testSelectProcedureWithDataStreamFilterJoin()
+    public void testSelectSystemWithDataStreamFilterJoin()
     {
         // TODO Not yet implemented
     }
     
     
     @Test
-    public void testSelectProcedureWithFoiFilterJoin()
+    public void testSelectSystemWithFoiFilterJoin()
     {
         // TODO Not yet implemented
     }
         
     
     @Test
-    public void testSelectDatastreamWithProcedureFilterJoin() throws Exception
+    public void testSelectDatastreamWithSystemFilterJoin() throws Exception
     {
         int procUids[] = {13, 5, 25};
-        long[] procIds = addProcedures(procUids);
+        long[] procIds = addSystems(procUids);
         
         dataStreamTests.addSimpleDataStream(procIds[0], "out1", TimeExtent.beginAt(Instant.EPOCH));
         var dsId1 = dataStreamTests.addSimpleDataStream(procIds[0], "out2", TimeExtent.beginAt(Instant.EPOCH));
@@ -120,7 +120,7 @@ public abstract class AbstractTestObsDatabase<DbType extends IProcedureObsDataba
         var dsId2 = dataStreamTests.addSimpleDataStream(procIds[2], "out2", TimeExtent.beginAt(Instant.EPOCH));
         
         var filter = new DataStreamFilter.Builder()
-            .withProcedures()
+            .withSystems()
                 .withUniqueIDs(PROC_UID_PREFIX+procUids[0],
                                PROC_UID_PREFIX+procUids[2])
                 .done()

@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.task;
 
-import org.sensorhub.api.procedure.ProcedureEvent;
+import org.sensorhub.api.system.SystemEvent;
 
 
 /**
@@ -25,12 +25,12 @@ import org.sensorhub.api.procedure.ProcedureEvent;
  * @author Alex Robin
  * @date Mar 10, 2021
  */
-public class TaskEvent extends ProcedureEvent
+public class TaskEvent extends SystemEvent
 {
 
-    public TaskEvent(long timeStamp, String procUID)
+    public TaskEvent(long timeStamp, String sysUID)
     {
-        super(timeStamp, procUID);
+        super(timeStamp, sysUID);
         // TODO Auto-generated constructor stub
     }
 

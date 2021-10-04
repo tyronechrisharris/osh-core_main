@@ -46,7 +46,7 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
@@ -87,13 +87,13 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    protected DataStreamKey addDataStream(long procID, DataComponent recordStruct)
+    protected DataStreamKey addDataStream(long sysID, DataComponent recordStruct)
     {
         try
         {
             var dsInfo = new DataStreamInfo.Builder()
                 .withName(recordStruct.getName())
-                .withProcedure(new ProcedureId(procID, PROC_UID_PREFIX+procID))
+                .withSystem(new SystemId(sysID, PROC_UID_PREFIX+sysID))
                 .withRecordDescription(recordStruct)
                 .withRecordEncoding(new TextEncodingImpl())
                 .build();
@@ -109,14 +109,14 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    protected DataStreamKey addSimpleDataStream(long procID, String outputName)
+    protected DataStreamKey addSimpleDataStream(long sysID, String outputName)
     {
         SWEHelper fac = new SWEHelper();
         var builder = fac.createRecord()
             .name(outputName);
         for (int i=0; i<5; i++)
             builder.addField("comp"+i, fac.createQuantity().build());        
-        return addDataStream(procID, builder.build());
+        return addDataStream(sysID, builder.build());
     }
 
 
@@ -451,14 +451,14 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         Instant startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
         Map<BigInteger, IObsData> obsBatch2 = addSimpleObsWithoutResultTime(dsKey.getInternalID(), 104, startTime2, 100, 10000);
 
-        // correct procedure ID and all times
+        // correct system ID and all times
         filter = new ObsFilter.Builder()
             .withDataStreams(dsKey.getInternalID())
             .build();
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, allObs, filter);
 
-        // correct procedure ID and time range containing all
+        // correct system ID and time range containing all
         filter = new ObsFilter.Builder()
             .withDataStreams(dsKey.getInternalID())
             .withPhenomenonTimeDuring(startTime1, startTime2.plus(1, ChronoUnit.DAYS))
@@ -466,7 +466,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, allObs, filter);
 
-        // correct procedure ID and time range containing only batch 1
+        // correct system ID and time range containing only batch 1
         filter = new ObsFilter.Builder()
             .withDataStreams(dsKey.getInternalID())
             .withPhenomenonTimeDuring(startTime1, startTime1.plus(1, ChronoUnit.DAYS))
@@ -475,7 +475,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, obsBatch1, filter);
 
-        // correct procedure ID and time range containing only batch 2
+        // correct system ID and time range containing only batch 2
         filter = new ObsFilter.Builder()
             .withDataStreams(dsKey.getInternalID())
             .withPhenomenonTimeDuring(startTime2, startTime2.plus(1, ChronoUnit.DAYS))
@@ -484,7 +484,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
         resultStream = obsStore.selectEntries(filter);
         checkSelectedEntries(resultStream, obsBatch2, filter);
 
-        // incorrect procedure ID
+        // incorrect system ID
         filter = new ObsFilter.Builder()
             .withDataStreams(12L)
             .build();
@@ -664,7 +664,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
 
         // datastream 1 & 2 by proc ID
         filter = new ObsFilter.Builder()
-            .withProcedures(1L)
+            .withSystems(1L)
             .build();
         resultStream = obsStore.selectEntries(filter);
         expectedResults.clear();
@@ -704,12 +704,12 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     
     
     @Test(expected = IllegalStateException.class)
-    public void testErrorWithProcedureFilterJoin() throws Exception
+    public void testErrorWithSystemFilterJoin() throws Exception
     {
         try
         {
             obsStore.selectEntries(new ObsFilter.Builder()
-                .withProcedures()
+                .withSystems()
                     .withKeywords("thermometer")
                     .done()
                 .build());

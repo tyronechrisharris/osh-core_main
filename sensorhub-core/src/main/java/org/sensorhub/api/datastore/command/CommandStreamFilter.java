@@ -21,7 +21,7 @@ import java.util.SortedSet;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.TemporalFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
 import com.google.common.collect.ImmutableSortedSet;
@@ -31,7 +31,7 @@ import net.opengis.swe.v20.DataComponent;
 
 /**
  * <p>
- * Immutable filter object for procedure command streams.<br/>
+ * Immutable filter object for system command streams.<br/>
  * There is an implicit AND between all filter parameters.<br/>
  * If internal IDs are used, no other filter options are allowed.
  * </p>
@@ -41,7 +41,7 @@ import net.opengis.swe.v20.DataComponent;
  */
 public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
 {
-    protected ProcedureFilter procFilter;
+    protected SystemFilter systemFilter;
     protected CommandFilter commandFilter;
     protected SortedSet<String> controlInputNames;
     protected SortedSet<String> taskableProperties;
@@ -54,9 +54,9 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
     protected CommandStreamFilter() {}
 
 
-    public ProcedureFilter getProcedureFilter()
+    public SystemFilter getSystemFilter()
     {
-        return procFilter;
+        return systemFilter;
     }
 
 
@@ -151,9 +151,9 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
     {
         super.and(otherFilter, builder);
         
-        var procFilter = this.procFilter != null ? this.procFilter.intersect(otherFilter.procFilter) : otherFilter.procFilter;
+        var procFilter = this.systemFilter != null ? this.systemFilter.intersect(otherFilter.systemFilter) : otherFilter.systemFilter;
         if (procFilter != null)
-            builder.withProcedures(procFilter);
+            builder.withSystems(procFilter);
         
         var cmdFilter = this.commandFilter != null ? this.commandFilter.intersect(otherFilter.commandFilter) : otherFilter.commandFilter;
         if (cmdFilter != null)
@@ -236,7 +236,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
         public B copyFrom(F other)
         {
             super.copyFrom(other);
-            instance.procFilter = other.procFilter;
+            instance.systemFilter = other.systemFilter;
             instance.commandFilter = other.commandFilter;
             instance.controlInputNames = other.controlInputNames;
             instance.validTime = other.validTime;
@@ -246,55 +246,55 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
 
 
         /**
-         * Keep only command streams exposed by the procedures matching the filters.
-         * @param filter Filter to select desired procedures
+         * Keep only command streams exposed by the systems matching the filters.
+         * @param filter Filter to select desired systems
          * @return This builder for chaining
          */
-        public B withProcedures(ProcedureFilter filter)
+        public B withSystems(SystemFilter filter)
         {
-            instance.procFilter = filter;
+            instance.systemFilter = filter;
             return (B)this;
         }
 
         
         /**
-         * Keep only command streams exposed by the procedures matching the filters.<br/>
+         * Keep only command streams exposed by the systems matching the filters.<br/>
          * Call done() on the nested builder to go back to main builder.
-         * @return The {@link ProcedureFilter} builder for chaining
+         * @return The {@link SystemFilter} builder for chaining
          */
-        public ProcedureFilter.NestedBuilder<B> withProcedures()
+        public SystemFilter.NestedBuilder<B> withSystems()
         {
-            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+            return new SystemFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {
-                    CommandStreamFilterBuilder.this.withProcedures(build());
+                    CommandStreamFilterBuilder.this.withSystems(build());
                     return (B)CommandStreamFilterBuilder.this;
-                }                
+                }
             };
         }
 
 
         /**
-         * Keep only command streams exposed by specific procedures (including all outputs).
-         * @param procIDs Internal IDs of one or more procedures
+         * Keep only command streams exposed by specific systems (including all outputs).
+         * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withProcedures(long... procIDs)
+        public B withSystems(long... ids)
         {
-            return withProcedures(Longs.asList(procIDs));
+            return withSystems(Longs.asList(ids));
         }
 
 
         /**
-         * Keep only command streams exposed by specific procedures (including all outputs).
-         * @param procIDs Internal IDs of one or more procedures
+         * Keep only command streams exposed by specific systems (including all outputs).
+         * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withProcedures(Collection<Long> procIDs)
+        public B withSystems(Collection<Long> ids)
         {
-            withProcedures(new ProcedureFilter.Builder()
-                .withInternalIDs(procIDs)
+            withSystems(new SystemFilter.Builder()
+                .withInternalIDs(ids)
                 .build());
             return (B)this;
         }
@@ -332,7 +332,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
         
         /**
          * Keep only command streams associated to the specified command inputs.
-         * @param names One or more procedure parameter names
+         * @param names One or more system control input names
          * @return This builder for chaining
          */
         public B withControlInputNames(String... names)
@@ -343,7 +343,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
         
         /**
          * Keep only command streams associated to the specified command inputs.
-         * @param names Collections of procedure parameter names
+         * @param names Collections of system control input names
          * @return This builder for chaining
          */
         public B withControlInputNames(Collection<String> names)

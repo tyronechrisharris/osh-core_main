@@ -39,7 +39,7 @@ import net.opengis.swe.v20.DataBlock;
  * </p>
  *
  * @author Alex Robin
- * @param <T> Type of parent procedure
+ * @param <T> Type of parent system
  * @since Nov 22, 2014
  */
 public abstract class AbstractSensorControl<T extends ICommandReceiver> implements IStreamingControlInterface

@@ -36,11 +36,11 @@ class MVTimeSeriesProcKeyDataType implements DataType
     @Override
     public int compare(Object objA, Object objB)
     {
-        MVTimeSeriesProcKey a = (MVTimeSeriesProcKey)objA;
-        MVTimeSeriesProcKey b = (MVTimeSeriesProcKey)objB;
+        MVTimeSeriesSystemKey a = (MVTimeSeriesSystemKey)objA;
+        MVTimeSeriesSystemKey b = (MVTimeSeriesSystemKey)objB;
         
-        // first compare procedure internal ID
-        int comp = Long.compare(a.procedureID, b.procedureID);
+        // first compare system internal ID
+        int comp = Long.compare(a.systemID, b.systemID);
         if (comp != 0)
             return comp;
         
@@ -58,7 +58,7 @@ class MVTimeSeriesProcKeyDataType implements DataType
     @Override
     public int getMemory(Object obj)
     {
-        MVTimeSeriesProcKey key = (MVTimeSeriesProcKey)obj;
+        MVTimeSeriesSystemKey key = (MVTimeSeriesSystemKey)obj;
         return MIN_MEM_SIZE + key.signalName.length();
     }
     
@@ -66,9 +66,9 @@ class MVTimeSeriesProcKeyDataType implements DataType
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        MVTimeSeriesProcKey key = (MVTimeSeriesProcKey)obj;
+        MVTimeSeriesSystemKey key = (MVTimeSeriesSystemKey)obj;
         wbuf.putVarLong(key.internalID);
-        wbuf.putVarLong(key.procedureID);
+        wbuf.putVarLong(key.systemID);
         H2Utils.writeAsciiString(wbuf, key.signalName);
         wbuf.putVarLong(key.validStartTime);
     }
@@ -86,10 +86,10 @@ class MVTimeSeriesProcKeyDataType implements DataType
     public Object read(ByteBuffer buff)
     {
         long internalID = DataUtils.readVarLong(buff);
-        long procID = DataUtils.readVarLong(buff);
+        long sysID = DataUtils.readVarLong(buff);
         String outputName = H2Utils.readAsciiString(buff);
         long validStartTime = DataUtils.readVarLong(buff);        
-        return new MVTimeSeriesProcKey(internalID, procID, outputName, validStartTime);
+        return new MVTimeSeriesSystemKey(internalID, sysID, outputName, validStartTime);
     }
     
 

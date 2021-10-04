@@ -23,13 +23,13 @@ import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
+import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.data.DataIterator;
 import org.vast.data.TextEncodingImpl;
@@ -56,7 +56,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     SWEJsonStreamReader sweReader;
     JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
-    IdEncoder procIdEncoder = new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED);
+    IdEncoder procIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     
     
     DataStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
@@ -138,7 +138,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         var dsInfo = new DataStreamInfo.Builder()
             .withName(name)
             .withDescription(description)
-            .withProcedure(new ProcedureId(1, "temp-uid")) // use dummy UID since it will be replaced later
+            .withSystem(new SystemId(1, "temp-uid")) // use dummy UID since it will be replaced later
             .withRecordDescription(resultStruct)
             .withRecordEncoding(resultEncoding)
             .build();
@@ -151,7 +151,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
-        var publicProcID = procIdEncoder.encodeID(dsInfo.getProcedureID().getInternalID());
+        var publicProcID = procIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
         
         writer.beginObject();
         
@@ -161,7 +161,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("procedure").beginObject()
+        writer.name("system").beginObject()
             .name("id").value(Long.toString(publicProcID, 36))
             .name("outputName").value(dsInfo.getOutputName())
             .endObject();
@@ -228,10 +228,10 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             var links = new ArrayList<ResourceLink>();
                         
             links.add(new ResourceLink.Builder()
-                .rel("procedure")
-                .title("Parent procedure")
+                .rel("system")
+                .title("Parent system")
                 .href(rootURL +
-                      "/" + ProcedureHandler.NAMES[0] +
+                      "/" + SystemHandler.NAMES[0] +
                       "/" + Long.toString(publicProcID, 36))
                 .build());
             

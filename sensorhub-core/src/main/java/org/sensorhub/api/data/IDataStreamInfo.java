@@ -16,7 +16,7 @@ package org.sensorhub.api.data;
 
 import java.time.Instant;
 import java.util.Map;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.vast.util.IResource;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
@@ -35,13 +35,13 @@ public interface IDataStreamInfo extends IResource
 {
 
     /**
-     * @return The identifier of the procedure that generated this data stream
+     * @return The identifier of the system that produces this data stream
      */
-    ProcedureId getProcedureID();
+    SystemId getSystemID();
 
 
     /**
-     * @return The name of the procedure output that is/was the source of
+     * @return The name of the system output that is/was the source of
      * this data stream
      */
     String getOutputName();
@@ -61,7 +61,7 @@ public interface IDataStreamInfo extends IResource
     
     /**
      * @return The time of validity of this datastream. This corresponds to the time
-     * during which the corresponding procedure output actually existed.
+     * during which the corresponding system output actually existed.
      */
     TimeExtent getValidTime();
     

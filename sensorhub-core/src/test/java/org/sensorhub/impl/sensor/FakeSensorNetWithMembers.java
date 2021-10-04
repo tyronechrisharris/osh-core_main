@@ -32,8 +32,8 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.procedure.IProcedureDriver;
-import org.sensorhub.api.procedure.IProcedureGroupDriver;
+import org.sensorhub.api.system.ISystemDriver;
+import org.sensorhub.api.system.ISystemGroupDriver;
 import org.sensorhub.impl.event.EventSourceInfo;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.IFeature;
@@ -41,7 +41,7 @@ import org.vast.sensorML.SMLFactory;
 import com.google.common.collect.ImmutableMap;
 
 
-public class FakeSensorNetWithMembers extends FakeSensor implements IProcedureGroupDriver<IDataProducer>
+public class FakeSensorNetWithMembers extends FakeSensor implements ISystemGroupDriver<IDataProducer>
 {
     static String SENSORNET_UID = "urn:sensors:mysensornet:001";
     static String MEMBER_UID_PREFIX = ":S";
@@ -90,7 +90,7 @@ public class FakeSensorNetWithMembers extends FakeSensor implements IProcedureGr
         }
 
         @Override
-        public IProcedureGroupDriver<? extends IProcedureDriver> getParentGroup()
+        public ISystemGroupDriver<? extends ISystemDriver> getParentGroup()
         {
             return FakeSensorNetWithMembers.this;
         }

@@ -17,7 +17,7 @@ package org.sensorhub.impl.datastore.obs;
 import java.time.Instant;
 import java.util.Map;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
@@ -44,9 +44,9 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
     
     
     @Override
-    public ProcedureId getProcedureID()
+    public SystemId getSystemID()
     {
-        return delegate.getProcedureID();
+        return delegate.getSystemID();
     }
 
 

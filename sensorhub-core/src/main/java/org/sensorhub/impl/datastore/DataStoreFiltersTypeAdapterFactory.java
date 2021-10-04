@@ -645,7 +645,7 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
         
         public FieldNamingStrategy()
         {
-            serializedNames.put("procFilter", "withProcedures");
+            serializedNames.put("systemFilter", "withSystems");
             serializedNames.put("obsFilter", "withObservations");
             serializedNames.put("dataStreamFilter", "withDatastreams");
             serializedNames.put("foiFilter", "withFois");

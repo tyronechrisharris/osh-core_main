@@ -44,7 +44,7 @@ import org.vast.util.Asserts;
 /**
  * <p>
  * In-memory implementation of a command store backed by a {@link java.util.NavigableMap}.
- * This implementation is only used to store the latest procedure state and
+ * This implementation is only used to store the latest system state and
  * thus only stores the latest command of each command stream.
  * </p>
  *

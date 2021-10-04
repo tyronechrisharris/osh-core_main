@@ -24,7 +24,7 @@ import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
@@ -34,7 +34,7 @@ import com.google.common.primitives.Longs;
 
 /**
  * <p>
- * Immutable filter object for commands.<br/>
+ * Immutable filter object for system commands.<br/>
  * There is an implicit AND between all filter parameters.
  * </p>
  *
@@ -310,7 +310,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
                 {
                     CommandFilterBuilder.this.withActuationTime(build());
                     return (B)CommandFilterBuilder.this;
-                }                
+                }
             };
         }
 
@@ -414,7 +414,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
                 {
                     CommandFilterBuilder.this.withCommandStreams(build());
                     return (B)CommandFilterBuilder.this;
-                }                
+                }
             };
         }
 
@@ -444,70 +444,70 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
 
 
         /**
-         * Keep only commands from procedures matching the filter.
-         * @param filter Filter to select desired procedures
+         * Keep only commands from systems matching the filter.
+         * @param filter Filter to select desired systems
          * @return This builder for chaining
          */
-        public B withProcedures(ProcedureFilter filter)
+        public B withSystems(SystemFilter filter)
         {
             return withCommandStreams(new CommandStreamFilter.Builder()
-                .withProcedures(filter)
+                .withSystems(filter)
                 .build());
         }
         
         
         /**
-         * Keep only commands from procedures matching the filter.<br/>
+         * Keep only commands from systems matching the filter.<br/>
          * Call done() on the nested builder to go back to main builder.
-         * @return The {@link ProcedureFilter} builder for chaining
+         * @return The {@link SystemFilter} builder for chaining
          */
-        public ProcedureFilter.NestedBuilder<B> withProcedures()
+        public SystemFilter.NestedBuilder<B> withSystems()
         {
-            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+            return new SystemFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {
-                    CommandFilterBuilder.this.withProcedures(build());
+                    CommandFilterBuilder.this.withSystems(build());
                     return (B)CommandFilterBuilder.this;
-                }                
+                }
             };
         }
 
 
         /**
-         * Keep only commands from specific procedures (including all tasking inputs).
-         * @param procIDs Internal IDs of one or more procedures
+         * Keep only commands from specific systems (including all tasking inputs).
+         * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withProcedures(long... procIDs)
+        public B withSystems(long... ids)
         {
-            return withProcedures(Longs.asList(procIDs));
+            return withSystems(Longs.asList(ids));
         }
 
 
         /**
-         * Keep only commands from specific procedures (including all tasking inputs).
-         * @param procIDs Collection of internal IDs of procedures
+         * Keep only commands from specific systems (including all tasking inputs).
+         * @param ids Collection of internal IDs of systems
          * @return This builder for chaining
          */
-        public B withProcedures(Collection<Long> procIDs)
+        public B withSystems(Collection<Long> ids)
         {
             return withCommandStreams(new CommandStreamFilter.Builder()
-                .withProcedures(procIDs)
+                .withSystems(ids)
                 .build());
         }
 
 
         /**
-         * Keep only commands from selected tasking inputs of a specific procedure
-         * @param procID Internal ID of the procedure
+         * Keep only commands from selected tasking inputs of a specific system
+         * @param sysID Internal ID of the system
          * @param commandNames Names of one or more command inputs of interest
          * @return This builder for chaining
          */
-        public B withProcedure(long procID, String... commandNames)
+        public B withSystem(long sysID, String... commandNames)
         {
             return withCommandStreams(new CommandStreamFilter.Builder()
-                .withProcedures(procID)
+                .withSystems(sysID)
                 .withControlInputNames(commandNames)
                 .build());
         }

@@ -16,15 +16,15 @@ package org.sensorhub.impl.database.registry;
 
 import java.util.Map;
 import org.sensorhub.api.database.IDatabaseRegistry;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 import org.vast.ogc.gml.IFeature;
 
@@ -47,7 +47,7 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiFi
     }
     
     
-    protected IFoiStore getFeatureStore(IProcedureObsDatabase db)
+    protected IFoiStore getFeatureStore(IObsSystemDatabase db)
     {
         return db.getFoiStore();
     }
@@ -71,15 +71,15 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiFi
         
         else if (filter.getParentFilter() != null)
         {
-            // delegate to proc store handle procedure filter dispatch map
-            var filterDispatchMap = parentDb.procStore.getFilterDispatchMap(filter.getParentFilter());
+            // delegate to system store handle filter dispatch map
+            var filterDispatchMap = parentDb.systemStore.getFilterDispatchMap(filter.getParentFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())
                 {
                     filterInfo.filter = FoiFilter.Builder
                         .from(filter)
-                        .withParents((ProcedureFilter)filterInfo.filter)
+                        .withParents((SystemFilter)filterInfo.filter)
                         .build();
                 }
             }
@@ -89,7 +89,7 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiFi
         
         else if (filter.getObservationFilter() != null)
         {
-            // delegate to proc store handle procedure filter dispatch map
+            // delegate to system store handle filter dispatch map
             var filterDispatchMap = parentDb.obsStore.getFilterDispatchMap(filter.getObservationFilter());
             if (filterDispatchMap != null)
             {
@@ -110,7 +110,7 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiFi
 
 
     @Override
-    public void linkTo(IProcedureStore procStore)
+    public void linkTo(ISystemDescStore procStore)
     {
         throw new UnsupportedOperationException();
     }

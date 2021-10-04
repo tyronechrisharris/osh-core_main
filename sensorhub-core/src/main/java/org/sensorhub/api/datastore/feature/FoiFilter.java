@@ -16,7 +16,7 @@ package org.sensorhub.api.datastore.feature;
 
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.vast.ogc.gml.IFeature;
 
@@ -32,7 +32,7 @@ import org.vast.ogc.gml.IFeature;
  */
 public class FoiFilter extends FeatureFilterBase<IFeature>
 {
-    protected ProcedureFilter parentFilter;
+    protected SystemFilter parentFilter;
     protected FeatureFilter sampledFeatureFilter;
     protected ObsFilter obsFilter;
     
@@ -43,7 +43,7 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
     protected FoiFilter() {}
     
     
-    public ProcedureFilter getParentFilter()
+    public SystemFilter getParentFilter()
     {
         return parentFilter;
     }
@@ -171,11 +171,11 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
         
         
         /**
-         * Select only FOIs attached to the selected procedures
-         * @param filter Parent procedure filter
+         * Select only sampling features attached to the selected systems
+         * @param filter Parent system filter
          * @return This builder for chaining
          */
-        public B withParents(ProcedureFilter filter)
+        public B withParents(SystemFilter filter)
         {
             instance.parentFilter = filter;
             return (B)this;
@@ -183,26 +183,27 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
 
         
         /**
-         * Select only FOIs attached to the selected procedures.<br/>
+         * Select only sampling features attached to the selected systems.<br/>
          * Call done() on the nested builder to go back to main builder.
-         * @return The {@link ProcedureFilter} builder for chaining
+         * @return The {@link SystemFilter} builder for chaining
          */
-        public ProcedureFilter.NestedBuilder<B> withParents()
+        public SystemFilter.NestedBuilder<B> withParents()
         {
-            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+            return new SystemFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {
                     FoiFilterBuilder.this.withParents(build());
                     return (B)FoiFilterBuilder.this;
-                }                
+                }
             };
         }
         
         
         /**
-         * Select only FOIs attached to the procedures with specific internal IDs
-         * @param ids List of IDs of parent procedures
+         * Select only sampling features attached to systems with
+         * specific internal IDs
+         * @param ids List of IDs of parent systems
          * @return This builder for chaining
          */
         public B withParents(long... ids)
@@ -214,9 +215,9 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
         
         
         /**
-         * Select only features belonging to the parent groups with
+         * Select only sampling features attached to systems with
          * specific unique IDs
-         * @param uids List of UIDs of parent procedure groups
+         * @param uids List of UIDs of parent systems
          * @return This builder for chaining
          */
         public B withParents(String... uids)
@@ -252,7 +253,7 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
                 {
                     FoiFilterBuilder.this.withSampledFeatures(build());
                     return (B)FoiFilterBuilder.this;
-                }                
+                }
             };
         }
         
@@ -282,7 +283,7 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
                 {
                     FoiFilterBuilder.this.withObservations(build());
                     return (B)FoiFilterBuilder.this;
-                }                
+                }
             };
         }
     }

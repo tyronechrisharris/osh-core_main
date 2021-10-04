@@ -37,22 +37,22 @@ public class DataEvent extends DataStreamEvent
 
 
     /**
-     * Constructs a data event associated to a specific procedure and channel
+     * Constructs a data event associated to a specific system and channel
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID Unique ID of procedure that produced the data records
+     * @param sysUID Unique ID of system that produced the data records
      * @param outputName Name of the output interface that generated the data
      * @param records Array of data records that triggered this event
      */
-    public DataEvent(long timeStamp, String procUID, String outputName, DataBlock ... records)
+    public DataEvent(long timeStamp, String sysUID, String outputName, DataBlock ... records)
     {
-        super(timeStamp, procUID, outputName);
+        super(timeStamp, sysUID, outputName);
         Asserts.checkNotNullOrEmpty(records, "records must be provided");
         this.records = records;
     }
 
 
     /**
-     * Helper constructor to construct a data event associated to the procedure
+     * Helper constructor to construct a data event associated to the system
      * that is the parent of the given data interface
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
      * @param dataInterface Stream interface that generated the associated data
@@ -69,7 +69,7 @@ public class DataEvent extends DataStreamEvent
 
 
     /**
-     * Helper constructor to construct a data event associated to the procedure
+     * Helper constructor to construct a data event associated to the system
      * that is the parent of the given data interface
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
      * @param dataInterface Stream interface that generated the associated data
@@ -88,49 +88,49 @@ public class DataEvent extends DataStreamEvent
 
 
     /**
-     * Constructs a data event associated to a specific procedure, channel and FOI
+     * Constructs a data event associated to a specific system, channel and FOI
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID Unique ID of procedure that produced the data records
+     * @param sysUID Unique ID of system that produced the data records
      * @param outputName Name of the output interface that generated the data
      * @param foiUID Unique ID of feature of interest that this data applies to
      * @param records Array of data records that triggered this event
      */
-    public DataEvent(long timeStamp, String procUID, String outputName, String foiUID, DataBlock ... records)
+    public DataEvent(long timeStamp, String sysUID, String outputName, String foiUID, DataBlock ... records)
     {
-        this(timeStamp, procUID, outputName, records);
+        this(timeStamp, sysUID, outputName, records);
         this.foiUID = foiUID;
     }
 
 
     /**
-     * Constructs a data event associated to a specific procedure and channel,
+     * Constructs a data event associated to a specific system and channel,
      * and tagged by a specific result time.
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID Unique ID of procedure that produced the data records
+     * @param sysUID Unique ID of system that produced the data records
      * @param outputName Name of the output interface that generated the data
      * @param resultTime Time at which the data was generated (e.g. model run time)
      * @param records Array of data records that triggered this event
      */
-    public DataEvent(long timeStamp, String procUID, String outputName, Instant resultTime, DataBlock ... records)
+    public DataEvent(long timeStamp, String sysUID, String outputName, Instant resultTime, DataBlock ... records)
     {
-        this(timeStamp, procUID, outputName, records);
+        this(timeStamp, sysUID, outputName, records);
         this.resultTime = resultTime;
     }
 
 
     /**
-     * Constructs a data event associated to a specific procedure, channel and FOI,
+     * Constructs a data event associated to a specific system, channel and FOI,
      * and tagged by a specific result time.
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID Unique ID of procedure that produced the data records
+     * @param sysUID Unique ID of system that produced the data records
      * @param outputName Name of the output interface that generated the data
      * @param resultTime Time at which the data was generated (e.g. model run time)
      * @param foiUID Unique ID of feature of interest that this data applies to
      * @param records Array of data records that triggered this event
      */
-    public DataEvent(long timeStamp, String procUID, String outputName, Instant resultTime, String foiUID, DataBlock ... records)
+    public DataEvent(long timeStamp, String sysUID, String outputName, Instant resultTime, String foiUID, DataBlock ... records)
     {
-        this(timeStamp, procUID, outputName, records);
+        this(timeStamp, sysUID, outputName, records);
         this.resultTime = resultTime;
         this.foiUID = foiUID;
     }
@@ -144,7 +144,7 @@ public class DataEvent extends DataStreamEvent
 
 
     /**
-     * @return The time at which the data records were generated by the procedure
+     * @return The time at which the data records were generated by the system
      */
     public Instant getResultTime()
     {
@@ -166,7 +166,7 @@ public class DataEvent extends DataStreamEvent
      * Multiple records can be associated to a single event because with high
      * rate or batch producers (e.g. models), it is often not practical or a
      * waste of resources to generate an event for every single record of measurements.
-     * Note that all records share the same procedure, foi and result time.
+     * Note that all records share the same system, foi and result time.
      */
     public DataBlock[] getRecords()
     {
@@ -178,7 +178,7 @@ public class DataEvent extends DataStreamEvent
     public String getSourceID()
     {
         if (sourceID == null)
-            sourceID = EventUtils.getDataStreamDataTopicID(procedureUID, outputName);
+            sourceID = EventUtils.getDataStreamDataTopicID(systemUID, outputName);
         return sourceID;
     }
 }

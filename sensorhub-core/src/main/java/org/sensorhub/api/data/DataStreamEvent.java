@@ -15,7 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.data;
 
 import org.sensorhub.api.event.EventUtils;
-import org.sensorhub.api.procedure.ProcedureEvent;
+import org.sensorhub.api.system.SystemEvent;
 import org.vast.util.Asserts;
 
 
@@ -27,31 +27,31 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Sep 28, 2020
  */
-public abstract class DataStreamEvent extends ProcedureEvent
+public abstract class DataStreamEvent extends SystemEvent
 {
     protected String outputName;
 
 
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID Unique ID of parent procedure
+     * @param sysUID Unique ID of parent system
      * @param outputName Name of output producing the datastream
      */
-    public DataStreamEvent(long timeStamp, String procUID, String outputName)
+    public DataStreamEvent(long timeStamp, String sysUID, String outputName)
     {
-        super(timeStamp, procUID);
+        super(timeStamp, sysUID);
         this.outputName = Asserts.checkNotNullOrEmpty(outputName, "outputName");
     }
     
     
     /**
      * Helper constructor that sets the timestamp to current system time
-     * @param procUID Unique ID of parent procedure
+     * @param sysUID Unique ID of parent system
      * @param outputName Name of output producing the datastream
      */
-    public DataStreamEvent(String procUID, String outputName)
+    public DataStreamEvent(String sysUID, String outputName)
     {
-        this(System.currentTimeMillis(), procUID, outputName);
+        this(System.currentTimeMillis(), sysUID, outputName);
     }
     
     
@@ -61,7 +61,7 @@ public abstract class DataStreamEvent extends ProcedureEvent
      */
     public DataStreamEvent(IDataStreamInfo dsInfo)
     {
-        super(Asserts.checkNotNull(dsInfo, IDataStreamInfo.class).getProcedureID().getUniqueID());
+        super(Asserts.checkNotNull(dsInfo, IDataStreamInfo.class).getSystemID().getUniqueID());
         this.outputName = Asserts.checkNotNullOrEmpty(dsInfo.getOutputName(), "outputName");
     }
 
@@ -79,7 +79,7 @@ public abstract class DataStreamEvent extends ProcedureEvent
     public String getSourceID()
     {
         if (sourceID == null)
-            sourceID = EventUtils.getDataStreamStatusTopicID(procedureUID, outputName);
+            sourceID = EventUtils.getDataStreamStatusTopicID(systemUID, outputName);
         return sourceID;
     }
     

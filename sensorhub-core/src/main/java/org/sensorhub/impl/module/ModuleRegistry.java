@@ -49,7 +49,7 @@ import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.module.ModuleEvent.Type;
-import org.sensorhub.api.procedure.IProcedureDriver;
+import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.utils.FileUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.sensorhub.utils.NamedThreadFactory;
@@ -793,8 +793,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 getStateManager(moduleID).cleanup();
                 module.cleanup();
                 
-                if (module.isInitialized() && module instanceof IProcedureDriver)
-                    hub.getProcedureRegistry().unregister((IProcedureDriver)module);
+                if (module.isInitialized() && module instanceof ISystemDriver)
+                    hub.getSystemDriverRegistry().unregister((ISystemDriver)module);
             }
             
             if (log.isDebugEnabled())

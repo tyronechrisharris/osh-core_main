@@ -4,7 +4,7 @@
             "indeterminate": "current"
         },
         "outputNames": ["press", "temp"],
-        "withProcedures": {
+        "withSystems": {
             "internalIDs": [12, 568944]
         }
     },

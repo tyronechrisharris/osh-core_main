@@ -22,18 +22,18 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.system.SystemHandler;
+import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 
 
 public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStreamInfo, DataStreamFilter, DataStreamFilter.Builder, IDataStreamStore>
@@ -41,13 +41,13 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     public static final int EXTERNAL_ID_SEED = 918742953;
     public static final String[] NAMES = { "datastreams" };
     
-    ProcedureObsTransactionHandler transactionHandler;
+    SystemDatabaseTransactionHandler transactionHandler;
     
     
-    public DataStreamHandler(IEventBus eventBus, ProcedureObsDbWrapper db, ResourcePermissions permissions)
+    public DataStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
-        this.transactionHandler = new ProcedureObsTransactionHandler(eventBus, db);
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
     }
     
     
@@ -74,8 +74,8 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() &&
-            !(ctx.getParentRef().type instanceof ProcedureHandler))
-            throw ServiceErrors.unsupportedOperation("Datastreams can only be created within a Procedure");
+            !(ctx.getParentRef().type instanceof SystemHandler))
+            throw ServiceErrors.unsupportedOperation("Datastreams can only be created within a System resource");
         
         super.doPost(ctx);
     }
@@ -92,7 +92,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         // filter on parent if needed
         if (parent.internalID > 0)
         {
-            builder.withProcedures()
+            builder.withSystems()
                 .withInternalIDs(parent.internalID)
                 .done();
         }
@@ -119,8 +119,8 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     @Override
     protected DataStreamKey addEntry(final RequestContext ctx, final IDataStreamInfo res) throws DataStoreException
     {        
-        var procID = ctx.getParentID();
-        var procHandler = transactionHandler.getProcedureHandler(procID);
+        var sysID = ctx.getParentID();
+        var procHandler = transactionHandler.getSystemHandler(sysID);
         
         var dsHandler = procHandler.addOrUpdateDataStream(res.getOutputName(), res.getRecordStructure(), res.getRecordEncoding());
         var dsKey = dsHandler.getDataStreamKey();

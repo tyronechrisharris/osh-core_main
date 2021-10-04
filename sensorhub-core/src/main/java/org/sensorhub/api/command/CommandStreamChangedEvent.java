@@ -31,9 +31,9 @@ public class CommandStreamChangedEvent extends CommandStreamEvent
      * Pass-through to super class constructor
      * @see CommandStreamEvent#CommandStreamEvent(long, String, String)
      */
-    public CommandStreamChangedEvent(long timeStamp, String procUID, String controlInputName)
+    public CommandStreamChangedEvent(long timeStamp, String sysUID, String controlInputName)
     {
-        super(timeStamp, procUID, controlInputName);
+        super(timeStamp, sysUID, controlInputName);
     }
     
     
@@ -41,9 +41,9 @@ public class CommandStreamChangedEvent extends CommandStreamEvent
      * Pass-through to super class constructor
      * @see CommandStreamEvent#CommandStreamEvent(String, String)
      */
-    public CommandStreamChangedEvent(String procUID, String controlInputName)
+    public CommandStreamChangedEvent(String sysUID, String controlInputName)
     {
-        super(procUID, controlInputName);
+        super(sysUID, controlInputName);
     }
     
     

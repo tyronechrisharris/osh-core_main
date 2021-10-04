@@ -45,7 +45,7 @@ public class SPSService extends SWEService<SPSServiceConfig>
         // validate config
         for (var connectorConfig: config.customConnectors)
         {
-            if (Strings.isNullOrEmpty(connectorConfig.procedureUID))
+            if (Strings.isNullOrEmpty(connectorConfig.systemUID))
                 throw new SensorHubException("Connector configuration must specify a procedure unique ID");
         }       
         
@@ -63,12 +63,12 @@ public class SPSService extends SWEService<SPSServiceConfig>
         // else if some custom providers are configured, build a filter to expose them (and nothing else)
         else if (config.exposedResources == null && config.customConnectors != null && !config.customConnectors.isEmpty())
         {
-            var procUIDs = config.customConnectors.stream()
-                .map(config -> config.procedureUID)
+            var sysUIDs = config.customConnectors.stream()
+                .map(config -> config.systemUID)
                 .collect(Collectors.toSet());
             
             return new CommandFilter.Builder()
-                .withProcedures().withUniqueIDs(procUIDs).done()
+                .withSystems().withUniqueIDs(sysUIDs).done()
                 .build();
         }
         

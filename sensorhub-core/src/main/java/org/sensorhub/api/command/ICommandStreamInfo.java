@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.vast.util.IResource;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
@@ -33,13 +33,13 @@ public interface ICommandStreamInfo extends IResource
 {
     
     /**
-     * @return The identifier of the procedure that exposes this command stream
+     * @return The identifier of the system that exposes this command stream
      */
-    ProcedureId getProcedureID();
+    SystemId getSystemID();
 
     
     /**
-     * @return The name of the procedure control input that receives commands
+     * @return The name of the system control input that receives commands
      * from this stream
      */
     String getControlInputName();

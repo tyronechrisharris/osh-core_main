@@ -21,7 +21,7 @@ import org.junit.After;
 import org.sensorhub.impl.datastore.AbstractTestObsDatabase;
 
 
-public class TestMVObsDatabase extends AbstractTestObsDatabase<MVObsDatabase>
+public class TestMVObsDatabase extends AbstractTestObsDatabase<MVObsSystemDatabase>
 {
     private static String DB_FILE_PREFIX = "test-mvobsdb-";
     protected File dbFile;
@@ -29,7 +29,7 @@ public class TestMVObsDatabase extends AbstractTestObsDatabase<MVObsDatabase>
         
     
     @Override
-    protected MVObsDatabase initDatabase() throws Exception
+    protected MVObsSystemDatabase initDatabase() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
         dbFile.deleteOnExit();        
@@ -44,10 +44,10 @@ public class TestMVObsDatabase extends AbstractTestObsDatabase<MVObsDatabase>
     }
     
     
-    private MVObsDatabase openDatabase() throws Exception
+    private MVObsSystemDatabase openDatabase() throws Exception
     {
-        MVObsDatabase db = new MVObsDatabase();
-        var config = new MVObsDatabaseConfig();
+        MVObsSystemDatabase db = new MVObsSystemDatabase();
+        var config = new MVObsSystemDatabaseConfig();
         config.storagePath = dbFile.getAbsolutePath();
         config.databaseNum = 1;
         db.setConfiguration(config);

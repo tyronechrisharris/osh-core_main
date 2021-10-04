@@ -24,7 +24,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -42,7 +42,7 @@ import org.vast.util.Asserts;
  */
 public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IFeature, FoiField, FoiFilter> implements IFoiStore
 {
-    IProcedureStore procStore;
+    ISystemDescStore procStore;
     IObsStore obsStore;
     
     
@@ -75,7 +75,7 @@ public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IFeature, FoiFiel
         
         if (filter.getParentFilter() != null)
         {
-            var parentIDStream = DataStoreUtils.selectProcedureIDs(procStore, filter.getParentFilter());
+            var parentIDStream = DataStoreUtils.selectSystemIDs(procStore, filter.getParentFilter());
             resultStream = postFilterOnParents(resultStream, parentIDStream);
         }
         
@@ -107,9 +107,9 @@ public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IFeature, FoiFiel
 
 
     @Override
-    public void linkTo(IProcedureStore procStore)
+    public void linkTo(ISystemDescStore procStore)
     {
-        this.procStore = Asserts.checkNotNull(procStore, IProcedureStore.class);        
+        this.procStore = Asserts.checkNotNull(procStore, ISystemDescStore.class);        
     }
     
 

@@ -22,7 +22,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.client.ClientException;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.sensor.ISensorModule;
@@ -31,7 +31,7 @@ import org.sensorhub.api.service.IHttpServer;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.client.sost.SOSTClient;
 import org.sensorhub.impl.client.sost.SOSTClientConfig;
-import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseViewConfig;
+import org.sensorhub.impl.datastore.view.ObsSystemDatabaseViewConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.impl.sensor.FakeSensor;
@@ -102,8 +102,8 @@ public class TestSOSTClient
         SOSTClientConfig config = new SOSTClientConfig();
         config.id = "SOST";
         config.name = "SOS-T Client";
-        config.dataSourceSelector = new ProcedureObsDatabaseViewConfig();
-        config.dataSourceSelector.includeFilter = new ProcedureFilter.Builder()
+        config.dataSourceSelector = new ObsSystemDatabaseViewConfig();
+        config.dataSourceSelector.includeFilter = new SystemFilter.Builder()
             .withUniqueIDs(sensorUID)
             .build();
         config.sos.remoteHost = sosUrl.getHost();

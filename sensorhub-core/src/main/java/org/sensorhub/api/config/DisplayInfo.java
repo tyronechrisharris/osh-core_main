@@ -99,9 +99,9 @@ public @interface DisplayInfo
             MODULE_ID,
             
             /**
-             * Reference to a registered procedure using its unique ID.<br/>
+             * Reference to a registered system using its unique ID.<br/>
              */
-            PROCEDURE_UID,
+            SYSTEM_UID,
             
             /**
              * Local address (e.g. address of local network interface).<br/>

@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IObsData;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.impl.event.DelegatingSubscriberAdapter;
 import org.vast.ogc.om.IObservation;
@@ -37,13 +38,13 @@ import org.vast.util.Asserts;
 /**
  * <p>
  * Implementation of SOS data provider used to retrieve historical observations
- * from a database using OSH datastore API
+ * from an {@link IObsSystemDatabase} using OSH datastore API
  * </p>
  *
  * @author Alex Robin
  * @since April 15, 2020
  */
-public class HistoricalDataProvider extends ProcedureDataProvider
+public class HistoricalDataProvider extends SystemDataProvider
 {
     private static final String TOO_MANY_OBS_MSG = "Too many observations requested. Please further restrict your filtering options";
     
@@ -141,7 +142,7 @@ public class HistoricalDataProvider extends ProcedureDataProvider
     }
     
     
-    public HistoricalDataProvider(final SOSService service, final ProcedureDataProviderConfig config)
+    public HistoricalDataProvider(final SOSService service, final SystemDataProviderConfig config)
     {
         super(service.getServlet(),
              service.getReadDatabase(),
@@ -178,7 +179,7 @@ public class HistoricalDataProvider extends ProcedureDataProvider
                         
                         var foi = obs.hasFoi() ? database.getFoiStore().getCurrentVersion(obs.getFoiID()) : null;
                         var foiURI = foi != null ? foi.getUniqueIdentifier() : null;
-                        return SOSProviderUtils.buildObservation(dsInfoCache.procUID, foiURI, result);
+                        return SOSProviderUtils.buildObservation(dsInfoCache.sysUID, foiURI, result);
                     })
             )
         );
@@ -189,13 +190,13 @@ public class HistoricalDataProvider extends ProcedureDataProvider
     public void getResults(GetResultRequest req, Subscriber<DataEvent> consumer) throws SOSException
     {
         Asserts.checkState(selectedDataStream != null, "getResultTemplate hasn't been called");
-        String procUID = getProcedureUID(req.getOffering());
+        String sysUID = getProcedureUID(req.getOffering());
         
         try
         {
             // build equivalent GetObs request
             var getObsReq = new GetObservationRequest();
-            getObsReq.getProcedures().add(procUID);
+            getObsReq.getProcedures().add(sysUID);
             getObsReq.getObservables().addAll(req.getObservables());
             getObsReq.getFoiIDs().addAll(req.getFoiIDs());
             getObsReq.setSpatialFilter(req.getSpatialFilter());
@@ -241,7 +242,7 @@ public class HistoricalDataProvider extends ProcedureDataProvider
     {
         return new DataEvent(
             obs.getResultTime().toEpochMilli(),
-            selectedDataStream.procUID,
+            selectedDataStream.sysUID,
             selectedDataStream.resultStruct.getName(),
             SWEConstants.NIL_UNKNOWN,
             obs.getResult());

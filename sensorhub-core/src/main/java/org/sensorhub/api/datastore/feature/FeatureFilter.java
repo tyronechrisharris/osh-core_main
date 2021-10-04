@@ -133,7 +133,7 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         
         /**
          * Select only features belonging to the matching groups
-         * @param filter Parent procedure filter
+         * @param filter Parent feature filter
          * @return This builder for chaining
          */
         public B withParents(FeatureFilter filter)

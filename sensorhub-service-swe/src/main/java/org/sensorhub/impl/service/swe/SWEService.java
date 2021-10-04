@@ -17,7 +17,7 @@ package org.sensorhub.impl.service.swe;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -42,8 +42,8 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
 {
     protected SWEServlet servlet;
     protected ScheduledExecutorService threadPool;
-    protected IProcedureObsDatabase readDatabase;
-    protected IProcedureObsDatabase writeDatabase;
+    protected IObsSystemDatabase readDatabase;
+    protected IObsSystemDatabase writeDatabase;
     
     
     protected abstract IQueryFilter getResourceFilter();
@@ -56,14 +56,14 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
         // use the configured database
         if (config.databaseID != null)
         {
-            writeDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
+            writeDatabase = (IObsSystemDatabase)getParentHub().getModuleRegistry()
                 .getModuleById(config.databaseID);
         }
         
-        // or default to the procedure state DB
+        // or default to the system state DB
         else
         {
-            writeDatabase = getParentHub().getProcedureRegistry().getProcedureStateDatabase();
+            writeDatabase = getParentHub().getSystemDriverRegistry().getSystemStateDatabase();
         }
         
         // if a filter was provided, use a filtered db implementation
@@ -93,7 +93,7 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
                 readDatabase = config.exposedResources.getFilteredView(getParentHub());
         }
         
-        // else expose all procedures on this hub
+        // else expose all systems on this hub
         else
             readDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
 
@@ -157,13 +157,13 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
     }
 
 
-    public IProcedureObsDatabase getReadDatabase()
+    public IObsSystemDatabase getReadDatabase()
     {
         return readDatabase;
     }
 
 
-    public IProcedureObsDatabase getWriteDatabase()
+    public IObsSystemDatabase getWriteDatabase()
     {
         return writeDatabase;
     }

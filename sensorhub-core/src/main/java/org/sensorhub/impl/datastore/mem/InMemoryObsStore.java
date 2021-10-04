@@ -45,7 +45,7 @@ import org.vast.util.Asserts;
 /**
  * <p>
  * In-memory implementation of an observation store backed by a {@link java.util.NavigableMap}.
- * This implementation is only used to store the latest procedure state and
+ * This implementation is only used to store the latest system state and
  * thus only stores the latest observation of each data stream.
  * </p>
  *

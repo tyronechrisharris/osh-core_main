@@ -20,10 +20,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import org.sensorhub.api.database.IDatabaseRegistry;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseView;
+import org.sensorhub.impl.datastore.view.ObsSystemDatabaseView;
 import org.vast.util.Asserts;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -86,7 +86,7 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
             return null;
         
         if (!unfilteredDatabases.contains(dbInfo.databaseNum))
-            dbInfo.db = new ProcedureObsDatabaseView(dbInfo.db, obsFilter, cmdFilter);
+            dbInfo.db = new ObsSystemDatabaseView(dbInfo.db, obsFilter, cmdFilter);
         
         return dbInfo;
     }
@@ -100,26 +100,26 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
             return null;
         
         if (!unfilteredDatabases.contains(dbInfo.databaseNum))
-            dbInfo.db = new ProcedureObsDatabaseView(dbInfo.db, obsFilter, cmdFilter);
+            dbInfo.db = new ObsSystemDatabaseView(dbInfo.db, obsFilter, cmdFilter);
         
         return dbInfo;
     }
     
 
     @Override
-    protected Collection<IProcedureObsDatabase> getAllDatabases()
+    protected Collection<IObsSystemDatabase> getAllDatabases()
     {
         var allDbs = super.getAllDatabases();
         
         return new AbstractCollection<>() {
 
             @Override
-            public Iterator<IProcedureObsDatabase> iterator()
+            public Iterator<IObsSystemDatabase> iterator()
             {
                 return Iterators.transform(allDbs.iterator(), db -> {
                     var dbNum = db.getDatabaseNum();
                     if (!unfilteredDatabases.contains(dbNum))
-                        return new ProcedureObsDatabaseView(db, obsFilter, cmdFilter);
+                        return new ObsSystemDatabaseView(db, obsFilter, cmdFilter);
                     return db;
                 });
             }

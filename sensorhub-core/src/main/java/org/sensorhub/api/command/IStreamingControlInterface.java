@@ -26,7 +26,7 @@ import net.opengis.swe.v20.DataComponent;
  * structure and encoding of commands they accept (e.g. actuators, processes...)
  * <p></p>
  * Note that this interface only provides simple methods for queuing commands 
- * for immediate execution and return only a simple ACK. Procedures requiring
+ * for immediate execution and return only a simple ACK. Systems requiring
  * more control of the lifecycle of tasks (priority handling, scheduling, etc.)
  * and the ability to report about their state, like it is often the case with
  * long running tasks, should implement the {@link org.sensorhub.api.task.ITaskManager

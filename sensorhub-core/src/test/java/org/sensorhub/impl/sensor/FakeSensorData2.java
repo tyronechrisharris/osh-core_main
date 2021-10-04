@@ -186,7 +186,7 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
                             foi = parentProducer.addFoi(foiNum);
                             try {
                                 System.out.println("Registering new FOI #" + foiNum);
-                                parentProducer.getParentHub().getProcedureRegistry().register(parentProducer, foi).get();
+                                parentProducer.getParentHub().getSystemDriverRegistry().register(parentProducer, foi).get();
                             }catch (Exception e) {
                                 throw new RuntimeException(e);
                             }

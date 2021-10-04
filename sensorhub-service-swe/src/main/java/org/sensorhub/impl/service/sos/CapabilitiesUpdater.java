@@ -19,8 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.datastore.system.SystemFilter;
+import org.sensorhub.api.system.ISystemWithDesc;
 import org.vast.data.DataIterator;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.SOSOfferingCapabilities;
@@ -48,24 +48,24 @@ public class CapabilitiesUpdater
         var obsDb = servlet.getReadDatabase();
         var providerConfigs = servlet.providerConfigs;
         
-        obsDb.getProcedureStore().selectEntries(new ProcedureFilter.Builder().build())
+        obsDb.getSystemDescStore().selectEntries(new SystemFilter.Builder().build())
             .forEach(entry -> {
-                var procID = entry.getKey().getInternalID();
+                var sysID = entry.getKey().getInternalID();
                 var proc = entry.getValue();
                 
-                String procUID = proc.getUniqueIdentifier();
-                var customConfig = providerConfigs.get(procUID);
+                String sysUID = proc.getUniqueIdentifier();
+                var customConfig = providerConfigs.get(sysUID);
                 
                 // retrieve or create new offering
-                SOSOfferingCapabilities offering = offerings.get(procUID);
+                SOSOfferingCapabilities offering = offerings.get(sysUID);
                 if (offering == null)
                 {
                     offering = new SOSOfferingCapabilities();
-                    offering.setIdentifier(procUID); // use procedure UID as offering ID
-                    offering.getProcedures().add(procUID);
+                    offering.setIdentifier(sysUID); // use system UID as offering ID
+                    offering.getProcedures().add(sysUID);
                     
                     // use name and description from custom config if set
-                    // otherwise default to name and description of procedure 
+                    // otherwise default to name and description of system 
                     offering.setTitle(customConfig != null && !Strings.isNullOrEmpty(customConfig.name) ?
                         replaceVariables(customConfig.name, proc, customConfig) : proc.getName());
                     offering.setDescription(customConfig != null && !Strings.isNullOrEmpty(customConfig.description) ?
@@ -77,18 +77,18 @@ public class CapabilitiesUpdater
                     offering.getProcedureFormats().add(SWESOfferingCapabilities.FORMAT_SML2);
                     offering.getProcedureFormats().add(SWESOfferingCapabilities.FORMAT_SML2_JSON);
                     
-                    offerings.put(procUID, offering);
+                    offerings.put(sysUID, offering);
                 }
                 
-                // process all procedure datastreams
+                // process all system datastreams
                 var finalOffering = offering;
                 var dsFilter = new DataStreamFilter.Builder()
-                    .withProcedures(procID)
+                    .withSystems(sysID)
                     .build();
                 
                 obsDb.getDataStreamStore().select(dsFilter)
                    .forEach(dsInfo -> {
-                                              
+                       
                        // if we have no catch all observed property URI, generate an output URI
                        if (!SOSProviderUtils.hasCatchAllObservedProperty(dsInfo.getRecordStructure()))
                        {
@@ -135,8 +135,8 @@ public class CapabilitiesUpdater
                 
                 // set end to 'now' if timeout not reached yet
                 var timeOut = servlet.config.defaultLiveTimeout;
-                if (customConfig != null && customConfig instanceof ProcedureDataProviderConfig)
-                    timeOut = ((ProcedureDataProviderConfig)customConfig).liveDataTimeout;
+                if (customConfig != null && customConfig instanceof SystemDataProviderConfig)
+                    timeOut = ((SystemDataProviderConfig)customConfig).liveDataTimeout;
                 
                 if (phenTimeRange != null &&
                     phenTimeRange.end().isAfter(Instant.now().minusMillis((long)(timeOut*1000.))))
@@ -161,7 +161,7 @@ public class CapabilitiesUpdater
     }
     
     
-    protected String replaceVariables(String textField, IProcedureWithDesc proc, SOSProviderConfig config)
+    protected String replaceVariables(String textField, ISystemWithDesc proc, SOSProviderConfig config)
     {
         textField.replace(PROC_UID_PLACEHOLDER, proc.getUniqueIdentifier());
         

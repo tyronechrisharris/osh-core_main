@@ -18,7 +18,7 @@ import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.procedure.IProcedureDriver;
+import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.api.utils.OshAsserts;
 import org.vast.util.Asserts;
 
@@ -26,10 +26,9 @@ import org.vast.util.Asserts;
 public class EventUtils
 {
     public static final String MODULE_TOPIC_PREFIX = "modules/";
-    public static final String PROCEDURE_TOPIC_PREFIX = "procedures/";
-    public static final String PROCEDURE_OUTPUT_CHANNELS = "/outputs/";
-    public static final String PROCEDURE_CONTROL_CHANNELS = "/commands/";
-    public static final String PROCEDURE_TASKS_CHANNELS = "/tasks/";
+    public static final String SYSTEM_TOPIC_PREFIX = "systems/";
+    public static final String SYSTEM_OUTPUT_CHANNELS = "/outputs/";
+    public static final String SYSTEM_COMMAND_CHANNELS = "/commands/";
     public static final String STATUS_CHANNEL = "/status";
     public static final String DATA_CHANNEL = "/data";
     public static final String ACK_CHANNEL = "/ack";
@@ -51,43 +50,43 @@ public class EventUtils
     }
     
     
-    public static final String getProcedureRegistryTopicID()
+    public static final String getSystemRegistryTopicID()
     {
-        return PROCEDURE_TOPIC_PREFIX;
+        return SYSTEM_TOPIC_PREFIX;
     }
     
     
-    public static final String getProcedurePublisherGroupID(String procedureUID)
+    public static final String getSystemPublisherGroupID(String systemUID)
     {
-        OshAsserts.checkValidUID(procedureUID);
-        return PROCEDURE_TOPIC_PREFIX + procedureUID;
+        OshAsserts.checkValidUID(systemUID);
+        return SYSTEM_TOPIC_PREFIX + systemUID;
     }
     
     
-    public static final String getProcedureStatusTopicID(String procedureUID)
+    public static final String getSystemStatusTopicID(String systemUID)
     {
-        OshAsserts.checkValidUID(procedureUID);
-        return PROCEDURE_TOPIC_PREFIX + procedureUID + STATUS_CHANNEL;
+        OshAsserts.checkValidUID(systemUID);
+        return SYSTEM_TOPIC_PREFIX + systemUID + STATUS_CHANNEL;
     }
     
     
-    public static final String getProcedureStatusTopicID(IProcedureDriver driver)
+    public static final String getSystemStatusTopicID(ISystemDriver driver)
     {
-        return getProcedureStatusTopicID(driver.getUniqueIdentifier());
+        return getSystemStatusTopicID(driver.getUniqueIdentifier());
     }
     
     
-    static final String getDataStreamTopicID(String procedureUID, String outputName)
+    static final String getDataStreamTopicID(String systemUID, String outputName)
     {
-        OshAsserts.checkValidUID(procedureUID);
+        OshAsserts.checkValidUID(systemUID);
         Asserts.checkNotNullOrEmpty(outputName, "outputName");
-        return PROCEDURE_TOPIC_PREFIX + procedureUID + PROCEDURE_OUTPUT_CHANNELS + outputName;
+        return SYSTEM_TOPIC_PREFIX + systemUID + SYSTEM_OUTPUT_CHANNELS + outputName;
     }
     
     
-    public static final String getDataStreamStatusTopicID(String procedureUID, String outputName)
+    public static final String getDataStreamStatusTopicID(String systemUID, String outputName)
     {
-        return getDataStreamTopicID(procedureUID, outputName) + STATUS_CHANNEL;
+        return getDataStreamTopicID(systemUID, outputName) + STATUS_CHANNEL;
     }
     
     
@@ -102,14 +101,14 @@ public class EventUtils
     public static final String getDataStreamStatusTopicID(IDataStreamInfo dsInfo)
     {
         return getDataStreamStatusTopicID(
-            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getSystemID().getUniqueID(),
             dsInfo.getOutputName());
     }
     
     
-    public static final String getDataStreamDataTopicID(String procedureUID, String outputName)
+    public static final String getDataStreamDataTopicID(String systemUID, String outputName)
     {
-        return getDataStreamTopicID(procedureUID, outputName) + DATA_CHANNEL;
+        return getDataStreamTopicID(systemUID, outputName) + DATA_CHANNEL;
     }
     
     
@@ -124,22 +123,22 @@ public class EventUtils
     public static final String getDataStreamDataTopicID(IDataStreamInfo dsInfo)
     {
         return getDataStreamDataTopicID(
-            dsInfo.getProcedureID().getUniqueID(),
+            dsInfo.getSystemID().getUniqueID(),
             dsInfo.getOutputName());
     }
     
     
-    static final String getCommandStreamTopicID(String procedureUID, String controlInputName)
+    static final String getCommandStreamTopicID(String systemUID, String controlInputName)
     {
-        OshAsserts.checkValidUID(procedureUID);
+        OshAsserts.checkValidUID(systemUID);
         Asserts.checkNotNullOrEmpty(controlInputName, "controlInputName");
-        return PROCEDURE_TOPIC_PREFIX + procedureUID + PROCEDURE_CONTROL_CHANNELS + controlInputName;
+        return SYSTEM_TOPIC_PREFIX + systemUID + SYSTEM_COMMAND_CHANNELS + controlInputName;
     }
     
     
-    public static final String getCommandStreamStatusTopicID(String procedureUID, String controlInputName)
+    public static final String getCommandStreamStatusTopicID(String systemUID, String controlInputName)
     {
-        return getCommandStreamTopicID(procedureUID, controlInputName) + STATUS_CHANNEL;
+        return getCommandStreamTopicID(systemUID, controlInputName) + STATUS_CHANNEL;
     }
     
     
@@ -154,14 +153,14 @@ public class EventUtils
     public static final String getCommandStreamStatusTopicID(ICommandStreamInfo csInfo)
     {
         return getCommandStreamStatusTopicID(
-            csInfo.getProcedureID().getUniqueID(),
+            csInfo.getSystemID().getUniqueID(),
             csInfo.getControlInputName());
     }
     
     
-    public static final String getCommandStreamDataTopicID(String procedureUID, String controlInputName)
+    public static final String getCommandStreamDataTopicID(String systemUID, String controlInputName)
     {
-        return getCommandStreamTopicID(procedureUID, controlInputName) + DATA_CHANNEL;
+        return getCommandStreamTopicID(systemUID, controlInputName) + DATA_CHANNEL;
     }
     
     
@@ -176,14 +175,14 @@ public class EventUtils
     public static final String getCommandStreamDataTopicID(ICommandStreamInfo csInfo)
     {
         return getCommandStreamDataTopicID(
-            csInfo.getProcedureID().getUniqueID(),
+            csInfo.getSystemID().getUniqueID(),
             csInfo.getControlInputName());
     }
     
     
-    public static final String getCommandStreamAckTopicID(String procedureUID, String controlInputName)
+    public static final String getCommandStreamAckTopicID(String systemUID, String controlInputName)
     {
-        return getCommandStreamTopicID(procedureUID, controlInputName) + ACK_CHANNEL;
+        return getCommandStreamTopicID(systemUID, controlInputName) + ACK_CHANNEL;
     }
     
     
@@ -198,7 +197,7 @@ public class EventUtils
     public static final String getCommandStreamAckTopicID(ICommandStreamInfo csInfo)
     {
         return getCommandStreamAckTopicID(
-            csInfo.getProcedureID().getUniqueID(),
+            csInfo.getSystemID().getUniqueID(),
             csInfo.getControlInputName());
     }
     

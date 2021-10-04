@@ -31,8 +31,8 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.datastore.command.EmptyCommandStore;
 import org.vast.ogc.gml.IFeature;
@@ -52,9 +52,9 @@ import org.vast.util.TimeExtent;
 public class DataStoreUtils
 {
     public static final String ERROR_INVALID_DATASTREAM_KEY = "Key must be an instance of " + DataStreamKey.class.getSimpleName();
-    public static final String ERROR_EXISTING_DATASTREAM = "Datastore already contains datastream for the same procedure, output and validTime";
+    public static final String ERROR_EXISTING_DATASTREAM = "Datastore already contains datastream for the same system, output and validTime";
     public static final String ERROR_INVALID_COMMANDSTREAM_KEY = "Key must be an instance of " + CommandStreamKey.class.getSimpleName();
-    public static final String ERROR_EXISTING_COMMANDSTREAM = "Datastore already contains command stream for the same procedure, control input and validTime";
+    public static final String ERROR_EXISTING_COMMANDSTREAM = "Datastore already contains command stream for the same system, control input and validTime";
     
     public static final String ERROR_INVALID_FEATURE_KEY = "Key must be an instance of " + FeatureKey.class.getSimpleName();
     public static final String ERROR_EXISTING_FEATURE = "Datastore already contains entry with the same UID: ";
@@ -130,33 +130,33 @@ public class DataStoreUtils
     }
     
     
-    public static void checkDataStreamInfo(IProcedureStore procedureStore, IDataStreamInfo dsInfo) throws DataStoreException
+    public static void checkDataStreamInfo(ISystemDescStore systemStore, IDataStreamInfo dsInfo) throws DataStoreException
     {
         Asserts.checkNotNull(dsInfo, IDataStreamInfo.class);
-        Asserts.checkNotNull(dsInfo.getProcedureID(), "procedureID");
+        Asserts.checkNotNull(dsInfo.getSystemID(), "systemID");
         Asserts.checkNotNull(dsInfo.getOutputName(), "outputName");
-        checkParentProcedureExists(procedureStore, dsInfo);
+        checkParentSystemExists(systemStore, dsInfo);
     }
     
     
-    public static void checkParentProcedureExists(IProcedureStore procedureStore, IDataStreamInfo dsInfo) throws DataStoreException
+    public static void checkParentSystemExists(ISystemDescStore systemStore, IDataStreamInfo dsInfo) throws DataStoreException
     {
-        var procID = dsInfo.getProcedureID().getInternalID();
-        if (procedureStore != null && procedureStore.getCurrentVersionKey(procID) == null)
-            throw new DataStoreException("Unknown parent procedure: " + procID);
+        var sysID = dsInfo.getSystemID().getInternalID();
+        if (systemStore != null && systemStore.getCurrentVersionKey(sysID) == null)
+            throw new DataStoreException("Unknown parent system: " + sysID);
     }
     
     
-    public static IDataStreamInfo ensureValidTime(IProcedureStore procedureStore, IDataStreamInfo dsInfo)
+    public static IDataStreamInfo ensureValidTime(ISystemDescStore systemStore, IDataStreamInfo dsInfo)
     {
-        // use valid time of parent procedure or current time if none was set
+        // use valid time of parent system or current time if none was set
         if (dsInfo.getValidTime() == null)
         {
             TimeExtent validTime = null;
             
-            if (procedureStore != null)
+            if (systemStore != null)
             {
-                var fk = procedureStore.getCurrentVersionKey(dsInfo.getProcedureID().getInternalID());
+                var fk = systemStore.getCurrentVersionKey(dsInfo.getSystemID().getInternalID());
                 if (fk.getValidStartTime() != Instant.MIN)
                     validTime = TimeExtent.endNow(fk.getValidStartTime());
             }
@@ -186,33 +186,33 @@ public class DataStoreUtils
     }
     
     
-    public static void checkCommandStreamInfo(IProcedureStore procedureStore, ICommandStreamInfo csInfo) throws DataStoreException
+    public static void checkCommandStreamInfo(ISystemDescStore systemStore, ICommandStreamInfo csInfo) throws DataStoreException
     {
         Asserts.checkNotNull(csInfo, ICommandStreamInfo.class);
-        Asserts.checkNotNull(csInfo.getProcedureID(), "procedureID");
+        Asserts.checkNotNull(csInfo.getSystemID(), "systemID");
         Asserts.checkNotNull(csInfo.getControlInputName(), "controlInputName");
-        checkParentProcedureExists(procedureStore, csInfo);
+        checkParentSystemExists(systemStore, csInfo);
     }
     
     
-    public static void checkParentProcedureExists(IProcedureStore procedureStore, ICommandStreamInfo csInfo) throws DataStoreException
+    public static void checkParentSystemExists(ISystemDescStore systemStore, ICommandStreamInfo csInfo) throws DataStoreException
     {
-        var procID = csInfo.getProcedureID().getInternalID();
-        if (procedureStore != null && procedureStore.getCurrentVersionKey(procID) == null)
-            throw new DataStoreException("Unknown parent procedure: " + procID);
+        var sysID = csInfo.getSystemID().getInternalID();
+        if (systemStore != null && systemStore.getCurrentVersionKey(sysID) == null)
+            throw new DataStoreException("Unknown parent system: " + sysID);
     }
     
     
-    public static ICommandStreamInfo ensureValidTime(IProcedureStore procedureStore, ICommandStreamInfo csInfo)
+    public static ICommandStreamInfo ensureValidTime(ISystemDescStore systemStore, ICommandStreamInfo csInfo)
     {
-        // use valid time of parent procedure or current time if none was set
+        // use valid time of parent system or current time if none was set
         if (csInfo.getValidTime() == null)
         {
             TimeExtent validTime = null;
             
-            if (procedureStore != null)
+            if (systemStore != null)
             {
-                var fk = procedureStore.getCurrentVersionKey(csInfo.getProcedureID().getInternalID());
+                var fk = systemStore.getCurrentVersionKey(csInfo.getSystemID().getInternalID());
                 if (fk.getValidStartTime() != Instant.MIN)
                     validTime = TimeExtent.endNow(fk.getValidStartTime());
             }
@@ -256,7 +256,7 @@ public class DataStoreUtils
     }
     
     
-    public static Stream<Long> selectProcedureIDs(IProcedureStore procedureStore, ProcedureFilter filter)
+    public static Stream<Long> selectSystemIDs(ISystemDescStore systemStore, SystemFilter filter)
     {
         if (filter.getInternalIDs() != null)
         {
@@ -265,13 +265,13 @@ public class DataStoreUtils
         }
         else
         {
-            Asserts.checkState(procedureStore != null, "No linked procedure store");
+            Asserts.checkState(systemStore != null, "No linked system store");
             
             // otherwise get all feature keys matching the filter from linked datastore
             // we apply the distinct operation to make sure the same feature is not
             // listed twice (it can happen when there exists several versions of the
             // same feature with different valid times)
-            return procedureStore.selectKeys(filter)
+            return systemStore.selectKeys(filter)
                 .map(k -> k.getInternalID())
                 .distinct();
         }

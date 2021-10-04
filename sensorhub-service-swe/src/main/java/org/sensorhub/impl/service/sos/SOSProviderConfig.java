@@ -25,10 +25,10 @@ import org.vast.ows.OWSRequest;
 public abstract class SOSProviderConfig extends OfferingConfig
 {
     
-    @DisplayInfo(desc="Unique ID of a procedure that this configuration applies to.\n"
-        + "Can include a trailing wildcard '*' to match several procedures at once.")
-    @FieldType(Type.PROCEDURE_UID)
-    public String procedureUID;
+    @DisplayInfo(desc="Unique ID of a system that this configuration applies to.\n"
+        + "Can include a trailing wildcard '*' to match several systems at once.")
+    @FieldType(Type.SYSTEM_UID)
+    public String systemUID;
     
     
     @DisplayInfo(desc="Maximum number of FoI IDs listed in capabilities")

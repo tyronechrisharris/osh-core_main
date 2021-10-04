@@ -34,12 +34,12 @@ import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
-import org.sensorhub.impl.procedure.ProcedureUtils;
-import org.sensorhub.impl.procedure.wrapper.ProcedureWrapper;
+import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
+import org.sensorhub.impl.system.SystemUtils;
+import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.slf4j.Logger;
 import org.vast.ows.GetCapabilitiesRequest;
 import org.vast.ows.OWSException;
@@ -80,9 +80,9 @@ public abstract class SWEServlet extends OWSServlet
     static final String SOAP_PREFIX = "soap";
 
     protected final transient SWEService<?> service;
-    protected final transient IProcedureObsDatabase readDatabase;
-    protected final transient IProcedureObsDatabase writeDatabase;
-    protected final transient ProcedureObsTransactionHandler transactionHandler;
+    protected final transient IObsSystemDatabase readDatabase;
+    protected final transient IObsSystemDatabase writeDatabase;
+    protected final transient SystemDatabaseTransactionHandler transactionHandler;
     
     protected final transient AtomicLong lastGetCapsRequest = new AtomicLong();
     protected transient WebSocketServletFactory wsFactory;
@@ -95,7 +95,7 @@ public abstract class SWEServlet extends OWSServlet
         this.service = service;
         this.readDatabase = service.getReadDatabase();
         this.writeDatabase = service.getWriteDatabase();
-        this.transactionHandler = new ProcedureObsTransactionHandler(service.getParentHub().getEventBus(), writeDatabase);
+        this.transactionHandler = new SystemDatabaseTransactionHandler(service.getParentHub().getEventBus(), writeDatabase);
     }
     
     
@@ -178,24 +178,24 @@ public abstract class SWEServlet extends OWSServlet
         CompletableFuture.runAsync(() -> {
             try
             {
-                String procUID = request.getProcedureDescription().getUniqueIdentifier();
+                String sysUID = request.getProcedureDescription().getUniqueIdentifier();
                 
                 // add or replace description in DB
                 try
                 {
-                    var procWrapper = new ProcedureWrapper(smlProc)
+                    var procWrapper = new SystemWrapper(smlProc)
                         .hideOutputs()
                         .hideTaskableParams()
                         .defaultToValidFromNow();
                     
-                    var procHandler = transactionHandler.addOrUpdateProcedure(procWrapper);
-                    getLogger().info("Registered new procedure {}", procUID);
+                    var procHandler = transactionHandler.addOrUpdateSystem(procWrapper);
+                    getLogger().info("Registered new procedure {}", sysUID);
 
                     // also add datastreams if outputs are included in SML description
-                    ProcedureUtils.addDatastreamsFromOutputs(procHandler, smlProc.getOutputList());
+                    SystemUtils.addDatastreamsFromOutputs(procHandler, smlProc.getOutputList());
                     
                     // also add command streams if taskable params are included in SML description
-                    ProcedureUtils.addCommandStreamsFromTaskableParams(procHandler, smlProc.getParameterList());
+                    SystemUtils.addCommandStreamsFromTaskableParams(procHandler, smlProc.getParameterList());
                     
                     // force capabilities update
                     updateCapabilities();
@@ -204,13 +204,13 @@ public abstract class SWEServlet extends OWSServlet
                 {
                     getLogger().error("Error", e);
                     throw new SOSException(SOSException.invalid_param_code, "procedureDescription", null,
-                        "Procedure " + procUID + " is already registered on this server");
+                        "Procedure " + sysUID + " is already registered on this server");
                 }
 
                 // build and send response
                 InsertSensorResponse resp = new InsertSensorResponse();
-                resp.setAssignedOffering(getOfferingID(procUID));
-                resp.setAssignedProcedureId(procUID);
+                resp.setAssignedOffering(getOfferingID(sysUID));
+                resp.setAssignedProcedureId(sysUID);
                 sendResponse(request, resp);
                 asyncCtx.complete();
             }
@@ -234,10 +234,10 @@ public abstract class SWEServlet extends OWSServlet
         checkTransactionalSupport(request);        
         
         // check query parameters
-        String procUID = request.getProcedureId();
+        String sysUID = request.getProcedureId();
         var procDesc = request.getProcedureDescription();
         OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryProcedure(procUID, report);
+        checkQueryProcedure(sysUID, report);
         TransactionUtils.checkSensorML(procDesc, report);
         report.process();
 
@@ -249,14 +249,14 @@ public abstract class SWEServlet extends OWSServlet
                 // version or replace description in DB
                 try
                 {
-                    var procWrapper = new ProcedureWrapper(request.getProcedureDescription())
+                    var procWrapper = new SystemWrapper(request.getProcedureDescription())
                         .hideOutputs()
                         .hideTaskableParams()
                         .defaultToValidFromNow();
                     
-                    var procHandler = transactionHandler.getProcedureHandler(procUID);
+                    var procHandler = transactionHandler.getSystemHandler(sysUID);
                     procHandler.update(procWrapper);
-                    getLogger().info("Updated procedure {}", procUID);
+                    getLogger().info("Updated procedure {}", sysUID);
                 }
                 catch (DataStoreException e)
                 {
@@ -265,7 +265,7 @@ public abstract class SWEServlet extends OWSServlet
         
                 // build and send response
                 UpdateSensorResponse resp = new UpdateSensorResponse(SOSUtils.SOS);
-                resp.setUpdatedProcedure(procUID);
+                resp.setUpdatedProcedure(sysUID);
                 sendResponse(request, resp);
                 asyncCtx.complete();
             }
@@ -289,9 +289,9 @@ public abstract class SWEServlet extends OWSServlet
         checkTransactionalSupport(request);
         
         // check query parameters
-        String procUID = request.getProcedureId();
+        String sysUID = request.getProcedureId();
         OWSExceptionReport report = new OWSExceptionReport();
-        checkQueryProcedure(procUID, report);
+        checkQueryProcedure(sysUID, report);
         report.process();
         
         // start async response
@@ -302,17 +302,17 @@ public abstract class SWEServlet extends OWSServlet
                 // delete complete procedure history + all datastreams and obs from DB
                 try
                 {
-                    transactionHandler.getProcedureHandler(procUID).delete();
-                    getLogger().info("Deleted procedure {}", procUID);
+                    transactionHandler.getSystemHandler(sysUID).delete();
+                    getLogger().info("Deleted procedure {}", sysUID);
                 }
                 catch (Exception e)
                 {
-                    throw new IOException("Cannot delete procedure " + procUID, e);
+                    throw new IOException("Cannot delete procedure " + sysUID, e);
                 }
         
                 // build and send response
                 DeleteSensorResponse resp = new DeleteSensorResponse(SOSUtils.SOS);
-                resp.setDeletedProcedure(procUID);
+                resp.setDeletedProcedure(sysUID);
                 sendResponse(request, resp);
                 asyncCtx.complete();
             }
@@ -338,11 +338,11 @@ public abstract class SWEServlet extends OWSServlet
     }
 
 
-    protected FeatureKey checkQueryProcedure(String procUID, OWSExceptionReport report) throws SOSException
+    protected FeatureKey checkQueryProcedure(String sysUID, OWSExceptionReport report) throws SOSException
     {
         FeatureKey fk = null;
-        if (procUID == null || (fk = readDatabase.getProcedureStore().getCurrentVersionKey(procUID)) == null)
-            report.add(new SOSException(SOSException.invalid_param_code, "procedure", procUID, "Unknown procedure: " + procUID));
+        if (sysUID == null || (fk = readDatabase.getSystemDescStore().getCurrentVersionKey(sysUID)) == null)
+            report.add(new SOSException(SOSException.invalid_param_code, "procedure", sysUID, "Unknown procedure: " + sysUID));
         return fk;
     }
 
@@ -402,10 +402,10 @@ public abstract class SWEServlet extends OWSServlet
     }
 
 
-    public String getOfferingID(String procedureUID)
+    public String getOfferingID(String systemUID)
     {
         // for now, assume offerings have same URI as procedures
-        return procedureUID;
+        return systemUID;
     }
     
 
@@ -443,13 +443,13 @@ public abstract class SWEServlet extends OWSServlet
     }
     
 
-    public IProcedureObsDatabase getReadDatabase()
+    public IObsSystemDatabase getReadDatabase()
     {
         return readDatabase;
     }
 
 
-    public IProcedureObsDatabase getWriteDatabase()
+    public IObsSystemDatabase getWriteDatabase()
     {
         return writeDatabase;
     }

@@ -23,10 +23,10 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IFeatureDatabase;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
-import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
+import org.sensorhub.api.datastore.system.SystemFilter;
+import org.sensorhub.api.system.ISystemDriverDatabase;
 import org.sensorhub.utils.MapWithWildcards;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +35,9 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Default implementation of the observation registry allowing to register
- * several observation database instances. In this implementation, a given
- * procedure can only be associated to a single database instance.
+ * Default implementation of the database registry allowing to register
+ * several {@link IObsSystemDatabase} instances. In this implementation, a given
+ * system can only be associated to a single database instance.
  * </p>
  *
  * @author Alex Robin
@@ -53,7 +53,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     
     ISensorHub hub;
     MapWithWildcards<Integer> obsDatabaseIDs;
-    Map<Integer, IProcedureObsDatabase> obsDatabases;
+    Map<Integer, IObsSystemDatabase> obsDatabases;
     FederatedObsDatabase globalObsDatabase;
     
     
@@ -75,33 +75,33 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         
         log.info("Registering database {} with ID {}", db.getClass().getSimpleName(), db.getDatabaseNum());
         
-        if (db instanceof IProcedureObsDatabase)
-            registerObsDatabase((IProcedureObsDatabase)db);
+        if (db instanceof IObsSystemDatabase)
+            registerObsDatabase((IObsSystemDatabase)db);
         else if (db instanceof IFeatureDatabase)
             registerFeatureDatabase((IFeatureDatabase)db);
     }
 
 
     @Override
-    public synchronized void register(String procedureUID, IProcedureObsDatabase db)
+    public synchronized void register(String systemUID, IObsSystemDatabase db)
     {
-        Asserts.checkNotNull(db, IProcedureObsDatabase.class);
+        Asserts.checkNotNull(db, IObsSystemDatabase.class);
         
         int databaseID = registerObsDatabase(db);
-        registerMapping(procedureUID, databaseID);
+        registerMapping(systemUID, databaseID);
     }
 
 
     @Override
-    public synchronized void register(Collection<String> procedureUIDs, IProcedureObsDatabase db)
+    public synchronized void register(Collection<String> systemUIDs, IObsSystemDatabase db)
     {
         int databaseID = registerObsDatabase(db);
-        for (String uid: procedureUIDs)
+        for (String uid: systemUIDs)
             registerMapping(uid, databaseID);
     }
     
     
-    protected int registerObsDatabase(IProcedureObsDatabase db)
+    protected int registerObsDatabase(IObsSystemDatabase db)
     {
         int dbNum = db.getDatabaseNum();
         
@@ -110,15 +110,15 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
             throw new IllegalStateException("A database with number " + dbNum + " was already registered");
         
         // case of database w/ event handler
-        if (db instanceof IProcedureEventHandlerDatabase)
+        if (db instanceof ISystemDriverDatabase)
         {
             try
             {
                 if (db.isReadOnly())
-                    throw new IllegalStateException("Cannot use a read-only database to collect procedure & obs data");
+                    throw new IllegalStateException("Cannot use a read-only database to collect system data");
                             
-                for (var procUID: ((IProcedureEventHandlerDatabase) db).getHandledProcedures())
-                    registerMapping(procUID, dbNum);
+                for (var sysUID: ((ISystemDriverDatabase) db).getHandledSystems())
+                    registerMapping(sysUID, dbNum);
             }
             catch (IllegalStateException e)
             {
@@ -145,27 +145,27 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         // only insert mapping if not already registered by another database
         // or if registered in state database only (ID 0)
         if (obsDatabaseIDs.putIfAbsent(uid, dbNum) != null)
-            throw new IllegalStateException("Procedure " + uid + " is already handled by another database");
+            throw new IllegalStateException("System " + uid + " is already handled by another database");
         
         // remove all entries from default state DB (DB 0) since it's now handled by another DB
         if (dbNum != 0)
         {
-            IProcedureObsDatabase defaultDB = obsDatabases.get(0);
+            IObsSystemDatabase defaultDB = obsDatabases.get(0);
             if (defaultDB != null)
             {
-                var procFilter = new ProcedureFilter.Builder()
+                var procFilter = new SystemFilter.Builder()
                     .withUniqueIDs(uid)
                     .build();
                 
                 var dsFilter = new DataStreamFilter.Builder()
-                    .withProcedures(procFilter)
+                    .withSystems(procFilter)
                     .build();
                 
                 defaultDB.getDataStreamStore().removeEntries(dsFilter);
-                var count = defaultDB.getProcedureStore().removeEntries(procFilter);
+                var count = defaultDB.getSystemDescStore().removeEntries(procFilter);
                 
                 if (count > 0)
-                    log.info("Database #{} now handles procedure(s) {}. Removing all records from state DB", dbNum, uid);
+                    log.info("Database #{} now handles system {}. Removing all records from state DB", dbNum, uid);
             }
         }
     }
@@ -189,9 +189,9 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public synchronized void unregister(String uid, IProcedureObsDatabase db)
+    public synchronized void unregister(String uid, IObsSystemDatabase db)
     {
-        Asserts.checkNotNull(uid, "procedureUID");
+        Asserts.checkNotNull(uid, "systemUID");
         
         if (uid.endsWith("*"))
             uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
@@ -201,7 +201,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     
     
     @Override
-    public IProcedureObsDatabase getObsDatabase(int dbNum)
+    public IObsSystemDatabase getObsDatabase(int dbNum)
     {
         Asserts.checkArgument(dbNum >= 0);
         return obsDatabases.get(dbNum);
@@ -209,9 +209,9 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public IProcedureObsDatabase getObsDatabase(String procUID)
+    public IObsSystemDatabase getObsDatabase(String sysUID)
     {
-        Integer dbNum = obsDatabaseIDs.get(procUID);
+        Integer dbNum = obsDatabaseIDs.get(sysUID);
         if (dbNum == null)
             dbNum = DEFAULT_DB_ID;
         return getObsDatabase(dbNum);
@@ -219,16 +219,16 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     
     
     @Override
-    public Collection<IProcedureObsDatabase> getRegisteredObsDatabases()
+    public Collection<IObsSystemDatabase> getRegisteredObsDatabases()
     {
         return Collections.unmodifiableCollection(obsDatabases.values());
     }
 
 
     @Override
-    public boolean hasDatabase(String procedureUID)
+    public boolean hasDatabase(String systemUID)
     {
-        return obsDatabaseIDs.containsKey(procedureUID);
+        return obsDatabaseIDs.containsKey(systemUID);
     }
     
     
@@ -280,7 +280,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
 
 
     @Override
-    public IProcedureObsDatabase getFederatedObsDatabase()
+    public IObsSystemDatabase getFederatedObsDatabase()
     {
         return globalObsDatabase;
     }

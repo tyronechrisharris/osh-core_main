@@ -31,7 +31,7 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Filtered view implemented as a wrapper for an instance of ICommandStore
+ * Filtered view implemented as a wrapper of the underlying {@link ICommandStore}
  * </p>
  *
  * @author Alex Robin

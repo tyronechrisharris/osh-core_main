@@ -56,7 +56,7 @@ public class TestInMemCommandStreamStore extends AbstractTestCommandStreamStore<
     }
     
     
-    protected void testAddAndSelectByProcedureID_ExpectedResults()
+    protected void testAddAndSelectBySystemID_ExpectedResults()
     {
         addToExpectedResults(3, 4, 5);
     }

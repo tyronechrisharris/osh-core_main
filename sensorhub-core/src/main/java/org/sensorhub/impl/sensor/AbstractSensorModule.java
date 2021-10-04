@@ -39,13 +39,13 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
-import org.sensorhub.api.procedure.IProcedureDriver;
-import org.sensorhub.api.procedure.IProcedureGroupDriver;
-import org.sensorhub.api.procedure.ProcedureChangedEvent;
-import org.sensorhub.api.procedure.ProcedureDisabledEvent;
-import org.sensorhub.api.procedure.ProcedureEnabledEvent;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.PositionConfig.LLALocation;
+import org.sensorhub.api.system.ISystemDriver;
+import org.sensorhub.api.system.ISystemGroupDriver;
+import org.sensorhub.api.system.SystemChangedEvent;
+import org.sensorhub.api.system.SystemDisabledEvent;
+import org.sensorhub.api.system.SystemEnabledEvent;
 import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.api.sensor.SensorException;
@@ -131,8 +131,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     /**
      * This method generates the following information:
      * <ul>
-     * <li>A default unique ID and XML ID if none were provided by driver</li>
-     * <li>A default event source information object. If the procedure is member
+     * <li>A default unique ID and XML ID if none were provided by the driver</li>
+     * <li>A default event source information object. If the system is member
      * of a group, all events are published to the parent group by default</li>
      * <li>The sensor description latest updated flag is set to the value 
      * provided in the driver configuration</li>
@@ -197,7 +197,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     /**
      * This methods does the following:
      * <ul>
-     * <li>Register the driver with the procedure registry if the driver is
+     * <li>Register the driver with the system registry if the driver is
      * connected to a hub (i.e. setParentHub() has been called)</li>
      * <li>Send a location data event if a location output has been created</li>
      * </ul>
@@ -212,8 +212,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         // register sensor with registry if attached to a hub
         try
         {
-            if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
-                getParentHub().getProcedureRegistry().register(this).get(); // for now, block here until init is also async
+            if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
+                getParentHub().getSystemDriverRegistry().register(this).get(); // for now, block here until init is also async
         }
         catch (ExecutionException | InterruptedException e)
         {
@@ -233,8 +233,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         // unregister sensor if attached to a hub
         try
         {
-            if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
-                getParentHub().getProcedureRegistry().unregister(this).get();
+            if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
+                getParentHub().getSystemDriverRegistry().unregister(this).get();
         }
         catch (ExecutionException | InterruptedException e)
         {
@@ -264,8 +264,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             try
             {
                 // if output is added after start(), register it now
-                if (isStarted() && hasParentHub() && getParentHub().getProcedureRegistry() != null)
-                    getParentHub().getProcedureRegistry().register(dataInterface).get();
+                if (isStarted() && hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
+                    getParentHub().getSystemDriverRegistry().register(dataInterface).get();
             }
             catch (ExecutionException | InterruptedException e)
             {
@@ -307,7 +307,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
         {
             try
             {
-                getParentHub().getProcedureRegistry().register(this, foi).get();
+                getParentHub().getSystemDriverRegistry().register(this, foi).get();
             }
             catch (InterruptedException | ExecutionException e)
             {
@@ -345,8 +345,8 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
             try
             {
                 // if control input is added after start(), register it now
-                if (isStarted() && hasParentHub() && getParentHub().getProcedureRegistry() != null)
-                    getParentHub().getProcedureRegistry().register(controlInterface).get();
+                if (isStarted() && hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
+                    getParentHub().getSystemDriverRegistry().register(controlInterface).get();
             }
             catch (ExecutionException | InterruptedException e)
             {
@@ -376,7 +376,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public IProcedureGroupDriver<IProcedureDriver> getParentGroup()
+    public ISystemGroupDriver<ISystemDriver> getParentGroup()
     {
         return null;
     }
@@ -600,7 +600,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         // send event
         lastUpdatedSensorDescription = updateTime;
-        eventHandler.publish(new ProcedureChangedEvent(updateTime, uniqueID));
+        eventHandler.publish(new SystemChangedEvent(updateTime, uniqueID));
     }
 
 
@@ -666,11 +666,11 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         super.setState(newState);
 
-        // send procedure enabled/disabled events
+        // send system enabled/disabled events
         if (newState == ModuleState.STARTED && uniqueID != null)
-            eventHandler.publish(new ProcedureEnabledEvent(uniqueID, getParentGroupUID()));
+            eventHandler.publish(new SystemEnabledEvent(uniqueID, getParentGroupUID()));
         else if (newState == ModuleState.STOPPED && uniqueID != null)
-            eventHandler.publish(new ProcedureDisabledEvent(uniqueID, getParentGroupUID()));
+            eventHandler.publish(new SystemDisabledEvent(uniqueID, getParentGroupUID()));
     }
 
 

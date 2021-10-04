@@ -17,10 +17,10 @@ package org.sensorhub.ui;
 import java.util.ArrayList;
 import java.util.List;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.database.IProcedureObsDatabase;
-import org.sensorhub.api.database.IProcedureObsDatabaseModule;
+import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.database.IObsSystemDatabaseModule;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.ui.api.IModuleAdminPanel;
@@ -54,17 +54,17 @@ import com.vaadin.ui.Window.CloseListener;
  * @since 1.0
  */
 @SuppressWarnings("serial")
-public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabaseModule<?>> implements IModuleAdminPanel<IProcedureObsDatabaseModule<?>>
+public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseModule<?>> implements IModuleAdminPanel<IObsSystemDatabaseModule<?>>
 {
-    private static final Action DELETE_PROCEDURE_ACTION = new Action("Delete All Procedure Data", new ThemeResource("icons/module_delete.png"));
+    private static final Action DELETE_SYSTEM_ACTION = new Action("Delete All System Data", new ThemeResource("icons/module_delete.png"));
     
     VerticalLayout layout;
-    ProcedureSearchList procedureTable;
+    SystemSearchList systemTable;
     TabSheet dataStreamTabs;
     
     
     @Override
-    public void build(final MyBeanItem<ModuleConfig> beanItem, final IProcedureObsDatabaseModule<?> db)
+    public void build(final MyBeanItem<ModuleConfig> beanItem, final IObsSystemDatabaseModule<?> db)
     {
         super.build(beanItem, db);
         
@@ -74,7 +74,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
             int highestDbNum = 0;
             for (var otherDb: getParentHub().getDatabaseRegistry().getRegisteredObsDatabases())
                 highestDbNum = Math.max(otherDb.getDatabaseNum(), highestDbNum);
-            for (var otherDb: getParentHub().getModuleRegistry().getLoadedModules(IProcedureObsDatabase.class))
+            for (var otherDb: getParentHub().getModuleRegistry().getLoadedModules(IObsSystemDatabase.class))
             {
                 if (otherDb.getDatabaseNum() == null)
                     continue;
@@ -105,7 +105,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
             titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
             layout.addComponent(titleBar);
             
-            procedureTable = new ProcedureSearchList(db, new ItemClickListener() {
+            systemTable = new SystemSearchList(db, new ItemClickListener() {
                 @Override
                 public void itemClick(ItemClickEvent event)
                 {
@@ -114,25 +114,25 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
                         try
                         {
                             // select and open module configuration
-                            String procUID = (String)event.getItem().getItemProperty(ProcedureSearchList.PROP_PROC_UID).getValue();
-                            if (procUID != null)
-                                showProcedureData(db, procUID);
+                            String sysUID = (String)event.getItem().getItemProperty(SystemSearchList.PROP_SYSTEM_UID).getValue();
+                            if (sysUID != null)
+                                showSystemData(db, sysUID);
                         }
                         catch (Exception e)
                         {
-                            DisplayUtils.showErrorPopup("Unexpected error when selecting procedure", e);
+                            DisplayUtils.showErrorPopup("Unexpected error when selecting system", e);
                         }
                     }
                 }
             });
             
             // also add context menu
-            procedureTable.getTable().addActionHandler(new Handler() {
+            systemTable.getTable().addActionHandler(new Handler() {
                 @Override
                 public Action[] getActions(Object target, Object sender)
                 {
                     List<Action> actions = new ArrayList<>(10);
-                    actions.add(DELETE_PROCEDURE_ACTION);
+                    actions.add(DELETE_SYSTEM_ACTION);
                     return actions.toArray(new Action[0]);
                 }
 
@@ -141,7 +141,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
                 {
                     String uid = (String)((TreeTable)sender).getValue();
                     
-                    final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all data associated with procedure:<br/><b>" + uid + "</b>");
+                    final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all data associated with system:<br/><b>" + uid + "</b>");
                     popup.addCloseListener(new CloseListener() {
                         @Override
                         public void windowClose(CloseEvent e)
@@ -154,14 +154,14 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
                                     //logAction(action, selectedModule);
                                     
                                     db.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
-                                        .withProcedures(new ProcedureFilter.Builder()
+                                        .withSystems(new SystemFilter.Builder()
                                             .withUniqueIDs(uid)
                                             .build())
                                         .build());
                                     
-                                    db.getProcedureStore().remove(uid);
+                                    db.getSystemDescStore().remove(uid);
                                     
-                                    procedureTable.updateTable(db, new ProcedureFilter.Builder().build());
+                                    systemTable.updateTable(db, new SystemFilter.Builder().build());
                                 }
                                 catch (Exception e1)
                                 {
@@ -171,11 +171,11 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
                         }
                     });
                     
-                    procedureTable.getUI().addWindow(popup);                    
+                    systemTable.getUI().addWindow(popup);                    
                 }
             });
                         
-            layout.addComponent(procedureTable);
+            layout.addComponent(systemTable);
             
             dataStreamTabs = new TabSheet();
             layout.addComponent(dataStreamTabs);
@@ -185,14 +185,14 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IProcedureObsDatabase
     }
     
     
-    protected synchronized void showProcedureData(final IProcedureObsDatabase db, String procUID)
+    protected synchronized void showSystemData(final IObsSystemDatabase db, String sysUID)
     {
         // remove previous tabs
         dataStreamTabs.removeAllComponents();
         
         // show in tabs
         db.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
-                .withProcedures().withUniqueIDs(procUID).done()
+                .withSystems().withUniqueIDs(sysUID).done()
                 .withLimit(10)
                 .build())
             .forEach(dsEntry -> {

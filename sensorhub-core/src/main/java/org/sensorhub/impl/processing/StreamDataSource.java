@@ -77,9 +77,9 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
         if (producerUri != null)
         {
             var db = hub.getDatabaseRegistry().getFederatedObsDatabase();
-            var procEntry = db.getProcedureStore().getCurrentVersionEntry(producerUri);
+            var procEntry = db.getSystemDescStore().getCurrentVersionEntry(producerUri);
             if (procEntry == null)
-                throw new IllegalStateException("Procedure with URI " + producerUri + " not found");
+                throw new IllegalStateException("System with URI " + producerUri + " not found");
             
             // set process info
             ProcessInfo instanceInfo = new ProcessInfo(
@@ -92,7 +92,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
             // add outputs
             outputData.clear();            
             db.getDataStreamStore().select(new DataStreamFilter.Builder()
-                    .withProcedures(procEntry.getKey().getInternalID())
+                    .withSystems(procEntry.getKey().getInternalID())
                     .withCurrentVersion()
                     .build())
                 .forEach(ds -> {

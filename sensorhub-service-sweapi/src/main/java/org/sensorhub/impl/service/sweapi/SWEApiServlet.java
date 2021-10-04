@@ -31,7 +31,7 @@ import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -51,7 +51,7 @@ public class SWEApiServlet extends HttpServlet
     static final String JSON_CONTENT_TYPE = "application/json";
 
     protected final SWEApiSecurity securityHandler;
-    protected IProcedureStore procedures;
+    protected ISystemDescStore systems;
     protected IFeatureStore features;
     protected IResourceHandler rootHandler;
     protected Executor threadPool;

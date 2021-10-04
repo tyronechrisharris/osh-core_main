@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
@@ -83,14 +83,14 @@ public class DatabaseStreamPanel extends VerticalLayout
     Chart navigatorChart;
     PagedTable table;
     
-    IProcedureObsDatabase db;
+    IObsSystemDatabase db;
     long dataStreamID;
     TimeExtent fullTimeRange;
     TimeExtent zoomTimeRange;
     LazyLoadingObsContainer obsDataContainer;
         
     
-    public DatabaseStreamPanel(IProcedureObsDatabase db, IDataStreamInfo dsInfo, long dataStreamID)
+    public DatabaseStreamPanel(IObsSystemDatabase db, IDataStreamInfo dsInfo, long dataStreamID)
     {
         this.db = db;
         this.dataStreamID = dataStreamID;

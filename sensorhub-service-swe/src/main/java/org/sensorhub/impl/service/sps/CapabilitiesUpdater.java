@@ -17,8 +17,8 @@ package org.sensorhub.impl.service.sps;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.datastore.system.SystemFilter;
+import org.sensorhub.api.system.ISystemWithDesc;
 import org.vast.ows.sps.SPSOfferingCapabilities;
 import org.vast.ows.swe.SWESOfferingCapabilities;
 import com.google.common.base.Strings;
@@ -39,26 +39,26 @@ public class CapabilitiesUpdater
         var db = servlet.getReadDatabase();
         var providerConfigs = servlet.connectorConfigs;
         
-        db.getProcedureStore().selectEntries(new ProcedureFilter.Builder().build())
+        db.getSystemDescStore().selectEntries(new SystemFilter.Builder().build())
             .forEach(entry -> {
                 var proc = entry.getValue();
                 
-                String procUID = proc.getUniqueIdentifier();
-                var customConfig = providerConfigs.get(procUID);
+                String sysUID = proc.getUniqueIdentifier();
+                var customConfig = providerConfigs.get(sysUID);
                 
                 var numCommands = db.getCommandStreamStore().countMatchingEntries(new CommandStreamFilter.Builder()
-                    .withProcedures().withUniqueIDs(procUID).done()
+                    .withSystems().withUniqueIDs(sysUID).done()
                     .build());
                 if (numCommands == 0)
                     return;
                 
                 // retrieve or create new offering
-                SPSOfferingCapabilities offering = offerings.get(procUID);
+                SPSOfferingCapabilities offering = offerings.get(sysUID);
                 if (offering == null)
                 {
                     offering = new SPSOfferingCapabilities();
-                    offering.setIdentifier(procUID); // use procedure UID as offering ID
-                    offering.getProcedures().add(procUID);
+                    offering.setIdentifier(sysUID); // use procedure UID as offering ID
+                    offering.getProcedures().add(sysUID);
                     
                     // use name and description from custom config if set
                     // otherwise default to name and description of procedure 
@@ -71,7 +71,7 @@ public class CapabilitiesUpdater
                     offering.getProcedureFormats().add(SWESOfferingCapabilities.FORMAT_SML2);
                     //offering.getProcedureFormats().add(SWESOfferingCapabilities.FORMAT_SML2_JSON);
                     
-                    offerings.put(procUID, offering);
+                    offerings.put(sysUID, offering);
                 }             
             });
         
@@ -80,7 +80,7 @@ public class CapabilitiesUpdater
     }
     
     
-    protected String replaceVariables(String textField, IProcedureWithDesc proc, SPSConnectorConfig config)
+    protected String replaceVariables(String textField, ISystemWithDesc proc, SPSConnectorConfig config)
     {
         textField.replace(PROC_UID_PLACEHOLDER, proc.getUniqueIdentifier());
         

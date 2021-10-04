@@ -19,7 +19,7 @@ import java.time.Instant;
 /**
  * <p>
  * Key to index observation and command series.<br/>
- * Each series corresponds to a combination of procedure ID, result time
+ * Each series corresponds to a combination of system ID, result time
  * and FOI ID.
  * </p>
  *

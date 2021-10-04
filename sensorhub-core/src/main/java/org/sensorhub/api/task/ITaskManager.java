@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
  * <p>
  * Interface to be implemented by drivers that need to implement specific 
  * task management logic (i.e. sequencing commands, scheduling, priority, etc.).
- * When a procedure driver implements task management, the hub's task manager
+ * When a system driver implements task management, the hub's task manager
  * delegates all task management to it.
  * </p>
  *
@@ -40,7 +40,7 @@ public interface ITaskManager
     
     
     /**
-     * Retrieves the list of all tasks currently being processed by this procedure
+     * Retrieves the list of all tasks currently being processed by this system
      * @return Read-only map of task IDs to task objects
      */
     public Map<Long, ? extends ITask> getCurrentTasks();

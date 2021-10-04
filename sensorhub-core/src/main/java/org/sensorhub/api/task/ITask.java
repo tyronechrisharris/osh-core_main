@@ -18,13 +18,13 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.UUID;
 import org.sensorhub.api.command.ICommandData;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 
 
 /**
  * <p>
  * A task includes one or more commands that will be processed in sequence
- * or in parallel by the receiver procedure.
+ * or in parallel by the receiving system.
  * </p><p>
  * The command receiver typically does its best to reject the entire task if
  * one of the commands is invalid or cannot be executed, or if the particular
@@ -42,7 +42,7 @@ import org.sensorhub.api.procedure.ProcedureId;
  */
 public interface ITask
 {
-    ProcedureId getProcedureID();
+    SystemId getSystemID();
         
     String getSenderID();
     

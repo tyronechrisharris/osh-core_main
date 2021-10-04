@@ -43,8 +43,8 @@ class FeatureDataType extends KryoDataType
             
             // setup generic feature serializer
             kryo.addDefaultSerializer(IFeature.class, VersionedSerializer.<IFeature>factory(ImmutableMap.of(
-                MVObsDatabase.CURRENT_VERSION, new org.sensorhub.impl.serialization.kryo.v1.FeatureSerializer()),
-                MVObsDatabase.CURRENT_VERSION));
+                MVObsSystemDatabase.CURRENT_VERSION, new org.sensorhub.impl.serialization.kryo.v1.FeatureSerializer()),
+                MVObsSystemDatabase.CURRENT_VERSION));
             
             // but use default serializer for the following well-known feature types
             kryo.addDefaultSerializer(FeatureRef.class, defaultObjectSerializer);

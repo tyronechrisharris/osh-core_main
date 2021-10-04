@@ -15,7 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.command;
 
 import org.sensorhub.api.command.ICommandStreamInfo;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
@@ -42,9 +42,9 @@ public abstract class CommandStreamInfoWrapper implements ICommandStreamInfo
     
     
     @Override
-    public ProcedureId getProcedureID()
+    public SystemId getSystemID()
     {
-        return delegate.getProcedureID();
+        return delegate.getSystemID();
     }
 
 

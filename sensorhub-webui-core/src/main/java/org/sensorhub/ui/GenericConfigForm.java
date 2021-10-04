@@ -378,8 +378,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         field = makeModuleSelectField((Field<Object>)field, moduleClass);
                         break;
                         
-                    case PROCEDURE_UID:
-                        field = makeProcedureSelectField((Field<Object>)field);
+                    case SYSTEM_UID:
+                        field = makeSystemSelectField((Field<Object>)field);
                         break;
                         
                     case REMOTE_ADDRESS:
@@ -420,7 +420,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     
     
     @SuppressWarnings("rawtypes")
-    protected Field<Object> makeProcedureSelectField(Field<Object> field)
+    protected Field<Object> makeSystemSelectField(Field<Object> field)
     {
         return null;
     }
@@ -795,8 +795,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         // use simple list for string lists
         if (!(prop instanceof MapProperty) && BeanUtils.isSimpleType(eltType))
         {
-            Component list = (prop.getFieldType() == Type.PROCEDURE_UID) ?
-                buildProcedureList((String)propId, prop) :
+            Component list = (prop.getFieldType() == Type.SYSTEM_UID) ?
+                buildSystemList((String)propId, prop) :
                 buildSimpleList((String)propId, prop, eltType);
             if (list == null)
                 return;
@@ -927,10 +927,10 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
-    protected Component buildProcedureList(final String propId, final ContainerProperty prop)
+    protected Component buildSystemList(final String propId, final ContainerProperty prop)
     {
         return buildSimpleList(propId, prop, String.class, callback -> {
-            var popup = new ProcedureSelectionPopup(800, callback, getParentHub().getDatabaseRegistry().getFederatedObsDatabase());
+            var popup = new SystemSelectionPopup(800, callback, getParentHub().getDatabaseRegistry().getFederatedObsDatabase());
             popup.setModal(true);
             getUI().addWindow(popup); 
         });

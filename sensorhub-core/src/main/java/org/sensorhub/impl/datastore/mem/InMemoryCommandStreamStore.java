@@ -34,7 +34,7 @@ import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.command.CommandStreamInfoWrapper;
 import org.vast.util.Asserts;
@@ -55,7 +55,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
     ConcurrentNavigableMap<CommandStreamKey, ICommandStreamInfo> map = new ConcurrentSkipListMap<>();
     ConcurrentNavigableMap<Long, Set<CommandStreamKey>> procIdToCsKeys = new ConcurrentSkipListMap<>();
     InMemoryCommandStore cmdStore;
-    IProcedureStore procedureStore;
+    ISystemDescStore systemStore;
     
     
     class CommandStreamInfoWithTimeRanges extends CommandStreamInfoWrapper
@@ -108,10 +108,10 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
     @Override
     public synchronized CommandStreamKey add(ICommandStreamInfo csInfo) throws DataStoreException
     {
-        DataStoreUtils.checkCommandStreamInfo(procedureStore, csInfo);
+        DataStoreUtils.checkCommandStreamInfo(systemStore, csInfo);
         
-        // use valid time of parent procedure or current time if none was set
-        csInfo = DataStoreUtils.ensureValidTime(procedureStore, csInfo);
+        // use valid time of parent system or current time if none was set
+        csInfo = DataStoreUtils.ensureValidTime(systemStore, csInfo);
 
         // create key
         var newKey = generateKey(csInfo);
@@ -127,10 +127,10 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
         //long internalID = map.isEmpty() ? 1 : map.lastKey().getInternalID()+1;
         //return new CommandStreamKey(internalID);
         
-        // make sure that the same procedure/output combination always returns the same ID
+        // make sure that the same system/output combination always returns the same ID
         // this will keep things more consistent across restart
         var hash = Objects.hash(
-            csInfo.getProcedureID().getInternalID(),
+            csInfo.getSystemID().getInternalID(),
             csInfo.getControlInputName(),
             csInfo.getValidTime());
         return new CommandStreamKey(hash & 0xFFFFFFFFL);
@@ -162,10 +162,10 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
                 .map(id -> new CommandStreamKey(id));
         }
         
-        // or filter on selected procedures
-        else if (filter.getProcedureFilter() != null)
+        // or filter on selected systems
+        else if (filter.getSystemFilter() != null)
         {
-            keyStream = DataStoreUtils.selectProcedureIDs(procedureStore, filter.getProcedureFilter()) 
+            keyStream = DataStoreUtils.selectSystemIDs(systemStore, filter.getSystemFilter()) 
                 .flatMap(procId -> {
                     var csKeys = procIdToCsKeys.get(procId);
                     return csKeys != null ? csKeys.stream() : Stream.empty();
@@ -205,7 +205,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
         
         try
         {
-            DataStoreUtils.checkCommandStreamInfo(procedureStore, csInfo);
+            DataStoreUtils.checkCommandStreamInfo(systemStore, csInfo);
             return put(key, csInfo, true);
         }
         catch (DataStoreException e)
@@ -217,26 +217,26 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
     
     protected synchronized ICommandStreamInfo put(CommandStreamKey csKey, ICommandStreamInfo csInfo, boolean replace) throws DataStoreException
     {
-        // if needed, add a new command stream keyset for the specified procedure
-        var procDsKeys = procIdToCsKeys.compute(csInfo.getProcedureID().getInternalID(), (id, keys) -> {
+        // if needed, add a new command stream keyset for the specified system
+        var procDsKeys = procIdToCsKeys.compute(csInfo.getSystemID().getInternalID(), (id, keys) -> {
             if (keys == null)
                 keys = new ConcurrentSkipListSet<>();
             return keys;
         });
         
-        // scan existing command streams associated to the same procedure
+        // scan existing command streams associated to the same system
         for (var key: procDsKeys)
         {
             var prevCsInfo = map.get(key);
             
             if (prevCsInfo != null &&
-                prevCsInfo.getProcedureID().getInternalID() == csInfo.getProcedureID().getInternalID() &&
+                prevCsInfo.getSystemID().getInternalID() == csInfo.getSystemID().getInternalID() &&
                 prevCsInfo.getControlInputName().equals(csInfo.getControlInputName()))
             {    
                 var prevValidTime = prevCsInfo.getValidTime().begin();
                 var newValidTime = csInfo.getValidTime().begin();
                 
-                // error if command stream with same procedure/name/validTime already exists
+                // error if command stream with same system/name/validTime already exists
                 if (prevValidTime.equals(newValidTime))
                     throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
@@ -267,7 +267,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
         var csKey = DataStoreUtils.checkCommandStreamKey(key);
         var oldValue = map.remove(csKey);
         if (oldValue != null)
-            procIdToCsKeys.get(oldValue.getProcedureID().getInternalID()).remove(csKey);
+            procIdToCsKeys.get(oldValue.getSystemID().getInternalID()).remove(csKey);
         return oldValue;
     }
 
@@ -371,8 +371,8 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
     
     
     @Override
-    public void linkTo(IProcedureStore procedureStore)
+    public void linkTo(ISystemDescStore systemStore)
     {
-        this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
+        this.systemStore = Asserts.checkNotNull(systemStore, ISystemDescStore.class);
     }
 }

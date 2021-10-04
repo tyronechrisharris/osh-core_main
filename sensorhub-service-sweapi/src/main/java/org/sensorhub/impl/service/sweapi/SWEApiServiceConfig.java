@@ -18,9 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.security.SecurityConfig;
-import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseViewConfig;
-import org.sensorhub.impl.sensor.VirtualProcedureGroupConfig;
+import org.sensorhub.impl.datastore.view.ObsSystemDatabaseViewConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig;
+import org.sensorhub.impl.system.VirtualSystemGroupConfig;
 
 
 /**
@@ -33,20 +33,20 @@ import org.sensorhub.impl.service.ogc.OGCServiceConfig;
  */
 public class SWEApiServiceConfig extends OGCServiceConfig
 {
-    @DisplayInfo(desc="Metadata of procedure group that will be created to contain all sensors "
-        + "registered through this service. Only sensors in this group will be modifiable by this service")
-    public VirtualProcedureGroupConfig virtualSensorGroup = null;
+    @DisplayInfo(desc="Metadata of system group that will be created to contain all systems "
+        + "registered through this service. Only systems in this group will be modifiable by this service")
+    public VirtualSystemGroupConfig virtualSystemGroup = null;
     
     
     @DisplayInfo(label="Database ID", desc="ID of database module used for persisting data received by this service. "
-        + "If none is provided, new procedures registered through this service will be available on the hub, but "
+        + "If none is provided, new systems registered through this service will be available on the hub, but "
         + "with no persistence guarantee across restarts. Only the latest observation from each datastream will be "
         + "available and older observations will be discarded")
     public String databaseID = null;
 
 
-    @DisplayInfo(desc="Filtered view to select procedures exposed as read-only through this service")
-    public ProcedureObsDatabaseViewConfig exposedResources = null;
+    @DisplayInfo(desc="Filtered view to select systems exposed as read-only through this service")
+    public ObsSystemDatabaseViewConfig exposedResources = null;
 
 
     @DisplayInfo(desc="Mapping of custom formats mime-types to custom serializer classes")

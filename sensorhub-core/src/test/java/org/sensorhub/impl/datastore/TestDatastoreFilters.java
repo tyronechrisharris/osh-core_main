@@ -20,7 +20,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.function.Predicate;
 import org.junit.Test;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.vast.ogc.om.IProcedure;
 import org.vast.sensorML.SMLHelper;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -32,14 +32,14 @@ public class TestDatastoreFilters
 {
 
     @Test
-    public void testProcedureFilterBuilder()
+    public void testSystemFilterBuilder()
     {
-        var filter = new ProcedureFilter.Builder()
+        var filter = new SystemFilter.Builder()
             .build();
         
         // internal IDs
         var internalIDs = Arrays.asList(20L, 20L, 30L);
-        filter = new ProcedureFilter.Builder()
+        filter = new SystemFilter.Builder()
             .withInternalIDs(internalIDs)
             .build();
         assertTrue(filter.getInternalIDs().size() == 2);
@@ -48,7 +48,7 @@ public class TestDatastoreFilters
         
         // full text
         String[] keywords = {"word3", "word1", "word2", "word3"};
-        filter = new ProcedureFilter.Builder()
+        filter = new SystemFilter.Builder()
             .withKeywords(keywords)
             .build();
         assertTrue(filter.getFullTextFilter().getKeywords().size() == 3);
@@ -57,14 +57,14 @@ public class TestDatastoreFilters
         
         // predicate
         Predicate<IProcedure> predicate = (f -> f.getName().equals("test"));
-        filter = new ProcedureFilter.Builder()
+        filter = new SystemFilter.Builder()
             .withValuePredicate(predicate)
             .build();
         assertEquals(predicate, filter.getValuePredicate());
         
         // feature UIDs
         String[] uids = {"urn:osh:features:F002", "urn:osh:features:F001", "urn:osh:features:F235"};
-        filter = new ProcedureFilter.Builder()
+        filter = new SystemFilter.Builder()
             .withUniqueIDs(uids)
             .build();
         assertTrue(filter.getUniqueIDs().size() == 3);
@@ -79,14 +79,14 @@ public class TestDatastoreFilters
            new Coordinate(10,-10),
            new Coordinate(-10,-10)
         });
-        filter = new ProcedureFilter.Builder()
+        filter = new SystemFilter.Builder()
             .withLocationIntersecting(roi)
             .build();
         assertEquals(roi, filter.getLocationFilter().getRoi());
                 
         // validTime
         var validTime = Instant.parse("2006-05-07T12:00:00Z");
-        filter = new ProcedureFilter.Builder()
+        filter = new SystemFilter.Builder()
             .validAtTime(validTime)
             .build();
         assertEquals(validTime, filter.getValidTime().getMin());
@@ -96,7 +96,7 @@ public class TestDatastoreFilters
     
     
     @Test
-    public void testProcedureFilterAsPredicate()
+    public void testSystemFilterAsPredicate()
     {
         var proc = new SMLHelper().createPhysicalComponent()
             .name("Thermometer")
@@ -105,54 +105,54 @@ public class TestDatastoreFilters
             .validFrom(OffsetDateTime.parse("2001-05-26T13:45:00Z"))
             .build();
         
-        assertTrue(new ProcedureFilter.Builder().build()
+        assertTrue(new SystemFilter.Builder().build()
             .test(proc));
         
-        assertTrue(new ProcedureFilter.Builder()
+        assertTrue(new SystemFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:001").build()
             .test(proc));
         
-        assertTrue(new ProcedureFilter.Builder()
+        assertTrue(new SystemFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:001")
             .validAtTime(Instant.parse("2002-01-01T00:00:00Z")).build()
             .test(proc));
         
-        assertFalse(new ProcedureFilter.Builder()
+        assertFalse(new SystemFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:001")
             .validAtTime(Instant.parse("2000-03-15T06:30:00Z")).build()
             .test(proc));
         
-        assertTrue(new ProcedureFilter.Builder()
+        assertTrue(new SystemFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:001")
             .validAtTime(Instant.now()).build()
             .test(proc));
         
-        assertFalse(new ProcedureFilter.Builder()
+        assertFalse(new SystemFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:001")
             .validAtTime(Instant.now().plusSeconds(10)).build()
             .test(proc));
         
-        assertTrue(new ProcedureFilter.Builder()
+        assertTrue(new SystemFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:001")
             .withCurrentVersion().build()
             .test(proc));
         
-        assertFalse(new ProcedureFilter.Builder()
+        assertFalse(new SystemFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:002").build()
             .test(proc));
         
-        assertTrue(new ProcedureFilter.Builder()
+        assertTrue(new SystemFilter.Builder()
             .withUniqueIDs("urn:osh:sensor:001")
             .withKeywords("outdoor")
             .build()
             .test(proc));
         
-        assertTrue(new ProcedureFilter.Builder()
+        assertTrue(new SystemFilter.Builder()
             .withKeywords("Thermo")
             .build()
             .test(proc));
         
-        assertFalse(new ProcedureFilter.Builder()
+        assertFalse(new SystemFilter.Builder()
             .withKeywords("robot")
             .build()
             .test(proc));        

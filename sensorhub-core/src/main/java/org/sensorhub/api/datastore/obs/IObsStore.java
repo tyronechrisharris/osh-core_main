@@ -99,10 +99,10 @@ public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, Ob
     
     
     /**
-     * Select statistics for procedures and FOI matching the query
-     * @param query filter to select desired procedures and FOIs
+     * Select statistics for systems and FOI matching the query
+     * @param query filter to select desired systems and FOIs
      * @return stream of statistics buckets. Each item represents statistics for
-     * observations collected for a combination of procedure, feature of
+     * observations collected for a combination of system, feature of
      * interest, and result time. 
      */
     public Stream<ObsStats> getStatistics(ObsStatsQuery query);

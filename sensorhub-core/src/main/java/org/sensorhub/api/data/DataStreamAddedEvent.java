@@ -17,7 +17,7 @@ package org.sensorhub.api.data;
 
 /**
  * <p>
- * Event sent when a datastream (i.e. output) is added to a procedure
+ * Event sent when a datastream (i.e. output) is added to a system
  * </p>
  *
  * @author Alex Robin
@@ -30,9 +30,9 @@ public class DataStreamAddedEvent extends DataStreamEvent
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(long, String, String)
      */
-    public DataStreamAddedEvent(long timeStamp, String procUID, String outputName)
+    public DataStreamAddedEvent(long timeStamp, String sysUID, String outputName)
     {
-        super(timeStamp, procUID, outputName);
+        super(timeStamp, sysUID, outputName);
     }
     
     
@@ -40,9 +40,9 @@ public class DataStreamAddedEvent extends DataStreamEvent
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(String, String)
      */
-    public DataStreamAddedEvent(String procUID, String outputName)
+    public DataStreamAddedEvent(String sysUID, String outputName)
     {
-        super(procUID, outputName);
+        super(sysUID, outputName);
     }
     
     

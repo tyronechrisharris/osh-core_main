@@ -19,7 +19,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.vast.ogc.gml.IFeature;
 
@@ -41,7 +41,7 @@ public class FoiStoreWrapper extends AbstractFeatureStoreWrapper<IFeature, FoiFi
 
 
     @Override
-    public void linkTo(IProcedureStore procStore)
+    public void linkTo(ISystemDescStore procStore)
     {
         throw new UnsupportedOperationException();        
     }

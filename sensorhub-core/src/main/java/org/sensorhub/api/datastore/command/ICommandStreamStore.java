@@ -19,7 +19,7 @@ import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.command.ICommandStreamStore.CommandStreamInfoField;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.resource.IResourceStore;
 
 
@@ -37,7 +37,7 @@ public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, IC
     
     public static class CommandStreamInfoField extends ValueField
     {
-        public static final CommandStreamInfoField PROCEDURE_ID = new CommandStreamInfoField("procedureID");
+        public static final CommandStreamInfoField SYSTEM_ID = new CommandStreamInfoField("systemID");
         public static final CommandStreamInfoField COMMAND_NAME = new CommandStreamInfoField("commandName");
         public static final CommandStreamInfoField VALID_TIME = new CommandStreamInfoField("validTime");
         public static final CommandStreamInfoField RECORD_DESCRIPTION  = new CommandStreamInfoField("recordDescription");
@@ -60,55 +60,55 @@ public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, IC
     /**
      * Add a new command stream and generate a new unique key for it.<br/>
      * If the command stream valid time is not set, it will be set to the valid time
-     * of the parent procedure.
+     * of the parent system.
      * @param csInfo The command stream info object to be stored
      * @return The key associated with the new command stream
-     * @throws DataStoreException if a command stream with the same parent procedure,
-     * taskable parameter and valid time already exists, or if the parent procedure is unknown.
+     * @throws DataStoreException if a command stream with the same parent system,
+     * taskable parameter and valid time already exists, or if the parent system is unknown.
      */
     public CommandStreamKey add(ICommandStreamInfo csInfo) throws DataStoreException;
     
     
     /**
      * Helper method to retrieve the internal ID of the latest version of the
-     * command stream corresponding to the specified procedure and command input.
-     * @param procUID Unique ID of procedure producing the data stream
+     * command stream corresponding to the specified system and command input.
+     * @param sysUID Unique ID of system receiving the command stream
      * @param commandName Name of taskable parameter associated to the command stream
      * @return The command stream key or null if none was found
      */
-    public default CommandStreamKey getLatestVersionKey(String procUID, String commandName)
+    public default CommandStreamKey getLatestVersionKey(String sysUID, String commandName)
     {
-        Entry<CommandStreamKey, ICommandStreamInfo> e = getLatestVersionEntry(procUID, commandName);
+        Entry<CommandStreamKey, ICommandStreamInfo> e = getLatestVersionEntry(sysUID, commandName);
         return e != null ? e.getKey() : null;
     }
     
     
     /**
      * Helper method to retrieve the latest version of the command stream
-     * corresponding to the specified procedure and command input.
-     * @param procUID Unique ID of procedure producing the command stream
+     * corresponding to the specified system and command input.
+     * @param sysUID Unique ID of system receiving the command stream
      * @param commandName Name of taskable parameter associated to the command stream
      * @return The command stream info or null if none was found
      */
-    public default ICommandStreamInfo getLatestVersion(String procUID, String commandName)
+    public default ICommandStreamInfo getLatestVersion(String sysUID, String commandName)
     {
-        Entry<CommandStreamKey, ICommandStreamInfo> e = getLatestVersionEntry(procUID, commandName);
+        Entry<CommandStreamKey, ICommandStreamInfo> e = getLatestVersionEntry(sysUID, commandName);
         return e != null ? e.getValue() : null;
     }
     
     
     /**
      * Helper method to retrieve the entry for the latest version of the
-     * command stream corresponding to the specified procedure and command input.
-     * @param procUID Unique ID of procedure exposing the command stream
+     * command stream corresponding to the specified system and command input.
+     * @param sysUID Unique ID of system receiving the command stream
      * @param controlInput Name of control input associated to the command stream
      * @return The feature entry or null if none was found with this UID
      */
-    public default Entry<CommandStreamKey, ICommandStreamInfo> getLatestVersionEntry(String procUID, String controlInput)
+    public default Entry<CommandStreamKey, ICommandStreamInfo> getLatestVersionEntry(String sysUID, String controlInput)
     {
         Optional<Entry<CommandStreamKey, ICommandStreamInfo>> entryOpt = selectEntries(new CommandStreamFilter.Builder()
-            .withProcedures()
-                .withUniqueIDs(procUID)
+            .withSystems()
+                .withUniqueIDs(sysUID)
                 .done()
             .withControlInputNames(controlInput)
             .build())
@@ -119,16 +119,16 @@ public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, IC
     
     
     /**
-     * Remove all command streams that are associated to the given procedure command input
-     * @param procUID Unique ID of procedure exposing the command stream
+     * Remove all command streams that are associated to the given system command input
+     * @param sysUID Unique ID of system receiving the command stream
      * @param controlInput Name of control input associated to the command stream
      * @return The number of entries actually removed
      */
-    public default long removeAllVersions(String procUID, String controlInput)
+    public default long removeAllVersions(String sysUID, String controlInput)
     {
         return removeEntries(new CommandStreamFilter.Builder()
-            .withProcedures()
-                .withUniqueIDs(procUID)
+            .withSystems()
+                .withUniqueIDs(sysUID)
                 .done()
             .withControlInputNames(controlInput)
             .build());
@@ -136,9 +136,9 @@ public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, IC
     
     
     /**
-     * Link this store to an procedure store to enable JOIN queries
-     * @param procedureStore
+     * Link this store to a system store to enable JOIN queries
+     * @param systemStore
      */
-    public void linkTo(IProcedureStore procedureStore);
+    public void linkTo(ISystemDescStore systemStore);
     
 }

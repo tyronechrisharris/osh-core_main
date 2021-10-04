@@ -46,9 +46,9 @@ public class SOSConfigForm extends GenericConfigForm
             Map<String, Class<?>> classList = new LinkedHashMap<>();
             try
             {
-                classList.put("Streaming Data Source", Class.forName(SOS_PACKAGE + "ProcedureDataProviderConfig"));
-                classList.put("Historical Data Source", Class.forName(SOS_PACKAGE + "ProcedureDataProviderConfig"));
-                //classList.put("On-demand Data Source", Class.forName(SOS_PACKAGE + "ProcedureDataProviderConfig"));                
+                classList.put("Streaming Data Source", Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
+                classList.put("Historical Data Source", Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
+                //classList.put("On-demand Data Source", Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
             }
             catch (ClassNotFoundException e)
             {

@@ -22,7 +22,7 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
@@ -30,7 +30,7 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Filtered view implemented as a wrapper to an instance of IDataStreamStore
+ * Filtered view implemented as a wrapper of the underlying {@link IDataStreamStore}
  * </p>
  *
  * @author Alex Robin
@@ -115,7 +115,7 @@ public class DataStreamStoreView extends ReadOnlyDataStore<DataStreamKey, IDataS
 
 
     @Override
-    public void linkTo(IProcedureStore procedureStore)
+    public void linkTo(ISystemDescStore systemStore)
     {
         throw new UnsupportedOperationException();        
     }

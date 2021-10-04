@@ -123,7 +123,7 @@ public class MVCommandStoreImpl implements ICommandStore
     /**
      * Opens an existing command store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
-     * @param procedureStore associated procedure descriptions data store
+     * @param systemStore associated system descriptions data store
      * @param idProviderType Type of ID provider to use to generate new command stream IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
@@ -144,7 +144,7 @@ public class MVCommandStoreImpl implements ICommandStore
             var hashFunc = Hashing.murmur3_128(741532149);
             idProvider = dsInfo -> {
                 var hasher = hashFunc.newHasher();
-                hasher.putLong(dsInfo.getProcedureID().getInternalID());
+                hasher.putLong(dsInfo.getSystemID().getInternalID());
                 hasher.putUnencodedChars(dsInfo.getControlInputName());
                 hasher.putLong(dsInfo.getValidTime().begin().toEpochMilli());
                 return hasher.hash().asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
@@ -162,7 +162,7 @@ public class MVCommandStoreImpl implements ICommandStore
         this.cmdStreamStore = new MVCommandStreamStoreImpl(this, null);
         
         // persistent class mappings for Kryo
-        var kryoClassMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
+        var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
         
         // commands map
         String mapName = dataStoreInfo.getName() + ":" + CMD_RECORDS_MAP_NAME;
@@ -217,7 +217,7 @@ public class MVCommandStoreImpl implements ICommandStore
     
     Stream<MVTimeSeriesInfo> getCommandSeriesByDataStream(long cmdStreamID)
     {
-        // scan series for all receivers of the selected procedure
+        // scan series for all receivers of the selected system
         MVTimeSeriesKey first = new MVTimeSeriesKey(cmdStreamID, 0);
         MVTimeSeriesKey last = new MVTimeSeriesKey(cmdStreamID, Long.MAX_VALUE);
         RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(cmdSeriesMainIndex, first, last);

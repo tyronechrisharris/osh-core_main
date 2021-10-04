@@ -46,7 +46,7 @@ public class ObsData implements IObsData
     
     
     protected ObsData()
-    {        
+    {
     }
     
 

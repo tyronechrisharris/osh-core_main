@@ -32,7 +32,7 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Filtered view implemented as a wrapper for an instance of IObsStore
+ * Filtered view implemented as a wrapper of the underlying {@link IObsStore}
  * </p>
  *
  * @author Alex Robin

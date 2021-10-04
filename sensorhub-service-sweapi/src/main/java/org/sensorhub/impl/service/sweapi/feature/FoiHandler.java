@@ -21,17 +21,17 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
+import org.sensorhub.impl.service.sweapi.system.SystemHandler;
+import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.vast.ogc.gml.IFeature;
 
 
@@ -40,13 +40,13 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     public static final int EXTERNAL_ID_SEED = 433584715;
     public static final String[] NAMES = { "featuresOfInterest", "fois" };
     
-    ProcedureObsTransactionHandler transactionHandler;
+    SystemDatabaseTransactionHandler transactionHandler;
     
     
-    public FoiHandler(IEventBus eventBus, ProcedureObsDbWrapper db, ResourcePermissions permissions)
+    public FoiHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getFoiStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
-        this.transactionHandler = new ProcedureObsTransactionHandler(eventBus, db);
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
     }
 
 
@@ -73,8 +73,8 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() &&
-            !(ctx.getParentRef().type instanceof ProcedureHandler))
-            throw ServiceErrors.unsupportedOperation("Features of interest can only be created within a procedure's fois sub-collection");
+            !(ctx.getParentRef().type instanceof SystemHandler))
+            throw ServiceErrors.unsupportedOperation("Features of interest can only be created within a system's fois sub-collection");
         
         super.doPost(ctx);
     }
@@ -117,7 +117,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     @Override
     protected FeatureKey addEntry(final RequestContext ctx, final IFeature foi) throws DataStoreException
     {        
-        var procHandler = transactionHandler.getProcedureHandler(ctx.getParentID());
+        var procHandler = transactionHandler.getSystemHandler(ctx.getParentID());
         return procHandler.addOrUpdateFoi(foi);
     }
 

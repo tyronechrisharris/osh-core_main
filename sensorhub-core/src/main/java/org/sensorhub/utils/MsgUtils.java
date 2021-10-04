@@ -16,7 +16,7 @@ package org.sensorhub.utils;
 
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.api.procedure.IProcedureDriver;
+import org.sensorhub.api.system.ISystemDriver;
 
 
 /**
@@ -54,7 +54,7 @@ public class MsgUtils
     }
     
     
-    public static String entityString(IProcedureDriver entity)
+    public static String entityString(ISystemDriver entity)
     {
         return "'" + entity.getName() + "' [" + entity.getUniqueIdentifier() + "]";
     }

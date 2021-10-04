@@ -56,7 +56,7 @@ public class TestInMemDataStreamStore extends AbstractTestDataStreamStore<InMemo
     }
     
     
-    protected void testAddAndSelectByProcedureID_ExpectedResults()
+    protected void testAddAndSelectBySystemID_ExpectedResults()
     {
         addToExpectedResults(3, 4, 5);
     }

@@ -122,7 +122,7 @@ public class MVObsStoreImpl implements IObsStore
     /**
      * Opens an existing obs store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
-     * @param procedureStore associated procedure descriptions data store
+     * @param systemStore associated system descriptions data store
      * @param foiStore associated FOIs data store
      * @param idProviderType Type of ID provider to use to generate new datastream IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
@@ -144,7 +144,7 @@ public class MVObsStoreImpl implements IObsStore
             var hashFunc = Hashing.murmur3_128(741532149);
             idProvider = dsInfo -> {
                 var hasher = hashFunc.newHasher();
-                hasher.putLong(dsInfo.getProcedureID().getInternalID());
+                hasher.putLong(dsInfo.getSystemID().getInternalID());
                 hasher.putUnencodedChars(dsInfo.getOutputName());
                 hasher.putLong(dsInfo.getValidTime().begin().toEpochMilli());
                 return hasher.hash().asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
@@ -162,7 +162,7 @@ public class MVObsStoreImpl implements IObsStore
         this.dataStreamStore = new MVDataStreamStoreImpl(this, dsIdProvider);
         
         // persistent class mappings for Kryo
-        var kryoClassMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
+        var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
         
         // open observation map
         String mapName = dataStoreInfo.getName() + ":" + OBS_RECORDS_MAP_NAME;
@@ -233,7 +233,7 @@ public class MVObsStoreImpl implements IObsStore
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
        
-        // scan series for all FOIs of the selected procedure and result times
+        // scan series for all FOIs of the selected system and result times
         MVTimeSeriesKey first = new MVTimeSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
         MVTimeSeriesKey last = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
         RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
@@ -259,7 +259,7 @@ public class MVObsStoreImpl implements IObsStore
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
        
-        // scan series for all procedures that produced observations of the selected FOI
+        // scan series for all systems that produced observations of the selected FOI
         final Range<Instant> finalResultTimeRange = resultTimeRange;
         MVTimeSeriesKey first = new MVTimeSeriesKey(0, foiID, resultTimeRange.lowerEndpoint());
         MVTimeSeriesKey last = new MVTimeSeriesKey(Long.MAX_VALUE, foiID, resultTimeRange.upperEndpoint());
@@ -287,7 +287,7 @@ public class MVObsStoreImpl implements IObsStore
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
        
-        // scan series for all FOIs of the selected procedure and result times
+        // scan series for all FOIs of the selected system and result times
         MVTimeSeriesKey first = new MVTimeSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
         MVTimeSeriesKey last = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
         RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
@@ -851,7 +851,7 @@ public class MVObsStoreImpl implements IObsStore
                     obs.getResultTime().equals(obs.getPhenomenonTime()) ? Instant.MIN : obs.getResultTime());
                 
                 MVTimeSeriesInfo series = obsSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
-                    // also update the FOI to procedure mapping if needed
+                    // also update the FOI to series mapping if needed
                     obsSeriesByFoiIndex.putIfAbsent(seriesKey, Boolean.TRUE);
                     
                     return new MVTimeSeriesInfo(

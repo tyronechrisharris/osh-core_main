@@ -43,7 +43,7 @@ import com.vividsolutions.jts.index.quadtree.Quadtree;
 /**
  * <p>
  * In-memory implementation of a feature store backed by a {@link java.util.NavigableMap}.
- * This implementation is only used to store the latest procedure state and thus
+ * This implementation is only used to store the latest system state and thus
  * doesn't support versioning/history of feature descriptions.
  * </p>
  * 

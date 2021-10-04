@@ -36,7 +36,7 @@ import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEUtils;
@@ -73,11 +73,11 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     }
     
 
-    protected CommandStreamKey addCommandStream(ProcedureId procID, DataComponent recordStruct, TimeExtent validTime) throws DataStoreException
+    protected CommandStreamKey addCommandStream(SystemId sysID, DataComponent recordStruct, TimeExtent validTime) throws DataStoreException
     {
         var builder = new CommandStreamInfo.Builder()
             .withName(recordStruct.getName())
-            .withProcedure(procID)
+            .withSystem(sysID)
             .withRecordDescription(recordStruct)
             .withRecordEncoding(new TextEncodingImpl());
         
@@ -107,7 +107,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     }
 
 
-    protected CommandStreamKey addSimpleCommandStream(ProcedureId procID, String outputName, String description, TimeExtent validTime) throws DataStoreException
+    protected CommandStreamKey addSimpleCommandStream(SystemId sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
     {
         SWEHelper fac = new SWEHelper();
         var dataStruct = fac.createRecord()
@@ -120,25 +120,25 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
             .addField("txt5", fac.createText().build())
             .build();
         
-        return addCommandStream(procID, dataStruct, validTime);
+        return addCommandStream(sysID, dataStruct, validTime);
     }
     
     
-    protected CommandStreamKey addSimpleCommandStream(long procID, String outputName, TimeExtent validTime) throws DataStoreException
+    protected CommandStreamKey addSimpleCommandStream(long sysID, String outputName, TimeExtent validTime) throws DataStoreException
     {
-        return addSimpleCommandStream(new ProcedureId(procID, PROC_UID_PREFIX+procID), outputName, "command stream description", validTime);
+        return addSimpleCommandStream(new SystemId(sysID, PROC_UID_PREFIX+sysID), outputName, "command stream description", validTime);
     }
     
     
-    protected CommandStreamKey addSimpleCommandStream(long procID, String outputName, String description, TimeExtent validTime) throws DataStoreException
+    protected CommandStreamKey addSimpleCommandStream(long sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
     {
-        return addSimpleCommandStream(new ProcedureId(procID, PROC_UID_PREFIX+procID), outputName, description, validTime);
+        return addSimpleCommandStream(new SystemId(sysID, PROC_UID_PREFIX+sysID), outputName, description, validTime);
     }
 
 
     protected void checkCommandStreamEqual(ICommandStreamInfo ds1, ICommandStreamInfo ds2)
     {
-        assertEquals(ds1.getProcedureID(), ds2.getProcedureID());
+        assertEquals(ds1.getSystemID(), ds2.getSystemID());
         assertEquals(ds1.getControlInputName(), ds2.getControlInputName());
         assertEquals(ds1.getName(), ds2.getName());
         assertEquals(ds1.getDescription(), ds2.getDescription());
@@ -202,8 +202,8 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         int numDs = 100;
         for (int i = 1; i < numDs; i++)
         {
-            long procID = i;
-            addSimpleCommandStream(procID, "test1", now);
+            long sysID = i;
+            addSimpleCommandStream(sysID, "test1", now);
         }
         
         // read back and check
@@ -211,7 +211,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         for (Entry<CommandStreamKey, ICommandStreamInfo> entry: allCmdStreams.entrySet())
         {
             ICommandStreamInfo dsInfo = cmdStreamStore.get(entry.getKey());
-            assertEquals(entry.getValue().getProcedureID(), dsInfo.getProcedureID());
+            assertEquals(entry.getValue().getSystemID(), dsInfo.getSystemID());
             assertEquals(entry.getValue().getControlInputName(), dsInfo.getControlInputName());
             checkDataComponentEquals(entry.getValue().getRecordStructure(), dsInfo.getRecordStructure());
         }
@@ -229,8 +229,8 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         var now = TimeExtent.beginAt(Instant.now());
         for (int i = 1; i < 5; i++)
         {
-            long procID = i;
-            var k = addSimpleCommandStream(procID, "test1", now);
+            long sysID = i;
+            var k = addSimpleCommandStream(sysID, "test1", now);
             idList.add(k.getInternalID());
         }
         
@@ -279,8 +279,8 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         int numDs = 56;
         for (int i = numDs; i < numDs*2; i++)
         {
-            long procID = i;
-            addSimpleCommandStream(procID, "out" + (int)(Math.random()*10), now);
+            long sysID = i;
+            addSimpleCommandStream(sysID, "out" + (int)(Math.random()*10), now);
         }
         
         // read back and check
@@ -298,8 +298,8 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         int numDs = 56;
         for (int i = numDs; i < numDs*2; i++)
         {
-            long procID = i;
-            addSimpleCommandStream(procID, "out" + (int)(Math.random()*10), now);
+            long sysID = i;
+            addSimpleCommandStream(sysID, "out" + (int)(Math.random()*10), now);
         }
         
         assertEquals(numDs, cmdStreamStore.getNumRecords());
@@ -331,8 +331,8 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         int numDs = 45;
         for (int i = 1; i <= numDs; i++)
         {
-            long procID = i;
-            var key = addSimpleCommandStream(procID, "out"+i, now);
+            long sysID = i;
+            var key = addSimpleCommandStream(sysID, "out"+i, now);
             idList.add(key.getInternalID());
         }
         
@@ -377,21 +377,21 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     {
         Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
 
-        long procID = 10;
+        long sysID = 10;
         var now = Instant.now();
-        var ds1v0 = addSimpleCommandStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds1v1 = addSimpleCommandStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
-        var ds1v2 = addSimpleCommandStream(procID, "test1", TimeExtent.beginAt(now));
-        var ds2v0 = addSimpleCommandStream(procID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds2v1 = addSimpleCommandStream(procID, "test2", TimeExtent.beginAt(now));
-        var ds2v2 = addSimpleCommandStream(procID, "test2", TimeExtent.beginAt(now.plusSeconds(600)));
-        var ds3v0 = addSimpleCommandStream(procID, "test3", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds3v1 = addSimpleCommandStream(procID, "test3", TimeExtent.beginAt(now.minusSeconds(600)));
+        var ds1v0 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
+        var ds1v1 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
+        var ds1v2 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now));
+        var ds2v0 = addSimpleCommandStream(sysID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
+        var ds2v1 = addSimpleCommandStream(sysID, "test2", TimeExtent.beginAt(now));
+        var ds2v2 = addSimpleCommandStream(sysID, "test2", TimeExtent.beginAt(now.plusSeconds(600)));
+        var ds3v0 = addSimpleCommandStream(sysID, "test3", TimeExtent.beginAt(now.minusSeconds(3600)));
+        var ds3v1 = addSimpleCommandStream(sysID, "test3", TimeExtent.beginAt(now.minusSeconds(600)));
         forceReadBackFromStorage();
 
         // last version of everything
         CommandStreamFilter filter = new CommandStreamFilter.Builder()
-            .withProcedures(procID)
+            .withSystems(sysID)
             .withCurrentVersion()
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
@@ -413,21 +413,21 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     {
         Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
 
-        long procID = 1;
+        long sysID = 1;
         var now = Instant.now();
-        var ds1v0 = addSimpleCommandStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds1v1 = addSimpleCommandStream(procID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
-        var ds1v2 = addSimpleCommandStream(procID, "test1", TimeExtent.beginAt(now));
-        var ds2v0 = addSimpleCommandStream(procID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds2v1 = addSimpleCommandStream(procID, "test2", TimeExtent.beginAt(now));
-        var ds2v2 = addSimpleCommandStream(procID, "test2", TimeExtent.beginAt(now.plusSeconds(600)));
-        var ds3v0 = addSimpleCommandStream(procID, "test3", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds3v1 = addSimpleCommandStream(procID, "test3", TimeExtent.beginAt(now.minusSeconds(600)));
+        var ds1v0 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
+        var ds1v1 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
+        var ds1v2 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now));
+        var ds2v0 = addSimpleCommandStream(sysID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
+        var ds2v1 = addSimpleCommandStream(sysID, "test2", TimeExtent.beginAt(now));
+        var ds2v2 = addSimpleCommandStream(sysID, "test2", TimeExtent.beginAt(now.plusSeconds(600)));
+        var ds3v0 = addSimpleCommandStream(sysID, "test3", TimeExtent.beginAt(now.minusSeconds(3600)));
+        var ds3v1 = addSimpleCommandStream(sysID, "test3", TimeExtent.beginAt(now.minusSeconds(600)));
         forceReadBackFromStorage();
 
         // last version of everything
         CommandStreamFilter filter = new CommandStreamFilter.Builder()
-            .withProcedures(procID)
+            .withSystems(sysID)
             .withValidTime(new TemporalFilter.Builder()
                 .withLatestTime()
                 .build())
@@ -484,7 +484,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         // select from t0 to t1, only proc 3
         forceReadBackFromStorage();
         filter = new CommandStreamFilter.Builder()
-            .withProcedures(3)
+            .withSystems(3)
             .withValidTimeDuring(now.minus(90, ChronoUnit.DAYS), now.minus(30, ChronoUnit.DAYS))
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
@@ -539,7 +539,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     
     @Test
     @SuppressWarnings("unused")
-    public void testAddAndSelectByProcedureID() throws Exception
+    public void testAddAndSelectBySystemID() throws Exception
     {
         Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
         
@@ -553,16 +553,16 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         
         // select from t0 to now
         CommandStreamFilter filter = new CommandStreamFilter.Builder()
-            .withProcedures(2, 3)
+            .withSystems(2, 3)
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
         
-        testAddAndSelectByProcedureID_ExpectedResults();
+        testAddAndSelectBySystemID_ExpectedResults();
         checkSelectedEntries(resultStream, expectedResults, filter);
     }
     
     
-    protected void testAddAndSelectByProcedureID_ExpectedResults()
+    protected void testAddAndSelectBySystemID_ExpectedResults()
     {
         addToExpectedResults(3, 4, 5);
     }
@@ -613,9 +613,9 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         testAddAndSelectByKeywords_ExpectedResults(3);
         checkSelectedEntries(resultStream, expectedResults, filter);
         
-        // select with procedure and keywords (partial words)
+        // select with system and keywords (partial words)
         filter = new CommandStreamFilter.Builder()
-            .withProcedures(3)
+            .withSystems(3)
             .withKeywords("weather", "temp")
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
@@ -626,7 +626,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         
         // select unknown keywords
         filter = new CommandStreamFilter.Builder()
-            .withProcedures(3)
+            .withSystems(3)
             .withKeywords("lidar", "humidity")
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
@@ -659,12 +659,12 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     
     
     @Test(expected = IllegalStateException.class)
-    public void testErrorWithProcedureFilterJoin() throws Exception
+    public void testErrorWithSystemFilterJoin() throws Exception
     {
         try
         {
             cmdStreamStore.selectEntries(new CommandStreamFilter.Builder()
-                .withProcedures()
+                .withSystems()
                     .withKeywords("thermometer")
                     .done()
                 .build());

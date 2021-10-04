@@ -16,7 +16,7 @@ package org.sensorhub.api.feature;
 
 import java.time.Instant;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.procedure.ProcedureEvent;
+import org.sensorhub.api.system.SystemEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -24,14 +24,14 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * Event sent when a new FOI is being targeted by a procedure.
+ * Event sent when a new FOI is being targeted by an observing system.
  * It is immutable and carries feature data by reference.
  * </p>
  *
  * @author Alex Robin
  * @since Apr 23, 2015
  */
-public class FoiAddedEvent extends ProcedureEvent
+public class FoiAddedEvent extends SystemEvent
 {
     protected IFeature foi;
 	protected String foiUID;
@@ -42,13 +42,13 @@ public class FoiAddedEvent extends ProcedureEvent
     /**
      * Creates a new event with only the feature UID
      * @param timeStamp Time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID Unique ID of producer that generated the event
+     * @param sysUID Unique ID of producer that generated the event
      * @param foiUID Unique ID of feature of interest
      * @param startTime Time at which observation of the FoI started
      */
-	public FoiAddedEvent(long timeStamp, String procUID, String foiUID, Instant startTime)
+	public FoiAddedEvent(long timeStamp, String sysUID, String foiUID, Instant startTime)
     {
-        super(timeStamp, procUID);
+        super(timeStamp, sysUID);
         this.foiUID = OshAsserts.checkValidUID(foiUID);
         this.startTime = Asserts.checkNotNull(startTime, "startTime");
     }

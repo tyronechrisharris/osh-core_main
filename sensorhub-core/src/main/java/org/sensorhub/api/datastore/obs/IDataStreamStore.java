@@ -19,7 +19,7 @@ import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.resource.IResourceStore;
 
 
@@ -37,7 +37,7 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
     
     public static class DataStreamInfoField extends ValueField
     {
-        public static final DataStreamInfoField PROCEDURE_ID = new DataStreamInfoField("procedureID");
+        public static final DataStreamInfoField SYSTEM_ID = new DataStreamInfoField("systemID");
         public static final DataStreamInfoField OUTPUT_NAME = new DataStreamInfoField("outputName");
         public static final DataStreamInfoField VALID_TIME = new DataStreamInfoField("validTime");
         public static final DataStreamInfoField RECORD_DESCRIPTION  = new DataStreamInfoField("recordDescription");
@@ -60,55 +60,55 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
     /**
      * Add a new data stream and generate a new unique key for it.<br/>
      * If the datastream valid time is not set, it will be set to the valid time
-     * of the parent procedure.
+     * of the parent system.
      * @param dsInfo The data stream info object to be stored
      * @return The key associated with the new data stream
-     * @throws DataStoreException if a datastream with the same parent procedure,
-     * output name and valid time already exists, or if the parent procedure is unknown.
+     * @throws DataStoreException if a datastream with the same parent system,
+     * output name and valid time already exists, or if the parent system is unknown.
      */
     public DataStreamKey add(IDataStreamInfo dsInfo) throws DataStoreException;
     
     
     /**
      * Helper method to retrieve the internal ID of the latest version of the
-     * data stream corresponding to the specified procedure and output.
-     * @param procUID Unique ID of procedure producing the data stream
+     * data stream corresponding to the specified system and output.
+     * @param sysUID Unique ID of system producing the data stream
      * @param outputName Name of output generating the data stream
      * @return The datastream key or null if none was found
      */
-    public default DataStreamKey getLatestVersionKey(String procUID, String outputName)
+    public default DataStreamKey getLatestVersionKey(String sysUID, String outputName)
     {
-        Entry<DataStreamKey, IDataStreamInfo> e = getLatestVersionEntry(procUID, outputName);
+        Entry<DataStreamKey, IDataStreamInfo> e = getLatestVersionEntry(sysUID, outputName);
         return e != null ? e.getKey() : null;
     }
     
     
     /**
      * Helper method to retrieve the latest version of the data stream
-     * corresponding to the specified procedure and output.
-     * @param procUID Unique ID of procedure producing the data stream
+     * corresponding to the specified system and output.
+     * @param sysUID Unique ID of system producing the data stream
      * @param outputName Name of output generating the data stream
      * @return The datastream info or null if none was found
      */
-    public default IDataStreamInfo getLatestVersion(String procUID, String outputName)
+    public default IDataStreamInfo getLatestVersion(String sysUID, String outputName)
     {
-        Entry<DataStreamKey, IDataStreamInfo> e = getLatestVersionEntry(procUID, outputName);
+        Entry<DataStreamKey, IDataStreamInfo> e = getLatestVersionEntry(sysUID, outputName);
         return e != null ? e.getValue() : null;
     }
     
     
     /**
      * Helper method to retrieve the entry for the latest version of  the
-     * data stream corresponding to the specified procedure and output.
-     * @param procUID Unique ID of procedure producing the data stream
+     * data stream corresponding to the specified system and output.
+     * @param sysUID Unique ID of system producing the data stream
      * @param outputName Name of output generating the data stream
      * @return The datastream entry or null if none was found
      */
-    public default Entry<DataStreamKey, IDataStreamInfo> getLatestVersionEntry(String procUID, String outputName)
+    public default Entry<DataStreamKey, IDataStreamInfo> getLatestVersionEntry(String sysUID, String outputName)
     {
         Optional<Entry<DataStreamKey, IDataStreamInfo>> entryOpt = selectEntries(new DataStreamFilter.Builder()
-            .withProcedures()
-                .withUniqueIDs(procUID)
+            .withSystems()
+                .withUniqueIDs(sysUID)
                 .done()
             .withOutputNames(outputName)
             .build())
@@ -119,16 +119,16 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
     
     
     /**
-     * Remove all datastreams that are associated to the given procedure output
-     * @param procUID
+     * Remove all datastreams that are associated to the given system output
+     * @param sysUID
      * @param outputName
      * @return The number of entries actually removed
      */
-    public default long removeAllVersions(String procUID, String outputName)
+    public default long removeAllVersions(String sysUID, String outputName)
     {
         return removeEntries(new DataStreamFilter.Builder()
-            .withProcedures()
-                .withUniqueIDs(procUID)
+            .withSystems()
+                .withUniqueIDs(sysUID)
                 .done()
             .withOutputNames(outputName)
             .build());
@@ -136,10 +136,10 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
     
     
     /**
-     * Link this store to an procedure store to enable JOIN queries
-     * @param procedureStore
+     * Link this store to a system store to enable JOIN queries
+     * @param systemStore
      */
-    public void linkTo(IProcedureStore procedureStore);
+    public void linkTo(ISystemDescStore systemStore);
 
 
     /**

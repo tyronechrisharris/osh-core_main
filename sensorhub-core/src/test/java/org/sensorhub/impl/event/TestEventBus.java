@@ -403,14 +403,14 @@ public class TestEventBus
                 }
             });
 
-        String procUID = "source001";
+        String sysUID = "source001";
         String foiUID = "foi123-658";
         for (int i = 0; i < 10; i++)
         {
             if (i % 2 == 0)
-                pub.publish(new TestEvent(procUID, "test", 0));
+                pub.publish(new TestEvent(sysUID, "test", 0));
             else
-                pub.publish(new FoiAddedEvent(System.currentTimeMillis(), procUID, foiUID, Instant.now()));
+                pub.publish(new FoiAddedEvent(System.currentTimeMillis(), sysUID, foiUID, Instant.now()));
         }
 
         assertTrue("Not enough events received", doneSignal.await(TIMEOUT, TimeUnit.SECONDS));

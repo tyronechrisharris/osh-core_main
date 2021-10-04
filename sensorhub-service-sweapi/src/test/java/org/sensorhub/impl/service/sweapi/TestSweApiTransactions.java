@@ -31,11 +31,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.SensorHub;
-import org.sensorhub.impl.datastore.h2.MVObsDatabaseConfig;
+import org.sensorhub.impl.datastore.h2.MVObsSystemDatabaseConfig;
 import org.sensorhub.impl.service.HttpServer;
 import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -58,7 +58,7 @@ import net.opengis.swe.v20.DataEncoding;
 public class TestSweApiTransactions
 {
     static Logger log = LoggerFactory.getLogger(TestSweApiTransactions.class);
-    static final String PROCEDURE_COLLECTION = "procedures";
+    static final String SYSTEM_COLLECTION = "systems";
     static final String MEMBER_COLLECTION = "members";
     static final String FOI_COLLECTION = "fois";
     static final String DATASTREAM_COLLECTION = "datastreams";
@@ -69,7 +69,7 @@ public class TestSweApiTransactions
     SensorHub hub;
     File dbFile;
     SWEApiService swa;
-    IProcedureObsDatabase db;
+    IObsSystemDatabase db;
     String swaRootUrl;
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
     
@@ -92,13 +92,13 @@ public class TestSweApiTransactions
         var httpServer = (HttpServer)moduleRegistry.loadModule(httpConfig, TIMEOUT);
         
         // start DB
-        MVObsDatabaseConfig dbCfg = new MVObsDatabaseConfig();
+        MVObsSystemDatabaseConfig dbCfg = new MVObsSystemDatabaseConfig();
         dbCfg.storagePath = dbFile.getAbsolutePath();
         dbCfg.databaseNum = 2;
         dbCfg.readOnly = false;
         dbCfg.name = "SWE API Database";
         dbCfg.autoStart = true;
-        db = (IProcedureObsDatabase)moduleRegistry.loadModule(dbCfg, TIMEOUT);
+        db = (IObsSystemDatabase)moduleRegistry.loadModule(dbCfg, TIMEOUT);
         ((IModule<?>)db).waitForState(ModuleState.STARTED, TIMEOUT);
         
         // start SensorThings service
@@ -113,31 +113,31 @@ public class TestSweApiTransactions
 
     
     @Test
-    public void testAddProcedureAndGet() throws Exception
+    public void testAddSystemAndGet() throws Exception
     {
-        var json = createProcedureGeoJson(1);
+        var json = createSystemGeoJson(1);
         
-        var httpResp = sendPostRequest(PROCEDURE_COLLECTION, json);
+        var httpResp = sendPostRequest(SYSTEM_COLLECTION, json);
         var url = getLocation(httpResp);
         assertNotNull(url);
         
         var jsonResp = sendGetRequest(url);
         System.out.println(gson.toJson(jsonResp));
         checkId(url, jsonResp);
-        assertProcedureEquals(json, (JsonObject)jsonResp);
+        assertSystemEquals(json, (JsonObject)jsonResp);
     }
     
     
     @Test(expected = IOException.class)
-    public void testAddDuplicateProcedure() throws Exception
+    public void testAddDuplicateSystem() throws Exception
     {
-        var json = createProcedureGeoJson(1);        
-        sendPostRequest(PROCEDURE_COLLECTION, json);
-        sendPostRequest(PROCEDURE_COLLECTION, json);
+        var json = createSystemGeoJson(1);        
+        sendPostRequest(SYSTEM_COLLECTION, json);
+        sendPostRequest(SYSTEM_COLLECTION, json);
     }
     
     
-    protected JsonObject createProcedureGeoJson(int procNum) throws Exception
+    protected JsonObject createSystemGeoJson(int procNum) throws Exception
     {
         var json = JsonBuilderFactory.buildObject()
             .add("type", "Feature")
@@ -151,10 +151,10 @@ public class TestSweApiTransactions
 
     
     @Test
-    public void testAddProcedureDetailsAndGet() throws Exception
+    public void testAddSystemDetailsAndGet() throws Exception
     {
-        var json = createProcedureSml(1);
-        var httpResp = sendPostRequest(PROCEDURE_COLLECTION, json, ResourceFormat.SML_JSON.getMimeType());
+        var json = createSystemSml(1);
+        var httpResp = sendPostRequest(SYSTEM_COLLECTION, json, ResourceFormat.SML_JSON.getMimeType());
         var url = getLocation(httpResp);
         
         // get summary
@@ -174,15 +174,15 @@ public class TestSweApiTransactions
     }
     
     
-    protected String addProcedure(int num) throws Exception
+    protected String addSystem(int num) throws Exception
     {
-        var json = createProcedureGeoJson(num);
-        var httpResp = sendPostRequest(PROCEDURE_COLLECTION, json);
+        var json = createSystemGeoJson(num);
+        var httpResp = sendPostRequest(SYSTEM_COLLECTION, json);
         return getLocation(httpResp);
     }
     
     
-    protected JsonObject createProcedureSml(int procNum) throws Exception
+    protected JsonObject createSystemSml(int procNum) throws Exception
     {
         var numId = String.format("%03d", procNum);
         var sml = "{\n"
@@ -258,7 +258,7 @@ public class TestSweApiTransactions
     }
     
     
-    protected void assertProcedureEquals(JsonObject expected, JsonObject actual)
+    protected void assertSystemEquals(JsonObject expected, JsonObject actual)
     {
         actual.remove("id");
         actual.remove("links");
@@ -267,14 +267,14 @@ public class TestSweApiTransactions
     
     
     /*-------------------*/
-    /* Procedure Members */
+    /* System Members */
     /*-------------------*/
     
     @Test
-    public void testAddProcedureMembersAndGet() throws Exception
+    public void testAddSystemMembersAndGet() throws Exception
     {
-        // add procedure group
-        var groupUrl = addProcedure(1);
+        // add system group
+        var groupUrl = addSystem(1);
         
         // add members
         int numMembers = 10;
@@ -296,7 +296,7 @@ public class TestSweApiTransactions
     protected String addMember(String parentUrl, int num) throws Exception
     {
         // add group member
-        var json = createProcedureGeoJson(num);
+        var json = createSystemGeoJson(num);
         var httpResp = sendPostRequest(concat(parentUrl, MEMBER_COLLECTION), json);
         var url = getLocation(httpResp);
         
@@ -304,7 +304,7 @@ public class TestSweApiTransactions
         var jsonResp = sendGetRequest(url);
         //System.out.println(gson.toJson(jsonResp));
         checkId(url, jsonResp);
-        assertProcedureEquals(json, (JsonObject)jsonResp);
+        assertSystemEquals(json, (JsonObject)jsonResp);
         
         return url;
     }
@@ -315,10 +315,10 @@ public class TestSweApiTransactions
     /*------*/
     
     @Test
-    public void testAddProcedureAndFois() throws Exception
+    public void testAddSystemAndFois() throws Exception
     {
-        // add procedure
-        var procUrl = addProcedure(10);
+        // add system
+        var procUrl = addSystem(10);
         
         // add foi
         int numFois = 10;
@@ -389,10 +389,10 @@ public class TestSweApiTransactions
     /*-------------*/
     
     @Test
-    public void testAddProcedureAndDatastreams() throws Exception
+    public void testAddSystemAndDatastreams() throws Exception
     {
-        // add procedure
-        var procUrl = addProcedure(1);
+        // add system
+        var procUrl = addSystem(1);
         
         // add datastreams
         int numDatastreams = 10;
@@ -476,7 +476,7 @@ public class TestSweApiTransactions
     {
         // remove some fields not present in POST request before comparison
         actual.remove("id");
-        actual.remove("procedure");
+        actual.remove("system");
         actual.remove("validTime");
         actual.remove("phenomenonTime");
         actual.remove("resultTime");
@@ -492,8 +492,8 @@ public class TestSweApiTransactions
     @Test
     public void testAddDatastreamAndObservations() throws Exception
     {
-        // add procedure
-        var procUrl = addProcedure(33);
+        // add system
+        var procUrl = addSystem(33);
         
         // add datastream
         var dsUrl = addDatastream(procUrl, 115);

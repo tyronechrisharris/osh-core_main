@@ -21,8 +21,8 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
+import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;
 import org.vast.util.Asserts;
@@ -50,11 +50,11 @@ public class DataStreamStoreWrapper extends AbstractResourceStoreWrapper<DataStr
     @Override
     public DataStreamKey add(IDataStreamInfo value) throws DataStoreException
     {
-        var procInternalID = idConverter.toInternalID(value.getProcedureID().getInternalID()); 
-        var procUID = value.getProcedureID().getUniqueID();
+        var procInternalID = idConverter.toInternalID(value.getSystemID().getInternalID()); 
+        var sysUID = value.getSystemID().getUniqueID();
                 
         value = DataStreamInfo.Builder.from(value)
-            .withProcedure(new ProcedureId(procInternalID, procUID))
+            .withSystem(new SystemId(procInternalID, sysUID))
             .build();
         
         return toPublicKey(getWriteStore().add(value));
@@ -62,7 +62,7 @@ public class DataStreamStoreWrapper extends AbstractResourceStoreWrapper<DataStr
 
 
     @Override
-    public void linkTo(IProcedureStore procedureStore)
+    public void linkTo(ISystemDescStore systemStore)
     {
         throw new UnsupportedOperationException();
     }

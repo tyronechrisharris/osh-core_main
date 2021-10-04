@@ -24,10 +24,10 @@ import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.procedure.IProcedureDriver;
-import org.sensorhub.api.procedure.IProcedureGroupDriver;
-import org.sensorhub.api.procedure.ProcedureChangedEvent;
 import org.sensorhub.api.sensor.ISensorDriver;
+import org.sensorhub.api.system.ISystemDriver;
+import org.sensorhub.api.system.ISystemGroupDriver;
+import org.sensorhub.api.system.SystemChangedEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.vast.ogc.gml.IFeature;
@@ -69,7 +69,7 @@ public abstract class AbstractSensorDriver implements ISensorDriver
 
     protected final String uniqueID;
     protected final String shortID;
-    protected final IProcedureGroupDriver<? extends IProcedureDriver> parentGroup;
+    protected final ISystemGroupDriver<? extends ISystemDriver> parentGroup;
     protected final IEventHandler eventHandler;
         
     protected volatile DefaultLocationOutput locationOutput;
@@ -86,7 +86,7 @@ public abstract class AbstractSensorDriver implements ISensorDriver
     }
     
     
-    protected AbstractSensorDriver(IProcedureGroupDriver<? extends IProcedureDriver> parentGroup, String uid, String shortID)
+    protected AbstractSensorDriver(ISystemGroupDriver<? extends ISystemDriver> parentGroup, String uid, String shortID)
     {
         this.uniqueID = OshAsserts.checkValidUID(uid);
         this.shortID = Asserts.checkNotNullOrEmpty(shortID, "shortID");
@@ -217,7 +217,7 @@ public abstract class AbstractSensorDriver implements ISensorDriver
 
 
     @Override
-    public IProcedureGroupDriver<? extends IProcedureDriver> getParentGroup()
+    public ISystemGroupDriver<? extends ISystemDriver> getParentGroup()
     {
         return parentGroup;
     }
@@ -254,7 +254,7 @@ public abstract class AbstractSensorDriver implements ISensorDriver
     {
         // send event
         lastUpdatedSensorDescription = updateTime;
-        eventHandler.publish(new ProcedureChangedEvent(updateTime, uniqueID));
+        eventHandler.publish(new SystemChangedEvent(updateTime, uniqueID));
     }
 
 

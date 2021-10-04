@@ -67,9 +67,9 @@ public interface ICommandStore extends IDataStore<BigInteger, ICommandAck, Comma
     
     /**
      * Select statistics for commands matching the query
-     * @param query filter to select desired procedures and time range
+     * @param query filter to select desired systems and time range
      * @return stream of statistics buckets. Each item represents statistics for
-     * commands recorded for a given procedure
+     * commands recorded for a given system
      */
     public Stream<CommandStats> getStatistics(CommandStatsQuery query);
 

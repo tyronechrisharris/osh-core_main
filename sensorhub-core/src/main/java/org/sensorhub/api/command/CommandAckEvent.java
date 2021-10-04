@@ -33,9 +33,9 @@ public class CommandAckEvent extends CommandStreamEvent
     protected Collection<ICommandAck> commandAcks;
     
     
-    public CommandAckEvent(long timeStamp, String procUID, String controlInputName, ICommandAck... commandAcks)
+    public CommandAckEvent(long timeStamp, String sysUID, String controlInputName, ICommandAck... commandAcks)
     {
-        super(timeStamp, procUID, controlInputName);
+        super(timeStamp, sysUID, controlInputName);
         this.commandAcks = Asserts.checkNotNullOrEmpty(Arrays.asList(commandAcks), ICommandAck[].class);
     }
     

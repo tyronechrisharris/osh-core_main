@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 import org.sensorhub.api.command.ICommandData;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.vast.util.BaseBuilder;
 import com.google.common.collect.ImmutableList;
 
@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableList;
  */
 public class TaskData implements ITask
 {
-    protected ProcedureId procedureID;
+    protected SystemId systemID;
     protected String senderID;
     protected UUID taskID;
     protected Instant creationTime;
@@ -49,9 +49,9 @@ public class TaskData implements ITask
 
 
     @Override
-    public ProcedureId getProcedureID()
+    public SystemId getSystemID()
     {
-        return procedureID;
+        return systemID;
     }
 
 
@@ -119,7 +119,7 @@ public class TaskData implements ITask
         
         protected B copyFrom(ITask base)
         {
-            instance.procedureID = base.getProcedureID();
+            instance.systemID = base.getSystemID();
             instance.senderID = base.getSenderID();
             instance.taskID = base.getTaskID();
             instance.creationTime = base.getCreationTime();
@@ -129,9 +129,9 @@ public class TaskData implements ITask
         }
         
         
-        public B withProcedureID(ProcedureId procId)
+        public B withSystemID(SystemId procId)
         {
-            instance.procedureID = procId;
+            instance.systemID = procId;
             return (B)this;
         }
         

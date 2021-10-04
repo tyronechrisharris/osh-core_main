@@ -46,7 +46,7 @@ public class SPSConfigForm extends GenericConfigForm
             Map<String, Class<?>> classList = new LinkedHashMap<>();
             try
             {
-                classList.put("Procedure Tasking", Class.forName(SPS_PACKAGE + "ProcedureTaskingConnectorConfig"));               
+                classList.put("System Tasking", Class.forName(SPS_PACKAGE + "SystemTaskingConnectorConfig"));
             }
             catch (ClassNotFoundException e)
             {

@@ -32,9 +32,9 @@ public class ObsEvent extends DataStreamEvent
     Collection<IObsData> observations;
     
     
-    public ObsEvent(long timeStamp, String procUID, String outputName, IObsData... obs)
+    public ObsEvent(long timeStamp, String sysUID, String outputName, IObsData... obs)
     {
-        super(timeStamp, procUID, outputName);
+        super(timeStamp, sysUID, outputName);
         this.observations = Asserts.checkNotNullOrEmpty(Arrays.asList(obs), IObsData[].class);
     }
 

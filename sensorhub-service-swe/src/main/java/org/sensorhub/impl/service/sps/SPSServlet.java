@@ -36,9 +36,9 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.security.ISecurityManager;
-import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.SWEServlet;
+import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.slf4j.Logger;
@@ -111,7 +111,7 @@ public class SPSServlet extends SWEServlet
         
         this.connectorConfigs = new TreeMap<>();
         for (var config: service.getConfiguration().customConnectors)
-            connectorConfigs.put(config.procedureUID, config);
+            connectorConfigs.put(config.systemUID, config);
         
         generateCapabilities();
     }
@@ -603,7 +603,7 @@ public class SPSServlet extends SWEServlet
         if (isWebSocketRequest(request))
         {
             SPSWebSocketOut ws = new SPSWebSocketOut(conn, writer, log);
-            acceptWebSocket(request, ws);            
+            acceptWebSocket(request, ws);
         }
         else
         {
@@ -760,15 +760,15 @@ public class SPSServlet extends SWEServlet
             try
             {
                 // retrieve transaction helper
-                var procHandler = transactionHandler.getProcedureHandler(procUID);
+                var procHandler = transactionHandler.getSystemHandler(procUID);
                 
                 // get procedure internal key
-                var procID = getParentHub().getDatabaseRegistry().getLocalID(
+                var sysID = getParentHub().getDatabaseRegistry().getLocalID(
                     writeDatabase.getDatabaseNum(), procKey.getInternalID());
                 
                 // get existing command streams of this procedure
                 var controlInputs = writeDatabase.getCommandStreamStore().selectEntries(new CommandStreamFilter.Builder()
-                        .withProcedures(procID)
+                        .withSystems(sysID)
                         .withCurrentVersion()
                         .build())
                     .collect(Collectors.toMap(
@@ -849,7 +849,7 @@ public class SPSServlet extends SWEServlet
         
         for (var param: paramList)
         {
-            var recordStruct = param.getValue().getRecordStructure();            
+            var recordStruct = param.getValue().getRecordStructure();
             var oldHc = DataComponentChecks.getStructCompatibilityHashCode(recordStruct);
             if (newHc.equals(oldHc))
                 return param;
@@ -883,7 +883,7 @@ public class SPSServlet extends SWEServlet
 
     protected ISPSConnector getConnector(String procUID) throws IOException, OWSException
     {
-        if (!readDatabase.getProcedureStore().contains(procUID))
+        if (!readDatabase.getSystemDescStore().contains(procUID))
             throw new SPSException(SPSException.invalid_param_code, "procedure", procUID);
         
         try
@@ -907,8 +907,8 @@ public class SPSServlet extends SWEServlet
     {
         try
         {
-            var defaultConfig = new ProcedureTaskingConnectorConfig();
-            defaultConfig.procedureUID = procUID;
+            var defaultConfig = new SystemTaskingConnectorConfig();
+            defaultConfig.systemUID = procUID;
             return defaultConfig.createConnector((SPSService)service);
         }
         catch (SensorHubException e)
@@ -929,7 +929,7 @@ public class SPSServlet extends SWEServlet
     }
     
     
-    protected ProcedureObsTransactionHandler getTransactionHandler()
+    protected SystemDatabaseTransactionHandler getTransactionHandler()
     {
         return transactionHandler;
     }

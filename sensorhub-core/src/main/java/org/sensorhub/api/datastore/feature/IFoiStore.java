@@ -17,7 +17,7 @@ package org.sensorhub.api.datastore.feature;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.vast.ogc.gml.IFeature;
 
 
@@ -54,10 +54,10 @@ public interface IFoiStore extends IFeatureStoreBase<IFeature, FoiField, FoiFilt
     
     
     /**
-     * Link this store to an procedure store to enable JOIN queries
+     * Link this store to a system store to enable JOIN queries
      * @param procStore
      */
-    public void linkTo(IProcedureStore procStore);
+    public void linkTo(ISystemDescStore procStore);
     
     
     /**

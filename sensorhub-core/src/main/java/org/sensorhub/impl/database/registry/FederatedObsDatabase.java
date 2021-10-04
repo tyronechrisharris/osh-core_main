@@ -22,18 +22,18 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import org.sensorhub.api.database.IDatabaseRegistry;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 
 
-public class FederatedObsDatabase implements IProcedureObsDatabase
+public class FederatedObsDatabase implements IObsSystemDatabase
 {
-    final FederatedProcedureStore procStore;
+    final FederatedSystemDescStore systemStore;
     final FederatedFoiStore foiStore;
     final FederatedObsStore obsStore;
     final FederatedCommandStore commandStore;
@@ -42,7 +42,7 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     
     public static class LocalDatabaseInfo
     {
-        IProcedureObsDatabase db;
+        IObsSystemDatabase db;
         int databaseNum;
         long entryID;
         BigInteger bigEntryID;
@@ -51,7 +51,7 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     
     public static class LocalFilterInfo
     {
-        IProcedureObsDatabase db;
+        IObsSystemDatabase db;
         int databaseNum;
         Set<Long> internalIds = new TreeSet<>();
         Set<BigInteger> bigInternalIds = new TreeSet<>();
@@ -62,7 +62,7 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     public FederatedObsDatabase(IDatabaseRegistry registry)
     {
         this.registry = registry;
-        this.procStore = new FederatedProcedureStore(registry, this);
+        this.systemStore = new FederatedSystemDescStore(registry, this);
         this.foiStore = new FederatedFoiStore(registry, this);
         this.obsStore = new FederatedObsStore(registry, this);
         this.commandStore = new FederatedCommandStore(registry, this);
@@ -147,9 +147,9 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     
     
     @Override
-    public IProcedureStore getProcedureStore()
+    public ISystemDescStore getSystemDescStore()
     {
-        return procStore;
+        return systemStore;
     }
 
 
@@ -174,7 +174,7 @@ public class FederatedObsDatabase implements IProcedureObsDatabase
     }
     
     
-    protected Collection<IProcedureObsDatabase> getAllDatabases()
+    protected Collection<IObsSystemDatabase> getAllDatabases()
     {
         return registry.getRegisteredObsDatabases();
     }

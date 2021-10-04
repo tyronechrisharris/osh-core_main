@@ -35,7 +35,7 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
 import org.sensorhub.impl.datastore.h2.index.FullTextIndex;
@@ -55,12 +55,12 @@ import org.vast.util.TimeExtent;
 public class MVDataStreamStoreImpl implements IDataStreamStore
 {
     private static final String DATASTREAM_MAP_NAME = "datastreams_records";
-    private static final String DATASTREAM_PROC_MAP_NAME = "datastreams_proc";
+    private static final String DATASTREAM_SYSTEM_MAP_NAME = "datastreams_sys";
     private static final String DATASTREAM_FULLTEXT_MAP_NAME = "datastreams_text";
 
     protected MVStore mvStore;
     protected MVObsStoreImpl obsStore;
-    protected IProcedureStore procedureStore;
+    protected ISystemDescStore systemStore;
     protected IdProvider<IDataStreamInfo> idProvider;
     
     /*
@@ -69,11 +69,11 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     protected MVBTreeMap<DataStreamKey, IDataStreamInfo> dataStreamIndex;
     
     /*
-     * Procedure/output index
-     * Map of {procedure ID, output name, validTime} to datastream ID
+     * System/output index
+     * Map of {system ID, output name, validTime} to datastream ID
      * Everything is stored in the key with no value (use MVVoidDataType for efficiency)
      */
-    protected MVBTreeMap<MVTimeSeriesProcKey, Boolean> dataStreamByProcIndex;
+    protected MVBTreeMap<MVTimeSeriesSystemKey, Boolean> dataStreamByProcIndex;
     
     /*
      * Full text index pointing to main index
@@ -108,14 +108,14 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 // if valid time ends at now and there is a more recent version, compute the actual end time
                 if (validTime.endsNow())
                 {                
-                    var procDsKey = new MVTimeSeriesProcKey(
-                        getProcedureID().getInternalID(),
+                    var procDsKey = new MVTimeSeriesSystemKey(
+                        getSystemID().getInternalID(),
                         getOutputName(),
                         getValidTime().begin());
                     
                     var nextKey = dataStreamByProcIndex.lowerKey(procDsKey); // use lower cause time sorting is reversed
                     if (nextKey != null &&
-                        nextKey.procedureID == procDsKey.procedureID &&
+                        nextKey.systemID == procDsKey.systemID &&
                         nextKey.signalName.equals(procDsKey.signalName))
                         validTime = TimeExtent.period(validTime.begin(), Instant.ofEpochSecond(nextKey.validStartTime));
                 }
@@ -150,7 +150,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         this.mvStore = Asserts.checkNotNull(obsStore.mvStore, MVStore.class);
         
         // persistent class mappings for Kryo
-        var kryoClassMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
+        var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
 
         // open observation map
         String mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_MAP_NAME;
@@ -159,8 +159,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 .valueType(new DataStreamInfoDataType(kryoClassMap)));
 
         // open observation series map
-        mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_PROC_MAP_NAME;
-        this.dataStreamByProcIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesProcKey, Boolean>()
+        mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_SYSTEM_MAP_NAME;
+        this.dataStreamByProcIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesSystemKey, Boolean>()
                 .keyType(new MVTimeSeriesProcKeyDataType())
                 .valueType(new MVVoidDataType()));
         
@@ -196,10 +196,10 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     @Override
     public synchronized DataStreamKey add(IDataStreamInfo dsInfo) throws DataStoreException
     {
-        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
+        DataStoreUtils.checkDataStreamInfo(systemStore, dsInfo);
         
-        // use valid time of parent procedure or current time if none was set
-        dsInfo = DataStoreUtils.ensureValidTime(procedureStore, dsInfo);
+        // use valid time of parent system or current time if none was set
+        dsInfo = DataStoreUtils.ensureValidTime(systemStore, dsInfo);
 
         // create key
         var newKey = generateKey(dsInfo);
@@ -229,13 +229,13 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     }
 
 
-    Stream<Long> getDataStreamIdsByProcedure(long procID, Set<String> outputNames, TemporalFilter validTime)
+    Stream<Long> getDataStreamIdsBySystem(long sysID, Set<String> outputNames, TemporalFilter validTime)
     {
-        MVTimeSeriesProcKey first = new MVTimeSeriesProcKey(procID, "", Instant.MIN);
-        RangeCursor<MVTimeSeriesProcKey, Boolean> cursor = new RangeCursor<>(dataStreamByProcIndex, first);
+        MVTimeSeriesSystemKey first = new MVTimeSeriesSystemKey(sysID, "", Instant.MIN);
+        RangeCursor<MVTimeSeriesSystemKey, Boolean> cursor = new RangeCursor<>(dataStreamByProcIndex, first);
 
-        Stream<MVTimeSeriesProcKey> keyStream = cursor.keyStream()
-            .takeWhile(k -> k.procedureID == procID);
+        Stream<MVTimeSeriesSystemKey> keyStream = cursor.keyStream()
+            .takeWhile(k -> k.systemID == sysID);
 
         // we post filter output names and versions during the scan
         // since number of outputs and versions is usually small, this should
@@ -245,9 +245,9 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     }
 
 
-    Stream<Long> getDataStreamIdsFromAllProcedures(Set<String> outputNames, TemporalFilter validTime)
+    Stream<Long> getDataStreamIdsFromAllSystems(Set<String> outputNames, TemporalFilter validTime)
     {
-        Stream<MVTimeSeriesProcKey> keyStream = dataStreamByProcIndex.keySet().stream();
+        Stream<MVTimeSeriesSystemKey> keyStream = dataStreamByProcIndex.keySet().stream();
 
         // yikes we're doing a full index scan here!
         return postFilterKeyStream(keyStream, outputNames, validTime)
@@ -255,7 +255,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     }
 
 
-    Stream<MVTimeSeriesProcKey> postFilterKeyStream(Stream<MVTimeSeriesProcKey> keyStream, Set<String> outputNames, TemporalFilter validTime)
+    Stream<MVTimeSeriesSystemKey> postFilterKeyStream(Stream<MVTimeSeriesSystemKey> keyStream, Set<String> outputNames, TemporalFilter validTime)
     {
         if (outputNames != null)
             keyStream = keyStream.filter(k -> outputNames.contains(k.signalName));
@@ -270,15 +270,15 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 filterStartTime = filterEndTime = Instant.MAX.getEpochSecond();
             } else {
                 filterStartTime = validTime.getMin().getEpochSecond();
-                filterEndTime = validTime.getMax().getEpochSecond();                
+                filterEndTime = validTime.getMax().getEpochSecond();
             }
             
             // get all datastream with validStartTime within the filter range + 1 before
             // recall that datastreams are ordered in reverse valid time order
-            Holder<MVTimeSeriesProcKey> lastKey = new Holder<>();
+            Holder<MVTimeSeriesSystemKey> lastKey = new Holder<>();
             keyStream = keyStream
                 .filter(k -> {
-                    MVTimeSeriesProcKey saveLastKey = lastKey.value;
+                    MVTimeSeriesSystemKey saveLastKey = lastKey.value;
                     lastKey.value = k;
                                             
                     if (k.validStartTime > filterEndTime)
@@ -288,7 +288,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                         return true;
                     
                     if (saveLastKey == null ||
-                        k.procedureID != saveLastKey.procedureID ||
+                        k.systemID != saveLastKey.systemID ||
                         !k.signalName.equals(saveLastKey.signalName) ||
                         saveLastKey.validStartTime > filterStartTime) {
                         return true;
@@ -315,12 +315,12 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             idStream = filter.getInternalIDs().stream();
         }
 
-        // if procedure filter is used
-        else if (filter.getProcedureFilter() != null)
+        // if system filter is used
+        else if (filter.getSystemFilter() != null)
         {
-            // first select procedures and fetch corresponding datastreams
-            idStream = DataStoreUtils.selectProcedureIDs(procedureStore, filter.getProcedureFilter())
-                .flatMap(id -> getDataStreamIdsByProcedure(id, filter.getOutputNames(), filter.getValidTimeFilter()));            
+            // first select systems and fetch corresponding datastreams
+            idStream = DataStoreUtils.selectSystemIDs(systemStore, filter.getSystemFilter())
+                .flatMap(id -> getDataStreamIdsBySystem(id, filter.getOutputNames(), filter.getValidTimeFilter()));
         }
 
         // if observation filter is used
@@ -341,7 +341,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         // else filter data stream only by output name and valid time
         else
         {
-            idStream = getDataStreamIdsFromAllProcedures(filter.getOutputNames(), filter.getValidTimeFilter());
+            idStream = getDataStreamIdsFromAllSystems(filter.getOutputNames(), filter.getValidTimeFilter());
         }
 
         resultStream = idStream
@@ -383,7 +383,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         DataStoreUtils.checkDataStreamKey(key);
         try {
             
-            DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
+            DataStoreUtils.checkDataStreamInfo(systemStore, dsInfo);
             return put(key, dsInfo, true);
         }
         catch (DataStoreException e) 
@@ -414,16 +414,16 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 // remove old entry if needed
                 if (oldValue != null && replace)
                 {
-                    MVTimeSeriesProcKey procKey = new MVTimeSeriesProcKey(key.getInternalID(),
-                        oldValue.getProcedureID().getInternalID(),
+                    MVTimeSeriesSystemKey procKey = new MVTimeSeriesSystemKey(key.getInternalID(),
+                        oldValue.getSystemID().getInternalID(),
                         oldValue.getOutputName(),
                         oldValue.getValidTime().begin().getEpochSecond());
                     dataStreamByProcIndex.remove(procKey);
                 }
 
                 // add new entry
-                MVTimeSeriesProcKey procKey = new MVTimeSeriesProcKey(key.getInternalID(),
-                    dsInfo.getProcedureID().getInternalID(),
+                MVTimeSeriesSystemKey procKey = new MVTimeSeriesSystemKey(key.getInternalID(),
+                    dsInfo.getSystemID().getInternalID(),
                     dsInfo.getOutputName(),
                     dsInfo.getValidTime().begin().getEpochSecond());
                 var oldProcKey = dataStreamByProcIndex.put(procKey, Boolean.TRUE);
@@ -469,8 +469,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                     return null;
 
                 // remove entry in secondary index
-                dataStreamByProcIndex.remove(new MVTimeSeriesProcKey(
-                    oldValue.getProcedureID().getInternalID(),
+                dataStreamByProcIndex.remove(new MVTimeSeriesSystemKey(
+                    oldValue.getSystemID().getInternalID(),
                     oldValue.getName(),
                     oldValue.getValidTime().begin()));
                 
@@ -604,8 +604,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     
     
     @Override
-    public void linkTo(IProcedureStore procedureStore)
+    public void linkTo(ISystemDescStore systemStore)
     {
-        this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
+        this.systemStore = Asserts.checkNotNull(systemStore, ISystemDescStore.class);
     }
 }

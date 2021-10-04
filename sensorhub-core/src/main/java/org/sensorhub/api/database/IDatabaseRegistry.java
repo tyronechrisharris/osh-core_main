@@ -16,7 +16,7 @@ package org.sensorhub.api.database;
 
 import java.math.BigInteger;
 import java.util.Collection;
-import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
+import org.sensorhub.api.system.ISystemDriverDatabase;
 
 
 /**
@@ -24,17 +24,17 @@ import org.sensorhub.api.procedure.IProcedureEventHandlerDatabase;
  * Interface for the main database registry on a sensor hub.
  * </p><p>
  * This database registry keeps track of which database contains data for each
- * procedure registered on the hub.
+ * system registered on the hub.
  * </p><p>
  * It also exposes a federated database which provides read-only access
  * to all historical observations available from this hub, along with the
- * corresponding procedures, datastreams and features of interest metadata.
- * The federated database aggregates data from all databases registered
+ * corresponding systems, datastreams, command channels and features of interest
+ * metadata. The federated database aggregates data from all databases registered
  * with this registry.
  * </p><p>
  * With a minimum setup (i.e. no database configured), the federated
- * database gives access to the latest state of all registered procedures
- * (e.g. latest procedure description, latest observations, latest observed
+ * database gives access to the latest state of all registered systems
+ * (e.g. latest system description, latest observations, latest observed
  * FOI) but no historical data will be available.
  * </p>
  *
@@ -47,9 +47,9 @@ public interface IDatabaseRegistry
     /**
      * Register a database to be exposed through the federated database.
      * <br/><br/>
-     * If the database is a {@link IProcedureEventHandlerDatabase} a mapping is
-     * registered with the procedure UIDs obtained by calling the
-     * {@link IProcedureEventHandlerDatabase#getHandledProcedures() getHandledProcedures()}
+     * If the database is a {@link ISystemDriverDatabase} a mapping is
+     * registered with the system UIDs obtained by calling the
+     * {@link ISystemDriverDatabase#getHandledSystems()}
      * method 
      * @param db
      */
@@ -64,74 +64,74 @@ public interface IDatabaseRegistry
 
 
     /**
-     * Registers a procedure/observation database and configure the registry to write
-     * data produced by the specified procedure to it.
+     * Registers an observing system database and configures the registry to write
+     * data produced by the specified systems to it.
      * <p>This can be called multiple times to register multiple mappings with the
      * same database instance. However, several databases cannot contain data for
-     * the same procedure so a given procedure UID cannot be mapped to different
+     * the same system so a given system UID cannot be mapped to different
      * database instances using this method.</p>
      * <p>Note that the database is not required to contain data for the specified
-     * procedure at the time of the call.</p>
-     * @param procedureUID Unique ID of procedure to associate with the database
+     * system at the time of the call.</p>
+     * @param systemUID Unique ID of system to associate with the database
      * @param db A database instance
      * @throws IllegalArgumentException if the database is not writable
      */
-    void register(String procedureUID, IProcedureObsDatabase db);
+    void register(String systemUID, IObsSystemDatabase db);
 
 
     /**
-     * Helper method to register several procedure/database mappings at once.
-     * @see {@link #register(String, IProcedureObsDatabase)}.
-     * @param procedureUIDs Unique IDs of procedures to associate with the database
+     * Helper method to register several system/database mappings at once.
+     * @see {@link #register(String, IObsSystemDatabase)}.
+     * @param systemUIDs Unique IDs of systems to associate with the database
      * @param db The database instance
      */
-    default void register(Collection<String> procedureUIDs, IProcedureObsDatabase db)
+    default void register(Collection<String> systemUIDs, IObsSystemDatabase db)
     {
-        for (String uid: procedureUIDs)
+        for (String uid: systemUIDs)
             register(uid, db);
     }
 
 
     /**
-     * Unregisters a procedure to observation database mapping.
-     * @param procedureUID Unique ID of procedures previously associated with
+     * Unregisters a system to observation database mapping.
+     * @param systemUID Unique ID of systems previously associated with
      * the specified database
      * @param db A database instance
      */
-    void unregister(String procedureUID, IProcedureObsDatabase db);
+    void unregister(String systemUID, IObsSystemDatabase db);
 
 
     /**
-     * Helper method to unregister several procedure/database mappings at once.
-     * @see {@link #unregister(String, IProcedureObsDatabase)}.
-     * @param procedureUIDs Unique IDs of procedures previously associated with
+     * Helper method to unregister several system/database mappings at once.
+     * @see {@link #unregister(String, IObsSystemDatabase)}.
+     * @param systemUIDs Unique IDs of systems previously associated with
      * the specified database
      * @param db A database instance
      */
-    default void unregister(Collection<String> procedureUIDs, IProcedureObsDatabase db)
+    default void unregister(Collection<String> systemUIDs, IObsSystemDatabase db)
     {
-        for (String uid: procedureUIDs)
+        for (String uid: systemUIDs)
             unregister(uid, db);
     }
 
 
     /**
      * Checks if a database is currently handling data generated by the
-     * specified procedure
-     * @param procedureUID Unique ID of the procedure
+     * specified system
+     * @param systemUID Unique ID of the system
      * @return true if a database has been registered, false otherwise
      */
-    boolean hasDatabase(String procedureUID);
+    boolean hasDatabase(String systemUID);
 
 
     /**
      * Provides direct (potentially read/write) access to the database that is
-     * currently handling observation data from the specified procedure
-     * @param procedureUID Unique ID of the procedure
+     * currently handling observation data from the specified system
+     * @param systemUID Unique ID of the system
      * @return The database instance or null if none has been registered
-     * for the specified procedure
+     * for the specified system
      */
-    IProcedureObsDatabase getObsDatabase(String procedureUID);
+    IObsSystemDatabase getObsDatabase(String systemUID);
 
 
     /**
@@ -141,24 +141,21 @@ public interface IDatabaseRegistry
      * @return The database instance or null if none has been assigned
      * the specified number
      */
-    IProcedureObsDatabase getObsDatabase(int databaseNum);
+    IObsSystemDatabase getObsDatabase(int databaseNum);
 
 
     /**
      * @return This hub's federated observation database.<br/>
      * See class description for more information about the federated DB
      */
-    IProcedureObsDatabase getFederatedObsDatabase();
+    IObsSystemDatabase getFederatedObsDatabase();
     
     
     /**
-     * @return a read-only collection of all procedure/obs databases registered
+     * @return a read-only collection of all system/obs databases registered
      * on the hub
      */
-    Collection<IProcedureObsDatabase> getRegisteredObsDatabases();
-    
-    
-    //Collection<IProcedureObsDatabase> getProcedureObsDatabaseViews();   
+    Collection<IObsSystemDatabase> getRegisteredObsDatabases();
     
 
     /**

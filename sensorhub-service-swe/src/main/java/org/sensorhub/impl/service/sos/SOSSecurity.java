@@ -77,9 +77,9 @@ public class SOSSecurity extends ModuleSecurity
     }
     
     
-    protected void addProcedurePermissions(String procedureUID)
+    protected void addProcedurePermissions(String systemUID)
     {
-        String permName = getProcedurePermissionName(procedureUID);
+        String permName = getProcedurePermissionName(systemUID);
         new ItemPermission(sos_read_caps, permName);
         new ItemPermission(sos_read_sensor, permName);
         new ItemPermission(sos_read_foi, permName);
@@ -92,17 +92,17 @@ public class SOSSecurity extends ModuleSecurity
     }
     
     
-    public void checkPermission(String procedureUID, IPermission perm) throws SecurityException
+    public void checkPermission(String systemUID, IPermission perm) throws SecurityException
     {
-        /*String permName = getProcedurePermissionName(procedureUID);
+        /*String permName = getProcedurePermissionName(systemUID);
         IPermission offPerm = perm.getChildren().get(permName);
         Asserts.checkNotNull(offPerm, "Invalid permission check");
         checkPermission(offPerm);*/
     }
     
     
-    protected String getProcedurePermissionName(String procedureUID)
+    protected String getProcedurePermissionName(String systemUID)
     {
-        return "procedure[" + procedureUID + "]";
+        return "procedure[" + systemUID + "]";
     }
 }

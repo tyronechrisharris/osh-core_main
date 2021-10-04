@@ -32,17 +32,17 @@ public class CommandEvent extends CommandStreamEvent
     protected Collection<ICommandData> commands;
     
     
-    public CommandEvent(long timeStamp, String procUID, String controlInputName, ICommandData... commands)
+    public CommandEvent(long timeStamp, String sysUID, String controlInputName, ICommandData... commands)
     {
-        super(timeStamp, procUID, controlInputName);
+        super(timeStamp, sysUID, controlInputName);
         this.commands = Asserts.checkNotNullOrEmpty(Arrays.asList(commands), ICommandData[].class);
         this.sourceID = Asserts.checkNotNullOrEmpty(commands[0].getSenderID(), "senderID");
     }
     
     
-    public CommandEvent(String procUID, String controlInputName, ICommandData... commands)
+    public CommandEvent(String sysUID, String controlInputName, ICommandData... commands)
     {
-        this(System.currentTimeMillis(), procUID, controlInputName, commands);
+        this(System.currentTimeMillis(), sysUID, controlInputName, commands);
     }
 
 

@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.database.IDatabaseRegistry;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
@@ -36,7 +36,7 @@ import org.vast.util.Bbox;
 /**
  * <p>
  * Base federated feature store used as the base for all federated feature
- * stores (features, fois, procedures, etc.)
+ * stores (features, fois, systems, etc.)
  * </p>
  * 
  * @param <T> Feature type
@@ -62,7 +62,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     /*
      * Should return the type of store that this class binds to
      */
-    protected abstract IFeatureStoreBase<T, VF, F> getFeatureStore(IProcedureObsDatabase db);
+    protected abstract IFeatureStoreBase<T, VF, F> getFeatureStore(IObsSystemDatabase db);
     
     
     protected abstract Map<Integer, LocalFilterInfo> getFilterDispatchMap(F filter);

@@ -165,7 +165,7 @@ public class SOSClient
     }
     
     
-    public Collection<IObservation> getObservations(String procUID, TimeExtent timeRange) throws SensorHubException
+    public Collection<IObservation> getObservations(String sysUID, TimeExtent timeRange) throws SensorHubException
     {
         try
         {
@@ -174,7 +174,7 @@ public class SOSClient
             req.setVersion(grRequest.getVersion());
             req.setOffering(grRequest.getOffering());
             req.getObservables().addAll(grRequest.getObservables());
-            req.getProcedures().add(procUID);
+            req.getProcedures().add(sysUID);
             req.setTime(timeRange);
             
             // parse observations

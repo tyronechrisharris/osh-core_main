@@ -24,7 +24,7 @@ import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -53,7 +53,7 @@ public class TestGsonFilterTypeAdapters
         JsonElement refJson = gson.fromJson(new InputStreamReader(resource.openStream()), JsonElement.class);
         
         var sampleFileRootType = TypeToken.getParameterized(List.class, filterType);
-        List<ProcedureFilter> filters = gson.fromJson(
+        List<SystemFilter> filters = gson.fromJson(
             new InputStreamReader(resource.openStream()),
             sampleFileRootType.getType());
         
@@ -70,10 +70,10 @@ public class TestGsonFilterTypeAdapters
     
     
     @Test
-    public void testReadWriteReadProcedureFilters() throws Exception
+    public void testReadWriteReadSystemFilters() throws Exception
     {
-        var resource = TestGsonFilterTypeAdapters.class.getResource("procedure_filters.json");
-        testReadWrite(resource, ProcedureFilter.class);
+        var resource = TestGsonFilterTypeAdapters.class.getResource("system_filters.json");
+        testReadWrite(resource, SystemFilter.class);
     }
     
     

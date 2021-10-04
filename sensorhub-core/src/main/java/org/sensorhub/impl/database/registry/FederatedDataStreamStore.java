@@ -25,9 +25,9 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
+import org.sensorhub.api.datastore.system.SystemFilter;
+import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
@@ -51,16 +51,16 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     
     class DataStreamInfoWithPublicId extends DataStreamInfoWrapper
     {
-        ProcedureId publicProcId;        
+        SystemId publicProcId;        
         
-        DataStreamInfoWithPublicId(ProcedureId publicProcId, IDataStreamInfo dsInfo)
+        DataStreamInfoWithPublicId(SystemId publicProcId, IDataStreamInfo dsInfo)
         {
             super(dsInfo);
             this.publicProcId = publicProcId;
         }        
         
         @Override
-        public ProcedureId getProcedureID()
+        public SystemId getSystemID()
         {
             return publicProcId;
         }
@@ -158,8 +158,8 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
      */
     protected IDataStreamInfo toPublicValue(int databaseID, IDataStreamInfo dsInfo)
     {
-        long procPublicID = registry.getPublicID(databaseID, dsInfo.getProcedureID().getInternalID());
-        ProcedureId publicId = new ProcedureId(procPublicID, dsInfo.getProcedureID().getUniqueID());
+        long procPublicID = registry.getPublicID(databaseID, dsInfo.getSystemID().getInternalID());
+        SystemId publicId = new SystemId(procPublicID, dsInfo.getSystemID().getUniqueID());
         return new DataStreamInfoWithPublicId(publicId, dsInfo);
     }
     
@@ -194,17 +194,17 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
             return filterDispatchMap;
         }
         
-        else if (filter.getProcedureFilter() != null)
+        else if (filter.getSystemFilter() != null)
         {
-            // delegate to proc store handle procedure filter dispatch map
-            var filterDispatchMap = parentDb.procStore.getFilterDispatchMap(filter.getProcedureFilter());
+            // delegate to system store to get filter dispatch map
+            var filterDispatchMap = parentDb.systemStore.getFilterDispatchMap(filter.getSystemFilter());
             if (filterDispatchMap != null)
             {
                 for (var filterInfo: filterDispatchMap.values())
                 {
                     filterInfo.filter = DataStreamFilter.Builder
                         .from(filter)
-                        .withProcedures((ProcedureFilter)filterInfo.filter)
+                        .withSystems((SystemFilter)filterInfo.filter)
                         .build();
                 }
             }
@@ -214,7 +214,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         
         else if (filter.getObservationFilter() != null)
         {
-            // delegate to proc store handle procedure filter dispatch map
+            // delegate to obs store to get filter dispatch map
             var filterDispatchMap = parentDb.obsStore.getFilterDispatchMap(filter.getObservationFilter());
             if (filterDispatchMap != null)
             {
@@ -274,7 +274,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
 
 
     @Override
-    public void linkTo(IProcedureStore procedureStore)
+    public void linkTo(ISystemDescStore systemStore)
     {
         throw new UnsupportedOperationException();        
     }

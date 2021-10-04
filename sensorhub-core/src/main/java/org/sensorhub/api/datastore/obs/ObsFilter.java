@@ -26,7 +26,7 @@ import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.feature.FoiFilter;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
@@ -331,7 +331,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
                 {
                     ObsFilterBuilder.this.withPhenomenonTime(build());
                     return (B)ObsFilterBuilder.this;
-                }                
+                }
             };
         }
 
@@ -417,7 +417,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
                 {
                     ObsFilterBuilder.this.withPhenomenonLocation(build());
                     return (B)ObsFilterBuilder.this;
-                }                
+                }
             };
         }
 
@@ -447,7 +447,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
                 {
                     ObsFilterBuilder.this.withDataStreams(build());
                     return (B)ObsFilterBuilder.this;
-                }                
+                }
             };
         }
 
@@ -477,70 +477,70 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
 
 
         /**
-         * Keep only observations from procedures matching the filter.
-         * @param filter Filter to select desired procedures
+         * Keep only observations from systems matching the filter.
+         * @param filter Filter to select desired systems
          * @return This builder for chaining
          */
-        public B withProcedures(ProcedureFilter filter)
+        public B withSystems(SystemFilter filter)
         {
             return withDataStreams(new DataStreamFilter.Builder()
-                .withProcedures(filter)
+                .withSystems(filter)
                 .build());
         }
         
         
         /**
-         * Keep only observations from procedures matching the filter.<br/>
+         * Keep only observations from systems matching the filter.<br/>
          * Call done() on the nested builder to go back to main builder.
-         * @return The {@link ProcedureFilter} builder for chaining
+         * @return The {@link SystemFilter} builder for chaining
          */
-        public ProcedureFilter.NestedBuilder<B> withProcedures()
+        public SystemFilter.NestedBuilder<B> withSystems()
         {
-            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+            return new SystemFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {
-                    ObsFilterBuilder.this.withProcedures(build());
+                    ObsFilterBuilder.this.withSystems(build());
                     return (B)ObsFilterBuilder.this;
-                }                
+                }
             };
         }
 
 
         /**
-         * Keep only observations from specific procedures (including all outputs).
-         * @param procIDs Internal IDs of one or more procedures
+         * Keep only observations from specific systems (including all outputs).
+         * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withProcedures(long... procIDs)
+        public B withSystems(long... ids)
         {
-            return withProcedures(Longs.asList(procIDs));
+            return withSystems(Longs.asList(ids));
         }
 
 
         /**
-         * Keep only observations from specific procedures (including all outputs).
-         * @param procIDs Collection of internal IDs of procedures
+         * Keep only observations from specific systems (including all outputs).
+         * @param ids Collection of internal IDs of systems
          * @return This builder for chaining
          */
-        public B withProcedures(Collection<Long> procIDs)
+        public B withSystems(Collection<Long> ids)
         {
             return withDataStreams(new DataStreamFilter.Builder()
-                .withProcedures(procIDs)
+                .withSystems(ids)
                 .build());
         }
 
 
         /**
-         * Keep only observations produced by certain outputs of a specific procedure
-         * @param procID Internal ID of the procedure
+         * Keep only observations produced by certain outputs of a specific system
+         * @param sysID Internal ID of the system
          * @param outputNames Names of one or more outputs of interest
          * @return This builder for chaining
          */
-        public B withProcedure(long procID, String... outputNames)
+        public B withSystem(long sysID, String... outputNames)
         {
             return withDataStreams(new DataStreamFilter.Builder()
-                .withProcedures(procID)
+                .withSystems(sysID)
                 .withOutputNames(outputNames)
                 .build());
         }
@@ -571,7 +571,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
                 {
                     withFois(build());
                     return (B)ObsFilterBuilder.this;
-                }                
+                }
             };
         }
 

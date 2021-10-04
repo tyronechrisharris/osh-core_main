@@ -26,18 +26,18 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.impl.procedure.DataStreamTransactionHandler;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
+import org.sensorhub.impl.system.DataStreamTransactionHandler;
 
 
 public class ObsStatsHandler extends BaseHandler
@@ -45,7 +45,7 @@ public class ObsStatsHandler extends BaseHandler
     static final String READ_ONLY_ERROR = "Statistics is a read-only resource";
     public static final String[] NAMES = { "stats" };
     
-    final ProcedureObsDbWrapper db;
+    final ObsSystemDbWrapper db;
     IdConverter idConverter;
     final IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
     final IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
@@ -61,7 +61,7 @@ public class ObsStatsHandler extends BaseHandler
     }
     
     
-    public ObsStatsHandler(ProcedureObsDbWrapper db, ResourcePermissions permissions)
+    public ObsStatsHandler(ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         this.db = db;
         this.permissions = permissions;

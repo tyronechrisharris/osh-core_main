@@ -33,13 +33,13 @@ import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.system.SystemId;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.command.ICommandAck.CommandStatusCode;
 import org.sensorhub.api.command.ICommandAck;
 import org.sensorhub.api.command.CommandAck;
 import org.sensorhub.api.command.CommandData;
-import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
@@ -80,13 +80,13 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    protected CommandStreamKey addCommandStream(long procID, DataComponent recordStruct)
+    protected CommandStreamKey addCommandStream(long sysID, DataComponent recordStruct)
     {
         try
         {
             var csInfo = new CommandStreamInfo.Builder()
                 .withName(recordStruct.getName())
-                .withProcedure(new ProcedureId(procID, PROC_UID_PREFIX+procID))
+                .withSystem(new SystemId(sysID, PROC_UID_PREFIX+sysID))
                 .withRecordDescription(recordStruct)
                 .withRecordEncoding(new TextEncodingImpl())
                 .build();
@@ -102,14 +102,14 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    protected CommandStreamKey addSimpleCommandStream(long procID, String outputName)
+    protected CommandStreamKey addSimpleCommandStream(long sysID, String outputName)
     {
         SWEHelper fac = new SWEHelper();
         var builder = fac.createRecord()
             .name(outputName);
         for (int i=0; i<5; i++)
             builder.addField("comp"+i, fac.createQuantity().build());        
-        return addCommandStream(procID, builder.build());
+        return addCommandStream(sysID, builder.build());
     }
 
 
@@ -530,7 +530,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
 
         // command stream 1 & 2 by proc ID
         filter = new CommandFilter.Builder()
-            .withProcedures(1L)
+            .withSystems(1L)
             .build();
         resultStream = cmdStore.selectEntries(filter);
         expectedResults.clear();
@@ -551,12 +551,12 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     
     
     @Test(expected = IllegalStateException.class)
-    public void testErrorWithProcedureFilterJoin() throws Exception
+    public void testErrorWithSystemFilterJoin() throws Exception
     {
         try
         {
             cmdStore.selectEntries(new CommandFilter.Builder()
-                .withProcedures()
+                .withSystems()
                     .withKeywords("thermometer")
                     .done()
                 .build());

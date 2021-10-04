@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.objenesis.strategy.StdInstantiatorStrategy;
-import org.sensorhub.impl.datastore.h2.MVObsDatabase;
+import org.sensorhub.impl.datastore.h2.MVObsSystemDatabase;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,8 +97,8 @@ public class KryoDataType implements DataType
         
         // set default serializer to our versioned serializer
         this.defaultObjectSerializer = VersionedSerializer.<Object>factory2(ImmutableMap.of(
-            MVObsDatabase.CURRENT_VERSION, new SerializerFactory.FieldSerializerFactory()),
-            MVObsDatabase.CURRENT_VERSION);
+            MVObsSystemDatabase.CURRENT_VERSION, new SerializerFactory.FieldSerializerFactory()),
+            MVObsSystemDatabase.CURRENT_VERSION);
         
         // use a pool of kryo objects
         this.kryoPool = new Pool<KryoInstance>(true, false, 2*Runtime.getRuntime().availableProcessors()) {

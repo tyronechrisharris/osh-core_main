@@ -42,19 +42,19 @@ import com.google.common.collect.ImmutableMap;
 /**
  * <p>
  * Implementation of SOS data provider used to stream real-time observations
- * from a procedure using the event-bus.
+ * from a system using the event-bus.
  * </p>
  *
  * @author Alex Robin
  * @since Apr 10, 2020
  */
-public class StreamingDataProvider extends ProcedureDataProvider
+public class StreamingDataProvider extends SystemDataProvider
 {
     final IEventBus eventBus;
     final TimeOutMonitor timeOutMonitor;
 
 
-    public StreamingDataProvider(final SOSService service, final ProcedureDataProviderConfig config)
+    public StreamingDataProvider(final SOSService service, final SystemDataProviderConfig config)
     {
         super(service.getServlet(),
              service.getReadDatabase(),
@@ -88,7 +88,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
                 var dsInfoCache = new DataStreamInfoCache(dsKey.getInternalID(), dsInfo);
                 dataStreams.put(dsInfoCache.internalId, dsInfoCache);
                 var topic = EventUtils.getDataStreamDataTopicID(
-                    dsInfoCache.procUID,
+                    dsInfoCache.sysUID,
                     dsInfoCache.resultStruct.getName());
                 dataStreamsByTopic.put(topic, dsInfoCache);
             });
@@ -104,7 +104,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
                     // can reuse same structure since we are running in a single thread
                     var result = dsInfoCache.resultStruct;
                     result.setData(data);
-                    consumer.onNext(SOSProviderUtils.buildObservation(dsInfoCache.procUID, e.getFoiUID(), result));
+                    consumer.onNext(SOSProviderUtils.buildObservation(dsInfoCache.sysUID, e.getFoiUID(), result));
                 }
             }
         });
@@ -143,7 +143,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
         for (var dsInfoCache: dataStreams.values())
         {
             var topic = EventUtils.getDataStreamDataTopicID(
-                dsInfoCache.procUID,
+                dsInfoCache.sysUID,
                 dsInfoCache.resultStruct.getName());
             topics.add(topic);
         }        
@@ -317,7 +317,7 @@ public class StreamingDataProvider extends ProcedureDataProvider
                 var dsInfoCache = dataStreams.get(obs.getDataStreamID());
                 consumer.onNext(new DataEvent(
                     eventTime,
-                    dsInfoCache.procUID,
+                    dsInfoCache.sysUID,
                     dsInfoCache.resultStruct.getName(),
                     SWEConstants.NIL_UNKNOWN,
                     obs.getResult()));

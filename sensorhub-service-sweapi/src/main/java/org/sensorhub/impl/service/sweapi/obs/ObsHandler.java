@@ -31,13 +31,10 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.impl.procedure.DataEventToObsConverter;
-import org.sensorhub.impl.procedure.DataStreamTransactionHandler;
-import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
@@ -45,6 +42,9 @@ import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.stream.StreamHandler;
+import org.sensorhub.impl.system.DataEventToObsConverter;
+import org.sensorhub.impl.system.DataStreamTransactionHandler;
+import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.utils.CallbackException;
@@ -59,8 +59,8 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     public static final String[] NAMES = { "observations" };
     
     final IEventBus eventBus;
-    final ProcedureObsDbWrapper db;
-    final ProcedureObsTransactionHandler transactionHandler;
+    final ObsSystemDbWrapper db;
+    final SystemDatabaseTransactionHandler transactionHandler;
     final IdConverter idConverter;
     final IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
     final IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
@@ -75,14 +75,14 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     }
     
     
-    public ObsHandler(IEventBus eventBus, ProcedureObsDbWrapper db, ResourcePermissions permissions)
+    public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         
         this.eventBus = eventBus;
         this.db = db;
         this.transactionHandler = !db.isReadOnly() ?
-            new ProcedureObsTransactionHandler(eventBus, db.getWriteDb()) : null;
+            new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb()) : null;
         this.idConverter = db.getIdConverter();
     }
     

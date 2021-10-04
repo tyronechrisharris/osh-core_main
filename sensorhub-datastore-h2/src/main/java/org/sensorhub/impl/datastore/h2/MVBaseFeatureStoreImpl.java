@@ -118,7 +118,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
         
         // persistent class mappings for Kryo
-        var kryoClassMap = mvStore.openMap(MVObsDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
+        var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
         
         // feature records map
         String mapName = dataStoreInfo.getName() + ":" + FEATURE_RECORDS_MAP_NAME;
@@ -413,7 +413,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         {
             fkStream = spatialIndex.selectKeys(filter.getLocationFilter());
                     
-            // post-filter on other fields to avoid unnecessary lookups in featuresIndex                    
+            // post-filter on other fields to avoid unnecessary lookups in featuresIndex
             // valid time 
             if (!timeFilter.isLatestTime() && timeFilter != H2Utils.ALL_TIMES_FILTER)
                 fkStream = fkStream.filter(fk -> timeFilter.getMax().isAfter(fk.getValidStartTime()));
@@ -434,7 +434,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             fkStream = fullTextIndex.selectKeys(filter.getFullTextFilter());
         }
         
-        // if some procedures were selected by ID
+        // if some features were selected by ID
         if (fkStream != null)
         {
             return fkStream

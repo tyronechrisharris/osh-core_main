@@ -46,8 +46,8 @@ public class SOSService extends SWEService<SOSServiceConfig>
         // validate config
         for (var providerConfig: config.customDataProviders)
         {
-            if (Strings.isNullOrEmpty(providerConfig.procedureUID))
-                throw new SensorHubException("Provider configuration must specify a procedure unique ID");
+            if (Strings.isNullOrEmpty(providerConfig.systemUID))
+                throw new SensorHubException("Provider configuration must specify a system unique ID");
         }
         
         for (var formatConfig: config.customFormats)
@@ -70,12 +70,12 @@ public class SOSService extends SWEService<SOSServiceConfig>
         // else if some custom providers are configured, build a filter to expose them (and nothing else)
         else if (config.exposedResources == null && config.customDataProviders != null && !config.customDataProviders.isEmpty())
         {
-            var procUIDs = config.customDataProviders.stream()
-                .map(config -> config.procedureUID)
+            var sysUIDs = config.customDataProviders.stream()
+                .map(config -> config.systemUID)
                 .collect(Collectors.toSet());
             
             return new ObsFilter.Builder()
-                .withProcedures().withUniqueIDs(procUIDs).done()
+                .withSystems().withUniqueIDs(sysUIDs).done()
                 .build();
         }
         

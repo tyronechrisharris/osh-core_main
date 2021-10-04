@@ -35,7 +35,7 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
@@ -55,7 +55,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     ConcurrentNavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
     ConcurrentNavigableMap<Long, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
     InMemoryObsStore obsStore;
-    IProcedureStore procedureStore;
+    ISystemDescStore systemStore;
     
     
     class DataStreamInfoWithTimeRanges extends DataStreamInfoWrapper
@@ -107,10 +107,10 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     @Override
     public synchronized DataStreamKey add(IDataStreamInfo dsInfo) throws DataStoreException
     {
-        DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
+        DataStoreUtils.checkDataStreamInfo(systemStore, dsInfo);
         
-        // use valid time of parent procedure or current time if none was set
-        dsInfo = DataStoreUtils.ensureValidTime(procedureStore, dsInfo);
+        // use valid time of parent system or current time if none was set
+        dsInfo = DataStoreUtils.ensureValidTime(systemStore, dsInfo);
 
         // create key
         var newKey = generateKey(dsInfo);
@@ -126,10 +126,10 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         //long internalID = map.isEmpty() ? 1 : map.lastKey().getInternalID()+1;
         //return new DataStreamKey(internalID);
         
-        // make sure that the same procedure/output combination always returns the same ID
+        // make sure that the same system/output combination always returns the same ID
         // this will keep things more consistent across restart
         var hash = Objects.hash(
-            dsInfo.getProcedureID().getInternalID(),
+            dsInfo.getSystemID().getInternalID(),
             dsInfo.getOutputName(),
             dsInfo.getValidTime());
         return new DataStreamKey(hash & 0xFFFFFFFFL);
@@ -161,10 +161,10 @@ public class InMemoryDataStreamStore implements IDataStreamStore
                 .map(id -> new DataStreamKey(id));
         }
         
-        // or filter on selected procedures
-        else if (filter.getProcedureFilter() != null)
+        // or filter on selected systems
+        else if (filter.getSystemFilter() != null)
         {
-            keyStream = DataStoreUtils.selectProcedureIDs(procedureStore, filter.getProcedureFilter()) 
+            keyStream = DataStoreUtils.selectSystemIDs(systemStore, filter.getSystemFilter()) 
                 .flatMap(procId -> {
                     var dsKeys = procIdToDsKeys.get(procId);
                     return dsKeys != null ? dsKeys.stream() : Stream.empty();
@@ -204,7 +204,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         
         try
         {
-            DataStoreUtils.checkDataStreamInfo(procedureStore, dsInfo);
+            DataStoreUtils.checkDataStreamInfo(systemStore, dsInfo);
             return put(key, dsInfo, true);
         }
         catch (DataStoreException e)
@@ -216,26 +216,26 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     
     protected synchronized IDataStreamInfo put(DataStreamKey dsKey, IDataStreamInfo dsInfo, boolean replace) throws DataStoreException
     {
-        // if needed, add a new datastream keyset for the specified procedure
-        var procDsKeys = procIdToDsKeys.compute(dsInfo.getProcedureID().getInternalID(), (id, keys) -> {
+        // if needed, add a new datastream keyset for the specified system
+        var procDsKeys = procIdToDsKeys.compute(dsInfo.getSystemID().getInternalID(), (id, keys) -> {
             if (keys == null)
                 keys = new ConcurrentSkipListSet<>();
             return keys;
         });
         
-        // scan existing datastreams associated to the same procedure
+        // scan existing datastreams associated to the same system
         for (var key: procDsKeys)
         {
             var prevDsInfo = map.get(key);
             
             if (prevDsInfo != null &&
-                prevDsInfo.getProcedureID().getInternalID() == dsInfo.getProcedureID().getInternalID() &&
+                prevDsInfo.getSystemID().getInternalID() == dsInfo.getSystemID().getInternalID() &&
                 prevDsInfo.getOutputName().equals(dsInfo.getOutputName()))
             {    
                 var prevValidTime = prevDsInfo.getValidTime().begin();
                 var newValidTime = dsInfo.getValidTime().begin();
                 
-                // error if datastream with same procedure/name/validTime already exists
+                // error if datastream with same system/name/validTime already exists
                 if (prevValidTime.equals(newValidTime))
                     throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
@@ -255,7 +255,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         
         // add new datastream
         var oldDsInfo = map.put(dsKey, dsInfo);
-        procDsKeys.add(dsKey);        
+        procDsKeys.add(dsKey);
         return oldDsInfo;
     }
 
@@ -274,7 +274,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
                 .build());
             
             // remove from secondary index
-            procIdToDsKeys.get(v.getProcedureID().getInternalID()).remove(dsKey);
+            procIdToDsKeys.get(v.getSystemID().getInternalID()).remove(dsKey);
             
             // remove entry
             oldValue.set(v);
@@ -384,8 +384,8 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     
     
     @Override
-    public void linkTo(IProcedureStore procedureStore)
+    public void linkTo(ISystemDescStore systemStore)
     {
-        this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
+        this.systemStore = Asserts.checkNotNull(systemStore, ISystemDescStore.class);
     }
 }

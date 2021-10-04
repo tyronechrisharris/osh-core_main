@@ -80,7 +80,7 @@ public class TestSOSTService
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider1() throws Exception
+    protected SystemDataProviderConfig buildSensorProvider1() throws Exception
     {
         return sosTest.buildSensorProvider1();
     }
@@ -212,8 +212,8 @@ public class TestSOSTService
         
         // check new offering has correct properties
         SOSOfferingCapabilities newOffering = getCapabilities(1);
-        String procUID = req.getProcedureDescription().getUniqueIdentifier();
-        assertEquals(procUID, newOffering.getProcedures().iterator().next());
+        String sysUID = req.getProcedureDescription().getUniqueIdentifier();
+        assertEquals(sysUID, newOffering.getProcedures().iterator().next());
     }
     
     
@@ -242,8 +242,8 @@ public class TestSOSTService
         
         // check new offering has correct properties
         SOSOfferingCapabilities newOffering = getCapabilities(1);
-        String procUID = req.getProcedureDescription().getUniqueIdentifier();
-        assertEquals(procUID, newOffering.getProcedures().iterator().next());
+        String sysUID = req.getProcedureDescription().getUniqueIdentifier();
+        assertEquals(sysUID, newOffering.getProcedures().iterator().next());
     }
 
     
@@ -311,8 +311,8 @@ public class TestSOSTService
         
         // check new offering has correct properties
         SOSOfferingCapabilities newOffering = getCapabilities(1);
-        String procUID = req.getProcedureDescription().getUniqueIdentifier();
-        assertEquals(procUID, newOffering.getMainProcedure());
+        String sysUID = req.getProcedureDescription().getUniqueIdentifier();
+        assertEquals(sysUID, newOffering.getMainProcedure());
         assertTrue("Observation types missing", newOffering.getObservationTypes().containsAll(req.getObservationTypes()));
         assertTrue("Observed properties missing", newOffering.getObservableProperties().containsAll(req.getObservableProperties()));
         assertTrue("Procedure format missing", newOffering.getProcedureFormats().contains(req.getProcedureDescriptionFormat()));

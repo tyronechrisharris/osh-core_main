@@ -27,8 +27,8 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.feature.FeatureWrapper;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
@@ -49,7 +49,7 @@ import com.google.common.hash.Hashing;
  */
 public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, FoiFilter> implements IFoiStore
 {
-    IProcedureStore procStore;
+    ISystemDescStore procStore;
     IObsStore obsStore;
         
     
@@ -106,7 +106,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
         
         if (filter.getParentFilter() != null)
         {
-            var parentIDStream = DataStoreUtils.selectProcedureIDs(procStore, filter.getParentFilter());
+            var parentIDStream = DataStoreUtils.selectSystemIDs(procStore, filter.getParentFilter());
             
             if (resultStream == null)
             {
@@ -189,16 +189,16 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
     }
     
     
-    protected Stream<Long> selectParentIDs(ProcedureFilter parentFilter)
+    protected Stream<Long> selectParentIDs(SystemFilter parentFilter)
     {
         return DataStoreUtils.selectFeatureIDs(procStore, parentFilter);
     }
 
 
     @Override
-    public void linkTo(IProcedureStore procStore)
+    public void linkTo(ISystemDescStore procStore)
     {
-        this.procStore = Asserts.checkNotNull(procStore, IProcedureStore.class);
+        this.procStore = Asserts.checkNotNull(procStore, ISystemDescStore.class);
     }
 
 

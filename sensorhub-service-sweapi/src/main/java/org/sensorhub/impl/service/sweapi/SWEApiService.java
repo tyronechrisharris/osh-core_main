@@ -18,7 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IFeatureDatabase;
-import org.sensorhub.api.database.IProcedureObsDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
@@ -30,17 +30,17 @@ import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamSchemaHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsStatsHandler;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureDetailsHandler;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureHistoryHandler;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureMembersHandler;
+import org.sensorhub.impl.service.sweapi.system.SystemDetailsHandler;
+import org.sensorhub.impl.service.sweapi.system.SystemHandler;
+import org.sensorhub.impl.service.sweapi.system.SystemHistoryHandler;
+import org.sensorhub.impl.service.sweapi.system.SystemMembersHandler;
 import org.sensorhub.utils.NamedThreadFactory;
 
 
 /**
  * <p>
  * Implementation of SensorHub SWE API service.<br/>
- * The service can be configured to expose some or all of the procedures and
+ * The service can be configured to expose some or all of the systems and
  * observations available on the hub.
  * </p>
  *
@@ -52,8 +52,8 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
     protected SWEApiServlet servlet;
     ExecutorService threadPool;
     //TimeOutMonitor timeOutMonitor;
-    IProcedureObsDatabase obsReadDatabase;
-    IProcedureObsDatabase obsWriteDatabase;
+    IObsSystemDatabase obsReadDatabase;
+    IObsSystemDatabase obsWriteDatabase;
     IFeatureDatabase featureReadDatabase;
     IFeatureDatabase featureWriteDatabase;
 
@@ -72,7 +72,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         // get handle to database
         if (config.databaseID != null)
         {
-            obsWriteDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
+            obsWriteDatabase = (IObsSystemDatabase)getParentHub().getModuleRegistry()
                 .getModuleById(config.databaseID);
             if (obsWriteDatabase != null && !obsWriteDatabase.isOpen())
                 obsWriteDatabase = null;
@@ -105,7 +105,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         //timeOutMonitor = new TimeOutMonitor();
         
         // create obs db read/write wrapper
-        var db = new ProcedureObsDbWrapper(obsReadDatabase, obsWriteDatabase, getParentHub().getDatabaseRegistry());
+        var db = new ObsSystemDbWrapper(obsReadDatabase, obsWriteDatabase, getParentHub().getDatabaseRegistry());
         
         // create resource handlers hierarchy
         var readOnly = obsWriteDatabase == null || obsWriteDatabase.isReadOnly();
@@ -113,23 +113,23 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         var eventBus = getParentHub().getEventBus();
         var security = (SWEApiSecurity)this.securityHandler;
         
-        // procedures and sub-resources
-        var procedureHandler = new ProcedureHandler(eventBus, db, security.proc_summary_permissions);
-        rootHandler.addSubResource(procedureHandler);
+        // systems and sub-resources
+        var systemsHandler = new SystemHandler(eventBus, db, security.system_summary_permissions);
+        rootHandler.addSubResource(systemsHandler);
                 
-        var procHistoryHandler = new ProcedureHistoryHandler(eventBus, db, security.proc_summary_permissions);
-        procedureHandler.addSubResource(procHistoryHandler);
+        var procHistoryHandler = new SystemHistoryHandler(eventBus, db, security.system_summary_permissions);
+        systemsHandler.addSubResource(procHistoryHandler);
         
-        var procDetailsHandler = new ProcedureDetailsHandler(eventBus, db, security.proc_details_permissions);
-        procedureHandler.addSubResource(procDetailsHandler);
+        var procDetailsHandler = new SystemDetailsHandler(eventBus, db, security.system_details_permissions);
+        systemsHandler.addSubResource(procDetailsHandler);
         
-        var procMembersHandler = new ProcedureMembersHandler(eventBus, db, security.proc_summary_permissions);
-        procedureHandler.addSubResource(procMembersHandler);
+        var procMembersHandler = new SystemMembersHandler(eventBus, db, security.system_summary_permissions);
+        systemsHandler.addSubResource(procMembersHandler);
         
         // features of interest and sub-resources
         var foiHandler = new FoiHandler(eventBus, db, security.foi_permissions);
         rootHandler.addSubResource(foiHandler);
-        procedureHandler.addSubResource(foiHandler);
+        systemsHandler.addSubResource(foiHandler);
         
         var foiHistoryHandler = new FoiHistoryHandler(eventBus, db, security.foi_permissions);
         foiHandler.addSubResource(foiHistoryHandler);
@@ -137,7 +137,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         // datastreams
         var dataStreamHandler = new DataStreamHandler(eventBus, db, security.datastream_permissions);
         rootHandler.addSubResource(dataStreamHandler);
-        procedureHandler.addSubResource(dataStreamHandler);
+        systemsHandler.addSubResource(dataStreamHandler);
         
         var dataSchemaHandler = new DataStreamSchemaHandler(eventBus, db, security.datastream_permissions);
         dataStreamHandler.addSubResource(dataSchemaHandler);

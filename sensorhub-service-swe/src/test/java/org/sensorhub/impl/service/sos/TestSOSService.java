@@ -46,8 +46,8 @@ import org.junit.Test;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.SensorHub;
-import org.sensorhub.impl.database.obs.ProcedureObsEventDatabaseConfig;
-import org.sensorhub.impl.datastore.h2.MVObsDatabaseConfig;
+import org.sensorhub.impl.database.system.SystemDriverDatabaseConfig;
+import org.sensorhub.impl.datastore.h2.MVObsSystemDatabaseConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.sensor.FakeSensor;
 import org.sensorhub.impl.sensor.FakeSensorData;
@@ -170,7 +170,7 @@ public class TestSOSService
         // if testing SOS-T, we need a database to write to
         if (enableSOST)
         {
-            MVObsDatabaseConfig dbConfig = new MVObsDatabaseConfig();
+            MVObsSystemDatabaseConfig dbConfig = new MVObsSystemDatabaseConfig();
             dbConfig.name = "H2 Storage";
             dbConfig.autoStart = true;
             dbConfig.databaseNum = 10;
@@ -195,13 +195,13 @@ public class TestSOSService
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider1() throws Exception
+    protected SystemDataProviderConfig buildSensorProvider1() throws Exception
     {
         return buildSensorProvider1(true, true);
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider1(boolean start, boolean startSending) throws Exception
+    protected SystemDataProviderConfig buildSensorProvider1(boolean start, boolean startSending) throws Exception
     {
         // create test sensor
         SensorConfig sensorCfg = new SensorConfig();
@@ -221,23 +221,23 @@ public class TestSOSService
         }
         
         // create SOS data provider config
-        ProcedureDataProviderConfig provCfg = new ProcedureDataProviderConfig();
+        SystemDataProviderConfig provCfg = new SystemDataProviderConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING1;
-        provCfg.procedureUID = sensor.getUniqueIdentifier();
+        provCfg.systemUID = sensor.getUniqueIdentifier();
         provCfg.liveDataTimeout = 1.0;
         
         return provCfg;
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider2() throws Exception
+    protected SystemDataProviderConfig buildSensorProvider2() throws Exception
     {
         return buildSensorProvider2(true, true);
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider2(boolean start, boolean startSending) throws Exception
+    protected SystemDataProviderConfig buildSensorProvider2(boolean start, boolean startSending) throws Exception
     {
         // create test sensor
         SensorConfig sensorCfg = new SensorConfig();
@@ -258,69 +258,69 @@ public class TestSOSService
         }
         
         // create SOS data provider config
-        ProcedureDataProviderConfig provCfg = new ProcedureDataProviderConfig();
+        SystemDataProviderConfig provCfg = new SystemDataProviderConfig();
         provCfg.enabled = true;
         provCfg.name = NAME_OFFERING2;
-        provCfg.procedureUID = sensorNet.getUniqueIdentifier();
+        provCfg.systemUID = sensorNet.getUniqueIdentifier();
         provCfg.liveDataTimeout = 1.0;
         
         return provCfg;
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider1WithStorage() throws Exception
+    protected SystemDataProviderConfig buildSensorProvider1WithStorage() throws Exception
     {
         return buildSensorProvider1WithStorage(true, true);
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider1WithStorage(boolean start, boolean startSending) throws Exception
+    protected SystemDataProviderConfig buildSensorProvider1WithStorage(boolean start, boolean startSending) throws Exception
     {
         // configure H2 database
-        ProcedureObsEventDatabaseConfig streamStorageConfig = new ProcedureObsEventDatabaseConfig();
+        SystemDriverDatabaseConfig streamStorageConfig = new SystemDriverDatabaseConfig();
         streamStorageConfig.name = "H2 Storage";
         streamStorageConfig.autoStart = true;
         streamStorageConfig.databaseNum = 1;
-        streamStorageConfig.procedureUIDs.add(UID_SENSOR1);
-        streamStorageConfig.dbConfig = new MVObsDatabaseConfig();
-        ((MVObsDatabaseConfig)streamStorageConfig.dbConfig).storagePath = dbFile1.getAbsolutePath();
-        ((MVObsDatabaseConfig)streamStorageConfig.dbConfig).readOnly = false;
+        streamStorageConfig.systemUIDs.add(UID_SENSOR1);
+        streamStorageConfig.dbConfig = new MVObsSystemDatabaseConfig();
+        ((MVObsSystemDatabaseConfig)streamStorageConfig.dbConfig).storagePath = dbFile1.getAbsolutePath();
+        ((MVObsSystemDatabaseConfig)streamStorageConfig.dbConfig).readOnly = false;
         
         // start storage module
         var storage = moduleRegistry.loadModuleAsync(streamStorageConfig, null);
         storage.waitForState(ModuleState.STARTED, TIMEOUT);
         
         // create sensor & provider
-        ProcedureDataProviderConfig sosProviderConfig = buildSensorProvider1(start, startSending);
+        SystemDataProviderConfig sosProviderConfig = buildSensorProvider1(start, startSending);
         
         return sosProviderConfig;
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider2WithObsStorage() throws Exception
+    protected SystemDataProviderConfig buildSensorProvider2WithObsStorage() throws Exception
     {
         return buildSensorProvider2WithObsStorage(true, true);
     }
     
     
-    protected ProcedureDataProviderConfig buildSensorProvider2WithObsStorage(boolean start, boolean startSending) throws Exception
+    protected SystemDataProviderConfig buildSensorProvider2WithObsStorage(boolean start, boolean startSending) throws Exception
     {
         // configure H2 database
-        ProcedureObsEventDatabaseConfig streamStorageConfig = new ProcedureObsEventDatabaseConfig();
+        SystemDriverDatabaseConfig streamStorageConfig = new SystemDriverDatabaseConfig();
         streamStorageConfig.name = "H2 Storage";
         streamStorageConfig.autoStart = true;
         streamStorageConfig.databaseNum = 2;
-        streamStorageConfig.procedureUIDs.add(UID_SENSOR2);
-        streamStorageConfig.dbConfig = new MVObsDatabaseConfig();
-        ((MVObsDatabaseConfig)streamStorageConfig.dbConfig).storagePath = dbFile2.getAbsolutePath();
-        ((MVObsDatabaseConfig)streamStorageConfig.dbConfig).readOnly = false;
+        streamStorageConfig.systemUIDs.add(UID_SENSOR2);
+        streamStorageConfig.dbConfig = new MVObsSystemDatabaseConfig();
+        ((MVObsSystemDatabaseConfig)streamStorageConfig.dbConfig).storagePath = dbFile2.getAbsolutePath();
+        ((MVObsSystemDatabaseConfig)streamStorageConfig.dbConfig).readOnly = false;
         
         // start storage module
         var storage = moduleRegistry.loadModuleAsync(streamStorageConfig, null);
         storage.waitForState(ModuleState.STARTED, TIMEOUT);
         
         // create sensor & provider
-        ProcedureDataProviderConfig sosProviderConfig = buildSensorProvider2(start, startSending);
+        SystemDataProviderConfig sosProviderConfig = buildSensorProvider2(start, startSending);
         
         return sosProviderConfig;
     }
@@ -465,9 +465,9 @@ public class TestSOSService
         {
             var offeringElt = (Element)offeringElts.item(i);            
             var offeringID = dom.getElementValue(offeringElt, "identifier");
-            var procUID = dom.getElementValue(offeringElt, "procedure");
+            var sysUID = dom.getElementValue(offeringElt, "procedure");
             assertTrue("Wrong offering: " + offeringID, sensorUIDSet.contains(offeringID));            
-            assertTrue("Wrong procedure: " + procUID, sensorUIDSet.contains(procUID));
+            assertTrue("Wrong procedure: " + sysUID, sensorUIDSet.contains(sysUID));
         }
     }
     
@@ -524,14 +524,14 @@ public class TestSOSService
     }
     
     
-    protected void checkOfferingTimeRange(DOMHelper dom, String procUID, String expectedBeginValue, String expectedEndValue) throws ParseException
+    protected void checkOfferingTimeRange(DOMHelper dom, String sysUID, String expectedBeginValue, String expectedEndValue) throws ParseException
     {
         NodeList offeringElts = dom.getElements(OFFERING_NODES);
         Element offeringElt = null;
         for (int i = 0; i < offeringElts.getLength(); i++)
         {
             offeringElt = (Element)offeringElts.item(i);
-            if (procUID.equals(dom.getElementValue(offeringElt, "procedure")))
+            if (sysUID.equals(dom.getElementValue(offeringElt, "procedure")))
                 break;
         }
         
@@ -1347,12 +1347,12 @@ public class TestSOSService
     }
     
     
-    protected void testGetFoisByProcedure(List<String> procIDs, int... foiNums) throws Exception
+    protected void testGetFoisByProcedure(List<String> sysIDs, int... foiNums) throws Exception
     {
         GetFeatureOfInterestRequest req = new GetFeatureOfInterestRequest();
         req.setGetServer(HTTP_ENDPOINT);
         req.setVersion("2.0");
-        req.getProcedures().addAll(procIDs);
+        req.getProcedures().addAll(sysIDs);
         
         DOMHelper dom = sendRequest(req, false); 
         assertEquals("Wrong number of features returned", foiNums.length, dom.getElements("*/*").getLength());

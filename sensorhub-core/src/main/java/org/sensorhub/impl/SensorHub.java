@@ -21,21 +21,21 @@ import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
+import org.sensorhub.api.system.ISystemDriverRegistry;
 import org.sensorhub.impl.comm.NetworkManagerImpl;
 import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry;
-import org.sensorhub.impl.datastore.mem.InMemoryProcedureStateDbConfig;
+import org.sensorhub.impl.datastore.mem.InMemorySystemStateDbConfig;
 import org.sensorhub.impl.event.EventBus;
 import org.sensorhub.impl.module.InMemoryConfigDb;
 import org.sensorhub.impl.module.ModuleClassFinder;
 import org.sensorhub.impl.module.ModuleConfigJsonFile;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.procedure.DefaultProcedureRegistry;
 import org.sensorhub.impl.processing.ProcessingManagerImpl;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.impl.security.SecurityManagerImpl;
+import org.sensorhub.impl.system.DefaultSystemRegistry;
 import org.sensorhub.utils.ModuleUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +58,7 @@ public class SensorHub implements ISensorHub
     protected BundleContext osgiContext;
     protected ModuleRegistry moduleRegistry;
     protected IEventBus eventBus;
-    protected IProcedureRegistry procedureRegistry;
+    protected ISystemDriverRegistry driverRegistry;
     protected IDatabaseRegistry databaseRegistry;
     protected INetworkManager networkManager;
     protected ISecurityManager securityManager;
@@ -104,7 +104,7 @@ public class SensorHub implements ISensorHub
             this.moduleRegistry = new ModuleRegistry(this, configDB);
             this.eventBus = new EventBus();
             this.databaseRegistry = new DefaultDatabaseRegistry(this);
-            this.procedureRegistry = new DefaultProcedureRegistry(this, new InMemoryProcedureStateDbConfig());
+            this.driverRegistry = new DefaultSystemRegistry(this, new InMemorySystemStateDbConfig());
             
             // init service managers
             this.securityManager = new SecurityManagerImpl(this);
@@ -189,9 +189,9 @@ public class SensorHub implements ISensorHub
     
     
     @Override
-    public IProcedureRegistry getProcedureRegistry()
+    public ISystemDriverRegistry getSystemDriverRegistry()
     {
-        return procedureRegistry;
+        return driverRegistry;
     }
     
     

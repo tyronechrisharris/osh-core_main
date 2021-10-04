@@ -17,7 +17,7 @@ package org.sensorhub.api.data;
 
 /**
  * <p>
- * Event sent when a datastream (i.e. output) is removed from a procedure
+ * Event sent when a datastream (i.e. output) is removed from a system
  * </p>
  *
  * @author Alex Robin
@@ -30,9 +30,9 @@ public class DataStreamRemovedEvent extends DataStreamEvent
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(long, String, String)
      */
-    public DataStreamRemovedEvent(long timeStamp, String procUID, String outputName)
+    public DataStreamRemovedEvent(long timeStamp, String sysUID, String outputName)
     {
-        super(timeStamp, procUID, outputName);
+        super(timeStamp, sysUID, outputName);
     }
     
     
@@ -40,9 +40,9 @@ public class DataStreamRemovedEvent extends DataStreamEvent
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(String, String)
      */
-    public DataStreamRemovedEvent(String procUID, String outputName)
+    public DataStreamRemovedEvent(String sysUID, String outputName)
     {
-        super(procUID, outputName);
+        super(sysUID, outputName);
     }
     
     

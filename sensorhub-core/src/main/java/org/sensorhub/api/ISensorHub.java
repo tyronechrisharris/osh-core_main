@@ -18,9 +18,9 @@ import org.osgi.framework.BundleContext;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.procedure.IProcedureRegistry;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
+import org.sensorhub.api.system.ISystemDriverRegistry;
 import org.sensorhub.impl.module.ModuleRegistry;
 
 
@@ -47,7 +47,7 @@ public interface ISensorHub
     public ModuleRegistry getModuleRegistry();
 
 
-    public IProcedureRegistry getProcedureRegistry();
+    public ISystemDriverRegistry getSystemDriverRegistry();
 
 
     public IDatabaseRegistry getDatabaseRegistry();

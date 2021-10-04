@@ -19,14 +19,14 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.feature.IFoiStore.FoiField;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 
 
 /**
  * <p>
- * Filtered view implemented as a wrapper for an instance of IFoiStore
+ * Filtered view implemented as a wrapper of the underlying {@link IFoiStore}
  * </p>
  *
  * @author Alex Robin
@@ -42,7 +42,7 @@ public class FoiStoreView extends FeatureStoreViewBase<IFeature, FoiField, FoiFi
 
 
     @Override
-    public void linkTo(IProcedureStore procStore)
+    public void linkTo(ISystemDescStore procStore)
     {
         throw new UnsupportedOperationException();
     }

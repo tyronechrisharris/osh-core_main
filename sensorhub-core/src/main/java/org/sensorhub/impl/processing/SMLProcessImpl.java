@@ -31,10 +31,10 @@ import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.procedure.IProcedureDriver;
-import org.sensorhub.api.procedure.IProcedureGroupDriver;
 import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.processing.ProcessingException;
+import org.sensorhub.api.system.ISystemDriver;
+import org.sensorhub.api.system.ISystemGroupDriver;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.module.AbstractModule;
 import org.vast.ogc.gml.IFeature;
@@ -225,8 +225,8 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         // register process with registry if attached to a hub
         try
         {
-            if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
-                getParentHub().getProcedureRegistry().register(this).get(); // for now, block here until init is also async
+            if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
+                getParentHub().getSystemDriverRegistry().register(this).get(); // for now, block here until init is also async
         }
         catch (ExecutionException | InterruptedException e)
         {
@@ -241,8 +241,8 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         // unregister process if attached to a hub
         try
         {
-            if (hasParentHub() && getParentHub().getProcedureRegistry() != null)
-                getParentHub().getProcedureRegistry().unregister(this).get();
+            if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
+                getParentHub().getSystemDriverRegistry().unregister(this).get();
         }
         catch (ExecutionException | InterruptedException e)
         {
@@ -305,7 +305,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public IProcedureGroupDriver<IProcedureDriver> getParentGroup()
+    public ISystemGroupDriver<ISystemDriver> getParentGroup()
     {
         return null;
     }

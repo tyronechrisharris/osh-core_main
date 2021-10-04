@@ -18,24 +18,24 @@ import java.util.concurrent.Callable;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
-import org.sensorhub.api.database.IProcedureObsDatabase;
-import org.sensorhub.api.database.IProcedureObsDatabaseModule;
+import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.database.IObsSystemDatabaseModule;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 
 
-public class FederatedDbModuleAdapter implements IProcedureObsDatabaseModule<DatabaseConfig>
+public class FederatedDbModuleAdapter implements IObsSystemDatabaseModule<DatabaseConfig>
 {
-    IProcedureObsDatabase delegate;
+    IObsSystemDatabase delegate;
     
     
-    public FederatedDbModuleAdapter(IProcedureObsDatabase db)
+    public FederatedDbModuleAdapter(IObsSystemDatabase db)
     {
         this.delegate = db;
     }
@@ -53,9 +53,9 @@ public class FederatedDbModuleAdapter implements IProcedureObsDatabaseModule<Dat
     }
 
 
-    public IProcedureStore getProcedureStore()
+    public ISystemDescStore getSystemDescStore()
     {
-        return delegate.getProcedureStore();
+        return delegate.getSystemDescStore();
     }
 
 
@@ -138,7 +138,7 @@ public class FederatedDbModuleAdapter implements IProcedureObsDatabaseModule<Dat
     @Override
     public String getDescription()
     {
-        return "The federated database that provides access to all observation data and procedure metadata on this hub";
+        return "The federated database that provides access to all observation data and system metadata on this hub";
     }
 
 

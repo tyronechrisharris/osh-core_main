@@ -24,10 +24,10 @@ import org.sensorhub.impl.service.swe.OfferingConfig;
 public abstract class SPSConnectorConfig extends OfferingConfig
 {
     
-    @DisplayInfo(desc="Unique ID of a procedure that this configuration applies to.\n"
-        + "Can include a trailing wildcard '*' to match several procedures at once.")
-    @FieldType(Type.PROCEDURE_UID)
-    public String procedureUID;
+    @DisplayInfo(desc="Unique ID of system that this configuration applies to.\n"
+        + "Can include a trailing wildcard '*' to match several systems at once.")
+    @FieldType(Type.SYSTEM_UID)
+    public String systemUID;
     
     
     /**

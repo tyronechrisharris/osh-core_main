@@ -66,7 +66,7 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
             mvStore = builder.open();
             mvStore.setVersionsToKeep(0);
             
-            // open procedure store
+            // open feature store
             featureStore = MVFeatureStoreImpl.open(mvStore, MVDataStoreInfo.builder()
                 .withName(FEATURE_STORE_NAME)
                 .build());

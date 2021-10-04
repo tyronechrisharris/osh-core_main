@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import org.sensorhub.api.procedure.ProcedureEvent;
+import org.sensorhub.api.system.SystemEvent;
 import org.vast.util.Asserts;
 
 
@@ -26,31 +26,31 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Nov 23, 2020
  */
-public abstract class CommandStreamEvent extends ProcedureEvent
+public abstract class CommandStreamEvent extends SystemEvent
 {
     String controlInputName;
 
 
     /**
      * @param timeStamp time of event generation (unix time in milliseconds, base 1970)
-     * @param procUID Unique ID of parent procedure
+     * @param sysUID Unique ID of parent system
      * @param controlInputName Name of control input
      */
-    public CommandStreamEvent(long timeStamp, String procUID, String controlInputName)
+    public CommandStreamEvent(long timeStamp, String sysUID, String controlInputName)
     {
-        super(timeStamp, procUID);
+        super(timeStamp, sysUID);
         this.controlInputName = controlInputName;
     }
     
     
     /**
      * Helper constructor that sets the timestamp to current system time
-     * @param procUID Unique ID of parent procedure
+     * @param sysUID Unique ID of parent system
      * @param controlInputName Name of output producing the datastream
      */
-    public CommandStreamEvent(String procUID, String controlInputName)
+    public CommandStreamEvent(String sysUID, String controlInputName)
     {
-        super(procUID);
+        super(sysUID);
         this.controlInputName = controlInputName;
     }
     
@@ -61,7 +61,7 @@ public abstract class CommandStreamEvent extends ProcedureEvent
      */
     public CommandStreamEvent(ICommandStreamInfo csInfo)
     {
-        super(Asserts.checkNotNull(csInfo, ICommandStreamInfo.class).getProcedureID().getUniqueID());
+        super(Asserts.checkNotNull(csInfo, ICommandStreamInfo.class).getSystemID().getUniqueID());
         this.controlInputName = csInfo.getControlInputName();
     }
 

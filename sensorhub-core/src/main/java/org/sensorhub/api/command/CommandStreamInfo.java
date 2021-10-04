@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import org.sensorhub.api.procedure.ProcedureId;
+import org.sensorhub.api.system.SystemId;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.TimeExtent;
@@ -34,16 +34,16 @@ public class CommandStreamInfo implements ICommandStreamInfo
 {
     protected String name;
     protected String description;
-    protected ProcedureId procedureID;
+    protected SystemId systemID;
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
     protected TimeExtent validTime;
     
     
     @Override
-    public ProcedureId getProcedureID()
+    public SystemId getSystemID()
     {
-        return procedureID;
+        return systemID;
     }
 
 
@@ -120,7 +120,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
         {
             instance.name = base.getName();
             instance.description = base.getDescription();
-            instance.procedureID = base.getProcedureID();
+            instance.systemID = base.getSystemID();
             instance.recordStruct = base.getRecordStructure();
             instance.recordEncoding = base.getRecordEncoding();
             instance.validTime = base.getValidTime();
@@ -142,9 +142,9 @@ public class CommandStreamInfo implements ICommandStreamInfo
         }
 
 
-        public B withProcedure(ProcedureId procID)
+        public B withSystem(SystemId sysID)
         {
-            instance.procedureID = procID;
+            instance.systemID = sysID;
             return (B)this;
         }
 
@@ -174,8 +174,8 @@ public class CommandStreamInfo implements ICommandStreamInfo
         public T build()
         {
             Asserts.checkNotNullOrEmpty(instance.name, "name");
-            Asserts.checkNotNull(instance.procedureID, "procedureID");
-            Asserts.checkArgument(instance.procedureID.getInternalID() > 0, "procedure internalID must be > 0");
+            Asserts.checkNotNull(instance.systemID, "systemID");
+            Asserts.checkArgument(instance.systemID.getInternalID() > 0, "system internalID must be > 0");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");
             Asserts.checkNotNull(instance.getControlInputName(), "commandName");
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");

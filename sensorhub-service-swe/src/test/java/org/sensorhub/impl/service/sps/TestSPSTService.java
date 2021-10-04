@@ -211,8 +211,8 @@ public class TestSPSTService
                 
         // check new offering has correct properties
         SPSOfferingCapabilities newOffering = getCapabilities(0);
-        String procUID = req.getProcedureDescription().getUniqueIdentifier();
-        assertEquals(procUID, newOffering.getProcedures().iterator().next());
+        String sysUID = req.getProcedureDescription().getUniqueIdentifier();
+        assertEquals(sysUID, newOffering.getProcedures().iterator().next());
         
         // check describe tasking response
         DescribeTaskingRequest dtReq = spsTest.buildDescribeTasking(SENSOR_UID);

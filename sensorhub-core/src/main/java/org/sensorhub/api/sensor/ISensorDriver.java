@@ -18,7 +18,7 @@ import java.util.Map;
 import org.sensorhub.api.command.ICommandReceiver;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.procedure.IProcedureDriver;
+import org.sensorhub.api.system.ISystemDriver;
 
 
 /**
@@ -29,7 +29,7 @@ import org.sensorhub.api.procedure.IProcedureDriver;
  * @author Alex Robin
  * @since Mar 23, 2017
  */
-public interface ISensorDriver extends IProcedureDriver, IDataProducer, ICommandReceiver
+public interface ISensorDriver extends ISystemDriver, IDataProducer, ICommandReceiver
 {
 
     /**

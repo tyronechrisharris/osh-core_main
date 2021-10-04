@@ -19,7 +19,7 @@ import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
 import org.sensorhub.impl.comm.HTTPConfig;
 import org.sensorhub.impl.comm.RobustIPConnectionConfig;
-import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseViewConfig;
+import org.sensorhub.impl.datastore.view.ObsSystemDatabaseViewConfig;
 
 
 /**
@@ -32,9 +32,9 @@ import org.sensorhub.impl.datastore.view.ProcedureObsDatabaseViewConfig;
  */
 public class SOSTClientConfig extends ClientConfig
 {
-    @DisplayInfo(desc="Filtered view to select procedures/datastreams to register with remote SOS")
+    @DisplayInfo(desc="Filtered view to select systems/datastreams to register with remote SOS")
     @Required
-    public ProcedureObsDatabaseViewConfig dataSourceSelector;
+    public ObsSystemDatabaseViewConfig dataSourceSelector;
     
     
     @DisplayInfo(label="SOS Endpoint", desc="SOS endpoint where the requests are sent")

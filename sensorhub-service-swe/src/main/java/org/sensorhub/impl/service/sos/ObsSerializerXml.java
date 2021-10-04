@@ -33,7 +33,7 @@ import org.w3c.dom.Element;
 
 /**
  * <p>
- * Procedure serializer implementation for SensorML JSON format
+ * Observation serializer implementation for O&M XML format
  * </p>
  *
  * @author Alex Robin

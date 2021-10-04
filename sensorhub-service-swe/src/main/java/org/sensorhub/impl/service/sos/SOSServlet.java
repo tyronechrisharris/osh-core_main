@@ -60,10 +60,10 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.procedure.DataStreamTransactionHandler;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig.CapabilitiesInfo;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.sensorhub.impl.service.swe.SWEServlet;
+import org.sensorhub.impl.system.DataStreamTransactionHandler;
 import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.slf4j.Logger;
@@ -121,7 +121,7 @@ public class SOSServlet extends SWEServlet
         
         this.providerConfigs = new TreeMap<>();
         for (var config: service.getConfiguration().customDataProviders)
-            providerConfigs.put(config.procedureUID, config);
+            providerConfigs.put(config.systemUID, config);
 
         generateCapabilities();
     }
@@ -382,7 +382,7 @@ public class SOSServlet extends SWEServlet
         securityHandler.checkPermission(securityHandler.sos_read_obs);
 
         // build procedure UID set
-        // offerings have same URI as procedures now so we can just merge everything
+        // offerings have same URI as systems now so we can just merge everything
         OWSExceptionReport report = new OWSExceptionReport();
         Set<String> selectedProcedures = new HashSet<>();
         selectedProcedures.addAll(request.getProcedures());
@@ -653,15 +653,15 @@ public class SOSServlet extends SWEServlet
             try
             {
                 // retrieve transaction helper
-                var procHandler = transactionHandler.getProcedureHandler(procUID);
+                var procHandler = transactionHandler.getSystemHandler(procUID);
                 
-                // get procedure internal key
-                var procID = getParentHub().getDatabaseRegistry().getLocalID(
+                // get system internal key
+                var sysID = getParentHub().getDatabaseRegistry().getLocalID(
                     writeDatabase.getDatabaseNum(), procKey.getInternalID());
                 
                 // get existing datastreams of this procedure
                 var outputs = writeDatabase.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
-                        .withProcedures(procID)
+                        .withSystems(sysID)
                         .withCurrentVersion()
                         .build())
                     .collect(Collectors.toMap(
@@ -865,7 +865,7 @@ public class SOSServlet extends SWEServlet
     protected void checkQueryOffering(String offeringID, OWSExceptionReport report) throws SOSException
     {
         var procUID = getProcedureUID(offeringID);
-        if (procUID == null || !readDatabase.getProcedureStore().contains(procUID))
+        if (procUID == null || !readDatabase.getSystemDescStore().contains(procUID))
             report.add(new SOSException(SOSException.invalid_param_code, "offering", offeringID, "Unknown offering: " + offeringID));
     }
 
@@ -952,7 +952,7 @@ public class SOSServlet extends SWEServlet
     {
         try
         {
-            var defaultConfig = new ProcedureDataProviderConfig();
+            var defaultConfig = new SystemDataProviderConfig();
             defaultConfig.liveDataTimeout = config.defaultLiveTimeout;
             return defaultConfig.createProvider((SOSService)service, request);
         }

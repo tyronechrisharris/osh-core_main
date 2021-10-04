@@ -96,7 +96,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
     public Stream<Entry<FeatureKey, IFeature>> selectEntries(FeatureFilter filter, Set<FeatureField> fields)
     {
         // update validTime in the case it ends at now and there is a
-        // more recent version of the procedure description available
+        // more recent version of the feature description available
         Stream<Entry<FeatureKey, IFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
             var f = e.getValue();
             if (f.getValidTime() != null)

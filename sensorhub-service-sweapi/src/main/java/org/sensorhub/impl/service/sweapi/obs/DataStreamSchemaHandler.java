@@ -24,7 +24,7 @@ import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.ProcedureObsDbWrapper;
+import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -41,7 +41,7 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     public static final String[] NAMES = { "schema" };
     
     
-    public DataStreamSchemaHandler(IEventBus eventBus, ProcedureObsDbWrapper db, ResourcePermissions permissions)
+    public DataStreamSchemaHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
     }
