@@ -12,25 +12,25 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.obs;
+package org.sensorhub.api.data;
 
 
 /**
  * <p>
- * Event sent when a datastream (i.e. output) data structure changes
+ * Event sent when a datastream (i.e. output) is enabled by a procedure
  * </p>
  *
  * @author Alex Robin
  * @date Sep 28, 2020
  */
-public class DataStreamChangedEvent extends DataStreamEvent
+public class DataStreamEnabledEvent extends DataStreamEvent
 {
     
     /**
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(long, String, String)
      */
-    public DataStreamChangedEvent(long timeStamp, String procUID, String outputName)
+    public DataStreamEnabledEvent(long timeStamp, String procUID, String outputName)
     {
         super(timeStamp, procUID, outputName);
     }
@@ -40,7 +40,7 @@ public class DataStreamChangedEvent extends DataStreamEvent
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(String, String)
      */
-    public DataStreamChangedEvent(String procUID, String outputName)
+    public DataStreamEnabledEvent(String procUID, String outputName)
     {
         super(procUID, outputName);
     }
@@ -50,7 +50,7 @@ public class DataStreamChangedEvent extends DataStreamEvent
      * Pass-through to super class constructor
      * @see DataStreamEvent#DataStreamEvent(IDataStreamInfo)
      */
-    public DataStreamChangedEvent(IDataStreamInfo dsInfo)
+    public DataStreamEnabledEvent(IDataStreamInfo dsInfo)
     {
         super(dsInfo);
     }

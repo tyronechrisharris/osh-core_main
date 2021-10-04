@@ -17,6 +17,8 @@ package org.sensorhub.impl.procedure;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.stream.Collectors;
 import org.sensorhub.api.command.CommandStreamEvent;
+import org.sensorhub.api.data.DataStreamEvent;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.database.IProcedureObsDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -24,8 +26,6 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.obs.DataStreamEvent;
-import org.sensorhub.api.obs.ObsEvent;
 import org.sensorhub.api.procedure.ProcedureEvent;
 
 

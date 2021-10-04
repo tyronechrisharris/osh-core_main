@@ -12,7 +12,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.obs;
+package org.sensorhub.api.data;
 
 import java.util.Arrays;
 import java.util.Collection;

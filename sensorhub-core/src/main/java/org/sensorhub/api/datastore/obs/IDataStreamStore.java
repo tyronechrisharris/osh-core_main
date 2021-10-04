@@ -15,11 +15,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore.obs;
 
 import java.util.Optional;
+import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.resource.IResourceStore;
 
 

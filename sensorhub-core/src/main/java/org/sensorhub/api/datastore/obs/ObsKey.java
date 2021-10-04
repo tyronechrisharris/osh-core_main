@@ -16,7 +16,7 @@ package org.sensorhub.api.datastore.obs;
 
 import java.time.Instant;
 import java.util.Objects;
-import org.sensorhub.api.obs.IObsData;
+import org.sensorhub.api.data.IObsData;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 

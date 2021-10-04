@@ -16,8 +16,8 @@ package org.sensorhub.api.event;
 
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.command.IStreamingControlInterface;
+import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.IProcedureDriver;
 import org.sensorhub.api.utils.OshAsserts;
 import org.vast.util.Asserts;

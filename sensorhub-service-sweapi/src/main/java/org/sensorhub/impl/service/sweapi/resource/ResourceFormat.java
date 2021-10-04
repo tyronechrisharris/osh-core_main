@@ -15,7 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.resource;
 
 import java.util.Objects;
-import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
 import org.vast.ogc.gml.GeoJsonBindings;
 import net.opengis.swe.v20.BinaryBlock;
 import net.opengis.swe.v20.BinaryEncoding;

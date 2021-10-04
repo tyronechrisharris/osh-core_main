@@ -14,14 +14,14 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
+import org.sensorhub.api.data.DataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.obs.DataStreamInfo;
-import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;

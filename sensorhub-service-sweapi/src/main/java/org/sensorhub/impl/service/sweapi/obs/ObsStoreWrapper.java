@@ -16,6 +16,8 @@ package org.sensorhub.impl.service.sweapi.obs;
 
 import java.math.BigInteger;
 import java.util.stream.Stream;
+import org.sensorhub.api.data.IObsData;
+import org.sensorhub.api.data.ObsData;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
@@ -23,8 +25,6 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
-import org.sensorhub.api.obs.IObsData;
-import org.sensorhub.api.obs.ObsData;
 import org.sensorhub.impl.service.sweapi.AbstractDataStoreWrapper;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.vast.util.Asserts;

@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore.view;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -25,7 +26,6 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
-import org.sensorhub.api.obs.IObsData;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
 

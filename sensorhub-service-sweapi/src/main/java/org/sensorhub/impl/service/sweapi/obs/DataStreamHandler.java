@@ -16,12 +16,12 @@ package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.obs.IDataStreamInfo;
 import org.sensorhub.impl.procedure.ProcedureObsTransactionHandler;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;

@@ -16,11 +16,11 @@ package org.sensorhub.api.datastore.obs;
 
 import java.math.BigInteger;
 import java.util.stream.Stream;
+import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
-import org.sensorhub.api.obs.IObsData;
 import net.opengis.swe.v20.DataBlock;
 import com.google.common.collect.Sets;
 

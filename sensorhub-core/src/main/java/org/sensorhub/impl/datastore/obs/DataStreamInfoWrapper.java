@@ -16,7 +16,7 @@ package org.sensorhub.impl.datastore.obs;
 
 import java.time.Instant;
 import java.util.Map;
-import org.sensorhub.api.obs.IDataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.procedure.ProcedureId;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;

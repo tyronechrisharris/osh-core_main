@@ -16,7 +16,7 @@ package org.sensorhub.impl.database.registry;
 
 import java.time.Instant;
 import java.util.Map;
-import org.sensorhub.api.obs.IObsData;
+import org.sensorhub.api.data.IObsData;
 import com.vividsolutions.jts.geom.Geometry;
 import net.opengis.swe.v20.DataBlock;
 

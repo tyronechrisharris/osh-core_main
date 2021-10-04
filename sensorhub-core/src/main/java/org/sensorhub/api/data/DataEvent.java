@@ -16,7 +16,6 @@ package org.sensorhub.api.data;
 
 import java.time.Instant;
 import org.sensorhub.api.event.EventUtils;
-import org.sensorhub.api.obs.DataStreamEvent;
 import org.vast.util.Asserts;
 import net.opengis.swe.v20.DataBlock;
 
