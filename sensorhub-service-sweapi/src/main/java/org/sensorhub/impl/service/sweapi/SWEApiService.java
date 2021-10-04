@@ -74,6 +74,8 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         {
             obsWriteDatabase = (IProcedureObsDatabase)getParentHub().getModuleRegistry()
                 .getModuleById(config.databaseID);
+            if (obsWriteDatabase != null && !obsWriteDatabase.isOpen())
+                obsWriteDatabase = null;
         }
         else
             obsWriteDatabase = null;
