@@ -557,6 +557,17 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         if (filter.getValuePredicate() != null)
             resultStream = resultStream.filter(e -> filter.testValuePredicate(e.getValue()));
         
+        // if including group members
+        if (filter.includeMembers())
+        {         
+            resultStream = resultStream
+                .flatMap(e -> {
+                    var s1 = Stream.of(e);
+                    var s2 = getParentResultStream(e.getKey().getInternalID(), filter.getValidTime());
+                    return Stream.concat(s1, s2);
+                });
+        }
+        
         // apply limit
         if (filter.getLimit() < Long.MAX_VALUE)
             resultStream = resultStream.limit(filter.getLimit());

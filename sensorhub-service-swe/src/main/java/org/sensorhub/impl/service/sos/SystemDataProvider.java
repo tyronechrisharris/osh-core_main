@@ -295,6 +295,7 @@ public abstract class SystemDataProvider implements ISOSAsyncDataProvider
             foiFilter.withObservations(new ObsFilter.Builder()
                 .withSystems(new SystemFilter.Builder()
                     .withUniqueIDs(req.getProcedures())
+                    .includeMembers(true)
                     .build())
                 .build());
             /*foiFilter.withParents()

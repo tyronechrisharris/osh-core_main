@@ -94,6 +94,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         {
             builder.withSystems()
                 .withInternalIDs(parent.internalID)
+                .includeMembers(true)
                 .done();
         }
         
