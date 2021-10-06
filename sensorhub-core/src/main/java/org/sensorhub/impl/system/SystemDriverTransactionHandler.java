@@ -279,10 +279,6 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         }
         dataStreamHandlers.put(output.getName(), newDsHandler);
         
-        // add latest record if any
-        if (output.getLatestRecord() != null)
-            newDsHandler.addObs(output.getLatestRecord());
-        
         // enable and start forwarding events
         newDsHandler.enable();
         output.registerListener(newDsHandler);
