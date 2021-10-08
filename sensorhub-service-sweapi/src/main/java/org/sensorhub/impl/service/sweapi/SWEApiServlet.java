@@ -17,7 +17,7 @@ package org.sensorhub.impl.service.sweapi;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -54,7 +54,7 @@ public class SWEApiServlet extends HttpServlet
     protected ISystemDescStore systems;
     protected IFeatureStore features;
     protected IResourceHandler rootHandler;
-    protected Executor threadPool;
+    protected ScheduledExecutorService threadPool;
     protected WebSocketServletFactory wsFactory;
     protected Logger log;
     protected String rootUrl;
@@ -158,7 +158,7 @@ public class SWEApiServlet extends HttpServlet
                     sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
                 }
                 finally
-                {                
+                {
                     clearCurrentUser();
                     aCtx.complete();
                 }
@@ -198,9 +198,9 @@ public class SWEApiServlet extends HttpServlet
                     {
                         // prepare to write JSON response
                         JsonWriter writer = new JsonWriter(new OutputStreamWriter(resp.getOutputStream()));
-                        writer.beginArray();                        
+                        writer.beginArray();
                         for (var uri: uriList)
-                            writer.value(uri);                        
+                            writer.value(uri);
                         writer.endArray();
                         writer.flush();
                     }
@@ -331,7 +331,7 @@ public class SWEApiServlet extends HttpServlet
             /*if (req.getSubProtocols().contains("ingest"))
             {
                 // get binding for parsing incoming obs records
-                var binding = getBinding(ctx, true);                   
+                var binding = getBinding(ctx, true);
                 return null;
             }
             else

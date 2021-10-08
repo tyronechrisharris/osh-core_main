@@ -28,4 +28,6 @@ public interface StreamHandler
     public OutputStream getOutputStream();
     
     public void sendPacket() throws IOException;
+    
+    public void close();
 }

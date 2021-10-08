@@ -107,7 +107,7 @@ public abstract class BaseHandler implements IResourceHandler
     }
     
     
-    protected ResourceFormat parseFormat(final Map<String, String[]> queryParams)
+    protected ResourceFormat parseFormat(final Map<String, String[]> queryParams) throws InvalidRequestException
     {
         var format = queryParams.get("f");
         if (format == null)
@@ -116,8 +116,7 @@ public abstract class BaseHandler implements IResourceHandler
         ResourceFormat rf = null;
         if (format != null)
             rf = ResourceFormat.fromMimeType(format[0]);
-        
-        if (rf == null)
+        else
             rf = ResourceFormat.JSON; // defaults to json;
         
         return rf;
@@ -219,6 +218,23 @@ public abstract class BaseHandler implements IResourceHandler
         try
         {
             return Long.parseLong(paramValue);
+        }
+        catch (NumberFormatException e)
+        {
+            throw ServiceErrors.badRequest("Invalid " + paramName + " parameter: " + paramValue);
+        }
+    }
+    
+    
+    protected Double parseDoubleArg(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
+    {
+        var paramValue = getSingleParam(paramName, queryParams);
+        if (paramValue == null)
+            return null;
+        
+        try
+        {
+            return Double.parseDouble(paramValue);
         }
         catch (NumberFormatException e)
         {

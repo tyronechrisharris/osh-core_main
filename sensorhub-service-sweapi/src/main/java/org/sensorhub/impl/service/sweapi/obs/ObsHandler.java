@@ -18,8 +18,13 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
@@ -61,6 +66,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     final IEventBus eventBus;
     final ObsSystemDbWrapper db;
     final SystemDatabaseTransactionHandler transactionHandler;
+    final ScheduledExecutorService threadPool;
     final IdConverter idConverter;
     final IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
     final IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
@@ -75,7 +81,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     }
     
     
-    public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
+    public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions)
     {
         super(db.getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         
@@ -83,6 +89,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         this.db = db;
         this.transactionHandler = !db.isReadOnly() ?
             new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb()) : null;
+        this.threadPool = threadPool;
         this.idConverter = db.getIdConverter();
     }
     
@@ -144,7 +151,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     protected void subscribe(final RequestContext ctx) throws InvalidRequestException, IOException
     {
         ctx.getSecurityHandler().checkPermission(permissions.stream);
-        var streamHandler = Asserts.checkNotNull(ctx.getStreamHandler(), StreamHandler.class);
+        Asserts.checkNotNull(ctx.getStreamHandler(), StreamHandler.class);
         
         var dsID = ctx.getParentID();
         if (dsID <= 0)
@@ -154,83 +161,187 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         var filter = getFilter(ctx.getParentRef(), queryParams, 0, Long.MAX_VALUE);
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
-        var binding = getBinding(ctx, false);
+        
+        // detect if real-time request
+        boolean isRealTime = (filter.getPhenomenonTime() == null && filter.getResultTime() == null) ||
+                             (filter.getResultTime() != null && filter.getResultTime().beginsNow()) ||
+                             (filter.getPhenomenonTime() != null && filter.getPhenomenonTime().beginsNow());
+        
+        // parse replaySpeed param
+        var replaySpeedOrNull = parseDoubleArg("replaySpeed", ctx.getParameterMap());
+        var replaySpeed = replaySpeedOrNull != null ? replaySpeedOrNull.doubleValue() : 1.0;
         
         // continue when streaming actually starts
         ctx.getStreamHandler().setStartCallback(() -> {
-                        
-            // prepare lazy loaded map of FOI UID to full FeatureId
-            var foiIdCache = CacheBuilder.newBuilder()
-                .maximumSize(100)
-                .expireAfterAccess(1, TimeUnit.MINUTES)
-                .build(new CacheLoader<String, Long>() {
-                    @Override
-                    public Long load(String uid) throws Exception
-                    {
-                        var fk = db.getFoiStore().getCurrentVersionKey(uid);
-                        return fk.getInternalID();
-                    }
-                });
             
-            // get datastream info and init event to obs converter
-            var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
-            var obsConverter = new DataEventToObsConverter(dsID, dsInfo, uid -> foiIdCache.getUnchecked(uid));
-            
-            // create subscriber
-            var subscriber = new Subscriber<DataEvent>() {
-                Subscription subscription;
+            try
+            {
+                // init binding and get datastream info
+                var binding = getBinding(ctx, false);
                 
-                @Override
-                public void onSubscribe(Subscription subscription)
-                {
-                    this.subscription = subscription;
-                    subscription.request(Long.MAX_VALUE);
-                    ctx.getLogger().debug("Starting obs subscription " + System.identityHashCode(subscription));
-                                        
-                    // cancel subscription if streaming is stopped by client
-                    ctx.getStreamHandler().setCloseCallback(() -> {
-                        subscription.cancel();
-                        ctx.getLogger().debug("Cancelling obs subscription " + System.identityHashCode(subscription));
-                    });
-                }
-    
-                @Override
-                public void onNext(DataEvent item)
-                {
-                    obsConverter.toObs(item, obs -> {
-                        try
-                        {
-                            binding.serialize(null, obs, false);
-                            streamHandler.sendPacket();
-                        }
-                        catch (IOException e)
-                        {
-                            subscription.cancel();
-                            throw new CallbackException(e);
-                        } 
-                    });
-                }
-    
-                @Override
-                public void onError(Throwable e)
-                {
-                    ctx.getLogger().error("Error while publishing obs data", e);
-                }
-    
-                @Override
-                public void onComplete()
-                {
-                    try { streamHandler.getOutputStream().close(); }
-                    catch (IOException e) { }
-                }
-            };
-            
-            var topic = EventUtils.getDataStreamDataTopicID(dsInfo);
-            eventBus.newSubscription(DataEvent.class)
-                .withTopicID(topic)
-                .withEventType(DataEvent.class)
-                .subscribe(subscriber);
+                if (isRealTime)
+                    startRealTimeStream(ctx, dsID, filter, binding);
+                else
+                    startReplayStream(ctx, dsID, filter, replaySpeed, binding);
+            }
+            catch (IOException e)
+            {
+                throw new IllegalStateException("Error initializing binding", e);
+            }
         });
+    }
+    
+    
+    protected void startRealTimeStream(final RequestContext ctx, final long dsID, final ObsFilter filter, final ResourceBinding<BigInteger, IObsData> binding)
+    {
+        // prepare lazy loaded map of FOI UID to full FeatureId
+        var foiIdCache = CacheBuilder.newBuilder()
+            .maximumSize(100)
+            .expireAfterAccess(1, TimeUnit.MINUTES)
+            .build(new CacheLoader<String, Long>() {
+                @Override
+                public Long load(String uid) throws Exception
+                {
+                    var fk = db.getFoiStore().getCurrentVersionKey(uid);
+                    return fk.getInternalID();
+                }
+            });
+        
+        // init event to obs converter
+        var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
+        var obsConverter = new DataEventToObsConverter(dsID, dsInfo, uid -> foiIdCache.getUnchecked(uid));
+        var streamHandler = ctx.getStreamHandler();
+        
+        // create subscriber
+        var subscriber = new Subscriber<DataEvent>() {
+            Subscription subscription;
+            
+            @Override
+            public void onSubscribe(Subscription subscription)
+            {
+                this.subscription = subscription;
+                subscription.request(Long.MAX_VALUE);
+                ctx.getLogger().debug("Starting real-time obs subscription #{}", System.identityHashCode(subscription));
+                
+                // cancel subscription if streaming is stopped by client
+                ctx.getStreamHandler().setCloseCallback(() -> {
+                    subscription.cancel();
+                    ctx.getLogger().debug("Cancelling real-time obs subscription #{}", System.identityHashCode(subscription));
+                });
+            }
+
+            @Override
+            public void onNext(DataEvent item)
+            {
+                obsConverter.toObs(item, obs -> {
+                    try
+                    {
+                        binding.serialize(null, obs, false);
+                        streamHandler.sendPacket();
+                    }
+                    catch (IOException e)
+                    {
+                        subscription.cancel();
+                        throw new CallbackException(e);
+                    } 
+                });
+            }
+
+            @Override
+            public void onError(Throwable e)
+            {
+                ctx.getLogger().error("Error while publishing real-time obs data", e);
+            }
+
+            @Override
+            public void onComplete()
+            {
+                ctx.getLogger().debug("Ending real-time obs subscription #{}", System.identityHashCode(subscription));
+                streamHandler.close();
+            }
+        };
+        
+        var topic = EventUtils.getDataStreamDataTopicID(dsInfo);
+        eventBus.newSubscription(DataEvent.class)
+            .withTopicID(topic)
+            .withEventType(DataEvent.class)
+            .subscribe(subscriber);
+    }
+    
+    
+    protected void startReplayStream(final RequestContext ctx, final long dsID, final ObsFilter filter, final double replaySpeed, final ResourceBinding<BigInteger, IObsData> binding)
+    {
+        var streamHandler = ctx.getStreamHandler();
+        int batchSize = 100;
+        var itemQueue = new ConcurrentLinkedQueue<IObsData>();
+        var requestStartTime = filter.getPhenomenonTime().getMin().toEpochMilli();
+        var requestSystemTime = System.currentTimeMillis();
+        var obsIterator = dataStore.select(filter).iterator();
+        
+        if (!obsIterator.hasNext())
+            return;
+        
+        // cancel timer task if streaming is stopped by client
+        var future = new AtomicReference<ScheduledFuture<?>>();
+        ctx.getStreamHandler().setCloseCallback(() -> {
+            var f = future.get();
+            if (f != null)
+            {
+                future.get().cancel(true);
+                ctx.getLogger().debug("Cancelling obs replay stream #{}", System.identityHashCode(streamHandler));
+            }
+        });
+        
+        ctx.getLogger().debug("Starting obs replay stream #{}", System.identityHashCode(streamHandler));
+        future.set(threadPool.scheduleWithFixedDelay(() -> {
+            
+            try
+            {
+                //ctx.getLogger().debug("Replay loop called");
+                
+                if (itemQueue.size() <= batchSize)
+                {
+                    int i;
+                    for (i = 0; i < batchSize && obsIterator.hasNext(); i++)
+                        itemQueue.add(obsIterator.next());
+                    //if (i > 0)
+                    //    ctx.getLogger().debug("fetched batch of {} items", i);
+                }
+                
+                // send all obs that are due
+                while (!itemQueue.isEmpty())
+                {
+                    var nextItem = itemQueue.peek();
+                    
+                    // slow down item dispatch at required replay speed
+                    var deltaClockTime = (System.currentTimeMillis() - requestSystemTime) * replaySpeed;
+                    var deltaObsTime = nextItem.getPhenomenonTime().toEpochMilli() - requestStartTime;
+                    //ctx.getLogger().debug("delta clock time = {}ms", deltaClockTime);
+                    //ctx.getLogger().debug("delta obs time = {}ms", deltaObsTime);
+                    
+                    // skip if it's not time to send this record yet
+                    if (deltaObsTime > deltaClockTime)
+                        break;
+                
+                    //ctx.getLogger().debug("sending obs at {}", nextItem.getPhenomenonTime());
+                    binding.serialize(null, itemQueue.poll(), false);
+                    streamHandler.sendPacket();
+                }
+                
+                // stop streaming if done
+                if (itemQueue.isEmpty() && !obsIterator.hasNext())
+                {
+                    future.get().cancel(false);
+                    streamHandler.close();
+                    ctx.getLogger().debug("Ending obs replay stream #{}", System.identityHashCode(streamHandler));
+            }
+            }
+            catch (IOException e)
+            {
+                throw new CompletionException(e);
+            }
+            
+        }, 0, 10, TimeUnit.MILLISECONDS));
     }
 
 
@@ -317,9 +428,32 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         
         // limit
         // need to limit to offset+limit+1 since we rescan from the beginning for now
-        builder.withLimit(offset+limit+1);
+        if (limit != Long.MAX_VALUE)
+            builder.withLimit(offset+limit+1);
         
         return builder.build();
+    }
+    
+    
+    @Override
+    protected ResourceFormat parseFormat(final Map<String, String[]> queryParams) throws InvalidRequestException
+    {
+        var format = super.parseFormat(queryParams);
+        
+        if (!format.isOneOf(
+              ResourceFormat.JSON,
+              ResourceFormat.OM_JSON,
+              ResourceFormat.OM_XML,
+              ResourceFormat.SWE_JSON,
+              ResourceFormat.SWE_TEXT,
+              ResourceFormat.SWE_XML,
+              ResourceFormat.SWE_BINARY,
+              ResourceFormat.TEXT_PLAIN,
+              ResourceFormat.TEXT_CSV
+            ))
+            throw ServiceErrors.unsupportedFormat(format);
+        
+        return format;
     }
 
 

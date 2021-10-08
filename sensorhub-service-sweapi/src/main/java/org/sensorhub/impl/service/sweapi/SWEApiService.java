@@ -14,8 +14,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -50,8 +50,7 @@ import org.sensorhub.utils.NamedThreadFactory;
 public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig> implements IServiceModule<SWEApiServiceConfig>, IEventListener
 {
     protected SWEApiServlet servlet;
-    ExecutorService threadPool;
-    //TimeOutMonitor timeOutMonitor;
+    ScheduledExecutorService threadPool;
     IObsSystemDatabase obsReadDatabase;
     IObsSystemDatabase obsWriteDatabase;
     IFeatureDatabase featureReadDatabase;
@@ -97,7 +96,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
             obsReadDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
 
         // init thread pool
-        threadPool = Executors.newFixedThreadPool(
+        threadPool = Executors.newScheduledThreadPool(
             Runtime.getRuntime().availableProcessors(),
             new NamedThreadFactory("SWAPool"));
 
@@ -143,7 +142,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         dataStreamHandler.addSubResource(dataSchemaHandler);
         
         // observations
-        var obsHandler = new ObsHandler(eventBus, db, security.obs_permissions);    
+        var obsHandler = new ObsHandler(eventBus, db, threadPool, security.obs_permissions);
         rootHandler.addSubResource(obsHandler);
         dataStreamHandler.addSubResource(obsHandler);
         foiHandler.addSubResource(obsHandler);
@@ -217,7 +216,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
     }
 
 
-    public ExecutorService getThreadPool()
+    public ScheduledExecutorService getThreadPool()
     {
         return threadPool;
     }

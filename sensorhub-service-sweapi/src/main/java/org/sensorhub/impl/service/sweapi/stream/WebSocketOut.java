@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.stream;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
@@ -41,6 +42,7 @@ public class WebSocketOut implements WebSocketListener, StreamHandler
     Session session;
     WebSocketOutputStream os;
     Runnable onStart, onClose;
+    AtomicBoolean closed = new AtomicBoolean();
     
     
     public WebSocketOut(Logger log)
@@ -64,12 +66,15 @@ public class WebSocketOut implements WebSocketListener, StreamHandler
     @Override
     public void onWebSocketClose(int statusCode, String reason)
     {
-        WebSocketUtils.logClose(session, statusCode, reason, log);        
-                
-        if (onClose != null)
-            onClose.run();
-        
-        session = null;
+        if (!closed.get())
+        {
+            WebSocketUtils.logClose(session, statusCode, reason, log);
+            
+            if (onClose != null)
+                onClose.run();
+            
+            session = null;
+        }
     }
     
     
@@ -119,5 +124,13 @@ public class WebSocketOut implements WebSocketListener, StreamHandler
     {
         if (session != null && session.isOpen())
             os.send();
+    }
+
+
+    @Override
+    public void close()
+    {
+        if (closed.compareAndSet(false, true))
+            os.close();
     }
 }

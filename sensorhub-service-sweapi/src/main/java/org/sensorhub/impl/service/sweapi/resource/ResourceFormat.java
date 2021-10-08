@@ -44,7 +44,7 @@ public class ResourceFormat
     public static ResourceFormat APPLI_XML = new ResourceFormat("application/xml");
     
     
-    String mimeType;
+    final String mimeType;
     
     
     public static ResourceFormat fromMimeType(String mimeType)
@@ -86,12 +86,6 @@ public class ResourceFormat
     }
     
     
-    public String toString()
-    {
-        return mimeType;
-    }
-    
-    
     public static boolean allowNonBinaryFormat(IDataStreamInfo dsInfo)
     {
         if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
@@ -105,6 +99,27 @@ public class ResourceFormat
         }
         
         return true;
+    }
+    
+    
+    public String toString()
+    {
+        return mimeType;
+    }
+
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(mimeType);
+    }
+
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        return obj instanceof ResourceFormat &&
+               Objects.equals(this.mimeType, ((ResourceFormat)obj).mimeType);
     }
     
 }
