@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -272,14 +273,25 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     protected void startReplayStream(final RequestContext ctx, final long dsID, final ObsFilter filter, final double replaySpeed, final ResourceBinding<BigInteger, IObsData> binding)
     {
         var streamHandler = ctx.getStreamHandler();
+        var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
+        
         int batchSize = 100;
         var itemQueue = new ConcurrentLinkedQueue<IObsData>();
-        var requestStartTime = filter.getPhenomenonTime().getMin().toEpochMilli();
-        var requestSystemTime = System.currentTimeMillis();
         var obsIterator = dataStore.select(filter).iterator();
-        
         if (!obsIterator.hasNext())
+        {
+            streamHandler.close();
             return;
+        }
+        
+        // init time params
+        var startTime = filter.getPhenomenonTime() != null ?
+            filter.getPhenomenonTime().getMin() : 
+            filter.getResultTime().getMin();
+        if (startTime == Instant.MIN)
+            startTime = dsInfo.getPhenomenonTimeRange().begin();
+        var requestStartTime = startTime.toEpochMilli();
+        var requestSystemTime = System.currentTimeMillis();
         
         // cancel timer task if streaming is stopped by client
         var future = new AtomicReference<ScheduledFuture<?>>();
