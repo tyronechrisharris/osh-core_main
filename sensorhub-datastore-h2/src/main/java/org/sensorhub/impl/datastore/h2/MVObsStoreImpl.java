@@ -87,7 +87,7 @@ public class MVObsStoreImpl implements IObsStore
     protected MVBTreeMap<MVTimeSeriesKey, Boolean> obsSeriesByFoiIndex;
     
     protected IFoiStore foiStore;
-    protected int maxSelectedSeriesOnJoin = 200;
+    protected int maxSelectedSeriesOnJoin = 10000;
     
     
     static class TimeParams
@@ -209,7 +209,7 @@ public class MVObsStoreImpl implements IObsStore
     Stream<MVTimeSeriesInfo> getAllObsSeries(Range<Instant> resultTimeRange)
     {
         MVTimeSeriesKey first = new MVTimeSeriesKey(0, 0, resultTimeRange.lowerEndpoint());
-        MVTimeSeriesKey last = new MVTimeSeriesKey(Long.MAX_VALUE, Long.MAX_VALUE, resultTimeRange.upperEndpoint());        
+        MVTimeSeriesKey last = new MVTimeSeriesKey(Long.MAX_VALUE, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
         RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
         
         return cursor.entryStream()
@@ -234,11 +234,18 @@ public class MVObsStoreImpl implements IObsStore
         }
        
         // scan series for all FOIs of the selected system and result times
-        MVTimeSeriesKey first = new MVTimeSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
+        MVTimeSeriesKey first = new MVTimeSeriesKey(dataStreamID, 0, Instant.MIN);
         MVTimeSeriesKey last = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
         RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
         
+        final Range<Instant> finalResultTimeRange = resultTimeRange;
         return cursor.entryStream()
+            .filter(e -> {
+                // filter out series with result time not matching filter
+                // but always select series that have multiple result times (e.g. result time = phenomenonTime)
+                var resultTime = e.getKey().resultTime;
+                return resultTime == Instant.MIN || finalResultTimeRange.contains(resultTime);
+            })
             .map(e -> {
                 MVTimeSeriesInfo series = e.getValue();
                 series.key = e.getKey();
@@ -260,13 +267,18 @@ public class MVObsStoreImpl implements IObsStore
         }
        
         // scan series for all systems that produced observations of the selected FOI
-        final Range<Instant> finalResultTimeRange = resultTimeRange;
-        MVTimeSeriesKey first = new MVTimeSeriesKey(0, foiID, resultTimeRange.lowerEndpoint());
+        MVTimeSeriesKey first = new MVTimeSeriesKey(0, foiID, Instant.MIN);
         MVTimeSeriesKey last = new MVTimeSeriesKey(Long.MAX_VALUE, foiID, resultTimeRange.upperEndpoint());
         RangeCursor<MVTimeSeriesKey, Boolean> cursor = new RangeCursor<>(obsSeriesByFoiIndex, first, last);
         
+        final Range<Instant> finalResultTimeRange = resultTimeRange;
         return cursor.keyStream()
-            .filter(k -> finalResultTimeRange.test(k.resultTime))
+            .filter(k -> {
+                // filter out series with result time not matching filter
+                // but always select series that have multiple result times (e.g. result time = phenomenonTime)
+                var resultTime = k.resultTime;
+                return resultTime == Instant.MIN || finalResultTimeRange.contains(resultTime);
+            })
             .map(k -> {
                 MVTimeSeriesInfo series = obsSeriesMainIndex.get(k);
                 series.key = k;
@@ -275,36 +287,10 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<MVTimeSeriesInfo> getObsSeriesByDataStreamAndFoi(long dataStreamID, long foiID, Range<Instant> resultTimeRange, boolean latestResultOnly)
-    {
-        // special case when latest result is requested
-        if (latestResultOnly)
-        {
-            MVTimeSeriesKey key = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
-            MVTimeSeriesKey lastKey = obsSeriesMainIndex.floorKey(key);
-            if (lastKey == null || lastKey.dataStreamID != dataStreamID)
-                return null;
-            resultTimeRange = Range.singleton(lastKey.resultTime);
-        }
-       
-        // scan series for all FOIs of the selected system and result times
-        MVTimeSeriesKey first = new MVTimeSeriesKey(dataStreamID, 0, resultTimeRange.lowerEndpoint());
-        MVTimeSeriesKey last = new MVTimeSeriesKey(dataStreamID, Long.MAX_VALUE, resultTimeRange.upperEndpoint());
-        RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(obsSeriesMainIndex, first, last);
-        
-        return cursor.entryStream()
-            .map(e -> {
-                MVTimeSeriesInfo series = e.getValue();
-                series.key = e.getKey();
-                return series;
-            });
-    }
-    
-    
     RangeCursor<MVTimeSeriesRecordKey, IObsData> getObsCursor(long seriesID, Range<Instant> phenomenonTimeRange)
     {
         MVTimeSeriesRecordKey first = new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.lowerEndpoint());
-        MVTimeSeriesRecordKey last = new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.upperEndpoint());        
+        MVTimeSeriesRecordKey last = new MVTimeSeriesRecordKey(seriesID, phenomenonTimeRange.upperEndpoint());
         return new RangeCursor<>(obsRecordsIndex, first, last);
     }
     
@@ -318,7 +304,7 @@ public class MVObsStoreImpl implements IObsStore
             // phenomenon time right before current time
             if (currentTimeOnly)
             {
-                MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.now());      
+                MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.now());
                 Entry<MVTimeSeriesRecordKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
                 if (e != null && e.getKey().seriesID == series.id)
                     return Stream.of(mapToPublicEntry(e));
@@ -329,7 +315,7 @@ public class MVObsStoreImpl implements IObsStore
             // if request if for latest result only, get only the latest obs in series
             if (latestResultOnly)
             {
-                MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.MAX);      
+                MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.MAX);
                 Entry<MVTimeSeriesRecordKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
                 if (e != null && e.getKey().seriesID == series.id)
                     return Stream.of(mapToPublicEntry(e));
@@ -470,28 +456,31 @@ public class MVObsStoreImpl implements IObsStore
         // create obs streams for each selected series
         // and keep all spliterators in array list
         final var obsStreams = new ArrayList<Stream<Entry<BigInteger, IObsData>>>(100);
-        obsStreams.add(obsSeries
-            .peek(s -> {
+        obsSeries.peek(s -> {
                 // make sure list size cannot go over a threshold
                 if (obsStreams.size() >= maxSelectedSeriesOnJoin)
                     throw new IllegalStateException("Too many datastreams or features of interest selected. Please refine your filter");
             })
-            .flatMap(series -> {
+            .forEach(series -> {
                 Stream<Entry<BigInteger, IObsData>> obsStream = getObsStream(series, 
                     timeParams.resultTimeRange,
                     timeParams.phenomenonTimeRange,
                     timeParams.currentTimeOnly,
                     timeParams.latestResultOnly);
-                return getPostFilteredResultStream(obsStream, filter);
-            }));        
+                if (obsStream != null)
+                    obsStreams.add(getPostFilteredResultStream(obsStream, filter));
+            });
+        
+        if (obsStreams.isEmpty())
+            return Stream.empty();
         
         // TODO group by result time when series with different result times are selected
         
         // stream and merge obs from all selected datastreams and time periods
         MergeSortSpliterator<Entry<BigInteger, IObsData>> mergeSortIt = new MergeSortSpliterator<>(obsStreams,
-                (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));         
-               
-        // stream output of merge sort iterator + apply limit        
+                (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));
+        
+        // stream output of merge sort iterator + apply limit
         return StreamSupport.stream(mergeSortIt, false)
             .limit(filter.getLimit())
             .onClose(() -> mergeSortIt.close());
@@ -686,7 +675,7 @@ public class MVObsStoreImpl implements IObsStore
                    {
                        var histogramTimeRange = timeParams.phenomenonTimeRange;
                        if (histogramTimeRange.lowerEndpoint() == Instant.MIN || histogramTimeRange.upperEndpoint() == Instant.MAX)
-                           histogramTimeRange = seriesTimeRange;                       
+                           histogramTimeRange = seriesTimeRange;
                        
                        obsStats.withObsCountByTime(getObsSeriesHistogram(series.id,
                            histogramTimeRange, query.getHistogramBinSize()));
@@ -778,7 +767,7 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public Set<Entry<BigInteger, IObsData>> entrySet()
     {
-        return new AbstractSet<>() {        
+        return new AbstractSet<>() {
             @Override
             public Iterator<Entry<BigInteger, IObsData>> iterator() {
                 return getAllObsSeries(H2Utils.ALL_TIMES_RANGE)
@@ -806,7 +795,7 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public Set<BigInteger> keySet()
     {
-        return new AbstractSet<>() {        
+        return new AbstractSet<>() {
             @Override
             public Iterator<BigInteger> iterator() {
                 return getAllObsSeries(H2Utils.ALL_TIMES_RANGE)
@@ -836,7 +825,7 @@ public class MVObsStoreImpl implements IObsStore
     {
         // check that datastream exists
         if (!dataStreamStore.containsKey(new DataStreamKey(obs.getDataStreamID())))
-            throw new IllegalStateException("Unknown datastream: " + obs.getDataStreamID()); 
+            throw new IllegalStateException("Unknown datastream: " + obs.getDataStreamID());
             
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -973,14 +962,14 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public void backup(OutputStream output) throws IOException
     {
-        // TODO Auto-generated method stub        
+        // TODO Auto-generated method stub
     }
 
 
     @Override
     public void restore(InputStream input) throws IOException
     {
-        // TODO Auto-generated method stub        
+        // TODO Auto-generated method stub
     }
 
 
