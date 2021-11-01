@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.function.Consumer;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.data.DataEvent;
@@ -103,7 +104,14 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
     
     
     @Override
-    public synchronized void start() throws ProcessException
+    public synchronized void start(Consumer<Throwable> onError) throws ProcessException
+    {
+        start(null, onError);
+    }
+    
+    
+    @Override
+    public void start(ExecutorService threadPool, Consumer<Throwable> onError) throws ProcessException
     {
         if (!started)
         {
@@ -145,30 +153,26 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
                         {
                             Thread.currentThread().interrupt();
                         }
-                    }                  
+                    }
                 }
 
                 @Override
                 public void onError(Throwable throwable)
                 {
-                    getLogger().error("Error receiving data from event bus", throwable);                    
+                    getLogger().error("Error receiving data from event bus", throwable);
+                    
+                    if (onError != null)
+                        onError.accept(throwable);
                 }
 
                 @Override
                 public void onComplete()
-                {                    
+                {
                 }
             });
             
             getLogger().debug("Connected to data source '{}'", producerUri);
         }
-    }
-    
-    
-    @Override
-    public void start(ExecutorService threadPool) throws ProcessException
-    {
-        start();
     }
 
 

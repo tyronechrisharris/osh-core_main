@@ -202,7 +202,9 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         // start processing thread
         try
         {
-            wrapperProcess.start();
+            wrapperProcess.start(e-> {
+                reportError("Error while executing process chain", e);
+            });
         }
         catch (ProcessException e)
         {
