@@ -19,24 +19,8 @@ dependencies {
 // add info to OSGI manifest
 osgi {
   manifest {
-    attributes('Bundle-Vendor': 'Sensia Software LLC')
-    attributes('Bundle-Activator': 'org.sensorhub.impl.Activator')
-    attributes('-exportcontents': '''
-       org.sensorhub.*,
-       org.vast.*,
-       net.opengis.*,
-       org.eclipse.jetty.*,
-       javax.servlet.*,
-       com.google.common.*,
-       com.google.gson.*,
-       com.vividsolutions.*,
-       org.slf4j.*,
-       com.rits.*,
-       org.objenesis.*
-    ''')
-    
-    // override import packages since this is our root bundle
-    attributes('Import-Package': 'org.osgi.framework')
+    attributes 'Bundle-Vendor': 'Sensia Software LLC'
+    attributes 'Bundle-Activator': 'org.sensorhub.impl.Activator'
     
     // allow binding to OWS reader/writer dynamically (needed by OGCRegistry)
     attributes('DynamicImport-Package': 'org.vast.ows,org.vast.ows.*')

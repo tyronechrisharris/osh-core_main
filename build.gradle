@@ -6,6 +6,11 @@ description = 'OSH Core Modules'
 
 allprojects  {
   version = oshCoreVersion
+  
+  // skip OSGI task on SWE library projects
+  if (project.projectDir.getAbsolutePath().contains("lib-ogc")) {
+    project.osgi.enabled = false
+  }
 }
 
 

@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class OshBundleActivator implements BundleActivator
+public abstract class OshBundleActivator implements BundleActivator
 {
     protected static Logger log = LoggerFactory.getLogger(OshBundleActivator.class);
     
@@ -30,7 +30,7 @@ public class OshBundleActivator implements BundleActivator
     @Override
     public void start(BundleContext context) throws Exception
     {
-        log.info("Activating Bundle " + context.getBundle().getSymbolicName());
+        log.info("Activating bundle " + context.getBundle().getSymbolicName());
         
         // get bundle classloader
         //var bundle = context.getBundle();

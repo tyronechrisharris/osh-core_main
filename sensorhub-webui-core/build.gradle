@@ -34,50 +34,8 @@ dependencies {
 // add info to OSGI manifest
 osgi {
   manifest {
-    attributes('Bundle-Vendor': 'Sensia Software LLC')
-    attributes('Bundle-Activator': 'org.sensorhub.ui.Activator')
-    
-    // remove unused packages from imports
-    attributes('Import-Package': '''
-      !java.*,!org.w3c.dom.*,!org.xml.sax.*,!com.sun.*,
-      !com.google.gwt.*,!com.google.debugging.*,!com.bea.*,!com.gargoylesoftware.*,
-      !com.ibm.*,!com.liferay.*,!com.thoughtworks.*,!com.yahoo.*,!junit.*,!net.sourceforge.htmlunit.*,
-      !org.apache.catalina.*,!org.apache.commons.*,!org.apache.coyote.*,!org.apache.shiro.*,
-      !org.glassfish.grizzly.*,!org.atmosphere.*,!org.eclipse.jetty.websocket,!org.jboss.*,!org.json.*,
-      !org.mortbay.*,!org.osgi.service.*,!org.testng.*,!weblogic.*,      
-      !javax.annotation.*,!javax.enterprise.*,!javax.inject.*,!javax.jnlp.*,!javax.naming.*,
-      !javax.net.*,!javax.portlet.*,!javax.sql.*,!javax.validation.*,!javax.websocket.*,!javax.xml.*,
-      org.osgi.service.repository;resolution:=optional,
-      *''')
-    //!javax.(?!servlet).*
-    
-    /*attributes('Import-Package': '''
-        org.osgi.framework,
-        javax.servlet.*,
-        org.sensorhub.*,
-        org.vast.*,
-        net.opengis.*,
-        com.google.common.*,
-        com.rits.*,
-        com.vividsolutions.jts.*
-    ''')*/
-    
-    attributes('-dsannotations-options': 'norequirements,nocapabilities')
-    
-    // fixup manifest to remove requirement introduced by vaadin osgi components
-    doLast {
-      def manifestEntry = 'META-INF/MANIFEST.MF'
-      def newManifestFile = new File("$buildDir/MANIFEST.MF.fixed")
-      
-      // patch manifest directly in jar file
-      Path jarFilePath = archivePath.toPath()
-      FileSystems.newFileSystem(jarFilePath, null).withCloseable { fs ->
-          def manifest = fs.getPath(manifestEntry)
-          def newManifest = manifest.text.replaceAll("osgi.extender[\\s\\S]*?,", '')
-          newManifestFile.text = newManifest
-          manifest.text = newManifest
-      }
-    }
+    attributes 'Bundle-Vendor': 'Sensia Software LLC'
+    attributes 'Bundle-Activator': 'org.sensorhub.ui.Activator'
   }
 }
 
