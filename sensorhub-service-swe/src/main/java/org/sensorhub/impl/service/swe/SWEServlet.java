@@ -29,6 +29,7 @@ import javax.xml.stream.XMLStreamWriter;
 import org.eclipse.jetty.websocket.api.WebSocketBehavior;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.api.WebSocketPolicy;
+import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
@@ -418,7 +419,7 @@ public abstract class SWEServlet extends OWSServlet
         try
         {
             WebSocketPolicy wsPolicy = new WebSocketPolicy(WebSocketBehavior.SERVER);
-            wsFactory = WebSocketServletFactory.Loader.load(getServletContext(), wsPolicy);
+            wsFactory = new WebSocketServerFactory(getServletContext(), wsPolicy);
             wsFactory.start();
         }
         catch (Exception e)

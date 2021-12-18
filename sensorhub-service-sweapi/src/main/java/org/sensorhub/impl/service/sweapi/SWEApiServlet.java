@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.websocket.api.WebSocketBehavior;
 import org.eclipse.jetty.websocket.api.WebSocketPolicy;
+import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
@@ -79,7 +80,7 @@ public class SWEApiServlet extends HttpServlet
         try
         {
             WebSocketPolicy wsPolicy = new WebSocketPolicy(WebSocketBehavior.SERVER);
-            wsFactory = WebSocketServletFactory.Loader.load(getServletContext(), wsPolicy);
+            wsFactory = new WebSocketServerFactory(getServletContext(), wsPolicy);
             wsFactory.start();
         }
         catch (Exception e)
