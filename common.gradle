@@ -163,7 +163,8 @@ subprojects {
         // ignore some common errors
         attributes '-fixupmessages': 'Classes found in the wrong directory; is:=ignore,' +
                                      'Unused Import-Package instructions; is:=ignore,' +
-                                     'The default package \'.\' is not permitted by the Import-Package syntax; is:=ignore,'
+                                     'The default package \'.\' is not permitted by the Import-Package syntax; is:=ignore,' +
+                                     'Unused Export-Package instructions; is:=ignore,'
           
         // disable DS annotation processing
         if (!attributes['-dsannotations'])
