@@ -403,7 +403,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 if (!initAsync)
                     setState(ModuleState.INITIALIZED);
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
                 reportError(CANNOT_INIT_MSG, e);
                 setState(ModuleState.LOADED);
@@ -494,7 +494,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 if (!startAsync)
                     setState(ModuleState.STARTED);
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
                 reportError(CANNOT_START_MSG, e);
                 stop();
@@ -575,7 +575,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
                 else if (!stopAsync)
                     setState(ModuleState.STOPPED);
             }
-            catch (Exception e)
+            catch (Throwable e)
             {
                 reportError(CANNOT_STOP_MSG, e);
             }
