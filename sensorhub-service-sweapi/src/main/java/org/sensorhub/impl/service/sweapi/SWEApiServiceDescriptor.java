@@ -35,14 +35,14 @@ public class SWEApiServiceDescriptor extends JarModuleProvider implements IModul
     @Override
     public String getModuleName()
     {
-        return "SWE API Service";
+        return "SensorWeb API Service";
     }
 
 
     @Override
     public String getModuleDescription()
     {
-        return "Data access service compliant with the OGC SWE APIs standard";
+        return "Data access service compliant with the OGC SensorWeb API standard";
     }
 
 
