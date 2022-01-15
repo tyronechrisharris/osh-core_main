@@ -122,6 +122,15 @@ public class ModuleSecurity
     
     
     /**
+     * @return The currently authenticated user
+     */
+    public IUserInfo getCurrentUser()
+    {
+        return currentUser.get();
+    }
+    
+    
+    /**
      * Unregister permission tree from security manager
      */
     public void unregister()
