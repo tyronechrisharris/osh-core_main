@@ -14,63 +14,56 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 
 
 /**
  * <p>
- * H2 DataType implementation for internal DataStream key objects
+ * H2 DataType implementation for internal command status key objects
  * </p>
  *
  * @author Alex Robin
- * @date Apr 7, 2018
+ * @date Jan 5, 2022
  */
-class MVTimeSeriesProcKeyDataType implements DataType
+class MVCommandStatusKeyDataType implements DataType
 {
-    private static final int MIN_MEM_SIZE = 8+8+4;
+    private static final int MEM_SIZE = 24;
     
-            
+    
     @Override
     public int compare(Object objA, Object objB)
     {
-        MVTimeSeriesSystemKey a = (MVTimeSeriesSystemKey)objA;
-        MVTimeSeriesSystemKey b = (MVTimeSeriesSystemKey)objB;
+        MVCommandStatusKey a = (MVCommandStatusKey)objA;
+        MVCommandStatusKey b = (MVCommandStatusKey)objB;
         
-        // first compare system internal ID
-        int comp = Long.compare(a.systemID, b.systemID);
+        // first compare command IDs
+        int comp = a.cmdID.compareTo(b.cmdID);
         if (comp != 0)
             return comp;
         
-        // only if IDs are the same, compare output name
-        comp = a.signalName.compareTo(b.signalName);
-        if (comp != 0)
-            return comp;
-        
-        // only if output names are the same, compare valid times
-        // sort in reverse order so that latest version is always first
-        return -Long.compare(a.validStartTime, b.validStartTime);
+        // if task IDs are equal, compare time stamps
+        return a.reportTime.compareTo(b.reportTime);
     }
     
 
     @Override
     public int getMemory(Object obj)
     {
-        MVTimeSeriesSystemKey key = (MVTimeSeriesSystemKey)obj;
-        return MIN_MEM_SIZE + key.signalName.length();
+        return MEM_SIZE;
     }
     
 
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        MVTimeSeriesSystemKey key = (MVTimeSeriesSystemKey)obj;
-        wbuf.putVarLong(key.internalID);
-        wbuf.putVarLong(key.systemID);
-        H2Utils.writeAsciiString(wbuf, key.signalName);
-        wbuf.putVarLong(key.validStartTime);
+        MVCommandStatusKey key = (MVCommandStatusKey)obj;
+        byte[] cmdID = key.cmdID.toByteArray();
+        wbuf.put((byte)cmdID.length);
+        wbuf.put(cmdID);
+        H2Utils.writeInstant(wbuf, key.reportTime);
     }
     
 
@@ -85,11 +78,11 @@ class MVTimeSeriesProcKeyDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
-        long internalID = DataUtils.readVarLong(buff);
-        long sysID = DataUtils.readVarLong(buff);
-        String outputName = H2Utils.readAsciiString(buff);
-        long validStartTime = DataUtils.readVarLong(buff);
-        return new MVTimeSeriesSystemKey(internalID, sysID, outputName, validStartTime);
+        int cmdIdLen = buff.get();
+        var cmdID = new BigInteger(buff.array(), buff.position(), cmdIdLen);
+        buff.position(buff.position()+cmdIdLen);
+        var reportTime = H2Utils.readInstant(buff);
+        return new MVCommandStatusKey(cmdID, reportTime);
     }
     
 

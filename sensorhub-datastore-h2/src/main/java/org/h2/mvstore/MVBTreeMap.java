@@ -108,13 +108,13 @@ public class MVBTreeMap<K, V> extends MVMap<K, V>
 
     public Entry<K, V> higherEntry(K key)
     {
-        return getMinMaxEntry(root, key, false, false);
+        return getMinMaxEntry(root, key, false, true);
     }
 
 
     public Entry<K, V> floorEntry(K key)
     {
-        return getMinMaxEntry(root, key, true, true);
+        return getMinMaxEntry(root, key, true, false);
     }
 
 

@@ -14,48 +14,27 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.math.BigInteger;
 import java.time.Instant;
-import org.sensorhub.utils.ObjectUtils;
 
 
 /**
  * <p>
- * Internal key used to index observations or commands by series ID and
- * timestamp. The full ObsKey/CommandKey is reconstructed when the series
- * info is known.
+ * Key to index command status reports.
  * </p>
  *
  * @author Alex Robin
- * @date Sep 12, 2019
+ * @date Jan 5, 2021
  */
-class MVTimeSeriesRecordKey
+class MVCommandStatusKey
 {
-    protected long seriesID;
-    protected Instant timeStamp = null;
+    BigInteger cmdID;
+    Instant reportTime;
     
     
-    MVTimeSeriesRecordKey(long seriesID, Instant timeStamp)
+    MVCommandStatusKey(BigInteger cmdID, Instant reportTime)
     {
-        this.seriesID = seriesID;
-        this.timeStamp = timeStamp;
-    }
-
-
-    public long getSeriesID()
-    {
-        return seriesID;
-    }
-
-
-    public Instant getTimeStamp()
-    {
-        return timeStamp;
-    }
-
-
-    @Override
-    public String toString()
-    {
-        return ObjectUtils.toString(this, true);
+        this.cmdID = cmdID;
+        this.reportTime = reportTime;
     }
 }

@@ -41,9 +41,9 @@ class MVTimeSeriesKey
     }
     
     
-    MVTimeSeriesKey(long commandStreamID, long receiverID)
+    MVTimeSeriesKey(long commandStreamID, long foiID)
     {
         this.dataStreamID = commandStreamID;
-        this.foiID = receiverID;
+        this.foiID = foiID;
     }
 }

@@ -14,48 +14,26 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.time.Instant;
-import org.sensorhub.utils.ObjectUtils;
+import org.h2.mvstore.MVMap;
+import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
+import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 
 
 /**
  * <p>
- * Internal key used to index observations or commands by series ID and
- * timestamp. The full ObsKey/CommandKey is reconstructed when the series
- * info is known.
+ * H2 DataType implementation for CommandStatus objects
  * </p>
  *
  * @author Alex Robin
- * @date Sep 12, 2019
+ * @date Jan 5, 2022
  */
-class MVTimeSeriesRecordKey
+class CommandStatusDataType extends KryoDataType
 {
-    protected long seriesID;
-    protected Instant timeStamp = null;
-    
-    
-    MVTimeSeriesRecordKey(long seriesID, Instant timeStamp)
+    CommandStatusDataType(MVMap<String, Integer> kryoClassMap)
     {
-        this.seriesID = seriesID;
-        this.timeStamp = timeStamp;
-    }
-
-
-    public long getSeriesID()
-    {
-        return seriesID;
-    }
-
-
-    public Instant getTimeStamp()
-    {
-        return timeStamp;
-    }
-
-
-    @Override
-    public String toString()
-    {
-        return ObjectUtils.toString(this, true);
+        this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
+        this.configurator = kryo -> {
+            // register custom serializers
+        };
     }
 }

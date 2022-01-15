@@ -59,12 +59,7 @@ import net.opengis.swe.v20.DataBlock;
 
 /**
  * <p>
- * Implementation of obs store based on H2 MVStore, capable of handling a
- * single result type.
- * </p><p>
- * Note that the store can contain data for several data streams as long as
- * they share the same result types. Thus no separate metadata is kept for 
- * individual data streams.
+ * Implementation of obs store based on H2 MVStore.
  * </p><p>
  * Several instances of this store can be contained in the same MVStore
  * as long as they have different names.

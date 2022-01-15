@@ -38,7 +38,7 @@ class MVCommandStreamKeyDataType implements DataType
     public int compare(Object objA, Object objB)
     {
         CommandStreamKey a = (CommandStreamKey)objA;
-        CommandStreamKey b = (CommandStreamKey)objB;        
+        CommandStreamKey b = (CommandStreamKey)objB;
         return Long.compare(a.getInternalID(), b.getInternalID());
     }
     
@@ -69,7 +69,7 @@ class MVCommandStreamKeyDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
-        long internalID = DataUtils.readVarLong(buff);       
+        long internalID = DataUtils.readVarLong(buff);
         return new CommandStreamKey(internalID);
     }
     
@@ -78,7 +78,7 @@ class MVCommandStreamKeyDataType implements DataType
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
     {
         for (int i=0; i<len; i++)
-            obj[i] = read(buff);        
+            obj[i] = read(buff);
     }
 
 }

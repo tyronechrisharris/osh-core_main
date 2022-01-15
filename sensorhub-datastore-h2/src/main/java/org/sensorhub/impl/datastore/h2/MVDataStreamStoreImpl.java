@@ -73,7 +73,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
      * Map of {system ID, output name, validTime} to datastream ID
      * Everything is stored in the key with no value (use MVVoidDataType for efficiency)
      */
-    protected MVBTreeMap<MVTimeSeriesSystemKey, Boolean> dataStreamByProcIndex;
+    protected MVBTreeMap<MVTimeSeriesSystemKey, Boolean> dataStreamBySystemIndex;
     
     /*
      * Full text index pointing to main index
@@ -113,7 +113,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                         getOutputName(),
                         getValidTime().begin());
                     
-                    var nextKey = dataStreamByProcIndex.lowerKey(procDsKey); // use lower cause time sorting is reversed
+                    var nextKey = dataStreamBySystemIndex.lowerKey(procDsKey); // use lower cause time sorting is reversed
                     if (nextKey != null &&
                         nextKey.systemID == procDsKey.systemID &&
                         nextKey.signalName.equals(procDsKey.signalName))
@@ -160,7 +160,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
         // open observation series map
         mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_SYSTEM_MAP_NAME;
-        this.dataStreamByProcIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesSystemKey, Boolean>()
+        this.dataStreamBySystemIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesSystemKey, Boolean>()
                 .keyType(new MVTimeSeriesProcKeyDataType())
                 .valueType(new MVVoidDataType()));
         
@@ -232,7 +232,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     Stream<Long> getDataStreamIdsBySystem(long sysID, Set<String> outputNames, TemporalFilter validTime)
     {
         MVTimeSeriesSystemKey first = new MVTimeSeriesSystemKey(sysID, "", Instant.MIN);
-        RangeCursor<MVTimeSeriesSystemKey, Boolean> cursor = new RangeCursor<>(dataStreamByProcIndex, first);
+        RangeCursor<MVTimeSeriesSystemKey, Boolean> cursor = new RangeCursor<>(dataStreamBySystemIndex, first);
 
         Stream<MVTimeSeriesSystemKey> keyStream = cursor.keyStream()
             .takeWhile(k -> k.systemID == sysID);
@@ -247,7 +247,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
     Stream<Long> getDataStreamIdsFromAllSystems(Set<String> outputNames, TemporalFilter validTime)
     {
-        Stream<MVTimeSeriesSystemKey> keyStream = dataStreamByProcIndex.keySet().stream();
+        Stream<MVTimeSeriesSystemKey> keyStream = dataStreamBySystemIndex.keySet().stream();
 
         // yikes we're doing a full index scan here!
         return postFilterKeyStream(keyStream, outputNames, validTime)
@@ -418,7 +418,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                         oldValue.getSystemID().getInternalID(),
                         oldValue.getOutputName(),
                         oldValue.getValidTime().begin().getEpochSecond());
-                    dataStreamByProcIndex.remove(procKey);
+                    dataStreamBySystemIndex.remove(procKey);
                 }
 
                 // add new entry
@@ -426,7 +426,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                     dsInfo.getSystemID().getInternalID(),
                     dsInfo.getOutputName(),
                     dsInfo.getValidTime().begin().getEpochSecond());
-                var oldProcKey = dataStreamByProcIndex.put(procKey, Boolean.TRUE);
+                var oldProcKey = dataStreamBySystemIndex.put(procKey, Boolean.TRUE);
                 if (oldProcKey != null && !replace)
                     throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
@@ -469,7 +469,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                     return null;
 
                 // remove entry in secondary index
-                dataStreamByProcIndex.remove(new MVTimeSeriesSystemKey(
+                dataStreamBySystemIndex.remove(new MVTimeSeriesSystemKey(
                     oldValue.getSystemID().getInternalID(),
                     oldValue.getName(),
                     oldValue.getValidTime().begin()));
@@ -499,7 +499,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             try
             {
                 obsStore.clear();
-                dataStreamByProcIndex.clear();
+                dataStreamBySystemIndex.clear();
                 dataStreamIndex.clear();
             }
             catch (Exception e)

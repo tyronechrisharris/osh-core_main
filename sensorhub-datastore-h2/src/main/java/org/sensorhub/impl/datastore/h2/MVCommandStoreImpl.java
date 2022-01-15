@@ -41,6 +41,7 @@ import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
 import org.sensorhub.api.datastore.command.CommandStatsQuery;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
+import org.sensorhub.api.datastore.command.ICommandStatusStore;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -55,12 +56,7 @@ import com.google.common.hash.Hashing;
 
 /**
  * <p>
- * Implementation of command store based on H2 MVStore, capable of handling a
- * single command type.
- * </p><p>
- * Note that the store can contain data for several command streams as long as
- * they share the same parameter structure. Thus no separate metadata is kept
- * for individual command streams.
+ * Implementation of command store based on H2 MVStore.
  * </p><p>
  * Several instances of this store can be contained in the same MVStore
  * as long as they have different names.
@@ -77,6 +73,7 @@ public class MVCommandStoreImpl implements ICommandStore
     protected MVStore mvStore;
     protected MVDataStoreInfo dataStoreInfo;
     protected MVCommandStreamStoreImpl cmdStreamStore;
+    protected MVCommandStatusStoreImpl cmdStatusStore;
     protected MVBTreeMap<MVTimeSeriesRecordKey, ICommandData> cmdRecordsIndex;
     protected MVBTreeMap<MVTimeSeriesKey, MVTimeSeriesInfo> cmdSeriesMainIndex;
     
@@ -86,7 +83,6 @@ public class MVCommandStoreImpl implements ICommandStore
     
     static class TimeParams
     {
-        Range<Instant> actuationTimeRange;
         Range<Instant> issueTimeRange;
         boolean currentTimeOnly;
         boolean latestResultOnly;
@@ -94,25 +90,12 @@ public class MVCommandStoreImpl implements ICommandStore
         
         TimeParams(CommandFilter filter)
         {
-            // get actuation time range
-            actuationTimeRange = filter.getActuationTime() != null ?
-                filter.getActuationTime().getRange() : H2Utils.ALL_TIMES_RANGE;
-            
             // get issue time range
             issueTimeRange = filter.getIssueTime() != null ?
                 filter.getIssueTime().getRange() : H2Utils.ALL_TIMES_RANGE;
-            
-            // try to derive issue time range from actuation time range
-            // so we can use the time index 
-            if (filter.getIssueTime() == null && actuationTimeRange != null && actuationTimeRange != H2Utils.ALL_TIMES_RANGE)
-            {
-                var begin = actuationTimeRange.lowerEndpoint().minusSeconds(600); // start 10min before in case some commands were delayed
-                var end = actuationTimeRange.upperEndpoint();
-                issueTimeRange = Range.closed(begin, end);
-            }
                 
             latestResultOnly = filter.getIssueTime() != null && filter.getIssueTime().isLatestTime();
-            currentTimeOnly = filter.getActuationTime() != null && filter.getActuationTime().isCurrentTime();
+            currentTimeOnly = filter.getIssueTime() != null && filter.getIssueTime().isCurrentTime();
         }
     }
     
@@ -161,7 +144,8 @@ public class MVCommandStoreImpl implements ICommandStore
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
-        this.cmdStreamStore = new MVCommandStreamStoreImpl(this, null);
+        this.cmdStreamStore = new MVCommandStreamStoreImpl(this, dsIdProvider);
+        this.cmdStatusStore = new MVCommandStatusStoreImpl(this);
         
         // persistent class mappings for Kryo
         var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
@@ -187,13 +171,6 @@ public class MVCommandStoreImpl implements ICommandStore
     {
         return dataStoreInfo.getName();
     }
-    
-
-    @Override
-    public ICommandStreamStore getCommandStreams()
-    {
-        return cmdStreamStore;
-    }
 
 
     @Override
@@ -206,7 +183,7 @@ public class MVCommandStoreImpl implements ICommandStore
     Stream<MVTimeSeriesInfo> getAllCommandSeries()
     {
         MVTimeSeriesKey first = new MVTimeSeriesKey(0, 0);
-        MVTimeSeriesKey last = new MVTimeSeriesKey(Long.MAX_VALUE, Long.MAX_VALUE);        
+        MVTimeSeriesKey last = new MVTimeSeriesKey(Long.MAX_VALUE, Long.MAX_VALUE);
         RangeCursor<MVTimeSeriesKey, MVTimeSeriesInfo> cursor = new RangeCursor<>(cmdSeriesMainIndex, first, last);
         
         return cursor.entryStream()
@@ -236,12 +213,12 @@ public class MVCommandStoreImpl implements ICommandStore
     RangeCursor<MVTimeSeriesRecordKey, ICommandData> getCommandCursor(long seriesID, Range<Instant> issueTimeRange)
     {
         MVTimeSeriesRecordKey first = new MVTimeSeriesRecordKey(seriesID, issueTimeRange.lowerEndpoint());
-        MVTimeSeriesRecordKey last = new MVTimeSeriesRecordKey(seriesID, issueTimeRange.upperEndpoint());        
+        MVTimeSeriesRecordKey last = new MVTimeSeriesRecordKey(seriesID, issueTimeRange.upperEndpoint());
         return new RangeCursor<>(cmdRecordsIndex, first, last);
     }
     
     
-    Stream<Entry<BigInteger, ICommandData>> getCommandStream(MVTimeSeriesInfo series, Range<Instant> issueTimeRange, boolean latestOnly)
+    Stream<Entry<MVTimeSeriesRecordKey, ICommandData>> getCommandStream(MVTimeSeriesInfo series, Range<Instant> issueTimeRange, boolean latestOnly)
     {        
         // if request if for latest only, get only the latest command in series
         if (latestOnly)
@@ -249,7 +226,7 @@ public class MVCommandStoreImpl implements ICommandStore
             MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.MAX);
             Entry<MVTimeSeriesRecordKey, ICommandData> e = cmdRecordsIndex.floorEntry(maxKey);
             if (e != null && e.getKey().seriesID == series.id)
-                return Stream.of(mapToPublicEntry(e));
+                return Stream.of(e);
             else
                 return Stream.empty();
         }
@@ -257,10 +234,7 @@ public class MVCommandStoreImpl implements ICommandStore
         // scan using a cursor on main command index
         // recreating full entries in the process
         RangeCursor<MVTimeSeriesRecordKey, ICommandData> cursor = getCommandCursor(series.id, issueTimeRange);
-        return cursor.entryStream()
-            .map(e -> {
-                return mapToPublicEntry(e);
-            });
+        return cursor.entryStream();
     }
     
     
@@ -337,10 +311,10 @@ public class MVCommandStoreImpl implements ICommandStore
         {
             var cmdStream = filter.getInternalIDs().stream()
                 .map(k -> mapToInternalKey(k))
-                .map(k -> cmdRecordsIndex.getEntry(k))
-                .map(e -> mapToPublicEntry(e));
+                .map(k -> cmdRecordsIndex.getEntry(k));
             
-            return getPostFilteredResultStream(cmdStream, filter);
+            return getPostFilteredResultStream(cmdStream, filter)
+                .map(this::mapToPublicEntry);
         }
         
         // select command series matching the filter
@@ -349,7 +323,7 @@ public class MVCommandStoreImpl implements ICommandStore
         
         // create command streams for each selected series
         // and keep all spliterators in array list
-        final var cmdStreams = new ArrayList<Stream<Entry<BigInteger, ICommandData>>>(100);
+        final var cmdStreams = new ArrayList<Stream<Entry<MVTimeSeriesRecordKey, ICommandData>>>(100);
         cmdStreams.add(cmdSeries
             .peek(s -> {
                 // make sure list size cannot go over a threshold
@@ -357,26 +331,40 @@ public class MVCommandStoreImpl implements ICommandStore
                     throw new IllegalStateException("Too many command streams or command receivers selected. Please refine your filter");
             })
             .flatMap(series -> {
-                Stream<Entry<BigInteger, ICommandData>> cmdStream = getCommandStream(series, timeParams.issueTimeRange,
+                var cmdStream = getCommandStream(series, timeParams.issueTimeRange,
                     timeParams.currentTimeOnly || timeParams.latestResultOnly);
                 return getPostFilteredResultStream(cmdStream, filter);
             }));
         
         
         // stream and merge commands from all selected command streams and time periods
-        MergeSortSpliterator<Entry<BigInteger, ICommandData>> mergeSortIt = new MergeSortSpliterator<>(cmdStreams,
+        var mergeSortIt = new MergeSortSpliterator<Entry<MVTimeSeriesRecordKey, ICommandData>>(cmdStreams,
                 (e1, e2) -> e1.getValue().getIssueTime().compareTo(e2.getValue().getIssueTime()));
                
         // stream output of merge sort iterator + apply limit
         return StreamSupport.stream(mergeSortIt, false)
+            .map(this::mapToPublicEntry)
             .limit(filter.getLimit())
             .onClose(() -> mergeSortIt.close());
     }
     
     
-    Stream<Entry<BigInteger, ICommandData>> getPostFilteredResultStream(Stream<Entry<BigInteger, ICommandData>> resultStream, CommandFilter filter)
+    Stream<Entry<MVTimeSeriesRecordKey, ICommandData>> getPostFilteredResultStream(Stream<Entry<MVTimeSeriesRecordKey, ICommandData>> resultStream, CommandFilter filter)
     {
-        return resultStream.filter(e -> filter.test(e.getValue()));
+        // first test with command filter
+        resultStream = resultStream.filter(e -> filter.test(e.getValue()));
+        
+        // also filter on status
+        if (filter.getStatusFilter() != null)
+        {
+            var statusFilter = filter.getStatusFilter();
+            resultStream = resultStream.filter(cmd -> {
+                return cmdStatusStore.getStatusStream(mapToPublicKey(cmd.getKey()), statusFilter.getReportTime())
+                    .anyMatch(status -> statusFilter.test(status.getValue()));
+            });
+        }
+        
+        return resultStream;
     }
         
     
@@ -495,8 +483,8 @@ public class MVCommandStoreImpl implements ICommandStore
                    
                    var seriesTimeRange = getCommandSeriesIssueTimeRange(series.id);
                    
-                   // skip if requested actuation time range doesn't intersect series time range
-                   var statsTimeRange = timeParams.actuationTimeRange;
+                   // skip if requested issue time range doesn't intersect series time range
+                   var statsTimeRange = timeParams.issueTimeRange;
                    if (!statsTimeRange.isConnected(seriesTimeRange))
                        return null;
                    
@@ -516,9 +504,9 @@ public class MVCommandStoreImpl implements ICommandStore
                    // compute histogram
                    if (query.getHistogramBinSize() != null)
                    {
-                       var histogramTimeRange = timeParams.actuationTimeRange;
+                       var histogramTimeRange = timeParams.issueTimeRange;
                        if (histogramTimeRange.lowerEndpoint() == Instant.MIN || histogramTimeRange.upperEndpoint() == Instant.MAX)
-                           histogramTimeRange = seriesTimeRange;                       
+                           histogramTimeRange = seriesTimeRange;
                        
                        cmdStats.withCommandCountByTime(getCommandSeriesHistogram(series.id,
                            histogramTimeRange, query.getHistogramBinSize()));
@@ -637,7 +625,7 @@ public class MVCommandStoreImpl implements ICommandStore
     @Override
     public Set<BigInteger> keySet()
     {
-        return new AbstractSet<>() {        
+        return new AbstractSet<>() {
             @Override
             public Iterator<BigInteger> iterator() {
                 return getAllCommandSeries()
@@ -676,7 +664,7 @@ public class MVCommandStoreImpl implements ICommandStore
             
             try
             {
-                MVTimeSeriesKey seriesKey = new MVTimeSeriesKey(cmd.getCommandStreamID(), 0);
+                MVTimeSeriesKey seriesKey = new MVTimeSeriesKey(cmd.getCommandStreamID(), cmd.getFoiID());
                 
                 MVTimeSeriesInfo series = cmdSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
                     return new MVTimeSeriesInfo(
@@ -764,6 +752,9 @@ public class MVCommandStoreImpl implements ICommandStore
             MVTimeSeriesRecordKey k2 = new MVTimeSeriesRecordKey(seriesId, Instant.MAX);
             new RangeCursor<>(cmdRecordsIndex, k1, k2).keyStream().forEach(k -> {
                 cmdRecordsIndex.remove(k);
+                
+                // remove all status reports
+                cmdStatusStore.removeAllStatus(mapToPublicKey(k));
             });
             
             // remove series from index
@@ -812,6 +803,20 @@ public class MVCommandStoreImpl implements ICommandStore
     public boolean isReadOnly()
     {
         return mvStore.isReadOnly();
+    }
+    
+
+    @Override
+    public ICommandStreamStore getCommandStreams()
+    {
+        return cmdStreamStore;
+    }
+
+
+    @Override
+    public ICommandStatusStore getStatusReports()
+    {
+        return cmdStatusStore;
     }
     
     
