@@ -84,6 +84,13 @@ public abstract class CommandStreamInfoWrapper implements ICommandStreamInfo
 
 
     @Override
+    public TimeExtent getIssueTimeRange()
+    {
+        return delegate.getIssueTimeRange();
+    }
+
+
+    @Override
     public TimeExtent getValidTime()
     {
         return delegate.getValidTime();
@@ -91,15 +98,8 @@ public abstract class CommandStreamInfoWrapper implements ICommandStreamInfo
 
 
     @Override
-    public TimeExtent getActuationTimeRange()
+    public TimeExtent getExecutionTimeRange()
     {
-        return delegate.getActuationTimeRange();
-    }
-
-
-    @Override
-    public TimeExtent getIssueTimeRange()
-    {
-        return delegate.getIssueTimeRange();
+        return delegate.getExecutionTimeRange();
     }
 }

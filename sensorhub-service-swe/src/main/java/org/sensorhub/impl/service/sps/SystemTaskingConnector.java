@@ -131,12 +131,19 @@ public class SystemTaskingConnector implements ISPSConnector
                 sendCommand(data, ack -> {
                     synchronized (task)
                     {
-                        if (ack.getStatusCode() == CommandStatusCode.SUCCESS)
+                        if (ack.getStatusCode() == CommandStatusCode.COMPLETED)
+                        {
                             task.getStatusReport().setTaskStatus(TaskStatus.Completed);
+                            if (ack.getMessage() != null)
+                                task.getStatusReport().setStatusMessage(ack.getMessage());
+                            task.getStatusReport().setPercentCompletion(100.f);
+                        }
                         else
                         {
                             task.getStatusReport().setTaskStatus(TaskStatus.Failed);
-                            if (ack.getError() != null)
+                            if (ack.getMessage() != null)
+                                task.getStatusReport().setStatusMessage(ack.getMessage());
+                            else if (ack.getError() != null)
                                 task.getStatusReport().setStatusMessage(ack.getError().getMessage());
                         }
                     }

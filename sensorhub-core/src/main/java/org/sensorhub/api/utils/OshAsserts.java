@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.utils;
 
+import java.math.BigInteger;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
@@ -48,6 +49,13 @@ public class OshAsserts
     public static long checkValidInternalID(long id, String idName)
     {
         Asserts.checkArgument(id > 0, "{} ID must be > 0", idName);
+        return id;
+    }
+    
+    
+    public static BigInteger checkValidInternalID(BigInteger id, String idName)
+    {
+        Asserts.checkArgument(id.signum() == 1, "{} ID must be > 0", idName);
         return id;
     }
     

@@ -158,45 +158,45 @@ public class EventUtils
     }
     
     
-    public static final String getCommandStreamDataTopicID(String systemUID, String controlInputName)
+    public static final String getCommandDataTopicID(String systemUID, String controlInputName)
     {
         return getCommandStreamTopicID(systemUID, controlInputName) + DATA_CHANNEL;
     }
     
     
-    public static final String getCommandStreamDataTopicID(IStreamingControlInterface controlInterface)
+    public static final String getCommandDataTopicID(IStreamingControlInterface controlInterface)
     {
-        return getCommandStreamDataTopicID(
+        return getCommandDataTopicID(
             controlInterface.getParentProducer().getUniqueIdentifier(),
             controlInterface.getName());
     }
     
     
-    public static final String getCommandStreamDataTopicID(ICommandStreamInfo csInfo)
+    public static final String getCommandDataTopicID(ICommandStreamInfo csInfo)
     {
-        return getCommandStreamDataTopicID(
+        return getCommandDataTopicID(
             csInfo.getSystemID().getUniqueID(),
             csInfo.getControlInputName());
     }
     
     
-    public static final String getCommandStreamAckTopicID(String systemUID, String controlInputName)
+    public static final String getCommandStatusTopicID(String systemUID, String controlInputName)
     {
         return getCommandStreamTopicID(systemUID, controlInputName) + ACK_CHANNEL;
     }
     
     
-    public static final String getCommandStreamAckTopicID(IStreamingControlInterface controlInterface)
+    public static final String getCommandStatusTopicID(IStreamingControlInterface controlInterface)
     {
-        return getCommandStreamAckTopicID(
+        return getCommandStatusTopicID(
             controlInterface.getParentProducer().getUniqueIdentifier(),
             controlInterface.getName());
     }
     
     
-    public static final String getCommandStreamAckTopicID(ICommandStreamInfo csInfo)
+    public static final String getCommandStatusTopicID(ICommandStreamInfo csInfo)
     {
-        return getCommandStreamAckTopicID(
+        return getCommandStatusTopicID(
             csInfo.getSystemID().getUniqueID(),
             csInfo.getControlInputName());
     }

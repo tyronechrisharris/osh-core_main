@@ -17,19 +17,22 @@ package org.sensorhub.impl.datastore.command;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
 import org.sensorhub.api.datastore.command.CommandStatsQuery;
+import org.sensorhub.api.datastore.command.ICommandStatusStore;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
+import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 
 
-public class EmptyCommandStore extends ReadOnlyDataStore<BigInteger, ICommandAck, CommandField, CommandFilter> implements ICommandStore
+public class EmptyCommandStore extends ReadOnlyDataStore<BigInteger, ICommandData, CommandField, CommandFilter> implements ICommandStore
 {
     ICommandStreamStore commandStreamStore = new EmptyCommandStreamStore();
+    ICommandStatusStore commandStatusStore = new EmptyCommandStatusStore();
     
     
     public EmptyCommandStore()
@@ -45,23 +48,16 @@ public class EmptyCommandStore extends ReadOnlyDataStore<BigInteger, ICommandAck
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandAck>> selectEntries(CommandFilter query, Set<CommandField> fields)
+    public Stream<Entry<BigInteger, ICommandData>> selectEntries(CommandFilter query, Set<CommandField> fields)
     {
          return Stream.empty();
     }
 
 
     @Override
-    public ICommandAck get(Object key)
+    public ICommandData get(Object key)
     {
         return null;
-    }
-
-
-    @Override
-    public ICommandStreamStore getCommandStreams()
-    {
-        return commandStreamStore;
     }
 
 
@@ -73,9 +69,30 @@ public class EmptyCommandStore extends ReadOnlyDataStore<BigInteger, ICommandAck
 
 
     @Override
-    public BigInteger add(ICommandAck obs)
+    public BigInteger add(ICommandData obs)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public ICommandStreamStore getCommandStreams()
+    {
+        return commandStreamStore;
+    }
+
+
+    @Override
+    public ICommandStatusStore getStatusReports()
+    {
+        return commandStatusStore;
+    }
+
+
+    @Override
+    public void linkTo(IFoiStore foiStore)
+    {
+        throw new UnsupportedOperationException();
     }
 
 }

@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.database;
 
+import org.sensorhub.api.datastore.command.ICommandStatusStore;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -83,6 +84,16 @@ public interface IObsSystemDatabase extends IDatabase
     default ICommandStreamStore getCommandStreamStore()
     {
         return getCommandStore().getCommandStreams();
+    }
+    
+    
+    /**
+     * @return Data store containing status logs of all commands stored
+     * in this database
+     */
+    default ICommandStatusStore getCommandStatusStore()
+    {
+        return getCommandStore().getStatusReports();
     }
     
 }

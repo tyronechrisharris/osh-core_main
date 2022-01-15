@@ -21,15 +21,16 @@ import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
@@ -43,8 +44,7 @@ import org.vast.util.TimeExtent;
 
 /**
  * <p>
- * In-memory implementation of a command stream store backed by a
- * {@link java.util.NavigableMap}.
+ * In-memory implementation of a command stream store backed by a {@link NavigableMap}.
  * </p>
  *
  * @author Alex Robin
@@ -52,8 +52,8 @@ import org.vast.util.TimeExtent;
  */
 public class InMemoryCommandStreamStore implements ICommandStreamStore
 {
-    ConcurrentNavigableMap<CommandStreamKey, ICommandStreamInfo> map = new ConcurrentSkipListMap<>();
-    ConcurrentNavigableMap<Long, Set<CommandStreamKey>> procIdToCsKeys = new ConcurrentSkipListMap<>();
+    NavigableMap<CommandStreamKey, ICommandStreamInfo> map = new ConcurrentSkipListMap<>();
+    NavigableMap<Long, Set<CommandStreamKey>> procIdToCsKeys = new ConcurrentSkipListMap<>();
     InMemoryCommandStore cmdStore;
     ISystemDescStore systemStore;
     
@@ -61,18 +61,19 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
     class CommandStreamInfoWithTimeRanges extends CommandStreamInfoWrapper
     {
         long id;
-        TimeExtent actuationTimeRange;
+        TimeExtent issueTimeRange;
+        TimeExtent executionTimeRange;
         
         CommandStreamInfoWithTimeRanges(long internalID, ICommandStreamInfo csInfo)
         {
             super(csInfo);
             this.id = internalID;
-        }        
+        }
         
         @Override
-        public TimeExtent getActuationTimeRange()
+        public TimeExtent getIssueTimeRange()
         {
-            if (actuationTimeRange == null)
+            if (issueTimeRange == null)
             {
                 var cmdIt = cmdStore.select(new CommandFilter.Builder()
                     .withCommandStreams(id).build()).iterator();
@@ -81,7 +82,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
                 Instant end = Instant.MIN;
                 while (cmdIt.hasNext())
                 {
-                    var t = cmdIt.next().getActuationTime();
+                    var t = cmdIt.next().getIssueTime();
                     if (t.isBefore(begin))
                         begin = t;
                     if (t.isAfter(end))
@@ -89,12 +90,41 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
                 }
                 
                 if (begin == Instant.MAX || end == Instant.MIN)
-                    actuationTimeRange = null;
+                    issueTimeRange = null;
                 else
-                    actuationTimeRange = TimeExtent.period(begin, end);
+                    issueTimeRange = TimeExtent.period(begin, end);
             }
             
-            return actuationTimeRange;
+            return issueTimeRange;
+        }
+        
+        @Override
+        public TimeExtent getExecutionTimeRange()
+        {
+            if (executionTimeRange == null)
+            {
+                var statusIt = cmdStore.cmdStatusStore.select(new CommandStatusFilter.Builder()
+                    .withCommands().withCommandStreams(id).done()
+                    .build()).iterator();
+                
+                Instant begin = Instant.MAX;
+                Instant end = Instant.MIN;
+                while (statusIt.hasNext())
+                {
+                    var te = statusIt.next().getExecutionTime();
+                    if (te.begin().isBefore(begin))
+                        begin = te.begin();
+                    if (te.end().isAfter(end))
+                        end = te.end();
+                }
+                
+                if (begin == Instant.MAX || end == Instant.MIN)
+                    executionTimeRange = null;
+                else
+                    executionTimeRange = TimeExtent.period(begin, end);
+            }
+            
+            return executionTimeRange;
         }
     }
 

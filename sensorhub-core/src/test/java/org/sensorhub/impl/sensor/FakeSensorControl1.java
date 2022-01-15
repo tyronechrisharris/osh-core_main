@@ -19,10 +19,9 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-import org.sensorhub.api.command.CommandAck;
+import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.CommandException;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.vast.swe.SWEHelper;
@@ -69,12 +68,12 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
 
 
     @Override
-    public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback)
+    public CompletableFuture<ICommandStatus> submitCommand(ICommandData command)
     {
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             System.out.println("Received command: " + command);
             receivedCommands.add(command.getParams());
-            callback.accept(CommandAck.success(command));
+            return CommandStatus.completed(command.getID());
         });
     }
 

@@ -15,11 +15,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.function.Consumer;
-import org.sensorhub.api.command.CommandAck;
+import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.CommandException;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandReceiver;
 import org.sensorhub.api.command.IStreamingControlInterface;
@@ -27,6 +25,9 @@ import org.sensorhub.api.event.IEventHandler;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.sensor.SensorException;
 import org.sensorhub.impl.event.BasicEventHandler;
+import org.sensorhub.impl.module.AbstractModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
 import net.opengis.swe.v20.DataBlock;
 
@@ -44,19 +45,42 @@ import net.opengis.swe.v20.DataBlock;
  */
 public abstract class AbstractSensorControl<T extends ICommandReceiver> implements IStreamingControlInterface
 {
-    protected static final String ERROR_NO_ASYNC = "Asynchronous command processing is not supported by driver ";
-    protected static final String ERROR_NO_SCHED = "Command scheduling is not supported by driver ";
-    protected static final String ERROR_NO_STATUS_HISTORY = "Status history is not supported by driver ";
-    protected final String name;
     protected final T parentSensor;
     protected final IEventHandler eventHandler;
+    protected final String name;
+    protected final Logger log;
     
     
     public AbstractSensorControl(String name, T parentSensor)
     {
+        this(name, (T)parentSensor, null);
+    }
+    
+    
+    /**
+     * Constructs a new control input with the given name and attached to the
+     * provided parent sensor.<br/>
+     * @param name
+     * @param parentSensor
+     * @param eventSrcInfo
+     * @param log
+     */
+    public AbstractSensorControl(String name, T parentSensor, Logger log)
+    {
         this.name = Asserts.checkNotNull(name, "name");
         this.parentSensor = Asserts.checkNotNull(parentSensor, "parentSensor");
         this.eventHandler = new BasicEventHandler();
+        
+        // setup logger
+        if (log == null)
+        {
+            if (log == null && parentSensor instanceof AbstractModule)
+                this.log = ((AbstractModule<?>)parentSensor).getLogger();
+            else
+                this.log = LoggerFactory.getLogger(getClass().getCanonicalName());
+        }
+        else
+            this.log = log;
     }
     
     
@@ -82,18 +106,22 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
 
 
     @Override
-    public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback)
+    public CompletableFuture<ICommandStatus> submitCommand(ICommandData command)
     {
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
+            ICommandStatus status;
             try
             {
                 var ok = execCommand(command.getParams());
-                callback.accept(ok ? CommandAck.success(command) : CommandAck.fail(command));
+                status = ok ? CommandStatus.completed(command.getID()) : CommandStatus.failed(command.getID(), null);
             }
-            catch (SensorException e)
+            catch (CommandException e)
             {
-                throw new CompletionException(e);
+                getLogger().error("Error processing command", e);
+                status = CommandStatus.failed(command.getID(), e.getMessage());
             }
+            
+            return status;
         });
     }
 
@@ -107,12 +135,12 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     /**
      * Helper method to implement simple synchronous command logic, backward compatible
      * with existing driver implementations (1.x). For more advanced implementations,
-     * override {@link #executeCommand(ICommandData, Consumer)} directly.
+     * override {@link #submitCommand(ICommandData)} directly.
      * @param cmdData
      * @return
      * @throws SensorException
      */
-    protected boolean execCommand(DataBlock cmdData) throws SensorException
+    protected boolean execCommand(DataBlock cmdData) throws CommandException
     {
         throw new UnsupportedOperationException();
     }
@@ -129,6 +157,12 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     public void unregisterListener(IEventListener listener)
     {
         eventHandler.unregisterListener(listener);
+    }
+    
+    
+    protected Logger getLogger()
+    {
+        return log; 
     }
     
 }

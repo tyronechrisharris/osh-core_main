@@ -16,10 +16,11 @@ package org.sensorhub.api.datastore.command;
 
 import java.math.BigInteger;
 import java.util.stream.Stream;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
+import org.sensorhub.api.datastore.feature.IFoiStore;
 
 
 /**
@@ -29,20 +30,23 @@ import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
  * Commands are organized into command streams. Each command stream contains
  * commands sharing the same schema (i.e. record structure).
  * </p><p>
- * Commands retrieved by select methods are sorted by actuation time.
+ * Commands retrieved by select methods are sorted by issue time.
  * </p>
  *
  * @author Alex Robin
  * @date Mar 11, 2021
  */
-public interface ICommandStore extends IDataStore<BigInteger, ICommandAck, CommandField, CommandFilter>
+public interface ICommandStore extends IDataStore<BigInteger, ICommandData, CommandField, CommandFilter>
 {
     public static class CommandField extends ValueField
     {
         public static final CommandField COMMANDSTREAM_ID = new CommandField("commandStreamID");
+        public static final CommandField SENDER_ID = new CommandField("senderID");
         public static final CommandField ISSUE_TIME = new CommandField("issueTime");
-        public static final CommandField ACTUATION_TIME  = new CommandField("actuationTime");
         public static final CommandField PARAMETERS = new CommandField("params");
+        public static final CommandField ACTUATION_TIME  = new CommandField("actuationTime");
+        public static final CommandField STATUS  = new CommandField("status");
+        public static final CommandField ERROR_MSG  = new CommandField("error");
         
         public CommandField(String name)
         {
@@ -58,11 +62,17 @@ public interface ICommandStore extends IDataStore<BigInteger, ICommandAck, Comma
     
     
     /**
-     * Add an observation to the datastore
-     * @param obs
+     * @return Associated command status store
+     */
+    ICommandStatusStore getStatusReports();
+    
+    
+    /**
+     * Add a command to the datastore
+     * @param cmd
      * @return The auto-generated ID
      */
-    public BigInteger add(ICommandAck obs);
+    public BigInteger add(ICommandData cmd);
     
     
     /**
@@ -88,5 +98,12 @@ public interface ICommandStore extends IDataStore<BigInteger, ICommandAck, Comma
     {
         return filterBuilder().build();
     }
+    
+    
+    /**
+     * Link this store to a feature of interest store to enable JOIN queries
+     * @param foiStore
+     */
+    public void linkTo(IFoiStore foiStore);
     
 }

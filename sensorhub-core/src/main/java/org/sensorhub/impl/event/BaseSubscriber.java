@@ -50,7 +50,7 @@ public abstract class BaseSubscriber<T> implements Subscriber<T>
     @Override
     public void onError(Throwable e)
     {
-        log.info("Error received by subscriber {}", name, e);
+        log.error("Error received by subscriber {}", name, e);
     }
 
 }

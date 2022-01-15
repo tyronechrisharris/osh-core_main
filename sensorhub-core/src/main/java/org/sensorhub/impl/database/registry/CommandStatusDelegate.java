@@ -16,78 +16,70 @@ package org.sensorhub.impl.database.registry;
 
 import java.math.BigInteger;
 import java.time.Instant;
-import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.command.ICommandStatus;
 import org.vast.util.Asserts;
-import net.opengis.swe.v20.DataBlock;
+import org.vast.util.TimeExtent;
 
 
 /**
  * <p>
- * ICommandData delegate used to override behavior of an existing ICommandData
- * implementation. 
+ * ICommandStatus delegate used to override behavior of an existing
+ * ICommandStatus implementation. 
  * </p>
  *
  * @author Alex Robin
- * @date Mar 24, 2021
+ * @date Dec 22, 2021
  */
-public class CommandDelegate implements ICommandData
+public class CommandStatusDelegate implements ICommandStatus
 {
-    ICommandData delegate;
+    ICommandStatus delegate;
 
 
-    public CommandDelegate(ICommandData delegate)
+    public CommandStatusDelegate(ICommandStatus delegate)
     {
         this.delegate = Asserts.checkNotNull(delegate, "delegate");
     }
-
-
-    @Override
-    public BigInteger getID()
-    {
-        return delegate.getID();
-    }
     
     
     @Override
-    public long getCommandStreamID()
+    public BigInteger getCommandID()
     {
-        return delegate.getCommandStreamID();
+        return delegate.getCommandID();
     }
 
 
     @Override
-    public long getFoiID()
+    public Instant getReportTime()
     {
-        return delegate.getFoiID();
+        return delegate.getReportTime();
     }
 
 
     @Override
-    public String getSenderID()
+    public CommandStatusCode getStatusCode()
     {
-        return delegate.getSenderID();
+        return delegate.getStatusCode();
     }
 
 
     @Override
-    public Instant getIssueTime()
+    public TimeExtent getExecutionTime()
     {
-        return delegate.getIssueTime();
+        return delegate.getExecutionTime();
     }
 
 
     @Override
-    public DataBlock getParams()
+    public int getProgress()
     {
-        return delegate.getParams();
+        return delegate.getProgress();
     }
 
 
     @Override
-    public void assignID(BigInteger id)
+    public String getMessage()
     {
-        throw new UnsupportedOperationException();
-        
+        return delegate.getMessage();
     }
     
 }

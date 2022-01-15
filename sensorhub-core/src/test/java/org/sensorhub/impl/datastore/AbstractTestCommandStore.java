@@ -17,6 +17,8 @@ package org.sensorhub.impl.datastore;
 import static org.junit.Assert.*;
 import java.math.BigInteger;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,17 +34,22 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.system.SystemId;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
-import org.sensorhub.api.command.ICommandAck.CommandStatusCode;
-import org.sensorhub.api.command.ICommandAck;
-import org.sensorhub.api.command.CommandAck;
+import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
+import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.command.ICommandStatus;
+import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.CommandData;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
+import org.vast.util.TimeExtent;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import net.opengis.swe.v20.DataComponent;
 
@@ -65,7 +72,8 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     
     protected StoreType cmdStore;
     protected Map<CommandStreamKey, ICommandStreamInfo> allCommandStreams = new LinkedHashMap<>();
-    protected Map<BigInteger, ICommandAck> allCommands = new LinkedHashMap<>();
+    protected Map<BigInteger, ICommandData> allCommands = new LinkedHashMap<>();
+    protected Map<BigInteger, Map<BigInteger, ICommandStatus>> allStatus = new LinkedHashMap<>();
 
 
     protected abstract StoreType initStore() throws Exception;
@@ -108,12 +116,12 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
         var builder = fac.createRecord()
             .name(outputName);
         for (int i=0; i<5; i++)
-            builder.addField("comp"+i, fac.createQuantity().build());        
+            builder.addField("comp"+i, fac.createQuantity().build());
         return addCommandStream(sysID, builder.build());
     }
 
 
-    protected BigInteger addCommand(ICommandAck cmd)
+    protected BigInteger addCommand(ICommandData cmd)
     {
         BigInteger key = cmdStore.add(cmd);
         allCommands.put(key, cmd);
@@ -121,15 +129,36 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
+    protected BigInteger addStatus(ICommandStatus status)
+    {
+        BigInteger key = cmdStore.getStatusReports().add(status);
+        
+        allStatus.compute(status.getCommandID(), (k, v) -> {
+            if (v == null)
+                 v = new LinkedHashMap<>();
+            v.put(key, status);
+            return v;
+        });
+        
+        return key;
+    }
+
+
     protected void addCommands(long csID, Instant startTime, int numObs) throws Exception
     {
-        addCommands(csID, startTime, numObs, 60000, true);
+        addCommands(csID, startTime, numObs, 60000, null);
     }
     
     
-    protected Map<BigInteger, ICommandAck> addCommands(long csID, Instant startTime, int numCmds, long timeStepMillis, Boolean success) throws Exception
+    protected Map<BigInteger, ICommandData> addCommands(long csID, Instant startTime, int numCmds, long timeStepMillis) throws Exception
     {
-        Map<BigInteger, ICommandAck> addedCmds = new LinkedHashMap<>();
+        return addCommands(csID, startTime, numCmds, timeStepMillis, null);
+    }
+    
+    
+    protected Map<BigInteger, ICommandData> addCommands(long csID, Instant startTime, int numCmds, long timeStepMillis, CommandStatusCode statusCode) throws Exception
+    {
+        Map<BigInteger, ICommandData> addedCmds = new LinkedHashMap<>();
         
         for (int i = 0; i < numCmds; i++)
         {
@@ -144,10 +173,32 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
                 .withParams(data)
                 .build();
 
-            var successFlag = (success == null) ? i % 2 == 0 : success;
-            var cmdAck = successFlag ? CommandAck.success(cmd, ts) : CommandAck.fail(cmd);
-            BigInteger key = addCommand(cmdAck);
-            addedCmds.put(key, cmdAck);
+            BigInteger cmdKey = addCommand(cmd);
+            addedCmds.put(cmdKey, cmd);
+            
+            if (statusCode != null)
+            {
+                ICommandStatus status;
+                switch (statusCode)
+                {
+                    case COMPLETED:
+                        status = CommandStatus.completed(cmdKey, TimeExtent.instant(ts));
+                        break;
+                        
+                    case FAILED:
+                        status = CommandStatus.failed(cmdKey, "Task failed");
+                        break;
+                    
+                    case ACCEPTED:
+                        status = CommandStatus.accepted(cmdKey);
+                        break;
+                        
+                    default:
+                        continue;
+                }
+                
+                addStatus(status);
+            }
         }
 
         System.out.println("Inserted " + numCmds + " commands " +
@@ -157,14 +208,12 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    private void checkCommandDataWithAckEqual(ICommandAck o1, ICommandAck o2)
+    private void checkCommandDataEqual(ICommandData o1, ICommandData o2)
     {
         assertEquals(o1.getCommandStreamID(), o2.getCommandStreamID());
         assertEquals(o1.getSenderID(), o2.getSenderID());
+        assertEquals(o1.getFoiID(), o2.getFoiID());
         assertEquals(o1.getIssueTime(), o2.getIssueTime());
-        assertEquals(o1.getActuationTime(), o2.getActuationTime());
-        assertEquals(o1.getStatusCode(), o2.getStatusCode());
-        assertEquals(o1.getError(), o2.getError());
         assertEquals(o1.getParams().getClass(), o2.getParams().getClass());
         assertEquals(o1.getParams().getAtomCount(), o2.getParams().getAtomCount());
     }
@@ -184,10 +233,10 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     {
         assertEquals(expectedNumObs, cmdStore.getNumRecords());
 
-        for (Entry<BigInteger, ICommandAck> entry: allCommands.entrySet())
+        for (Entry<BigInteger, ICommandData> entry: allCommands.entrySet())
         {
-            ICommandAck cmd = cmdStore.get(entry.getKey());
-            checkCommandDataWithAckEqual(cmd, entry.getValue());
+            ICommandData cmd = cmdStore.get(entry.getKey());
+            checkCommandDataEqual(cmd, entry.getValue());
         }
     }
 
@@ -273,7 +322,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     public void testAddAndCheckMapKeys() throws Exception
     {
         var csKey = addSimpleCommandStream(10, "out1");
-        addCommands(csKey.getInternalID(), Instant.parse("2000-01-01T00:00:00Z"), 100);
+        addCommands(csKey.getInternalID(), Instant.parse("2000-01-01T00:00:00Z"), 10);
         checkMapKeySet(cmdStore.keySet());
 
         forceReadBackFromStorage();
@@ -293,12 +342,12 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    private void checkMapValues(Collection<ICommandAck> mapValues)
+    private void checkMapValues(Collection<ICommandData> mapValues)
     {
         mapValues.forEach(obs -> {
             boolean found = false;
-            for (ICommandAck truth: allCommands.values()) {
-                try { checkCommandDataWithAckEqual(obs, truth); found = true; break; }
+            for (ICommandData truth: allCommands.values()) {
+                try { checkCommandDataEqual(obs, truth); found = true; break; }
                 catch (Throwable e) {}
             }
             if (!found)
@@ -360,39 +409,81 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandAck>> resultStream, Map<BigInteger, ICommandAck> expectedResults, CommandFilter filter)
+    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandData>> resultStream, Map<BigInteger, ICommandData> expectedResults, CommandFilter filter)
     {
         System.out.println("Select cmd with " + filter);
 
-        Map<BigInteger, ICommandAck> resultMap = resultStream
-                //.peek(e -> System.out.println(e.getKey()))
-                //.peek(e -> System.out.println(Arrays.toString((double[])e.getValue().getResult().getUnderlyingObject())))
+        Map<BigInteger, ICommandData> resultMap = resultStream
+                .peek(e -> System.out.println(e.getKey() + ": " + e.getValue()))
                 .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         System.out.println(resultMap.size() + " entries selected");
         assertEquals(expectedResults.size(), resultMap.size());
         
         resultMap.forEach((k, v) -> {
             assertTrue("Result set contains extra key "+k, expectedResults.containsKey(k));
-            checkCommandDataWithAckEqual(expectedResults.get(k), v);
+            checkCommandDataEqual(expectedResults.get(k), v);
         });
 
         expectedResults.forEach((k, v) -> {
             assertTrue("Result set is missing key "+k, resultMap.containsKey(k));
         });
     }
+    
+    
+    @Test
+    public void testSelectCommandsByMultipleIDs() throws Exception
+    {
+        Stream<Entry<BigInteger, ICommandData>> resultStream;
+        CommandFilter filter;
+
+        var csKey = addSimpleCommandStream(10, "out1");
+        var startTime1 = Instant.parse("1918-02-11T08:12:06.897Z");
+        var cmdBatch1 = addCommands(csKey.getInternalID(), startTime1, 12, 1000);
+        var startTime2 = Instant.parse("3019-05-31T10:46:03.258Z");
+        var cmdBatch2 = addCommands(csKey.getInternalID(), startTime2, 23, 10000);
+        
+        // all from batch 1
+        filter = new CommandFilter.Builder()
+            .withInternalIDs(cmdBatch1.keySet())
+            .build();
+        resultStream = cmdStore.selectEntries(filter);
+        checkSelectedEntries(resultStream, cmdBatch1, filter);
+        
+        forceReadBackFromStorage();
+        
+        // all from batch 2
+        filter = new CommandFilter.Builder()
+            .withInternalIDs(cmdBatch2.keySet())
+            .build();
+        resultStream = cmdStore.selectEntries(filter);
+        checkSelectedEntries(resultStream, cmdBatch2, filter);
+        
+        // one from each batch
+        filter = new CommandFilter.Builder()
+            .withInternalIDs(
+                Iterators.get(cmdBatch1.keySet().iterator(), 3),
+                Iterators.get(cmdBatch2.keySet().iterator(), 10))
+            .build();
+        resultStream = cmdStore.selectEntries(filter);
+        var expectedResults = ImmutableMap.<BigInteger, ICommandData>builder()
+            .put(Iterators.get(cmdBatch1.entrySet().iterator(), 3))
+            .put(Iterators.get(cmdBatch2.entrySet().iterator(), 10))
+            .build();
+        checkSelectedEntries(resultStream, expectedResults, filter);
+    }
 
 
     @Test
     public void testSelectCommandsByDataStreamIDAndTime() throws Exception
     {
-        Stream<Entry<BigInteger, ICommandAck>> resultStream;
+        Stream<Entry<BigInteger, ICommandData>> resultStream;
         CommandFilter filter;
 
         var csKey = addSimpleCommandStream(10, "out1");
-        Instant startTime1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        Map<BigInteger, ICommandAck> cmdBatch1 = addCommands(csKey.getInternalID(), startTime1, 55, 1000, true);
-        Instant startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
-        Map<BigInteger, ICommandAck> cmdBatch2 = addCommands(csKey.getInternalID(), startTime2, 100, 10000, false);
+        var startTime1 = Instant.parse("2018-02-11T08:12:06.897Z");
+        var cmdBatch1 = addCommands(csKey.getInternalID(), startTime1, 55, 1000);
+        var startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
+        var cmdBatch2 = addCommands(csKey.getInternalID(), startTime2, 100, 10000);
 
         // correct stream ID and all times
         filter = new CommandFilter.Builder()
@@ -409,15 +500,6 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
         forceReadBackFromStorage();
         resultStream = cmdStore.selectEntries(filter);
         checkSelectedEntries(resultStream, allCommands, filter);
-
-        // correct stream ID and actuation time range containing all
-        // this should select only successful commands since failed ones have no actuation time
-        filter = new CommandFilter.Builder()
-            .withCommandStreams(csKey.getInternalID())
-            .withActuationTimeDuring(startTime1, startTime2.plus(1, ChronoUnit.DAYS))
-            .build();
-        resultStream = cmdStore.selectEntries(filter);
-        checkSelectedEntries(resultStream, cmdBatch1, filter);
 
         // correct stream ID and issue time range containing only batch 1
         filter = new CommandFilter.Builder()
@@ -458,7 +540,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
         // incorrect time range
         filter = new CommandFilter.Builder()
             .withCommandStreams(csKey.getInternalID())
-            .withActuationTimeDuring(startTime1.minus(100, ChronoUnit.DAYS), startTime1.minusMillis(1))
+            .withIssueTimeDuring(startTime1.minus(100, ChronoUnit.DAYS), startTime1.minusMillis(1))
             .build();
         resultStream = cmdStore.selectEntries(filter);
         checkSelectedEntries(resultStream, Collections.emptyMap(), filter);
@@ -468,27 +550,29 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     @Test
     public void testSelectCommandsByDataStreamIDAndPredicates() throws Exception
     {
-        Stream<Entry<BigInteger, ICommandAck>> resultStream;
-        Map<BigInteger, ICommandAck> expectedResults;
+        Stream<Entry<BigInteger, ICommandData>> resultStream;
+        Map<BigInteger, ICommandData> expectedResults;
         CommandFilter filter;
 
         var cs1 = addSimpleCommandStream(1, "out1");
-        Instant startTime1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        Map<BigInteger, ICommandAck> cmdBatch1 = addCommands(cs1.getInternalID(), startTime1, 55, 1000, null);
-        Instant startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
-        Map<BigInteger, ICommandAck> cmdBatch2 = addCommands(cs1.getInternalID(), startTime2, 100, 10000, true);
+        var startTime1 = Instant.parse("2018-02-11T08:12:06.897Z");
+        var cmdBatch1 = addCommands(cs1.getInternalID(), startTime1, 55, 1000, null);
+        var startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
+        var cmdBatch2 = addCommands(cs1.getInternalID(), startTime2, 100, 10000, null);
+        
+        forceReadBackFromStorage();
 
         var cs2 = addSimpleCommandStream(1, "out2");
-        Instant startProc2Batch1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        addCommands(cs2.getInternalID(), startProc2Batch1, 10, 10*24*3600*1000L, true);
+        var startTime3 = Instant.parse("2018-02-11T08:12:06.897Z");
+        var cmdBatch3 = addCommands(cs2.getInternalID(), startTime3, 10, 10*24*3600*1000L, null);
 
-        // command stream 1 and predicate to select by status code
+        // command stream 1 and predicate to select by every 10s
         filter = new CommandFilter.Builder()
             .withCommandStreams(cs1.getInternalID(), cs2.getInternalID())
-            .withValuePredicate(v -> v.getStatusCode() == CommandStatusCode.SUCCESS)
+            .withValuePredicate(v -> v.getIssueTime().atOffset(ZoneOffset.UTC).getLong(ChronoField.MINUTE_OF_HOUR) == 12)
             .build();
         resultStream = cmdStore.selectEntries(filter);
-        expectedResults = Maps.filterValues(allCommands, v -> v.getStatusCode() == CommandStatusCode.SUCCESS);
+        expectedResults = Maps.filterValues(allCommands, v -> v.getIssueTime().atOffset(ZoneOffset.UTC).getLong(ChronoField.MINUTE_OF_HOUR) == 12);
         checkSelectedEntries(resultStream, expectedResults, filter);
 
         // command stream 1 and predicate to select param < 10
@@ -500,26 +584,71 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
         expectedResults = new LinkedHashMap<>();
         var finalExpectedResults = expectedResults;
         cmdBatch1.entrySet().stream().limit(10).forEach(e -> finalExpectedResults.put(e.getKey(), e.getValue()));
-        cmdBatch2.entrySet().stream().limit(10).forEach(e -> finalExpectedResults.put(e.getKey(), e.getValue()));        
+        cmdBatch2.entrySet().stream().limit(10).forEach(e -> finalExpectedResults.put(e.getKey(), e.getValue()));
         checkSelectedEntries(resultStream, finalExpectedResults, filter);
+    }
+
+
+    @Test
+    public void testSelectCommandsByDataStreamIDAndStatus() throws Exception
+    {
+        Stream<Entry<BigInteger, ICommandData>> resultStream;
+        CommandFilter filter;
+
+        var cs1 = addSimpleCommandStream(1, "out1");
+        var startTime1 = Instant.parse("2018-02-11T08:12:06.897Z");
+        var cmdBatch1 = addCommands(cs1.getInternalID(), startTime1, 2, 1000, CommandStatusCode.FAILED);
+        var startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
+        var cmdBatch2 = addCommands(cs1.getInternalID(), startTime2, 2, 10000, CommandStatusCode.COMPLETED);
+
+        var cs2 = addSimpleCommandStream(1, "out2");
+        var startTime3 = Instant.parse("2018-02-11T08:12:06.897Z");
+        var cmdBatch3 = addCommands(cs2.getInternalID(), startTime3, 2, 10*24*3600*1000L, CommandStatusCode.ACCEPTED);
+
+        // filter by status code
+        filter = new CommandFilter.Builder()
+            .withCommandStreams(cs1.getInternalID())
+            .withLatestStatus(CommandStatusCode.COMPLETED)
+            .build();
+        resultStream = cmdStore.selectEntries(filter);
+        checkSelectedEntries(resultStream, cmdBatch2, filter);
+        
+        forceReadBackFromStorage();
+        
+        filter = new CommandFilter.Builder()
+            .withCommandStreams(cs1.getInternalID(), cs2.getInternalID())
+            .withLatestStatus(CommandStatusCode.ACCEPTED)
+            .build();
+        resultStream = cmdStore.selectEntries(filter);
+        checkSelectedEntries(resultStream, cmdBatch3, filter);
+        
+        // filter by execution time range
+        // this should select only successful commands since failed ones have no execution time
+        filter = new CommandFilter.Builder()
+            .withCommandStreams(cs1.getInternalID())
+            .withStatus()
+                .withExecutionTimeDuring(startTime2, startTime2.plus(1, ChronoUnit.DAYS))
+                .done()
+            .build();
+        resultStream = cmdStore.selectEntries(filter);
+        checkSelectedEntries(resultStream, cmdBatch2, filter);
     }
 
 
     @Test
     public void testSelectCommandsByCommandStreamFilter() throws Exception
     {
-        Stream<Entry<BigInteger, ICommandAck>> resultStream;
-        Map<BigInteger, ICommandAck> expectedResults = new LinkedHashMap<>();
+        Stream<Entry<BigInteger, ICommandData>> resultStream;
+        Map<BigInteger, ICommandData> expectedResults = new LinkedHashMap<>();
         CommandFilter filter;
 
         var cs1 = addSimpleCommandStream(1, "test1");
         var cs2 = addSimpleCommandStream(1, "test2");
 
-        Instant startBatch1 = Instant.parse("2018-02-11T08:12:06.897Z");
-        Map<BigInteger, ICommandAck> cmdBatch1 = addCommands(cs1.getInternalID(), startBatch1, 55, 1000, true);
-
-        Instant startBatch2 = Instant.parse("2018-02-11T08:11:48.125Z");
-        Map<BigInteger, ICommandAck> cmdBatch2 = addCommands(cs2.getInternalID(), startBatch2, 10, 1200, false);
+        var startBatch1 = Instant.parse("2018-02-11T08:12:06.897Z");
+        var cmdBatch1 = addCommands(cs1.getInternalID(), startBatch1, 55, 1000, CommandStatusCode.COMPLETED);
+        var startBatch2 = Instant.parse("2018-02-11T08:11:48.125Z");
+        var cmdBatch2 = addCommands(cs2.getInternalID(), startBatch2, 10, 1200, CommandStatusCode.FAILED);
 
         // command stream 2 by ID
         filter = new CommandFilter.Builder()
@@ -547,6 +676,82 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
             .build();
         resultStream = cmdStore.selectEntries(filter);
         checkSelectedEntries(resultStream, cmdBatch1, filter);
+    }
+    
+    
+    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandStatus>> resultStream, Map<BigInteger, ICommandStatus> expectedResults, CommandStatusFilter filter)
+    {
+        System.out.println("Select status with " + filter);
+
+        var resultMap = resultStream
+                .peek(e -> System.out.println(e.getKey() + ": " + e.getValue()))
+                //.peek(e -> System.out.println(Arrays.toString((double[])e.getValue().getResult().getUnderlyingObject())))
+                .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        System.out.println(resultMap.size() + " entries selected");
+        assertEquals(expectedResults.size(), resultMap.size());
+        
+        resultMap.forEach((k, v) -> {
+            assertTrue("Result set contains extra key "+k, expectedResults.containsKey(k));
+            checkCommandStatusEqual(expectedResults.get(k), v);
+        });
+
+        expectedResults.forEach((k, v) -> {
+            assertTrue("Result set is missing key "+k, resultMap.containsKey(k));
+        });
+    }
+
+
+    private void checkCommandStatusEqual(ICommandStatus o1, ICommandStatus o2)
+    {
+        assertEquals(o1.getCommandID(), o2.getCommandID());
+        assertEquals(o1.getExecutionTime(), o2.getExecutionTime());
+        assertEquals(o1.getMessage(), o2.getMessage());
+        assertEquals(o1.getProgress(), o2.getProgress());
+        assertEquals(o1.getReportTime(), o2.getReportTime());
+        assertEquals(o1.getStatusCode(), o2.getStatusCode());
+    }
+    
+    
+    @Test
+    public void testSelectStatusByCommand() throws Exception
+    {
+        Stream<Entry<BigInteger, ICommandStatus>> resultStream;
+        Map<BigInteger, ICommandStatus> expectedResults;
+        CommandStatusFilter filter;
+
+        var cs1 = addSimpleCommandStream(1, "out1");
+        var startTime1 = Instant.parse("2018-02-11T08:12:06.897Z");
+        var cmdBatch1 = addCommands(cs1.getInternalID(), startTime1, 2, 1000, CommandStatusCode.FAILED);
+        var startTime2 = Instant.parse("2019-05-31T10:46:03.258Z");
+        var cmdBatch2 = addCommands(cs1.getInternalID(), startTime2, 2, 10000, CommandStatusCode.COMPLETED);
+        
+        var cs2 = addSimpleCommandStream(1, "out2");
+        var startTime3 = Instant.parse("2018-02-11T08:12:06.897Z");
+        var cmdBatch3 = addCommands(cs2.getInternalID(), startTime3, 1, 10*24*3600*1000L, CommandStatusCode.COMPLETED);
+
+        // filter by command only
+        filter = new CommandStatusFilter.Builder()
+            .withCommands(cmdBatch2.keySet())
+            .build();
+        resultStream = cmdStore.getStatusReports().selectEntries(filter);
+        expectedResults = cmdBatch2.keySet().stream()
+            .flatMap(k -> allStatus.get(k).entrySet().stream())
+            //.peek(e -> System.out.println(e))
+            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+        checkSelectedEntries(resultStream, expectedResults, filter);
+        
+        // filter by commands and status
+        filter = new CommandStatusFilter.Builder()
+            .withCommands()
+                .withCommandStreams(cs1.getInternalID())
+                .done()
+            .withStatus(CommandStatusCode.COMPLETED)
+            .build();
+        resultStream = cmdStore.getStatusReports().selectEntries(filter);
+        expectedResults = cmdBatch2.keySet().stream()
+            .flatMap(k -> allStatus.get(k).entrySet().stream())
+            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+        checkSelectedEntries(resultStream, expectedResults, filter);
     }
     
     

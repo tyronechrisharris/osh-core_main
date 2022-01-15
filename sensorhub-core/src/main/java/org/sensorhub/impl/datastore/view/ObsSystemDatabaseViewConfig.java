@@ -57,9 +57,6 @@ public class ObsSystemDatabaseViewConfig
     
     public ObsFilter getObsFilter()
     {
-        if (includeFilter == null)
-            return null;
-        
         if (includeFilter instanceof ObsFilter)
         {
             return (ObsFilter)includeFilter;
@@ -77,15 +74,12 @@ public class ObsSystemDatabaseViewConfig
                 .build();
         }
         else
-            throw new IllegalStateException("Invalid filtered view configuration");
+            return null;
     }
     
     
     public CommandFilter getCommandFilter()
     {
-        if (includeFilter == null)
-            return null;
-        
         if (includeFilter instanceof CommandFilter)
         {
             return (CommandFilter)includeFilter;
@@ -103,6 +97,6 @@ public class ObsSystemDatabaseViewConfig
                 .build();
         }
         else
-            throw new IllegalStateException("Invalid filtered view configuration");
+            return null;
     }
 }

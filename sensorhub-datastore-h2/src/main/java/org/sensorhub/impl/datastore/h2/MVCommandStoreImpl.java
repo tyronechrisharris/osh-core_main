@@ -34,7 +34,7 @@ import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
 import org.h2.mvstore.WriteBuffer;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.command.CommandFilter;
@@ -43,6 +43,7 @@ import org.sensorhub.api.datastore.command.CommandStatsQuery;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
+import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.MergeSortSpliterator;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
@@ -76,9 +77,10 @@ public class MVCommandStoreImpl implements ICommandStore
     protected MVStore mvStore;
     protected MVDataStoreInfo dataStoreInfo;
     protected MVCommandStreamStoreImpl cmdStreamStore;
-    protected MVBTreeMap<MVTimeSeriesRecordKey, ICommandAck> cmdRecordsIndex;
+    protected MVBTreeMap<MVTimeSeriesRecordKey, ICommandData> cmdRecordsIndex;
     protected MVBTreeMap<MVTimeSeriesKey, MVTimeSeriesInfo> cmdSeriesMainIndex;
     
+    protected IFoiStore foiStore;
     protected int maxSelectedSeriesOnJoin = 200;
     
     
@@ -166,7 +168,7 @@ public class MVCommandStoreImpl implements ICommandStore
         
         // commands map
         String mapName = dataStoreInfo.getName() + ":" + CMD_RECORDS_MAP_NAME;
-        this.cmdRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, ICommandAck>()
+        this.cmdRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, ICommandData>()
                 .keyType(new MVTimeSeriesRecordKeyDataType())
                 .valueType(new CommandDataType(kryoClassMap)));
         
@@ -231,7 +233,7 @@ public class MVCommandStoreImpl implements ICommandStore
     }
     
     
-    RangeCursor<MVTimeSeriesRecordKey, ICommandAck> getCommandCursor(long seriesID, Range<Instant> issueTimeRange)
+    RangeCursor<MVTimeSeriesRecordKey, ICommandData> getCommandCursor(long seriesID, Range<Instant> issueTimeRange)
     {
         MVTimeSeriesRecordKey first = new MVTimeSeriesRecordKey(seriesID, issueTimeRange.lowerEndpoint());
         MVTimeSeriesRecordKey last = new MVTimeSeriesRecordKey(seriesID, issueTimeRange.upperEndpoint());        
@@ -239,13 +241,13 @@ public class MVCommandStoreImpl implements ICommandStore
     }
     
     
-    Stream<Entry<BigInteger, ICommandAck>> getCommandStream(MVTimeSeriesInfo series, Range<Instant> issueTimeRange, boolean latestOnly)
+    Stream<Entry<BigInteger, ICommandData>> getCommandStream(MVTimeSeriesInfo series, Range<Instant> issueTimeRange, boolean latestOnly)
     {        
         // if request if for latest only, get only the latest command in series
         if (latestOnly)
         {
             MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.MAX);
-            Entry<MVTimeSeriesRecordKey, ICommandAck> e = cmdRecordsIndex.floorEntry(maxKey);
+            Entry<MVTimeSeriesRecordKey, ICommandData> e = cmdRecordsIndex.floorEntry(maxKey);
             if (e != null && e.getKey().seriesID == series.id)
                 return Stream.of(mapToPublicEntry(e));
             else
@@ -254,7 +256,7 @@ public class MVCommandStoreImpl implements ICommandStore
         
         // scan using a cursor on main command index
         // recreating full entries in the process
-        RangeCursor<MVTimeSeriesRecordKey, ICommandAck> cursor = getCommandCursor(series.id, issueTimeRange);
+        RangeCursor<MVTimeSeriesRecordKey, ICommandData> cursor = getCommandCursor(series.id, issueTimeRange);
         return cursor.entryStream()
             .map(e -> {
                 return mapToPublicEntry(e);
@@ -294,7 +296,7 @@ public class MVCommandStoreImpl implements ICommandStore
     }
     
     
-    Entry<BigInteger, ICommandAck> mapToPublicEntry(Entry<MVTimeSeriesRecordKey, ICommandAck> internalEntry)
+    Entry<BigInteger, ICommandData> mapToPublicEntry(Entry<MVTimeSeriesRecordKey, ICommandData> internalEntry)
     {
         BigInteger cmdID = mapToPublicKey(internalEntry.getKey());
         return new DataUtils.MapEntry<>(cmdID, internalEntry.getValue());
@@ -328,7 +330,7 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandAck>> selectEntries(CommandFilter filter, Set<CommandField> fields)
+    public Stream<Entry<BigInteger, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {        
         // stream command directly in case of filtering by internal IDs
         if (filter.getInternalIDs() != null)
@@ -347,7 +349,7 @@ public class MVCommandStoreImpl implements ICommandStore
         
         // create command streams for each selected series
         // and keep all spliterators in array list
-        final var cmdStreams = new ArrayList<Stream<Entry<BigInteger, ICommandAck>>>(100);
+        final var cmdStreams = new ArrayList<Stream<Entry<BigInteger, ICommandData>>>(100);
         cmdStreams.add(cmdSeries
             .peek(s -> {
                 // make sure list size cannot go over a threshold
@@ -355,24 +357,24 @@ public class MVCommandStoreImpl implements ICommandStore
                     throw new IllegalStateException("Too many command streams or command receivers selected. Please refine your filter");
             })
             .flatMap(series -> {
-                Stream<Entry<BigInteger, ICommandAck>> cmdStream = getCommandStream(series, timeParams.issueTimeRange,
+                Stream<Entry<BigInteger, ICommandData>> cmdStream = getCommandStream(series, timeParams.issueTimeRange,
                     timeParams.currentTimeOnly || timeParams.latestResultOnly);
                 return getPostFilteredResultStream(cmdStream, filter);
-            }));        
+            }));
         
         
         // stream and merge commands from all selected command streams and time periods
-        MergeSortSpliterator<Entry<BigInteger, ICommandAck>> mergeSortIt = new MergeSortSpliterator<>(cmdStreams,
-                (e1, e2) -> e1.getValue().getActuationTime().compareTo(e2.getValue().getActuationTime()));         
+        MergeSortSpliterator<Entry<BigInteger, ICommandData>> mergeSortIt = new MergeSortSpliterator<>(cmdStreams,
+                (e1, e2) -> e1.getValue().getIssueTime().compareTo(e2.getValue().getIssueTime()));
                
-        // stream output of merge sort iterator + apply limit        
+        // stream output of merge sort iterator + apply limit
         return StreamSupport.stream(mergeSortIt, false)
             .limit(filter.getLimit())
             .onClose(() -> mergeSortIt.close());
     }
     
     
-    Stream<Entry<BigInteger, ICommandAck>> getPostFilteredResultStream(Stream<Entry<BigInteger, ICommandAck>> resultStream, CommandFilter filter)
+    Stream<Entry<BigInteger, ICommandData>> getPostFilteredResultStream(Stream<Entry<BigInteger, ICommandData>> resultStream, CommandFilter filter)
     {
         return resultStream.filter(e -> filter.test(e.getValue()));
     }
@@ -590,7 +592,7 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public ICommandAck get(Object key)
+    public ICommandData get(Object key)
     {
         MVTimeSeriesRecordKey cmdKey = mapToInternalKey(key);
         return cmdKey == null ? null : cmdRecordsIndex.get(cmdKey);
@@ -605,14 +607,14 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public Set<Entry<BigInteger, ICommandAck>> entrySet()
+    public Set<Entry<BigInteger, ICommandData>> entrySet()
     {
         return new AbstractSet<>() {        
             @Override
-            public Iterator<Entry<BigInteger, ICommandAck>> iterator() {
+            public Iterator<Entry<BigInteger, ICommandData>> iterator() {
                 return getAllCommandSeries()
                     .flatMap(series -> {
-                        RangeCursor<MVTimeSeriesRecordKey, ICommandAck> cursor = getCommandCursor(series.id, H2Utils.ALL_TIMES_RANGE);
+                        RangeCursor<MVTimeSeriesRecordKey, ICommandData> cursor = getCommandCursor(series.id, H2Utils.ALL_TIMES_RANGE);
                         return cursor.entryStream().map(e -> {
                             return mapToPublicEntry(e);
                         });
@@ -640,7 +642,7 @@ public class MVCommandStoreImpl implements ICommandStore
             public Iterator<BigInteger> iterator() {
                 return getAllCommandSeries()
                     .flatMap(series -> {
-                        RangeCursor<MVTimeSeriesRecordKey, ICommandAck> cursor = getCommandCursor(series.id, H2Utils.ALL_TIMES_RANGE);
+                        RangeCursor<MVTimeSeriesRecordKey, ICommandData> cursor = getCommandCursor(series.id, H2Utils.ALL_TIMES_RANGE);
                         return cursor.keyStream().map(e -> {
                             return mapToPublicKey(e);
                         });
@@ -661,7 +663,7 @@ public class MVCommandStoreImpl implements ICommandStore
     
     
     @Override
-    public BigInteger add(ICommandAck cmd)
+    public BigInteger add(ICommandData cmd)
     {
         // check that command stream exists
         if (!cmdStreamStore.containsKey(new CommandStreamKey(cmd.getCommandStreamID())))
@@ -697,7 +699,7 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public ICommandAck put(BigInteger key, ICommandAck cmd)
+    public ICommandData put(BigInteger key, ICommandData cmd)
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -707,7 +709,7 @@ public class MVCommandStoreImpl implements ICommandStore
             try
             {
                 MVTimeSeriesRecordKey cmdKey = mapToInternalKey(key);
-                ICommandAck oldCmd = cmdRecordsIndex.replace(cmdKey, cmd);
+                ICommandData oldCmd = cmdRecordsIndex.replace(cmdKey, cmd);
                 if (oldCmd == null)
                     throw new UnsupportedOperationException("put can only be used to update existing keys");
                 return oldCmd;
@@ -722,7 +724,7 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public ICommandAck remove(Object keyObj)
+    public ICommandData remove(Object keyObj)
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -732,7 +734,7 @@ public class MVCommandStoreImpl implements ICommandStore
             try
             {
                 MVTimeSeriesRecordKey key = mapToInternalKey(keyObj);
-                ICommandAck oldCmd = cmdRecordsIndex.remove(key);
+                ICommandData oldCmd = cmdRecordsIndex.remove(key);
                 
                 // don't check and remove empty command series here since in many cases they will be reused.
                 // it can be done automatically during cleanup/compaction phase or with specific method.
@@ -778,7 +780,7 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public Collection<ICommandAck> values()
+    public Collection<ICommandData> values()
     {
         return cmdRecordsIndex.values();
     }
@@ -810,5 +812,12 @@ public class MVCommandStoreImpl implements ICommandStore
     public boolean isReadOnly()
     {
         return mvStore.isReadOnly();
+    }
+    
+    
+    @Override
+    public void linkTo(IFoiStore foiStore)
+    {
+        this.foiStore = Asserts.checkNotNull(foiStore, IFoiStore.class);
     }
 }

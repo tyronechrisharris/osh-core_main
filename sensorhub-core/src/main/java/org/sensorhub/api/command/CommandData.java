@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.utils.ObjectUtils;
@@ -34,7 +35,10 @@ import net.opengis.swe.v20.DataBlock;
 public class CommandData implements ICommandData
 {
     public static final String UNKNOWN_SENDER = "%NA%";
+    
+    protected BigInteger id;
     protected long commandStreamID;
+    protected long foiID;
     protected String senderID;
     protected Instant issueTime;
     protected DataBlock params;
@@ -43,16 +47,20 @@ public class CommandData implements ICommandData
     protected CommandData()
     {
         // can only instantiate with builder
-        this.issueTime = Instant.now();
     }
     
     
-    public CommandData(long commandStreamID, DataBlock params)
+    @Override
+    public BigInteger getID()
     {
-        this.commandStreamID = OshAsserts.checkValidInternalID(commandStreamID);
-        this.senderID = UNKNOWN_SENDER;
-        this.params = Asserts.checkNotNull(params, DataBlock.class);
-        this.issueTime = Instant.now();
+        return id;
+    }
+    
+    
+    @Override
+    public void assignID(BigInteger id)
+    {
+        this.id = id;
     }
 
 
@@ -60,6 +68,13 @@ public class CommandData implements ICommandData
     public long getCommandStreamID()
     {
         return commandStreamID;
+    }
+
+
+    @Override
+    public long getFoiID()
+    {
+        return foiID;
     }
 
 
@@ -134,6 +149,20 @@ public class CommandData implements ICommandData
             instance.commandStreamID = id;
             return (B)this;
         }
+
+
+        public B withFoi(long id)
+        {
+            instance.foiID = id;
+            return (B)this;
+        }
+
+
+        public B withSender(String id)
+        {
+            instance.senderID = id;
+            return (B)this;
+        }
         
 
         public B withIssueTime(Instant issueTime)
@@ -154,6 +183,8 @@ public class CommandData implements ICommandData
         {
             OshAsserts.checkValidInternalID(instance.commandStreamID, "commandStreamID");
             Asserts.checkNotNull(instance.params, "params");
+            if (instance.issueTime == null)
+                instance.issueTime = Instant.now();
             return super.build();
         }
     }

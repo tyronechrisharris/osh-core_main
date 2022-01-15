@@ -17,14 +17,17 @@ package org.sensorhub.impl.datastore.view;
 import java.math.BigInteger;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
 import org.sensorhub.api.datastore.command.CommandStatsQuery;
+import org.sensorhub.api.datastore.command.CommandStatusFilter;
+import org.sensorhub.api.datastore.command.ICommandStatusStore;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
+import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
 
@@ -37,23 +40,32 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Mar 12, 2021
  */
-public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandAck, CommandField, CommandFilter> implements ICommandStore
+public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandData, CommandField, CommandFilter> implements ICommandStore
 {
     ICommandStore delegate;
     CommandStreamStoreView commandStreamStoreView;
+    CommandStatusStoreView commandStatusStoreView;
     CommandFilter viewFilter;
     
     
     public CommandStoreView(ICommandStore delegate, CommandFilter viewFilter)
     {
         this.delegate = Asserts.checkNotNull(delegate, ICommandStore.class);
-        this.commandStreamStoreView = new CommandStreamStoreView(delegate.getCommandStreams(), viewFilter.getCommandStreamFilter());
+        
+        var commandStreamViewFilter = viewFilter.getCommandStreamFilter();
+        this.commandStreamStoreView = new CommandStreamStoreView(delegate.getCommandStreams(), commandStreamViewFilter);
+        
+        var statusViewFilter = new CommandStatusFilter.Builder()
+            .withCommands(viewFilter)
+            .build();
+        this.commandStatusStoreView = new CommandStatusStoreView(delegate.getStatusReports(), statusViewFilter);
+        
         this.viewFilter = viewFilter;
     }
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandAck>> selectEntries(CommandFilter filter, Set<CommandField> fields)
+    public Stream<Entry<BigInteger, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {
         try
         {
@@ -85,7 +97,7 @@ public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandAck,
 
 
     @Override
-    public ICommandAck get(Object key)
+    public ICommandData get(Object key)
     {
         return delegate.get(key);
     }
@@ -113,8 +125,22 @@ public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandAck,
 
 
     @Override
-    public BigInteger add(ICommandAck obs)
+    public ICommandStatusStore getStatusReports()
+    {
+        return commandStatusStoreView;
+    }
+
+
+    @Override
+    public BigInteger add(ICommandData cmd)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public void linkTo(IFoiStore foiStore)
+    {
+        throw new UnsupportedOperationException();
     }
 }

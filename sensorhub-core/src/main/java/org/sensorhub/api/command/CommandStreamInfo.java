@@ -185,7 +185,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
 
 
     @Override
-    public TimeExtent getActuationTimeRange()
+    public TimeExtent getExecutionTimeRange()
     {
         return null;
     }

@@ -33,7 +33,7 @@ import org.vast.util.Asserts;
  */
 public abstract class DelegatingSubscriberAdapter<IN, OUT> implements Subscriber<IN>
 {
-    Subscriber<? super OUT> subscriber;
+    protected Subscriber<? super OUT> subscriber;
 
     
     public abstract void onNext(IN item);

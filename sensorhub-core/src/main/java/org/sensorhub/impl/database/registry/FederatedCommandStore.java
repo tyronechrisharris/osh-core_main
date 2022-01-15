@@ -22,14 +22,16 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
 import org.sensorhub.api.datastore.command.CommandStatsQuery;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
+import org.sensorhub.api.datastore.command.ICommandStatusStore;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
+import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
 import org.sensorhub.impl.datastore.MergeSortSpliterator;
@@ -46,11 +48,12 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Mar 24, 2021
  */
-public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, ICommandAck, CommandField, CommandFilter> implements ICommandStore
+public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, ICommandData, CommandField, CommandFilter> implements ICommandStore
 {
     final IDatabaseRegistry registry;
     final FederatedObsDatabase parentDb;
     final FederatedCommandStreamStore commandStreamStore;
+    final FederatedCommandStatusStore commandStatusStore;
     
     
     FederatedCommandStore(IDatabaseRegistry registry, FederatedObsDatabase db)
@@ -58,6 +61,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
         this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
         this.parentDb = Asserts.checkNotNull(db, FederatedObsDatabase.class);
         this.commandStreamStore = new FederatedCommandStreamStore(registry, db);
+        this.commandStatusStore = new FederatedCommandStatusStore(registry, db, this);
     }
 
 
@@ -106,7 +110,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
     /*
      * Convert to public values on the way out
      */
-    protected ICommandAck toPublicValue(int databaseID, ICommandAck cmd)
+    protected ICommandData toPublicValue(int databaseID, ICommandData cmd)
     {
         long dsPublicId = registry.getPublicID(databaseID, cmd.getCommandStreamID());
         
@@ -124,7 +128,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
     /*
      * Convert to public entries on the way out
      */
-    protected Entry<BigInteger, ICommandAck> toPublicEntry(int databaseID, Entry<BigInteger, ICommandAck> e)
+    protected Entry<BigInteger, ICommandData> toPublicEntry(int databaseID, Entry<BigInteger, ICommandData> e)
     {
         return new AbstractMap.SimpleEntry<>(
             toPublicKey(databaseID, e.getKey()),
@@ -161,7 +165,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
 
 
     @Override
-    public ICommandAck get(Object obj)
+    public ICommandData get(Object obj)
     {
         BigInteger key = ensureCommandKey(obj);
         
@@ -170,7 +174,7 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
         if (dbInfo == null)
             return null;
         
-        ICommandAck cmd = dbInfo.db.getCommandStore().get(toLocalKey(dbInfo.databaseNum, key));
+        ICommandData cmd = dbInfo.db.getCommandStore().get(toLocalKey(dbInfo.databaseNum, key));
         if (cmd == null)
             return null;
         
@@ -230,9 +234,9 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandAck>> selectEntries(CommandFilter filter, Set<CommandField> fields)
+    public Stream<Entry<BigInteger, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {
-        final var cmdStreams = new ArrayList<Stream<Entry<BigInteger, ICommandAck>>>(100);
+        final var cmdStreams = new ArrayList<Stream<Entry<BigInteger, ICommandData>>>(100);
         
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -260,11 +264,11 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
         }
         
         
-        // stream and merge cmmands from all selected command streams and time periods
-        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, ICommandAck>>(cmdStreams,
-            (e1, e2) -> e1.getValue().getActuationTime().compareTo(e2.getValue().getActuationTime()));         
+        // stream and merge commands from all selected command streams and time periods
+        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, ICommandData>>(cmdStreams,
+            (e1, e2) -> e1.getValue().getIssueTime().compareTo(e2.getValue().getIssueTime()));
                
-        // stream output of merge sort iterator + apply limit        
+        // stream output of merge sort iterator + apply limit
         return StreamSupport.stream(mergeSortIt, false)
             .limit(filter.getLimit())
             .onClose(() -> mergeSortIt.close());
@@ -325,12 +329,26 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
     {
         return commandStreamStore;
     }
+
+
+    @Override
+    public ICommandStatusStore getStatusReports()
+    {
+        return commandStatusStore;
+    }
     
     
     @Override
-    public BigInteger add(ICommandAck cmd)
+    public BigInteger add(ICommandData cmd)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public void linkTo(IFoiStore foiStore)
+    {
+        throw new UnsupportedOperationException();
     }
 
 }

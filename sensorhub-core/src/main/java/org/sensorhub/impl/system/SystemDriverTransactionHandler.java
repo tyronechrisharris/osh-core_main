@@ -15,7 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.system;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -23,7 +22,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import org.sensorhub.api.command.CommandEvent;
-import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandReceiver;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IDataProducer;
@@ -342,8 +340,9 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         // connect to receive commands from event bus
         connectControlInput(controlInput, newCsHandler);
         
-        // enable
+        // enable and start forwarding status events
         newCsHandler.enable();
+        controlInput.registerListener(newCsHandler);
         
         return isNew;
     }
@@ -363,31 +362,22 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
             }
 
             @Override
-            public void onNext(CommandEvent item)
+            public void onNext(CommandEvent event)
             {
                 CompletableFuture.runAsync(() -> {
-                    sendCommand(item.getCommands().iterator());
+                    controlInput.submitCommand(event.getCommand())
+                        .thenAccept(status -> {
+                            csHandler.sendStatus(event.getCorrelationID(), status);
+                            sub.request(1);
+                        });
+                    
                 });
-            }
-            
-            protected void sendCommand(Iterator<ICommandData> commands)
-            {
-                if (commands.hasNext())
-                {
-                    var cmd = commands.next();
-                    controlInput.executeCommand(cmd, csHandler::sendAck)
-                        .thenRun(() -> sendCommand(commands));
-                }
-                else
-                {
-                    sub.request(1);
-                }
             }
 
             @Override
             public void onError(Throwable throwable)
             {
-                
+                throwable.printStackTrace();
             }
 
             @Override
@@ -414,7 +404,7 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         if (csHandler != null)
             csHandler.disable();
         
-        // cancel subcriptions to received commands
+        // cancel subscriptions to received commands
         var sub = commandSubscriptions.remove(commandStream.getName());
         if (sub != null)
             sub.cancel();

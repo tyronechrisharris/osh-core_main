@@ -14,8 +14,6 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import java.util.Arrays;
-import java.util.Collection;
 import org.vast.util.Asserts;
 
 
@@ -29,25 +27,33 @@ import org.vast.util.Asserts;
  */
 public class CommandEvent extends CommandStreamEvent
 {
-    protected Collection<ICommandData> commands;
+    protected ICommandData command;
+    protected long correlationID;
     
     
-    public CommandEvent(long timeStamp, String sysUID, String controlInputName, ICommandData... commands)
+    public CommandEvent(long timeStamp, String sysUID, String controlInputName, ICommandData command, long correlationID)
     {
         super(timeStamp, sysUID, controlInputName);
-        this.commands = Asserts.checkNotNullOrEmpty(Arrays.asList(commands), ICommandData[].class);
-        this.sourceID = Asserts.checkNotNullOrEmpty(commands[0].getSenderID(), "senderID");
+        this.command = Asserts.checkNotNull(command, ICommandData.class);
+        this.sourceID = Asserts.checkNotNullOrEmpty(command.getSenderID(), "senderID");
+        this.correlationID = correlationID;
     }
     
     
-    public CommandEvent(String sysUID, String controlInputName, ICommandData... commands)
+    public CommandEvent(String sysUID, String controlInputName, ICommandData command, long correlationID)
     {
-        this(System.currentTimeMillis(), sysUID, controlInputName, commands);
+        this(System.currentTimeMillis(), sysUID, controlInputName, command, correlationID);
     }
 
 
-    public Collection<ICommandData> getCommands()
+    public long getCorrelationID()
     {
-        return commands;
+        return correlationID;
+    }
+
+
+    public ICommandData getCommand()
+    {
+        return command;
     }
 }

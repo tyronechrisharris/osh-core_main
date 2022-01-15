@@ -23,8 +23,10 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 import org.junit.Test;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.impl.datastore.AbstractTestCommandStore;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -79,9 +81,9 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     }
     
     
-    private Map<BigInteger, ICommandAck> keepOnlyLatestCommands(Map<BigInteger, ICommandAck> expectedResults)
+    private Map<BigInteger, ICommandData> getOnlyLatestCommands()
     {
-        Map<Long, Entry<BigInteger, ICommandAck>> latestPerStream = new LinkedHashMap<>();
+        Map<Long, Entry<BigInteger, ICommandData>> latestPerStream = new LinkedHashMap<>();
         for (var entry: allCommands.entrySet())
         {
             var cmd = entry.getValue();
@@ -92,15 +94,33 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
         }
         
         var onlyLatests = ImmutableMap.copyOf(latestPerStream.values());
+        return onlyLatests;
+    }
+    
+    
+    private Map<BigInteger, ICommandData> keepOnlyLatestCommands(Map<BigInteger, ICommandData> expectedResults)
+    {
+        var onlyLatests = getOnlyLatestCommands();
         return Maps.filterKeys(expectedResults, k -> onlyLatests.containsKey(k));
     }
     
     
     @Override
-    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandAck>> resultStream, Map<BigInteger, ICommandAck> expectedResults, CommandFilter filter)
+    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandData>> resultStream, Map<BigInteger, ICommandData> expectedResults, CommandFilter filter)
     {
-        // keep only latest command in expected results
+        // keep only latest commands in expected results
         expectedResults = keepOnlyLatestCommands(expectedResults);
+        super.checkSelectedEntries(resultStream, expectedResults, filter);
+    }
+    
+    
+    @Override
+    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandStatus>> resultStream, Map<BigInteger, ICommandStatus> expectedResults, CommandStatusFilter filter)
+    {
+        // keep only status of latest commands in expected results
+        var onlyLatests = getOnlyLatestCommands();
+        expectedResults = Maps.filterValues(expectedResults, s -> onlyLatests.containsKey(s.getCommandID()));
+        
         super.checkSelectedEntries(resultStream, expectedResults, filter);
     }
     

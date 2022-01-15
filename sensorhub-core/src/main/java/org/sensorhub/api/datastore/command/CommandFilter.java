@@ -20,7 +20,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
 import java.util.function.Predicate;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
@@ -41,14 +42,14 @@ import com.google.common.primitives.Longs;
  * @author Alex Robin
  * @date Mar 11, 2021
  */
-public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
+public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
 {
     protected SortedSet<BigInteger> internalIDs;
     protected CommandStreamFilter commandStreamFilter;
-    protected TemporalFilter actuationTime;
     protected TemporalFilter issueTime;
     protected SortedSet<String> senderIDs;
-    protected Predicate<ICommandAck> valuePredicate;
+    protected CommandStatusFilter statusFilter;
+    protected Predicate<ICommandData> valuePredicate;
     protected long limit = Long.MAX_VALUE;
     
     
@@ -68,12 +69,6 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
     {
         return commandStreamFilter;
     }
-    
-    
-    public TemporalFilter getActuationTime()
-    {
-        return actuationTime;
-    }
 
 
     public TemporalFilter getIssueTime()
@@ -88,7 +83,13 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
     }
 
 
-    public Predicate<ICommandAck> getValuePredicate()
+    public CommandStatusFilter getStatusFilter()
+    {
+        return statusFilter;
+    }
+
+
+    public Predicate<ICommandData> getValuePredicate()
     {
         return valuePredicate;
     }
@@ -102,36 +103,28 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
 
 
     @Override
-    public boolean test(ICommandAck cmd)
+    public boolean test(ICommandData cmd)
     {
-        return (testActuationTime(cmd) &&
-                testIssueTime(cmd) &&
+        return (testIssueTime(cmd) &&
                 testValuePredicate(cmd));
     }
     
     
-    public boolean testActuationTime(ICommandAck cmd)
-    {
-        return (actuationTime == null ||
-                (cmd.getActuationTime() != null && actuationTime.test(cmd.getActuationTime())));
-    }
-    
-    
-    public boolean testIssueTime(ICommandAck cmd)
+    public boolean testIssueTime(ICommandData cmd)
     {
         return (issueTime == null ||
                 issueTime.test(cmd.getIssueTime()));
     }
     
     
-    public boolean testSenderID(ICommandAck cmd)
+    public boolean testSenderID(ICommandData cmd)
     {
         return (senderIDs == null ||
             senderIDs.contains(cmd.getSenderID()));
     }
     
     
-    public boolean testValuePredicate(ICommandAck cmd)
+    public boolean testValuePredicate(ICommandData cmd)
     {
         return (valuePredicate == null ||
                 valuePredicate.test(cmd));
@@ -155,10 +148,6 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
         if (internalIDs != null)
             builder.withInternalIDs(internalIDs);
         
-        var actuationTime = this.actuationTime != null ? this.actuationTime.intersect(filter.actuationTime) : filter.actuationTime;
-        if (actuationTime != null)
-            builder.withActuationTime(actuationTime);
-        
         var issueTime = this.issueTime != null ? this.issueTime.intersect(filter.issueTime) : filter.issueTime;
         if (issueTime != null)
             builder.withIssueTime(issueTime);
@@ -166,6 +155,10 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
         var commandStreamFilter = this.commandStreamFilter != null ? this.commandStreamFilter.intersect(filter.commandStreamFilter) : filter.commandStreamFilter;
         if (commandStreamFilter != null)
             builder.withCommandStreams(commandStreamFilter);
+        
+        var statusFilter = this.statusFilter != null ? this.statusFilter.intersect(filter.statusFilter) : filter.statusFilter;
+        if (statusFilter != null)
+            builder.withStatus(statusFilter);
         
         var valuePredicate = this.valuePredicate != null ? this.valuePredicate.and(filter.valuePredicate) : filter.valuePredicate;
         if (valuePredicate != null)
@@ -253,9 +246,9 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
         public B copyFrom(CommandFilter base)
         {
             instance.internalIDs = base.internalIDs;
-            instance.actuationTime = base.actuationTime;
             instance.issueTime = base.issueTime;
             instance.commandStreamFilter = base.commandStreamFilter;
+            instance.statusFilter = base.statusFilter;
             instance.valuePredicate = base.valuePredicate;
             instance.limit = base.limit;
             return (B)this;
@@ -282,50 +275,6 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
         {
             instance.internalIDs = ImmutableSortedSet.copyOf(ids);
             return (B)this;
-        }
-
-
-        /**
-         * Keep only commands whose actuation time matches the temporal filter.
-         * @param filter Temporal filtering options
-         * @return This builder for chaining
-         */
-        public B withActuationTime(TemporalFilter filter)
-        {
-            instance.actuationTime = filter;
-            return (B)this;
-        }
-
-        
-        /**
-         * Keep only commands whose actuation time matches the temporal filter.<br/>
-         * Call done() on the nested builder to go back to main builder.
-         * @return The {@link TemporalFilter} builder for chaining
-         */
-        public TemporalFilter.NestedBuilder<B> withActuationTime()
-        {
-            return new TemporalFilter.NestedBuilder<B>((B)this) {
-                @Override
-                public B done()
-                {
-                    CommandFilterBuilder.this.withActuationTime(build());
-                    return (B)CommandFilterBuilder.this;
-                }
-            };
-        }
-
-
-        /**
-         * Keep only commands whose actuation time is within the given period.
-         * @param begin Beginning of desired period
-         * @param end End of desired period
-         * @return This builder for chaining
-         */
-        public B withActuationTimeDuring(Instant begin, Instant end)
-        {
-            return withActuationTime(new TemporalFilter.Builder()
-                .withRange(begin, end)
-                .build());
         }
 
 
@@ -386,6 +335,46 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
         {
             instance.senderIDs = ImmutableSortedSet.copyOf(ids);
             return (B)this;
+        }
+
+
+        /**
+         * Keep only commands whose current status matches the filter.
+         * @param filter Filter to select desired command streams
+         * @return This builder for chaining
+         */
+        public B withStatus(CommandStatusFilter filter)
+        {
+            instance.statusFilter = filter;
+            return (B)this;
+        }
+        
+        
+        /**
+         * Keep only commands whose current status matches the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link CommandStreamFilter} builder for chaining
+         */
+        public CommandStatusFilter.NestedBuilder<B> withStatus()
+        {
+            return new CommandStatusFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    CommandFilterBuilder.this.withStatus(build());
+                    return (B)CommandFilterBuilder.this;
+                }
+            };
+        }
+        
+        
+        public B withLatestStatus(CommandStatusCode statusCode)
+        {
+            return withStatus()
+                .withStatus(statusCode)
+                .withReportTime(new TemporalFilter.Builder()
+                    .withLatestTime().build())
+                .done();
         }
 
 
@@ -518,7 +507,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandAck>
          * @param valuePredicate The predicate to test the command data
          * @return This builder for chaining
          */
-        public B withValuePredicate(Predicate<ICommandAck> valuePredicate)
+        public B withValuePredicate(Predicate<ICommandData> valuePredicate)
         {
             instance.valuePredicate = valuePredicate;
             return (B)this;

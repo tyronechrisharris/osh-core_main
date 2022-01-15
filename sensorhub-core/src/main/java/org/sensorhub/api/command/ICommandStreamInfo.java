@@ -66,16 +66,16 @@ public interface ICommandStreamInfo extends IResource
     
     
     /**
-     * @return The range of actuation times of commands that are part of this
-     * command stream, or null if no commands have been recorded yet.
-     */
-    TimeExtent getActuationTimeRange();
-    
-    
-    /**
      * @return The range of issue times of commands that are part of this
      * command stream, or null if no commands have been recorded yet.
      */
     TimeExtent getIssueTimeRange();
+    
+    
+    /**
+     * @return The range of actuation times of commands that are part of this
+     * command stream, or null if no commands have been recorded yet.
+     */
+    TimeExtent getExecutionTimeRange();
 
 }
