@@ -39,7 +39,6 @@ import org.vast.util.Asserts;
  */
 public abstract class AbstractSensorOutput<T extends IDataProducer> implements IStreamingDataInterface
 {
-    protected static final String ERROR_NO_STORAGE = "Data storage is not supported by driver ";
     protected final T parentSensor;
     protected final IEventHandler eventHandler;
     protected final String name;
