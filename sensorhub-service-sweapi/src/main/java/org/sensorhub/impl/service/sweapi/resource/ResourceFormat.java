@@ -15,10 +15,10 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.resource;
 
 import java.util.Objects;
-import org.sensorhub.api.data.IDataStreamInfo;
 import org.vast.ogc.gml.GeoJsonBindings;
 import net.opengis.swe.v20.BinaryBlock;
 import net.opengis.swe.v20.BinaryEncoding;
+import net.opengis.swe.v20.DataEncoding;
 
 
 public class ResourceFormat
@@ -86,11 +86,11 @@ public class ResourceFormat
     }
     
     
-    public static boolean allowNonBinaryFormat(IDataStreamInfo dsInfo)
+    public static boolean allowNonBinaryFormat(DataEncoding encoding)
     {
-        if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+        if (encoding instanceof BinaryEncoding)
         {
-            var enc = (BinaryEncoding)dsInfo.getRecordEncoding();
+            var enc = (BinaryEncoding)encoding;
             for (var member: enc.getMemberList())
             {
                 if (member instanceof BinaryBlock)

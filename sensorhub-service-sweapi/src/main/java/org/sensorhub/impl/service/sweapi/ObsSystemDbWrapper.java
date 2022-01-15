@@ -27,6 +27,8 @@ import org.sensorhub.impl.service.sweapi.feature.FoiStoreWrapper;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamStoreWrapper;
 import org.sensorhub.impl.service.sweapi.obs.ObsStoreWrapper;
 import org.sensorhub.impl.service.sweapi.system.SystemStoreWrapper;
+import org.sensorhub.impl.service.sweapi.task.CommandStoreWrapper;
+import org.sensorhub.impl.service.sweapi.task.CommandStreamStoreWrapper;
 import org.vast.util.Asserts;
 
 
@@ -34,7 +36,7 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase
 {
     IObsSystemDatabase writeDb;
     IdConverter idConverter;
-    ISystemDescStore procStore;
+    ISystemDescStore systemStore;
     IDataStreamStore dataStreamStore;
     IObsStore obsStore;
     IFoiStore foiStore;
@@ -52,7 +54,7 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase
             Asserts.checkNotNull(dbRegistry, IDatabaseRegistry.class),
             writeDb != null ? writeDb.getDatabaseNum() : 0);
         
-        this.procStore = new SystemStoreWrapper(
+        this.systemStore = new SystemStoreWrapper(
             readDb.getSystemDescStore(),
             writeDb != null ? writeDb.getSystemDescStore() : null,
             idConverter);
@@ -65,6 +67,16 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase
         this.obsStore = new ObsStoreWrapper(
             readDb.getObservationStore(),
             writeDb != null ? writeDb.getObservationStore() : null,
+            idConverter);
+        
+        this.commandStreamStore = new CommandStreamStoreWrapper(
+            readDb.getCommandStreamStore(),
+            writeDb != null ? writeDb.getCommandStreamStore() : null,
+            idConverter);
+        
+        this.commandStore = new CommandStoreWrapper(
+            readDb.getCommandStore(),
+            writeDb != null ? writeDb.getCommandStore() : null,
             idConverter);
         
         this.foiStore = new FoiStoreWrapper(
@@ -115,7 +127,7 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase
     @Override
     public ISystemDescStore getSystemDescStore()
     {
-        return procStore;
+        return systemStore;
     }
 
 

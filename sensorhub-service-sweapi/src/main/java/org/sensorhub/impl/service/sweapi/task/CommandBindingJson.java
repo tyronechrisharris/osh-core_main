@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.obs;
+package org.sensorhub.impl.service.sweapi.task;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -23,18 +23,18 @@ import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.data.IObsData;
-import org.sensorhub.api.data.ObsData;
-import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.command.CommandData;
+import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.datastore.command.CommandStreamKey;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
-import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
+import org.sensorhub.impl.service.sweapi.task.CommandHandler.CommandHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.cdm.common.DataStreamWriter;
@@ -52,55 +52,60 @@ import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
 
 
-public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
+public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommandData>
 {
-    ObsHandlerContextData contextData;
-    IObsStore obsStore;
+    CommandHandlerContextData contextData;
+    ICommandStore cmdStore;
     JsonReader reader;
     JsonWriter writer;
-    JsonDataParserGson resultReader;
-    Map<Long, DataStreamWriter> resultWriters;
-    IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
+    JsonDataParserGson paramsReader;
+    Map<Long, DataStreamWriter> paramsWriters;
+    IdEncoder dsIdEncoder = new IdEncoder(CommandStreamHandler.EXTERNAL_ID_SEED);
     IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
+    String userID;
 
     
-    ObsBindingOmJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
+    CommandBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, ICommandStore cmdStore) throws IOException
     {
         super(ctx, idEncoder);
-        this.contextData = (ObsHandlerContextData)ctx.getData();
-        this.obsStore = obsStore;
+        this.contextData = (CommandHandlerContextData)ctx.getData();
+        this.cmdStore = cmdStore;
         
         if (forReading)
         {
             InputStream is = new BufferedInputStream(ctx.getInputStream());
             this.reader = getJsonReader(is);
-            resultReader = getSweCommonParser(contextData.dsInfo, reader);
+            this.paramsReader = getSweCommonParser(contextData.dsInfo, reader);
+            
+            var user = ctx.getSecurityHandler().getCurrentUser();
+            this.userID = user != null ? user.getId() : "api";
         }
         else
         {
             var os = ctx.getOutputStream();
             this.writer = getJsonWriter(os, ctx.getPropertyFilter());
-            this.resultWriters = new HashMap<>();
+            this.paramsWriters = new HashMap<>();
             
-            // init result writer only in case of single datastream
+            // init params writer only in case of single command stream
             // otherwise we'll do it later
             if (contextData.dsInfo != null)
             {
                 var resultWriter = getSweCommonWriter(contextData.dsInfo, writer, ctx.getPropertyFilter());
-                resultWriters.put(ctx.getParentID(), resultWriter);
+                paramsWriters.put(ctx.getParentID(), resultWriter);
             }
         }
     }
     
     
     @Override
-    public IObsData deserialize() throws IOException
+    public ICommandData deserialize() throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
         
-        var obs = new ObsData.Builder()
-            .withDataStream(contextData.dsID);
+        var cmd = new CommandData.Builder()
+            .withCommandStream(contextData.streamID)
+            .withSender(userID);
         
         try
         {
@@ -110,16 +115,14 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
             {
                 var propName = reader.nextName();
                 
-                if ("phenomenonTime".equals(propName))
-                    obs.withPhenomenonTime(OffsetDateTime.parse(reader.nextString()).toInstant());
-                else if ("resultTime".equals(propName))
-                    obs.withResultTime(OffsetDateTime.parse(reader.nextString()).toInstant());
+                if ("issueTime".equals(propName))
+                    cmd.withIssueTime(OffsetDateTime.parse(reader.nextString()).toInstant());
                 //else if ("foi".equals(propName))
                 //    obs.withFoi(id)
-                else if ("result".equals(propName))
+                else if ("params".equals(propName))
                 {
-                    var result = resultReader.parseNextBlock();
-                    obs.withResult(result);
+                    var result = paramsReader.parseNextBlock();
+                    cmd.withParams(result);
                 }
                 else
                     reader.skipValue();
@@ -137,44 +140,42 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         }
         
         if (contextData.foiId != 0)
-            obs.withFoi(contextData.foiId);
+            cmd.withFoi(contextData.foiId);
         
         // also set timestamp
-        var newObs = obs.build();
-        newObs.getResult().setDoubleValue(0, newObs.getPhenomenonTime().toEpochMilli() / 1000.0);
-        return newObs;
+        return cmd.build();
     }
 
 
     @Override
-    public void serialize(BigInteger key, IObsData obs, boolean showLinks) throws IOException
+    public void serialize(BigInteger key, ICommandData cmd, boolean showLinks) throws IOException
     {
         writer.beginObject();
         
         if (key != null)
             writer.name("id").value(key.toString(ResourceBinding.ID_RADIX));
         
-        var dsID = obs.getDataStreamID();
+        var dsID = cmd.getCommandStreamID();
         var externalDsId = dsIdEncoder.encodeID(dsID);
-        writer.name("datastream").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
+        writer.name("commandstream").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
         
-        if (obs.hasFoi())
+        if (cmd.hasFoi())
         {
-            var externalfoiId = foiIdEncoder.encodeID(obs.getFoiID());
+            var externalfoiId = foiIdEncoder.encodeID(cmd.getFoiID());
             writer.name("foi").value(Long.toString(externalfoiId, ResourceBinding.ID_RADIX));
         }
         
-        writer.name("phenomenonTime").value(obs.getPhenomenonTime().toString());
-        writer.name("resultTime").value(obs.getResultTime().toString());
+        writer.name("issueTime").value(cmd.getIssueTime().toString());
+        writer.name("userId").value(cmd.getSenderID());
         
-        // create or reuse existing result writer and write result data
-        writer.name("result");
-        var resultWriter = resultWriters.computeIfAbsent(dsID,
+        // create or reuse existing params writer and write param data
+        writer.name("params");
+        var paramWriter = paramsWriters.computeIfAbsent(dsID,
             k -> getSweCommonWriter(k, writer, ctx.getPropertyFilter()) );
         
         // write if JSON is supported, otherwise print warning message
-        if (resultWriter instanceof JsonDataWriterGson)
-            resultWriter.write(obs.getResult());
+        if (paramWriter instanceof JsonDataWriterGson)
+            paramWriter.write(cmd.getParams());
         else
             writer.value("Compressed binary result not shown in JSON");
         
@@ -185,12 +186,12 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     
     protected DataStreamWriter getSweCommonWriter(long dsID, JsonWriter writer, PropertyFilter propFilter)
     {
-        var dsInfo = obsStore.getDataStreams().get(new DataStreamKey(dsID));
+        var dsInfo = cmdStore.getCommandStreams().get(new CommandStreamKey(dsID));
         return getSweCommonWriter(dsInfo, writer, propFilter);
     }
     
     
-    protected DataStreamWriter getSweCommonWriter(IDataStreamInfo dsInfo, JsonWriter writer, PropertyFilter propFilter)
+    protected DataStreamWriter getSweCommonWriter(ICommandStreamInfo dsInfo, JsonWriter writer, PropertyFilter propFilter)
     {        
         if (!allowNonBinaryFormat(dsInfo))
             return new BinaryDataWriter();
@@ -205,14 +206,14 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     }
     
     
-    protected JsonDataParserGson getSweCommonParser(IDataStreamInfo dsInfo, JsonReader reader)
+    protected JsonDataParserGson getSweCommonParser(ICommandStreamInfo dsInfo, JsonReader reader)
     {
         // create JSON SWE parser
         var sweParser = new JsonDataParserGson(reader);
-        sweParser.setDataComponents(dsInfo.getRecordStructure());        
+        sweParser.setDataComponents(dsInfo.getRecordStructure());
         
         // filter out time component since it's already included in O&M
-        sweParser.setDataComponentFilter(getTimeStampFilter());        
+        sweParser.setDataComponentFilter(getTimeStampFilter());
         return sweParser;
     }
     
@@ -234,7 +235,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     }
     
     
-    protected boolean allowNonBinaryFormat(IDataStreamInfo dsInfo)
+    protected boolean allowNonBinaryFormat(ICommandStreamInfo dsInfo)
     {
         if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
         {
@@ -253,13 +254,13 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     @Override
     public void startCollection() throws IOException
     {
-        startJsonCollection(writer);        
+        startJsonCollection(writer);
     }
 
 
     @Override
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
-        endJsonCollection(writer, links);        
+        endJsonCollection(writer, links);
     }
 }

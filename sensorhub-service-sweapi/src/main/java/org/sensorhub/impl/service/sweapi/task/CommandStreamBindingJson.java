@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.obs;
+package org.sensorhub.impl.service.sweapi.task;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -20,9 +20,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
-import org.sensorhub.api.data.DataStreamInfo;
-import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.command.CommandStreamInfo;
+import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
@@ -47,7 +47,7 @@ import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
 
 
-public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
+public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
 {
     String rootURL;
     SWEStaxBindings sweBindings;
@@ -58,7 +58,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     IdEncoder procIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     
     
-    DataStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    CommandStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder);
         
@@ -80,7 +80,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     
     
     @Override
-    public IDataStreamInfo deserialize() throws IOException
+    public ICommandStreamInfo deserialize() throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
@@ -134,7 +134,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         if (description != null)
             resultStruct.setDescription(description);
         
-        var dsInfo = new DataStreamInfo.Builder()
+        var csInfo = new CommandStreamInfo.Builder()
             .withName(name)
             .withDescription(description)
             .withSystem(new SystemId(1, "temp-uid")) // use dummy UID since it will be replaced later
@@ -142,12 +142,12 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             .withRecordEncoding(resultEncoding)
             .build();
         
-        return dsInfo;
+        return csInfo;
     }
 
 
     @Override
-    public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks) throws IOException
+    public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
         var publicProcID = procIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
@@ -162,7 +162,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         writer.name("system").beginObject()
             .name("id").value(Long.toString(publicProcID, 36))
-            .name("outputName").value(dsInfo.getOutputName())
+            .name("outputName").value(dsInfo.getControlInputName())
             .endObject();
         
         writer.name("validTime").beginArray()
@@ -170,33 +170,25 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             .value(dsInfo.getValidTime().end().toString())
             .endArray();
 
-        if (dsInfo.getPhenomenonTimeRange() != null)
+        if (dsInfo.getExecutionTimeRange() != null)
         {
-            writer.name("phenomenonTime").beginArray()
-                .value(dsInfo.getPhenomenonTimeRange().begin().toString())
-                .value(dsInfo.getPhenomenonTimeRange().end().toString())
+            writer.name("actuationTime").beginArray()
+                .value(dsInfo.getExecutionTimeRange().begin().toString())
+                .value(dsInfo.getExecutionTimeRange().end().toString())
                 .endArray();
         }
 
-        if (dsInfo.getResultTimeRange() != null)
+        if (dsInfo.getIssueTimeRange() != null)
         {
-            writer.name("resultTime").beginArray()
-                .value(dsInfo.getResultTimeRange().begin().toString())
-                .value(dsInfo.getResultTimeRange().end().toString())
+            writer.name("issueTime").beginArray()
+                .value(dsInfo.getIssueTimeRange().begin().toString())
+                .value(dsInfo.getIssueTimeRange().end().toString())
                 .endArray();
-        }        
-                
-        if (dsInfo.hasDiscreteResultTimes())
-        {
-            writer.name("runTimes").beginArray();
-            for (var time: dsInfo.getDiscreteResultTimes().keySet())
-                writer.value(time.toString());
-            writer.endArray();
         }
         
         // observed properties
-        writer.name("observedProperties").beginArray();
-        for (var obsProp: getObservables(dsInfo))
+        writer.name("actuableProperties").beginArray();
+        for (var obsProp: getActuables(dsInfo))
         {
             writer.beginObject();
             if (obsProp.getDefinition() != null)
@@ -234,12 +226,12 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 .build());
             
             links.add(new ResourceLink.Builder()
-                .rel("observations")
-                .title("Collection of observations")
+                .rel("commands")
+                .title("Collection of commands")
                 .href(rootURL +
-                      "/" + DataStreamHandler.NAMES[0] +
+                      "/" + CommandStreamHandler.NAMES[0] +
                       "/" + Long.toString(publicDsID, 36) +
-                      "/" + ObsHandler.NAMES[0])
+                      "/" + CommandHandler.NAMES[0])
                 .build());
             
             writeLinksAsJson(writer, links);
@@ -250,7 +242,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     }
     
     
-    protected Iterable<DataComponent> getObservables(IDataStreamInfo dsInfo)
+    protected Iterable<DataComponent> getActuables(ICommandStreamInfo dsInfo)
     {
         return Iterables.filter(new DataIterator(dsInfo.getRecordStructure()), comp -> {
             var def = comp.getDefinition();
@@ -277,13 +269,13 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     @Override
     public void startCollection() throws IOException
     {
-        startJsonCollection(writer);        
+        startJsonCollection(writer);
     }
 
 
     @Override
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
-        endJsonCollection(writer, links);        
+        endJsonCollection(writer, links);
     }
 }

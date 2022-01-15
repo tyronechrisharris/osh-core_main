@@ -12,24 +12,24 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.obs;
+package org.sensorhub.impl.service.sweapi.task;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.util.Collection;
-import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.data.IObsData;
-import org.sensorhub.api.data.ObsData;
-import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.command.CommandData;
+import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
-import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
+import org.sensorhub.impl.service.sweapi.task.CommandHandler.CommandHandlerContextData;
 import org.sensorhub.utils.SWEDataUtils;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.cdm.common.DataStreamParser;
@@ -49,18 +49,18 @@ import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.TextEncoding;
 
 
-public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
+public class CommandBindingSweCommon extends ResourceBinding<BigInteger, ICommandData>
 {       
-    ObsHandlerContextData contextData;
+    CommandHandlerContextData contextData;
     DataStreamParser resultReader;
-    DataStreamWriter resultWriter;
+    DataStreamWriter paramsWriter;
     ScalarIndexer timeStampIndexer;
 
     
-    ObsBindingSweCommon(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
+    CommandBindingSweCommon(RequestContext ctx, IdEncoder idEncoder, boolean forReading, ICommandStore obsStore) throws IOException
     {
         super(ctx, idEncoder);
-        this.contextData = (ObsHandlerContextData)ctx.getData();
+        this.contextData = (CommandHandlerContextData)ctx.getData();
                 
         var dsInfo = contextData.dsInfo;
         if (forReading)
@@ -72,13 +72,13 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
         else
         {
             var os = ctx.getOutputStream();
-            resultWriter = getSweCommonWriter(dsInfo, os, ctx.getPropertyFilter(), ctx.getFormat());
+            paramsWriter = getSweCommonWriter(dsInfo, os, ctx.getPropertyFilter(), ctx.getFormat());
         }
     }
     
     
     @Override
-    public IObsData deserialize() throws IOException
+    public ICommandData deserialize() throws IOException
     {
         var rec = resultReader.parseNextBlock();
         if (rec == null)
@@ -92,24 +92,24 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
             time = System.currentTimeMillis() / 1000.;
         
         // create obs object
-        return new ObsData.Builder()
-            .withDataStream(contextData.dsID)
-            .withFoi(contextData.foiId)
-            .withPhenomenonTime(SWEDataUtils.toInstant(time))
-            .withResult(rec)
+        return new CommandData.Builder()
+            .withCommandStream(contextData.streamID)
+            //.withFoi(contextData.foiId)
+            .withIssueTime(SWEDataUtils.toInstant(time))
+            .withParams(rec)
             .build();
     }
 
 
     @Override
-    public void serialize(BigInteger key, IObsData obs, boolean showLinks) throws IOException
+    public void serialize(BigInteger key, ICommandData cmd, boolean showLinks) throws IOException
     {
-        resultWriter.write(obs.getResult());
-        resultWriter.flush();
+        paramsWriter.write(cmd.getParams());
+        paramsWriter.flush();
     }
     
     
-    protected DataStreamParser getSweCommonParser(IDataStreamInfo dsInfo, InputStream is, ResourceFormat format) throws IOException
+    protected DataStreamParser getSweCommonParser(ICommandStreamInfo dsInfo, InputStream is, ResourceFormat format) throws IOException
     {
         DataStreamParser dataParser = null;
         
@@ -170,7 +170,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
     }
     
     
-    protected DataStreamWriter getSweCommonWriter(IDataStreamInfo dsInfo, OutputStream os, PropertyFilter propFilter, ResourceFormat format) throws IOException
+    protected DataStreamWriter getSweCommonWriter(ICommandStreamInfo dsInfo, OutputStream os, PropertyFilter propFilter, ResourceFormat format) throws IOException
     {
         DataStreamWriter dataWriter = null;
         
@@ -235,14 +235,14 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
     @Override
     public void startCollection() throws IOException
     {
-        resultWriter.startStream(true);
+        paramsWriter.startStream(true);
     }
 
 
     @Override
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
-        resultWriter.endStream();
-        resultWriter.flush();
+        paramsWriter.endStream();
+        paramsWriter.flush();
     }
 }

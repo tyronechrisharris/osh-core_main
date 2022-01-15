@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Map;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -300,7 +301,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                         String id = encodeKey(ctx, k);
                         url = getCanonicalResourceUrl(id);
                         ctx.getLogger().debug("Added resource {}", url);
-                    }                    
+                    }
                     
                     if (url != null)
                         ctx.addResourceUri(url);
@@ -454,6 +455,25 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             
             // stop here if hash is invalid
             if (decodedID <= 0)
+                throw ServiceErrors.notFound(id);
+            
+            return decodedID;
+        }
+        catch (NumberFormatException e)
+        {
+            throw ServiceErrors.badRequest("Invalid resource ID: " + id);
+        }
+    }
+    
+    
+    protected BigInteger decodeBigID(final RequestContext ctx, final String id) throws InvalidRequestException
+    {
+        try
+        {
+            var decodedID = new BigInteger(id, ResourceBinding.ID_RADIX);
+            
+            // stop here if hash is invalid
+            if (decodedID.signum() <= 0)
                 throw ServiceErrors.notFound(id);
             
             return decodedID;

@@ -34,6 +34,9 @@ import org.sensorhub.impl.service.sweapi.system.SystemDetailsHandler;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.system.SystemHistoryHandler;
 import org.sensorhub.impl.service.sweapi.system.SystemMembersHandler;
+import org.sensorhub.impl.service.sweapi.task.CommandHandler;
+import org.sensorhub.impl.service.sweapi.task.CommandStatusHandler;
+import org.sensorhub.impl.service.sweapi.task.CommandStreamHandler;
 import org.sensorhub.utils.NamedThreadFactory;
 
 
@@ -85,9 +88,10 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
             if (obsWriteDatabase != null)
             {
                 var obsFilter = config.exposedResources.getObsFilter();
+                var cmdFilter = config.exposedResources.getCommandFilter();
                 obsReadDatabase = new FilteredFederatedObsDatabase(
                     getParentHub().getDatabaseRegistry(),
-                    obsFilter, obsWriteDatabase.getDatabaseNum());
+                    obsFilter, cmdFilter, obsWriteDatabase.getDatabaseNum());
             }
             else
                 obsReadDatabase = config.exposedResources.getFilteredView(getParentHub());
@@ -152,6 +156,23 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         //rootHandler.addSubResource(obsStatsHandler);
         dataStreamHandler.addSubResource(obsStatsHandler);
         //foiHandler.addSubResource(obsStatsHandler);
+        
+        // command streams
+        var cmdStreamHandler = new CommandStreamHandler(eventBus, db, security.commandstream_permissions);
+        rootHandler.addSubResource(cmdStreamHandler);
+        systemsHandler.addSubResource(cmdStreamHandler);
+        
+        // commands
+        var cmdHandler = new CommandHandler(eventBus, db, threadPool, security.command_permissions);
+        cmdStreamHandler.addSubResource(cmdHandler);
+        
+        // command status
+        var statusHandler = new CommandStatusHandler(eventBus, db, threadPool, security.command_permissions);
+        cmdStreamHandler.addSubResource(statusHandler);
+        cmdHandler.addSubResource(statusHandler);
+        
+        //var cmdSchemaHandler = new CommandStreamSchemaHandler(eventBus, db, security.commands_permissions);
+        //dataStreamHandler.addSubResource(dataSchemaHandler);
         
         // sampled features
         /*var featureStore = new FeatureStoreWrapper(

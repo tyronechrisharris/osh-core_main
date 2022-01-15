@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -50,6 +51,7 @@ public class RequestContext
     private ResourceFormat format;
     private PropertyFilter propFilter;
     private Set<String> resourceUris;
+    private long correlationID;
     
     
     /*
@@ -64,6 +66,7 @@ public class RequestContext
         @SuppressWarnings("rawtypes")
         public BaseResourceHandler type;
         public long internalID;
+        public BigInteger bigInternalID;
         public long version;
     }
     
@@ -154,7 +157,7 @@ public class RequestContext
         {
             for (var param: queryStr.split("&"))
             {
-                var tokens = param.split("=");                    
+                var tokens = param.split("=");
                 if (tokens.length == 2)
                     params.put(tokens[0], new String[] {tokens[1]});
                 else
@@ -204,6 +207,13 @@ public class RequestContext
         parentResource.type = parentHandler;
         parentResource.internalID = internalID;
         parentResource.version = internalID;
+    }
+    
+    
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, BigInteger internalID)
+    {
+        parentResource.type = parentHandler;
+        parentResource.bigInternalID = internalID;
     }
     
     
@@ -310,6 +320,18 @@ public class RequestContext
         if (resourceUris == null)
             resourceUris = new LinkedHashSet<>();
         resourceUris.add(uri);
+    }
+
+
+    public long getCorrelationID()
+    {
+        return correlationID;
+    }
+    
+    
+    public void setCorrelationID(long id)
+    {
+        this.correlationID = id;
     }
     
     
