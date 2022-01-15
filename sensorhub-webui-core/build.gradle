@@ -25,7 +25,6 @@ dependencies {
   embeddedImpl 'com.vaadin:vaadin-themes:' + vaadinVersion
   
   compileOnly 'org.osgi:org.osgi.core:5.0.0'
-  compileOnly 'org.osgi:org.osgi.compendium:5.0.0'
   compileOnly 'org.apache.felix:org.apache.felix.bundlerepository:2.0.10'
 
   testImplementation project(path: ':sensorhub-core', configuration: 'testArtifacts')
