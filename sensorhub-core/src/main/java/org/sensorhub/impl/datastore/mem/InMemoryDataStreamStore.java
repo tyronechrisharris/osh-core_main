@@ -21,9 +21,9 @@ import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -44,7 +44,7 @@ import org.vast.util.TimeExtent;
 
 /**
  * <p>
- * In-memory implementation of a datastream store backed by a {@link java.util.NavigableMap}.
+ * In-memory implementation of a datastream store backed by a {@link NavigableMap}.
  * </p>
  *
  * @author Alex Robin
@@ -52,8 +52,8 @@ import org.vast.util.TimeExtent;
  */
 public class InMemoryDataStreamStore implements IDataStreamStore
 {
-    ConcurrentNavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
-    ConcurrentNavigableMap<Long, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
+    NavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
+    NavigableMap<Long, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
     InMemoryObsStore obsStore;
     ISystemDescStore systemStore;
     

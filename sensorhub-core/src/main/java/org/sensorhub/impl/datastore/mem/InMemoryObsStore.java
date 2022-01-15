@@ -23,8 +23,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -44,9 +45,10 @@ import org.vast.util.Asserts;
 
 /**
  * <p>
- * In-memory implementation of an observation store backed by a {@link java.util.NavigableMap}.
+ * In-memory implementation of an observation store backed by a {@link NavigableMap}.
  * This implementation is only used to store the latest system state and
- * thus only stores the latest observation of each data stream.
+ * thus only stores the latest observation of each data stream and FOI
+ * combination.
  * </p>
  *
  * @author Alex Robin
@@ -56,7 +58,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
 {
     static final TemporalFilter ALL_TIMES_FILTER = new TemporalFilter.Builder().withAllTimes().build();
     
-    ConcurrentNavigableMap<ObsKey, IObsData> map = new ConcurrentSkipListMap<>(new ObsKeyComparator());
+    NavigableMap<ObsKey, IObsData> map = new ConcurrentSkipListMap<>(new ObsKeyComparator());
     InMemoryDataStreamStore dataStreamStore;
     IFoiStore foiStore;
     AtomicLong obsCounter = new AtomicLong();
@@ -99,10 +101,9 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
             if (comp != 0)
                 return comp;
             
-            // don't compare result times
-            // always return 0 so we store only the latest result!
-            return 0;
-        }        
+            // then compare phenomenon times
+            return k1.phenomenonTime.compareTo(k2.phenomenonTime);
+        }
     }
     
     
@@ -112,14 +113,14 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     }
     
     
-    BigInteger toPublicKey(ObsKey obsKey)
+    BigInteger toExternalKey(ObsKey obsKey)
     {
         // compute internal ID
-        ByteBuffer buf = ByteBuffer.allocate(24);
+        ByteBuffer buf = ByteBuffer.allocate(28);
         buf.putLong(obsKey.dataStreamID);
         buf.putLong(obsKey.foiID);
-        buf.putInt((int)(obsKey.phenomenonTime.getEpochSecond()));
-        buf.putInt((int)(obsKey.phenomenonTime.getNano()));
+        buf.putLong(obsKey.phenomenonTime.getEpochSecond());
+        buf.putInt(obsKey.phenomenonTime.getNano());
         return new BigInteger(buf.array(), 0, buf.position());
     }
     
@@ -133,15 +134,15 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         {
             // parse from BigInt
             byte[] bigIntBytes = key.toByteArray();
-            ByteBuffer buf = ByteBuffer.allocate(24);
-            for (int i=0; i<(24-bigIntBytes.length); i++)
+            ByteBuffer buf = ByteBuffer.allocate(28);
+            for (int i=0; i<(28-bigIntBytes.length); i++)
                 buf.put((byte)0);
             buf.put(bigIntBytes);
             buf.flip();
             
             long dsID = buf.getLong();
             long foiID = buf.getLong();
-            Instant phenomenonTime = Instant.ofEpochSecond(buf.getInt(), buf.getInt());
+            Instant phenomenonTime = Instant.ofEpochSecond(buf.getLong(), buf.getInt());
             return new ObsKey(dsID, foiID, phenomenonTime);
         }
         catch (Exception e)
@@ -154,8 +155,8 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     
     Stream<Entry<ObsKey, IObsData>> getObsByDataStream(long dataStreamID)
     {
-        ObsKey fromKey = new ObsKey(dataStreamID, 0, null);        
-        ObsKey toKey = new ObsKey(dataStreamID, Long.MAX_VALUE, null);
+        ObsKey fromKey = new ObsKey(dataStreamID, 0, Instant.MIN);
+        ObsKey toKey = new ObsKey(dataStreamID, Long.MAX_VALUE, Instant.MAX);
         
         return map.subMap(fromKey, true, toKey, true).entrySet().stream();
     }
@@ -170,16 +171,16 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     
     Stream<Entry<ObsKey, IObsData>> getObsByDataStreamAndFoi(long dataStreamID, long foiID)
     {
-        ObsKey fromKey = new ObsKey(dataStreamID, foiID, null);        
-        ObsKey toKey = new ObsKey(dataStreamID, foiID, null);
+        ObsKey fromKey = new ObsKey(dataStreamID, foiID, Instant.MIN);
+        ObsKey toKey = new ObsKey(dataStreamID, foiID, Instant.MAX);
         
         return map.subMap(fromKey, true, toKey, true).entrySet().stream();
     }
     
     
-    Entry<BigInteger, IObsData> toBigIntEntry(Entry<ObsKey, IObsData> e)
+    Entry<BigInteger, IObsData> toExternalEntry(Entry<ObsKey, IObsData> e)
     {
-        return new AbstractMap.SimpleEntry<>(toPublicKey(e.getKey()), e.getValue());
+        return new AbstractMap.SimpleEntry<>(toExternalKey(e.getKey()), e.getValue());
     }
 
 
@@ -188,8 +189,22 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     {
         Stream<Entry<ObsKey, IObsData>> resultStream = null;
         
+        // fetch obs directly in case of filtering by internal IDs
+        if (filter.getInternalIDs() != null)
+        {
+            resultStream = filter.getInternalIDs().stream()
+                .map(k -> {
+                    var obsKey = toInternalKey(k);
+                    var obs = map.get(obsKey);
+                    return obs != null ?
+                        (Entry<ObsKey, IObsData>)new AbstractMap.SimpleEntry<>(obsKey, obs) :
+                        null;
+                })
+                .filter(Objects::nonNull);
+        }
+        
         // if no datastream nor FOI filter used, scan all obs
-        if (filter.getDataStreamFilter() == null && filter.getFoiFilter() == null)
+        else if (filter.getDataStreamFilter() == null && filter.getFoiFilter() == null)
         {
             resultStream = map.entrySet().stream();
         }
@@ -233,7 +248,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         return resultStream
             .filter(e -> filter.test(e.getValue()))
             .limit(filter.getLimit())
-            .map(e -> toBigIntEntry(e));
+            .map(e -> toExternalEntry(e));
     }
 
 
@@ -306,9 +321,30 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
             obs.getDataStreamID(),
             obs.getFoiID(),
             obs.getPhenomenonTime());
-        map.remove(key);
-        map.put(key, obs);
-        return toPublicKey(key);
+        
+        // add new obs and remove older ones atomically
+        map.compute(key, (k,v) -> {
+            removeOlderObs(key, obs);
+            return obs;
+        });
+        
+        return toExternalKey(key);
+    }
+    
+    
+    protected void removeOlderObs(ObsKey newKey, IObsData newObs)
+    {
+        var first = new ObsKey(newObs.getDataStreamID(), newObs.getFoiID(), Instant.MIN);
+        var last = new ObsKey(newObs.getDataStreamID(), newObs.getFoiID(), Instant.MAX);
+        
+        // remove all other obs for same stream/foi combination
+        var it = map.subMap(first, last).keySet().iterator();
+        while (it.hasNext())
+        {
+            var oldKey = it.next();
+            if (oldKey != newKey)
+                it.remove();
+        }
     }
 
 
@@ -323,7 +359,7 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     public Set<BigInteger> keySet()
     {
         return map.keySet().stream()
-            .map(this::toPublicKey)
+            .map(this::toExternalKey)
             .collect(Collectors.toSet());
     }
 

@@ -20,10 +20,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -42,7 +42,7 @@ import com.vividsolutions.jts.index.quadtree.Quadtree;
 
 /**
  * <p>
- * In-memory implementation of a feature store backed by a {@link java.util.NavigableMap}.
+ * In-memory implementation of a feature store backed by a {@link NavigableMap}.
  * This implementation is only used to store the latest system state and thus
  * doesn't support versioning/history of feature descriptions.
  * </p>
@@ -56,9 +56,9 @@ import com.vividsolutions.jts.index.quadtree.Quadtree;
  */
 public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>> extends InMemoryDataStore implements IFeatureStoreBase<T, VF, F>
 {
-    ConcurrentNavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
-    ConcurrentNavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
-    ConcurrentNavigableMap<Long, Set<Long>> parentChildMap = new ConcurrentSkipListMap<>();
+    NavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
+    NavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
+    NavigableMap<Long, Set<Long>> parentChildMap = new ConcurrentSkipListMap<>();
     Quadtree spatialIndex = new Quadtree();
     Bbox allFeaturesBbox = new Bbox();
     IdProvider<? super T> idProvider = new InMemoryIdProvider<>(1);
@@ -248,7 +248,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         return idStream.map(id -> {
                 FeatureKey key = new FeatureKey(id);
                 var entry = map.ceilingEntry(key);
-                return entry.getKey().getInternalID() == id ? entry : null;
+                return entry != null && entry.getKey().getInternalID() == id ? entry : null;
             })
             .filter(Objects::nonNull);
     }
