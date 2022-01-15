@@ -14,11 +14,10 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sps;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow.Subscriber;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
-import org.sensorhub.api.command.ICommandAck;
-import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.command.ICommandStatus;
 import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.DataBlock;
@@ -60,15 +59,6 @@ public interface ISPSConnector
     
     
     /**
-     * Sends the command data through the connector and update the task status
-     * accordingly
-     * @param task
-     * @throws SensorHubException
-     */
-    public void submitTask(ITask task) throws SensorHubException;
-    
-    
-    /**
      * Configure connector for direct tasking
      * @param taskingParams tasking parameters acceptable for this direct
      * tasking session
@@ -79,9 +69,12 @@ public interface ISPSConnector
     /**
      * Send a direct tasking command. {@link #startDirectTasking(ITask) must be called first} 
      * @param data Command data
-     * @param ackCallback Callback to receive ACK messages (can be null)
+     * @param waitForStatus Set to true to wait for initial status before completing future,
+     * false otherwise
+     * @return Future that will complete with the initial command status report
+     * when it is received from the command receiver, or null if waitForStatus is false
      */
-    public void sendCommand(DataBlock data, Consumer<ICommandAck> ackCallback);
+    public CompletableFuture<ICommandStatus> sendCommand(DataBlock data, boolean waitForStatus);
     
     
     /**

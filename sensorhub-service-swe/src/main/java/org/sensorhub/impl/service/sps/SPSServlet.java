@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sps;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -31,8 +32,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.security.ISecurityManager;
@@ -43,6 +46,7 @@ import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.slf4j.Logger;
 import org.vast.cdm.common.DataStreamWriter;
+import org.vast.data.DataBlockList;
 import org.vast.data.TextEncodingImpl;
 import org.vast.ows.GetCapabilitiesRequest;
 import org.vast.ows.OWSException;
@@ -88,7 +92,6 @@ public class SPSServlet extends SWEServlet
     final transient Map<String, TaskingSession> receiveSessionsMap = new ConcurrentHashMap<>();
 
     final transient SMLUtils smlUtils = new SMLUtils(SMLUtils.V2_0);
-    final transient ITaskDB taskDB = new InMemoryTaskDB();
     
 
     static class TaskingSession
@@ -320,7 +323,7 @@ public class SPSServlet extends SWEServlet
         CompletableFuture.runAsync(() -> {
             try
             {
-                var connector = getConnector(procUID);                
+                var connector = getConnector(procUID);
                 
                 var serializer = new ProcedureSerializerXml(this, request, asyncCtx);
                 serializer.beforeRecords();
@@ -383,16 +386,24 @@ public class SPSServlet extends SWEServlet
         // security check
         securityHandler.checkPermission(securityHandler.sps_read_task);
 
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();        
+        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
         CompletableFuture.runAsync(() -> {
             try
             {
-                ITask task = findTask(request.getTaskID());
-                StatusReport status = task.getStatusReport();
+                var taskID = request.getTaskID(); 
+                var status = getReadDatabase().getCommandStatusStore()
+                    .select(new CommandStatusFilter.Builder()
+                        .withCommands(new BigInteger(taskID, 36))
+                        .latestReport()
+                        .build())
+                    .findFirst().orElse(null);
+                
+                if (status == null)
+                    throw new SPSException(SPSException.invalid_param_code, "task", taskID);
    
                 GetStatusResponse gsResponse = new GetStatusResponse();
                 gsResponse.setVersion("2.0.0");
-                gsResponse.getReportList().add(status);
+                gsResponse.getReportList().add(toStatusReport(status));
    
                 sendResponse(request, gsResponse);
             }
@@ -409,6 +420,55 @@ public class SPSServlet extends SWEServlet
             return null;
         });
     }
+    
+    
+    protected StatusReport toStatusReport(ICommandStatus status)
+    {
+        StatusReport sr = new StatusReport();
+        sr.setTaskID(status.getCommandID().toString(36));
+        sr.setLastUpdate(new DateTime(status.getReportTime().toEpochMilli()));
+        if (status.getProgress() >= 0)
+            sr.setPercentCompletion(status.getProgress());
+        sr.setStatusMessage(status.getMessage());
+        
+        // map status codes
+        switch (status.getStatusCode())
+        {
+            case PENDING:
+                sr.setRequestStatus(RequestStatus.Pending);
+                break;
+            case ACCEPTED:
+                sr.setRequestStatus(RequestStatus.Accepted);
+                break;
+            case REJECTED:
+                sr.setRequestStatus(RequestStatus.Rejected);
+                break;
+            case SCHEDULED:
+                sr.setRequestStatus(RequestStatus.Accepted);
+                break;
+            case UPDATED:
+                sr.setRequestStatus(RequestStatus.Accepted);
+                break;
+            case CANCELED:
+                sr.setRequestStatus(RequestStatus.Accepted);
+                sr.setTaskStatus(TaskStatus.Cancelled);
+                break;
+            case EXECUTING:
+                sr.setRequestStatus(RequestStatus.Accepted);
+                sr.setTaskStatus(TaskStatus.InExecution);
+                break;
+            case FAILED:
+                sr.setRequestStatus(RequestStatus.Accepted);
+                sr.setTaskStatus(TaskStatus.Failed);
+                break;
+            case COMPLETED:
+                sr.setRequestStatus(RequestStatus.Accepted);
+                sr.setTaskStatus(TaskStatus.Completed);
+                break;
+        }
+        
+        return sr;
+    }
 
 
     protected GetFeasibilityResponse handleRequest(GetFeasibilityRequest request) throws IOException, OWSException
@@ -422,7 +482,7 @@ public class SPSServlet extends SWEServlet
         // security check
         securityHandler.checkPermission(securityHandler.sps_task_submit);
         
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();        
+        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
         CompletableFuture.runAsync(() -> {
             try
             {
@@ -433,32 +493,46 @@ public class SPSServlet extends SWEServlet
                 // validate task parameters
                 request.validate();
 
-                // create task in DB
-                ITask newTask = createNewTask(request);
-
-                // send command through connector
+                // send commands through connector
                 try
                 {
-                    conn.submitTask(newTask);
+                    // send all commands and wait for last one to be processed
+                    CompletableFuture<ICommandStatus> lastFuture = null;
+                    
+                    DataBlockList dataBlockList = (DataBlockList)request.getParameters().getData();
+                    var it = dataBlockList.blockIterator();
+                    if (it.hasNext())
+                    {
+                        var data = it.next();
+                        lastFuture = conn.sendCommand(data, true);
+                    }
+                    
+                    lastFuture.thenAccept(status -> {
+                        try
+                        {
+                            var report = toStatusReport(status);
+                            
+                            // create response and add report
+                            SubmitResponse sResponse = new SubmitResponse();
+                            sResponse.setVersion("2.0");
+                            report.setRequestStatus(RequestStatus.Accepted);
+                            report.touch();
+                            sResponse.setReport(report);
+                            
+                            // send response
+                            sendResponse(request, sResponse);
+                            asyncCtx.complete();
+                        }
+                        catch (IOException e)
+                        {
+                            throw new CompletionException(e);
+                        }
+                    });
                 }
-                catch (SensorHubException e)
+                catch (Exception e)
                 {
-                    throw new IOException("Cannot send command to sensor " + procUID, e);
+                    throw new IOException("Cannot send command to procedure " + procUID, e);
                 }
-
-                // add report and send response
-                SubmitResponse sResponse = new SubmitResponse();
-                sResponse.setVersion("2.0");
-                StatusReport report = newTask.getStatusReport();
-                report.setRequestStatus(RequestStatus.Accepted);
-                report.setTaskStatus(TaskStatus.Completed);
-                report.touch();
-                taskDB.updateTaskStatus(report);
-
-                // send response
-                sResponse.setReport(report);
-                sendResponse(request, sResponse);
-                asyncCtx.complete();
             }
             catch (Exception e)
             {
@@ -496,8 +570,8 @@ public class SPSServlet extends SWEServlet
         }
 
         // create task in DB
-        ITask newTask = createNewTask(request);
-        final String taskID = newTask.getID();
+        ITask task = createNewTask(request);
+        final String taskID = task.getID();
 
         // create session
         TaskingSession newSession = new TaskingSession();
@@ -505,13 +579,12 @@ public class SPSServlet extends SWEServlet
         newSession.timeSlot = request.getTimeSlot();
         newSession.taskingParams = taskingParams;
         newSession.encoding = request.getEncoding();
-        newSession.task = newTask;
+        newSession.task = task;
         receiveSessionsMap.put(taskID, newSession);
 
         // add report and send response
         DirectTaskingResponse sResponse = new DirectTaskingResponse();
         sResponse.setVersion("2.0");
-        ITask task = findTask(taskID);
         task.getStatusReport().setRequestStatus(RequestStatus.Accepted);
         task.getStatusReport().setTaskStatus(TaskStatus.Reserved);
         task.getStatusReport().touch();
@@ -642,17 +715,6 @@ public class SPSServlet extends SWEServlet
     }
 
 
-    protected ITask findTask(String taskID) throws SPSException
-    {
-        ITask task = taskDB.getTask(taskID);
-
-        if (task == null)
-            throw new SPSException(SPSException.invalid_param_code, "task", taskID);
-
-        return task;
-    }
-
-
     protected Task createNewTask(GetFeasibilityRequest request)
     {
         Task newTask = new Task();
@@ -668,8 +730,7 @@ public class SPSServlet extends SWEServlet
 
         // creation time
         newTask.setCreationTime(new DateTime());
-
-        taskDB.addTask(newTask);
+        
         return newTask;
     }
 
@@ -688,8 +749,7 @@ public class SPSServlet extends SWEServlet
         
         // creation time
         newTask.setCreationTime(new DateTime());
-
-        taskDB.addTask(newTask);
+        
         return newTask;
     }
 
@@ -708,7 +768,6 @@ public class SPSServlet extends SWEServlet
         // creation time
         newTask.setCreationTime(new DateTime());
 
-        taskDB.addTask(newTask);
         return newTask;
     }
 
@@ -932,6 +991,13 @@ public class SPSServlet extends SWEServlet
     protected SystemDatabaseTransactionHandler getTransactionHandler()
     {
         return transactionHandler;
+    }
+    
+    
+    protected String getCurrentUser()
+    {
+        var user = securityHandler.getCurrentUser();
+        return user != null ? user.getId() : ISecurityManager.ANONYMOUS_USER;
     }
     
     

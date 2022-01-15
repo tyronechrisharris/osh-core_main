@@ -18,28 +18,25 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
+import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.CommandEvent;
-import org.sensorhub.api.command.ICommandAck;
-import org.sensorhub.api.command.ICommandAck.CommandStatusCode;
-import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.service.ServiceException;
 import org.sensorhub.impl.system.CommandStreamTransactionHandler;
 import org.sensorhub.impl.system.SystemUtils;
 import org.vast.data.AbstractDataBlock;
-import org.vast.data.DataBlockList;
 import org.vast.data.DataBlockMixed;
 import org.vast.data.DataBlockString;
 import org.vast.data.SWEFactory;
-import org.vast.ows.sps.StatusReport.TaskStatus;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -59,6 +56,7 @@ public class SystemTaskingConnector implements ISPSConnector
     Map<String, CommandStreamTransactionHandler> txnHandlers = new HashMap<>();
     List<String> possibleCommandNames;
     String singleCommandName;
+    Random random = new Random();
     
     
     public SystemTaskingConnector(final SPSService service, final SystemTaskingConnectorConfig config)
@@ -71,6 +69,7 @@ public class SystemTaskingConnector implements ISPSConnector
     }
     
     
+    @Override
     public Stream<AbstractProcess> getProcedureDescriptions(TimeExtent timeRange)
     {
         // build filter
@@ -92,6 +91,7 @@ public class SystemTaskingConnector implements ISPSConnector
     }
     
     
+    @Override
     public DataComponent getTaskingParams()
     {
         // process all procedure datastreams
@@ -112,49 +112,6 @@ public class SystemTaskingConnector implements ISPSConnector
             return commandChoice.getComponent(0);
         else
             return commandChoice;
-    }
-
-
-    @Override
-    public void submitTask(ITask task) throws SensorHubException
-    {
-        var sysUID = task.getRequest().getProcedureID();
-        getCommandNames(task.getRequest().getParameters().getElementType());
-        
-        try
-        {
-            DataBlockList dataBlockList = (DataBlockList)task.getRequest().getParameters().getData();
-            var it = dataBlockList.blockIterator();
-            while (it.hasNext())
-            {
-                var data = it.next();
-                sendCommand(data, ack -> {
-                    synchronized (task)
-                    {
-                        if (ack.getStatusCode() == CommandStatusCode.COMPLETED)
-                        {
-                            task.getStatusReport().setTaskStatus(TaskStatus.Completed);
-                            if (ack.getMessage() != null)
-                                task.getStatusReport().setStatusMessage(ack.getMessage());
-                            task.getStatusReport().setPercentCompletion(100.f);
-                        }
-                        else
-                        {
-                            task.getStatusReport().setTaskStatus(TaskStatus.Failed);
-                            if (ack.getMessage() != null)
-                                task.getStatusReport().setStatusMessage(ack.getMessage());
-                            else if (ack.getError() != null)
-                                task.getStatusReport().setStatusMessage(ack.getError().getMessage());
-                        }
-                    }
-                });
-            }
-        }
-        catch (Exception e)
-        {
-            String msg = "Error sending command to " + sysUID;
-            throw new ServiceException(msg, e);
-        }
     }
     
     
@@ -179,7 +136,7 @@ public class SystemTaskingConnector implements ISPSConnector
     
     
     @Override
-    public void sendCommand(DataBlock data, Consumer<ICommandAck> ackCallback)
+    public CompletableFuture<ICommandStatus> sendCommand(DataBlock data, boolean waitForStatus)
     {
         var commandName = singleCommandName;
         
@@ -196,7 +153,25 @@ public class SystemTaskingConnector implements ISPSConnector
             return servlet.getTransactionHandler().getCommandStreamHandler(sysUID, key);
         });
         
-        txnHandler.sendCommand(data, ackCallback);
+        // create the command
+        var cmd = new CommandData.Builder()
+            .withSender(servlet.getCurrentUser())
+            .withCommandStream(txnHandler.getCommandStreamKey().getInternalID())
+            .withParams(data)
+            .build();
+        
+        CompletableFuture<ICommandStatus> future;
+        if (waitForStatus)
+        {
+            future = txnHandler.submitCommand(random.nextLong(), cmd);
+        }
+        else
+        {
+            txnHandler.submitCommandNoStatus(random.nextLong(), cmd);
+            future = CompletableFuture.completedFuture(null);
+        }
+        
+        return future;
     }
     
     
@@ -211,11 +186,11 @@ public class SystemTaskingConnector implements ISPSConnector
         if (multiCommandStreams)
         {
             for (var cmdName: possibleCommandNames)
-                topicList.add(EventUtils.getCommandStreamDataTopicID(sysUID, cmdName));
+                topicList.add(EventUtils.getCommandDataTopicID(sysUID, cmdName));
         }
         else
         {
-            var singleTopic = EventUtils.getCommandStreamDataTopicID(sysUID, taskingParams.getName());
+            var singleTopic = EventUtils.getCommandDataTopicID(sysUID, taskingParams.getName());
             topicList.add(singleTopic);
         }
         
@@ -225,28 +200,26 @@ public class SystemTaskingConnector implements ISPSConnector
             .subscribe(new Subscriber<CommandEvent>() {
                 
                 @Override
-                public void onNext(CommandEvent item)
+                public void onNext(CommandEvent event)
                 {
-                    for (var cmd: item.getCommands())
+                    var cmd = event.getCommand();
+                    DataBlock cmdData;
+                    
+                    if (multiCommandStreams)
                     {
-                        DataBlock cmdData;
-                        
-                        if (multiCommandStreams)
-                        {
-                            // add commandName to make it work with interleaved choice structure
-                            cmdData = new DataBlockMixed(new DataBlockString(1), (AbstractDataBlock)cmd.getParams());
-                            cmdData.setStringValue(0, item.getControlInputName());
-                        }
-                        else
-                            cmdData = cmd.getParams();
-                        
-                        subscriber.onNext(cmdData);
+                        // add commandName to make it work with interleaved choice structure
+                        cmdData = new DataBlockMixed(new DataBlockString(1), (AbstractDataBlock)cmd.getParams());
+                        cmdData.setStringValue(0, event.getControlInputName());
                     }
+                    else
+                        cmdData = cmd.getParams();
+                    
+                    subscriber.onNext(cmdData);
                 }
                 
                 public void onSubscribe(Subscription sub) { subscriber.onSubscribe(sub); }
                 public void onError(Throwable e) { subscriber.onError(e); }
-                public void onComplete() { subscriber.onComplete(); }                
+                public void onComplete() { subscriber.onComplete(); }
             });
     }
 

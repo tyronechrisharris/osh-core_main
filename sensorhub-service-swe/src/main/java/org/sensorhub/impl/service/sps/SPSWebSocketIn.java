@@ -71,7 +71,7 @@ public class SPSWebSocketIn implements WebSocketListener
             ByteArrayInputStream is = new ByteArrayInputStream(payload, offset, len);
             parser.setInput(is);
             DataBlock data = parser.parseNextBlock();
-            connector.sendCommand(data, null);
+            connector.sendCommand(data, false);
         }
         catch (Exception e)
         {
