@@ -14,12 +14,14 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import net.opengis.swe.v20.Category;
 import net.opengis.swe.v20.DataChoice;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.SimpleComponent;
 import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.Alignment;
+import com.vaadin.v7.ui.ComboBox;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
@@ -103,19 +105,40 @@ public abstract class SWEEditForm extends SWECommonForm
         else if (component instanceof SimpleComponent)
         {
             HorizontalLayout layout = getCaptionLayout(component);
-            final TextField f = new TextField();
-            f.addStyleName(UIConstants.STYLE_SMALL);
-            f.setValue(component.getData().getStringValue());
-            layout.addComponent(f);
-            f.addValueChangeListener(new ValueChangeListener() {
-                private static final long serialVersionUID = 1L;
-                @Override
-                public void valueChange(ValueChangeEvent event)
-                {
-                    component.getData().setStringValue(f.getValue());
-                }
-            });
-            return layout;            
+            
+            if (component instanceof Category && ((Category) component).getConstraint() != null)
+            {
+                final ComboBox f = new ComboBox();
+                f.addStyleName(UIConstants.STYLE_SMALL);
+                f.addItems(((Category) component).getConstraint().getValueList());
+                //f.setValue(component.getData().getStringValue());
+                layout.addComponent(f);
+                f.addValueChangeListener(new ValueChangeListener() {
+                    private static final long serialVersionUID = 1L;
+                    @Override
+                    public void valueChange(ValueChangeEvent event)
+                    {
+                        component.getData().setStringValue((String)f.getValue());
+                    }
+                });
+            }
+            else
+            {
+                final TextField f = new TextField();
+                f.addStyleName(UIConstants.STYLE_SMALL);
+                f.setValue(component.getData().getStringValue());
+                layout.addComponent(f);
+                f.addValueChangeListener(new ValueChangeListener() {
+                    private static final long serialVersionUID = 1L;
+                    @Override
+                    public void valueChange(ValueChangeEvent event)
+                    {
+                        component.getData().setStringValue(f.getValue());
+                    }
+                });
+            }
+            
+            return layout;
         }
         else
         {

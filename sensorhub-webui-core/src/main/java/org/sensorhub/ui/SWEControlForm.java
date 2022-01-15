@@ -16,6 +16,8 @@ package org.sensorhub.ui;
 
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.IStreamingControlInterface;
+import org.sensorhub.impl.system.CommandStreamTransactionHandler;
+import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.ui.api.UIConstants;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
@@ -29,6 +31,8 @@ public class SWEControlForm extends SWEEditForm
 {
     transient IStreamingControlInterface controlInput;
     transient DataComponent controlSink;
+    transient CommandStreamTransactionHandler commandTxn;
+    transient String userID;
     
     
     public SWEControlForm(final IStreamingControlInterface controlInput)
@@ -50,6 +54,27 @@ public class SWEControlForm extends SWEEditForm
     }
     
     
+    @Override
+    public void attach()
+    {
+        super.attach();
+        
+        if (controlInput != null)
+        {
+            var ui = ((AdminUI)this.getUI());
+            
+            var user = ui.getSecurityHandler().getCurrentUser();
+            this.userID = user != null ? user.getId() : "adminUI";
+            
+            var sysUID = controlInput.getParentProducer().getUniqueIdentifier();
+            var eventBus = ui.getParentHub().getEventBus();
+            var db = ui.getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
+            var sysTxnHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+            this.commandTxn = sysTxnHandler.getCommandStreamHandler(sysUID, controlInput.getName());
+        }
+    }
+
+
     protected void buildForm()
     {
         super.buildForm();
@@ -68,10 +93,14 @@ public class SWEControlForm extends SWEEditForm
             {
                 try
                 {
-                    if (controlInput != null)
+                    if (commandTxn != null)
                     {
-                        var cmd = new CommandData(1, component.getData());
-                        controlInput.executeCommand(cmd, ack -> {}).get();
+                        var cmd = new CommandData.Builder()
+                            .withSender(userID)
+                            .withCommandStream(commandTxn.getCommandStreamKey().getInternalID())
+                            .withParams(component.getData())
+                            .build();
+                        commandTxn.submitCommand((int)(Math.random()*1e9), cmd, null);
                     }
                     else
                         controlSink.setData(component.getData());
