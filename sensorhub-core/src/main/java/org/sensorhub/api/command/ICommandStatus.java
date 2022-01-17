@@ -179,4 +179,11 @@ public interface ICommandStatus
      * informative message, depending on the status code
      */
     String getMessage();
+    
+    
+    default boolean isFinal()
+    {
+        var statusCode = getStatusCode();
+        return statusCode != null && statusCode.isFinal();
+    }
 }

@@ -50,6 +50,22 @@ public class CommandData implements ICommandData
     }
     
     
+    /**
+     * Helper constructor to send a command directly to a driver.
+     * You need to use the builder when sending a command via the event system
+     * since other parameters are needed in this case.
+     * @param id Command ID
+     * @param params Command parameters
+     */
+    public CommandData(long id, DataBlock params)
+    {
+        this.id = BigInteger.valueOf(id);
+        this.commandStreamID = 1;
+        this.params = Asserts.checkNotNull(params, DataBlock.class);
+        this.issueTime = Instant.now();
+    }
+    
+    
     @Override
     public BigInteger getID()
     {
@@ -60,6 +76,7 @@ public class CommandData implements ICommandData
     @Override
     public void assignID(BigInteger id)
     {
+        Asserts.checkState(this.id == null, "Command ID cannot be reassigned");
         this.id = id;
     }
 
@@ -136,10 +153,26 @@ public class CommandData implements ICommandData
         
         protected B copyFrom(ICommandData base)
         {
+            instance.id = base.getID();
             instance.commandStreamID = base.getCommandStreamID();
+            instance.foiID = base.getFoiID();
             instance.senderID = base.getSenderID();
             instance.issueTime = base.getIssueTime();
             instance.params = base.getParams();
+            return (B)this;
+        }
+
+
+        public B withId(BigInteger id)
+        {
+            instance.id = id;
+            return (B)this;
+        }
+
+
+        public B withId(long id)
+        {
+            instance.id = BigInteger.valueOf(id);
             return (B)this;
         }
 

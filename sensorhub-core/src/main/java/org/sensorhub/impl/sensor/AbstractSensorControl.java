@@ -85,7 +85,7 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
     
     
     @Override
-    public ICommandReceiver getParentProducer()
+    public T getParentProducer()
     {
         return parentSensor;
     }

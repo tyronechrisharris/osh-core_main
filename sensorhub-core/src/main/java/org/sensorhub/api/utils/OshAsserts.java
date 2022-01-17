@@ -55,6 +55,7 @@ public class OshAsserts
     
     public static BigInteger checkValidInternalID(BigInteger id, String idName)
     {
+        Asserts.checkNotNull(id, BigInteger.class);
         Asserts.checkArgument(id.signum() == 1, "{} ID must be > 0", idName);
         return id;
     }

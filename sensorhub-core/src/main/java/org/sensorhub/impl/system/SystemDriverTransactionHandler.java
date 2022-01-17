@@ -277,7 +277,7 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         }
         dataStreamHandlers.put(output.getName(), newDsHandler);
         
-        // enable and start forwarding events
+        // enable and register to receive data events from driver
         newDsHandler.enable();
         output.registerListener(newDsHandler);
         
@@ -340,7 +340,7 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         // connect to receive commands from event bus
         connectControlInput(controlInput, newCsHandler);
         
-        // enable and start forwarding status events
+        // enable and register to receive command status events from driver
         newCsHandler.enable();
         controlInput.registerListener(newCsHandler);
         
@@ -388,24 +388,27 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
     }
 
 
-    public CompletableFuture<Void> unregister(IStreamingControlInterface commandStream)
+    public CompletableFuture<Void> unregister(IStreamingControlInterface controlInput)
     {
-        doUnregister(commandStream);
+        doUnregister(controlInput);
         return CompletableFuture.completedFuture(null);
     }
     
     
-    protected synchronized void doUnregister(IStreamingControlInterface commandStream)
+    protected synchronized void doUnregister(IStreamingControlInterface controlInput)
     {
-        Asserts.checkNotNull(commandStream, IStreamingControlInterface.class);
+        Asserts.checkNotNull(controlInput, IStreamingControlInterface.class);
         
         // remove handler
-        var csHandler = commandStreamHandlers.remove(commandStream.getName());
+        var csHandler = commandStreamHandlers.remove(controlInput.getName());
         if (csHandler != null)
+        {
+            controlInput.unregisterListener(csHandler);
             csHandler.disable();
+        }
         
         // cancel subscriptions to received commands
-        var sub = commandSubscriptions.remove(commandStream.getName());
+        var sub = commandSubscriptions.remove(controlInput.getName());
         if (sub != null)
             sub.cancel();
     }
