@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledExecutorService;
@@ -363,9 +364,13 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
                 .get(10, TimeUnit.SECONDS);
             return idConverter.toPublicID(status.getCommandID());
         }
-        catch (Exception e)
+        catch (TimeoutException e)
         {
             throw new DataStoreException("Timeout before command was acknowledged by receiving system", e);
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException(e.getMessage(), e.getCause());
         }
     }
     

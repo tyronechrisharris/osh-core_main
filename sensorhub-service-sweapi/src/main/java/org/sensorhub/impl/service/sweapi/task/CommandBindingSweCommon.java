@@ -55,19 +55,23 @@ public class CommandBindingSweCommon extends ResourceBinding<BigInteger, IComman
     DataStreamParser resultReader;
     DataStreamWriter paramsWriter;
     ScalarIndexer timeStampIndexer;
+    String userID;
 
     
     CommandBindingSweCommon(RequestContext ctx, IdEncoder idEncoder, boolean forReading, ICommandStore obsStore) throws IOException
     {
         super(ctx, idEncoder);
         this.contextData = (CommandHandlerContextData)ctx.getData();
-                
+        
         var dsInfo = contextData.dsInfo;
         if (forReading)
         {
             var is = ctx.getInputStream();
             resultReader = getSweCommonParser(dsInfo, is, ctx.getFormat());
             timeStampIndexer = SWEHelper.getTimeStampIndexer(contextData.dsInfo.getRecordStructure());
+            
+            var user = ctx.getSecurityHandler().getCurrentUser();
+            this.userID = user != null ? user.getId() : "api";
         }
         else
         {
@@ -94,6 +98,7 @@ public class CommandBindingSweCommon extends ResourceBinding<BigInteger, IComman
         // create obs object
         return new CommandData.Builder()
             .withCommandStream(contextData.streamID)
+            .withSender(userID)
             //.withFoi(contextData.foiId)
             .withIssueTime(SWEDataUtils.toInstant(time))
             .withParams(rec)
@@ -113,14 +118,14 @@ public class CommandBindingSweCommon extends ResourceBinding<BigInteger, IComman
     {
         DataStreamParser dataParser = null;
         
-        // init SWE datastream writer depending on desired format and native encoding
+        // init SWE parser depending on desired format and native encoding
         if (dsInfo.getRecordEncoding() instanceof TextEncoding)
         {
             if (format.equals(ResourceFormat.SWE_JSON))
             {
                 dataParser = new JsonDataParserGson();
             }
-            else if (format.equals(ResourceFormat.SWE_TEXT))
+            else if (format.isOneOf(ResourceFormat.SWE_TEXT))
             {
                 dataParser = new AsciiDataParser();
                 dataParser.setDataEncoding(dsInfo.getRecordEncoding());
