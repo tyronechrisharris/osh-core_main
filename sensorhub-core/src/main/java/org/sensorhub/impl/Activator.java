@@ -18,6 +18,7 @@ import java.util.Hashtable;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.utils.OshBundleActivator;
 
 
@@ -37,7 +38,16 @@ public class Activator extends OshBundleActivator implements BundleActivator
         
         var props = new Hashtable<String, String>();
         props.put("type", "ISensorHub");
-        context.registerService(Runnable.class, () -> { hub.start(); }, props);
+        context.registerService(Runnable.class, () -> {
+            try
+            {
+                hub.start();
+            }
+            catch (SensorHubException e)
+            {
+                e.printStackTrace();
+            }
+        }, props);
     }
 
 

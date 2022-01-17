@@ -19,6 +19,7 @@ import org.osgi.framework.BundleContext;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
 import org.sensorhub.api.comm.INetworkManager;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.processing.IProcessingManager;
@@ -86,7 +87,7 @@ public class SensorHub implements ISensorHub
     
     
     @Override
-    public synchronized void start()
+    public synchronized void start() throws SensorHubException
     {
         if (!started)
         {
@@ -113,7 +114,7 @@ public class SensorHub implements ISensorHub
             
             // prepare client authenticator (e.g. for HTTP connections, etc...)
             ClientAuth.createInstance("keystore");
-                    
+            
             // load all modules in the order implied by dependency constraints
             moduleRegistry.loadAllModules();
             started = true;
@@ -243,15 +244,15 @@ public class SensorHub implements ISensorHub
         {
             SensorHubConfig config = new SensorHubConfig(args[0], args[1]);
             instance = new SensorHub(config);
-                        
+            
             // register shutdown hook for a clean stop 
             final ISensorHub sh = instance;
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 @Override
                 public void run()
                 {
-                    sh.stop();                    
-                }            
+                    sh.stop();
+                }
             });
             
             instance.start();

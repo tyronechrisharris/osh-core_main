@@ -16,6 +16,7 @@ package org.sensorhub.api;
 
 import org.osgi.framework.BundleContext;
 import org.sensorhub.api.comm.INetworkManager;
+import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.processing.IProcessingManager;
@@ -62,7 +63,7 @@ public interface ISensorHub
     public IProcessingManager getProcessingManager();
     
     
-    public void start();
+    public void start() throws SensorHubException;
 
 
     public void saveAndStop();

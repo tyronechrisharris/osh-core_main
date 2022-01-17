@@ -114,95 +114,27 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     /**
      * Loads all enabled modules from configuration entries provided
      * by the specified IModuleConfigRepository
+     * @throws SensorHubException 
      */
-    public synchronized void loadAllModules()
+    public synchronized void loadAllModules() throws SensorHubException
     {
-        allModulesLoaded = false;
-                
-        var allModuleConfs = configRepo.getAllModulesConfigurations();
-        
-        // separate datastore/database modules from other modules
+        // load all modules
+        log.info("Loading modules...");
         var dbIds = new HashSet<Integer>();
-        var dataStoreConfs = new ArrayList<ModuleConfig>();
-        var otherModuleConfs = new ArrayList<ModuleConfig>();
-        for (ModuleConfig config: allModuleConfs)
+        for (ModuleConfig config: configRepo.getAllModulesConfigurations())
         {
-            try
+            // check database IDs are unique
+            if (config instanceof DatabaseConfig)
             {
-                // check database ID is unique
-                if (config instanceof DatabaseConfig)
-                {
-                    var dbID = ((DatabaseConfig) config).databaseNum;
-                    if (dbID != null && !dbIds.add(dbID))
-                        throw new IllegalStateException("Duplicate database number: " + dbID + ". Check your configuration");
-                }
-                
-                if (isDataStoreModule(config) && config.autoStart)
-                    dataStoreConfs.add(config);
-                else
-                    otherModuleConfs.add(config);
+                var dbID = ((DatabaseConfig) config).databaseNum;
+                if (dbID != null && !dbIds.add(dbID))
+                    throw new IllegalStateException("Duplicate database number: " + dbID + ". Check your configuration");
             }
-            catch (SensorHubException e)
-            {
-                // log error and continue loading other modules
-                log.error(IModule.CANNOT_LOAD_MSG, e);
-            }
-        }
-        
-        // First load/start all datastore modules marked as "autostart" to ensure they
-        // are registered with database registry and ready to record data before any
-        // other module start producing data.
-        log.info("Loading datastore connectors");
-        for (ModuleConfig config: dataStoreConfs)
-        {
-            try
-            {
-                if (config.autoStart)
-                    loadModuleAsync(config.clone(), null);
-            }
-            catch (Exception e)
-            {
-                // log error and continue loading other modules
-                log.error(IModule.CANNOT_LOAD_MSG, e);
-            }
-        }
-        
-        // wait for all datastores to be started
-        synchronized (loadedModules)
-        {
-            boolean allStarted = false;
             
             try
             {
-                while (!allStarted)
-                {
-                    allStarted = true;                    
-                    for (IModule<?> module: loadedModules.values())
-                    {
-                        if (!module.isStarted())
-                        {
-                            allStarted = false;
-                            break;
-                        }
-                    }
-                    
-                    if (!allStarted)
-                        loadedModules.wait(20000);
-                }
-            }
-            catch (InterruptedException e)
-            {
-                throw new IllegalStateException("Could not start all datastores", e);
-            }
-        }
-        
-        // then load all other modules
-        log.info("All datastores ready. Loading all other modules");
-        for (ModuleConfig config: otherModuleConfs)
-        {
-            try
-            {
-                loadModuleAsync(config.clone(), null);
+                // load module but don't autostart yet
+                loadModuleAsync(config.clone(), null, false);
             }
             catch (Exception e)
             {
@@ -211,10 +143,51 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             }
         }
         
-        synchronized (loadedModules)
+        // separate datastore/database modules from other modules
+        var dataStores = new ArrayList<IModule<?>>();
+        var otherModules = new ArrayList<IModule<?>>();
+        for (IModule<?> module: loadedModules.values())
         {
-            this.allModulesLoaded = true;
-            loadedModules.notifyAll();
+            if (module instanceof IDatabase || module instanceof IDataStore)
+                dataStores.add(module);
+            else
+                otherModules.add(module);
+        }
+        
+        // First start all datastore modules to ensure they are registered
+        // with database registry and ready to record data before any
+        // other module start producing data.
+        log.info("Starting datastore connectors");
+        var waitFutures= new ArrayList<CompletableFuture<?>>();
+        for (IModule<?> module: dataStores)
+        {
+            if (module.getConfiguration().autoStart)
+            {
+                startModuleAsync(module);
+                var f = waitForModule(module.getLocalID(), ModuleState.STARTED);
+                waitFutures.add(f);
+            }
+        }
+        
+        // wait for all datastores to start
+        try
+        {
+            var numStartedDatabases = waitFutures.size();
+            CompletableFuture.allOf(
+                waitFutures.toArray(new CompletableFuture[numStartedDatabases]))
+                .get(DEFAULT_TIMEOUT_MS*4, TimeUnit.MILLISECONDS);
+        }
+        catch (Exception e)
+        {
+            throw new SensorHubException("Error starting datastores", e);
+        }
+        
+        // then load all other modules
+        log.info("All datastores ready. Starting all other modules");
+        for (IModule<?> module: otherModules)
+        {
+            if (module.getConfiguration().autoStart)
+                startModuleAsync(module);
         }
     }
     
@@ -243,7 +216,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * @throws SensorHubException 
      */
     public IModule<?> loadModule(ModuleConfig config) throws SensorHubException
-    {        
+    {
         return loadModule(config, Long.MAX_VALUE);
     }
     
@@ -258,7 +231,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * @throws SensorHubException 
      */
     public IModule<?> loadModule(ModuleConfig config, long timeOut) throws SensorHubException
-    {        
+    {
         IModule<?> module = loadModuleAsync(config, null);
         
         if (config.autoStart && !module.waitForState(ModuleState.STARTED, timeOut))
@@ -278,8 +251,14 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      * @return loaded module instance (may not yet be started when this method returns)
      * @throws SensorHubException if no module with given ID can be found
      */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     public IModule<?> loadModuleAsync(ModuleConfig config, IEventListener listener) throws SensorHubException
+    {
+        return loadModuleAsync(config, listener, true);
+    }
+    
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected IModule<?> loadModuleAsync(ModuleConfig config, IEventListener listener, boolean applyAutoStart) throws SensorHubException
     {
         if (config.id != null && loadedModules.containsKey(config.id))
             return loadedModules.get(config.id);
@@ -314,7 +293,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             handleEvent(new ModuleEvent(module, Type.LOADED));
             
             // also init & start if autostart is set
-            if (config.autoStart)
+            if (applyAutoStart && config.autoStart)
                 startModuleAsync(config.id, null);
         }
         catch (Exception e)
@@ -390,7 +369,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
      */
     public void unloadModule(String moduleID) throws SensorHubException
     {
-        stopModule(moduleID);        
+        stopModule(moduleID);
         IModule<?> module = loadedModules.remove(moduleID);
         
         IEventPublisher modulePublisher = hub.getEventBus().getPublisher(moduleID);
@@ -757,7 +736,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 catch (Exception e)
                 {
                     log.error(IModule.CANNOT_UPDATE_MSG + MsgUtils.moduleString(module), e);
-                }            
+                }
             });
         }
         catch (Exception e)
@@ -1000,7 +979,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         
         // do nothing if no modules have been loaded
         if (loadedModules.isEmpty())
-            return;        
+            return;
         
         log.info("Module registry shutdown initiated");
         log.info("Stopping all modules (saving config = {}, saving state = {})", saveConfig, saveState);
@@ -1013,10 +992,10 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             if (module instanceof IDatabase || module instanceof IDataStore)
                 dataStores.add(module);
             else
-                otherModules.add(module);   
+                otherModules.add(module);
         }
         
-        // stop all non-datastore modules        
+        // stop all non-datastore modules
         stopModules(otherModules, saveConfig, saveState);
         
         // then stop all datastores
@@ -1070,7 +1049,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 if (saveState)
                 {
                     try
-                    {                   
+                    {
                         IModuleStateManager stateManager = getStateManager(module.getLocalID());
                         if (stateManager != null)
                             module.saveState(stateManager);
@@ -1096,7 +1075,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             boolean allStopped = false;
             while (!allStopped)
             {
-                allStopped = true;                
+                allStopped = true;
                 for (IModule<?> module: moduleList)
                 {
                     ModuleState state = module.getCurrentState();
@@ -1280,7 +1259,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 }
             }
                 
-            waitForModuleFutures.add(future);            
+            waitForModuleFutures.add(future);
             return future;
         }
     }
