@@ -93,17 +93,19 @@ public class SWEControlForm extends SWEEditForm
             {
                 try
                 {
+                    var cmdData = component.getData().clone();
+                    
                     if (commandTxn != null)
                     {
                         var cmd = new CommandData.Builder()
                             .withSender(userID)
                             .withCommandStream(commandTxn.getCommandStreamKey().getInternalID())
-                            .withParams(component.getData())
+                            .withParams(cmdData)
                             .build();
                         commandTxn.submitCommand((int)(Math.random()*1e9), cmd, null);
                     }
                     else
-                        controlSink.setData(component.getData());
+                        controlSink.setData(cmdData);
                 }
                 catch (Exception e)
                 {
