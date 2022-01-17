@@ -41,6 +41,7 @@ public abstract class SWEEditForm extends SWECommonForm
     
     public SWEEditForm(DataComponent component)
     {
+        setMargin(false);
         this.addSpacing = true;
         this.component = component;
         if (!component.hasData())
@@ -50,8 +51,10 @@ public abstract class SWEEditForm extends SWECommonForm
     
     protected void buildForm()
     {
-        setSpacing(true);
-        setMargin(false);
+        // clear content before rebuilding
+        // needed after choice selection
+        removeAllComponents();
+        
         addComponent(buildWidget(component, false));
     }
     
@@ -66,8 +69,9 @@ public abstract class SWEEditForm extends SWECommonForm
                 dataChoice.setSelectedItem(0);
             
             VerticalLayout layout = new VerticalLayout();
+            layout.setMargin(false);
             layout.setSpacing(true);
-                        
+            
             // combo to select command type
             HorizontalLayout header = getCaptionLayout(component);
             ListSelect combo = new ListSelect();
@@ -92,13 +96,13 @@ public abstract class SWEEditForm extends SWECommonForm
                     buildForm();
                 }
         
-            });            
+            });
             header.addComponent(combo);
             layout.addComponent(header);
             
             // display form for selected item
             Component w = buildWidget(dataChoice.getSelectedItem(), showValues);
-            layout.addComponent(w);            
+            layout.addComponent(w);
                 
             return layout;
         }

@@ -1187,6 +1187,12 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
     }
     
     
+    public AdminUISecurity getSecurityHandler()
+    {
+        return securityHandler;
+    }
+    
+    
     public Logger getLogger()
     {
         return adminModule.getLogger();
