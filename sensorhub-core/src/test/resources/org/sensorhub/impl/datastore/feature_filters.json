@@ -1,15 +1,19 @@
 [    
     {
+        "includeMembers": false,
         "internalIDs": [11, 1235, 698548]
     },
     {
+        "includeMembers": false,
         "uniqueIDs": [
             "urn:osh:features:F001",
             "urn:osh:features:F002"
         ]
     },
     {
+        "includeMembers": false,
         "withParents": {
+            "includeMembers": false,
             "internalIDs": [1235]
         },
         "fullText": {
@@ -17,7 +21,9 @@
         }
     },
     {
+        "includeMembers": false,
         "withParents": {
+            "includeMembers": false,
             "fullText": {
                 "keywords": ["building", "room"]
             },
@@ -34,6 +40,7 @@
         }
     },
     {
+        "includeMembers": false,
         "internalIDs": [5689],
         "validTime": {
             "during": [

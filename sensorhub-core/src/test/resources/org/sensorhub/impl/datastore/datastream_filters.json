@@ -5,6 +5,7 @@
         },
         "outputNames": ["press", "temp"],
         "withSystems": {
+            "includeMembers": false,
             "internalIDs": [12, 568944]
         }
     },

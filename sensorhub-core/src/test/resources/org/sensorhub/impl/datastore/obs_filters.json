@@ -7,6 +7,7 @@
             "indeterminate": "latest"
         },
         "withFois": {
+            "includeMembers": false,
             "location": {
                 "within": {
                     "roi": {
@@ -16,12 +17,13 @@
                             [-50.0,10.0],
                             [48.0,10.0],
                             [50.0,-30.0],
-                            [-25.0,-10.0]                        
+                            [-25.0,-10.0]
                         ]
                     }
                 }
             },
             "withSampledFeatures": {
+                "includeMembers": false,
                 "predicate": "f => f.properties.area < 50 && f.properties.head_count > 26"
             }
         },
@@ -36,6 +38,7 @@
         },
         "internalIDs": [100, 200, 300],
         "withFois": {
+            "includeMembers": false,
             "location": {
                 "within_distance": {
                     "center": {

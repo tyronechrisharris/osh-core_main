@@ -1,5 +1,6 @@
 [
     {
+        "includeMembers": false,
         "validTime": {
             "during": [
               "2020-10-08T15:15:56Z",
@@ -18,6 +19,7 @@
         "predicate": "obs => obs.result.temp > 27.5"
     },
     {
+        "includeMembers": false,
         "validTime": {
             "indeterminate": "latest"
         },
@@ -32,10 +34,12 @@
         }
     },
     {
+        "includeMembers": false,
         "validTime": {
             "indeterminate": "current"
         },
         "withParents": {
+            "includeMembers": false,
             "uniqueIDs": [
                 "urn:osh:group:001"
             ]
@@ -45,10 +49,12 @@
         }
     },
     {
+        "includeMembers": false,
         "validTime": {
             "indeterminate": "current"
         },
         "withParents": {
+            "includeMembers": false,
             "internalIDs": [1235]
         },
         "fullText": {
