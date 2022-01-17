@@ -263,6 +263,8 @@ public class FederatedCommandStore extends ReadOnlyDataStore<BigInteger, IComman
                 });
         }
         
+        if (cmdStreams.isEmpty())
+            return Stream.empty();
         
         // stream and merge commands from all selected command streams and time periods
         var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, ICommandData>>(cmdStreams,

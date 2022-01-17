@@ -18,9 +18,8 @@ import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.function.Consumer;
-import org.sensorhub.api.command.CommandAck;
-import org.sensorhub.api.command.ICommandAck;
+import org.sensorhub.api.command.CommandStatus;
+import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.impl.sensor.AbstractSensorControl;
@@ -38,7 +37,7 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
     
     public SWEVirtualSensorControl(SWEVirtualSensor parentSensor, DataComponent cmdDescription)
     {
-        this(parentSensor, cmdDescription, -1);        
+        this(parentSensor, cmdDescription, -1);
     }
     
     
@@ -65,7 +64,7 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
     
     
     @Override
-    public CompletableFuture<Void> executeCommand(ICommandData command, Consumer<ICommandAck> callback)
+    public CompletableFuture<ICommandStatus> submitCommand(ICommandData command)
     {
         // wrap to add choice index if several commands were advertised by server
         DataBlock commandParams;
@@ -78,15 +77,15 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
             commandParams = command.getParams();
         
         // execute command asynchronously
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             try
             {
                 // TODO handle asynchronous tasking
                 var resp = parentSensor.spsClient.sendTaskMessage(commandParams);
                 if (resp.getReport().getRequestStatus() == RequestStatus.Rejected)
-                    callback.accept(CommandAck.fail(command));
+                    return CommandStatus.rejected(command.getID(), resp.getReport().getStatusMessage());
                 else
-                    callback.accept(CommandAck.success(command));
+                    return CommandStatus.completed(command.getID());
             }
             catch (SensorHubException e)
             {
@@ -98,6 +97,6 @@ public class SWEVirtualSensorControl extends AbstractSensorControl<SWEVirtualSen
 
     @Override
     public void validateCommand(ICommandData command)
-    {        
+    {
     }
 }

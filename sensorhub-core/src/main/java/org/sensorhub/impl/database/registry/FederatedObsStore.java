@@ -299,12 +299,14 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                 });
         }
         
+        if (obsStreams.isEmpty())
+            return Stream.empty();
         
         // stream and merge obs from all selected datastreams and time periods
         var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, IObsData>>(obsStreams,
-            (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));         
+            (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));
                
-        // stream output of merge sort iterator + apply limit        
+        // stream output of merge sort iterator + apply limit
         return StreamSupport.stream(mergeSortIt, false)
             .limit(filter.getLimit())
             .onClose(() -> mergeSortIt.close());
