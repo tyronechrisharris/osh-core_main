@@ -27,7 +27,6 @@ import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
@@ -250,13 +249,13 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
             @Override
             public void onError(Throwable e)
             {
-                ctx.getLogger().error("Error while publishing real-time obs data", e);
+                ctx.getLogger().error("Error while publishing real-time command data", e);
             }
 
             @Override
             public void onComplete()
             {
-                ctx.getLogger().debug("Ending real-time obs subscription #{}", System.identityHashCode(subscription));
+                ctx.getLogger().debug("Ending real-time command subscription #{}", System.identityHashCode(subscription));
                 streamHandler.close();
             }
         };
@@ -307,11 +306,7 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
         // issueTime param
         var issueTime = parseTimeStampArg("issueTime", queryParams);
         if (issueTime != null)
-        {
-            builder.withIssueTime(new TemporalFilter.Builder()
-                .fromTimeExtent(issueTime)
-                .build());
-        }
+            builder.withIssueTime(issueTime);
         
         /*// foi param
         var foiIDs = parseResourceIds("foi", queryParams, foiIdEncoder);

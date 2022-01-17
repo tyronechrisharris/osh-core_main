@@ -38,13 +38,12 @@ import org.vast.util.Asserts;
 
 public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey, ICommandStreamInfo, CommandStreamFilter, CommandStreamFilter.Builder, ICommandStreamStore>
 {
-    public static final int EXTERNAL_ID_SEED = 918742953;
     public static final String[] NAMES = { "schema" };
     
     
     public CommandStreamSchemaHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getCommandStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getCommandStreamStore(), new IdEncoder(0), permissions);
     }
     
     
@@ -103,7 +102,7 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     {
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.read);
-                
+        
         ResourceRef parent = ctx.getParentRef();
         Asserts.checkNotNull(parent, "parent");
         

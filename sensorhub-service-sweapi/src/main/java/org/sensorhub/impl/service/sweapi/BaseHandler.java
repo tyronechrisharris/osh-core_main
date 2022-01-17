@@ -14,11 +14,13 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
@@ -152,7 +154,35 @@ public abstract class BaseHandler implements IResourceHandler
     }
     
     
-    protected TimeExtent parseTimeStampArg(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
+    protected Collection<BigInteger> parseBigResourceIds(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
+    {
+        var allValues = new ArrayList<BigInteger>();
+        
+        var paramValues = queryParams.get(paramName);
+        if (paramValues != null)
+        {
+            for (String val: paramValues)
+            {
+                for (String id: val.split(","))
+                {
+                    try
+                    {
+                        var bigID = new BigInteger(id, ResourceBinding.ID_RADIX);
+                        allValues.add(bigID);
+                    }
+                    catch (NumberFormatException e)
+                    {
+                        throw ServiceErrors.badRequest("Invalid resource ID: " + id);
+                    }
+                }
+            }
+        }
+        
+        return allValues;
+    }
+    
+    
+    protected TemporalFilter parseTimeStampArg(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
     {
         var timeVal = getSingleParam(paramName, queryParams);
         if (timeVal == null)
@@ -160,7 +190,18 @@ public abstract class BaseHandler implements IResourceHandler
         
         try
         {
-            return TimeExtent.parse(timeVal);
+            if (timeVal.equals("latest"))
+            {
+                return new TemporalFilter.Builder()
+                    .withLatestTime()
+                    .build();
+            }
+            else
+            {
+                return new TemporalFilter.Builder()
+                    .fromTimeExtent(TimeExtent.parse(timeVal))
+                    .build();
+            }
         }
         catch (Exception e)
         {

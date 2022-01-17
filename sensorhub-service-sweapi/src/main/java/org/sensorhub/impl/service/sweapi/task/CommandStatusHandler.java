@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.task;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
@@ -26,7 +27,6 @@ import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
@@ -251,34 +251,48 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
     {
         var builder = new CommandStatusFilter.Builder();
         
-        // filter on parent if needed
+        // filter on parent command if needed
         if (parent.bigInternalID != null)
             builder.withCommands(parent.bigInternalID);
+        
+        // or filter on parent command stream
+        else if (parent.internalID > 0)
+        {
+            builder.withCommands()
+                .withCommandStreams(parent.internalID)
+                .done();
+        }
+        
+        // command IDs
+        var cmdIDs = parseBigResourceIds("commands", queryParams);
+        if (parent.bigInternalID == null && cmdIDs != null && !cmdIDs.isEmpty())
+        {
+            builder.withCommands(cmdIDs);
+        }
         
         // reportTime param
         var issueTime = parseTimeStampArg("reportTime", queryParams);
         if (issueTime != null)
-        {
-            builder.withReportTime(new TemporalFilter.Builder()
-                .fromTimeExtent(issueTime)
-                .build());
-        }
+            builder.withReportTime(issueTime);
         
         // executionTime param
-        var resultTime = parseTimeStampArg("executionTime", queryParams);
-        if (resultTime != null)
-        {
-            builder.withExecutionTime(new TemporalFilter.Builder()
-                .fromTimeExtent(resultTime)
-                .build());
-        }
+        var execTime = parseTimeStampArg("executionTime", queryParams);
+        if (execTime != null)
+            builder.withExecutionTime(execTime);
         
         // status param
         var statusCodes = parseMultiValuesArg("statusCode", queryParams);
         if (statusCodes != null && !statusCodes.isEmpty())
         {
-            var enumCodes = statusCodes.stream().map(s -> CommandStatusCode.valueOf(s)).collect(Collectors.toSet());
-            builder.withStatus(enumCodes);
+            try
+            {
+                Set<CommandStatusCode> enumCodes = statusCodes.stream().map(s -> CommandStatusCode.valueOf(s)).collect(Collectors.toSet());
+                builder.withStatus(enumCodes);
+            }
+            catch (Exception e)
+            {
+                throw ServiceErrors.badRequest("Invalid status code: " + statusCodes);
+            }
         }
         
         // limit

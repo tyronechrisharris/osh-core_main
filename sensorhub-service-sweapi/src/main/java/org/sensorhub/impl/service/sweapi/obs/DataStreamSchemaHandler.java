@@ -37,13 +37,12 @@ import org.vast.util.Asserts;
 
 public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDataStreamInfo, DataStreamFilter, DataStreamFilter.Builder, IDataStreamStore>
 {
-    public static final int EXTERNAL_ID_SEED = 918742953;
     public static final String[] NAMES = { "schema" };
     
     
     public DataStreamSchemaHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getDataStreamStore(), new IdEncoder(0), permissions);
     }
     
     

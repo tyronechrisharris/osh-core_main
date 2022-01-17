@@ -107,13 +107,13 @@ public class DataStreamSchemaBindingJson extends ResourceBindingJson<DataStreamK
     @Override
     public void startCollection() throws IOException
     {
-        startJsonCollection(writer);        
+        startJsonCollection(writer);
     }
 
 
     @Override
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
-        endJsonCollection(writer, links);        
+        endJsonCollection(writer, links);
     }
 }

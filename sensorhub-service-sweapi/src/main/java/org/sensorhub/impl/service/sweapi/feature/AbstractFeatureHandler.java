@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.time.Instant;
 import java.util.Map;
-import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
@@ -56,13 +55,9 @@ public abstract class AbstractFeatureHandler<
             builder.withUniqueIDs(featureUIDs);
                 
         // validTime param
-        var timeExtent = parseTimeStampArg("validTime", queryParams);
-        if (timeExtent != null)
-        {
-            builder.withValidTime(new TemporalFilter.Builder()
-                .fromTimeExtent(timeExtent)
-                .build());
-        }
+        var validTime = parseTimeStampArg("validTime", queryParams);
+        if (validTime != null)
+            builder.withValidTime(validTime);
         else
             builder.withCurrentVersion();
         

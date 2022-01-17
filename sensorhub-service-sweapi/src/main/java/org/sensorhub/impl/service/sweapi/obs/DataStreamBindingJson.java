@@ -37,6 +37,7 @@ import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -267,6 +268,12 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             if (SWEConstants.DEF_SAMPLING_TIME.equals(def) ||
                 SWEConstants.DEF_PHENOMENON_TIME.equals(def) ||
                 SWEConstants.DEF_SYSTEM_ID.equals(def))
+                return false;
+            
+            // skip if no metadata was set
+            if (Strings.isNullOrEmpty(def) &&
+                Strings.isNullOrEmpty(comp.getLabel()) &&
+                Strings.isNullOrEmpty(comp.getDescription()))
                 return false;
             
             return true;

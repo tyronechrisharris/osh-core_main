@@ -31,7 +31,6 @@ import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.SpatialFilter;
-import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -395,20 +394,12 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         // phenomenonTime param
         var phenomenonTime = parseTimeStampArg("phenomenonTime", queryParams);
         if (phenomenonTime != null)
-        {
-            builder.withPhenomenonTime(new TemporalFilter.Builder()
-                .fromTimeExtent(phenomenonTime)
-                .build());
-        }
+            builder.withPhenomenonTime(phenomenonTime);
         
         // resultTime param
         var resultTime = parseTimeStampArg("resultTime", queryParams);
         if (resultTime != null)
-        {
-            builder.withResultTime(new TemporalFilter.Builder()
-                .fromTimeExtent(resultTime)
-                .build());
-        }
+            builder.withResultTime(resultTime);
         
         // foi param
         var foiIDs = parseResourceIds("foi", queryParams, foiIdEncoder);

@@ -209,7 +209,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
             commandFilter = cmdStore.selectAllFilter();
         
         // lookup status for each selected command
-        resultStream = cmdStore.selectKeys(filter.getCommandFilter())
+        resultStream = cmdStore.selectKeys(commandFilter)
             .flatMap(k -> getStatusStream(k, filter.getReportTime()));
         
         // post filter status record

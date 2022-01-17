@@ -37,10 +37,12 @@ import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.swe.v20.DataChoice;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataRecord;
@@ -251,14 +253,20 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
             if (comp.getParent() != null && comp.getParent() instanceof Vector)
                 return false;
             
-            // skip data records
-            if (comp instanceof DataRecord)
+            // skip data records and choices
+            if (comp instanceof DataRecord || comp instanceof DataChoice)
                 return false;
             
             // skip well known fields
             if (SWEConstants.DEF_SAMPLING_TIME.equals(def) ||
                 SWEConstants.DEF_PHENOMENON_TIME.equals(def) ||
                 SWEConstants.DEF_SYSTEM_ID.equals(def))
+                return false;
+            
+            // skip if no metadata was set
+            if (Strings.isNullOrEmpty(def) &&
+                Strings.isNullOrEmpty(comp.getLabel()) &&
+                Strings.isNullOrEmpty(comp.getDescription()))
                 return false;
             
             return true;

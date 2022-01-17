@@ -38,7 +38,7 @@ import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 
 public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICommandStreamInfo, CommandStreamFilter, CommandStreamFilter.Builder, ICommandStreamStore>
 {
-    public static final int EXTERNAL_ID_SEED = 918742953;
+    public static final int EXTERNAL_ID_SEED = 34945557;
     public static final String[] NAMES = { "controls" };
     
     SystemDatabaseTransactionHandler transactionHandler;
