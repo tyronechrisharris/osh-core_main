@@ -68,7 +68,7 @@ public class TestSystemDriverRegistry
     
     
     @Before
-    public void init()
+    public void init() throws Exception
     {
         hub = new SensorHub();
         hub.start();

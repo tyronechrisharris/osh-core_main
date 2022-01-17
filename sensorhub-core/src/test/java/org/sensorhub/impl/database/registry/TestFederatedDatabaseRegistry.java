@@ -45,7 +45,7 @@ public class TestFederatedDatabaseRegistry
     
     
     @Before
-    public void setup()
+    public void setup() throws Exception
     {
         SensorHub hub = new SensorHub();
         hub.start();

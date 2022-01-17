@@ -38,7 +38,7 @@ public class TestModuleRegistry
     
     
     @Before
-    public void setup()
+    public void setup() throws Exception
     {
         System.out.println("\n*****************************");
         hub = new SensorHub();
