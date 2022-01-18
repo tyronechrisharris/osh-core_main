@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.sos;
 
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledFuture;
@@ -64,6 +63,7 @@ public class HistoricalDataProvider extends SystemDataProvider
             super(subscriber, batchSize, itemStream);
             this.replaySpeedFactor = replaySpeedFactor;
             this.requestStartTime = requestStartTime.toEpochMilli();
+            this.requestSystemTime = System.currentTimeMillis();
         }
 
         @Override
@@ -82,8 +82,6 @@ public class HistoricalDataProvider extends SystemDataProvider
             
             if (replayTimer == null)
             {
-                requestSystemTime = System.currentTimeMillis();
-                
                 replayTimer = threadPool.scheduleWithFixedDelay(() -> {
                     maybeSendItems(requested.get());
                 }, 0, 10, TimeUnit.MILLISECONDS);
@@ -155,12 +153,16 @@ public class HistoricalDataProvider extends SystemDataProvider
     public void getObservations(GetObservationRequest req, Subscriber<IObservation> consumer) throws SOSException
     {
         // generate obs filter from request
-        var obsFilter = getObsFilter(req, null);
+        var maxObs = servlet.config.maxObsCount;
+        var obsFilter = getObsFilter(req, null, maxObs);
         
-        // cache of datastreams info
-        var dataStreams = new HashMap<Long, DataStreamInfoCache>();
+        // check max obs count
+        var obsCount = database.getObservationStore().countMatchingEntries(obsFilter);
+        if (obsCount >= maxObs)
+            throw new SOSException(SOSException.response_too_big_code, null, null, TOO_MANY_OBS_MSG);
         
         // notify consumer with subscription
+        var dataStreams = new HashMap<Long, DataStreamInfoCache>();
         consumer.onSubscribe(
             new StreamSubscription<>(
                 consumer,
@@ -192,48 +194,47 @@ public class HistoricalDataProvider extends SystemDataProvider
         Asserts.checkState(selectedDataStream != null, "getResultTemplate hasn't been called");
         String sysUID = getProcedureUID(req.getOffering());
         
-        try
+        // build equivalent GetObs request
+        var getObsReq = new GetObservationRequest();
+        getObsReq.getProcedures().add(sysUID);
+        getObsReq.getObservables().addAll(req.getObservables());
+        getObsReq.getFoiIDs().addAll(req.getFoiIDs());
+        getObsReq.setSpatialFilter(req.getSpatialFilter());
+        getObsReq.setTemporalFilter(req.getTemporalFilter());
+        var maxObs = servlet.config.maxRecordCount;
+        var obsFilter = getObsFilter(getObsReq, selectedDataStream.internalId, maxObs);
+        
+        // check max obs count
+        var obsCount = database.getObservationStore().countMatchingEntries(obsFilter);
+        if (obsCount >= maxObs)
+            throw new SOSException(SOSException.response_too_big_code, null, null, TOO_MANY_OBS_MSG);
+        
+        // wrap consumer to map from IObsData to DataEvent
+        var obsConsumer = new DelegatingSubscriberAdapter<IObsData, DataEvent>(consumer)
         {
-            // build equivalent GetObs request
-            var getObsReq = new GetObservationRequest();
-            getObsReq.getProcedures().add(sysUID);
-            getObsReq.getObservables().addAll(req.getObservables());
-            getObsReq.getFoiIDs().addAll(req.getFoiIDs());
-            getObsReq.setSpatialFilter(req.getSpatialFilter());
-            getObsReq.setTemporalFilter(req.getTemporalFilter());
-            var obsFilter = getObsFilter(getObsReq, selectedDataStream.internalId);
-            
-            // wrap consumer to map from IObsData to DataEvent
-            var obsConsumer = new DelegatingSubscriberAdapter<IObsData, DataEvent>(consumer)
+            @Override
+            public void onNext(IObsData item)
             {
-                @Override
-                public void onNext(IObsData item)
-                {
-                    consumer.onNext(toDataEvent(item));
-                }
-            };
-            
-            // notify consumer with subscription            
-            // if replay enable, use StreamReplaySubscription
-            double replaySpeedFactor = SOSProviderUtils.getReplaySpeed(req);
-            if (!Double.isNaN(replaySpeedFactor) && req.getTime() != null && req.getTime().hasBegin())
-            {
-                obsConsumer.onSubscribe(
-                    new StreamReplaySubscription(obsConsumer, 100, req.getTime().begin(), replaySpeedFactor,
-                        database.getObservationStore().select(obsFilter)) );
+                consumer.onNext(toDataEvent(item));
             }
-            
-            // else use regular StreamSubscription
-            else
-            {
-                obsConsumer.onSubscribe(
-                    new StreamSubscription<>(obsConsumer, 100,
-                        database.getObservationStore().select(obsFilter)) );
-            }
+        };
+        
+        // notify consumer with subscription
+        // if replay enable, use StreamReplaySubscription
+        double replaySpeedFactor = SOSProviderUtils.getReplaySpeed(req);
+        if (!Double.isNaN(replaySpeedFactor) && req.getTime() != null && req.getTime().hasBegin())
+        {
+            obsConsumer.onSubscribe(
+                new StreamReplaySubscription(obsConsumer, 100, req.getTime().begin(), replaySpeedFactor,
+                    database.getObservationStore().select(obsFilter)) );
         }
-        catch (SOSException e)
+        
+        // else use regular StreamSubscription
+        else
         {
-            throw new CompletionException(e);
+            obsConsumer.onSubscribe(
+                new StreamSubscription<>(obsConsumer, 100,
+                    database.getObservationStore().select(obsFilter)) );
         }
     }
     

@@ -48,7 +48,7 @@ public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implement
     protected OutputStream os;
     protected IAsyncOutputStream asyncOs;
     protected Queue<T> recordQueue;
-    protected Subscription subscription;
+    volatile Subscription subscription;
     volatile boolean done = false;
     volatile boolean beforeRecordsCalled = false;
     volatile boolean onCompleteCalled = false;
@@ -208,7 +208,8 @@ public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implement
         os.close();
         if (asyncCtx != null)
             asyncCtx.complete();
-        subscription.cancel();
+        if (subscription != null)
+            subscription.cancel();
     }
 
 
@@ -231,7 +232,8 @@ public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implement
     @Override
     public void onComplete(AsyncEvent event) throws IOException
     {
-        subscription.cancel();
+        if (subscription != null)
+            subscription.cancel();
         servlet.getLogger().debug("Asynchronous connection complete");
     }
 

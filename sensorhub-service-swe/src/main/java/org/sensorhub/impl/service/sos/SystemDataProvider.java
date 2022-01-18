@@ -321,8 +321,15 @@ public abstract class SystemDataProvider implements ISOSAsyncDataProvider
     
     protected ObsFilter getObsFilter(GetObservationRequest req, Long dataStreamId) throws SOSException
     {
+        return getObsFilter(req, dataStreamId, Long.MAX_VALUE);
+    }
+    
+    
+    protected ObsFilter getObsFilter(GetObservationRequest req, Long dataStreamId, long limit) throws SOSException
+    {
         // build obs query filter
-        var obsFilter = new ObsFilter.Builder();
+        var obsFilter = new ObsFilter.Builder()
+            .withLimit(limit);
         
         // select datastream(s)
         var dsFilter = new DataStreamFilter.Builder();
