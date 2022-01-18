@@ -163,7 +163,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
         if (vaadinServlet != null)
         {
             httpServer.undeployServlet(vaadinServlet);
-            vaadinServlet.destroy();
+            vaadinServlet = null;
         }
         
         setState(ModuleState.STOPPED);
