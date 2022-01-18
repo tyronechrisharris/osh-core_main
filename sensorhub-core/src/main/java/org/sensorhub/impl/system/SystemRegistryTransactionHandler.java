@@ -15,9 +15,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.system;
 
 import java.util.concurrent.Executor;
+import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.event.IEventBus;
 
 
 /**
@@ -30,9 +30,9 @@ class SystemRegistryTransactionHandler extends SystemDatabaseTransactionHandler
     Executor parentExecutor;
     
 
-    public SystemRegistryTransactionHandler(IEventBus eventBus, IObsSystemDatabase db, Executor parentExecutor)
+    public SystemRegistryTransactionHandler(ISensorHub hub, IObsSystemDatabase db, Executor parentExecutor)
     {
-        super(eventBus, db);
+        super(hub, db);
         this.parentExecutor = parentExecutor;
     }
     

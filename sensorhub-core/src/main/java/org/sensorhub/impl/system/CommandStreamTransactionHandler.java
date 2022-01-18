@@ -21,6 +21,7 @@ import java.util.concurrent.Flow.Subscription;
 import org.sensorhub.api.command.CommandStatusEvent;
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.CommandEvent;
+import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.CommandStreamChangedEvent;
 import org.sensorhub.api.command.CommandStreamDisabledEvent;
 import org.sensorhub.api.command.CommandStreamEnabledEvent;
@@ -334,13 +335,18 @@ public class CommandStreamTransactionHandler implements IEventListener
     {
         log.debug("Sending status {}: {}", correlationID, status);
         
+        // convert command ID to public ID
+        var publicStatus = CommandStatus.Builder.from(status)
+            .withCommand(rootHandler.toPublicId(status.getCommandID()))
+            .build();
+        
         // forward to event bus
         getCommandStatusEventPublisher().publish(new CommandStatusEvent(
             System.currentTimeMillis(),
             csInfo.getSystemID().getUniqueID(),
             csInfo.getControlInputName(),
             correlationID,
-            status));
+            publicStatus));
         
         // store command status in DB
         return rootHandler.db.getCommandStatusStore().add(status);

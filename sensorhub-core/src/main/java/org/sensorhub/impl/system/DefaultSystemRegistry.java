@@ -128,7 +128,7 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
             
             DefaultSystemRegistry.log.info("Registering system {}", driver.getUniqueIdentifier());
             var db = getDatabaseForDriver(driver);
-            var baseHandler = new SystemRegistryTransactionHandler(getParentHub().getEventBus(), db, executor);
+            var baseHandler = new SystemRegistryTransactionHandler(getParentHub(), db, executor);
             
             // create or update entry in DB
             try

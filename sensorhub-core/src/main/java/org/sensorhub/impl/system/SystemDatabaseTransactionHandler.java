@@ -14,6 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.system;
 
+import java.math.BigInteger;
+import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
@@ -41,6 +44,14 @@ public class SystemDatabaseTransactionHandler
 {
     final protected IEventBus eventBus;
     final protected IObsSystemDatabase db;
+    protected IDatabaseRegistry dbRegistry;
+    
+    
+    public SystemDatabaseTransactionHandler(ISensorHub hub, IObsSystemDatabase db)
+    {
+        this(hub.getEventBus(), db);
+        this.dbRegistry = Asserts.checkNotNull(hub.getDatabaseRegistry(), IDatabaseRegistry.class);
+    }
     
     
     public SystemDatabaseTransactionHandler(IEventBus eventBus, IObsSystemDatabase db)
@@ -240,5 +251,17 @@ public class SystemDatabaseTransactionHandler
         
         // create new command stream handler
         return new CommandStreamTransactionHandler(csEntry.getKey(), csEntry.getValue(), this);
+    }
+    
+    
+    public long toPublicId(long id)
+    {
+        return dbRegistry.getPublicID(db.getDatabaseNum(), id);
+    }
+    
+    
+    public BigInteger toPublicId(BigInteger id)
+    {
+        return dbRegistry.getPublicID(db.getDatabaseNum(), id);
     }
 }
