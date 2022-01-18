@@ -37,6 +37,12 @@ public class InMemoryConfigDb implements IModuleConfigRepository
     ModuleClassFinder classFinder;
     
     
+    public InMemoryConfigDb()
+    {
+        this.classFinder = new ModuleClassFinder();
+    }
+    
+    
     public InMemoryConfigDb(ModuleClassFinder classFinder)
     {
         this.classFinder = Asserts.checkNotNull(classFinder, ModuleClassFinder.class);

@@ -15,10 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.io.StringWriter;
-import java.time.Instant;
 import java.util.concurrent.Callable;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVStoreTool;

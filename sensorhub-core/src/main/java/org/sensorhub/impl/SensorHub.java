@@ -22,6 +22,7 @@ import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.api.module.IModuleConfigRepository;
 import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.system.ISystemDriverRegistry;
@@ -52,10 +53,11 @@ import org.slf4j.LoggerFactory;
  */
 public class SensorHub implements ISensorHub
 {
-    private static final Logger log = LoggerFactory.getLogger(SensorHub.class);    
+    private static final Logger log = LoggerFactory.getLogger(SensorHub.class);
     private static final String ERROR_MSG = "Fatal error during sensorhub execution";
     
     protected ISensorHubConfig config;
+    protected IModuleConfigRepository moduleConfigs;
     protected BundleContext osgiContext;
     protected ModuleRegistry moduleRegistry;
     protected IEventBus eventBus;
@@ -86,6 +88,13 @@ public class SensorHub implements ISensorHub
     }
     
     
+    public SensorHub(ISensorHubConfig config, IModuleConfigRepository moduleConfigs)
+    {
+        this.config = config;
+        this.moduleConfigs = moduleConfigs;
+    }
+    
+    
     @Override
     public synchronized void start() throws SensorHubException
     {
@@ -97,12 +106,17 @@ public class SensorHub implements ISensorHub
             log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
             log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
             
+            // use provided module configs, read from JSON or create an in-memory one
+            if (moduleConfigs == null)
+            {
+                var classFinder = new ModuleClassFinder(osgiContext);
+                moduleConfigs = config.getModuleConfigPath() != null ?
+                    new ModuleConfigJsonFile(config.getModuleConfigPath(), true, classFinder) :
+                    new InMemoryConfigDb(classFinder);
+            }
+            
             // init hub core components
-            var classFinder = new ModuleClassFinder(osgiContext);
-            var configDB = config.getModuleConfigPath() != null ?
-                new ModuleConfigJsonFile(config.getModuleConfigPath(), true, classFinder) :
-                new InMemoryConfigDb(classFinder);
-            this.moduleRegistry = new ModuleRegistry(this, configDB);
+            this.moduleRegistry = new ModuleRegistry(this, moduleConfigs);
             this.eventBus = new EventBus();
             this.databaseRegistry = new DefaultDatabaseRegistry(this);
             this.driverRegistry = new DefaultSystemRegistry(this, new InMemorySystemStateDbConfig());
