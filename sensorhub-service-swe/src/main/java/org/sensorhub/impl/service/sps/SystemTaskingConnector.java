@@ -108,21 +108,25 @@ public class SystemTaskingConnector implements ISPSConnector
                commandChoice.addItem(csInfo.getControlInputName(), csInfo.getRecordStructure());
            });
         
+        DataComponent taskingParams;
         if (commandChoice.getNumItems() == 1)
-            return commandChoice.getComponent(0);
+            taskingParams = commandChoice.getComponent(0);
         else
-            return commandChoice;
+            taskingParams = commandChoice;
+        
+        computeCommandNames(taskingParams);
+        return taskingParams;
     }
     
     
     @Override
     public void startDirectTasking(DataComponent taskingParams)
     {
-        getCommandNames(taskingParams);
+        computeCommandNames(taskingParams);
     }
     
     
-    protected void getCommandNames(DataComponent taskingParams)
+    protected void computeCommandNames(DataComponent taskingParams)
     {
         if (taskingParams instanceof DataChoice && WRAPPER_CHOICE_NAME.equals(taskingParams.getName()))
         {
@@ -150,7 +154,7 @@ public class SystemTaskingConnector implements ISPSConnector
         
         // reuse of create new transaction handler
         var txnHandler = txnHandlers.computeIfAbsent(commandName, key -> {
-            return servlet.getTransactionHandler().getCommandStreamHandler(sysUID, key);
+            return servlet.getCommandTxnHandler().getCommandStreamHandler(sysUID, key);
         });
         
         // create the command
@@ -178,7 +182,7 @@ public class SystemTaskingConnector implements ISPSConnector
     @Override
     public void subscribeToCommands(DataComponent taskingParams, Subscriber<DataBlock> subscriber)
     {
-        getCommandNames(taskingParams);
+        computeCommandNames(taskingParams);
         boolean multiCommandStreams = possibleCommandNames != null;
         
         // collect topics for all control inputs

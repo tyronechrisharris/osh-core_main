@@ -88,6 +88,7 @@ public class SPSServlet extends SWEServlet
     final transient SPSServiceCapabilities capabilities = new SPSServiceCapabilities();
     
     final transient NavigableMap<String, SPSConnectorConfig> connectorConfigs;
+    final transient SystemDatabaseTransactionHandler commandTxnHandler;
     final transient Map<String, TaskingSession> transmitSessionsMap = new ConcurrentHashMap<>();
     final transient Map<String, TaskingSession> receiveSessionsMap = new ConcurrentHashMap<>();
 
@@ -115,6 +116,8 @@ public class SPSServlet extends SWEServlet
         this.connectorConfigs = new TreeMap<>();
         for (var config: service.getConfiguration().customConnectors)
             connectorConfigs.put(config.systemUID, config);
+        
+        this.commandTxnHandler = new SystemDatabaseTransactionHandler(service.getParentHub(), readDatabase);
         
         generateCapabilities();
     }
@@ -406,6 +409,7 @@ public class SPSServlet extends SWEServlet
                 gsResponse.getReportList().add(toStatusReport(status));
    
                 sendResponse(request, gsResponse);
+                asyncCtx.complete();
             }
             catch (Exception e)
             {
@@ -504,6 +508,7 @@ public class SPSServlet extends SWEServlet
                     if (it.hasNext())
                     {
                         var data = it.next();
+                        conn.getTaskingParams(); // need to preload tasking params
                         lastFuture = conn.sendCommand(data, true);
                     }
                     
@@ -516,6 +521,7 @@ public class SPSServlet extends SWEServlet
                             SubmitResponse sResponse = new SubmitResponse();
                             sResponse.setVersion("2.0");
                             report.setRequestStatus(RequestStatus.Accepted);
+                            report.setSensorID(procUID);
                             report.touch();
                             sResponse.setReport(report);
                             
@@ -988,9 +994,9 @@ public class SPSServlet extends SWEServlet
     }
     
     
-    protected SystemDatabaseTransactionHandler getTransactionHandler()
+    protected SystemDatabaseTransactionHandler getCommandTxnHandler()
     {
-        return transactionHandler;
+        return commandTxnHandler;
     }
     
     
