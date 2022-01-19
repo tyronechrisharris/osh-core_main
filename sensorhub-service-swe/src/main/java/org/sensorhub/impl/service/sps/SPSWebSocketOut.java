@@ -37,7 +37,8 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class SPSWebSocketOut implements WebSocketListener, Subscriber<DataBlock> 
 {
-    final static String WS_WRITE_ERROR = "Error while writing SWE command message";
+    final static String WS_WRITE_ERROR = "Error writing command message to websocket";
+    final static String SUBSCRIBE_ERROR = "Error forwarding command messages to outgoing websocket";
     
     ISPSConnector connector;
     DataStreamWriter writer;
@@ -131,17 +132,18 @@ public class SPSWebSocketOut implements WebSocketListener, Subscriber<DataBlock>
 
 
     @Override
-    public void onError(Throwable throwable)
+    public void onError(Throwable e)
     {
         if (subscription != null)
             subscription.cancel();
         WebSocketUtils.closeSession(session, StatusCode.SERVER_ERROR, WebSocketUtils.INPUT_NOT_SUPPORTED, log);
+        log.error(SUBSCRIBE_ERROR, e);
     }
 
 
     @Override
     public void onComplete()
     {
-        WebSocketUtils.closeSession(session, StatusCode.NORMAL, "complete", log);  
+        WebSocketUtils.closeSession(session, StatusCode.NORMAL, "complete", log);
     }
 }

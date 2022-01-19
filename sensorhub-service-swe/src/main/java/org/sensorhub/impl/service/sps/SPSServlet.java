@@ -138,7 +138,7 @@ public class SPSServlet extends SWEServlet
             // reject request early if SPS not authorized at all
             securityHandler.checkPermission(securityHandler.rootPerm);
             
-            // otherwise process as classical HTTP request            
+            // otherwise process as classical HTTP request
             super.service(req, resp);
         }
         finally
@@ -358,7 +358,7 @@ public class SPSServlet extends SWEServlet
         // security check
         securityHandler.checkPermission(securityHandler.sps_read_params);
 
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();        
+        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
         CompletableFuture.runAsync(() -> {
             try
             {
@@ -520,7 +520,6 @@ public class SPSServlet extends SWEServlet
                             // create response and add report
                             SubmitResponse sResponse = new SubmitResponse();
                             sResponse.setVersion("2.0");
-                            report.setRequestStatus(RequestStatus.Accepted);
                             report.setSensorID(procUID);
                             report.touch();
                             sResponse.setReport(report);
@@ -533,6 +532,13 @@ public class SPSServlet extends SWEServlet
                         {
                             throw new CompletionException(e);
                         }
+                    })
+                    .exceptionally(ex -> {
+                        handleError(
+                            (HttpServletRequest)asyncCtx.getRequest(),
+                            (HttpServletResponse)asyncCtx.getResponse(),
+                            request, ex);
+                        return null;
                     });
                 }
                 catch (Exception e)
@@ -853,11 +859,11 @@ public class SPSServlet extends SWEServlet
                     paramName = generateParamName(commandStruct, controlInputs.size());
                     getLogger().info("Adding new control input {} to procedure {}", paramName, procUID);
                 }
-                                
+                
                 // add or update command stream
                 commandStruct.setName(paramName);
                 procHandler.addOrUpdateCommandStream(paramName, commandStruct, commandEncoding);
-                                
+                
                 // create session if needed
                 String templateID = generateTemplateID(procUID, paramName);
                 if (!transmitSessionsMap.containsKey(templateID))
@@ -870,7 +876,7 @@ public class SPSServlet extends SWEServlet
                     transmitSessionsMap.put(templateID, newSession);
                 }
 
-                // build and send response                
+                // build and send response
                 InsertTaskingTemplateResponse resp = new InsertTaskingTemplateResponse();
                 resp.setSessionID(templateID);
                 sendResponse(request, resp);
@@ -992,9 +998,15 @@ public class SPSServlet extends SWEServlet
         if (!SWESOfferingCapabilities.FORMAT_SML2.equals(format))
             report.add(new SPSException(SPSException.invalid_param_code, "procedureDescriptionFormat", format, "Procedure description format " + format + " is not available for procedure " + procedureID));
     }
+
+
+    public SystemDatabaseTransactionHandler getTransactionHandler()
+    {
+        return transactionHandler;
+    }
     
     
-    protected SystemDatabaseTransactionHandler getCommandTxnHandler()
+    protected SystemDatabaseTransactionHandler getSubmitTxnHandler()
     {
         return commandTxnHandler;
     }

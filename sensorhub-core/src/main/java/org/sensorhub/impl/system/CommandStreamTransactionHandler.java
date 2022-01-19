@@ -18,6 +18,8 @@ import java.math.BigInteger;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.sensorhub.api.command.CommandStatusEvent;
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.CommandEvent;
@@ -63,7 +65,7 @@ public class CommandStreamTransactionHandler implements IEventListener
     protected final CommandStreamKey csKey;
     protected ICommandStreamInfo csInfo;
     protected String parentGroupUID;
-    protected IEventPublisher dataEventPublisher;
+    protected IEventPublisher commandDataEventPublisher;
     protected IEventPublisher cmdStatusEventPublisher;
     
     
@@ -102,7 +104,7 @@ public class CommandStreamTransactionHandler implements IEventListener
         
         // send event
         var event = new CommandStreamChangedEvent(csInfo);
-        getStatusEventPublisher().publish(event);
+        getStreamStatusEventPublisher().publish(event);
         getSystemStatusEventPublisher().publish(event);
         
         return true;
@@ -121,7 +123,7 @@ public class CommandStreamTransactionHandler implements IEventListener
         
         // send event
         var event = new CommandStreamRemovedEvent(csInfo);
-        getStatusEventPublisher().publish(event);
+        getStreamStatusEventPublisher().publish(event);
         getSystemStatusEventPublisher().publish(event);
         
         return true;
@@ -131,7 +133,7 @@ public class CommandStreamTransactionHandler implements IEventListener
     public void enable()
     {
         var event = new CommandStreamEnabledEvent(csInfo);
-        getStatusEventPublisher().publish(event);
+        getStreamStatusEventPublisher().publish(event);
         getSystemStatusEventPublisher().publish(event);
     }
     
@@ -139,7 +141,7 @@ public class CommandStreamTransactionHandler implements IEventListener
     public void disable()
     {
         var event = new CommandStreamDisabledEvent(csInfo);
-        getStatusEventPublisher().publish(event);
+        getStreamStatusEventPublisher().publish(event);
         getSystemStatusEventPublisher().publish(event);
     }
     
@@ -266,8 +268,18 @@ public class CommandStreamTransactionHandler implements IEventListener
         if (subscriber != null)
             connectStatusReceiver(correlationID, subscriber);
         
+        // reject command if no command receiver is listening
+        var cmdPublisher = getCommandDataEventPublisher();
+        if (cmdPublisher.getNumberOfSubscribers() == 0)
+        {
+            publishStatusEvent(
+                correlationID,
+                CommandStatus.rejected(BigInteger.ZERO, "Receiving system is disabled"));
+            return;
+        }
+        
         // send command to bus
-        getCommandEventPublisher().publish(new CommandEvent(
+        cmdPublisher.publish(new CommandEvent(
             System.currentTimeMillis(),
             csInfo.getSystemID().getUniqueID(),
             csInfo.getControlInputName(),
@@ -295,8 +307,26 @@ public class CommandStreamTransactionHandler implements IEventListener
      */
     public CompletableFuture<ICommandStatus> submitCommand(long correlationID, ICommandData cmd)
     {
-        // adapt future with full subscriber
+        return submitCommand(correlationID, cmd, 2000, TimeUnit.MILLISECONDS);
+    }
+    
+    
+    /**
+     * Submit a command and receive only the first status report via a future
+     * @param correlationID Correlation ID to attach to the command
+     * @param cmd The command to submit
+     * @param timeOut How long to wait for the first ack/status message before
+     * completing the future exceptionally with a TimeOutException
+     * @param unit A TimeUnit determining how to interpret the timeout parameter
+     * @return A future that will complete when the initial status report is received
+     * (this initial status report contains the ID assigned to the command)
+     */
+    public CompletableFuture<ICommandStatus> submitCommand(long correlationID, ICommandData cmd, long timeOut, TimeUnit unit)
+    {
+        // create a future that will complete when subscriber receives
+        // the first status message
         var future = new CompletableFuture<ICommandStatus>();
+        
         var subscriber = new Subscriber<ICommandStatus>() {
             Subscription subscription;
             
@@ -317,6 +347,7 @@ public class CommandStreamTransactionHandler implements IEventListener
             @Override
             public void onError(Throwable e)
             {
+                log.error("Error while listening for status event", e);
                 future.completeExceptionally(e);
             }
 
@@ -325,6 +356,17 @@ public class CommandStreamTransactionHandler implements IEventListener
             {
             }
         };
+        
+        // cancel future and subscription on timeout
+        var delay = CompletableFuture.delayedExecutor(timeOut, unit);
+        CompletableFuture.runAsync(() -> {
+            if (!future.isDone())
+            {
+                if (subscriber.subscription != null)
+                    subscriber.subscription.cancel();
+                future.completeExceptionally(new TimeoutException("No status message received"));
+            }
+        }, delay);
         
         submitCommand(correlationID, cmd, subscriber);
         return future;
@@ -341,15 +383,21 @@ public class CommandStreamTransactionHandler implements IEventListener
             .build();
         
         // forward to event bus
+        publishStatusEvent(correlationID, publicStatus);
+        
+        // store command status in DB
+        return rootHandler.db.getCommandStatusStore().add(status);
+    }
+    
+    
+    protected void publishStatusEvent(long correlationID, ICommandStatus status)
+    {
         getCommandStatusEventPublisher().publish(new CommandStatusEvent(
             System.currentTimeMillis(),
             csInfo.getSystemID().getUniqueID(),
             csInfo.getControlInputName(),
             correlationID,
-            publicStatus));
-        
-        // store command status in DB
-        return rootHandler.db.getCommandStatusStore().add(status);
+            status));
     }
 
 
@@ -364,17 +412,17 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
     
     
-    protected synchronized IEventPublisher getCommandEventPublisher()
+    protected synchronized IEventPublisher getCommandDataEventPublisher()
     {
         // create event publisher if needed
         // cache it because we need it often
-        if (dataEventPublisher == null)
+        if (commandDataEventPublisher == null)
         {
             var topic = EventUtils.getCommandDataTopicID(csInfo);
-            dataEventPublisher = rootHandler.eventBus.getPublisher(topic);
+            commandDataEventPublisher = rootHandler.eventBus.getPublisher(topic);
         }
          
-        return dataEventPublisher;
+        return commandDataEventPublisher;
     }
     
     
@@ -392,7 +440,7 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
         
         
-    protected synchronized IEventPublisher getStatusEventPublisher()
+    protected synchronized IEventPublisher getStreamStatusEventPublisher()
     {
         var topic = EventUtils.getCommandStreamStatusTopicID(csInfo);
         return rootHandler.eventBus.getPublisher(topic);

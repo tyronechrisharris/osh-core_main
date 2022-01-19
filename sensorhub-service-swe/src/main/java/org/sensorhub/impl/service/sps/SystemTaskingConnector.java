@@ -21,21 +21,20 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow.Subscriber;
-import java.util.concurrent.Flow.Subscription;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.CommandEvent;
+import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
-import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.impl.event.DelegatingSubscriberAdapter;
 import org.sensorhub.impl.system.CommandStreamTransactionHandler;
 import org.sensorhub.impl.system.SystemUtils;
-import org.vast.data.AbstractDataBlock;
 import org.vast.data.DataBlockMixed;
-import org.vast.data.DataBlockString;
 import org.vast.data.SWEFactory;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -48,6 +47,8 @@ import net.opengis.swe.v20.DataComponent;
 public class SystemTaskingConnector implements ISPSConnector
 {
     static final String WRAPPER_CHOICE_NAME = "root";
+    static final long DEFAULT_SUBMIT_TIMEOUT = 2000;
+    
     final SPSServlet servlet;
     final SystemTaskingConnectorConfig config;
     final IObsSystemDatabase db;
@@ -55,7 +56,6 @@ public class SystemTaskingConnector implements ISPSConnector
     final String sysUID;
     Map<String, CommandStreamTransactionHandler> txnHandlers = new HashMap<>();
     List<String> possibleCommandNames;
-    String singleCommandName;
     Random random = new Random();
     
     
@@ -128,33 +128,36 @@ public class SystemTaskingConnector implements ISPSConnector
     
     protected void computeCommandNames(DataComponent taskingParams)
     {
+        possibleCommandNames = new ArrayList<>();
+        
         if (taskingParams instanceof DataChoice && WRAPPER_CHOICE_NAME.equals(taskingParams.getName()))
         {
-            possibleCommandNames = new ArrayList<>();
             for (var item: ((DataChoice)taskingParams).getItemList())
                 possibleCommandNames.add(item.getName());
         }
         else
-            singleCommandName = taskingParams.getName();
+            possibleCommandNames.add(taskingParams.getName());
     }
     
     
     @Override
     public CompletableFuture<ICommandStatus> sendCommand(DataBlock data, boolean waitForStatus)
     {
-        var commandName = singleCommandName;
+        String commandName;
         
         // if wrapped with a choice, extract actual command name and data
-        if (commandName == null)
+        if (possibleCommandNames.size() > 1)
         {
             int selectedIndex = data.getIntValue(0);
             commandName = possibleCommandNames.get(selectedIndex);
             data = ((DataBlockMixed)data).getUnderlyingObject()[1];
         }
+        else
+            commandName = possibleCommandNames.get(0);
         
-        // reuse of create new transaction handler
+        // reuse or create new transaction handler
         var txnHandler = txnHandlers.computeIfAbsent(commandName, key -> {
-            return servlet.getCommandTxnHandler().getCommandStreamHandler(sysUID, key);
+            return servlet.getSubmitTxnHandler().getCommandStreamHandler(sysUID, key);
         });
         
         // create the command
@@ -164,18 +167,16 @@ public class SystemTaskingConnector implements ISPSConnector
             .withParams(data)
             .build();
         
-        CompletableFuture<ICommandStatus> future;
         if (waitForStatus)
         {
-            future = txnHandler.submitCommand(random.nextLong(), cmd);
+            return txnHandler.submitCommand(
+                (long)(random.nextInt()&0xFFFFFFFF), cmd, DEFAULT_SUBMIT_TIMEOUT, TimeUnit.MILLISECONDS);
         }
         else
         {
             txnHandler.submitCommandNoStatus(random.nextLong(), cmd);
-            future = CompletableFuture.completedFuture(null);
+            return null;
         }
-        
-        return future;
     }
     
     
@@ -183,48 +184,30 @@ public class SystemTaskingConnector implements ISPSConnector
     public void subscribeToCommands(DataComponent taskingParams, Subscriber<DataBlock> subscriber)
     {
         computeCommandNames(taskingParams);
-        boolean multiCommandStreams = possibleCommandNames != null;
         
-        // collect topics for all control inputs
-        var topicList = new ArrayList<String>();
-        if (multiCommandStreams)
+        // subscribe to all command types for the associated procedure
+        for (var commandName: possibleCommandNames)
         {
-            for (var cmdName: possibleCommandNames)
-                topicList.add(EventUtils.getCommandDataTopicID(sysUID, cmdName));
-        }
-        else
-        {
-            var singleTopic = EventUtils.getCommandDataTopicID(sysUID, taskingParams.getName());
-            topicList.add(singleTopic);
-        }
-        
-        // subscribe to all command data topics of the associated procedure
-        eventBus.newSubscription(CommandEvent.class)
-            .withTopicIDs(topicList)
-            .subscribe(new Subscriber<CommandEvent>() {
-                
+            // reuse or create new transaction handler
+            var txnHandler = txnHandlers.computeIfAbsent(commandName, key -> {
+                return servlet.getTransactionHandler().getCommandStreamHandler(sysUID, key);
+            });
+            
+            txnHandler.connectCommandReceiver(new DelegatingSubscriberAdapter<CommandEvent, DataBlock>(subscriber) {
                 @Override
                 public void onNext(CommandEvent event)
                 {
                     var cmd = event.getCommand();
-                    DataBlock cmdData;
+                    subscriber.onNext(cmd.getParams());
                     
-                    if (multiCommandStreams)
-                    {
-                        // add commandName to make it work with interleaved choice structure
-                        cmdData = new DataBlockMixed(new DataBlockString(1), (AbstractDataBlock)cmd.getParams());
-                        cmdData.setStringValue(0, event.getControlInputName());
-                    }
-                    else
-                        cmdData = cmd.getParams();
-                    
-                    subscriber.onNext(cmdData);
+                    // for now, we cannot get feedback from the remote system
+                    // so always report command has completed
+                    txnHandler.sendStatus(
+                        event.getCorrelationID(),
+                        CommandStatus.completed(cmd.getID()));
                 }
-                
-                public void onSubscribe(Subscription sub) { subscriber.onSubscribe(sub); }
-                public void onError(Throwable e) { subscriber.onError(e); }
-                public void onComplete() { subscriber.onComplete(); }
             });
+        }
     }
 
 

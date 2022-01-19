@@ -333,7 +333,7 @@ public class TestSPSTService
         // get tasking msg structure
         DescribeTaskingRequest dtReq = spsTest.buildDescribeTasking(SENSOR_UID);
         DescribeTaskingResponse dtResp = (DescribeTaskingResponse)utils.sendRequest(dtReq, false);
-                
+        
         // submit command
         DataBlock dataBlock = new DataBlockMixed(new DataBlockDouble(1), new DataBlockString(1));
         dataBlock.setDoubleValue(0, 10.0);
