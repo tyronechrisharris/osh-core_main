@@ -280,7 +280,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
         if (execTime != null)
             builder.withExecutionTime(execTime);
         
-        // status param
+        // statusCode param
         var statusCodes = parseMultiValuesArg("statusCode", queryParams);
         if (statusCodes != null && !statusCodes.isEmpty())
         {

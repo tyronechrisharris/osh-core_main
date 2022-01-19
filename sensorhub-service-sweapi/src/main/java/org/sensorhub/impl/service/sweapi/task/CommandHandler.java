@@ -17,18 +17,22 @@ package org.sensorhub.impl.service.sweapi.task;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.stream.Collectors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.sensorhub.api.command.CommandEvent;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.event.EventUtils;
@@ -308,6 +312,35 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
         var issueTime = parseTimeStampArg("issueTime", queryParams);
         if (issueTime != null)
             builder.withIssueTime(issueTime);
+        
+        // status filter params
+        var statusCodes = parseMultiValuesArg("statusCode", queryParams);
+        var execTime = parseTimeStampArg("executionTime", queryParams);
+        if (execTime != null || !statusCodes.isEmpty())
+        {
+            var statusFilter = new CommandStatusFilter.Builder();
+            
+            // executionTime
+            if (execTime != null)
+                statusFilter.withExecutionTime(execTime);
+            
+            // statusCodes
+            if (!statusCodes.isEmpty())
+            {
+                try
+                {
+                    Set<CommandStatusCode> enumCodes = statusCodes.stream().map(s -> CommandStatusCode.valueOf(s)).collect(Collectors.toSet());
+                    statusFilter.withStatus(enumCodes)
+                                .latestReport();
+                }
+                catch (Exception e)
+                {
+                    throw ServiceErrors.badRequest("Invalid status code: " + statusCodes);
+                }
+            }
+            
+            builder.withStatus(statusFilter.build());
+        }
         
         /*// foi param
         var foiIDs = parseResourceIds("foi", queryParams, foiIdEncoder);

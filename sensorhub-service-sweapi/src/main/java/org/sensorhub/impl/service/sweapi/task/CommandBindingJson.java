@@ -26,6 +26,7 @@ import java.util.Map;
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
@@ -167,6 +168,15 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
         
         writer.name("issueTime").value(cmd.getIssueTime().toString());
         writer.name("userId").value(cmd.getSenderID());
+        
+        // print out current status
+        var status = cmdStore.getStatusReports().select(new CommandStatusFilter.Builder()
+                .withCommands(key)
+                .latestReport()
+                .build())
+            .findFirst().orElse(null);
+        if (status != null)
+            writer.name("status").value(status.getStatusCode().toString());
         
         // create or reuse existing params writer and write param data
         writer.name("params");
