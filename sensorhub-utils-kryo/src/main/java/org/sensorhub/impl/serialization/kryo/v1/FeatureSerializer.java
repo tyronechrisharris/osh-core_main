@@ -106,7 +106,7 @@ public class FeatureSerializer extends Serializer<IFeature>
         {
             var qName = QName.valueOf(input.readString());
             var value = kryo.readClassAndObject(input);
-            f.getProperties().put(qName, value);
+            f.setProperty(qName, value);
         }
         
         return f;
