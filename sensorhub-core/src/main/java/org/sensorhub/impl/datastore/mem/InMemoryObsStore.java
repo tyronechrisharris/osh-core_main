@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore.mem;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.Collection;
@@ -38,9 +39,12 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
+import com.google.common.collect.Range;
 
 
 /**
@@ -408,8 +412,55 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
     @Override
     public Stream<ObsStats> getStatistics(ObsStatsQuery query)
     {
-        // TODO Auto-generated method stub
-        return null;
+        var filter = query.getObsFilter() != null ? query.getObsFilter() : this.selectAllFilter();
+        
+        // simple implementation since we know we have only one obs per datastream/foi pair
+        return select(filter)
+            .map(obs -> {
+                var foiID = obs.getFoiID() > 0 ?
+                    new FeatureId(obs.getFoiID(), "urn:foi:unknown") :
+                    FeatureId.NULL_FEATURE;
+                
+                var stats = new ObsStats.Builder()
+                    .withDataStreamID(obs.getDataStreamID())
+                    .withFoiID(foiID)
+                    .withPhenomenonTimeRange(TimeExtent.instant(obs.getPhenomenonTime()))
+                    .withResultTimeRange(TimeExtent.instant(obs.getResultTime()))
+                    .withTotalObsCount(1);
+                
+                // compute histogram if requested
+                if (query.getHistogramBinSize() != null)
+                {
+                    var histogramTimeRange = filter.getPhenomenonTime().getRange();
+                    if (histogramTimeRange.lowerEndpoint() == Instant.MIN || histogramTimeRange.upperEndpoint() == Instant.MAX)
+                    {
+                        var truncated = obs.getPhenomenonTime().truncatedTo(ChronoUnit.MINUTES);
+                        var begin = truncated.minus(5, ChronoUnit.MINUTES);
+                        var end = begin.plus(5, ChronoUnit.MINUTES);
+                        histogramTimeRange = Range.closed(begin, end);
+                    }
+                    
+                    long obsTime = obs.getPhenomenonTime().getEpochSecond();
+                    long start = histogramTimeRange.lowerEndpoint().getEpochSecond();
+                    long end = histogramTimeRange.upperEndpoint().getEpochSecond();
+                    long dt = query.getHistogramBinSize().getSeconds();
+                    int numBins = (int)Math.ceil((double)(end - start)/dt);
+                    int[] counts = new int[numBins];
+                    for (int i = 0; i < numBins; i++)
+                    {
+                        long t = start + i*dt;
+                        if (obsTime >= t && obsTime < t+dt)
+                        {
+                            counts[i] = 1;
+                            break;
+                        }
+                    }
+                    
+                    stats.withObsCountByTime(counts);
+                }
+                
+                return stats.build();
+            });
     }
     
     
