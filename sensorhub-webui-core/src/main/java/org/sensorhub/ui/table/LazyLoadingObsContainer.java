@@ -70,7 +70,7 @@ public class LazyLoadingObsContainer extends IndexedContainer
             db.getObservationStore().select(new ObsFilter.Builder()
                     .withDataStreams(dataStreamID)
                     .withPhenomenonTime().fromTimeExtent(timeRange).done()
-                    .withLimit(numberOfIds)
+                    .withLimit(startIndex+numberOfIds)
                     .build())
                 .skip(startIndex)
                 .forEach(obs -> {
