@@ -23,12 +23,18 @@ import org.sensorhub.api.comm.CommProviderConfig;
 import org.sensorhub.api.comm.NetworkConfig;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
+import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.CommandStreamFilter;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.database.system.SystemDriverDatabaseConfig;
+import org.sensorhub.impl.datastore.view.ObsSystemDatabaseViewConfig;
 import org.sensorhub.impl.security.BasicSecurityRealmConfig;
 import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.impl.service.HttpServerConfig;
@@ -36,6 +42,8 @@ import org.sensorhub.impl.service.sos.SOSServiceConfig;
 import org.sensorhub.impl.service.sps.SPSServiceConfig;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.IModuleConfigForm;
+import org.sensorhub.ui.filter.DatabaseFilterConfigForm;
+import org.sensorhub.ui.filter.DatabaseViewConfigForm;
 import com.vaadin.server.VaadinServlet;
 
 
@@ -63,7 +71,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
         super.setConfiguration(config);
         
         // set security handler
-        this.securityHandler = new AdminUISecurity(this, true);        
+        this.securityHandler = new AdminUISecurity(this, true);
         String configClass = null;
         
         // load custom forms
@@ -79,6 +87,12 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
             customForms.put(BasicSecurityRealmConfig.RoleConfig.class.getCanonicalName(), BasicSecurityConfigForm.class);
             customForms.put(SOSServiceConfig.class.getCanonicalName(), SOSConfigForm.class);
             customForms.put(SPSServiceConfig.class.getCanonicalName(), SPSConfigForm.class);
+            customForms.put(ObsSystemDatabaseViewConfig.class.getCanonicalName(), DatabaseViewConfigForm.class);
+            customForms.put(SystemFilter.class.getCanonicalName(), DatabaseFilterConfigForm.class);
+            customForms.put(DataStreamFilter.class.getCanonicalName(), DatabaseFilterConfigForm.class);
+            customForms.put(CommandStreamFilter.class.getCanonicalName(), DatabaseFilterConfigForm.class);
+            customForms.put(ObsFilter.class.getCanonicalName(), DatabaseFilterConfigForm.class);
+            customForms.put(CommandFilter.class.getCanonicalName(), DatabaseFilterConfigForm.class);
             
             // custom form builders defined in config
             for (CustomUIConfig customForm: config.customForms)
@@ -86,7 +100,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
                 configClass = customForm.configClass;
                 Class<?> clazz = Class.forName(customForm.uiClass);
                 customForms.put(configClass, (Class<IModuleConfigForm>)clazz);
-                getLogger().debug("Loaded custom form for {}", configClass);            
+                getLogger().debug("Loaded custom form for {}", configClass);
             }
         }
         catch (Exception e)
@@ -190,7 +204,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
         }
         catch (Exception e)
         {
-            getLogger().error("Cannot create custom panel", e);            
+            getLogger().error("Cannot create custom panel", e);
         }
         
         if (panel == null)
@@ -206,7 +220,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
         
         try
         {
-            // check if there is a custom form registered, if not use default        
+            // check if there is a custom form registered, if not use default
             Class<IModuleConfigForm> uiClass = null;
             while (uiClass == null && clazz != null)
             {

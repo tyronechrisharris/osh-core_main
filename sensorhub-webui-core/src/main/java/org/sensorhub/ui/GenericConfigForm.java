@@ -62,6 +62,7 @@ import com.vaadin.v7.data.util.converter.StringToFloatConverter;
 import com.vaadin.v7.data.validator.IntegerRangeValidator;
 import com.vaadin.v7.data.validator.StringLengthValidator;
 import org.slf4j.Logger;
+import org.vast.util.BaseBuilder;
 import com.vaadin.server.FontAwesome;
 import com.vaadin.shared.ui.MarginInfo;
 import com.vaadin.v7.shared.ui.datefield.Resolution;
@@ -697,7 +698,10 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             {
                 try
                 {
-                    updateSubForm(chgButton, objectType.newInstance(), propId, prop);
+                    var obj = objectType.newInstance();
+                    if (obj instanceof BaseBuilder)
+                        obj = ((BaseBuilder<?>)obj).build();
+                    updateSubForm(chgButton, obj, propId, prop);
                 }
                 catch (Exception e)
                 {

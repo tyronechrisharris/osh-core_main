@@ -49,7 +49,7 @@ public class MyBeanItem<BeanType> implements Item
     public static final char PROP_SEPARATOR = '.';
     
     
-    final transient BeanType bean;
+    transient BeanType bean;
     HashMap<Object, Property<?>> properties = new LinkedHashMap<>();
     String prefix = NO_PREFIX;
     
@@ -171,6 +171,12 @@ public class MyBeanItem<BeanType> implements Item
     public BeanType getBean()
     {
         return bean;
+    }
+    
+    
+    public void setBean(BeanType bean)
+    {
+        this.bean = bean;
     }
     
     
