@@ -36,7 +36,7 @@ public @interface DisplayInfo
     @Target(ElementType.TYPE)
     public @interface IdField
     {
-        public String value() default "id";    
+        public String value() default "id";
     }
     
     
@@ -133,8 +133,7 @@ public @interface DisplayInfo
     @Target(ElementType.FIELD)
     public @interface ModuleType
     {
-        @SuppressWarnings("rawtypes")
-        public Class<? extends IModule> value() default IModule.class;
+        public Class<?> value() default IModule.class;
     }
     
     
