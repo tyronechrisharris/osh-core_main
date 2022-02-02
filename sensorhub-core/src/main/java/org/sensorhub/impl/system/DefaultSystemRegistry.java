@@ -158,7 +158,7 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
         
         // get DB handling this system
         // this call with return the dedicated DB if available, or the default state DB
-        IObsSystemDatabase db = hub.getDatabaseRegistry().getObsDatabase(sysUID);
+        IObsSystemDatabase db = hub.getDatabaseRegistry().getObsDatabaseBySystemUID(sysUID);
         
         // error if DB is not an event handler DB
         if (!(db instanceof ISystemDriverDatabase))

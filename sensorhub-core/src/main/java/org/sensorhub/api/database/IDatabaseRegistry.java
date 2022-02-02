@@ -125,23 +125,34 @@ public interface IDatabaseRegistry
 
 
     /**
-     * Provides direct (potentially read/write) access to the database that is
-     * currently handling observation data from the specified system
-     * @param systemUID Unique ID of the system
-     * @return The database instance or null if none has been registered
-     * for the specified system
-     */
-    IObsSystemDatabase getObsDatabase(String systemUID);
-
-
-    /**
      * Provides direct (potentially read/write) access to the database with
      * the specified number
      * @param databaseNum Database number (unique on a given hub instance)
      * @return The database instance or null if none has been assigned
      * the specified number
      */
-    IObsSystemDatabase getObsDatabase(int databaseNum);
+    IObsSystemDatabase getObsDatabaseByNum(int databaseNum);
+
+    
+    /**
+     * Provides direct (potentially read/write) access to the database with
+     * the specified module ID
+     * @param moduleID Id of the database module
+     * @return The database instance
+     * @throws IllegalArgumentException if no database module with the given
+     * ID exists
+     */
+    public IObsSystemDatabase getObsDatabaseByModuleID(String moduleID);
+
+
+    /**
+     * Provides direct (potentially read/write) access to the database that is
+     * currently handling observation data from the specified system
+     * @param systemUID Unique ID of the system
+     * @return The database instance or null if none has been registered
+     * for the specified system
+     */
+    IObsSystemDatabase getObsDatabaseBySystemUID(String systemUID);
 
 
     /**

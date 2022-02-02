@@ -15,6 +15,10 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.view;
 
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.FieldType;
+import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
+import org.sensorhub.api.config.DisplayInfo.ModuleType;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.command.CommandFilter;
@@ -35,17 +39,20 @@ import org.sensorhub.api.datastore.system.SystemFilter;
  */
 public class ObsSystemDatabaseViewConfig
 {
-    public String sourceDatabaseId; // can be itself a filtered view?
+    @FieldType(Type.MODULE_ID)
+    @ModuleType(IObsSystemDatabase.class)
+    @DisplayInfo(label="Source Database ID", desc="ID of database module to read data from (Federated database will be used if not set")
+    public String sourceDatabaseId;
     
     public IQueryFilter includeFilter;
     
-    public IQueryFilter excludeFilter;
+    //public IQueryFilter excludeFilter;
     
         
     public IObsSystemDatabase getFilteredView(ISensorHub hub)
     {
         var srcDatabase = sourceDatabaseId != null ?
-            hub.getDatabaseRegistry().getObsDatabase(sourceDatabaseId) :
+            hub.getDatabaseRegistry().getObsDatabaseByModuleID(sourceDatabaseId) :
             hub.getDatabaseRegistry().getFederatedObsDatabase();
          
         if (includeFilter != null)

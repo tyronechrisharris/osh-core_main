@@ -76,7 +76,7 @@ public class FederatedObsDatabase implements IObsSystemDatabase
     {
         LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
         dbInfo.databaseNum = registry.getDatabaseNum(publicID);
-        dbInfo.db = registry.getObsDatabase(dbInfo.databaseNum);
+        dbInfo.db = registry.getObsDatabaseByNum(dbInfo.databaseNum);
         dbInfo.entryID = registry.getLocalID(dbInfo.databaseNum, publicID);
         
         if (dbInfo.db == null)
@@ -93,7 +93,7 @@ public class FederatedObsDatabase implements IObsSystemDatabase
     {
         LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
         dbInfo.databaseNum = registry.getDatabaseNum(publicID);
-        dbInfo.db = registry.getObsDatabase(dbInfo.databaseNum);
+        dbInfo.db = registry.getObsDatabaseByNum(dbInfo.databaseNum);
         dbInfo.bigEntryID = registry.getLocalID(dbInfo.databaseNum, publicID);
         
         if (dbInfo.db == null)

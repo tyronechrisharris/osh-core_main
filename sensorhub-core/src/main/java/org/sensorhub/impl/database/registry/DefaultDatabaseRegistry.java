@@ -201,20 +201,31 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     
     
     @Override
-    public IObsSystemDatabase getObsDatabase(int dbNum)
+    public IObsSystemDatabase getObsDatabaseByNum(int dbNum)
     {
         Asserts.checkArgument(dbNum >= 0);
         return obsDatabases.get(dbNum);
     }
+    
+    
+    @Override
+    public IObsSystemDatabase getObsDatabaseByModuleID(String moduleID)
+    {
+        Asserts.checkNotNullOrBlank(moduleID, "moduleID");
+        var m = hub.getModuleRegistry().getLoadedModuleById(moduleID);
+        if (m == null || !(m instanceof IObsSystemDatabase))
+            throw new IllegalArgumentException("Cannot find a database module with ID " + moduleID);
+        return (IObsSystemDatabase)m;
+    }
 
 
     @Override
-    public IObsSystemDatabase getObsDatabase(String sysUID)
+    public IObsSystemDatabase getObsDatabaseBySystemUID(String sysUID)
     {
         Integer dbNum = obsDatabaseIDs.get(sysUID);
         if (dbNum == null)
             dbNum = DEFAULT_DB_ID;
-        return getObsDatabase(dbNum);
+        return getObsDatabaseByNum(dbNum);
     }
     
     
