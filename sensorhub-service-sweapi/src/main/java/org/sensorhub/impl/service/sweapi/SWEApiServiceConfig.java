@@ -17,6 +17,10 @@ package org.sensorhub.impl.service.sweapi;
 import java.util.ArrayList;
 import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.FieldType;
+import org.sensorhub.api.config.DisplayInfo.ModuleType;
+import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.security.SecurityConfig;
 import org.sensorhub.impl.datastore.view.ObsSystemDatabaseViewConfig;
 import org.sensorhub.impl.service.ogc.OGCServiceConfig;
@@ -38,6 +42,8 @@ public class SWEApiServiceConfig extends OGCServiceConfig
     public VirtualSystemGroupConfig virtualSystemGroup = null;
     
     
+    @FieldType(Type.MODULE_ID)
+    @ModuleType(IObsSystemDatabase.class)
     @DisplayInfo(label="Database ID", desc="ID of database module used for persisting data received by this service. "
         + "If none is provided, new systems registered through this service will be available on the hub, but "
         + "with no persistence guarantee across restarts. Only the latest observation from each datastream will be "
@@ -61,12 +67,7 @@ public class SWEApiServiceConfig extends OGCServiceConfig
     public boolean enableTransactional = false;
 
 
-    @DisplayInfo(label="Max Observations Returned", desc="Maximum number of observations returned "
-        + " by a historical GetObservation request (for each selected offering)")
-    public int maxObsCount = 100;
-
-
-    @DisplayInfo(label="Max Resource Limit", desc="Maximum number of resources returned in a single page")
+    @DisplayInfo(label="Max Limit", desc="Maximum number of resources returned in a single page")
     public int maxResponseLimit = 100000;
     
     
