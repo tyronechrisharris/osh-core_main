@@ -80,8 +80,19 @@ public class ObsSystemDatabaseViewConfig
                 .withSystems((SystemFilter)includeFilter)
                 .build();
         }
-        else
-            return null;
+        else if (includeFilter instanceof CommandStreamFilter)
+        {
+            var sysFilter = ((CommandStreamFilter)includeFilter).getSystemFilter();
+            if (sysFilter != null)
+            {
+                return new ObsFilter.Builder()
+                    .withSystems(((CommandStreamFilter)includeFilter).getSystemFilter())
+                    .build();
+            }
+        }
+        
+        return new ObsFilter.Builder()
+            .build();
     }
     
     
@@ -103,7 +114,28 @@ public class ObsSystemDatabaseViewConfig
                 .withSystems((SystemFilter)includeFilter)
                 .build();
         }
-        else
-            return null;
+        else if (includeFilter instanceof DataStreamFilter)
+        {
+            return new CommandFilter.Builder()
+                .withSystems()
+                    .withDataStreams((DataStreamFilter)includeFilter)
+                    .done()
+                .build();
+        }
+        else if (includeFilter instanceof ObsFilter)
+        {
+            var dsFilter = ((ObsFilter)includeFilter).getDataStreamFilter();
+            if (dsFilter != null)
+            {
+                return new CommandFilter.Builder()
+                    .withSystems()
+                        .withDataStreams(dsFilter)
+                        .done()
+                    .build();
+            }
+        }
+        
+        return new CommandFilter.Builder()
+            .build();
     }
 }

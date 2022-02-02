@@ -23,6 +23,7 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
 
@@ -30,7 +31,7 @@ import org.vast.util.Asserts;
 public class ObsSystemDatabaseView implements IObsSystemDatabase
 {
     IObsSystemDatabase delegate;
-    SystemStoreView procStoreView;
+    SystemStoreView systemStoreView;
     FoiStoreView foiStoreView;
     ObsStoreView obsStoreView;
     CommandStoreView commandStoreView;
@@ -76,11 +77,24 @@ public class ObsSystemDatabaseView implements IObsSystemDatabase
         Asserts.checkNotNull(obsFilter, ObsFilter.class);
         Asserts.checkNotNull(cmdFilter, CommandFilter.class);
         
-        var procFilter = obsFilter.getDataStreamFilter() != null ? obsFilter.getDataStreamFilter().getSystemFilter() : null;
-        if (procFilter == null)
-            procFilter = cmdFilter.getCommandStreamFilter() != null ? cmdFilter.getCommandStreamFilter().getSystemFilter() : null;
+        // build system filter from parameters nested into obs and command filters
+        SystemFilter sysFilter = null;
+        if (obsFilter.getDataStreamFilter() != null)
+        {
+            var nestedSysFilter = obsFilter.getDataStreamFilter().getSystemFilter();
+            sysFilter = nestedSysFilter != null ?
+                nestedSysFilter :
+                new SystemFilter.Builder()
+                    .withDataStreams(obsFilter.getDataStreamFilter())
+                    .build();
+        }
+
+        if (sysFilter == null && cmdFilter.getCommandStreamFilter() != null)
+        {
+            sysFilter = cmdFilter.getCommandStreamFilter().getSystemFilter();
+        }
         
-        this.procStoreView = new SystemStoreView(delegate.getSystemDescStore(), procFilter);
+        this.systemStoreView = new SystemStoreView(delegate.getSystemDescStore(), sysFilter);
         this.foiStoreView = new FoiStoreView(delegate.getFoiStore(), obsFilter.getFoiFilter());
         this.obsStoreView = new ObsStoreView(delegate.getObservationStore(), obsFilter);
         this.commandStoreView = new CommandStoreView(delegate.getCommandStore(), cmdFilter);
@@ -99,7 +113,7 @@ public class ObsSystemDatabaseView implements IObsSystemDatabase
     @Override
     public ISystemDescStore getSystemDescStore()
     {
-        return procStoreView;
+        return systemStoreView;
     }
 
 
