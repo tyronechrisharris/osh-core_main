@@ -1181,7 +1181,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
     }
         
     
-    public AdminUIModule getParentProducer()
+    public AdminUIModule getParentModule()
     {
         return adminModule;
     }

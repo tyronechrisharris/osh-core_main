@@ -245,10 +245,11 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     }
     
     
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     protected IModuleConfigForm getConfigForm(MyBeanItem<ModuleConfig> beanItem)
     {
         IModuleConfigForm form = getParentProducer().generateForm(beanItem.getBean().getClass());
-        form.build(GenericConfigForm.MAIN_CONFIG, "General module configuration", beanItem, false);
+        form.build(GenericConfigForm.MAIN_CONFIG, "General module configuration", (MyBeanItem)beanItem, false);
         return form;
     }
     
@@ -345,7 +346,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     
     protected AdminUIModule getParentProducer()
     {
-        return ((AdminUI)UI.getCurrent()).getParentProducer();
+        return ((AdminUI)UI.getCurrent()).getParentModule();
     }
     
     

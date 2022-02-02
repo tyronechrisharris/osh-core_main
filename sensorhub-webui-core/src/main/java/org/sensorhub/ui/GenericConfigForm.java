@@ -106,7 +106,7 @@ import com.vaadin.ui.Button.ClickEvent;
  * @author Alex Robin
  * @since Feb 1, 2014
  */
-@SuppressWarnings("serial")
+@SuppressWarnings({"serial", "deprecation"})
 public class GenericConfigForm extends VerticalLayout implements IModuleConfigForm, UIConstants
 {
     private static final String FIELD_GEN_ERROR = "Cannot generate UI field for ";
@@ -140,14 +140,14 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     
     
     @Override
-    public void build(String title, String popupText, MyBeanItem<? extends Object> beanItem, boolean includeSubForms)
+    public void build(String title, String popupText, MyBeanItem<Object> beanItem, boolean includeSubForms)
     {
         labels.clear();
         textBoxes.clear();
         listBoxes.clear();
         numberBoxes.clear();
         checkBoxes.clear();
-        subForms.clear();        
+        subForms.clear();
         
         setSpacing(false);
         setMargin(false);
@@ -158,7 +158,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         
         // form layout
         FormLayout form = new FormLayout();
-        form.setWidth(100.0f, Unit.PERCENTAGE);        
+        form.setWidth(100.0f, Unit.PERCENTAGE);
         addComponent(form);
         
         // add widget for each visible attribute
@@ -205,7 +205,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         field = buildAndBindField(label, (String)propId, prop);
                         if (field == null)
                             continue;
-                        ((AbstractField<?>)field).setDescription(desc);                    
+                        ((AbstractField<?>)field).setDescription(desc);
                     }
                     catch (SourceException e)
                     {
@@ -284,6 +284,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
      * @param prop
      * @return the generated Field object
      */
+    @SuppressWarnings("unchecked")
     protected Field<?> buildAndBindField(String label, String propId, Property<?> prop)
     {
         Field<?> field = fieldGroup.buildAndBind(label, propId);
@@ -304,11 +305,11 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         // size depending on field type
         if (propType.equals(String.class))
         {
-            field.setWidth(500, Unit.PIXELS);            
+            field.setWidth(500, Unit.PIXELS);
         }
         else if (propType.equals(int.class) || propType.equals(Integer.class))
         {
-            field.setWidth(100, Unit.PIXELS);                
+            field.setWidth(100, Unit.PIXELS);
         }
         else if (propType.equals(float.class) || propType.equals(Float.class))
         {
@@ -322,7 +323,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     NumberFormat f = NumberFormat.getInstance(locale);
                     f.setMaximumFractionDigits(8);
                     return f;
-                }                
+                }
             });
         }
         else if (propType.equals(double.class) || propType.equals(Double.class))
@@ -337,7 +338,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     NumberFormat f = NumberFormat.getInstance(locale);
                     f.setMaximumFractionDigits(16);
                     return f;
-                }                
+                }
             });
         }
         else if (Enum.class.isAssignableFrom(propType))
@@ -366,13 +367,13 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         {
             BaseProperty<?> advProp = (BaseProperty<?>)prop;
             Type fieldType = advProp.getFieldType();
+            
             if (fieldType != null)
             {
                 switch (fieldType)
                 {
                     case MODULE_ID:
-                        @SuppressWarnings("rawtypes")
-                        Class<? extends IModule> moduleClass = advProp.getModuleType();
+                        Class<?> moduleClass = advProp.getModuleType();
                         if (moduleClass == null)
                             moduleClass = IModule.class;
                         field = makeModuleSelectField((Field<Object>)field, moduleClass);
@@ -386,7 +387,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         NetworkType addressType = advProp.getAddressType();
                         if (addressType == null)
                             addressType = NetworkType.IP;
-                        field = makeAddressSelectField((Field<Object>)field, addressType);                        
+                        field = makeAddressSelectField((Field<Object>)field, addressType);
                         break;
                         
                     case PASSWORD:
@@ -419,7 +420,6 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
-    @SuppressWarnings("rawtypes")
     protected Field<Object> makeSystemSelectField(Field<Object> field)
     {
         return null;
@@ -466,9 +466,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         getUI().addWindow(popup);
                     }
                 });
-                                
+                
                 return layout;
-            }             
+            }
         };
     }
     
@@ -521,16 +521,16 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                             {
                                 innerField.setReadOnly(false);
                                 wrapper.setValue(address);
-                                innerField.setReadOnly(true);                                
+                                innerField.setReadOnly(true);
                             }
                         });
                         popup.setModal(true);
                         getUI().addWindow(popup);
                     }
                 });
-                                
+                
                 return layout;
-            }             
+            }
         };
     }
     
@@ -583,9 +583,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     }
                     
                 });
-                                
+                
                 return layout;
-            }             
+            }
         };
     }
     
@@ -598,9 +598,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         // generate custom form for this bean type
         IModuleConfigForm subform;
         if (childBeanItem != null)
-            subform = getParentProducer().generateForm(childBeanItem.getBean().getClass());
+            subform = getParentModule().generateForm(childBeanItem.getBean().getClass());
         else
-            subform = getParentProducer().generateForm(beanType);
+            subform = getParentModule().generateForm(beanType);
         subform.build(propId, prop, true);
         subform.setParentForm(this);
         
@@ -666,8 +666,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     {
                         updateSubForm(chgButton, null, propId, prop);
                     }
-                });                    
-                    
+                });
+                
                 popup.setModal(true);
                 getUI().addWindow(popup);
             }
@@ -757,7 +757,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     getUI().addWindow(popup);
                 }
             });
-        }        
+        }
         
         chgButton.setData(parentForm);
         ((VerticalLayout)parentForm).addComponent(chgButton, 0);
@@ -772,14 +772,14 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         MyBeanItem<Object> newItem = null;
         if (newBean != null)
             newItem = new MyBeanItem<>(newBean, propId + ".");
-        prop.setValue(newItem);                        
+        prop.setValue(newItem);
         ComponentContainer newForm = buildSubForm(propId, prop);
         newForm.setCaption(null);
         
         // replace old form in UI
         if (oldForm != null)
         {
-            allForms.remove(oldForm);                        
+            allForms.remove(oldForm);
             ((ComponentContainer)oldForm.getParent()).replaceComponent(oldForm, newForm);
         }
     }
@@ -824,6 +824,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
+    @SuppressWarnings("unchecked")
     protected Component buildSimpleList(final String propId, final ContainerProperty prop, final Class<?> eltType, final Consumer<ValueCallback> valueProvider)
     {
         String label = prop.getLabel();
@@ -895,7 +896,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         container.removeItem(itemId);
                     }
                 });
-                                
+                
                 return layout;
             }
             
@@ -905,11 +906,12 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 // override commit here because the ListSelect setValue() method
                 // only sets the index of the selected item, and not the list content
                 prop.setValue(container);
-            }             
+            }
         };
     }
     
     
+    @SuppressWarnings("unchecked")
     protected Component buildSimpleList(final String propId, final ContainerProperty prop, final Class<?> eltType)
     {
         return buildSimpleList(propId, prop, eltType, callback -> {
@@ -920,7 +922,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 popup = new ValueEnumPopup(500, callback, ((Class<Enum<?>>)eltType).getEnumConstants());
             else
                 popup = new ValueEntryPopup(500, callback, valueList);
-                        
+            
             popup.setModal(true);
             getUI().addWindow(popup); 
         });
@@ -937,6 +939,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
+    @SuppressWarnings("unchecked")
     protected Component buildTable(final String propId, final ContainerProperty prop, final Class<?> eltType)
     {
         final MyBeanItemContainer<Object> container = prop.getValue();
@@ -1031,7 +1034,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                         container.removeItem(itemId);
                     }
                 });
-                                
+                
                 return layout;
             }
             
@@ -1041,13 +1044,13 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 // override commit here because the ListSelect setValue() method
                 // only sets the index of the selected item, and not the list content
                 prop.setValue(container);
-            }             
+            }
         };
         
         // set title and popup
         String title = prop.getLabel();
         if (title == null)
-            title = DisplayUtils.getPrettyName((String)propId);                
+            title = DisplayUtils.getPrettyName((String)propId);
         wrapper.setCaption(title);
         wrapper.setDescription(prop.getDescription());
         
@@ -1055,6 +1058,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
+    @SuppressWarnings("unchecked")
     protected Component buildTabs(final String propId, final ContainerProperty prop, final FieldGroup fieldGroup)
     {
         GridLayout layout = new GridLayout();
@@ -1063,7 +1067,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         // set title and popup
         String title = prop.getLabel();
         if (title == null)
-            title = DisplayUtils.getPrettyName((String)propId);                
+            title = DisplayUtils.getPrettyName((String)propId);
         layout.setCaption(title);
         layout.setDescription(prop.getDescription());
         
@@ -1120,11 +1124,11 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                                 tabs.setSelectedTab(deletedTabPos);
                             else
                                 tabs.setSelectedTab(1); // select empty tab
-                                                        
+                            
                             // remove from container
                             container.removeItem(itemId);
                         }
-                    }                        
+                    }
                 });
                 
                 popup.setModal(true);
@@ -1140,7 +1144,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                 Component selectedTab = event.getTabSheet().getSelectedTab();
                 final Tab tab = tabs.getTab(selectedTab);
                 final int selectedTabPos = tabs.getTabPosition(tab);
-                                
+                
                 // case of + tab to add new item
                 if (tab.getIcon() != null && !tabJustRemoved)
                 {
@@ -1209,7 +1213,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
             private static final long serialVersionUID = 1L;
             @Override
             public void preCommit(CommitEvent commitEvent)
-            {                               
+            {
                 // nothing to do
             }
 
@@ -1226,10 +1230,10 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
-    protected Tab addTab(TabSheet tabs, final Object itemId, final MyBeanItem<?> beanItem, final int tabIndex)
+    protected Tab addTab(TabSheet tabs, final Object itemId, final MyBeanItem<Object> beanItem, final int tabIndex)
     {
         // generate subform
-        IModuleConfigForm subform = getParentProducer().generateForm(beanItem.getBean().getClass());
+        IModuleConfigForm subform = getParentModule().generateForm(beanItem.getBean().getClass());
         subform.build(null, null, beanItem, true);
         subform.setParentForm(this);
         subform.setMargin(new MarginInfo(false, false, true, false));
@@ -1263,7 +1267,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     @Override
     public void commit() throws CommitException
     {
-        fieldGroup.commit();        
+        fieldGroup.commit();
         for (IModuleConfigForm form: allForms)
             form.commit();
     }
@@ -1285,7 +1289,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
         {
             Class<?> configClass = provider.getModuleConfigClass();
             if (configType.isAssignableFrom(configClass))
-                providers.add(provider);                
+                providers.add(provider);
         }
         
         return providers;
@@ -1316,7 +1320,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     @Override
     public void setParentForm(IModuleConfigForm parentForm)
     {
-        this.parentForm = parentForm;        
+        this.parentForm = parentForm;
     }
     
     
@@ -1326,9 +1330,9 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
-    protected AdminUIModule getParentProducer()
+    protected AdminUIModule getParentModule()
     {
-        return ((AdminUI)UI.getCurrent()).getParentProducer();
+        return ((AdminUI)UI.getCurrent()).getParentModule();
     }
     
     

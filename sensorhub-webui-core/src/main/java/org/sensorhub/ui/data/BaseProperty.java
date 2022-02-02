@@ -87,8 +87,7 @@ public abstract class BaseProperty<T> extends AbstractProperty<T>
     }
     
     
-    @SuppressWarnings("rawtypes")
-    public Class<? extends IModule> getModuleType()
+    public Class<?> getModuleType()
     {
         ModuleType ann = f.getAnnotation(ModuleType.class);
         if (ann != null)

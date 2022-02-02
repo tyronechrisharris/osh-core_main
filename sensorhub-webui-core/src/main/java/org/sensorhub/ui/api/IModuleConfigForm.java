@@ -59,7 +59,7 @@ public interface IModuleConfigForm extends ComponentContainer, Layout.MarginHand
      * @param beanItem object to render a form for
      * @param includeSubForms true to include sub forms in the component
      */
-    public void build(String title, String popupText, MyBeanItem<? extends Object> beanItem, boolean includeSubForms);
+    public void build(String title, String popupText, MyBeanItem<Object> beanItem, boolean includeSubForms);
     
     
     /**

@@ -14,22 +14,15 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.impl.service.sos.SOSService;
 import org.sensorhub.impl.service.sps.SPSService;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.api.UIConstants;
 import org.sensorhub.ui.data.MyBeanItem;
-import org.vast.ows.OWSUtils;
-import org.vast.ows.sos.SOSOfferingCapabilities;
-import org.vast.ows.sos.SOSServiceCapabilities;
 import org.vast.ows.sps.SPSOfferingCapabilities;
 import org.vast.ows.sps.SPSServiceCapabilities;
 import com.vaadin.v7.data.Property;
 import com.vaadin.server.ExternalResource;
-import com.vaadin.shared.ui.ContentMode;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Link;
@@ -80,7 +73,7 @@ public class SPSAdminPanel extends DefaultModulePanel<SPSService> implements IMo
     @Override
     public void build(final MyBeanItem<ModuleConfig> beanItem, final SPSService module)
     {
-        super.build(beanItem, module);       
+        super.build(beanItem, module);
         
         // get capabilities
         SPSServiceCapabilities caps = module.getCapabilities();

@@ -64,7 +64,7 @@ public class BasicSecurityConfigForm extends GenericConfigForm
     
     
     @Override
-    public void build(String title, String popupText, MyBeanItem<? extends Object> beanItem, boolean includeSubForms)
+    public void build(String title, String popupText, MyBeanItem<Object> beanItem, boolean includeSubForms)
     {
         if (beanItem.getBean() instanceof RoleConfig)
             this.roleConfig = (RoleConfig)beanItem.getBean();
