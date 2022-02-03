@@ -111,8 +111,8 @@ public class SWEApiSecurity extends ModuleSecurity
         foi_permissions.create = new ItemPermission(api_create, NAME_FOI, LABEL_FOI);
         datastream_permissions.create = new ItemPermission(api_create, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.create = new ItemPermission(api_create, NAME_OBS, LABEL_OBS);
-        commandstream_permissions.create = new ItemPermission(api_read, NAME_CONTROLS, LABEL_CONTROLS);
-        command_permissions.create = new ItemPermission(api_read, NAME_COMMANDS, LABEL_COMMANDS);
+        commandstream_permissions.create = new ItemPermission(api_create, NAME_CONTROLS, LABEL_CONTROLS);
+        command_permissions.create = new ItemPermission(api_create, NAME_COMMANDS, LABEL_COMMANDS);
         
         api_update = new ItemPermission(rootPerm, "update");
         system_summary_permissions.update = new ItemPermission(api_update, NAME_SYSTEM_SUMMARY, LABEL_SYSTEM_SUMMARY);
@@ -120,8 +120,8 @@ public class SWEApiSecurity extends ModuleSecurity
         foi_permissions.update = new ItemPermission(api_update, NAME_FOI, LABEL_FOI);
         datastream_permissions.update = new ItemPermission(api_update, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.update = new ItemPermission(api_update, NAME_OBS, LABEL_OBS);
-        commandstream_permissions.update = new ItemPermission(api_read, NAME_CONTROLS, LABEL_CONTROLS);
-        command_permissions.update = new ItemPermission(api_read, NAME_COMMANDS, LABEL_COMMANDS);
+        commandstream_permissions.update = new ItemPermission(api_update, NAME_CONTROLS, LABEL_CONTROLS);
+        command_permissions.update = new ItemPermission(api_update, NAME_COMMANDS, LABEL_COMMANDS);
         
         api_delete = new ItemPermission(rootPerm, "delete");
         system_summary_permissions.delete = new ItemPermission(api_delete, NAME_SYSTEM_SUMMARY, LABEL_SYSTEM_SUMMARY);
@@ -129,8 +129,8 @@ public class SWEApiSecurity extends ModuleSecurity
         foi_permissions.delete = new ItemPermission(api_delete, NAME_FOI, LABEL_FOI);
         datastream_permissions.delete = new ItemPermission(api_delete, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.delete = new ItemPermission(api_delete, NAME_OBS, LABEL_OBS);
-        commandstream_permissions.delete = new ItemPermission(api_read, NAME_CONTROLS, LABEL_CONTROLS);
-        command_permissions.delete = new ItemPermission(api_read, NAME_COMMANDS, LABEL_COMMANDS);
+        commandstream_permissions.delete = new ItemPermission(api_delete, NAME_CONTROLS, LABEL_CONTROLS);
+        command_permissions.delete = new ItemPermission(api_delete, NAME_COMMANDS, LABEL_COMMANDS);
         
         api_stream = new ItemPermission(rootPerm, "stream");
         system_summary_permissions.stream = new ItemPermission(api_stream, NAME_SYSTEM_SUMMARY, LABEL_SYSTEM_SUMMARY);
@@ -138,8 +138,8 @@ public class SWEApiSecurity extends ModuleSecurity
         foi_permissions.stream = new ItemPermission(api_stream, NAME_FOI, LABEL_FOI);
         datastream_permissions.stream = new ItemPermission(api_stream, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.stream = new ItemPermission(api_stream, NAME_OBS, LABEL_OBS);
-        commandstream_permissions.stream = new ItemPermission(api_read, NAME_CONTROLS, LABEL_CONTROLS);
-        command_permissions.stream = new ItemPermission(api_read, NAME_COMMANDS, LABEL_COMMANDS);
+        commandstream_permissions.stream = new ItemPermission(api_stream, NAME_CONTROLS, LABEL_CONTROLS);
+        command_permissions.stream = new ItemPermission(api_stream, NAME_COMMANDS, LABEL_COMMANDS);
         
         
         // register wildcard permission tree usable for all SOS services

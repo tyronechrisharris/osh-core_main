@@ -220,7 +220,7 @@ public class SWEApiServlet extends HttpServlet
                     sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
                 }
                 finally
-                {                
+                {
                     clearCurrentUser();
                     aCtx.complete();
                 }
@@ -265,7 +265,7 @@ public class SWEApiServlet extends HttpServlet
                     sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
                 }
                 finally
-                {                
+                {
                     clearCurrentUser();
                     aCtx.complete();
                 }
@@ -310,7 +310,7 @@ public class SWEApiServlet extends HttpServlet
                     sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
                 }
                 finally
-                {                
+                {
                     clearCurrentUser();
                     aCtx.complete();
                 }
