@@ -121,6 +121,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
             
             // HTTP connector
             HttpConfiguration httpConfig = new HttpConfiguration();
+            httpConfig.setSendServerVersion(false);
             httpConfig.setSecureScheme("https");
             httpConfig.setSecurePort(config.httpsPort);
             if (config.httpPort > 0)
@@ -151,6 +152,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                     sslContextFactory.setWantClientAuth(true);
                 }
                 HttpConfiguration httpsConfig = new HttpConfiguration(httpConfig);
+                httpsConfig.setSendServerVersion(false);
                 httpsConfig.addCustomizer(new SecureRequestCustomizer());
                 https = new ServerConnector(server, 
                         new SslConnectionFactory(sslContextFactory, HttpVersion.HTTP_1_1.asString()),
@@ -285,6 +287,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
             server.start();
             getLogger().info("HTTP server started on port " + config.httpPort);
             
+            server.getErrorHandler().setShowServlet(false);
             setState(ModuleState.STARTED);
         }
         catch (Exception e)
