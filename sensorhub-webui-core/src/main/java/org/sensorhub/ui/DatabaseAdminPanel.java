@@ -28,6 +28,7 @@ import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.event.Action;
 import com.vaadin.event.Action.Handler;
 import com.vaadin.server.FontAwesome;
+import com.vaadin.server.Page;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.shared.MouseEventDetails.MouseButton;
 import com.vaadin.ui.Alignment;
@@ -52,7 +53,7 @@ import com.vaadin.ui.Window.CloseListener;
  * @author Alex Robin
  * @since 1.0
  */
-@SuppressWarnings("serial")
+@SuppressWarnings({ "serial", "deprecation" })
 public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseModule<?>> implements IModuleAdminPanel<IObsSystemDatabaseModule<?>>
 {
     private static final Action DELETE_SYSTEM_ACTION = new Action("Delete All System Data", new ThemeResource("icons/module_delete.png"));
@@ -182,7 +183,15 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                         
             layout.addComponent(systemTable);
             
+            Page.getCurrent().getStyles()
+                .add(".datastore-table { min-height: 400px }");
             dataStreamTabs = new TabSheet();
+            dataStreamTabs.addStyleName("datastore-table");
+            dataStreamTabs.addSelectedTabChangeListener(e -> {
+                // load data when tab is selected
+                ((DatabaseStreamPanel)dataStreamTabs.getSelectedTab()).refreshContent();
+            });
+            
             layout.addComponent(dataStreamTabs);
             
             addComponent(layout);

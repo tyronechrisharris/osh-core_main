@@ -2,22 +2,21 @@ var config = {
   type: 'line',
   data: {
     datasets: [{
-      //backgroundColor: '#197de1aa',
       backgroundColor: '#ccccccaa',
-      //borderColor: '#197de1aa',
       borderColor: '#222222aa',
       data: data,
       type: 'bar',
-      //pointRadius: 0,
       fill: false,
-      //lineTension: 0.5,
-      //steppedLine: 'middle',
-      //borderWidth: 2
       borderWidth: 1
     }]
   },
   options: {
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 5
+      }
+    },
     legend: {
       display: false
     },
@@ -31,7 +30,10 @@ var config = {
         //offset: true,
         time: {
             displayFormats: {
-                hour: 'hh:mm'
+                day: 'YYYY-MM-DD',
+                hour: "HH:mm[Z]",
+                minute: "HH:mm[Z]",
+                second: 'HH:mm:ss[Z]'
             }
         },
         distribution: 'linear',
@@ -42,11 +44,7 @@ var config = {
           source: 'auto',
           autoSkip: true,
           maxRotation: 0,
-          callback: function(value, index, values) {
-              if (values.length > 0 && index == 0)
-                  return moment(values[0].value).format('MMM D');
-              return value;
-          }
+          callback: insertDayTicks
         },
         gridLines: {
           display: true,

@@ -20,16 +20,20 @@ var config = {
         //offset: true,
         time: {
             displayFormats: {
-                hour: 'h:mm a'
+                day: 'YYYY-MM-DD',
+                hour: "HH:mm[Z]",
+                minute: "HH:mm[Z]",
+                second: 'HH:mm:ss[Z]'
             }
         },
         distribution: 'linear',
         barPercentage: 1.0,
         categoryPercentage: 0.8,
         ticks: {
-          //source: 'data',
+          source: 'auto',
           autoSkip: true,
-          maxRotation: 0
+          maxRotation: 0,
+          callback: insertDayTicks
         },
         gridLines: {
           display: false,

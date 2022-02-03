@@ -2,9 +2,12 @@ var org_sensorhub_ui_chartjs_instances = {};
 
 var overlaySlider = function(domId, chart, connector) {
     var domElt = document.getElementById(domId);
-    var data = chart.data.datasets[0].data;
-    var t0 = Math.floor(data[0].t/60000)*60;
-    var t1 = Math.ceil(data[data.length-1].t/60000)*60;
+    //var data = chart.data.datasets[0].data;
+    //var dt = data.length > 1 ? data[1].t - data[0].t : 1000;
+    //var t0 = Math.floor((data[0].t)/1000);
+    //var t1 = Math.ceil((data[data.length-1].t)/1000);
+    var t0 = Math.floor(chart.scales['x-axis-0'].min/1000);
+    var t1 = Math.ceil(chart.scales['x-axis-0'].max/1000);
     
     function format(t) {
         return new Date(t*1000).toISOString();
@@ -36,21 +39,42 @@ var overlaySlider = function(domId, chart, connector) {
             slider.oldMin = min;
             slider.oldMax = max;
             connector.onSliderChange(min, max);
-        }        
+        }
     });
+}
+
+var insertDayTicks = function(value, index, values) {
+    if (values.length > 0) {
+        let showDay = false;
+        if (index == 0) {
+            let firstTs = values[0].value;
+            let lastTs = values[values.length-1].value;
+            let nextDay = Math.ceil(firstTs / 86400000) * 86400000;
+            showDay = (lastTs + firstTs)/2 < nextDay;
+        } else {
+            let prevTs = values[index-1].value;
+            let thisTs = values[index].value;
+            let prevDay = Math.floor(thisTs / 86400000) * 86400000;
+            showDay = thisTs == prevDay || prevTs < prevDay;
+        }
+        if (showDay)
+            //return [value, moment(values[index].value).utc().format('YYYY-MM-DD')];
+            return moment(values[index].value).utc().format('YYYY-MM-DD');
+    }
+    return value;
 }
 
 window.org_sensorhub_ui_chartjs_Chart = function () {
     
     Chart._adapters._date.prototype.format = function(t, f) {
-        //return new Date(t).toISOString();" +
+        //return new Date(t).toISOString();
         return moment(t).utc().format(f);
     }
     
     this.onStateChange = function () {
         // read state
         var newPlot = this.getState().newPlot;
-        var domId = this.getState().domId;        
+        var domId = this.getState().domId;
         var color = Chart.helpers.color;
         
         if (newPlot) {

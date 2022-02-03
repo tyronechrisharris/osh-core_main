@@ -73,35 +73,39 @@ import net.opengis.swe.v20.Vector;
  * @author Alex Robin
  * @since Jun 24, 2019
  */
+@SuppressWarnings("deprecation")
 public class DatabaseStreamPanel extends VerticalLayout
 {
     private static final long serialVersionUID = 6169765057074245360L;
     static final int SECONDS_PER_HOUR = 3600;
     static final int SECONDS_PER_DAY = 3600*24;
     
+    Label timeRangeLabel;
     Chart detailChart;
     Chart navigatorChart;
     PagedTable table;
     
     IObsSystemDatabase db;
     long dataStreamID;
+    IDataStreamInfo dsInfo;
     TimeExtent fullTimeRange;
     TimeExtent zoomTimeRange;
     LazyLoadingObsContainer obsDataContainer;
-        
+    
     
     public DatabaseStreamPanel(IObsSystemDatabase db, IDataStreamInfo dsInfo, long dataStreamID)
     {
         this.db = db;
         this.dataStreamID = dataStreamID;
+        this.dsInfo = dsInfo;
         
         setMargin(true);
         setSpacing(true);
-        refreshContent(dsInfo);
+        setCaption(getPrettyName(dsInfo.getRecordStructure()));
     }
     
     
-    protected void refreshContent(IDataStreamInfo dsInfo)
+    protected void refreshContent()
     {
         removeAllComponents();
         
@@ -111,12 +115,13 @@ public class DatabaseStreamPanel extends VerticalLayout
         setCaption(getPrettyName(dsInfo.getRecordStructure()));
         
         // top level info
-        addComponent(buildHeaderInfo(dsInfo));
+        addComponent(buildHeaderInfo());
+        zoomTimeRange = fullTimeRange;
         
         // add histogram if it was open before
         if (detailChart != null)
         {
-            Component timeline = buildHistogram(dsInfo);
+            Component timeline = buildHistogram();
             addComponent(timeline);
         }
         
@@ -135,36 +140,28 @@ public class DatabaseStreamPanel extends VerticalLayout
         grid.addComponent(sweForm);
         
         // data table
-        Component tableArea = buildTable(dsInfo);
+        Component tableArea = buildTable();
         grid.addComponent(tableArea);
     }
     
     
     @SuppressWarnings("serial")
-    protected Component buildTimeRangeRow(IDataStreamInfo dsInfo)
+    protected Component buildTimeRangeRow()
     {
         final HorizontalLayout layout = new HorizontalLayout();
         layout.setSpacing(true);
         layout.setDefaultComponentAlignment(Alignment.MIDDLE_LEFT);
         
-        var timeRange = dsInfo.getPhenomenonTimeRange();
-        zoomTimeRange = timeRange;
-        String timeRangeText = "- NO DATA -";
-        if (timeRange != null)
-        {
-            Instant begin = timeRange.begin().truncatedTo(ChronoUnit.SECONDS);
-            Instant end = timeRange.end().truncatedTo(ChronoUnit.SECONDS);
-            timeRangeText = begin + " - " + end;
-        }
-        Label timeRangeLabel = new Label(timeRangeText);
+        timeRangeLabel = new Label();
         timeRangeLabel.setContentMode(ContentMode.HTML);
         timeRangeLabel.addStyleName(UIConstants.STYLE_SMALL);
+        updateTimeRange();
         layout.addComponent(timeRangeLabel);
         layout.setCaption("Time Range:");
         
         final Button btn = new Button(FontAwesome.BAR_CHART);
         btn.setDescription(detailChart == null ? "Show Histogram" : "Hide Histogram");
-        btn.setEnabled(timeRange != null);
+        btn.setEnabled(dsInfo.getPhenomenonTimeRange() != null);
         btn.addStyleName(UIConstants.STYLE_SMALL);
         btn.addStyleName(UIConstants.STYLE_QUIET);
         layout.addComponent(btn);
@@ -178,21 +175,21 @@ public class DatabaseStreamPanel extends VerticalLayout
                 if (detailChart == null)
                 {
                     // add histogram time line
-                    Component timeline = buildHistogram(dsInfo);
+                    Component timeline = buildHistogram();
                     int idx = panelLayout.getComponentIndex(layout.getParent());
                     panelLayout.addComponent(timeline, idx+1);
                     btn.setDescription("Hide Histogram");
                 }
                 else
                 {
-                    // remove histogram                    
+                    // remove histogram
                     panelLayout.removeComponent(detailChart.getParent());
                     btn.setDescription("Show Histogram");
                     detailChart = null;
                     navigatorChart = null;
                 }
             }
-        });        
+        });
         
         // refresh button
         Button refreshButton = new Button("Refresh");
@@ -207,8 +204,14 @@ public class DatabaseStreamPanel extends VerticalLayout
             @Override
             public void buttonClick(ClickEvent event)
             {
-                var dsInfo = db.getDataStreamStore().get(new DataStreamKey(dataStreamID));
-                refreshContent(dsInfo);                
+                var dsInfo = DatabaseStreamPanel.this.dsInfo = db.getDataStreamStore().get(new DataStreamKey(dataStreamID));
+                //refreshContent();
+                var fullTimeRange = dsInfo.getPhenomenonTimeRange();
+                fullTimeRange = roundTimePeriod(fullTimeRange);
+                updateTimeRange();
+                updateHistogram(navigatorChart, fullTimeRange);
+                updateHistogram(detailChart, zoomTimeRange);
+                updateTable();
             }
         });
         
@@ -216,7 +219,24 @@ public class DatabaseStreamPanel extends VerticalLayout
     }
     
     
-    protected Component buildHeaderInfo(IDataStreamInfo dsInfo)
+    protected void updateTimeRange()
+    {
+        var timeRange = dsInfo.getPhenomenonTimeRange();
+        fullTimeRange = roundTimePeriod(timeRange);
+        
+        String timeRangeText = "- NO DATA -";
+        if (timeRange != null)
+        {
+            Instant begin = timeRange.begin().truncatedTo(ChronoUnit.SECONDS);
+            Instant end = timeRange.end().truncatedTo(ChronoUnit.SECONDS);
+            timeRangeText = begin + " - " + end;
+        }
+        
+        timeRangeLabel.setValue(timeRangeText);
+    }
+    
+    
+    protected Component buildHeaderInfo()
     {
         FormLayout formLayout = new FormLayout();
         formLayout.setMargin(false);
@@ -253,29 +273,26 @@ public class DatabaseStreamPanel extends VerticalLayout
                     updateTable();
                     updateHistogram(detailChart, timeRange);
                     updateHistogram(navigatorChart, fullTimeRange);
-                }                        
-            });            
+                }
+            });
         }*/
         
         // time range panel
-        formLayout.addComponent(buildTimeRangeRow(dsInfo));
+        formLayout.addComponent(buildTimeRangeRow());
         
         return formLayout;
     }
     
     
     @SuppressWarnings("serial")
-    protected Component buildHistogram(IDataStreamInfo dsInfo)
+    protected Component buildHistogram()
     {
         VerticalLayout layout = new VerticalLayout();
-        //layout.setMargin(false);
         layout.setMargin(new MarginInfo(false, true, true, false));
         layout.setSpacing(true);
         
         try
         {
-            fullTimeRange = zoomTimeRange = dsInfo.getPhenomenonTimeRange();
-            fullTimeRange = roundTimePeriod(fullTimeRange);
             String fullRangeData = getHistogramData(fullTimeRange);
             
             // detail chart
@@ -284,7 +301,7 @@ public class DatabaseStreamPanel extends VerticalLayout
             detailChart.setHeight(120, Unit.PIXELS);
             String jsConfig = Resources.toString(getClass().getResource("chartjs_timeline_chart.js"), StandardCharsets.UTF_8);
             detailChart.setChartConfig(jsConfig, fullRangeData);
-                        
+            
             // rangeslider chart
             navigatorChart = new Chart("slider-" + dsInfo.getOutputName(), true);
             navigatorChart.addStyleName("storage-navslider");
@@ -294,7 +311,7 @@ public class DatabaseStreamPanel extends VerticalLayout
             navigatorChart.setChartConfig(jsConfig, fullRangeData);
             
             navigatorChart.addSliderChangeListener(new SliderChangeListener()
-            {                
+            {
                 @Override
                 public void onSliderChange(double min, double max)
                 {
@@ -391,13 +408,14 @@ public class DatabaseStreamPanel extends VerticalLayout
             
             // create series item array
             // set time coordinate as unix timestamp in millis
-            Coordinate[] items = new Coordinate[counts.length];
+            Coordinate[] items = new Coordinate[counts.length+1];
             long time = timeRange.begin().toEpochMilli();
             for (int i = 0; i < counts.length; i++)
             {
                 items[i] = new Coordinate(time, (double)counts[i]);
                 time += binSize*1000;
             }
+            items[counts.length] = new Coordinate(time, 0.0);
             return items;
         }
         
@@ -433,7 +451,7 @@ public class DatabaseStreamPanel extends VerticalLayout
     }
     
     
-    protected Component buildTable(IDataStreamInfo dsInfo)
+    protected Component buildTable()
     {
         VerticalLayout tableLayout = new VerticalLayout();
         tableLayout.setMargin(false);
@@ -464,7 +482,7 @@ public class DatabaseStreamPanel extends VerticalLayout
             public void pageChanged(PagedTableChangeEvent event)
             {
                 obsDataContainer.onPageChanged();
-            }            
+            }
         });
         
         // add column names and indexers 
@@ -517,7 +535,7 @@ public class DatabaseStreamPanel extends VerticalLayout
                     public Class<String> getPresentationType()
                     {
                         return String.class;
-                    }                        
+                    }
                 });
             }
             

@@ -37,6 +37,7 @@ public class PagedTableControls extends HorizontalLayout {
         itemsPerPageSelect.setWidth(60, Unit.PIXELS);
         itemsPerPageSelect.select("10");
         itemsPerPageSelect.addStyleName(UIConstants.STYLE_SMALL);
+        itemsPerPageSelect.setEnabled(false); // disable for now since it's not working correctly
         itemsPerPageLabel.addStyleName(UIConstants.STYLE_SMALL);
         
         currentPageTextField.setValue(String.valueOf(table.getCurrentPage()));
