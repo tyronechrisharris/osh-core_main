@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.sensorhub.api.module.IModuleProvider;
@@ -55,6 +56,36 @@ public class ModuleClassFinder
     {
         if (osgiContext != null)
         {
+            var bundles = osgiContext.getBundles();
+            for (var b: bundles)
+            {
+                try
+                {
+                    if (b.getState() != Bundle.UNINSTALLED)
+                    {
+                        var clazz = b.loadClass(className);
+                        log.info("{} loaded from bundle {}", className, b.getSymbolicName());
+                        return clazz;
+                    }
+                }
+                catch (ClassNotFoundException e)
+                {
+                    log.debug("{} not found in bundle {}", className, b.getSymbolicName());
+                }
+            }
+            
+            // error if nothing was found
+            throw new ClassNotFoundException("No bundle contains class " + className);
+        }
+        
+        return Class.forName(className);
+    }
+    
+    
+    public Class<?> findModuleClass(String className) throws ClassNotFoundException
+    {
+        if (osgiContext != null)
+        {
             try
             {
                 var moduleRefs = osgiContext.getServiceReferences(IModuleProvider.class, null);
@@ -77,6 +108,39 @@ public class ModuleClassFinder
         }
         
         return Class.forName(className);
+    }
+    
+    
+    @SuppressWarnings("unchecked")
+    public <T> Class<? extends T> findServiceClass(String className, Class<T> parentClass) throws ClassNotFoundException
+    {
+        if (osgiContext != null)
+        {
+            try
+            {
+                var serviceRefs = osgiContext.getAllServiceReferences(parentClass.getCanonicalName(), null);
+                for (var ref: serviceRefs)
+                {
+                    var m = osgiContext.getService(ref);
+                    if (className.equals(m.getClass().getCanonicalName()))
+                        return (Class<T>)m;
+                }
+            }
+            catch (InvalidSyntaxException e)
+            {
+            }
+        }
+        else
+        {
+            var services = ServiceLoader.load(parentClass);
+            for (var s: services)
+            {
+                if (className.equals(s.getClass().getCanonicalName()))
+                    return (Class<T>)s;
+            }
+        }
+        
+        throw new ClassNotFoundException("Could not find service " + className + " of type " + parentClass);
     }
     
     

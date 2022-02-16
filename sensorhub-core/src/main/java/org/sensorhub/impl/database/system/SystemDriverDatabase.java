@@ -58,12 +58,8 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
             dbConfig.id = getLocalID();
             dbConfig.name = getName();
             dbConfig.databaseNum = 0;
-            Class<?> clazz = Class.forName(dbConfig.moduleClass);
             
-            @SuppressWarnings("unchecked")
-            IModule<DatabaseConfig> dbModule = (IModule<DatabaseConfig>)clazz.getDeclaredConstructor().newInstance();
-            dbModule.setConfiguration(dbConfig);
-            dbModule.init();
+            var dbModule = getParentHub().getModuleRegistry().loadSubModule(dbConfig, true);
             dbModule.waitForState(ModuleState.INITIALIZED, 10000);
             dbModule.start();
             dbModule.waitForState(ModuleState.STARTED, 10000);

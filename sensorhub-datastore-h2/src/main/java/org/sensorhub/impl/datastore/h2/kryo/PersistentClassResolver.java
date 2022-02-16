@@ -15,6 +15,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2.kryo;
 
 import org.h2.mvstore.MVMap;
+import org.sensorhub.api.ISensorHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
@@ -52,13 +53,23 @@ public class PersistentClassResolver implements ClassResolver
     final IntMap<Registration> idToRegistration = new IntMap<>();
     final CuckooObjectMap<Class, Registration> classToRegistration = new CuckooObjectMap<>();
     final MVMap<String, Integer> classNameToIdMap;
+    final ClassLoader classLoader;
     Kryo kryo;
-    boolean mappingsLoaded; 
+    boolean mappingsLoaded;
     
     
     public PersistentClassResolver(MVMap<String, Integer> classNameToIdMap)
     {
-        this.classNameToIdMap = classNameToIdMap;
+        // use sensorhub-core classloader by default
+        // this is needed so core classes can be loaded even when booted with OSGi
+        this(classNameToIdMap, ISensorHub.class.getClassLoader());
+    }
+    
+    
+    public PersistentClassResolver(MVMap<String, Integer> classNameToIdMap, ClassLoader classLoader)
+    {
+        this.classNameToIdMap = Asserts.checkNotNull(classNameToIdMap, MVMap.class);
+        this.classLoader = Asserts.checkNotNull(classLoader, ClassLoader.class);
     }
     
     
@@ -79,7 +90,7 @@ public class PersistentClassResolver implements ClassResolver
                 var classId = entry.getValue();
                 if (!idToRegistration.containsKey(classId))
                 {
-                    register(Class.forName(className), classId);
+                    register(Class.forName(className, true, classLoader), classId);
                     log.trace("Loading class mapping: {} -> {}", className, classId);
                 }
             }

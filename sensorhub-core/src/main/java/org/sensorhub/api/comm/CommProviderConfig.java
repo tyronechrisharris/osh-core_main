@@ -33,20 +33,4 @@ public class CommProviderConfig<P> extends ModuleConfig
     @DisplayInfo(label="Protocol Options")
     public P protocol;
     
-    
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public ICommProvider getProvider()
-    {
-        try
-        {
-            Class<?> clazz = Class.forName(moduleClass);
-            ICommProvider commProvider = (ICommProvider)clazz.getDeclaredConstructor().newInstance();
-            commProvider.init(this);  
-            return commProvider;
-        }
-        catch (Exception e)
-        {
-            throw new IllegalStateException("Cannot load module " + moduleClass, e);
-        }
-    }
 }

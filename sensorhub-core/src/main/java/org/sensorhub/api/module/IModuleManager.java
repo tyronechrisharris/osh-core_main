@@ -46,14 +46,6 @@ public interface IModuleManager<ModuleType extends IModule<?>>
     
     
     /**
-     * Gets the list of all modules handled by this manager
-     * that are configured but not yet loaded (i.e. disabled)
-     * @return list of module configuration classes
-     */
-    public Collection<ModuleConfig> getAvailableModules();
-    
-    
-    /**
      * Retrieves a module instance by its local ID
      * @param moduleID Id of module to retrieve
      * @return direct reference to the module instance

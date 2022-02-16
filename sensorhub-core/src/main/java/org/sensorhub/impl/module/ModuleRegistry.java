@@ -196,7 +196,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     {
         try
         {
-            Class<?> moduleClazz = configRepo.getModuleClassFinder().findClass(config.moduleClass);
+            Class<?> moduleClazz = configRepo.getModuleClassFinder().findModuleClass(config.moduleClass);
             return IDatabase.class.isAssignableFrom(moduleClazz) ||
                    IDataStore.class.isAssignableFrom(moduleClazz);
         }
@@ -258,7 +258,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    protected IModule<?> loadModuleAsync(ModuleConfig config, IEventListener listener, boolean applyAutoStart) throws SensorHubException
+    protected IModule<?> loadModuleAsync(ModuleConfig config, IEventListener listener, boolean doAutoStart) throws SensorHubException
     {
         if (config.id != null && loadedModules.containsKey(config.id))
             return loadedModules.get(config.id);
@@ -271,7 +271,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 config.id = UUID.randomUUID().toString();
                         
             // instantiate module class
-            module = (IModule)loadClass(config.moduleClass);
+            module = (IModule)loadModuleClass(config.moduleClass);
             if (log.isDebugEnabled())
                 log.debug("Module {} loaded", MsgUtils.moduleString(config));
             module.setParentHub(hub);
@@ -293,7 +293,7 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             handleEvent(new ModuleEvent(module, Type.LOADED));
             
             // also init & start if autostart is set
-            if (applyAutoStart && config.autoStart)
+            if (doAutoStart && config.autoStart)
                 startModuleAsync(config.id, null);
         }
         catch (Exception e)
@@ -306,21 +306,123 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     
     
     /**
-     * Loads any class by reflection
-     * @param className
-     * @return new object instantiated
+     * Attempts to find a class by name.<br/>
+     * If using OSGi this will scan all resolved bundles and attempt to load the class
+     * using the bundle's classloader.
+     * @param className Fully qualified name of the class to load
+     * @return Loaded class
      * @throws SensorHubException
      */
-    public Object loadClass(String className) throws SensorHubException
+    @SuppressWarnings("unchecked")
+    public <T> Class<T> findClass(String className) throws SensorHubException
     {
         try
         {
-            var clazz = configRepo.getModuleClassFinder().findClass(className);
-            return clazz.getDeclaredConstructor().newInstance();
+            return (Class<T>)configRepo.getModuleClassFinder().findClass(className);
+        }
+        catch (NoClassDefFoundError | ClassNotFoundException e)
+        {
+            throw new SensorHubException("Cannot find class " + className, e);
+        }
+    }
+    
+    
+    /**
+     * Instantiate any class by reflection using the default constructor.<br/>
+     * The class is first loaded using {@link ModuleRegistry#findClass(String)}.
+     * @param className Fully qualified name of the class to instantiate
+     * @return New object instantiated
+     * @throws SensorHubException
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T loadClass(String className) throws SensorHubException
+    {
+        try
+        {
+            var clazz = (Class<T>)configRepo.getModuleClassFinder().findClass(className);
+            return (T)clazz.getDeclaredConstructor().newInstance();
         }
         catch (NoClassDefFoundError | ReflectiveOperationException e)
         {
             throw new SensorHubException("Cannot instantiate class " + className, e);
+        }
+    }
+    
+    
+    /**
+     * Finds a module class.
+     * If using OSGi, this will attempt to find a service providing the module.
+     * @param className Fully qualified name of the module class to load
+     * @return new object instantiated
+     * @throws SensorHubException
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Class<T> findModuleClass(String className) throws SensorHubException
+    {
+        try
+        {
+            return (Class<T>)configRepo.getModuleClassFinder().findModuleClass(className);
+        }
+        catch (NoClassDefFoundError | ClassNotFoundException e)
+        {
+            throw new SensorHubException("Cannot instantiate class " + className, e);
+        }
+    }
+    
+    
+    /**
+     * Loads a module class by reflection.
+     * If using OSGi, this will attempt to find a service providing the module
+     * @param className Fully qualified name of the module class to instantiate
+     * @return new object instantiated
+     * @throws SensorHubException
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T loadModuleClass(String className) throws SensorHubException
+    {
+        try
+        {
+            var clazz = findModuleClass(className);
+            return (T)clazz.getDeclaredConstructor().newInstance();
+        }
+        catch (NoClassDefFoundError | ReflectiveOperationException e)
+        {
+            throw new SensorHubException("Cannot instantiate class " + className, e);
+        }
+    }
+    
+    
+    /**
+     * Helper method to load and optionally initialize a sub module.
+     * A sub module is a module loaded by another module. Once this method returns, the
+     * caller (i.e. usually the parent module) is responsible for managing the submodule
+     * life cycle, not the module registry itself.
+     * @param <T> Type of module configuration
+     * @param config Sub module configuration class
+     * @param init If set to true, also initialize the module
+     * @return The module instance
+     * @throws SensorHubException
+     */
+    @SuppressWarnings("unchecked")
+    public <T extends IModule<C>, C extends ModuleConfig> T loadSubModule(C config, boolean init) throws SensorHubException
+    {
+        Asserts.checkNotNull(config, ModuleConfig.class);
+        Asserts.checkNotNullOrBlank(config.moduleClass, "moduleClass");
+        
+        try
+        {
+            var comp = (T)loadModuleClass(config.moduleClass);
+            
+            if (init)
+                comp.init(config);
+            else
+                comp.setConfiguration(config);
+            
+            return comp;
+        }
+        catch (Exception e)
+        {
+            throw new SensorHubException("Cannot load submodule " + config.moduleClass, e);
         }
     }
     
@@ -904,44 +1006,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     {
         IModule<?> module = getModuleById(moduleID);
         return new WeakReference<>((T)module);
-    }
-    
-    
-    /**
-     * Get all modules available (some may not be loaded)
-     */
-    @Override
-    public synchronized Collection<ModuleConfig> getAvailableModules()
-    {
-        return Collections.unmodifiableCollection(configRepo.getAllModulesConfigurations());
-    }
-    
-    
-    /**
-     * Retrieves list of all available module types that are sub-types
-     * of the specified class
-     * @param moduleType parent class of modules to search for
-     * @return list of config classes for available modules
-     */
-    public Collection<ModuleConfig> getAvailableModules(Class<?> moduleType)
-    {
-        ArrayList<ModuleConfig> availableModules = new ArrayList<>();
-        
-        // retrieve all modules of specified type
-        for (ModuleConfig config: getAvailableModules())
-        {
-            try
-            {
-                if (moduleType.isAssignableFrom(Class.forName(config.moduleClass)))
-                    availableModules.add(config);
-            }
-            catch (Exception e)
-            {
-                log.trace("Invalid module class", e);
-            }
-        }
-        
-        return availableModules;
     }
     
     

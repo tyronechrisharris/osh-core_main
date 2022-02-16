@@ -65,6 +65,7 @@ import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.sensorhub.impl.service.swe.SWEServlet;
 import org.sensorhub.impl.system.DataStreamTransactionHandler;
 import org.sensorhub.utils.DataComponentChecks;
+import org.sensorhub.utils.Lambdas;
 import org.sensorhub.utils.SWEDataUtils;
 import org.slf4j.Logger;
 import org.vast.cdm.common.DataSource;
@@ -109,6 +110,7 @@ public class SOSServlet extends SWEServlet
     final transient SOSServiceCapabilities capabilities = new SOSServiceCapabilities();
     final transient NavigableMap<String, SOSProviderConfig> providerConfigs;
     final transient Map<String, SOSCustomFormatConfig> customFormats = new HashMap<>();
+    final transient Map<String, Class<ISOSAsyncResultSerializer>> customSerializers = new HashMap<>();
 
 
     protected SOSServlet(SOSService service, SOSSecurity securityHandler, Logger log) throws SensorHubException
@@ -1081,8 +1083,12 @@ public class SOSServlet extends SWEServlet
         {
             try
             {
-                ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
-                return (ISOSAsyncResultSerializer)moduleReg.loadClass(formatConfig.className);
+                var clazz = customSerializers.computeIfAbsent(format, Lambdas.checked(k -> {
+                    ModuleRegistry moduleReg = service.getParentHub().getModuleRegistry();
+                    return moduleReg.<ISOSAsyncResultSerializer>findClass(formatConfig.className);
+                }));
+                
+                return clazz.getDeclaredConstructor().newInstance();
             }
             catch (Exception e)
             {

@@ -22,7 +22,6 @@ import org.sensorhub.api.comm.ICommNetwork.NetworkType;
 import org.sensorhub.api.comm.INetworkManager;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
-import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
 
 
@@ -85,13 +84,6 @@ public class NetworkManagerImpl implements INetworkManager
     public boolean isModuleLoaded(String moduleID)
     {
         return moduleRegistry.isModuleLoaded(moduleID);
-    }
-
-
-    @Override
-    public Collection<ModuleConfig> getAvailableModules()
-    {
-        return moduleRegistry.getAvailableModules(ICommNetwork.class);
     }
 
 

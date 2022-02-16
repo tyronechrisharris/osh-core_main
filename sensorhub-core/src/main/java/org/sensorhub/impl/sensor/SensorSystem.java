@@ -76,7 +76,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
             }
         }
         
-        // load all sensor modules        
+        // load all sensor modules
         sensors = new LinkedHashMap<String, ISensorModule<?>>();
         for (SensorMember member: config.sensors)
         {
@@ -86,7 +86,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
         }
         
         // load all processing modules
-        processes = new LinkedHashMap<String, IProcessModule<?>>();        
+        processes = new LinkedHashMap<String, IProcessModule<?>>();
         for (ProcessMember member: config.processes)
         {
             IProcessModule<?> process = (IProcessModule<?>)loadModule(member.config);
@@ -116,11 +116,10 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
             if (config.id == null)
                 config.id = UUID.randomUUID().toString();
             
-            Class<?> clazz = Class.forName(config.moduleClass);
-            @SuppressWarnings("unchecked")
-            IModule<ModuleConfig> module = (IModule<ModuleConfig>)clazz.getDeclaredConstructor().newInstance();
+            var module = getParentHub().getModuleRegistry().loadSubModule(config, false);
             module.setParentHub(getParentHub());
-            module.init(config);
+            module.init();
+            
             return module;
         }
         catch (Exception e)
