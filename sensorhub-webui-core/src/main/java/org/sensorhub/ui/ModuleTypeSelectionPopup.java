@@ -42,7 +42,7 @@ import com.vaadin.ui.Label;
  * @author Alex Robin
  * @since Feb 24, 2017
  */
-@SuppressWarnings("serial")
+@SuppressWarnings({ "serial", "deprecation" })
 public class ModuleTypeSelectionPopup extends Window implements UIConstants
 {
     static final String PROP_NAME = "name";
@@ -74,7 +74,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
             Class<?> configClass = provider.getModuleConfigClass();
             Class<?> moduleClass = provider.getModuleClass();
             if (moduleType.isAssignableFrom(configClass) || moduleType.isAssignableFrom(moduleClass))
-                providers.add(provider);                
+                providers.add(provider);
         }
         
         buildDialog(providers, callback);
@@ -96,8 +96,9 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         
         // generate table with module list
         final Table table = new Table();
+        table.addStyleName(UIConstants.STYLE_SMALL);
         table.setSizeFull();
-        table.setSelectable(true);       
+        table.setSelectable(true);
         table.addContainerProperty(PROP_NAME, String.class, null);
         table.addContainerProperty(PROP_VERSION, String.class, null);
         table.addContainerProperty(PROP_DESC, String.class, null);
@@ -121,21 +122,26 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         // link to more modules
         Button installNew = new Button("Install More Modules...");
         installNew.setStyleName(STYLE_LINK);
+        installNew.addStyleName(UIConstants.STYLE_SMALL);
         layout.addComponent(installNew);
         layout.setComponentAlignment(installNew, Alignment.MIDDLE_RIGHT);
         installNew.addClickListener(new ClickListener()
         {
-            private static final long serialVersionUID = 1L;
-            
             @Override
             public void buttonClick(ClickEvent event)
             {
-                //close();
                 var osgiCtx = ((AdminUI)getUI()).getParentHub().getOsgiContext();
                 if (osgiCtx != null)
-                    getUI().addWindow(new DownloadOsgiBundlesPopup(osgiCtx));
+                {
+                    var config = ((AdminUI)UI.getCurrent()).getParentModule().getConfiguration();
+                    if (config.bundleRepoUrls == null || config.bundleRepoUrls.isEmpty())
+                        DisplayUtils.showErrorPopup("No bundle repository URL configured", null);
+                    else
+                        getUI().addWindow(new DownloadOsgiBundlesPopup(config.bundleRepoUrls, osgiCtx));
+                }
                 else
-                    getUI().addWindow(new DownloadModulesPopup());                    
+                    getUI().addWindow(new DownloadModulesPopup());
+                close();
             }
         });
         
@@ -207,7 +213,7 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
                     finally
                     {
                         close();
-                    }                    
+                    }
                 }
             });
             buttons.addComponent(clearButton);
@@ -215,5 +221,11 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         
         setContent(layout);
         center();
+    }
+    
+    
+    protected void refreshTable()
+    {
+        
     }
 }

@@ -16,6 +16,7 @@ package org.sensorhub.ui;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.module.ModuleConfig;
 
 
@@ -23,6 +24,10 @@ public class AdminUIConfig extends ModuleConfig
 {
     
     public String widgetSet = "org.sensorhub.ui.SensorHubWidgetSet";
+    
+    
+    @DisplayInfo(desc="List of bundle repository URLs")
+    public List<String> bundleRepoUrls = new ArrayList<String>();
     
     
     public List<CustomUIConfig> customPanels = new ArrayList<CustomUIConfig>();

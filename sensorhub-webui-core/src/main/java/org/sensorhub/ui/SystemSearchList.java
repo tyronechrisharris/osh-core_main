@@ -16,23 +16,20 @@ package org.sensorhub.ui;
 
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Objects;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.ui.api.UIConstants;
-import org.vast.util.TimeExtent;
 import com.vaadin.ui.Component;
 import com.vaadin.v7.data.Item;
 import com.vaadin.v7.data.Property.ValueChangeEvent;
 import com.vaadin.v7.data.Property.ValueChangeListener;
 import com.vaadin.v7.event.ItemClickEvent.ItemClickListener;
-import com.vaadin.v7.ui.Table;
-import com.vaadin.v7.ui.TextField;
 import com.vaadin.v7.ui.TreeTable;
 import com.vaadin.ui.VerticalLayout;
 
 
+@SuppressWarnings({ "serial", "deprecation" })
 public class SystemSearchList extends VerticalLayout
 {
     final static String PROP_SYSTEM_UID = "uid";
@@ -48,11 +45,9 @@ public class SystemSearchList extends VerticalLayout
         setMargin(false);
         
         // system uid / search box
-        final TextField searchBox = new TextField("Search Systems");
-        searchBox.addStyleName(UIConstants.STYLE_SMALL);
-        searchBox.setDescription("UID prefix or keywords to search for systems");
+        final var searchBox = new SearchBox("Search", "Type a UID prefix or keywords to search for systems");
         searchBox.setValue("*");
-        addComponent(searchBox);
+        searchBox.addToParent(this);
         searchBox.addValueChangeListener(new ValueChangeListener() {
             @Override
             public void valueChange(ValueChangeEvent event)

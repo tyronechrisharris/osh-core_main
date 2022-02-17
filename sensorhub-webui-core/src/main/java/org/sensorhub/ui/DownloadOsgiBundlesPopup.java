@@ -14,41 +14,29 @@ Copyright (C) 2012-2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.reflect.Type;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.felix.bundlerepository.RepositoryAdmin;
+import org.apache.felix.bundlerepository.Resolver;
 import org.apache.felix.bundlerepository.Resource;
-import org.apache.felix.bundlerepository.impl.RequirementImpl;
 import org.osgi.framework.BundleContext;
-import org.osgi.service.repository.Repository;
-import org.vast.xml.DOMHelper;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
-import com.vaadin.v7.data.Item;
-import com.vaadin.server.ExternalResource;
-import com.vaadin.ui.Component;
+import org.sensorhub.ui.api.UIConstants;
+import org.vast.util.Asserts;
+import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
-import com.vaadin.ui.Link;
 import com.vaadin.ui.ProgressBar;
+import com.vaadin.v7.data.Container.Filterable;
+import com.vaadin.v7.data.util.filter.SimpleStringFilter;
+import com.vaadin.v7.event.FieldEvents.TextChangeEvent;
+import com.vaadin.v7.event.FieldEvents.TextChangeListener;
 import com.vaadin.v7.ui.Table;
-import ch.qos.logback.core.recovery.ResilientSyslogOutputStream;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
+import com.vaadin.ui.Button.ClickEvent;
 
 
 /**
@@ -59,18 +47,17 @@ import com.vaadin.ui.Window;
  * @author Alex Robin
  * @since April 10, 2021
  */
-@SuppressWarnings("serial")
+@SuppressWarnings({ "serial", "deprecation" })
 public class DownloadOsgiBundlesPopup extends Window
 {
-    private static final String LOADING_MSG = "Loading...";
-    
     Table table;
     transient ExecutorService exec = Executors.newFixedThreadPool(2);
     
     
-    public DownloadOsgiBundlesPopup(BundleContext osgiCtx)
+    public DownloadOsgiBundlesPopup(Collection<String> repoUrls, BundleContext osgiCtx)
     {
         super("Download Add-on Modules");
+        Asserts.checkNotNull(repoUrls, "repoUrls");
         setModal(true);
                 
         final VerticalLayout layout = new VerticalLayout();
@@ -82,13 +69,37 @@ public class DownloadOsgiBundlesPopup extends Window
         ProgressBar pb = new ProgressBar();
         pb.setIndeterminate(true);
         loading.addComponent(pb);
-        loading.addComponent(new Label("Loading Package Information..."));
+        loading.addComponent(new Label("Loading Bundles Information..."));
         layout.addComponent(loading);
+        
+        // buttons bar
+        final HorizontalLayout buttons = new HorizontalLayout();
+        buttons.setSpacing(true);
+        layout.addComponent(buttons);
+        layout.setComponentAlignment(buttons, Alignment.MIDDLE_CENTER);
+        
+        // OK button
+        Button installBtn = new Button("Install Selected");
+        installBtn.addStyleName(UIConstants.STYLE_SMALL);
+        buttons.addComponent(installBtn);
+        
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.addStyleName(UIConstants.STYLE_SMALL);
+        cancelBtn.addClickListener(new Button.ClickListener() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void buttonClick(ClickEvent event)
+            {
+                DownloadOsgiBundlesPopup.this.close();
+            }
+        });
+        buttons.addComponent(cancelBtn);
         
         setContent(layout);
         center();
         
-        // load info in separate thread
+        // load bundle list in separate thread
         exec.execute(new Runnable()
         {
             @Override
@@ -96,42 +107,50 @@ public class DownloadOsgiBundlesPopup extends Window
             {
                 try
                 {
-                    /*var ref = osgiCtx.getServiceReference(Repository.class);
-                    var repo = osgiCtx.getService(ref);
-                    //Requirement req = new RequirementImpl();
-                    var req = repo..newRequirementBuilder("org.sensorhub")
-                        .addDirective("osgi.identity", "(osgi.identity=org.sensorhub.*)")
-                        .build();
-                    var res = repo.findProviders(Arrays.asList(req));
-                    System.out.println(res);*/
-                    
                     var ref = osgiCtx.getServiceReference(RepositoryAdmin.class);
                     var repo = osgiCtx.getService(ref);
                     
-                    repo.addRepository("file:///home/alex/Projects/Workspace_OSH_V2/osh-core/build/osgi/index.xml");
+                    for (var url: repoUrls)
+                        repo.addRepository(url);
                     
-                    var resolver = repo.resolver();
                     var resources = repo.discoverResources("(symbolicname=*)");
                     for (var res: resources)
                     {
-                        System.out.println(res);
-                        updateTable(res, layout);
+                        //System.out.println(res);
+                        addToTable(res, layout);
                     }
                     
-                    /*resolver.add(resource);
-                    if (resolver.resolve())
-                    {
-                        resolver.deploy(true);
-                    }
-                    else
-                    {
-                        Requirement[] reqs = resolver.getUnsatisfiedRequirements();
-                        for (int i = 0; i < reqs.length; i++)
+                    installBtn.addClickListener(new Button.ClickListener() {
+                        @Override
+                        public void buttonClick(ClickEvent event)
                         {
-                            System.out.println("Unable to resolve: " + reqs[i]);
+                            var log = ((AdminUI)UI.getCurrent()).getLogger();
+                            
+                            
+                            @SuppressWarnings("unchecked")
+                            var selectedBundles = (Collection<Resource>)table.getValue();
+                            if (selectedBundles != null && !selectedBundles.isEmpty())
+                            {
+                                var resolver = repo.resolver();
+                                selectedBundles.forEach(r -> {
+                                    resolver.add(r);
+                                    log.info("Installing {}:{}...", r.getSymbolicName(), r.getVersion());
+                                });
+                                if (resolver.resolve())
+                                {
+                                    // install and start all bundles
+                                    resolver.deploy(Resolver.START);
+                                    DownloadOsgiBundlesPopup.this.close();
+                                }
+                                else
+                                {
+                                    for (var req: resolver.getUnsatisfiedRequirements())
+                                        log.error("Unable to resolve: " + req);
+                                    DisplayUtils.showErrorPopup("Error installing bundles. See log for details", null);
+                                }
+                            }
                         }
-                    }*/
-                    
+                    });
                     
                     // remove loading indicator when done
                     getUI().access(new Runnable() {
@@ -150,7 +169,7 @@ public class DownloadOsgiBundlesPopup extends Window
                         @Override
                         public void run()
                         {
-                            DisplayUtils.showErrorPopup("Cannot fetch OSH package list", e);
+                            DisplayUtils.showErrorPopup("Cannot fetch OSH bundle list", e);
                             DownloadOsgiBundlesPopup.this.close();
                             ui.push();
                         }
@@ -161,7 +180,7 @@ public class DownloadOsgiBundlesPopup extends Window
     }
     
     
-    protected void updateTable(final Resource pkg, final VerticalLayout layout)
+    protected void addToTable(final Resource pkg, final VerticalLayout layout)
     {
         // update table in UI thread
         getUI().access(new Runnable() {
@@ -173,28 +192,47 @@ public class DownloadOsgiBundlesPopup extends Window
                 {
                     setWidth(70, Unit.PERCENTAGE);
                     table = new Table();
-                    table.setSizeFull();      
-                    table.setSelectable(false);
-                    table.addContainerProperty(ModuleTypeSelectionPopup.PROP_NAME, String.class, null);
-                    table.addContainerProperty(ModuleTypeSelectionPopup.PROP_VERSION, String.class, null);
+                    table.addStyleName(UIConstants.STYLE_SMALL);
+                    table.setSizeFull();
+                    table.setSelectable(true);
+                    table.setMultiSelect(true);
                     table.addContainerProperty(ModuleTypeSelectionPopup.PROP_DESC, String.class, null);
-                    table.addContainerProperty(ModuleTypeSelectionPopup.PROP_AUTHOR, String.class, null);
-                    table.setColumnHeaders(new String[] {"Bundle", "Version", "Description", "Author"});
-                    table.setColumnWidth(ModuleTypeSelectionPopup.PROP_NAME, 300);
-                    table.setColumnExpandRatio(ModuleTypeSelectionPopup.PROP_DESC, 10);
+                    table.addContainerProperty(ModuleTypeSelectionPopup.PROP_VERSION, String.class, null);
+                    table.addContainerProperty(ModuleTypeSelectionPopup.PROP_NAME, String.class, null);
+                    table.setColumnHeaders(new String[] {"Description", "Version", "Bundle Name"});
+                    table.setVisibleColumns(
+                        ModuleTypeSelectionPopup.PROP_DESC,
+                        ModuleTypeSelectionPopup.PROP_VERSION,
+                        ModuleTypeSelectionPopup.PROP_NAME);
+                    //table.setColumnWidth(ModuleTypeSelectionPopup.PROP_NAME, 300);
+                    //table.setColumnExpandRatio(ModuleTypeSelectionPopup.PROP_DESC, 10);
                     layout.addComponent(table, 0);
+                    
+                    var searchBox = new SearchBox("Search", null);
+                    searchBox.focus();
+                    searchBox.addToParent(layout, 0);
+                    searchBox.addTextChangeListener(new TextChangeListener() {
+                        SimpleStringFilter filter = null;
+
+                        public void textChange(TextChangeEvent event) {
+                            Filterable f = (Filterable)
+                                table.getContainerDataSource();
+                            
+                            // remove old filter
+                            if (filter != null)
+                                f.removeContainerFilter(filter);
+                            
+                            // set new filter for the description column
+                            filter = new SimpleStringFilter(
+                                ModuleTypeSelectionPopup.PROP_DESC, event.getText(), true, false);
+                            f.addContainerFilter(filter);
+                        }
+                    });
                 }
                 
-                // add package info
-                String href = pkg.getURI();
-                Link link = new Link(pkg.getPresentationName(), new ExternalResource(href), null, 0, 0, null);
-                
+                // add bundle info to table
                 var description = pkg.getProperties().get(Resource.DESCRIPTION);
-                var copyright = pkg.getProperties().get(Resource.COPYRIGHT);
-                var license = pkg.getProperties().get(Resource.LICENSE_URI);
-                var id = table.addItem(new Object[] {pkg.getPresentationName(), pkg.getVersion().toString(), description, copyright}, href);
-                                
-                getUI().push();
+                table.addItem(new Object[] {description, pkg.getVersion().toString(), pkg.getPresentationName()}, pkg);
             }
         });
     }
