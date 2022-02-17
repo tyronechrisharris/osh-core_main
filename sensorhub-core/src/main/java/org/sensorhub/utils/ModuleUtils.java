@@ -14,13 +14,9 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.utils;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.jar.Attributes;
-import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 import org.sensorhub.api.module.IModule;
@@ -54,24 +50,20 @@ public class ModuleUtils
     {
         try
         {
-            URL srcUrl = clazz.getProtectionDomain().getCodeSource().getLocation();
-            
-            if (srcUrl != null && srcUrl.getFile().toLowerCase().endsWith(".jar"))
+            String classPath = "/" + clazz.getName().replace('.', '/') + ".class";
+            URL classUrl = clazz.getResource(classPath);
+            if (classUrl != null) 
             {
-                String jarName = URLDecoder.decode(srcUrl.getFile(), StandardCharsets.UTF_8.name());
-                log.debug("Loading manifest from JAR file: {}", jarName);
-                
-                try ( JarFile jar = new JarFile(new File(jarName)) ) {
-                    return jar.getManifest();
-                }
+                String manifestUrl = classUrl.toString().replace(classPath, "/META-INF/MANIFEST.MF");
+                return new Manifest(new URL(manifestUrl).openStream());
             }
-            
-            return null;            
         }
         catch (IOException e)
         {
-            throw new IllegalStateException("Cannot access JAR manifest", e);
+            log.debug("Cannot access JAR manifest for {}", clazz);
         }
+        
+        return null;
     }
     
     

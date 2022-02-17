@@ -15,6 +15,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl;
 
 import java.util.Hashtable;
+import java.util.Map;
+import java.util.function.Consumer;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.sensorhub.api.ISensorHub;
@@ -32,20 +34,24 @@ public class Activator extends OshBundleActivator implements BundleActivator
     {
         super.start(context);
         
-        // register SensorHub instance as a service
-        SensorHubConfig config = new SensorHubConfig(context.getProperty("osh.config"), "db");
-        hub = new SensorHub(config, context);
-        
+        // register SensorHub instance as a generic service
+        // we use a Consumer interface since the ISensorHub interface is not available to the OSGi framework
         var props = new Hashtable<String, String>();
         props.put("type", "ISensorHub");
-        context.registerService(Runnable.class, () -> {
-            try
+        context.registerService(Consumer.class, new Consumer<Map<String,String>>() {
+            @Override
+            public void accept(Map<String,String> args)
             {
-                hub.start();
-            }
-            catch (SensorHubException e)
-            {
-                e.printStackTrace();
+                try
+                {
+                    SensorHubConfig config = new SensorHubConfig(args.get("config"), null);
+                    hub = new SensorHub(config, context);
+                    hub.start();
+                }
+                catch (SensorHubException e)
+                {
+                    e.printStackTrace();
+                }
             }
         }, props);
     }

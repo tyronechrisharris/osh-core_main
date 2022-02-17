@@ -24,9 +24,6 @@ public interface ISensorHubConfig
     public String getModuleDataPath();
     
     
-    public String getBaseStoragePath();
-    
-    
-    public String getProperty(String property);    
+    public String getProperty(String property);
     
 }

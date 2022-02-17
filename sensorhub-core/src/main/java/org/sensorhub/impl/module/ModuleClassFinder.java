@@ -64,13 +64,13 @@ public class ModuleClassFinder
                     if (b.getState() != Bundle.UNINSTALLED)
                     {
                         var clazz = b.loadClass(className);
-                        log.info("{} loaded from bundle {}", className, b.getSymbolicName());
+                        log.debug("{} loaded from bundle {}", className, b.getSymbolicName());
                         return clazz;
                     }
                 }
                 catch (ClassNotFoundException e)
                 {
-                    log.debug("{} not found in bundle {}", className, b.getSymbolicName());
+                    log.trace("{} not found in bundle {}", className, b.getSymbolicName());
                 }
             }
             

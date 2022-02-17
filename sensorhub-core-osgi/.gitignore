@@ -1,4 +1,6 @@
-felix-cache/
 .moduledata/
 **/*.dat
 **/*.bak.*
+.bundle-cache/
+hivemq-config/
+hivemq-data/

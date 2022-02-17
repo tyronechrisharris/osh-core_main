@@ -102,9 +102,17 @@ public class SensorHub implements ISensorHub
         {
             log.info("*****************************************");
             log.info("Starting SensorHub...");
-            log.info("Version : {}", ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion());
+            log.info("Version: {}", ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion());
+            log.info("Build number: {}", ModuleUtils.getBuildNumber(SensorHub.class));
+            log.info("JDK version: {}, {}, {}",
+                System.getProperty("java.vm.name"),
+                System.getProperty("java.runtime.version"),
+                System.getProperty("java.vm.vendor"));
+            log.info("OS type: {}, {}",
+                System.getProperty("os.name"),
+                System.getProperty("os.arch"));
             log.info("CPU cores: {}", Runtime.getRuntime().availableProcessors());
-            log.info("CommonPool Parallelism: {}", ForkJoinPool.commonPool().getParallelism());
+            log.info("CommonPool parallelism: {}", ForkJoinPool.commonPool().getParallelism());
             
             // use provided module configs, read from JSON or create an in-memory one
             if (moduleConfigs == null)
@@ -241,14 +249,14 @@ public class SensorHub implements ISensorHub
     public static void main(String[] args)
     {
         // if no arg provided
-        if (args.length < 2)
+        if (args.length < 1)
         {
             String version = ModuleUtils.getModuleInfo(SensorHub.class).getModuleVersion();
             String buildNumber = ModuleUtils.getBuildNumber(SensorHub.class);
             
             // print usage
             System.out.println("SensorHub " + version + " (build " + buildNumber + ")");
-            System.out.println("Command syntax: sensorhub [module_config_path] [base_storage_path]");
+            System.out.println("Command syntax: sensorhub [module_config_path]");
             System.exit(1);
         }
         
@@ -256,7 +264,7 @@ public class SensorHub implements ISensorHub
         ISensorHub instance = null;
         try
         {
-            SensorHubConfig config = new SensorHubConfig(args[0], args[1]);
+            SensorHubConfig config = new SensorHubConfig(args[0], null);
             instance = new SensorHub(config);
             
             // register shutdown hook for a clean stop 

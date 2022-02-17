@@ -14,7 +14,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl;
 
-import java.io.File;
 import org.sensorhub.api.ISensorHubConfig;
 
 
@@ -30,22 +29,17 @@ public class SensorHubConfig implements ISensorHubConfig
 {
     private String moduleConfigPath;
     private String moduleDataPath;
-    private String baseStoragePath;
     
     
     public SensorHubConfig()
-    {        
+    {
     }
     
     
-    public SensorHubConfig(String moduleConfigPath, String baseStoragePath)
+    public SensorHubConfig(String moduleConfigPath, String moduleDataPath)
     {
         this.moduleConfigPath = moduleConfigPath;
-        this.moduleDataPath = ".moduledata";
-        
-        this.baseStoragePath = baseStoragePath;
-        if (baseStoragePath != null && !baseStoragePath.endsWith(File.separator))
-            baseStoragePath += File.separator;
+        this.moduleDataPath = moduleDataPath != null ? moduleDataPath : ".moduledata";
     }
     
     
@@ -53,13 +47,6 @@ public class SensorHubConfig implements ISensorHubConfig
     public String getModuleConfigPath()
     {
         return moduleConfigPath;
-    }
-
-    
-    @Override
-    public String getBaseStoragePath()
-    {
-        return baseStoragePath;
     }
     
 
