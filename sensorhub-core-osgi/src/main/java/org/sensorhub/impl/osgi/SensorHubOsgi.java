@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.ServiceLoader;
-import java.util.function.Consumer;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
@@ -55,16 +53,18 @@ public class SensorHubOsgi
         if (oshConfig == null)
         {
             // print usage
-            System.out.println("Usage: SensorHubOsgi CONFIG_FILE [OPTION]");
-            System.out.println();
-            System.out.println("-clearCache        Clear the OSGi bundle cache");
-            System.out.println("-autoDeployDir     Path of directory where bundles will be auto-deployed");
-            System.out.println("-bundleCacheDir    Path of bundle cache directory");
+            System.out.println("Usage: SensorHubOsgi CONFIG_FILE [OPTION]\n");
+            System.out.println("Options:");
+            System.out.println("\t-clearCache        Clear the OSGi bundle cache");
+            System.out.println("\\t-autoDeployDir     Path of directory where bundles will be auto-deployed");
+            System.out.println("\\t-bundleCacheDir    Path of bundle cache directory");
             System.exit(1);
         }
         
         // create bundles directory
         new File(autoDeployDir).mkdir();
+        
+        // create osgi config
         var config = new HashMap<String,String>();
         if (clearCache)
             config.put(Constants.FRAMEWORK_STORAGE_CLEAN, Constants.FRAMEWORK_STORAGE_CLEAN_ONFIRSTINIT);
@@ -84,6 +84,9 @@ public class SensorHubOsgi
             "javax.*,sun.*,com.sun.*," +
             "org.xml.*,org.w3c.*");
         
+        config.put("org.sensorhub.config", oshConfig);
+        
+        // load framework
         var frameworkFactory = ServiceLoader.load(FrameworkFactory.class).iterator().next();
         var framework = frameworkFactory.newFramework(config);
         
@@ -147,13 +150,5 @@ public class SensorHubOsgi
         {
             e.printStackTrace();
         }
-        
-        // start sensor hub
-        var ref = systemCtx.getServiceReferences(Consumer.class, "(type=ISensorHub)").stream().findFirst().get();
-        @SuppressWarnings("unchecked")
-        var hub = (Consumer<Map<String,String>>)systemCtx.getService(ref);
-        var configMap = new HashMap<String,String>();
-        configMap.put("config", oshConfig);
-        hub.accept(configMap);
     }
 }

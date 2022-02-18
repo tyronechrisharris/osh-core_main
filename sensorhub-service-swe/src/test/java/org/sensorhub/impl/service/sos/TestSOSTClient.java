@@ -300,8 +300,7 @@ public class TestSOSTClient
         assertEquals("SOS-T client should have stopped once", 1, clientStopCount.get());
         assertEquals("SOS-T client should restarted once", 1, clientRestartCount.get());
         
-        //if (!client.waitForState(ModuleState.STOPPED, TIMEOUT))
-        //    fail("SOS-T client was not stopped after 3 tries");
+        AsyncTests.waitForCondition(() -> clientStopCount.get() >= 2, TIMEOUT);
         
         assertTrue("Client should have an error", client.getCurrentError() != null);
     }

@@ -14,13 +14,9 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl;
 
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.function.Consumer;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.utils.OshBundleActivator;
 
 
@@ -34,26 +30,13 @@ public class Activator extends OshBundleActivator implements BundleActivator
     {
         super.start(context);
         
-        // register SensorHub instance as a generic service
-        // we use a Consumer interface since the ISensorHub interface is not available to the OSGi framework
-        var props = new Hashtable<String, String>();
-        props.put("type", "ISensorHub");
-        context.registerService(Consumer.class, new Consumer<Map<String,String>>() {
-            @Override
-            public void accept(Map<String,String> args)
-            {
-                try
-                {
-                    SensorHubConfig config = new SensorHubConfig(args.get("config"), null);
-                    hub = new SensorHub(config, context);
-                    hub.start();
-                }
-                catch (SensorHubException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-        }, props);
+        var configFile = context.getProperty("org.sensorhub.config");
+        if (configFile == null)
+            throw new IllegalStateException("Property 'org.sensorhub.config' must be set to the path of the hub config file");
+        
+        SensorHubConfig config = new SensorHubConfig(configFile, null);
+        hub = new SensorHub(config, context);
+        hub.start();
     }
 
 
