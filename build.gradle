@@ -53,13 +53,18 @@ distributions {
 
 
 // task to generate aggregated javadocs
-Set<Project> javadocProjects = [':swe-common-core', ':sensorml-core', ':sensorhub-core']
-task alljavadoc(type: Javadoc) {
+Set<Project> javadocProjects = [':swe-common-core', ':swe-common-om', ':sensorml-core', ':sensorhub-core']
+task allJavadoc(type: Javadoc) {
   dependsOn build
   source javadocProjects.collect {name -> project(name).sourceSets.main.allJava}
-  classpath = files(javadocProjects.collect {name -> project(name).sourceSets.main.compileClasspath})
-  include 'org/sensorhub/api/**', 'net/opengis/**'
+  include 'org/sensorhub/api/**',
+          'org/sensorhub/impl/module/ModuleRegistry.java',
+          'net/opengis/**',
+          'org/vast/**'
+  classpath = files(configurations.runtimeClasspath)
   destinationDir = file("${buildDir}/docs/javadoc")
+  title = "OpenSensorHub ${version} API"
+  options.addBooleanOption('-frames', true)
 }
 
 
