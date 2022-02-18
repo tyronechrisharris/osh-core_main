@@ -53,10 +53,17 @@ public class DisplayUtils
     
     public static void showOperationSuccessful(String text)
     {
+        showOperationSuccessful(text, 2000);
+    }
+    
+    
+    public static void showOperationSuccessful(String text, int delayMs)
+    {
         Notification notif = new Notification(
                 "<span style=\"color:green\">" + FontAwesome.CHECK_CIRCLE_O.getHtml() +
                 "</span>&nbsp;&nbsp;" + text, Notification.Type.WARNING_MESSAGE);
         notif.setHtmlContentAllowed(true);
+        notif.setDelayMsec(delayMs);
         notif.show(UI.getCurrent().getPage());
     }
     

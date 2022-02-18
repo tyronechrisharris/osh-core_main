@@ -14,6 +14,7 @@ Copyright (C) 2012-2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,12 +22,14 @@ import org.apache.felix.bundlerepository.RepositoryAdmin;
 import org.apache.felix.bundlerepository.Resolver;
 import org.apache.felix.bundlerepository.Resource;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
 import org.sensorhub.ui.api.UIConstants;
 import org.vast.util.Asserts;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.Notification;
 import com.vaadin.ui.ProgressBar;
 import com.vaadin.v7.data.Container.Filterable;
 import com.vaadin.v7.data.util.filter.SimpleStringFilter;
@@ -138,9 +141,22 @@ public class DownloadOsgiBundlesPopup extends Window
                                 });
                                 if (resolver.resolve())
                                 {
+                                    var installedList = new ArrayList<String>();
+                                    osgiCtx.addBundleListener(e -> {
+                                        if (e.getType() == BundleEvent.INSTALLED)
+                                        {
+                                            var b = e.getBundle();
+                                            var name = b.getSymbolicName();
+                                            name += " v" + b.getVersion();
+                                            installedList.add(name);
+                                        }
+                                    });
+                                    
                                     // install and start all bundles
                                     resolver.deploy(Resolver.START);
                                     DownloadOsgiBundlesPopup.this.close();
+                                    DisplayUtils.showOperationSuccessful("Bundles successfully installed<br/><br/>"
+                                        + String.join("<br/>", installedList), Notification.DELAY_FOREVER);
                                 }
                                 else
                                 {
