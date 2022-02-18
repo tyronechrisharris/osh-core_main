@@ -26,8 +26,27 @@ distributions {
     distributionBaseName = 'osh-core'
     contents {
       into('lib') {
-        from project.configurations.compileClasspath
+        from project.configurations.runtimeClasspath
       } 
+    }
+  }
+  
+  osgi {
+    distributionBaseName = 'osh-core-osgi'
+    contents {
+      from 'dist/osgi'
+      into('lib') {
+        from project(":sensorhub-core-osgi").jar.outputs,
+             project(":sensorhub-core-osgi").configurations.runtimeClasspath
+      }
+      into('bundles') {
+        from 'sensorhub-core-osgi/lib'
+        from {
+          project.subprojects.collect {
+            p -> p.osgi.outputs
+          }
+        }
+      }
     }
   }
 }
@@ -62,9 +81,8 @@ task releaseJavadoc {
       from ("${buildDir}/docs/javadoc") {
         include '**/*'
       }
-    }   
+    }
   }
 }
-
-releaseJavadoc.dependsOn alljavadoc
+releaseJavadoc.dependsOn allJavadoc
 release.dependsOn releaseJavadoc

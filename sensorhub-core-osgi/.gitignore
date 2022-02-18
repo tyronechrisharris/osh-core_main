@@ -4,3 +4,4 @@
 .bundle-cache/
 hivemq-config/
 hivemq-data/
+/bundles/

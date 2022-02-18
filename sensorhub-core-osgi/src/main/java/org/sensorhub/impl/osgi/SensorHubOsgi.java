@@ -17,7 +17,6 @@ package org.sensorhub.impl.osgi;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.util.HashMap;
@@ -34,6 +33,7 @@ public class SensorHubOsgi
 {
     static final String DEFAULT_AUTODEPLOY_DIR = "bundles";
     static final String DEFAULT_BUNDLECACHE_DIR = ".bundle-cache";
+    static final String REF_PREFIX = "reference:file:";
     static BundleContext systemCtx;
     
     
@@ -108,24 +108,17 @@ public class SensorHubOsgi
         framework.start();
         systemCtx = framework.getBundleContext();
         
-        // install core bundles
-        systemCtx.installBundle("reference:file:./org.apache.felix.bundlerepository-2.0.10.jar");
-        systemCtx.installBundle("reference:file:../sensorhub-core/build/libs/sensorhub-core-2.0.0-bundle.jar");
-        systemCtx.installBundle("reference:file:../sensorhub-service-swe/build/libs/sensorhub-service-swe-2.0.0-bundle.jar");
-        systemCtx.installBundle("reference:file:../sensorhub-service-sweapi/build/libs/sensorhub-service-sweapi-2.0.0-bundle.jar");
-        systemCtx.installBundle("reference:file:../sensorhub-webui-core/build/libs/sensorhub-webui-core-2.0.0-bundle.jar");
-        systemCtx.installBundle("reference:file:../sensorhub-utils-kryo/build/libs/sensorhub-utils-kryo-2.0.0-bundle.jar");
-        systemCtx.installBundle("reference:file:../sensorhub-datastore-h2/build/libs/sensorhub-datastore-h2-2.0.0-bundle.jar");
-        
-        // install everything in bundles folder
+        // install everything in auto-deploy folder
         File dir = new File(autoDeployDir);
         File[] bundleJarFiles = dir.listFiles(new FilenameFilter() {
             public boolean accept(File dir, String name) {
                 return name.endsWith(".jar");
             }
         });
-        for (var f: bundleJarFiles)
-            newBundle(f.toPath());
+        for (var f: bundleJarFiles) {
+            System.out.println("Installing bundle " + f);
+            systemCtx.installBundle(REF_PREFIX + f.toPath().toString());
+        }
         
         // start all installed bundles
         for (var bundle: systemCtx.getBundles()) {
@@ -137,7 +130,17 @@ public class SensorHubOsgi
         {
             var watcher = new DirectoryWatcher(Paths.get(autoDeployDir), StandardWatchEventKinds.ENTRY_CREATE);
             var watcherThread = new Thread(watcher);
-            watcher.addListener(SensorHubOsgi::newBundle);
+            watcher.addListener(path -> {
+                try
+                {
+                    var bundle = systemCtx.installBundle(REF_PREFIX + path.toString());
+                    bundle.start();
+                }
+                catch (BundleException e)
+                {
+                    e.printStackTrace();
+                }
+            });
             watcherThread.start();
         }
         catch (IOException e)
@@ -152,19 +155,5 @@ public class SensorHubOsgi
         var configMap = new HashMap<String,String>();
         configMap.put("config", oshConfig);
         hub.accept(configMap);
-    }
-    
-    
-    public static void newBundle(Path path)
-    {
-        try
-        {
-            var bundle = systemCtx.installBundle("reference:file:" + path.toString());
-            bundle.start();
-        }
-        catch (BundleException e)
-        {
-            e.printStackTrace();
-        }
     }
 }

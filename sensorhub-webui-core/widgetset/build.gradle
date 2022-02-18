@@ -6,6 +6,8 @@ configurations {
   }
 }
 
+tasks.osgi.enabled = false
+
 dependencies {
   compileOnly 'com.vaadin:vaadin-shared:' + vaadinVersion
   compileOnly 'com.vaadin:vaadin-server:' + vaadinVersion
