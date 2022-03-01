@@ -120,7 +120,8 @@ public class SensorHubOsgi
         });
         for (var f: bundleJarFiles) {
             System.out.println("Installing bundle " + f);
-            systemCtx.installBundle(REF_PREFIX + f.toPath().toString());
+            var bundle = systemCtx.installBundle(REF_PREFIX + f.toPath().toString());
+            bundle.start();
         }
         
         // start all installed bundles
