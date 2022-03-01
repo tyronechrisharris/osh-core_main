@@ -14,7 +14,7 @@
     "id": "7219eb9f-b591-4c2c-9ad9-4b63a29a1c4a",
     "moduleClass": "org.sensorhub.ui.AdminUIModule",
     "bundleRepoUrls": [
-      "file:///home/alex/Projects/Workspace_OSH_V2/osh-addons/build/osgi/index.xml"
+      "https://cloud.georobotix.io/addons/index.xml"
     ],
     "autoStart": true
   }

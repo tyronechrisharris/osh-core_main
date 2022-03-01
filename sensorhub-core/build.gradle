@@ -5,7 +5,7 @@ dependencies {
   embeddedApi project(':swe-common-core')
   embeddedApi project(':swe-common-om')
   embeddedApi project(':sensorml-core')
-  api 'org.osgi:org.osgi.framework:1.9.0'
+  api 'org.osgi:org.osgi.framework:1.10.0'
   embeddedApi 'org.eclipse.jetty:jetty-servlet:9.4.42.v20210604'
   embeddedApi 'org.eclipse.jetty:jetty-servlets:9.4.42.v20210604'
   embeddedApi 'org.eclipse.jetty.websocket:websocket-server:9.4.42.v20210604'

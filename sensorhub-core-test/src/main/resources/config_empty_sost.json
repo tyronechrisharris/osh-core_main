@@ -17,6 +17,9 @@
   {
     "objClass": "org.sensorhub.ui.AdminUIConfig",
     "widgetSet": "org.sensorhub.ui.SensorHubWidgetSet",
+    "bundleRepoUrls": [
+      "https://cloud.georobotix.io/addons/index.xml"
+    ],
     "customPanels": [],
     "customForms": [],
     "id": "5cb05c9c-9123-4fa1-8731-ffaa51489678",
@@ -26,34 +29,30 @@
   },
   {
     "objClass": "org.sensorhub.impl.service.sos.SOSServiceConfig",
-    "enableTransactional": true,
-    "maxObsCount": 100,
-    "maxRecordCount": 100000,
-    "newStorageConfig": {
-      "objClass": "org.sensorhub.impl.persistence.perst.BasicStorageConfig",
-      "memoryCacheSize": 1024,
-      "objectCacheSize": 100,
-      "moduleClass": "org.sensorhub.impl.persistence.perst.ObsStorageImpl",
-      "autoStart": false
-    },
-    "dataProviders": [
+    "customDataProviders": [],
+    "customFormats": [
       {
-        "objClass": "org.sensorhub.impl.service.sos.SensorDataProviderConfig",
-        "sensorID": "6ee3a570-50fa-4bf5-a077-4c443f27213f",
-        "hiddenOutputs": [],
-        "liveDataTimeout": 10.0,
-        "maxFois": 10,
-        "Offering ID": "urn:osh:test",
-        "enabled": true
+        "objClass": "org.sensorhub.impl.service.sos.SOSCustomFormatConfig",
+        "mimeType": "video/mp4",
+        "className": "org.sensorhub.impl.service.sos.video.MP4Serializer"
+      },
+      {
+        "objClass": "org.sensorhub.impl.service.sos.SOSCustomFormatConfig",
+        "mimeType": "video/x-motion-jpeg",
+        "className": "org.sensorhub.impl.service.sos.video.MJPEGSerializer"
       }
     ],
-    "dataConsumers": [],
-    "customFormats": [],
+    "maxObsCount": 100,
+    "maxRecordCount": 100000,
+    "maxFois": 10,
+    "defaultLiveTimeout": 10.0,
+    "templateTimeout": 600,
     "security": {
       "objClass": "org.sensorhub.api.security.SecurityConfig",
       "enableAccessControl": false,
       "requireAuth": false
     },
+    "enableTransactional": true,
     "ogcCapabilitiesInfo": {
       "objClass": "org.sensorhub.impl.service.ogc.OGCServiceConfig$CapabilitiesInfo",
       "title": "Test SOS-T Service",
@@ -93,9 +92,36 @@
     "sensorUID": "urn:osh:sensor:test",
     "observedProperties": [],
     "sosUseWebsockets": false,
+    "lastUpdated": "2022-02-16T17:17:57.491+0100",
     "id": "6ee3a570-50fa-4bf5-a077-4c443f27213f",
     "moduleClass": "org.sensorhub.impl.sensor.swe.SWEVirtualSensor",
     "name": "Virtual Sensor",
+    "autoStart": false
+  },
+  {
+    "objClass": "org.sensorhub.impl.database.system.SystemDriverDatabaseConfig",
+    "dbConfig": {
+      "objClass": "org.sensorhub.impl.datastore.h2.MVObsSystemDatabaseConfig",
+      "indexObsLocation": false,
+      "storagePath": "test.dat",
+      "memoryCacheSize": 5120,
+      "autoCommitBufferSize": 1024,
+      "autoCommitPeriod": 10,
+      "idProviderType": "SEQUENTIAL",
+      "useCompression": false,
+      "readOnly": false,
+      "compactOnClose": true,
+      "moduleClass": "org.sensorhub.impl.datastore.h2.MVObsSystemDatabase",
+      "autoStart": false
+    },
+    "systemUIDs": [
+      "*"
+    ],
+    "minCommitPeriod": 10000,
+    "databaseNum": 1,
+    "id": "b94aa64b-5872-4766-90dc-b54437d9cc6e",
+    "moduleClass": "org.sensorhub.impl.database.system.SystemDriverDatabase",
+    "name": "All Obs Database",
     "autoStart": false
   }
 ]

@@ -55,7 +55,7 @@ public class SensorHubOsgi
             // print usage
             System.out.println("Usage: SensorHubOsgi CONFIG_FILE [OPTION]\n");
             System.out.println("Options:");
-            System.out.println("\t-clearCache        Clear the OSGi bundle cache");
+            System.out.println("\\t-clearCache        Clear the OSGi bundle cache");
             System.out.println("\\t-autoDeployDir     Path of directory where bundles will be auto-deployed");
             System.out.println("\\t-bundleCacheDir    Path of bundle cache directory");
             System.exit(1);

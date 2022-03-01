@@ -2,6 +2,7 @@ description = 'OSH Test Project'
 
 dependencies {
   implementation project(':sensorhub-core')
+  implementation project(':sensorhub-core-osgi')
   implementation project(':sensorhub-service-swe')
   implementation project(':sensorhub-datastore-h2')
   implementation project(':sensorhub-webui-core')

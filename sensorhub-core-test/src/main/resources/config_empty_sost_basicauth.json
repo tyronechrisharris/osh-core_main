@@ -87,6 +87,9 @@
   {
     "objClass": "org.sensorhub.ui.AdminUIConfig",
     "widgetSet": "org.sensorhub.ui.SensorHubWidgetSet",
+    "bundleRepoUrls": [
+      "https://cloud.georobotix.io/addons/index.xml"
+    ],
     "customPanels": [],
     "customForms": [],
     "id": "5cb05c9c-9123-4fa1-8731-ffaa51489678",
