@@ -108,7 +108,7 @@ public class SensorHubOsgi
         });
         
         // start framework
-        framework.start();
+        framework.init();
         systemCtx = framework.getBundleContext();
         
         // install everything in auto-deploy folder
@@ -124,9 +124,7 @@ public class SensorHubOsgi
         }
         
         // start all installed bundles
-        for (var bundle: systemCtx.getBundles()) {
-            bundle.start();
-        }
+        framework.start();
         
         // watch bundle folder
         try

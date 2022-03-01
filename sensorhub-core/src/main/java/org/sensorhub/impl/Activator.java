@@ -16,6 +16,7 @@ package org.sensorhub.impl;
 
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkEvent;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.utils.OshBundleActivator;
 
@@ -34,9 +35,22 @@ public class Activator extends OshBundleActivator implements BundleActivator
         if (configFile == null)
             throw new IllegalStateException("Property 'org.sensorhub.config' must be set to the path of the hub config file");
         
-        SensorHubConfig config = new SensorHubConfig(configFile, null);
-        hub = new SensorHub(config, context);
-        hub.start();
+        // start hub only after all other bundles have been started
+        context.addFrameworkListener(e -> {
+            if (e.getType() == FrameworkEvent.STARTED)
+            {
+                try
+                {
+                    SensorHubConfig config = new SensorHubConfig(configFile, null);
+                    hub = new SensorHub(config, context);
+                    hub.start();
+                }
+                catch (Throwable err)
+                {
+                    log.error("Error starting SensorHub", err);
+                }
+            }
+        });
     }
 
 
