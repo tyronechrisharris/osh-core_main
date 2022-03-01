@@ -119,31 +119,29 @@ public class ModuleTypeSelectionPopup extends Window implements UIConstants
         }
         layout.addComponent(table);
         
-        // link to more modules
-        Button installNew = new Button("Install More Modules...");
-        installNew.setStyleName(STYLE_LINK);
-        installNew.addStyleName(UIConstants.STYLE_SMALL);
-        layout.addComponent(installNew);
-        layout.setComponentAlignment(installNew, Alignment.MIDDLE_RIGHT);
-        installNew.addClickListener(new ClickListener()
+        // display link to install more modules only if booted with OSGi
+        var osgiCtx = ((AdminUI)UI.getCurrent()).getParentHub().getOsgiContext();
+        if (osgiCtx != null)
         {
-            @Override
-            public void buttonClick(ClickEvent event)
+            Button installNew = new Button("Install More Modules...");
+            installNew.setStyleName(STYLE_LINK);
+            installNew.addStyleName(UIConstants.STYLE_SMALL);
+            layout.addComponent(installNew);
+            layout.setComponentAlignment(installNew, Alignment.MIDDLE_RIGHT);
+            installNew.addClickListener(new ClickListener()
             {
-                var osgiCtx = ((AdminUI)getUI()).getParentHub().getOsgiContext();
-                if (osgiCtx != null)
+                @Override
+                public void buttonClick(ClickEvent event)
                 {
                     var config = ((AdminUI)UI.getCurrent()).getParentModule().getConfiguration();
                     if (config.bundleRepoUrls == null || config.bundleRepoUrls.isEmpty())
                         DisplayUtils.showErrorPopup("No bundle repository URL configured", null);
                     else
                         getUI().addWindow(new DownloadOsgiBundlesPopup(config.bundleRepoUrls, osgiCtx));
+                    close();
                 }
-                else
-                    getUI().addWindow(new DownloadModulesPopup());
-                close();
-            }
-        });
+            });
+        }
         
         // buttons bar
         final HorizontalLayout buttons = new HorizontalLayout();
