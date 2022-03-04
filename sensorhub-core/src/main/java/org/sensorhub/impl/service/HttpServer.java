@@ -201,11 +201,11 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                     OshLoginService loginService = new OshLoginService(securityManager);
                     
                     if (config.authMethod == AuthMethod.BASIC)
-                        jettySecurityHandler.setAuthenticator(new BasicAuthenticator());
+                        jettySecurityHandler.setAuthenticator(new HttpLogoutWrapper(new BasicAuthenticator(), getLogger()));
                     else if (config.authMethod == AuthMethod.DIGEST)
-                        jettySecurityHandler.setAuthenticator(new DigestAuthenticator());
+                        jettySecurityHandler.setAuthenticator(new HttpLogoutWrapper(new DigestAuthenticator(), getLogger()));
                     else if (config.authMethod == AuthMethod.CERT)
-                        jettySecurityHandler.setAuthenticator(new ClientCertAuthenticator());
+                        jettySecurityHandler.setAuthenticator(new HttpLogoutWrapper(new ClientCertAuthenticator(), getLogger()));
                     else if (config.authMethod == AuthMethod.EXTERNAL)
                     {
                         Authenticator authenticator = securityManager.getAuthenticator();

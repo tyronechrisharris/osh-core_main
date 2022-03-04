@@ -97,7 +97,7 @@ import com.vaadin.ui.Window.CloseListener;
 
 @Theme("sensorhub")
 @Push(value=PushMode.MANUAL, transport=Transport.LONG_POLLING)
-@SuppressWarnings("serial")
+@SuppressWarnings({ "serial", "deprecation" })
 public class AdminUI extends com.vaadin.ui.UI implements UIConstants
 {
     private static final String LOG_INIT_MSG = "New connection to admin UI (from ip={}, user={})";
@@ -157,6 +157,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         // register new field converter for integer numbers
         ConverterFactory converterFactory = new DefaultConverterFactory() {
             @Override
+            @SuppressWarnings("unchecked")
             protected <Presentation, Model> Converter<Presentation, Model> findConverter(
                     Class<Presentation> presentationType, Class<Model> modelType) {
                 // Handle String <-> Integer/Short/Long
@@ -371,7 +372,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         Button shutdownButton = new Button("Shutdown");
         shutdownButton.setDescription("Shutdown SensorHub");
         //shutdownButton.setIcon(DEL_ICON);
-        shutdownButton.setIcon(FontAwesome.SIGN_OUT);
+        shutdownButton.setIcon(FontAwesome.POWER_OFF);
         shutdownButton.addStyleName(STYLE_SMALL);
         shutdownButton.setWidth(100.0f, Unit.PERCENTAGE);
         shutdownButton.addClickListener(new Button.ClickListener() {
@@ -421,50 +422,29 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         });
         toolbar.addComponent(shutdownButton);
         
-        // restart button
-        Button restartButton = new Button("Restart");
-        restartButton.setDescription("Restart SensorHub");
-        restartButton.setIcon(REFRESH_ICON);
-        restartButton.addStyleName(STYLE_SMALL);
-        restartButton.setWidth(100.0f, Unit.PERCENTAGE);
-        restartButton.addClickListener(new Button.ClickListener() {
+        // logout button
+        Button logoutButton = new Button("Logout");
+        logoutButton.setDescription("Logout from OSH node");
+        logoutButton.setIcon(FontAwesome.SIGN_OUT);
+        logoutButton.addStyleName(STYLE_SMALL);
+        logoutButton.setWidth(100.0f, Unit.PERCENTAGE);
+        logoutButton.addClickListener(new Button.ClickListener() {
             @Override
             public void buttonClick(ClickEvent event)
             {
-                // security check
-                if (!securityHandler.hasPermission(securityHandler.osh_restart))
-                {
-                    DisplayUtils.showUnauthorizedAccess(securityHandler.osh_restart.getErrorMessage());
-                    return;
-                }
-                
-                final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to restart the sensor hub?");
+                final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to logout?");
                 popup.addCloseListener(new CloseListener() {
                     @Override
                     public void windowClose(CloseEvent e)
                     {
                         if (popup.isConfirmed())
                         {
-                            logAction(securityHandler.osh_restart.getName());
-                            
+                            logAction("logout");
                             disconnectFromModuleRegistry();
                             
-                            Notification notif = new Notification(
-                                    FontAwesome.WARNING.getHtml() + "&nbsp; Restart Initiated...",
-                                    "UI will stop responding",
-                                    Notification.Type.ERROR_MESSAGE);
-                            notif.setHtmlContentAllowed(true);
-                            notif.show(getPage());
-                            
-                            // shutdown in separate thread
-                            new Timer().schedule(new TimerTask() {
-                                @Override
-                                public void run()
-                                {
-                                    hub.stop(false, true);
-                                    System.exit(10); // return code 10 means restart
-                                }
-                            }, 1000);
+                            getUI().getSession().close();
+                            var currentUrl = getUI().getPage().getLocation();
+                            getUI().getPage().setLocation(currentUrl.resolve("logout"));
                         }
                     }
                 });
@@ -472,7 +452,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                 addWindow(popup);
             }
         });
-        toolbar.addComponent(restartButton);
+        toolbar.addComponent(logoutButton);
         
         // apply changes button
         Button saveButton = new Button("Save");

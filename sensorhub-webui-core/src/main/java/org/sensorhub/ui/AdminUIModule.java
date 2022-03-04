@@ -98,8 +98,9 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
             for (CustomUIConfig customForm: config.customForms)
             {
                 configClass = customForm.configClass;
-                Class<?> clazz = Class.forName(customForm.uiClass);
-                customForms.put(configClass, (Class<IModuleConfigForm>)clazz);
+                @SuppressWarnings("unchecked")
+                var clazz = (Class<IModuleConfigForm>)Class.forName(customForm.uiClass);
+                customForms.put(configClass, clazz);
                 getLogger().debug("Loaded custom form for {}", configClass);
             }
         }
@@ -125,8 +126,9 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
             for (CustomUIConfig customPanel: config.customPanels)
             {
                 configClass = customPanel.configClass;
-                Class<?> clazz = Class.forName(customPanel.uiClass);
-                customPanels.put(configClass, (Class<IModuleAdminPanel<?>>)clazz);
+                @SuppressWarnings("unchecked")
+                var clazz = (Class<IModuleAdminPanel<?>>)Class.forName(customPanel.uiClass);
+                customPanels.put(configClass, clazz);
                 getLogger().debug("Loaded custom panel for {}", configClass);
             } 
         }
@@ -184,6 +186,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
     }
     
     
+    @SuppressWarnings("unchecked")
     protected IModuleAdminPanel<IModule<?>> generatePanel(Class<?> clazz)
     {
         IModuleAdminPanel<IModule<?>> panel = null;
@@ -200,7 +203,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
             }
             
             if (uiClass != null)
-                panel = uiClass.newInstance();
+                panel = uiClass.getDeclaredConstructor().newInstance();
         }
         catch (Exception e)
         {
@@ -214,6 +217,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
     }
     
     
+    @SuppressWarnings("unchecked")
     protected IModuleConfigForm generateForm(Class<?> clazz)
     {
         IModuleConfigForm form = null;
@@ -229,7 +233,7 @@ public class AdminUIModule extends AbstractHttpServiceModule<AdminUIConfig> impl
             }
             
             if (uiClass != null)
-               form = uiClass.newInstance();
+               form = uiClass.getDeclaredConstructor().newInstance();
         }
         catch (Exception e)
         {
