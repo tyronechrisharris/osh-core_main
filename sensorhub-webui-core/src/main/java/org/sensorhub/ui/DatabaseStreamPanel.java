@@ -222,11 +222,11 @@ public class DatabaseStreamPanel extends VerticalLayout
     protected void updateTimeRange()
     {
         var timeRange = dsInfo.getPhenomenonTimeRange();
-        fullTimeRange = roundTimePeriod(timeRange);
         
         String timeRangeText = "- NO DATA -";
         if (timeRange != null)
         {
+            fullTimeRange = roundTimePeriod(timeRange);
             Instant begin = timeRange.begin().truncatedTo(ChronoUnit.SECONDS);
             Instant end = timeRange.end().truncatedTo(ChronoUnit.SECONDS);
             timeRangeText = begin + " - " + end;
