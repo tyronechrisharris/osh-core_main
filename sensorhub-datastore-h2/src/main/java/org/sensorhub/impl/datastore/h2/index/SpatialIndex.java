@@ -20,9 +20,10 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.Page;
+import org.h2.mvstore.RTreeEntryCursor;
 import org.h2.mvstore.rtree.MVRTreeMap;
 import org.h2.mvstore.rtree.SpatialKey;
-import org.h2.mvstore.rtree.MVRTreeMap.RTreeCursor;
+import org.h2.mvstore.rtree.SpatialDataType;
 import org.h2.mvstore.type.DataType;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.impl.datastore.h2.H2Utils;
@@ -82,9 +83,25 @@ public abstract class SpatialIndex<T extends IResource, K extends Comparable<?>>
     public Stream<K> selectKeys(SpatialFilter filter)
     {
         SpatialKey bbox = H2Utils.getBoundingRectangle(0, filter.getRoi());
-        final RTreeCursor geoCursor = rTreeMap.findIntersectingKeys(bbox);
+        
+        /*final RTreeCursor geoCursor = rTreeMap.findIntersectingKeys(bbox);
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(geoCursor, Spliterator.DISTINCT), true)
             .map(k -> rTreeMap.get(k));
+        
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(geoCursor, Spliterator.DISTINCT), true)
+            .map(e -> geoCursor.getValue());*/
+        
+        var rTreeKeyType = ((SpatialDataType)rTreeMap.getKeyType());
+        var geoCursor = new RTreeEntryCursor<K>(rTreeMap.getRoot(), bbox) {
+            @Override
+            protected boolean check(boolean leaf, SpatialKey key, SpatialKey test)
+            {
+                return rTreeKeyType.isOverlap(key, test);
+            }
+        };
+        
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(geoCursor, Spliterator.DISTINCT), true)
+            .map(e -> e.getValue());
     }
     
     
