@@ -1007,13 +1007,14 @@ public class SOSServlet extends SWEServlet
     /*
      * Check if request comes from a compatible browser
      */
-    protected boolean isRequestFromBrowser(OWSRequest request)
+    protected boolean isHttpRequestFromBrowser(OWSRequest request)
     {
         // don't do multipart with websockets
+        if (SOSProviderUtils.isWebSocketRequest(request))
+            return false;
+        
         HttpServletRequest httpRequest = request.getHttpRequest();
         if (httpRequest == null)
-            return false;
-        if (request.getHttpResponse() == null)
             return false;
 
         String userAgent = httpRequest.getHeader("User-Agent");
@@ -1065,10 +1066,10 @@ public class SOSServlet extends SWEServlet
                 if (videoFrameSpec != null)
                 {
                     var codec = videoFrameSpec.getCompression();
-                    if (isRequestFromBrowser(request) && "H264".equalsIgnoreCase(codec))// || "H265".equalsIgnoreCase(codec)))
+                    if (isHttpRequestFromBrowser(request) && "H264".equalsIgnoreCase(codec))// || "H265".equalsIgnoreCase(codec)))
                         format = "video/mp4";
 
-                    else if (isRequestFromBrowser(request) && "JPEG".equalsIgnoreCase(codec))
+                    else if (isHttpRequestFromBrowser(request) && "JPEG".equalsIgnoreCase(codec))
                         format = "video/x-motion-jpeg";
                 }
             }
