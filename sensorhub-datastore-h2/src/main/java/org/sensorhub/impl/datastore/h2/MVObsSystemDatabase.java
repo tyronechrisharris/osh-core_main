@@ -159,7 +159,7 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
             // log summary info
             var strWriter = new StringWriter();
             MVStoreTool.info(config.storagePath, strWriter);
-            getLogger().debug(strWriter.toString());
+            getLogger().debug("H2 debug info for '{}':\n{}", getName(), strWriter.toString());
             
             /*try
             {

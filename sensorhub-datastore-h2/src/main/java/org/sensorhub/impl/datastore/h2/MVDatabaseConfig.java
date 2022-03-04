@@ -72,6 +72,6 @@ public abstract class MVDatabaseConfig extends DatabaseConfig
     
     
     @DisplayInfo(desc = "Set to compact the database file when the database module is stopped or restarted")
-    public boolean compactOnClose = true;
+    public boolean compactOnClose = false;
 
 }
