@@ -404,6 +404,10 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             notif.setHtmlContentAllowed(true);
                             notif.show(getPage());
                             
+                            // disable push mode since it's sometimes throwing an exception
+                            // during HTTP server stop process
+                            getUI().getPushConfiguration().setPushMode(PushMode.DISABLED);
+                            
                             // shutdown in separate thread
                             new Timer().schedule(new TimerTask() {
                                 @Override
