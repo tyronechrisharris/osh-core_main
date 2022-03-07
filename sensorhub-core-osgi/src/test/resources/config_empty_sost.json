@@ -88,22 +88,11 @@
     "autoStart": true
   },
   {
-    "objClass": "org.sensorhub.impl.sensor.swe.SWEVirtualSensorConfig",
-    "sensorUID": "urn:osh:sensor:test",
-    "observedProperties": [],
-    "sosUseWebsockets": false,
-    "lastUpdated": "2022-02-16T17:17:57.491+0100",
-    "id": "6ee3a570-50fa-4bf5-a077-4c443f27213f",
-    "moduleClass": "org.sensorhub.impl.sensor.swe.SWEVirtualSensor",
-    "name": "Virtual Sensor",
-    "autoStart": false
-  },
-  {
     "objClass": "org.sensorhub.impl.database.system.SystemDriverDatabaseConfig",
     "dbConfig": {
       "objClass": "org.sensorhub.impl.datastore.h2.MVObsSystemDatabaseConfig",
       "indexObsLocation": false,
-      "storagePath": "test.dat",
+      "storagePath": "all_obs_test.dat",
       "memoryCacheSize": 5120,
       "autoCommitBufferSize": 1024,
       "autoCommitPeriod": 10,

@@ -36,7 +36,7 @@ public class TestSensorHubOsgi
             Files.copy(srcPath, new FileOutputStream(destPath.toFile()));
         }
         
-        SensorHubOsgi.main(new String[] {"../sensorhub-core-test/src/main/resources/config_empty_sost.json", "storage"});
+        SensorHubOsgi.main(new String[] {"src/test/resources/config_empty_sost.json", "storage"});
     }
     
     
