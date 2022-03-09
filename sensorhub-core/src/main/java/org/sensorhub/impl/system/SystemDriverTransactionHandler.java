@@ -142,7 +142,16 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         // if taskable system, unregister command streams
         if (driver instanceof ICommandReceiver)
         {
-            // TODO cleanup command inputs
+            for (var csHandler: commandStreamHandlers.values())
+            {
+                var inputName = csHandler.getCommandStreamInfo().getControlInputName();
+                var input = ((ICommandReceiver)driver).getCommandInputs().get(inputName);
+                if (input != null)
+                    input.unregisterListener(csHandler);
+                
+                if (sendEvents)
+                    csHandler.disable();
+            }
         }
         commandStreamHandlers.clear();
         
@@ -266,7 +275,6 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
             output.getName(),
             output.getRecordDescription(),
             output.getRecommendedEncoding());
-        newDsHandler.parentGroupUID = this.parentGroupUID;
             
         // replace and cleanup old handler
         var oldDsHandler = dataStreamHandlers.get(output.getName());
@@ -326,7 +334,6 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
             controlInput.getName(),
             controlInput.getCommandDescription(),
             new TextEncodingImpl());
-        newCsHandler.parentGroupUID = this.parentGroupUID;
             
         // replace and cleanup old handler and subscription
         commandStreamHandlers.put(controlInput.getName(), newCsHandler);

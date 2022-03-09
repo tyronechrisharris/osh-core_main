@@ -27,6 +27,7 @@ import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.CommandStreamChangedEvent;
 import org.sensorhub.api.command.CommandStreamDisabledEvent;
 import org.sensorhub.api.command.CommandStreamEnabledEvent;
+import org.sensorhub.api.command.CommandStreamEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.CommandStreamRemovedEvent;
 import org.sensorhub.api.command.ICommandStatus;
@@ -64,7 +65,6 @@ public class CommandStreamTransactionHandler implements IEventListener
     protected final SystemDatabaseTransactionHandler rootHandler;
     protected final CommandStreamKey csKey;
     protected ICommandStreamInfo csInfo;
-    protected String parentGroupUID;
     protected IEventPublisher commandDataEventPublisher;
     protected IEventPublisher cmdStatusEventPublisher;
     
@@ -104,8 +104,7 @@ public class CommandStreamTransactionHandler implements IEventListener
         
         // send event
         var event = new CommandStreamChangedEvent(csInfo);
-        getStreamStatusEventPublisher().publish(event);
-        getSystemStatusEventPublisher().publish(event);
+        publishCommandStreamEvent(event);
         
         return true;
     }
@@ -123,8 +122,7 @@ public class CommandStreamTransactionHandler implements IEventListener
         
         // send event
         var event = new CommandStreamRemovedEvent(csInfo);
-        getStreamStatusEventPublisher().publish(event);
-        getSystemStatusEventPublisher().publish(event);
+        publishCommandStreamEvent(event);
         
         return true;
     }
@@ -133,16 +131,14 @@ public class CommandStreamTransactionHandler implements IEventListener
     public void enable()
     {
         var event = new CommandStreamEnabledEvent(csInfo);
-        getStreamStatusEventPublisher().publish(event);
-        getSystemStatusEventPublisher().publish(event);
+        publishCommandStreamEvent(event);
     }
     
     
     public void disable()
     {
         var event = new CommandStreamDisabledEvent(csInfo);
-        getStreamStatusEventPublisher().publish(event);
-        getSystemStatusEventPublisher().publish(event);
+        publishCommandStreamEvent(event);
     }
     
     
@@ -438,20 +434,34 @@ public class CommandStreamTransactionHandler implements IEventListener
          
         return cmdStatusEventPublisher;
     }
-        
-        
-    protected synchronized IEventPublisher getStreamStatusEventPublisher()
-    {
-        var topic = EventUtils.getCommandStreamStatusTopicID(csInfo);
-        return rootHandler.eventBus.getPublisher(topic);
-    }
     
     
-    protected IEventPublisher getSystemStatusEventPublisher()
+    protected void publishCommandStreamEvent(CommandStreamEvent event)
     {
-        var sysUID = csInfo.getSystemID().getUniqueID();
-        var topic = EventUtils.getSystemStatusTopicID(sysUID);
-        return rootHandler.eventBus.getPublisher(topic);
+        String topic;
+        
+        // publish on this datastream status channel
+        topic = EventUtils.getCommandStreamStatusTopicID(csInfo);
+        rootHandler.eventBus.getPublisher(topic).publish(event);
+        
+        // publish on system status channel
+        var sysUid = csInfo.getSystemID().getUniqueID();
+        topic = EventUtils.getSystemStatusTopicID(sysUid);
+        rootHandler.eventBus.getPublisher(topic).publish(event);
+        
+        // publish on parent systems status recursively
+        //Long parentId = rootHandler.db.getSystemDescStore().getCurrentVersionKey(sysUid).getInternalID();
+        Long parentId = csInfo.getSystemID().getInternalID();
+        while ((parentId = rootHandler.db.getSystemDescStore().getParent(parentId)) != null)
+        {
+            sysUid = rootHandler.db.getSystemDescStore().getCurrentVersion(parentId).getUniqueIdentifier();
+            topic = EventUtils.getSystemStatusTopicID(sysUid);
+            rootHandler.eventBus.getPublisher(topic).publish(event);
+        }
+        
+        // publish on systems root
+        topic = EventUtils.getSystemRegistryTopicID();
+        rootHandler.eventBus.getPublisher(topic).publish(event);
     }
     
     

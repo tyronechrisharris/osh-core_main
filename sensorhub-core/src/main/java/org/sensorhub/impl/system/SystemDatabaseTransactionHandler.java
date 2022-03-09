@@ -22,7 +22,6 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.api.system.SystemAddedEvent;
@@ -75,13 +74,11 @@ public class SystemDatabaseTransactionHandler
         var systemKey = db.getSystemDescStore().add(system);
         var sysUID = system.getUniqueIdentifier();
         
-        // send event
-        var topic = EventUtils.getSystemRegistryTopicID();
-        var eventPublisher = eventBus.getPublisher(topic);
-        eventPublisher.publish(new SystemAddedEvent(sysUID, null));
-        
         // create new system handler
-        return createSystemHandler(systemKey, sysUID);
+        var sysHandler = createSystemHandler(systemKey, sysUID);
+        sysHandler.publishSystemEvent(new SystemAddedEvent(sysUID, null));
+        
+        return sysHandler;
     }
     
     
@@ -97,6 +94,7 @@ public class SystemDatabaseTransactionHandler
         
         var systemHandler = getSystemHandler(system.getUniqueIdentifier());
         systemHandler.update(system);
+        
         return systemHandler;
     }
     

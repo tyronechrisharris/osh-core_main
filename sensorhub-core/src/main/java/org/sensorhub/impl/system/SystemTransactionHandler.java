@@ -32,7 +32,6 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.event.EventUtils;
-import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.api.feature.FoiAddedEvent;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.api.system.SystemAddedEvent;
@@ -41,6 +40,7 @@ import org.sensorhub.api.system.SystemId;
 import org.sensorhub.api.system.SystemRemovedEvent;
 import org.sensorhub.api.system.SystemDisabledEvent;
 import org.sensorhub.api.system.SystemEnabledEvent;
+import org.sensorhub.api.system.SystemEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.DataComponentChecks;
@@ -78,15 +78,15 @@ public class SystemTransactionHandler
     protected boolean newlyCreated;
     
     
-    public SystemTransactionHandler(FeatureKey procKey, String sysUID, SystemDatabaseTransactionHandler rootHandler)
+    public SystemTransactionHandler(FeatureKey sysKey, String sysUID, SystemDatabaseTransactionHandler rootHandler)
     {
-        this(procKey, sysUID, null, rootHandler);
+        this(sysKey, sysUID, null, rootHandler);
     }
     
     
-    public SystemTransactionHandler(FeatureKey procKey, String sysUID, String parentGroupUID, SystemDatabaseTransactionHandler rootHandler)
+    public SystemTransactionHandler(FeatureKey sysKey, String sysUID, String parentGroupUID, SystemDatabaseTransactionHandler rootHandler)
     {
-        this.sysKey = Asserts.checkNotNull(procKey, FeatureKey.class);
+        this.sysKey = Asserts.checkNotNull(sysKey, FeatureKey.class);
         this.sysUID = OshAsserts.checkValidUID(sysUID);
         this.parentGroupUID = parentGroupUID;
         this.rootHandler = Asserts.checkNotNull(rootHandler);
@@ -105,7 +105,7 @@ public class SystemTransactionHandler
         if (validTime == null || sysKey.getValidStartTime().isBefore(validTime.begin()))
         {
             sysKey = getSystemDescStore().add(proc);
-            getEventPublisher().publish(new SystemChangedEvent(sysUID));
+            publishSystemEvent(new SystemChangedEvent(sysUID));
         }
         else if (sysKey.getValidStartTime().equals(validTime.begin()))
         {
@@ -135,7 +135,7 @@ public class SystemTransactionHandler
         if (procKey != null)
         {
             // send deleted event
-            getParentPublisher().publish(new SystemRemovedEvent(sysUID, parentGroupUID));
+            publishSystemEvent(new SystemRemovedEvent(sysUID, parentGroupUID));
             return true;
         }
         
@@ -146,14 +146,14 @@ public class SystemTransactionHandler
     public void enable()
     {
         checkParent();
-        getParentPublisher().publish(new SystemEnabledEvent(sysUID, parentGroupUID));
+        publishSystemEvent(new SystemEnabledEvent(sysUID, parentGroupUID));
     }
     
     
     public void disable()
     {
         checkParent();
-        getParentPublisher().publish(new SystemDisabledEvent(sysUID, parentGroupUID));
+        publishSystemEvent(new SystemDisabledEvent(sysUID, parentGroupUID));
     }
     
     
@@ -173,8 +173,8 @@ public class SystemTransactionHandler
         var memberKey = getSystemDescStore().add(parentGroupID, proc);
         var memberUID = proc.getUniqueIdentifier();
         
-        // send event        
-        getEventPublisher().publish(new SystemAddedEvent(memberUID, parentGroupUID));
+        // send event
+        publishSystemEvent(new SystemAddedEvent(memberUID, parentGroupUID));
         
         // create the new system handler
         return createMemberHandler(memberKey, memberUID);
@@ -185,7 +185,7 @@ public class SystemTransactionHandler
     {
         var uid = OshAsserts.checkProcedureObject(proc);
         
-        var memberKey = getSystemDescStore().getCurrentVersionKey(uid);        
+        var memberKey = getSystemDescStore().getCurrentVersionKey(uid);
         if (memberKey != null)
         {
             var memberHandler = createMemberHandler(memberKey, uid);
@@ -214,6 +214,7 @@ public class SystemTransactionHandler
         Entry<DataStreamKey, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(sysUID, outputName);
         DataStreamKey dsKey;
         IDataStreamInfo newDsInfo;
+        DataStreamAddedEvent addedEvent = null;
         
         if (dsEntry == null)
         {
@@ -230,9 +231,8 @@ public class SystemTransactionHandler
                 .build();
             dsKey = dataStreamStore.add(newDsInfo);
             
-            // send event        
-            getEventPublisher().publish(new DataStreamAddedEvent(sysUID, outputName));
-            
+            // send event
+            addedEvent = new DataStreamAddedEvent(sysUID, outputName);
             log.debug("Added new datastream {}#{}", sysUID, outputName);
         }
         else
@@ -258,8 +258,7 @@ public class SystemTransactionHandler
                     .build();
                 
                 dsKey = dataStreamStore.add(newDsInfo);
-                getEventPublisher().publish(new DataStreamAddedEvent(sysUID, outputName));
-                
+                addedEvent = new DataStreamAddedEvent(sysUID, outputName);
                 log.debug("Created new version of datastream {}#{}", sysUID, outputName);
             }
             
@@ -282,7 +281,10 @@ public class SystemTransactionHandler
         }
         
         // create the new datastream handler
-        return new DataStreamTransactionHandler(dsKey, newDsInfo, foiIdMap, rootHandler);
+        var dsHandler = new DataStreamTransactionHandler(dsKey, newDsInfo, foiIdMap, rootHandler);
+        if (addedEvent != null)
+            dsHandler.publishDataStreamEvent(addedEvent);
+        return dsHandler;
     }
     
     
@@ -303,6 +305,7 @@ public class SystemTransactionHandler
         Entry<CommandStreamKey, ICommandStreamInfo> csEntry = commandStreamStore.getLatestVersionEntry(sysUID, commandName);
         CommandStreamKey csKey;
         ICommandStreamInfo newCsInfo;
+        CommandStreamAddedEvent addedEvent = null;
         
         if (csEntry == null)
         {
@@ -319,9 +322,8 @@ public class SystemTransactionHandler
                 .build();
             csKey = commandStreamStore.add(newCsInfo);
             
-            // send event        
-            getEventPublisher().publish(new CommandStreamAddedEvent(sysUID, commandName));
-            
+            // send event
+            addedEvent = new CommandStreamAddedEvent(sysUID, commandName);
             log.debug("Added new command stream {}#{}", sysUID, commandName);
         }
         else
@@ -347,8 +349,7 @@ public class SystemTransactionHandler
                     .build();
                 
                 csKey = commandStreamStore.add(newCsInfo);
-                getEventPublisher().publish(new CommandStreamAddedEvent(sysUID, commandName));
-                
+                addedEvent = new CommandStreamAddedEvent(sysUID, commandName);
                 log.debug("Created new version of command stream {}#{}", sysUID, commandName);
             }
             
@@ -371,7 +372,10 @@ public class SystemTransactionHandler
         }
         
         // create the new command stream handler
-        return new CommandStreamTransactionHandler(csKey, newCsInfo, rootHandler);
+        var csHandler = new CommandStreamTransactionHandler(csKey, newCsInfo, rootHandler);
+        if (addedEvent != null)
+            csHandler.publishCommandStreamEvent(addedEvent);
+        return csHandler;
     }
     
     
@@ -415,7 +419,7 @@ public class SystemTransactionHandler
         
         if (isNew)
         {
-            getEventPublisher().publish(new FoiAddedEvent(
+            publishSystemEvent(new FoiAddedEvent(
                 System.currentTimeMillis(),
                 sysUID,
                 foi.getUniqueIdentifier(),
@@ -449,21 +453,28 @@ public class SystemTransactionHandler
         return rootHandler.db.getFoiStore();
     }
     
-
-    protected IEventPublisher getEventPublisher()
-    {
-        var topic = EventUtils.getSystemStatusTopicID(sysUID);
-        return rootHandler.eventBus.getPublisher(topic);
-    }
     
-    
-    protected IEventPublisher getParentPublisher()
+    protected void publishSystemEvent(SystemEvent event)
     {
-        var topic = (parentGroupUID != null) ?
-            EventUtils.getSystemStatusTopicID(parentGroupUID) :
-            EventUtils.getSystemRegistryTopicID();
+        String topic;
         
-        return rootHandler.eventBus.getPublisher(topic);
+        // publish on system status channel
+        topic = EventUtils.getSystemStatusTopicID(sysUID);
+        rootHandler.eventBus.getPublisher(topic).publish(event);
+        
+        // publish on parent systems status recursively
+        long sysId = rootHandler.db.getSystemDescStore().getCurrentVersionKey(sysUID).getInternalID();
+        Long parentId = sysId != 0 ? sysId : null;
+        while ((parentId = rootHandler.db.getSystemDescStore().getParent(parentId)) != null)
+        {
+            var sysUid = rootHandler.db.getSystemDescStore().getCurrentVersion(parentId).getUniqueIdentifier();
+            topic = EventUtils.getSystemStatusTopicID(sysUid);
+            rootHandler.eventBus.getPublisher(topic).publish(event);
+        }
+        
+        // publish on systems root
+        topic = EventUtils.getSystemRegistryTopicID();
+        rootHandler.eventBus.getPublisher(topic).publish(event);
     }
     
     

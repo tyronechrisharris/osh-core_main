@@ -20,6 +20,7 @@ import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.DataStreamChangedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
 import org.sensorhub.api.data.DataStreamEnabledEvent;
+import org.sensorhub.api.data.DataStreamEvent;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.DataStreamRemovedEvent;
 import org.sensorhub.api.data.IDataStreamInfo;
@@ -59,7 +60,6 @@ public class DataStreamTransactionHandler implements IEventListener
     protected final SystemDatabaseTransactionHandler rootHandler;
     protected final DataStreamKey dsKey;
     protected IDataStreamInfo dsInfo;
-    protected String parentGroupUID;
     protected IEventPublisher dataEventPublisher;
     protected ScalarIndexer timeStampIndexer;
     protected Map<String, Long> foiUidToIdMap;
@@ -114,8 +114,7 @@ public class DataStreamTransactionHandler implements IEventListener
         
         // send event
         var event = new DataStreamChangedEvent(dsInfo);
-        getStatusEventPublisher().publish(event);
-        getSystemStatusEventPublisher().publish(event);
+        publishDataStreamEvent(event);
         
         return true;
     }
@@ -133,8 +132,7 @@ public class DataStreamTransactionHandler implements IEventListener
         
         // send event
         var event = new DataStreamRemovedEvent(dsInfo);
-        getStatusEventPublisher().publish(event);
-        getSystemStatusEventPublisher().publish(event);
+        publishDataStreamEvent(event);
         
         return true;
     }
@@ -143,16 +141,14 @@ public class DataStreamTransactionHandler implements IEventListener
     public void enable()
     {
         var event = new DataStreamEnabledEvent(dsInfo);
-        getStatusEventPublisher().publish(event);
-        getSystemStatusEventPublisher().publish(event);
+        publishDataStreamEvent(event);
     }
     
     
     public void disable()
     {
         var event = new DataStreamDisabledEvent(dsInfo);
-        getStatusEventPublisher().publish(event);
-        getSystemStatusEventPublisher().publish(event);
+        publishDataStreamEvent(event);
     }
     
     
@@ -284,20 +280,34 @@ public class DataStreamTransactionHandler implements IEventListener
          
         return dataEventPublisher;
     }
-        
-        
-    protected synchronized IEventPublisher getStatusEventPublisher()
-    {
-        var topic = EventUtils.getDataStreamStatusTopicID(dsInfo);
-        return rootHandler.eventBus.getPublisher(topic);
-    }
     
     
-    protected IEventPublisher getSystemStatusEventPublisher()
+    protected void publishDataStreamEvent(DataStreamEvent event)
     {
-        var sysUID = dsInfo.getSystemID().getUniqueID();
-        var topic = EventUtils.getSystemStatusTopicID(sysUID);
-        return rootHandler.eventBus.getPublisher(topic);
+        String topic;
+        
+        // publish on this datastream status channel
+        topic = EventUtils.getDataStreamStatusTopicID(dsInfo);
+        rootHandler.eventBus.getPublisher(topic).publish(event);
+        
+        // publish on system status channel
+        var sysUid = dsInfo.getSystemID().getUniqueID();
+        topic = EventUtils.getSystemStatusTopicID(sysUid);
+        rootHandler.eventBus.getPublisher(topic).publish(event);
+        
+        // publish on parent systems status recursively
+        //Long parentId = rootHandler.db.getSystemDescStore().getCurrentVersionKey(sysUid).getInternalID();
+        Long parentId = dsInfo.getSystemID().getInternalID();
+        while ((parentId = rootHandler.db.getSystemDescStore().getParent(parentId)) != null)
+        {
+            sysUid = rootHandler.db.getSystemDescStore().getCurrentVersion(parentId).getUniqueIdentifier();
+            topic = EventUtils.getSystemStatusTopicID(sysUid);
+            rootHandler.eventBus.getPublisher(topic).publish(event);
+        }
+        
+        // publish on systems root
+        topic = EventUtils.getSystemRegistryTopicID();
+        rootHandler.eventBus.getPublisher(topic).publish(event);
     }
     
     
