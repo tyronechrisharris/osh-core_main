@@ -666,7 +666,8 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     public Long getParent(long internalID)
     {
         var fk = idsIndex.getFullKey(internalID);
-        return fk != null ? fk.getParentID() : null;
+        var parentId = fk != null ? fk.getParentID() : 0;
+        return parentId != 0 ? parentId : null;
     }
 
 
