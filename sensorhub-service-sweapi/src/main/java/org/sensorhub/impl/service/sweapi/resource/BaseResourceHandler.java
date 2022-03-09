@@ -50,7 +50,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
 {
     public static final String INVALID_VERSION_ERROR_MSG = "Invalid version number: ";
     public static final String ALREADY_EXISTS_ERROR_MSG = "Resource already exists";
-    public static final String UNSUPPORTED_WEBSOCKET_MSG = "Streaming not supported on this resource";
+    public static final String STREAMING_UNSUPPORTED_ERROR_MSG = "Streaming not supported on this resource collection";
+    public static final String EVENTS_UNSUPPORTED_ERROR_MSG = "Events not supported on this resource collection";
     
     protected final S dataStore;
     protected final IdEncoder idEncoder;
@@ -93,6 +94,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             if ("count".equals(id))
                 getElementCount(ctx);
+            else if ("events".equals(id))
+                subscribeToEvents(ctx);
             else
                 getById(ctx, id);
             return;
@@ -177,7 +180,14 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected void subscribe(final RequestContext ctx) throws InvalidRequestException, IOException
     {
-        throw ServiceErrors.unsupportedOperation(UNSUPPORTED_WEBSOCKET_MSG);
+        throw ServiceErrors.unsupportedOperation(STREAMING_UNSUPPORTED_ERROR_MSG);
+    }
+    
+    
+
+    protected void subscribeToEvents(final RequestContext ctx) throws InvalidRequestException, IOException
+    {
+        throw ServiceErrors.unsupportedOperation(EVENTS_UNSUPPORTED_ERROR_MSG);
     }
     
     

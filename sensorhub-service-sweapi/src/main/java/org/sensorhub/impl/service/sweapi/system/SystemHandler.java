@@ -42,13 +42,18 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     public static final int EXTERNAL_ID_SEED = 21933547;
     public static final String[] NAMES = { "systems" };
     
-    SystemDatabaseTransactionHandler transactionHandler;
+    final IEventBus eventBus;
+    final SystemDatabaseTransactionHandler transactionHandler;
+    final SystemEventsHandler eventsHandler;
     
     
     public SystemHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getSystemDescStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+        this.eventBus = eventBus;
+        this.eventsHandler = new SystemEventsHandler(eventBus, db, permissions);
+        addSubResource(eventsHandler);
     }
 
 
@@ -63,6 +68,13 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
             return new SystemBindingSmlJson(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
+    }
+    
+    
+    @Override
+    protected void subscribeToEvents(final RequestContext ctx) throws InvalidRequestException, IOException
+    {
+        eventsHandler.doGet(ctx);
     }
     
     

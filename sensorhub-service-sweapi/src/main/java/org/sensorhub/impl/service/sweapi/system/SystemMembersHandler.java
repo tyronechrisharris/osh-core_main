@@ -39,6 +39,7 @@ public class SystemMembersHandler extends SystemHandler
     public SystemMembersHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(eventBus, db, permissions);
+        eventsHandler.onlyMembers = true;
     }
     
     
@@ -65,6 +66,13 @@ public class SystemMembersHandler extends SystemHandler
                 .withInternalIDs(parent.internalID)
                 .done();
         }
+    }
+    
+    
+    @Override
+    protected void subscribeToEvents(final RequestContext ctx) throws InvalidRequestException, IOException
+    {
+        eventsHandler.doGet(ctx);
     }
     
     

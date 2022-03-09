@@ -41,13 +41,17 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     public static final int EXTERNAL_ID_SEED = 918742953;
     public static final String[] NAMES = { "datastreams" };
     
-    SystemDatabaseTransactionHandler transactionHandler;
+    final IEventBus eventBus;
+    final SystemDatabaseTransactionHandler transactionHandler;
+    final DataStreamEventsHandler eventsHandler;
     
     
     public DataStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+        this.eventsHandler = new DataStreamEventsHandler(eventBus, db, permissions);
     }
     
     
@@ -64,13 +68,6 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    protected boolean isValidID(long internalID)
-    {
-        return dataStore.containsKey(new DataStreamKey(internalID));
-    }
-    
-    
-    @Override
     public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() &&
@@ -78,6 +75,20 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
             throw ServiceErrors.unsupportedOperation("Datastreams can only be created within a System resource");
         
         super.doPost(ctx);
+    }
+    
+    
+    @Override
+    protected void subscribeToEvents(final RequestContext ctx) throws InvalidRequestException, IOException
+    {
+        eventsHandler.doGet(ctx);
+    }
+    
+    
+    @Override
+    protected boolean isValidID(long internalID)
+    {
+        return dataStore.containsKey(new DataStreamKey(internalID));
     }
 
 

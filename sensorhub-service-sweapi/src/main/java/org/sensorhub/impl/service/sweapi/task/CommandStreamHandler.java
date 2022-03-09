@@ -41,13 +41,17 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     public static final int EXTERNAL_ID_SEED = 34945557;
     public static final String[] NAMES = { "controls" };
     
-    SystemDatabaseTransactionHandler transactionHandler;
+    final IEventBus eventBus;
+    final SystemDatabaseTransactionHandler transactionHandler;
+    final CommandStreamEventsHandler eventsHandler;
     
     
     public CommandStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getCommandStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+        this.eventsHandler = new CommandStreamEventsHandler(eventBus, db, permissions);
     }
     
     
@@ -64,13 +68,6 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     
     
     @Override
-    protected boolean isValidID(long internalID)
-    {
-        return dataStore.containsKey(new CommandStreamKey(internalID));
-    }
-    
-    
-    @Override
     public void doPost(RequestContext ctx) throws IOException
     {
         if (ctx.isEndOfPath() &&
@@ -78,6 +75,20 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
             throw ServiceErrors.unsupportedOperation("Command streams can only be created within a System resource");
         
         super.doPost(ctx);
+    }
+    
+    
+    @Override
+    protected void subscribeToEvents(final RequestContext ctx) throws InvalidRequestException, IOException
+    {
+        eventsHandler.doGet(ctx);
+    }
+    
+    
+    @Override
+    protected boolean isValidID(long internalID)
+    {
+        return dataStore.containsKey(new CommandStreamKey(internalID));
     }
 
 
