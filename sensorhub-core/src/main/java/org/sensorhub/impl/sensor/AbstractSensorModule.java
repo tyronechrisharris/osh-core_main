@@ -376,14 +376,14 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public ISystemGroupDriver<ISystemDriver> getParentGroup()
+    public String getParentSystemUID()
     {
         return null;
     }
 
 
     @Override
-    public String getParentGroupUID()
+    public ISystemGroupDriver<ISystemDriver> getParentSystem()
     {
         return null;
     }
@@ -665,12 +665,12 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     protected void setState(ModuleState newState)
     {
         super.setState(newState);
-
+        
         // send system enabled/disabled events
         if (newState == ModuleState.STARTED && uniqueID != null)
-            eventHandler.publish(new SystemEnabledEvent(uniqueID, getParentGroupUID()));
+            eventHandler.publish(new SystemEnabledEvent(uniqueID, getParentSystemUID()));
         else if (newState == ModuleState.STOPPED && uniqueID != null)
-            eventHandler.publish(new SystemDisabledEvent(uniqueID, getParentGroupUID()));
+            eventHandler.publish(new SystemDisabledEvent(uniqueID, getParentSystemUID()));
     }
 
 

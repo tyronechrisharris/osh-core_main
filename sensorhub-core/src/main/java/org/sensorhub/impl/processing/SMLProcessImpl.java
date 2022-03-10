@@ -307,14 +307,14 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
 
 
     @Override
-    public ISystemGroupDriver<ISystemDriver> getParentGroup()
+    public String getParentSystemUID()
     {
         return null;
     }
 
 
     @Override
-    public String getParentGroupUID()
+    public ISystemGroupDriver<ISystemDriver> getParentSystem()
     {
         return null;
     }

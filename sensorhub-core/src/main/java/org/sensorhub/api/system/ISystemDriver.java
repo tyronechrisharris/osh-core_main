@@ -48,7 +48,7 @@ public interface ISystemDriver extends IEventProducer
     
     
     /**
-     * @return The unique identifier of the system
+     * @return The globally unique identifier of the system.
      */
     public String getUniqueIdentifier();
 
@@ -57,14 +57,15 @@ public interface ISystemDriver extends IEventProducer
      * @return The unique ID of the parent system or null if this
      * system is not a member of any parent system
      */
-    public String getParentGroupUID();
+    public String getParentSystemUID();
 
 
     /**
-     * @return The parent system or null if this system is not
-     * a member of any group
+     * @return The parent system driver or null if the parent is not
+     * a system driver defined in the same module. Note that in this case, 
+     * the {@link #getParentSystemUID()} must still return a non null value.
      */
-    public ISystemGroupDriver<? extends ISystemDriver> getParentGroup();
+    public ISystemGroupDriver<? extends ISystemDriver> getParentSystem();
 
 
     /**

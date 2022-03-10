@@ -15,7 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.system;
 
 import java.util.concurrent.CompletableFuture;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
@@ -124,11 +123,5 @@ public interface ISystemDriverRegistry
      * read-only through the federated hub database.
      */
     public ISystemStateDatabase getSystemStateDatabase();
-
-
-    /**
-     * @return The sensor hub this registry is attached to
-     */
-    public ISensorHub getParentHub();
 
 }

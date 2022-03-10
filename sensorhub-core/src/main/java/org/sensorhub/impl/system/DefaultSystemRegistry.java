@@ -103,10 +103,10 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
         
         // if member of a group, parent should have been registered already
         // so register it as member of the group
-        if (driver.getParentGroupUID() != null)
+        if (driver.getParentSystemUID() != null)
         {
             // get parent handler and register as member
-            var parentHandler = getDriverHandler(driver.getParentGroupUID());
+            var parentHandler = getDriverHandler(driver.getParentSystemUID());
             return parentHandler.registerMember(driver);
         }
         
@@ -128,7 +128,7 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
             
             DefaultSystemRegistry.log.info("Registering system {}", driver.getUniqueIdentifier());
             var db = getDatabaseForDriver(driver);
-            var baseHandler = new SystemRegistryTransactionHandler(getParentHub(), db, executor);
+            var baseHandler = new SystemRegistryTransactionHandler(hub, db, executor);
             
             // create or update entry in DB
             try
@@ -230,13 +230,6 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
         var sysUID = OshAsserts.checkValidUID(proc.getUniqueIdentifier());
         
         return getDriverHandler(sysUID).register(foi);
-    }
-
-
-    @Override
-    public ISensorHub getParentHub()
-    {
-        return hub;
     }
 
 

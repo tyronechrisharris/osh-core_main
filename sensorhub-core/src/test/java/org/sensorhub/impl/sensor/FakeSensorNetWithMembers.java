@@ -86,17 +86,17 @@ public class FakeSensorNetWithMembers extends FakeSensor implements ISystemGroup
         public void addOutputs(IStreamingDataInterface... outputs)
         {
             for (var output: outputs)
-                this.outputs.put(output.getName(), output);            
+                this.outputs.put(output.getName(), output);
         }
 
         @Override
-        public ISystemGroupDriver<? extends ISystemDriver> getParentGroup()
+        public ISystemGroupDriver<? extends ISystemDriver> getParentSystem()
         {
             return FakeSensorNetWithMembers.this;
         }
 
         @Override
-        public String getParentGroupUID()
+        public String getParentSystemUID()
         {
             return FakeSensorNetWithMembers.this.getUniqueIdentifier();
         }

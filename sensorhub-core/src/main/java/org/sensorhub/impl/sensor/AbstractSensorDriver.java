@@ -69,7 +69,7 @@ public abstract class AbstractSensorDriver implements ISensorDriver
 
     protected final String uniqueID;
     protected final String shortID;
-    protected final ISystemGroupDriver<? extends ISystemDriver> parentGroup;
+    protected final ISystemGroupDriver<? extends ISystemDriver> parentSystem;
     protected final IEventHandler eventHandler;
         
     protected volatile DefaultLocationOutput locationOutput;
@@ -86,11 +86,11 @@ public abstract class AbstractSensorDriver implements ISensorDriver
     }
     
     
-    protected AbstractSensorDriver(ISystemGroupDriver<? extends ISystemDriver> parentGroup, String uid, String shortID)
+    protected AbstractSensorDriver(ISystemGroupDriver<? extends ISystemDriver> parentSystem, String uid, String shortID)
     {
         this.uniqueID = OshAsserts.checkValidUID(uid);
         this.shortID = Asserts.checkNotNullOrEmpty(shortID, "shortID");
-        this.parentGroup = parentGroup;
+        this.parentSystem = parentSystem;
         this.eventHandler = new BasicEventHandler();
         this.foiMap = Collections.emptyMap();
     }
@@ -217,16 +217,16 @@ public abstract class AbstractSensorDriver implements ISensorDriver
 
 
     @Override
-    public ISystemGroupDriver<? extends ISystemDriver> getParentGroup()
+    public String getParentSystemUID()
     {
-        return parentGroup;
+        return parentSystem != null ? parentSystem.getUniqueIdentifier() : null;
     }
 
 
     @Override
-    public String getParentGroupUID()
+    public ISystemGroupDriver<? extends ISystemDriver> getParentSystem()
     {
-        return parentGroup != null ? parentGroup.getUniqueIdentifier() : null;
+        return parentSystem;
     }
 
 
