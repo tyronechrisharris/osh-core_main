@@ -42,7 +42,7 @@ import com.google.gson.stream.JsonWriter;
  */
 public class DataStreamEventBindingJson extends ResourceBindingJson<Long, DataStreamEvent>
 {
-    protected JsonWriter writer;
+    JsonWriter writer;
     IdEncoder sysIdEncoder;
     
     
@@ -75,10 +75,15 @@ public class DataStreamEventBindingJson extends ResourceBindingJson<Long, DataSt
         if (eventType == null)
             return;
         
+        // generate public IDs
+        var publicDsID = idEncoder.encodeID(res.getDataStreamID());
+        var publicSysID = sysIdEncoder.encodeID(res.getSystemID());
+        
+        // write event message
         writer.beginObject();
         writer.name("time").value(Instant.ofEpochMilli(res.getTimeStamp()).toString());
-        writer.name("datastream@id").value(res.getOutputName());
-        writer.name("system@id").value(res.getSystemUID());
+        writer.name("datastream@id").value(Long.toString(publicDsID, 36));
+        writer.name("system@id").value(Long.toString(publicSysID, 36));
         writer.name("eventType").value(eventType);
         writer.endObject();
         writer.flush();

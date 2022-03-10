@@ -56,7 +56,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     SWEJsonStreamReader sweReader;
     JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
-    IdEncoder procIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
+    IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     
     
     DataStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
@@ -151,7 +151,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
-        var publicProcID = procIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
+        var publicSysID = sysIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
         
         writer.beginObject();
         
@@ -161,7 +161,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("system@id").value(Long.toString(publicProcID, 36));
+        writer.name("system@id").value(Long.toString(publicSysID, 36));
         writer.name("outputName").value(dsInfo.getOutputName());
         
         writer.name("validTime").beginArray()
@@ -234,7 +234,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 .title("Parent system")
                 .href(rootURL +
                       "/" + SystemHandler.NAMES[0] +
-                      "/" + Long.toString(publicProcID, 36))
+                      "/" + Long.toString(publicSysID, 36))
                 .build());
             
             links.add(new ResourceLink.Builder()

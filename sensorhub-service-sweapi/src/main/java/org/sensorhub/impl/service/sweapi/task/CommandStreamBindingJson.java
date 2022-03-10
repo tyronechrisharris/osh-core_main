@@ -57,7 +57,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
     SWEJsonStreamReader sweReader;
     JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
-    IdEncoder procIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
+    IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     
     
     CommandStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
@@ -152,7 +152,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
     public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
-        var publicProcID = procIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
+        var publicSysID = sysIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
         
         writer.beginObject();
         
@@ -163,7 +163,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
             writer.name("description").value(dsInfo.getDescription());
         
         writer.name("system").beginObject()
-            .name("id").value(Long.toString(publicProcID, 36))
+            .name("id").value(Long.toString(publicSysID, 36))
             .name("outputName").value(dsInfo.getControlInputName())
             .endObject();
         
@@ -224,7 +224,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                 .title("Parent system")
                 .href(rootURL +
                       "/" + SystemHandler.NAMES[0] +
-                      "/" + Long.toString(publicProcID, 36))
+                      "/" + Long.toString(publicSysID, 36))
                 .build());
             
             links.add(new ResourceLink.Builder()

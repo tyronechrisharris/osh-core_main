@@ -72,9 +72,13 @@ public class SystemEventBindingJson extends ResourceBindingJson<Long, SystemEven
         if (eventType == null)
             return;
         
+        // generate public ID
+        var publicSysID = idEncoder.encodeID(res.getSystemID());
+        
+        // write event message
         writer.beginObject();
         writer.name("time").value(Instant.ofEpochMilli(res.getTimeStamp()).toString());
-        writer.name("system@id").value(res.getSystemUID());
+        writer.name("system@id").value(Long.toString(publicSysID, 36));
         writer.name("eventType").value(eventType);
         writer.endObject();
         writer.flush();
