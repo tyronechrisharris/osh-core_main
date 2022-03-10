@@ -397,66 +397,99 @@ public class TestSystemDriverRegistry
         sensor.init();
         sensor.setDataInterfaces(
             new FakeSensorData(sensor, NAME_OUTPUT1, 0.1, NUM_GEN_SAMPLES),
-            new FakeSensorData2(sensor, NAME_OUTPUT2, 0.05, NUM_GEN_SAMPLES));        
+            new FakeSensorData2(sensor, NAME_OUTPUT2, 0.05, NUM_GEN_SAMPLES));
         
         // subscribe to events
-        var receivedEvents = new ArrayList<Event>();
+        var rootSubEventsReceived = new ArrayList<Event>();
         hub.getEventBus().newSubscription(SystemEvent.class)
             .withTopicID(EventUtils.getSystemRegistryTopicID())
-            .withTopicID(EventUtils.getSystemStatusTopicID(sensor))
             .consume(e -> {
-                System.out.println("Received " + e.getClass().getSimpleName() +
+                System.out.println("Root Subscription: Received " + e.getClass().getSimpleName() +
                     " from " + e.getSystemUID() +
                     ((e instanceof DataStreamEvent) ? ", output=" + ((DataStreamEvent)e).getOutputName() : "") );
-                receivedEvents.add(e);
-            });        
+                rootSubEventsReceived.add(e);
+            });
+        
+        var systemSubEventsReceived = new ArrayList<Event>();
+        hub.getEventBus().newSubscription(SystemEvent.class)
+            .withTopicID(EventUtils.getSystemStatusTopicID(sensor))
+            .consume(e -> {
+                System.out.println("System Subscription: Received " + e.getClass().getSimpleName() +
+                    " from " + e.getSystemUID() +
+                    ((e instanceof DataStreamEvent) ? ", output=" + ((DataStreamEvent)e).getOutputName() : "") );
+                systemSubEventsReceived.add(e);
+            });
         
         // register
         registry.register(sensor).join();
         Thread.sleep(100);
-                    
-        // check that we received all "added" events
-        assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
+        
+        // check that we received all events on root subscription
+        assertEquals(sensor.getOutputs().size(), rootSubEventsReceived.stream()
             .filter(e -> e instanceof DataStreamAddedEvent)
             .count());
-        
-        assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
+        assertEquals(sensor.getOutputs().size(), rootSubEventsReceived.stream()
             .filter(e -> e instanceof DataStreamEnabledEvent)
             .count());
-        
-        assertEquals(1, receivedEvents.stream()
+        assertEquals(1, rootSubEventsReceived.stream()
             .filter(e -> e instanceof SystemAddedEvent)
             .count());
-        
-        assertEquals(1, receivedEvents.stream()
+        assertEquals(1, rootSubEventsReceived.stream()
             .filter(e -> e instanceof SystemEnabledEvent)
             .count());
+        assertEquals(sensor.getOutputs().size()*2+2, rootSubEventsReceived.size());
         
-        assertEquals(sensor.getOutputs().size()*2+2, receivedEvents.size());
+        // check that we received all events on system subscription
+        assertEquals(sensor.getOutputs().size(), systemSubEventsReceived.stream()
+            .filter(e -> e instanceof DataStreamAddedEvent)
+            .count());
+        assertEquals(sensor.getOutputs().size(), systemSubEventsReceived.stream()
+            .filter(e -> e instanceof DataStreamEnabledEvent)
+            .count());
+        assertEquals(1, systemSubEventsReceived.stream()
+            .filter(e -> e instanceof SystemAddedEvent)
+            .count());
+        assertEquals(1, systemSubEventsReceived.stream()
+            .filter(e -> e instanceof SystemEnabledEvent)
+            .count());
+        assertEquals(sensor.getOutputs().size()*2+2, systemSubEventsReceived.size());
         
         
         // register again and check that we receive proper events
-        receivedEvents.clear();
+        rootSubEventsReceived.clear();
+        systemSubEventsReceived.clear();
         registry.register(sensor).join();
         Thread.sleep(100);
         
-        assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
+        // check that we received all events on root subscription
+        assertEquals(sensor.getOutputs().size(), rootSubEventsReceived.stream()
             .filter(e -> e instanceof DataStreamEnabledEvent)
             .count());
-        
-        assertEquals(1, receivedEvents.stream()
+        assertEquals(1, rootSubEventsReceived.stream()
             .filter(e -> e instanceof SystemEnabledEvent)
             .count());
-        
-        assertEquals(0, receivedEvents.stream()
+        assertEquals(0, rootSubEventsReceived.stream()
             .filter(e -> e instanceof DataStreamAddedEvent)
             .count());
-        
-        assertEquals(0, receivedEvents.stream()
+        assertEquals(0, rootSubEventsReceived.stream()
             .filter(e -> e instanceof SystemAddedEvent)
             .count());
+        assertEquals(sensor.getOutputs().size()+1, rootSubEventsReceived.size());
         
-        assertEquals(sensor.getOutputs().size()+1, receivedEvents.size());
+        // check that we received all events on system subscription
+        assertEquals(sensor.getOutputs().size(), systemSubEventsReceived.stream()
+            .filter(e -> e instanceof DataStreamEnabledEvent)
+            .count());
+        assertEquals(1, systemSubEventsReceived.stream()
+            .filter(e -> e instanceof SystemEnabledEvent)
+            .count());
+        assertEquals(0, systemSubEventsReceived.stream()
+            .filter(e -> e instanceof DataStreamAddedEvent)
+            .count());
+        assertEquals(0, systemSubEventsReceived.stream()
+            .filter(e -> e instanceof SystemAddedEvent)
+            .count());
+        assertEquals(sensor.getOutputs().size()+1, systemSubEventsReceived.size());
     }
     
     
@@ -470,46 +503,68 @@ public class TestSystemDriverRegistry
         sensor.setDataInterfaces(
             new FakeSensorData(sensor, NAME_OUTPUT1, 0.1, NUM_GEN_SAMPLES),
             new FakeSensorData(sensor, NAME_OUTPUT1 + "_bis", 0.1, NUM_GEN_SAMPLES),
-            new FakeSensorData2(sensor, NAME_OUTPUT2, 0.05, NUM_GEN_SAMPLES));        
+            new FakeSensorData2(sensor, NAME_OUTPUT2, 0.05, NUM_GEN_SAMPLES));
         
         // subscribe to events
-        var receivedEvents = new ArrayList<Event>();
+        var rootSubEventsReceived = new ArrayList<Event>();
         hub.getEventBus().newSubscription(SystemEvent.class)
             .withTopicID(EventUtils.getSystemRegistryTopicID())
-            .withTopicID(EventUtils.getSystemStatusTopicID(sensor))
             .consume(e -> {
-                System.out.println("Received " + e.getClass().getSimpleName() +
+                System.out.println("Root Subscription: Received " + e.getClass().getSimpleName() +
                     " from " + e.getSystemUID() +
                     ((e instanceof DataStreamEvent) ? ", output=" + ((DataStreamEvent)e).getOutputName() : "") );
-                receivedEvents.add(e);
-            });        
+                rootSubEventsReceived.add(e);
+            });
+        
+        var systemSubEventsReceived = new ArrayList<Event>();
+        hub.getEventBus().newSubscription(SystemEvent.class)
+            .withTopicID(EventUtils.getSystemStatusTopicID(sensor))
+            .consume(e -> {
+                System.out.println("System Subscription: Received " + e.getClass().getSimpleName() +
+                    " from " + e.getSystemUID() +
+                    ((e instanceof DataStreamEvent) ? ", output=" + ((DataStreamEvent)e).getOutputName() : "") );
+                systemSubEventsReceived.add(e);
+            });
         
         // register
         registry.register(sensor).join();
         Thread.sleep(100);
         
         // unregister and check that we receive proper events
-        receivedEvents.clear();
+        rootSubEventsReceived.clear();
+        systemSubEventsReceived.clear();
         registry.unregister(sensor).join();
         Thread.sleep(100);
         
-        assertEquals(sensor.getOutputs().size(), receivedEvents.stream()
+        // check that we received all events on root subscription
+        assertEquals(sensor.getOutputs().size(), rootSubEventsReceived.stream()
             .filter(e -> e instanceof DataStreamDisabledEvent)
             .count());
-        
-        assertEquals(1, receivedEvents.stream()
+        assertEquals(1, rootSubEventsReceived.stream()
             .filter(e -> e instanceof SystemDisabledEvent)
             .count());
-        
-        assertEquals(0, receivedEvents.stream()
+        assertEquals(0, rootSubEventsReceived.stream()
             .filter(e -> e instanceof DataStreamRemovedEvent)
             .count());
-        
-        assertEquals(0, receivedEvents.stream()
+        assertEquals(0, rootSubEventsReceived.stream()
             .filter(e -> e instanceof SystemRemovedEvent)
             .count());
+        assertEquals(sensor.getOutputs().size()+1, rootSubEventsReceived.size());
         
-        assertEquals(sensor.getOutputs().size()+1, receivedEvents.size());        
+        // check that we received all events on system subscription
+        assertEquals(sensor.getOutputs().size(), systemSubEventsReceived.stream()
+            .filter(e -> e instanceof DataStreamDisabledEvent)
+            .count());
+        assertEquals(1, systemSubEventsReceived.stream()
+            .filter(e -> e instanceof SystemDisabledEvent)
+            .count());
+        assertEquals(0, systemSubEventsReceived.stream()
+            .filter(e -> e instanceof DataStreamRemovedEvent)
+            .count());
+        assertEquals(0, systemSubEventsReceived.stream()
+            .filter(e -> e instanceof SystemRemovedEvent)
+            .count());
+        assertEquals(sensor.getOutputs().size()+1, systemSubEventsReceived.size());
     }
 
 }

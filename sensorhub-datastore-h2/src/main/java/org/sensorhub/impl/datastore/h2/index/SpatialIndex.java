@@ -86,10 +86,7 @@ public abstract class SpatialIndex<T extends IResource, K extends Comparable<?>>
         
         /*final RTreeCursor geoCursor = rTreeMap.findIntersectingKeys(bbox);
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(geoCursor, Spliterator.DISTINCT), true)
-            .map(k -> rTreeMap.get(k));
-        
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(geoCursor, Spliterator.DISTINCT), true)
-            .map(e -> geoCursor.getValue());*/
+            .map(k -> rTreeMap.get(k));*/
         
         var rTreeKeyType = ((SpatialDataType)rTreeMap.getKeyType());
         var geoCursor = new RTreeEntryCursor<K>(rTreeMap.getRoot(), bbox) {
@@ -102,6 +99,9 @@ public abstract class SpatialIndex<T extends IResource, K extends Comparable<?>>
         
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(geoCursor, Spliterator.DISTINCT), true)
             .map(e -> e.getValue());
+        
+        /*return StreamSupport.stream(Spliterators.spliteratorUnknownSize(geoCursor, Spliterator.DISTINCT), true)
+            .map(e -> geoCursor.getValue());*/
     }
     
     

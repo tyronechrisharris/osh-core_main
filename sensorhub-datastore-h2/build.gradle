@@ -9,6 +9,12 @@ dependencies {
   testImplementation project(path: ':sensorhub-core', configuration: 'testArtifacts')
 }
 
+test {
+  filter {
+    excludeTestsMatching 'org.sensorhub.impl.datastore.h2.TestMVFeatureStore.test*Throughput'
+  }
+}
+
 // add info to OSGI manifest
 osgi {
   manifest {
