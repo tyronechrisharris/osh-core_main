@@ -17,6 +17,7 @@ package org.sensorhub.api.system;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.utils.OshAsserts;
+import org.vast.util.Asserts;
 
 
 /**
@@ -31,8 +32,9 @@ import org.sensorhub.api.utils.OshAsserts;
 public abstract class SystemEvent extends Event
 {
     protected String systemUID;
-    protected transient String sourceID;
-
+    protected String sourceID;
+    protected long systemID;
+    
 
     public SystemEvent(long timeStamp, String sysUID)
     {
@@ -59,6 +61,28 @@ public abstract class SystemEvent extends Event
         return systemUID;
     }
 
+
+    /**
+     * @return Local ID of the system related to this event
+     */
+    public long getSystemID()
+    {
+        return systemID;
+    }
+    
+    
+    /**
+     * Called by the framework to assign the system's local ID to this event.
+     * This can only be called once and must be called before the event is
+     * dispatched.
+     * @param internalID Local ID of related system
+     */
+    public void assignSystemID(long internalID)
+    {
+        Asserts.checkState(systemID == 0, "System ID is already assigned");
+        this.systemID = internalID;
+    }
+    
 
     @Override
     public String getSourceID()

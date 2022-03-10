@@ -286,6 +286,10 @@ public class DataStreamTransactionHandler implements IEventListener
     {
         String topic;
         
+        // assign internal ID before event is dispatched
+        event.assignSystemID(dsInfo.getSystemID().getInternalID());
+        event.assignDataStreamID(dsKey.getInternalID());
+        
         // publish on this datastream status channel
         topic = EventUtils.getDataStreamStatusTopicID(dsInfo);
         rootHandler.eventBus.getPublisher(topic).publish(event);

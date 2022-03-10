@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
+import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.system.SystemEvent;
 import org.vast.util.Asserts;
 
@@ -29,6 +30,7 @@ import org.vast.util.Asserts;
 public abstract class CommandStreamEvent extends SystemEvent
 {
     String controlInputName;
+    protected long cmdStreamID;
 
 
     /**
@@ -72,5 +74,36 @@ public abstract class CommandStreamEvent extends SystemEvent
     public String getControlInputName()
     {
         return controlInputName;
+    }
+
+
+    /**
+     * @return Local ID of the command stream related to this event
+     */
+    public long getCommandStreamID()
+    {
+        return cmdStreamID;
+    }
+    
+    
+    /**
+     * Called by the framework to assign the command stream's local ID to this event.
+     * This can only be called once and must be called before the event is
+     * dispatched.
+     * @param internalID Local ID of related command stream
+     */
+    public void assignCommandStreamID(long internalID)
+    {
+        Asserts.checkState(cmdStreamID == 0, "Command stream ID is already assigned");
+        this.cmdStreamID = internalID;
+    }
+
+
+    @Override
+    public String getSourceID()
+    {
+        if (sourceID == null)
+            sourceID = EventUtils.getCommandStreamStatusTopicID(systemUID, controlInputName);
+        return sourceID;
     }
 }

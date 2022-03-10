@@ -454,6 +454,9 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
                 var driverUid = driver.getUniqueIdentifier();
                 var eventUid = ((SystemEvent) e).getSystemUID();
                 
+                // assign internal ID before event is dispatched
+                ((SystemEvent)e).assignSystemID(sysKey.getInternalID());
+                
                 if (e instanceof SystemChangedEvent && driverUid.equals(eventUid))
                 {
                     // update main system

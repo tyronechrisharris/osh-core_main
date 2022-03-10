@@ -30,6 +30,7 @@ import org.vast.util.Asserts;
 public abstract class DataStreamEvent extends SystemEvent
 {
     protected String outputName;
+    protected long dataStreamID;
 
 
     /**
@@ -72,6 +73,28 @@ public abstract class DataStreamEvent extends SystemEvent
     public String getOutputName()
     {
         return outputName;
+    }
+
+
+    /**
+     * @return Local ID of the datastream related to this event
+     */
+    public long getDataStreamID()
+    {
+        return dataStreamID;
+    }
+    
+    
+    /**
+     * Called by the framework to assign the datastream's local ID to this event.
+     * This can only be called once and must be called before the event is
+     * dispatched.
+     * @param internalID Local ID of related datastream
+     */
+    public void assignDataStreamID(long internalID)
+    {
+        Asserts.checkState(dataStreamID == 0, "Datastream ID is already assigned");
+        this.dataStreamID = internalID;
     }
 
 

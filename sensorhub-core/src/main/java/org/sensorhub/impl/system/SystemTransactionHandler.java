@@ -458,6 +458,9 @@ public class SystemTransactionHandler
     {
         String topic;
         
+        // assign internal ID before event is dispatched
+        event.assignSystemID(sysKey.getInternalID());
+        
         // publish on system status channel
         topic = EventUtils.getSystemStatusTopicID(sysUID);
         rootHandler.eventBus.getPublisher(topic).publish(event);
