@@ -164,22 +164,22 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
             
             // static content
             ContextHandler fileResourceContext = null;
-            if (config.staticDocRootUrl != null)
+            if (config.staticDocsRootUrl != null)
             {
                 ResourceHandler fileResourceHandler = new ResourceHandler();
                 fileResourceHandler.setEtags(true);
                 
                 fileResourceContext = new ContextHandler();
-                fileResourceContext.setContextPath("/");
+                fileResourceContext.setContextPath(config.staticDocsRootUrl);
                 //fileResourceContext.setAllowNullPathInfo(true);
                 fileResourceContext.setHandler(fileResourceHandler);
-                fileResourceContext.setResourceBase(config.staticDocRootUrl);
+                fileResourceContext.setResourceBase(config.staticDocsRootDir);
 
                 //fileResourceContext.clearAliasChecks();
                 fileResourceContext.addAliasCheck(new AllowSymLinkAliasChecker());
                 
                 handlers.addHandler(fileResourceContext);
-                getLogger().info("Static resources root is " + config.staticDocRootUrl);
+                getLogger().info("Static resources root is " + config.staticDocsRootUrl);
             }
             
             // servlets

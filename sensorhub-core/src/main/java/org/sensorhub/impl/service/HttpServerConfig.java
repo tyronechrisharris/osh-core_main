@@ -43,7 +43,11 @@ public class HttpServerConfig extends ModuleConfig
     
     
     @DisplayInfo(desc="Root URL where static web content will be served.")
-    public String staticDocRootUrl = null;
+    public String staticDocsRootUrl = "/";
+    
+    
+    @DisplayInfo(desc="Directory where static web content is located.")
+    public String staticDocsRootDir = "web";
     
     
     @DisplayInfo(desc="Root URL where the server will accept requests. This will be the prefix to all servlet URLs.")

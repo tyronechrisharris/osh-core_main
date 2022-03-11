@@ -3,7 +3,7 @@
     "objClass": "org.sensorhub.impl.service.HttpServerConfig",
     "httpPort": 8181,
     "httpsPort": 0,
-    "staticDocRootUrl": "web",
+    "staticDocsRootDir": "web",
     "servletsRootUrl": "/sensorhub",
     "authMethod": "BASIC",
     "keyStorePath": ".keystore/ssl_keys",
