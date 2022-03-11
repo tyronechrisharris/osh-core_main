@@ -440,6 +440,12 @@ public class CommandStreamTransactionHandler implements IEventListener
     {
         String topic;
         
+        // assign internal ID before event is dispatched
+        var publicSysId = rootHandler.toPublicId(csInfo.getSystemID().getInternalID());
+        var publicCsId = rootHandler.toPublicId(csKey.getInternalID());
+        event.assignSystemID(publicSysId);
+        event.assignCommandStreamID(publicCsId);
+        
         // publish on this datastream status channel
         topic = EventUtils.getCommandStreamStatusTopicID(csInfo);
         rootHandler.eventBus.getPublisher(topic).publish(event);

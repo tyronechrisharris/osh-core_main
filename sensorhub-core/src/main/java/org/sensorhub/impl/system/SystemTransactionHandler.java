@@ -459,7 +459,8 @@ public class SystemTransactionHandler
         String topic;
         
         // assign internal ID before event is dispatched
-        event.assignSystemID(sysKey.getInternalID());
+        var publicSysId = rootHandler.toPublicId(sysKey.getInternalID());
+        event.assignSystemID(publicSysId);
         
         // publish on system status channel
         topic = EventUtils.getSystemStatusTopicID(sysUID);

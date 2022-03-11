@@ -33,6 +33,7 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
+import org.sensorhub.impl.database.registry.ObsDelegate;
 import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
@@ -191,7 +192,7 @@ public class DataStreamTransactionHandler implements IEventListener
             foiId = IObsData.NO_FOI;
         
         // process all records
-        var obsArray = new IObsData[e.getRecords().length];
+        var obsArray = new ObsDelegate[e.getRecords().length];
         for (int i = 0; i < obsArray.length; i++)
         {
             var rec = e.getRecords()[i];
@@ -203,7 +204,7 @@ public class DataStreamTransactionHandler implements IEventListener
             else
                 time = e.getTimeStamp() / 1000.;
         
-            // store record with proper key
+            // create obs
             ObsData obs = new ObsData.Builder()
                 .withDataStream(dsKey.getInternalID())
                 .withFoi(foiId)
@@ -211,7 +212,7 @@ public class DataStreamTransactionHandler implements IEventListener
                 .withResult(rec)
                 .build();
             
-            obsArray[i] = obs;
+            obsArray[i] = toPublicObs(obs);
         }
         
         // first forward to event bus to minimize latency
@@ -224,7 +225,7 @@ public class DataStreamTransactionHandler implements IEventListener
         // then add all obs to store
         BigInteger obsID = null;
         for (var obs: obsArray)
-            obsID = rootHandler.db.getObservationStore().add(obs);
+            obsID = rootHandler.db.getObservationStore().add(obs.getDelegate());
         
         return obsID;
     }
@@ -242,10 +243,38 @@ public class DataStreamTransactionHandler implements IEventListener
             timeStamp,
             dsInfo.getSystemID().getUniqueID(),
             dsInfo.getOutputName(),
-            obs));
+            toPublicObs(obs)));
         
         // add to store
         return rootHandler.db.getObservationStore().add(obs);
+    }
+    
+    
+    /*
+     * Convert to public values on the way out
+     */
+    protected ObsDelegate toPublicObs(IObsData obs)
+    {
+        long dsPublicId = rootHandler.toPublicId(obs.getDataStreamID());
+        
+        long foiPublicId = obs.hasFoi() ?
+            rootHandler.toPublicId(obs.getFoiID()) :
+            IObsData.NO_FOI;
+            
+        // wrap original observation to return correct public IDs
+        return new ObsDelegate(obs) {
+            @Override
+            public long getDataStreamID()
+            {
+                return dsPublicId;
+            }
+
+            @Override
+            public long getFoiID()
+            {
+                return foiPublicId;
+            }
+        };
     }
 
 
@@ -278,8 +307,10 @@ public class DataStreamTransactionHandler implements IEventListener
         String topic;
         
         // assign internal ID before event is dispatched
-        event.assignSystemID(dsInfo.getSystemID().getInternalID());
-        event.assignDataStreamID(dsKey.getInternalID());
+        var publicSysId = rootHandler.toPublicId(dsInfo.getSystemID().getInternalID());
+        var publicDsId = rootHandler.toPublicId(dsKey.getInternalID());
+        event.assignSystemID(publicSysId);
+        event.assignDataStreamID(publicDsId);
         
         // publish on this datastream status channel
         topic = EventUtils.getDataStreamStatusTopicID(dsInfo);

@@ -81,4 +81,10 @@ public class ObsDelegate implements IObsData
     {
         return delegate.getResult();
     }
+    
+    
+    public IObsData getDelegate()
+    {
+        return delegate;
+    }
 }
