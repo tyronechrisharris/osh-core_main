@@ -27,18 +27,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
-import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.client.IClientModule;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.DataStreamAddedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
 import org.sensorhub.api.data.DataStreamEnabledEvent;
 import org.sensorhub.api.data.DataStreamRemovedEvent;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -73,7 +72,6 @@ import org.vast.ows.swe.InsertSensorResponse;
 import org.vast.ows.swe.SWESUtils;
 import org.vast.ows.swe.UpdateSensorRequest;
 import org.vast.swe.Base64Encoder;
-import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEData;
 
 
@@ -595,9 +593,9 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                 return;
             
             // subscribe to data events
-            getParentHub().getEventBus().newSubscription(DataEvent.class)
+            getParentHub().getEventBus().newSubscription(ObsEvent.class)
                 .withTopicID(streamInfo.topicId)
-                .withEventType(DataEvent.class)
+                .withEventType(ObsEvent.class)
                 .subscribe(e -> {
                     handleEvent(e, streamInfo);
                 })
@@ -704,22 +702,22 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     }
     
     
-    protected void handleEvent(final DataEvent e, final StreamInfo streamInfo)
+    protected void handleEvent(final ObsEvent e, final StreamInfo streamInfo)
     {
         // we stop here if we had too many errors
         if (streamInfo.errorCount >= config.connection.maxConnectErrors)
         {
-            String outputName = ((DataEvent)e).getSource().getName();
+            String outputName = ((ObsEvent)e).getOutputName();
             reportError("Too many errors sending '" + outputName + "' data to SOS-T. Stopping Stream.", null);
             stopStream(streamInfo);
-            checkDisconnected();                
+            checkDisconnected();
             return;
         }
         
         // skip if we cannot handle more requests
         if (streamInfo.executor.getQueue().size() == config.connection.maxQueueSize)
         {
-            String outputName = ((DataEvent)e).getSource().getName();
+            String outputName = ((ObsEvent)e).getOutputName();
             getLogger().warn("Too many '{}' records to send to SOS-T. Bandwidth cannot keep up.", outputName);
             getLogger().info("Skipping records by purging record queue");
             streamInfo.executor.clear();
@@ -823,33 +821,32 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     
     private void sendObs(final IObsData obs, final StreamInfo streamInfo)
     {
-        sendObs(new DataEvent(
+        sendObs(new ObsEvent(
             obs.getResultTime().toEpochMilli(),
             streamInfo.sysUID,
             streamInfo.outputName,
-            SWEConstants.NIL_UNKNOWN,
-            obs.getResult()), streamInfo);
+            obs), streamInfo);
     }
     
     
-    private void sendObs(final DataEvent e, final StreamInfo streamInfo)
+    private void sendObs(final ObsEvent e, final StreamInfo streamInfo)
     {
         // send record using one of 2 methods
         if (config.connection.usePersistentConnection)
-            sendInPersistentRequest((DataEvent)e, streamInfo);
+            sendInPersistentRequest(e, streamInfo);
         else
-            sendAsNewRequest((DataEvent)e, streamInfo);
+            sendAsNewRequest(e, streamInfo);
     }
     
     
     /*
      * Sends each new record using an XML InsertResult POST request
      */
-    private void sendAsNewRequest(final DataEvent e, final StreamInfo streamInfo)
+    private void sendAsNewRequest(final ObsEvent e, final StreamInfo streamInfo)
     {
         // append records to buffer
-        for (DataBlock record: e.getRecords())
-            streamInfo.resultData.pushNextDataBlock(record);
+        for (var obs: e.getObservations())
+            streamInfo.resultData.pushNextDataBlock(obs.getResult());
         
         // send request if min record count is reached
         if (streamInfo.resultData.getNumElements() >= streamInfo.minRecordsPerRequest)
@@ -872,7 +869,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     {
                         if (getLogger().isTraceEnabled())
                         {
-                            String outputName = e.getSource().getName();
+                            String outputName = e.getOutputName();
                             int numRecords = req.getResultData().getComponentCount();
                             getLogger().trace("Sending " + numRecords + " '" + outputName + "' record(s) to SOS-T");
                             getLogger().trace("Queue size is " + streamInfo.executor.getQueue().size());
@@ -882,11 +879,11 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     }
                     catch (Exception ex)
                     {
-                        String outputName = e.getSource().getName();
+                        String outputName = e.getOutputName();
                         reportError("Error when sending '" + outputName + "' data to SOS-T", ex, true);
                         streamInfo.errorCount++;
                     }
-                }           
+                }
             };
             
             // run task in async thread pool
@@ -899,7 +896,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
      * Sends all records in the same persistent HTTP connection.
      * The connection is created when the first record is received
      */
-    private void sendInPersistentRequest(final DataEvent e, final StreamInfo streamInfo)
+    private void sendInPersistentRequest(final ObsEvent e, final StreamInfo streamInfo)
     {
         // skip records while we are connecting to remote SOS
         if (streamInfo.connecting)
@@ -914,7 +911,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                 {
                     // connect if not already connected
                     if (streamInfo.persistentWriter == null)
-                    {                        
+                    {
                         streamInfo.connecting = true;
                         if (getLogger().isDebugEnabled())
                             getLogger().debug("Initiating persistent HTTP request");
@@ -924,8 +921,8 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                         req.setVersion("2.0");
                         req.setTemplateId(streamInfo.templateId);
                         
-                        // connect to server                        
-                        HttpURLConnection conn = sosUtils.sendPostRequestWithQuery(req);                        
+                        // connect to server
+                        HttpURLConnection conn = sosUtils.sendPostRequestWithQuery(req);
                         conn.setRequestProperty("Content-type", "text/plain");
                         conn.setChunkedStreamingMode(32);
                         if (config.sos.user != null && config.sos.password != null)
@@ -946,15 +943,15 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     
                     if (getLogger().isTraceEnabled())
                     {
-                        String outputName = e.getSource().getName();
-                        int numRecords = e.getRecords().length;
+                        String outputName = e.getOutputName();
+                        int numRecords = e.getObservations().length;
                         getLogger().trace("Sending " + numRecords + " '" + outputName + "' record(s) to SOS-T");
                         getLogger().trace("Queue size is " + streamInfo.executor.getQueue().size());
                     }
                     
                     // write records to output stream
-                    for (DataBlock record: e.getRecords())
-                        streamInfo.persistentWriter.write(record);
+                    for (var obs: e.getObservations())
+                        streamInfo.persistentWriter.write(obs.getResult());
                     streamInfo.persistentWriter.flush();
                 }
                 catch (Exception ex)
@@ -963,7 +960,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     if (streamInfo.stopping)
                         return;
                     
-                    String outputName = e.getSource().getName();
+                    String outputName = e.getOutputName();
                     reportError("Error when sending '" + outputName + "' data to SOS-T", ex, true);
                     streamInfo.errorCount++;
                     

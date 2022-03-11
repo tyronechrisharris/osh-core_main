@@ -21,8 +21,8 @@ import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IObsData;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.impl.event.DelegatingSubscriberAdapter;
@@ -30,7 +30,6 @@ import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.SOSException;
-import org.vast.swe.SWEConstants;
 import org.vast.util.Asserts;
 
 
@@ -189,7 +188,7 @@ public class HistoricalDataProvider extends SystemDataProvider
 
 
     @Override
-    public void getResults(GetResultRequest req, Subscriber<DataEvent> consumer) throws SOSException
+    public void getResults(GetResultRequest req, Subscriber<ObsEvent> consumer) throws SOSException
     {
         Asserts.checkState(selectedDataStream != null, "getResultTemplate hasn't been called");
         String sysUID = getProcedureUID(req.getOffering());
@@ -210,12 +209,12 @@ public class HistoricalDataProvider extends SystemDataProvider
             throw new SOSException(SOSException.response_too_big_code, null, null, TOO_MANY_OBS_MSG);
         
         // wrap consumer to map from IObsData to DataEvent
-        var obsConsumer = new DelegatingSubscriberAdapter<IObsData, DataEvent>(consumer)
+        var obsConsumer = new DelegatingSubscriberAdapter<IObsData, ObsEvent>(consumer)
         {
             @Override
             public void onNext(IObsData item)
             {
-                consumer.onNext(toDataEvent(item));
+                consumer.onNext(toObsEvent(item));
             }
         };
         
@@ -239,13 +238,12 @@ public class HistoricalDataProvider extends SystemDataProvider
     }
     
     
-    protected DataEvent toDataEvent(IObsData obs)
+    protected ObsEvent toObsEvent(IObsData obs)
     {
-        return new DataEvent(
+        return new ObsEvent(
             obs.getResultTime().toEpochMilli(),
             selectedDataStream.sysUID,
             selectedDataStream.resultStruct.getName(),
-            SWEConstants.NIL_UNKNOWN,
-            obs.getResult());
+            obs);
     }
 }

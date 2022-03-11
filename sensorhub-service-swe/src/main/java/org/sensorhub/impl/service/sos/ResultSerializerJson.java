@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.sos;
 
 import java.io.IOException;
 import javax.servlet.AsyncContext;
-import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.vast.data.JSONEncodingImpl;
 import org.vast.ows.OWSUtils;
@@ -58,7 +58,7 @@ public class ResultSerializerJson extends AbstractResultSerializerSwe
     
     
     @Override
-    protected void writeRecord(DataEvent item) throws IOException
+    protected void writeRecord(ObsEvent item) throws IOException
     {
         super.writeRecord(item);
         if (!multipleRecords)

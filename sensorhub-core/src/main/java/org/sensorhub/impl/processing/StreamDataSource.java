@@ -21,14 +21,13 @@ import java.util.concurrent.Flow.Subscription;
 import java.util.function.Consumer;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.event.EventUtils;
-import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.processing.OSHProcessInfo;
 import org.vast.process.ExecutableProcessImpl;
 import org.vast.process.ProcessException;
 import org.vast.process.ProcessInfo;
 import org.vast.swe.SWEHelper;
-import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.Text;
 
 
@@ -121,9 +120,9 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
             for (var output: outputData.getProperties())
                 topics.add(EventUtils.getDataStreamDataTopicID(producerUri, output.getName()));
             
-            hub.getEventBus().newSubscription(DataEvent.class)
+            hub.getEventBus().newSubscription(ObsEvent.class)
             .withTopicIDs(topics)
-            .subscribe(new Subscriber<DataEvent>() {
+            .subscribe(new Subscriber<ObsEvent>() {
 
                 @Override
                 public void onSubscribe(Subscription subscription)
@@ -133,7 +132,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
                 }
 
                 @Override
-                public void onNext(DataEvent e)
+                public void onNext(ObsEvent e)
                 {
                     if (paused)
                         return;
@@ -142,11 +141,11 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
                     var output = outputData.getComponent(outputName);
                     
                     // process each data block
-                    for (DataBlock dataBlk: e.getRecords())
+                    for (var obs: e.getObservations())
                     {
                         try
                         {
-                            output.setData(dataBlk);    
+                            output.setData(obs.getResult());
                             publishData(outputName);
                         }
                         catch (InterruptedException ex)

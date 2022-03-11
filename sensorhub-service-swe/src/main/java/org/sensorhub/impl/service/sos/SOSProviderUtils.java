@@ -149,9 +149,9 @@ public class SOSProviderUtils
         
         // foi
         if (foiURI == null)
-            foiURI = SWEConstants.NIL_UNKNOWN;            
+            foiURI = SWEConstants.NIL_UNKNOWN;
 
-        // create observation object        
+        // create observation object
         ObservationImpl obs = new ObservationImpl();
         obs.setType(getObsType(result));
         obs.setFeatureOfInterest(new FeatureRef<IFeature>(foiURI));

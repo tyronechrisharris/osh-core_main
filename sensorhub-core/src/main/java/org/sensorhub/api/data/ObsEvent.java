@@ -14,8 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.data;
 
-import java.util.Arrays;
-import java.util.Collection;
+import org.sensorhub.api.event.EventUtils;
 import org.vast.util.Asserts;
 
 
@@ -29,19 +28,28 @@ import org.vast.util.Asserts;
  */
 public class ObsEvent extends DataStreamEvent
 {
-    Collection<IObsData> observations;
+    IObsData[] observations;
     
     
     public ObsEvent(long timeStamp, String sysUID, String outputName, IObsData... obs)
     {
         super(timeStamp, sysUID, outputName);
-        this.observations = Asserts.checkNotNullOrEmpty(Arrays.asList(obs), IObsData[].class);
+        this.observations = Asserts.checkNotNullOrEmpty(obs, IObsData[].class);
     }
 
 
-    public Collection<IObsData> getObservations()
+    public IObsData[] getObservations()
     {
         return observations;
-    }    
+    }
+
+
+    @Override
+    public String getSourceID()
+    {
+        if (sourceID == null)
+            sourceID = EventUtils.getDataStreamDataTopicID(systemUID, outputName);
+        return sourceID;
+    }
     
 }

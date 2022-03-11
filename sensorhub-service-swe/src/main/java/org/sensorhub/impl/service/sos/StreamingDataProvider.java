@@ -19,11 +19,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
-import net.opengis.swe.v20.DataBlock;
+import java.util.stream.Collectors;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.IObsData;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.event.DelegatingSubscriber;
 import org.sensorhub.impl.event.DelegatingSubscriberAdapter;
 import org.sensorhub.impl.event.DelegatingSubscription;
@@ -31,7 +33,6 @@ import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.SOSException;
-import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
@@ -78,6 +79,7 @@ public class StreamingDataProvider extends SystemDataProvider
         // cache of datastreams info
         var dataStreams = new HashMap<Long, DataStreamInfoCache>();
         var dataStreamsByTopic = new HashMap<String, DataStreamInfoCache>();
+        var foiIdCache = new HashMap<Long, String>();
         
         // query selected datastreams
         var dsFilter = obsFilter.getDataStreamFilter();
@@ -93,18 +95,29 @@ public class StreamingDataProvider extends SystemDataProvider
                 dataStreamsByTopic.put(topic, dsInfoCache);
             });
 
-        // call getResults and transform DataEvents to Observation objects
-        subscribeAndProcessDataEvents(dataStreams, originalTimeFilter, obsFilter, new DelegatingSubscriberAdapter<DataEvent, IObservation>(consumer) {
-            public void onNext(DataEvent e)
+        // call getResults and transform ObsEvents to Observation objects
+        subscribeAndProcessDataEvents(dataStreams, originalTimeFilter, obsFilter, new DelegatingSubscriberAdapter<ObsEvent, IObservation>(consumer) {
+            public void onNext(ObsEvent e)
             {
                 var dsInfoCache = dataStreamsByTopic.get(e.getSourceID());
                 
-                for (DataBlock data: e.getRecords())
+                for (var obs: e.getObservations())
                 {
                     // can reuse same structure since we are running in a single thread
                     var result = dsInfoCache.resultStruct;
-                    result.setData(data);
-                    consumer.onNext(SOSProviderUtils.buildObservation(dsInfoCache.sysUID, e.getFoiUID(), result));
+                    result.setData(obs.getResult());
+                    
+                    // get FOI UID from cache
+                    String foiUID = null;
+                    if (obs.hasFoi())
+                    {
+                        foiUID = foiIdCache.computeIfAbsent(obs.getFoiID(), k -> {
+                            var f = database.getFoiStore().getCurrentVersion(k);
+                            return f != null ? f.getUniqueIdentifier() : null;
+                        });
+                    }
+                    
+                    consumer.onNext(SOSProviderUtils.buildObservation(dsInfoCache.sysUID, foiUID, result));
                 }
             }
         });
@@ -112,7 +125,7 @@ public class StreamingDataProvider extends SystemDataProvider
 
 
     @Override
-    public void getResults(GetResultRequest req, Subscriber<DataEvent> consumer) throws SOSException
+    public void getResults(GetResultRequest req, Subscriber<ObsEvent> consumer) throws SOSException
     {
         Asserts.checkState(selectedDataStream != null, "getResultTemplate hasn't been called");
         String procUID = getProcedureUID(req.getOffering());
@@ -136,7 +149,29 @@ public class StreamingDataProvider extends SystemDataProvider
     }
     
     
-    protected void subscribeAndProcessDataEvents(Map<Long, DataStreamInfoCache> dataStreams, TimeExtent timeFilter, ObsFilter obsFilter, Subscriber<DataEvent> consumer)
+    @Override
+    protected ObsFilter getObsFilter(GetObservationRequest req, Long dataStreamId) throws SOSException
+    {
+        var obsFilter = super.getObsFilter(req, dataStreamId);
+        
+        // prefetch FOI internal IDs if filtering on FOIs
+        // this is necessary because IObsData objects in events only contain the FOI ID
+        if (obsFilter.getFoiFilter() != null)
+        {
+            var foiIDs = DataStoreUtils
+                .selectFeatureIDs(database.getFoiStore(), obsFilter.getFoiFilter())
+                .collect(Collectors.toSet());
+            
+            obsFilter = ObsFilter.Builder.from(obsFilter)
+                .withFois(foiIDs)
+                .build();
+        }
+        
+        return obsFilter;
+    }
+    
+    
+    protected void subscribeAndProcessDataEvents(Map<Long, DataStreamInfoCache> dataStreams, TimeExtent timeFilter, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
     {        
         // create set of event sources
         var topics = new HashSet<String>();
@@ -170,10 +205,10 @@ public class StreamingDataProvider extends SystemDataProvider
 
             // subscribe to event bus
             // wrap subscriber to handle timeout and end time
-            eventBus.newSubscription(DataEvent.class)
+            eventBus.newSubscription(ObsEvent.class)
                 .withTopicIDs(topics)
-                .withEventType(DataEvent.class)
-                .subscribe(new DelegatingSubscriber<DataEvent>(consumer) {
+                .withEventType(ObsEvent.class)
+                .subscribe(new DelegatingSubscriber<ObsEvent>(consumer) {
                     Subscription wrappedSub;
                     Subscription wrappingSub;
                     volatile boolean currentTimeRecordsSent = false;
@@ -243,18 +278,18 @@ public class StreamingDataProvider extends SystemDataProvider
                     }
 
                     @Override
-                    public void onNext(DataEvent item)
+                    public void onNext(ObsEvent event)
                     {
-                        latestEventTimestamp = item.getTimeStamp();
+                        latestEventTimestamp = event.getTimeStamp();
                         
                         if (currentTimeRecordsSent)
-                        {                        
+                        {
                             //servlet.getLogger().debug("Event ts={}", latestRecordTimestamp);
-                            DataBlock[] data = item.getRecords();
-                            if (timeIndexer != null && timeIndexer.getDoubleValue(data[data.length-1]) > stopTime)
+                            var firstObs = event.getObservations()[0];
+                            if (timeIndexer != null && timeIndexer.getDoubleValue(firstObs.getResult()) > stopTime)
                                 onComplete();
-                            else if (acceptEvent(obsFilter, item))
-                                super.onNext(item);
+                            else if (acceptEvent(obsFilter, firstObs))
+                                super.onNext(event);
                             else
                                 wrappingSub.request(1);
                         }
@@ -268,12 +303,12 @@ public class StreamingDataProvider extends SystemDataProvider
     }
     
     
-    protected boolean acceptEvent(ObsFilter filter, DataEvent e)
+    protected boolean acceptEvent(ObsFilter filter, IObsData obs)
     {
         var foiFilter = filter.getFoiFilter();
-        if (foiFilter != null && foiFilter.getUniqueIDs() != null)
+        if (foiFilter != null && foiFilter.getInternalIDs() != null)
         {
-            if (e.getFoiUID() == null || !foiFilter.getUniqueIDs().contains(e.getFoiUID()))
+            if (!obs.hasFoi() || !foiFilter.getInternalIDs().contains(obs.getFoiID()))
                 return false;
         }
         
@@ -281,7 +316,7 @@ public class StreamingDataProvider extends SystemDataProvider
     }
     
     
-    protected void sendLatestRecordsOnly(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<DataEvent> consumer)
+    protected void sendLatestRecordsOnly(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
     {
         consumer.onSubscribe(new Subscription() {
             boolean currentTimeRecordsSent = false;
@@ -309,18 +344,17 @@ public class StreamingDataProvider extends SystemDataProvider
     /*
      * Send the latest record of each data source to the consumer
      */
-    protected void sendLatestRecords(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<DataEvent> consumer)
+    protected void sendLatestRecords(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
     {
         var eventTime = System.currentTimeMillis();
         database.getObservationStore().select(obsFilter)
             .forEach(obs -> {
                 var dsInfoCache = dataStreams.get(obs.getDataStreamID());
-                consumer.onNext(new DataEvent(
+                consumer.onNext(new ObsEvent(
                     eventTime,
                     dsInfoCache.sysUID,
                     dsInfoCache.resultStruct.getName(),
-                    SWEConstants.NIL_UNKNOWN,
-                    obs.getResult()));
+                    obs));
             });
     }
 

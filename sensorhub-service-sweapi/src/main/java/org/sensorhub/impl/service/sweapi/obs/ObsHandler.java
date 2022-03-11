@@ -26,9 +26,9 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -47,15 +47,12 @@ import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.stream.StreamHandler;
-import org.sensorhub.impl.system.DataEventToObsConverter;
 import org.sensorhub.impl.system.DataStreamTransactionHandler;
 import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
 
 
 public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
@@ -194,26 +191,12 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     
     protected void startRealTimeStream(final RequestContext ctx, final long dsID, final ObsFilter filter, final ResourceBinding<BigInteger, IObsData> binding)
     {
-        // prepare lazy loaded map of FOI UID to full FeatureId
-        var foiIdCache = CacheBuilder.newBuilder()
-            .maximumSize(100)
-            .expireAfterAccess(1, TimeUnit.MINUTES)
-            .build(new CacheLoader<String, Long>() {
-                @Override
-                public Long load(String uid) throws Exception
-                {
-                    var fk = db.getFoiStore().getCurrentVersionKey(uid);
-                    return fk.getInternalID();
-                }
-            });
-        
         // init event to obs converter
         var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
-        var obsConverter = new DataEventToObsConverter(dsID, dsInfo, uid -> foiIdCache.getUnchecked(uid));
         var streamHandler = ctx.getStreamHandler();
         
         // create subscriber
-        var subscriber = new Subscriber<DataEvent>() {
+        var subscriber = new Subscriber<ObsEvent>() {
             Subscription subscription;
             
             @Override
@@ -231,20 +214,21 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             }
 
             @Override
-            public void onNext(DataEvent item)
+            public void onNext(ObsEvent event)
             {
-                obsConverter.toObs(item, obs -> {
-                    try
+                try
+                {
+                    for (var obs: event.getObservations())
                     {
                         binding.serialize(null, obs, false);
                         streamHandler.sendPacket();
                     }
-                    catch (IOException e)
-                    {
-                        subscription.cancel();
-                        throw new CallbackException(e);
-                    } 
-                });
+                }
+                catch (IOException e)
+                {
+                    subscription.cancel();
+                    throw new CallbackException(e);
+                }
             }
 
             @Override
@@ -262,9 +246,9 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         };
         
         var topic = EventUtils.getDataStreamDataTopicID(dsInfo);
-        eventBus.newSubscription(DataEvent.class)
+        eventBus.newSubscription(ObsEvent.class)
             .withTopicID(topic)
-            .withEventType(DataEvent.class)
+            .withEventType(ObsEvent.class)
             .subscribe(subscriber);
     }
     

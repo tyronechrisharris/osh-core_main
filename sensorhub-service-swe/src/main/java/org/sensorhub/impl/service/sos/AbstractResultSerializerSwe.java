@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.sos;
 
 import java.io.IOException;
 import javax.servlet.AsyncContext;
-import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.sensorhub.impl.service.swe.SWEServlet;
 import org.vast.cdm.common.DataStreamWriter;
@@ -43,7 +43,7 @@ import net.opengis.swe.v20.DataEncoding;
  * @author Alex Robin
  * @date Apr 5, 2020
  */
-public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerializer<GetResultRequest, DataEvent> implements ISOSAsyncResultSerializer
+public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerializer<GetResultRequest, ObsEvent> implements ISOSAsyncResultSerializer
 {
     static final String UNSUPPORTED_FORMAT = SWEServlet.INVALID_RESPONSE_FORMAT;
     
@@ -100,11 +100,11 @@ public abstract class AbstractResultSerializerSwe extends AbstractAsyncSerialize
     
     
     @Override
-    protected void writeRecord(DataEvent item) throws IOException
+    protected void writeRecord(ObsEvent item) throws IOException
     {
-        for (var rec: item.getRecords())
+        for (var obs: item.getObservations())
         {
-            writer.write(rec);
+            writer.write(obs.getResult());
             if (!multipleRecords)
                 writer.flush();
         }

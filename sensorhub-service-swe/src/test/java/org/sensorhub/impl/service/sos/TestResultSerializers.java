@@ -25,7 +25,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.ObsData;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.impl.SensorHub;
 import org.sensorhub.impl.service.HttpServerConfig;
@@ -92,7 +93,7 @@ public class TestResultSerializers
         serializer.init(
             servlet, asyncCtx, req,
             new RecordTemplate(recordStruct, encoding));
-        var sub = new TestSubscription<DataEvent>(serializer);
+        var sub = new TestSubscription<ObsEvent>(serializer);
         serializer.onSubscribe(sub);
         
         // also init a simple writer to compare results
@@ -112,14 +113,20 @@ public class TestResultSerializers
             
             try
             {
+                var time = t0.plusSeconds(counter.get()*10).getEpochSecond();
+        
                 DataBlock data = recordStruct.createDataBlock();
-                data.setDoubleValue(0, t0.plusSeconds(counter.get()*10).getEpochSecond());
+                data.setDoubleValue(0, time);
                 data.setDoubleValue(1, -20+counter.get()*5);
                 data.setDoubleValue(2, counter.get()*10);
                 done = counter.incrementAndGet() >= numRecords;
                 
                 // push data to subscription feeding the async serializer
-                sub.push(new DataEvent(System.currentTimeMillis(), "myproc-001", "myoutput", data), done);
+                var obs = new ObsData.Builder()
+                    .withPhenomenonTime(Instant.ofEpochSecond(time))
+                    .withResult(data)
+                    .build();
+                sub.push(new ObsEvent(System.currentTimeMillis(), "myproc-001", "myoutput", obs), done);
                 
                 // also write synchronously so we can compare outputs later
                 syncWriter.write(data);

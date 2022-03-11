@@ -26,12 +26,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.DataStreamAddedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
 import org.sensorhub.api.data.DataStreamEnabledEvent;
 import org.sensorhub.api.data.DataStreamEvent;
 import org.sensorhub.api.data.DataStreamRemovedEvent;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.Event;
@@ -113,8 +113,8 @@ public class TestSystemDriverRegistry
             // check data is forwarded to event bus
             var topic = EventUtils.getDataStreamDataTopicID(sensor.getOutputs().get(NAME_OUTPUT1));
             System.out.println("Subscribing to channel " + topic);
-            hub.getEventBus().newSubscription(DataEvent.class)
-                .withEventType(DataEvent.class)
+            hub.getEventBus().newSubscription(ObsEvent.class)
+                .withEventType(ObsEvent.class)
                 .withTopicID(topic)
                 .consume(e -> {
                     System.out.println("Record received from " + e.getSourceID() + ", ts=" +
@@ -210,8 +210,8 @@ public class TestSystemDriverRegistry
         })
         .thenCompose(nil -> {
             // check data is forwarded to event bus
-            var subBuilder = hub.getEventBus().newSubscription(DataEvent.class)
-                .withEventType(DataEvent.class);
+            var subBuilder = hub.getEventBus().newSubscription(ObsEvent.class)
+                .withEventType(ObsEvent.class);
             
             for (var sensor: sensorNet.getMembers().values())
             {
@@ -335,11 +335,13 @@ public class TestSystemDriverRegistry
             // check data is forwarded to event bus
             var topic = EventUtils.getDataStreamDataTopicID(sensorNet.getOutputs().get(NAME_OUTPUT2));
             System.out.println("Subscribe to channel " + topic);
-            hub.getEventBus().newSubscription(DataEvent.class)
-                .withEventType(DataEvent.class)
+            hub.getEventBus().newSubscription(ObsEvent.class)
+                .withEventType(ObsEvent.class)
                 .withTopicID(topic)
                 .consume(e -> {
-                    var foiStr = e.getFoiUID() != null ? e.getFoiUID() : NO_FOI;
+                    var obs = e.getObservations()[0];
+                    var foiId = obs.getFoiID();
+                    var foiStr = foiId > 0 ? stateDb.getFoiStore().getCurrentVersion(foiId).getUniqueIdentifier() : NO_FOI;
                     System.out.println("Record received from " + e.getSourceID() +
                         ", ts=" + Instant.ofEpochMilli(e.getTimeStamp()) +
                         ", foi=" + foiStr);

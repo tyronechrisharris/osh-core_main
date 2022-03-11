@@ -141,7 +141,7 @@ public class TestStreamProcess implements IEventListener
                 System.out.print(((DataEvent)e).getSource().getName() + ": ");
                 
                 writer.setDataComponents(((DataEvent)e).getSource().getRecordDescription());
-                writer.reset();                    
+                writer.reset();
                 writer.write(((DataEvent)e).getRecords()[0]);
                 writer.flush();
                 System.out.println();

@@ -38,8 +38,6 @@ import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -63,26 +61,22 @@ public class DataStreamTransactionHandler implements IEventListener
     protected IEventPublisher dataEventPublisher;
     protected ScalarIndexer timeStampIndexer;
     protected Map<String, Long> foiUidToIdMap;
-    protected Map<Long, String> foiIdToUidMap;
     
     
     public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, SystemDatabaseTransactionHandler rootHandler)
     {
-        this(dsKey, dsInfo, HashBiMap.create(), rootHandler);
+        this(dsKey, dsInfo, rootHandler.createFoiIdCache(), rootHandler);
     }
     
     
-    public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, BiMap<String, Long> foiIdMap, SystemDatabaseTransactionHandler rootHandler)
+    public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, Map<String, Long> foiIdMap, SystemDatabaseTransactionHandler rootHandler)
     {
         this.dsKey = dsKey;
         this.dsInfo = dsInfo;
         this.timeStampIndexer = SWEHelper.getTimeStampIndexer(dsInfo.getRecordStructure());
+        this.foiUidToIdMap = Asserts.checkNotNull(foiIdMap, "foiIdMap");
         this.rootHandler = rootHandler;
         
-        Asserts.checkNotNull(foiIdMap, "foiIdMap");
-        this.foiUidToIdMap = foiIdMap;
-        this.foiIdToUidMap = foiIdMap.inverse();
-            
         getDataEventPublisher();
     }
     
@@ -176,9 +170,6 @@ public class DataStreamTransactionHandler implements IEventListener
         //Asserts.checkNotNull(e, DataEvent.class);
         //checkInitialized();
         
-        // first forward to event bus to minimize latency
-        getDataEventPublisher().publish(e);
-        
         // if event carries an FOI UID, try to fetch the full Id object
         Long foiId;
         String foiUID = e.getFoiUID();
@@ -200,13 +191,15 @@ public class DataStreamTransactionHandler implements IEventListener
             foiId = IObsData.NO_FOI;
         
         // process all records
-        BigInteger obsID = null;
-        for (DataBlock record: e.getRecords())
+        var obsArray = new IObsData[e.getRecords().length];
+        for (int i = 0; i < obsArray.length; i++)
         {
+            var rec = e.getRecords()[i];
+            
             // get time stamp
             double time;
             if (timeStampIndexer != null)
-                time = timeStampIndexer.getDoubleValue(record);
+                time = timeStampIndexer.getDoubleValue(rec);
             else
                 time = e.getTimeStamp() / 1000.;
         
@@ -215,18 +208,23 @@ public class DataStreamTransactionHandler implements IEventListener
                 .withDataStream(dsKey.getInternalID())
                 .withFoi(foiId)
                 .withPhenomenonTime(SWEDataUtils.toInstant(time))
-                .withResult(record)
+                .withResult(rec)
                 .build();
             
-            getDataEventPublisher().publish(new ObsEvent(
-                e.getTimeStamp(),
-                e.getSystemUID(),
-                e.getOutputName(),
-                obs));
-            
-            // add to store
-            obsID = rootHandler.db.getObservationStore().add(obs);
+            obsArray[i] = obs;
         }
+        
+        // first forward to event bus to minimize latency
+        getDataEventPublisher().publish(new ObsEvent(
+            e.getTimeStamp(),
+            e.getSystemUID(),
+            e.getOutputName(),
+            obsArray));
+        
+        // then add all obs to store
+        BigInteger obsID = null;
+        for (var obs: obsArray)
+            obsID = rootHandler.db.getObservationStore().add(obs);
         
         return obsID;
     }
@@ -240,13 +238,6 @@ public class DataStreamTransactionHandler implements IEventListener
         var timeStamp = System.currentTimeMillis();
         
         // first send to event bus to minimize latency
-        getDataEventPublisher().publish(new DataEvent(
-            timeStamp,
-            dsInfo.getSystemID().getUniqueID(),
-            dsInfo.getOutputName(),
-            obs.hasFoi() ? foiIdToUidMap.get(obs.getFoiID()) : null,
-            obs.getResult()));
-        
         getDataEventPublisher().publish(new ObsEvent(
             timeStamp,
             dsInfo.getSystemID().getUniqueID(),

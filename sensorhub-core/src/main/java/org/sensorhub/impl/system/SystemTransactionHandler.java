@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.system;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Map.Entry;
 import org.sensorhub.api.command.CommandStreamAddedEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
@@ -49,9 +50,6 @@ import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import com.google.common.base.Strings;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Maps;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 
@@ -74,7 +72,7 @@ public class SystemTransactionHandler
     protected final String sysUID;
     protected FeatureKey sysKey;
     protected String parentGroupUID;
-    protected BiMap<String, Long> foiIdMap;
+    protected Map<String, Long> foiIdMap;
     protected boolean newlyCreated;
     
     
@@ -90,7 +88,9 @@ public class SystemTransactionHandler
         this.sysUID = OshAsserts.checkValidUID(sysUID);
         this.parentGroupUID = parentGroupUID;
         this.rootHandler = Asserts.checkNotNull(rootHandler);
-        this.foiIdMap = Maps.synchronizedBiMap(HashBiMap.create());
+        
+        // prepare lazy loaded map of FOI UID to full FeatureId
+        this.foiIdMap = rootHandler.createFoiIdCache();
     }
     
     

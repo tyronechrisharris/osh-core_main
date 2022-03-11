@@ -17,7 +17,7 @@ package org.sensorhub.impl.service.sos;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow.Subscriber;
-import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IObservation;
@@ -62,7 +62,7 @@ public interface ISOSAsyncDataProvider
      * @throws SOSException if the error should be reported to the SOS client (client-side error)
      * @throws IOException if the error should not be reported to the SOS client (internal server error)
      */
-    public void getResults(GetResultRequest req, Subscriber<DataEvent> consumer) throws SOSException, IOException;
+    public void getResults(GetResultRequest req, Subscriber<ObsEvent> consumer) throws SOSException, IOException;
 
 
     /**

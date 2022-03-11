@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.sos;
 
 import java.io.IOException;
 import javax.servlet.AsyncContext;
-import org.sensorhub.api.data.DataEvent;
+import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.ows.sos.SOSException;
@@ -30,7 +30,7 @@ import org.vast.ows.sos.SOSException;
  * @author Alex Robin
  * @date Apr 5, 2020
  */
-public interface ISOSAsyncResultSerializer extends IAsyncResponseSerializer<GetResultRequest, DataEvent>
+public interface ISOSAsyncResultSerializer extends IAsyncResponseSerializer<GetResultRequest, ObsEvent>
 {
 
     public void init(SOSServlet servlet, AsyncContext asyncCtx, GetResultRequest req, RecordTemplate resultTemplate) throws SOSException, IOException;
