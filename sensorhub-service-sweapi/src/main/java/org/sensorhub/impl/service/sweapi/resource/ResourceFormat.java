@@ -43,6 +43,8 @@ public class ResourceFormat
     public static ResourceFormat TEXT_XML = new ResourceFormat("text/xml");
     public static ResourceFormat APPLI_XML = new ResourceFormat("application/xml");
     
+    public static ResourceFormat AUTO = new ResourceFormat("auto");
+    
     
     final String mimeType;
     

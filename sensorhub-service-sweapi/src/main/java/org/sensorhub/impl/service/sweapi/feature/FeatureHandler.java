@@ -48,6 +48,10 @@ public class FeatureHandler extends AbstractFeatureHandler<IFeature, FeatureFilt
     {
         var format = ctx.getFormat();
         
+        // default to GeoJSON
+        if (format.equals(ResourceFormat.AUTO))
+            format = ResourceFormat.GEOJSON;
+        
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
         else

@@ -254,6 +254,12 @@ public class RequestContext
     }
     
     
+    public String getRequestHeader(String name)
+    {
+        return req != null ? req.getHeader(name) : null;
+    }
+    
+    
     public void setRequestContentType(String contentType)
     {
         this.contentType = contentType;
@@ -264,6 +270,13 @@ public class RequestContext
     {
         if (resp != null)
             resp.setContentType(mimeType);
+    }
+    
+    
+    public void setResponseHeader(String name, String value)
+    {
+        if (resp != null)
+            resp.addHeader(name, value);
     }
     
     

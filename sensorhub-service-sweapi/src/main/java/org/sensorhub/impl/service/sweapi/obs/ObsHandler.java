@@ -53,6 +53,7 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
+import com.esotericsoftware.minlog.Log;
 
 
 public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
@@ -67,18 +68,19 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     final IdConverter idConverter;
     final IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
     final IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
+    final Map<String, CustomObsFormat> customFormats;
     
     
-    static class ObsHandlerContextData
+    public static class ObsHandlerContextData
     {
-        long dsID;
-        IDataStreamInfo dsInfo;
-        long foiId;
-        DataStreamTransactionHandler dsHandler;
+        public long dsID;
+        public IDataStreamInfo dsInfo;
+        public long foiId;
+        public DataStreamTransactionHandler dsHandler;
     }
     
     
-    public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions)
+    public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
         super(db.getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         
@@ -88,14 +90,13 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb()) : null;
         this.threadPool = threadPool;
         this.idConverter = db.getIdConverter();
+        this.customFormats = Asserts.checkNotNull(customFormats);
     }
     
     
     @Override
     protected ResourceBinding<BigInteger, IObsData> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
-        var format = ctx.getFormat();
-        
         var contextData = new ObsHandlerContextData();
         ctx.setData(contextData);
         
@@ -127,10 +128,73 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         }
         
         // select binding depending on format
+        // use a custom format if auto-detected or available for selected mime type
+        var binding = getCustomFormatBinding(ctx, contextData.dsInfo);
+        if (binding != null)
+            return binding;
+        
+        // otherwise use standard formats
+        // default to OM JSON
+        var format = ctx.getFormat();
+        if (format.equals(ResourceFormat.AUTO))
+            format = ResourceFormat.OM_JSON;
+        
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.OM_JSON))
             return new ObsBindingOmJson(ctx, idEncoder, forReading, dataStore);
         else
             return new ObsBindingSweCommon(ctx, idEncoder, forReading, dataStore);
+    }
+    
+    
+    protected ResourceBinding<BigInteger, IObsData> getCustomFormatBinding(RequestContext ctx, IDataStreamInfo dsInfo) throws IOException
+    {
+        var format = ctx.getFormat();
+        CustomObsFormat obsFormat = null;
+        
+        // try to auto select format when requesting from browser
+        if (format.equals(ResourceFormat.AUTO) && isHttpRequestFromBrowser(ctx))
+        {
+            for (var entry: customFormats.entrySet())
+            {
+                var mimeType = entry.getKey();
+                var formatImpl = entry.getValue();
+                
+                if (formatImpl.isCompatible(dsInfo))
+                {
+                    obsFormat = formatImpl;
+                    ctx.getLogger().info("Auto-selecting format {}", mimeType);
+                    break;
+                }
+            }
+        }
+        
+        // otherwise just use format implementation for selected mime type
+        if (obsFormat == null)
+            obsFormat = customFormats.get(format.getMimeType());
+        
+        return obsFormat != null ? obsFormat.getObsBinding(ctx, idEncoder, dsInfo) : null;
+    }
+    
+    
+    /*
+     * Check if request comes from a compatible browser
+     */
+    protected boolean isHttpRequestFromBrowser(RequestContext ctx)
+    {
+        // don't do multipart with websockets or MQTT!
+        if (ctx.isStreamRequest())
+            return false;
+        
+        String userAgent = ctx.getRequestHeader("User-Agent");
+        if (userAgent == null)
+            return false;
+
+        if (userAgent.contains("Firefox") ||
+            userAgent.contains("Chrome") ||
+            userAgent.contains("Safari"))
+            return true;
+
+        return false;
     }
     
     
@@ -425,22 +489,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     @Override
     protected ResourceFormat parseFormat(final Map<String, String[]> queryParams) throws InvalidRequestException
     {
-        var format = super.parseFormat(queryParams);
-        
-        if (!format.isOneOf(
-              ResourceFormat.JSON,
-              ResourceFormat.OM_JSON,
-              ResourceFormat.OM_XML,
-              ResourceFormat.SWE_JSON,
-              ResourceFormat.SWE_TEXT,
-              ResourceFormat.SWE_XML,
-              ResourceFormat.SWE_BINARY,
-              ResourceFormat.TEXT_PLAIN,
-              ResourceFormat.TEXT_CSV
-            ))
-            throw ServiceErrors.unsupportedFormat(format);
-        
-        return format;
+        return super.parseFormat(queryParams, ResourceFormat.AUTO);
     }
 
 

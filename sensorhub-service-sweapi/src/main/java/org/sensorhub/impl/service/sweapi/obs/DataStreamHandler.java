@@ -34,6 +34,7 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
+import org.vast.util.Asserts;
 
 
 public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStreamInfo, DataStreamFilter, DataStreamFilter.Builder, IDataStreamStore>
@@ -44,14 +45,16 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     final IEventBus eventBus;
     final SystemDatabaseTransactionHandler transactionHandler;
     final DataStreamEventsHandler eventsHandler;
+    final Map<String, CustomObsFormat> customFormats;
     
     
-    public DataStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
+    public DataStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
         super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
         this.eventsHandler = new DataStreamEventsHandler(eventBus, db, permissions);
+        this.customFormats = Asserts.checkNotNull(customFormats, "customFormats");
     }
     
     
@@ -61,7 +64,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.JSON))
-            return new DataStreamBindingJson(ctx, idEncoder, forReading);
+            return new DataStreamBindingJson(ctx, idEncoder, forReading, customFormats);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

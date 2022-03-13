@@ -14,6 +14,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.sensorhub.api.common.SensorHubException;
@@ -23,9 +25,11 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.database.registry.FilteredFederatedObsDatabase;
+import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.feature.FoiHistoryHandler;
+import org.sensorhub.impl.service.sweapi.obs.CustomObsFormat;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamSchemaHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler;
@@ -108,6 +112,25 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         // init timeout monitor
         //timeOutMonitor = new TimeOutMonitor();
         
+        // load custom formats
+        Map<String, CustomObsFormat> customFormats = new HashMap<String, CustomObsFormat>();
+        for (var formatConfig: config.customFormats)
+        {
+            try
+            {
+                // find impl for this mime type
+                ModuleRegistry moduleReg = getParentHub().getModuleRegistry();
+                var clazz = moduleReg.<CustomObsFormat>findClass(formatConfig.className);
+                var formatImpl = clazz.getDeclaredConstructor().newInstance();
+                customFormats.put(formatConfig.mimeType, formatImpl);
+                getLogger().info("Loaded custom {} format implementation: {}", formatConfig.mimeType, formatConfig.className);
+            }
+            catch (Exception e)
+            {
+                reportError("Error while initializing custom format for " + formatConfig.mimeType, e);
+            }
+        }
+        
         // create obs db read/write wrapper
         var db = new ObsSystemDbWrapper(obsReadDatabase, obsWriteDatabase, getParentHub().getDatabaseRegistry());
         
@@ -139,14 +162,14 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         foiHandler.addSubResource(foiHistoryHandler);
         
         // datastreams
-        var dataStreamHandler = new DataStreamHandler(eventBus, db, security.datastream_permissions);
+        var dataStreamHandler = new DataStreamHandler(eventBus, db, security.datastream_permissions, customFormats);
         rootHandler.addSubResource(dataStreamHandler);
         systemsHandler.addSubResource(dataStreamHandler);
         var dataSchemaHandler = new DataStreamSchemaHandler(eventBus, db, security.datastream_permissions);
         dataStreamHandler.addSubResource(dataSchemaHandler);
         
         // observations
-        var obsHandler = new ObsHandler(eventBus, db, threadPool, security.obs_permissions);
+        var obsHandler = new ObsHandler(eventBus, db, threadPool, security.obs_permissions, customFormats);
         rootHandler.addSubResource(obsHandler);
         dataStreamHandler.addSubResource(obsHandler);
         foiHandler.addSubResource(obsHandler);

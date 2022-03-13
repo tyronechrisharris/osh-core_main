@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
@@ -37,6 +38,7 @@ import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.util.Asserts;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.gson.stream.JsonReader;
@@ -50,21 +52,23 @@ import net.opengis.swe.v20.Vector;
 
 public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
 {
-    String rootURL;
-    SWEStaxBindings sweBindings;
+    final String rootURL;
+    final SWEStaxBindings sweBindings;
+    final IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
+    final Map<String, CustomObsFormat> customFormats;
     JsonReader reader;
     SWEJsonStreamReader sweReader;
     JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
-    IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     
     
-    DataStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    DataStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
     {
         super(ctx, idEncoder);
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
+        this.customFormats = Asserts.checkNotNull(customFormats);
         
         if (forReading)
         {
@@ -223,6 +227,14 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             writer.value(ResourceFormat.SWE_XML.getMimeType());
         }
         writer.value(ResourceFormat.SWE_BINARY.getMimeType());
+        
+        // also list compatible custom formats
+        for (var formatEntry: customFormats.entrySet())
+        {
+            if (formatEntry.getValue().isCompatible(dsInfo))
+                writer.value(formatEntry.getKey());
+        }
+        
         writer.endArray();
         
         if (showLinks)
