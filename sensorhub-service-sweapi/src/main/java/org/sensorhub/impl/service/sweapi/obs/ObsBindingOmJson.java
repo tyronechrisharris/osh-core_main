@@ -39,8 +39,6 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.swe.BinaryDataWriter;
-import org.vast.swe.IComponentFilter;
-import org.vast.swe.SWEConstants;
 import org.vast.swe.fast.JsonDataParserGson;
 import org.vast.swe.fast.JsonDataWriterGson;
 import org.vast.util.ReaderException;
@@ -49,7 +47,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import net.opengis.swe.v20.BinaryBlock;
 import net.opengis.swe.v20.BinaryEncoding;
-import net.opengis.swe.v20.DataComponent;
+import static org.sensorhub.impl.service.sweapi.SWECommonUtils.OM_COMPONENTS_FILTER;
 
 
 public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
@@ -199,8 +197,8 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
         var sweWriter = new JsonDataWriterGson(writer);
         sweWriter.setDataComponents(dsInfo.getRecordStructure());
         
-        // filter out time component since it's already included in O&M
-        sweWriter.setDataComponentFilter(getTimeStampFilter());        
+        // filter out components that are already included in O&M
+        sweWriter.setDataComponentFilter(OM_COMPONENTS_FILTER);
         return sweWriter;
     }
     
@@ -209,28 +207,11 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     {
         // create JSON SWE parser
         var sweParser = new JsonDataParserGson(reader);
-        sweParser.setDataComponents(dsInfo.getRecordStructure());        
+        sweParser.setDataComponents(dsInfo.getRecordStructure());
         
-        // filter out time component since it's already included in O&M
-        sweParser.setDataComponentFilter(getTimeStampFilter());        
+        // filter out components that are already included in O&M
+        sweParser.setDataComponentFilter(OM_COMPONENTS_FILTER);
         return sweParser;
-    }
-    
-    
-    protected IComponentFilter getTimeStampFilter()
-    {
-        return new IComponentFilter() {
-            @Override
-            public boolean accept(DataComponent comp)
-            {
-                if (comp.getParent() == null ||
-                    SWEConstants.DEF_PHENOMENON_TIME.equals(comp.getDefinition()) ||
-                    SWEConstants.DEF_SAMPLING_TIME.equals(comp.getDefinition()))
-                    return false;
-                else
-                    return true;
-            }            
-        };
     }
     
     
@@ -253,13 +234,13 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     @Override
     public void startCollection() throws IOException
     {
-        startJsonCollection(writer);        
+        startJsonCollection(writer);
     }
 
 
     @Override
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
-        endJsonCollection(writer, links);        
+        endJsonCollection(writer, links);
     }
 }

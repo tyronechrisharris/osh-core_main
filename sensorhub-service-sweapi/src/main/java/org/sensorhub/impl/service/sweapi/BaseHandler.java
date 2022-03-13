@@ -111,20 +111,25 @@ public abstract class BaseHandler implements IResourceHandler
     
     protected ResourceFormat parseFormat(final Map<String, String[]> queryParams) throws InvalidRequestException
     {
-        var format = queryParams.get("f");
+        var format = parseFormat("f", queryParams);
         if (format == null)
-            format = queryParams.get("format");
-        
+            format = parseFormat("format", queryParams);
+        return format;
+    }
+    
+    
+    protected ResourceFormat parseFormat(final String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
+    {
+        var format = queryParams.get(paramName);
         ResourceFormat rf = null;
         if (format != null)
             rf = ResourceFormat.fromMimeType(format[0]);
         else
             rf = ResourceFormat.JSON; // defaults to json;
-        
         return rf;
     }
     
-        
+    
     protected Collection<Long> parseResourceIds(String paramName, final Map<String, String[]> queryParams, IdEncoder idEncoder) throws InvalidRequestException
     {
         var allValues = new ArrayList<Long>();

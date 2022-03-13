@@ -25,6 +25,7 @@ import org.sensorhub.api.data.ObsData;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
+import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -42,11 +43,12 @@ import org.vast.swe.XmlDataParser;
 import org.vast.swe.AsciiDataParser;
 import org.vast.swe.fast.JsonDataParserGson;
 import org.vast.swe.fast.JsonDataWriter;
-import org.vast.swe.fast.JsonDataWriterGson;
 import org.vast.swe.fast.TextDataWriter;
 import org.vast.swe.fast.XmlDataWriter;
 import net.opengis.swe.v20.BinaryEncoding;
+import net.opengis.swe.v20.JSONEncoding;
 import net.opengis.swe.v20.TextEncoding;
+import net.opengis.swe.v20.XMLEncoding;
 
 
 public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
@@ -173,57 +175,27 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
     protected DataStreamWriter getSweCommonWriter(IDataStreamInfo dsInfo, OutputStream os, PropertyFilter propFilter, ResourceFormat format) throws IOException
     {
         DataStreamWriter dataWriter = null;
+        var sweEncoding = SWECommonUtils.getEncoding(dsInfo, format);
         
-        // init SWE datastream writer depending on desired format and native encoding 
-        if (dsInfo.getRecordEncoding() instanceof TextEncoding)
+        if (sweEncoding instanceof JSONEncoding)
         {
-            if (format.equals(ResourceFormat.SWE_JSON))
-            {
-                dataWriter = new JsonDataWriterGson();
-            }
-            else if (format.isOneOf(ResourceFormat.SWE_TEXT, ResourceFormat.TEXT_PLAIN, ResourceFormat.TEXT_CSV))
-            {
-                //dataWriter = SWEHelper.createDataWriter(dsInfo.getRecordEncoding());
-                dataWriter = new TextDataWriter();
-                dataWriter.setDataEncoding(dsInfo.getRecordEncoding());
-            } 
-            else if (format.isOneOf(ResourceFormat.SWE_XML, ResourceFormat.TEXT_XML))
-            {
-                dataWriter = new XmlDataWriter();
-                dataWriter.setDataEncoding(new XMLEncodingImpl());
-            }
-            else if (format.equals(ResourceFormat.SWE_BINARY))
-            {
-                var defaultBinaryEncoding = SWEHelper.getDefaultBinaryEncoding(dsInfo.getRecordStructure());
-                dataWriter = SWEHelper.createDataWriter(defaultBinaryEncoding);
-            }
+            //dataWriter = new JsonDataWriterGson();
+            dataWriter = new JsonDataWriter();
         }
-        else if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+        else if (sweEncoding instanceof TextEncoding)
         {
-            if (format.equals(ResourceFormat.SWE_BINARY))
-            {
-                dataWriter = SWEHelper.createDataWriter(dsInfo.getRecordEncoding());
-            }
-            else if (ResourceFormat.allowNonBinaryFormat(dsInfo.getRecordEncoding()))
-            {
-                if (format.equals(ResourceFormat.SWE_JSON))
-                {
-                    dataWriter = new JsonDataWriter();
-                }
-                else if (format.isOneOf(ResourceFormat.SWE_TEXT, ResourceFormat.TEXT_PLAIN, ResourceFormat.TEXT_CSV))
-                {
-                    dataWriter = new TextDataWriter();
-                    dataWriter.setDataEncoding(new TextEncodingImpl());
-                }
-                else if (format.isOneOf(ResourceFormat.SWE_XML, ResourceFormat.TEXT_XML))
-                {
-                    dataWriter = new XmlDataWriter();
-                }
-            }
+            dataWriter = new TextDataWriter();
+            dataWriter.setDataEncoding(sweEncoding);
+        } 
+        else if (sweEncoding instanceof XMLEncoding)
+        {
+            dataWriter = new XmlDataWriter();
+            dataWriter.setDataEncoding(sweEncoding);
         }
-        
-        if (dataWriter == null)
-            throw ServiceErrors.unsupportedFormat(format);
+        else if (sweEncoding instanceof BinaryEncoding)
+        {
+            dataWriter = SWEHelper.createDataWriter(sweEncoding);
+        }
         
         dataWriter.setOutput(os);
         dataWriter.setDataComponents(dsInfo.getRecordStructure());

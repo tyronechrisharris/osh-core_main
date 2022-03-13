@@ -21,19 +21,23 @@ import java.util.Collection;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
+import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.swe.v20.JSONEncoding;
 
 
-public class DataStreamSchemaBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
+public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
 {
     String rootURL;
+    ResourceFormat obsFormat;
     SWEStaxBindings sweBindings;
     JsonReader reader;
     SWEJsonStreamReader sweReader;
@@ -41,11 +45,12 @@ public class DataStreamSchemaBindingJson extends ResourceBindingJson<DataStreamK
     SWEJsonStreamWriter sweWriter;
     
     
-    DataStreamSchemaBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder);
         
         this.rootURL = ctx.getApiRootURL();
+        this.obsFormat = obsFormat;
         this.sweBindings = new SWEStaxBindings();
         
         if (forReading)
@@ -74,29 +79,37 @@ public class DataStreamSchemaBindingJson extends ResourceBindingJson<DataStreamK
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
+        var sweEncoding = SWECommonUtils.getEncoding(dsInfo, obsFormat);
         
         writer.beginObject();
         
-        writer.name("datastream").value(Long.toString(publicDsID, 36));
-        writer.name("name").value(dsInfo.getName());
-        
-        if (dsInfo.getDescription() != null)
-            writer.name("description").value(dsInfo.getDescription());
+        writer.name("datastream@id").value(Long.toString(publicDsID, 36));
+        writer.name("obsFormat").value(obsFormat.toString());
         
         // result structure & encoding
         try
         {
-            writer.name("resultSchema");
+            writer.name("recordSchema");
             sweWriter.resetContext();
             sweBindings.writeDataComponent(sweWriter, dsInfo.getRecordStructure(), false);
-            
-            writer.name("resultEncoding");
-            sweWriter.resetContext();
-            sweBindings.writeAbstractEncoding(sweWriter, dsInfo.getRecordEncoding());
         }
         catch (Exception e)
         {
-            throw new IOException("Error writing SWE Common result structure", e);
+            throw new IOException("Error writing SWE Common record structure", e);
+        }
+        
+        try
+        {
+            if (!(sweEncoding instanceof JSONEncoding))
+            {
+                writer.name("recordEncoding");
+                sweWriter.resetContext();
+                sweBindings.writeAbstractEncoding(sweWriter, sweEncoding);
+            }
+        }
+        catch (Exception e)
+        {
+            throw new IOException("Error writing SWE Common record encoding", e);
         }
         
         writer.endObject();

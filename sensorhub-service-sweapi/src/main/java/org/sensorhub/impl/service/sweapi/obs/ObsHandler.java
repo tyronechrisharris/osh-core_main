@@ -127,7 +127,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         }
         
         // select binding depending on format
-        if (format.isOneOf(ResourceFormat.JSON))
+        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.OM_JSON))
             return new ObsBindingOmJson(ctx, idEncoder, forReading, dataStore);
         else
             return new ObsBindingSweCommon(ctx, idEncoder, forReading, dataStore);
