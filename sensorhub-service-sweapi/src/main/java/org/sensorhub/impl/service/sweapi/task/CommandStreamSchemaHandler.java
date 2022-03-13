@@ -43,7 +43,9 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     
     public CommandStreamSchemaHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getCommandStreamStore(), new IdEncoder(0), permissions);
+        super(db.getCommandStreamStore(),
+              new IdEncoder(CommandStreamHandler.EXTERNAL_ID_SEED),
+              permissions);
     }
     
     
