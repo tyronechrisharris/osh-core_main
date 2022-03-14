@@ -184,7 +184,6 @@ public class DataStreamInfo implements IDataStreamInfo
         {
             Asserts.checkNotNullOrEmpty(instance.name, "name");
             Asserts.checkNotNull(instance.systemID, "systemID");
-            Asserts.checkArgument(instance.systemID.getInternalID() > 0, "system internalID must be > 0");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");
             Asserts.checkNotNullOrEmpty(instance.getOutputName(), "outputName");
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");

@@ -27,7 +27,15 @@ import org.sensorhub.api.feature.FeatureId;
  */
 public class SystemId extends FeatureId
 {
-
+    public static SystemId NO_SYSTEM_ID = new SystemId(0L);
+    
+    
+    private SystemId(long internalID)
+    {
+        this.internalID = internalID;
+    }
+    
+    
     public SystemId(long internalID, String uid)
     {
         super(internalID, uid);

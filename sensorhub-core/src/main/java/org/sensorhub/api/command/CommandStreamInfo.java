@@ -175,9 +175,8 @@ public class CommandStreamInfo implements ICommandStreamInfo
         {
             Asserts.checkNotNullOrEmpty(instance.name, "name");
             Asserts.checkNotNull(instance.systemID, "systemID");
-            Asserts.checkArgument(instance.systemID.getInternalID() > 0, "system internalID must be > 0");
             Asserts.checkNotNull(instance.recordStruct, "recordStruct");
-            Asserts.checkNotNull(instance.getControlInputName(), "commandName");
+            Asserts.checkNotNull(instance.getControlInputName(), "controlInputName");
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");
             return super.build();
         }
