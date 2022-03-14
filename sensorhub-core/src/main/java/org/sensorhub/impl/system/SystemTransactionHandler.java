@@ -70,19 +70,25 @@ public class SystemTransactionHandler
     
     protected final SystemDatabaseTransactionHandler rootHandler;
     protected final String sysUID;
-    protected FeatureKey sysKey;
+    protected FeatureKey sysKey; // local DB key
     protected String parentGroupUID;
     protected Map<String, Long> foiIdMap;
     protected boolean newlyCreated;
     
     
-    public SystemTransactionHandler(FeatureKey sysKey, String sysUID, SystemDatabaseTransactionHandler rootHandler)
+    /*
+     * sysKey must always be the local DB key
+     */
+    SystemTransactionHandler(FeatureKey sysKey, String sysUID, SystemDatabaseTransactionHandler rootHandler)
     {
         this(sysKey, sysUID, null, rootHandler);
     }
     
     
-    public SystemTransactionHandler(FeatureKey sysKey, String sysUID, String parentGroupUID, SystemDatabaseTransactionHandler rootHandler)
+    /*
+     * sysKey must always be the local DB key
+     */
+    SystemTransactionHandler(FeatureKey sysKey, String sysUID, String parentGroupUID, SystemDatabaseTransactionHandler rootHandler)
     {
         this.sysKey = Asserts.checkNotNull(sysKey, FeatureKey.class);
         this.sysUID = OshAsserts.checkValidUID(sysUID);
@@ -100,6 +106,8 @@ public class SystemTransactionHandler
         
         if (!getSystemDescStore().contains(proc.getUniqueIdentifier()))
             return false;
+        
+        checkParent();
         
         var validTime = proc.getFullDescription().getValidTime();
         if (validTime == null || sysKey.getValidStartTime().isBefore(validTime.begin()))
@@ -120,7 +128,6 @@ public class SystemTransactionHandler
     
     public boolean delete() throws DataStoreException
     {
-        // check if we have a parent
         checkParent();
         
         // error if associated datastreams still exist
@@ -197,41 +204,55 @@ public class SystemTransactionHandler
     }
     
     
-    public synchronized DataStreamTransactionHandler addOrUpdateDataStream(String outputName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
+    public DataStreamTransactionHandler addOrUpdateDataStream(String outputName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
     {
         Asserts.checkNotNullOrEmpty(outputName, "outputName");
         Asserts.checkNotNull(dataStruct, DataComponent.class);
         Asserts.checkNotNull(dataEncoding, DataEncoding.class);
         
+        // retrieve parent system name
+        var sysName = getSystemDescStore().get(sysKey).getName();
+        var dsName = Strings.isNullOrEmpty(dataStruct.getLabel()) ? outputName : dataStruct.getLabel();
+        
+        // create datastream info
+        dataStruct.setName(outputName);
+        var dsInfo = new DataStreamInfo.Builder()
+            .withName(sysName + " - " + dsName)
+            .withSystem(SystemId.NO_SYSTEM_ID)
+            .withRecordDescription(dataStruct)
+            .withRecordEncoding(dataEncoding)
+            .build();
+        
+        return addOrUpdateDataStream(dsInfo);
+    }
+    
+    
+    public synchronized DataStreamTransactionHandler addOrUpdateDataStream(IDataStreamInfo dsInfo) throws DataStoreException
+    {
+        Asserts.checkNotNull(dsInfo, IDataStreamInfo.class);
+        
         // check output name == data component name
-        if (dataStruct.getName() == null)
-            dataStruct.setName(outputName);
-        else if (!outputName.equals(dataStruct.getName()))
+        String outputName = dsInfo.getOutputName();
+        if (!outputName.equals(dsInfo.getRecordStructure().getName()))
             throw new IllegalStateException("Inconsistent output name");
+        
+        // add system ID
+        dsInfo = DataStreamInfo.Builder.from(dsInfo)
+            .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
+            .build();
         
         // try to retrieve existing data stream
         IDataStreamStore dataStreamStore = getDataStreamStore();
         Entry<DataStreamKey, IDataStreamInfo> dsEntry = dataStreamStore.getLatestVersionEntry(sysUID, outputName);
         DataStreamKey dsKey;
-        IDataStreamInfo newDsInfo;
         DataStreamAddedEvent addedEvent = null;
         
         if (dsEntry == null)
         {
-            // retrieve parent system name
-            var procName = getSystemDescStore().get(sysKey).getName();
-            var dsName = Strings.isNullOrEmpty(dataStruct.getLabel()) ? outputName : dataStruct.getLabel();
-                
-            // create new data stream
-            newDsInfo = new DataStreamInfo.Builder()
-                .withName(procName + " - " + dsName)
-                .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
-                .withRecordDescription(dataStruct)
-                .withRecordEncoding(dataEncoding)
-                .build();
-            dsKey = dataStreamStore.add(newDsInfo);
+            // add new data stream
+            dsKey = dataStreamStore.add(dsInfo);
             
-            // send event
+            // create added event
             addedEvent = new DataStreamAddedEvent(sysUID, outputName);
             log.debug("Added new datastream {}#{}", sysUID, outputName);
         }
@@ -247,80 +268,87 @@ public class SystemTransactionHandler
             // 3 cases
             // if observations were already recorded and structure has changed, create a new datastream
             if (hasObs &&
-               (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dataStruct) ||
-                !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding)))
+               (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
+                !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding())))
             {
-                newDsInfo = new DataStreamInfo.Builder()
-                    .withName(oldDsInfo.getName())
-                    .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
-                    .withRecordDescription(dataStruct)
-                    .withRecordEncoding(dataEncoding)
-                    .build();
-                
-                dsKey = dataStreamStore.add(newDsInfo);
+                dsKey = dataStreamStore.add(dsInfo);
                 addedEvent = new DataStreamAddedEvent(sysUID, outputName);
                 log.debug("Created new version of datastream {}#{}", sysUID, outputName);
             }
             
             // if something else has changed, update existing datastream
-            else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), dataStruct) ||
-                     !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding))
+            else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
+                     !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding()))
             {
                 var dsHandler = new DataStreamTransactionHandler(dsKey, oldDsInfo, rootHandler);
-                dsHandler.update(dataStruct, dataEncoding);
-                newDsInfo = dsHandler.getDataStreamInfo();
+                dsHandler.update(dsInfo);
+                dsInfo = dsHandler.getDataStreamInfo();
                 log.debug("Updated datastream {}#{}", sysUID, outputName);
             }
             
             // else don't update and return existing key
             else
             {
-                newDsInfo = oldDsInfo;
+                dsInfo = oldDsInfo;
                 log.debug("No changes to datastream {}#{}", sysUID, outputName);
             }
         }
         
         // create the new datastream handler
-        var dsHandler = new DataStreamTransactionHandler(dsKey, newDsInfo, foiIdMap, rootHandler);
+        var dsHandler = new DataStreamTransactionHandler(dsKey, dsInfo, foiIdMap, rootHandler);
         if (addedEvent != null)
             dsHandler.publishDataStreamEvent(addedEvent);
         return dsHandler;
     }
     
     
-    public synchronized CommandStreamTransactionHandler addOrUpdateCommandStream(String commandName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
+    public CommandStreamTransactionHandler addOrUpdateCommandStream(String commandName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
     {
         Asserts.checkNotNullOrEmpty(commandName, "commandName");
         Asserts.checkNotNull(dataStruct, DataComponent.class);
         Asserts.checkNotNull(dataEncoding, DataEncoding.class);
         
+        // retrieve parent system name
+        var sysName = getSystemDescStore().get(sysKey).getName();
+        var csName = Strings.isNullOrEmpty(dataStruct.getLabel()) ? commandName : dataStruct.getLabel();
+        
+        // create command stream info
+        dataStruct.setName(commandName);
+        var csInfo = new CommandStreamInfo.Builder()
+            .withName(sysName + " - " + csName)
+            .withSystem(SystemId.NO_SYSTEM_ID)
+            .withRecordDescription(dataStruct)
+            .withRecordEncoding(dataEncoding)
+            .build();
+        
+        return addOrUpdateCommandStream(csInfo);
+    }
+    
+    
+    public synchronized CommandStreamTransactionHandler addOrUpdateCommandStream(ICommandStreamInfo csInfo) throws DataStoreException
+    {
+        Asserts.checkNotNull(csInfo, ICommandStreamInfo.class);
+        
         // check command name == data component name
-        if (dataStruct.getName() == null)
-            dataStruct.setName(commandName);
-        else if (!commandName.equals(dataStruct.getName()))
+        String commandName = csInfo.getControlInputName();
+        if (!commandName.equals(csInfo.getRecordStructure().getName()))
             throw new IllegalStateException("Inconsistent command name");
+        
+        // add system ID
+        csInfo = CommandStreamInfo.Builder.from(csInfo)
+            .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
+            .build();
         
         // try to retrieve existing command stream
         ICommandStreamStore commandStreamStore = getCommandStreamStore();
         Entry<CommandStreamKey, ICommandStreamInfo> csEntry = commandStreamStore.getLatestVersionEntry(sysUID, commandName);
         CommandStreamKey csKey;
-        ICommandStreamInfo newCsInfo;
         CommandStreamAddedEvent addedEvent = null;
         
         if (csEntry == null)
         {
-            // retrieve parent system name
-            var procName = getSystemDescStore().get(sysKey).getName();
-            var csName = Strings.isNullOrEmpty(dataStruct.getLabel()) ? commandName : dataStruct.getLabel();
-                
-            // create new command stream
-            newCsInfo = new CommandStreamInfo.Builder()
-                .withName(procName + " - " + csName)
-                .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
-                .withRecordDescription(dataStruct)
-                .withRecordEncoding(dataEncoding)
-                .build();
-            csKey = commandStreamStore.add(newCsInfo);
+            // add new command stream
+            csKey = commandStreamStore.add(csInfo);
             
             // send event
             addedEvent = new CommandStreamAddedEvent(sysUID, commandName);
@@ -338,41 +366,34 @@ public class SystemTransactionHandler
             // 3 cases
             // if commands were already recorded and structure has changed, create a new command stream
             if (hasCommands &&
-               (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), dataStruct) ||
-                !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), dataEncoding)))
+               (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
+                !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding())))
             {
-                newCsInfo = new CommandStreamInfo.Builder()
-                    .withName(oldCsInfo.getName())
-                    .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
-                    .withRecordDescription(dataStruct)
-                    .withRecordEncoding(dataEncoding)
-                    .build();
-                
-                csKey = commandStreamStore.add(newCsInfo);
+                csKey = commandStreamStore.add(csInfo);
                 addedEvent = new CommandStreamAddedEvent(sysUID, commandName);
                 log.debug("Created new version of command stream {}#{}", sysUID, commandName);
             }
             
             // if something else has changed, update existing command stream
-            else if (!DataComponentChecks.checkStructEquals(oldCsInfo.getRecordStructure(), dataStruct) ||
-                     !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), dataEncoding))
+            else if (!DataComponentChecks.checkStructEquals(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
+                     !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding()))
             {
                 var csHandler = new CommandStreamTransactionHandler(csKey, oldCsInfo, rootHandler);
-                csHandler.update(dataStruct, dataEncoding);
-                newCsInfo = csHandler.getCommandStreamInfo();
+                csHandler.update(csInfo);
+                csInfo = csHandler.getCommandStreamInfo();
                 log.debug("Updated command stream {}#{}", sysUID, commandName);
             }
             
             // else don't update and return existing key
             else
             {
-                newCsInfo = oldCsInfo;
+                csInfo = oldCsInfo;
                 log.debug("No changes to command stream {}#{}", sysUID, commandName);
             }
         }
         
         // create the new command stream handler
-        var csHandler = new CommandStreamTransactionHandler(csKey, newCsInfo, rootHandler);
+        var csHandler = new CommandStreamTransactionHandler(csKey, csInfo, rootHandler);
         if (addedEvent != null)
             csHandler.publishCommandStreamEvent(addedEvent);
         return csHandler;
@@ -467,13 +488,18 @@ public class SystemTransactionHandler
         rootHandler.eventBus.getPublisher(topic).publish(event);
         
         // publish on parent systems status recursively
-        long sysId = rootHandler.db.getSystemDescStore().getCurrentVersionKey(sysUID).getInternalID();
-        Long parentId = sysId != 0 ? sysId : null;
-        while ((parentId = rootHandler.db.getSystemDescStore().getParent(parentId)) != null)
+        if (parentGroupUID != null)
         {
-            var sysUid = rootHandler.db.getSystemDescStore().getCurrentVersion(parentId).getUniqueIdentifier();
-            topic = EventUtils.getSystemStatusTopicID(sysUid);
-            rootHandler.eventBus.getPublisher(topic).publish(event);
+            var parentKey = rootHandler.db.getSystemDescStore().getCurrentVersionKey(parentGroupUID);
+            Long parentId = parentKey != null ? parentKey.getInternalID() : null;
+            while (parentId != null)
+            {
+                var sysUid = rootHandler.db.getSystemDescStore().getCurrentVersion(parentId).getUniqueIdentifier();
+                topic = EventUtils.getSystemStatusTopicID(sysUid);
+                rootHandler.eventBus.getPublisher(topic).publish(event);
+                
+                parentId = rootHandler.db.getSystemDescStore().getParent(parentId);
+            }
         }
         
         // publish on systems root
@@ -499,9 +525,16 @@ public class SystemTransactionHandler
     }
     
     
-    public FeatureKey getSystemKey()
+    public FeatureKey getLocalSystemKey()
     {
         return sysKey;
+    }
+    
+    
+    public FeatureKey getPublicSystemKey()
+    {
+        var publicId = rootHandler.toPublicId(sysKey.getInternalID());
+        return new FeatureKey(publicId, sysKey.getValidStartTime());
     }
     
     

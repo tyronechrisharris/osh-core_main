@@ -58,9 +58,9 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
     Executor executor;
     
     
-    protected SystemDriverTransactionHandler(FeatureKey procKey, String sysUID, String parentGroupUID, SystemDatabaseTransactionHandler rootHandler, Executor parentExecutor)
+    protected SystemDriverTransactionHandler(FeatureKey sysKey, String sysUID, String parentGroupUID, SystemDatabaseTransactionHandler rootHandler, Executor parentExecutor)
     {
-        super(procKey, sysUID, parentGroupUID, rootHandler);
+        super(sysKey, sysUID, parentGroupUID, rootHandler);
         this.executor = new SerialExecutor(parentExecutor);
     }
     

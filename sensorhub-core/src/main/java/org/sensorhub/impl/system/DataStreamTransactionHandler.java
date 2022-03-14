@@ -40,8 +40,6 @@ import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
 import net.opengis.swe.v20.DataBlock;
-import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataEncoding;
 
 
 /**
@@ -57,20 +55,26 @@ import net.opengis.swe.v20.DataEncoding;
 public class DataStreamTransactionHandler implements IEventListener
 {
     protected final SystemDatabaseTransactionHandler rootHandler;
-    protected final DataStreamKey dsKey;
+    protected final DataStreamKey dsKey; // local DB key
     protected IDataStreamInfo dsInfo;
     protected IEventPublisher dataEventPublisher;
     protected ScalarIndexer timeStampIndexer;
     protected Map<String, Long> foiUidToIdMap;
     
     
-    public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, SystemDatabaseTransactionHandler rootHandler)
+    /*
+     * dsKey must always be the local DB key
+     */
+    DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, SystemDatabaseTransactionHandler rootHandler)
     {
         this(dsKey, dsInfo, rootHandler.createFoiIdCache(), rootHandler);
     }
     
     
-    public DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, Map<String, Long> foiIdMap, SystemDatabaseTransactionHandler rootHandler)
+    /*
+     * dsKey must always be the local DB key
+     */
+    DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, Map<String, Long> foiIdMap, SystemDatabaseTransactionHandler rootHandler)
     {
         this.dsKey = dsKey;
         this.dsInfo = dsInfo;
@@ -82,33 +86,37 @@ public class DataStreamTransactionHandler implements IEventListener
     }
     
     
-    public boolean update(DataComponent dataStruct, DataEncoding dataEncoding)
+    public boolean update(IDataStreamInfo dsInfo)
     {
-        var oldDsInfo = getDataStreamStore().get(dsKey);
+        var oldDsInfo = this.dsInfo;
         if (oldDsInfo == null)
             return false;
+        
+        // check output name wasn't changed
+        if (!dsInfo.getOutputName().equals(oldDsInfo.getOutputName()))
+            throw new IllegalArgumentException("Cannot change a datastream output name");
         
         // check if datastream already has observations
         var hasObs = oldDsInfo.getResultTimeRange() != null;
         if (hasObs &&
-            (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dataStruct) ||
-             !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dataEncoding)))
+            (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
+             !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding())))
             throw new IllegalArgumentException("Cannot update the record structure or encoding of a datastream if it already has observations");
         
         // update datastream info
         var newDsInfo = new DataStreamInfo.Builder()
-            .withName(oldDsInfo.getName())
-            .withDescription(oldDsInfo.getDescription())
-            .withSystem(dsInfo.getSystemID())
-            .withRecordDescription(dataStruct)
-            .withRecordEncoding(dataEncoding)
+            .withName(dsInfo.getName())
+            .withDescription(dsInfo.getDescription())
+            .withSystem(oldDsInfo.getSystemID())
+            .withRecordDescription(dsInfo.getRecordStructure())
+            .withRecordEncoding(dsInfo.getRecordEncoding())
             .withValidTime(oldDsInfo.getValidTime())
             .build();
         getDataStreamStore().replace(dsKey, newDsInfo);
         this.dsInfo = newDsInfo;
         
         // send event
-        var event = new DataStreamChangedEvent(dsInfo);
+        var event = new DataStreamChangedEvent(newDsInfo);
         publishDataStreamEvent(event);
         
         return true;
@@ -343,9 +351,16 @@ public class DataStreamTransactionHandler implements IEventListener
     }
     
     
-    public DataStreamKey getDataStreamKey()
+    public DataStreamKey getLocalDataStreamKey()
     {
         return dsKey;
+    }
+    
+    
+    public DataStreamKey getPublicDataStreamKey()
+    {
+        var publicId = rootHandler.toPublicId(dsKey.getInternalID());
+        return new DataStreamKey(publicId);
     }
     
     

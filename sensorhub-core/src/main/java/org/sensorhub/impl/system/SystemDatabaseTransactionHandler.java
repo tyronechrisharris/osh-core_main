@@ -49,6 +49,9 @@ public class SystemDatabaseTransactionHandler
     protected IDatabaseRegistry dbRegistry;
     
     
+    /*
+     * db must always be a transactional DB, not the federated DB
+     */
     public SystemDatabaseTransactionHandler(IEventBus eventBus, IObsSystemDatabase db, IDatabaseRegistry dbRegistry)
     {
         this.eventBus = Asserts.checkNotNull(eventBus, IEventBus.class);
@@ -73,6 +76,8 @@ public class SystemDatabaseTransactionHandler
         
         // create new system handler
         var sysHandler = createSystemHandler(systemKey, sysUID);
+        
+        // publish event
         sysHandler.publishSystemEvent(new SystemAddedEvent(sysUID, null));
         
         return sysHandler;
@@ -122,7 +127,7 @@ public class SystemDatabaseTransactionHandler
     
     /**
      * Create a handler for an existing system with the specified ID
-     * @param id system internal ID
+     * @param id System public ID
      * @return The new system handler or null if system doesn't exist
      */
     public SystemTransactionHandler getSystemHandler(long id)
@@ -130,7 +135,7 @@ public class SystemDatabaseTransactionHandler
         OshAsserts.checkValidInternalID(id);
         
         // load system object from DB
-        var systemEntry = db.getSystemDescStore().getCurrentVersionEntry(id);
+        var systemEntry = db.getSystemDescStore().getCurrentVersionEntry(toLocalId(id));
         if (systemEntry == null)
             return null;
         
@@ -143,7 +148,7 @@ public class SystemDatabaseTransactionHandler
     
     /**
      * Create a handler for an existing system with the specified unique ID
-     * @param sysUID system unique ID
+     * @param sysUID System unique ID
      * @return The new system handler or null if system doesn't exist
      */
     public SystemTransactionHandler getSystemHandler(String sysUID)
@@ -160,9 +165,22 @@ public class SystemDatabaseTransactionHandler
     }
     
     
+    protected SystemTransactionHandler createSystemHandler(FeatureKey systemKey, String sysUID)
+    {
+        return new SystemTransactionHandler(systemKey, sysUID, this);
+    }
+    
+    
+    protected FeatureKey toLocalKey(FeatureKey key)
+    {
+        var localId = toLocalId(key.getInternalID());
+        return new FeatureKey(localId, key.getValidStartTime());
+    }
+    
+    
     /**
      * Create a handler for an existing datastream with the specified ID
-     * @param id Datastream internal ID
+     * @param id Datastream public ID
      * @return The new datastream handler or null if datastream doesn't exist
      */
     public DataStreamTransactionHandler getDataStreamHandler(long id)
@@ -170,7 +188,7 @@ public class SystemDatabaseTransactionHandler
         OshAsserts.checkValidInternalID(id);
         
         // load datastream info from DB
-        var dsKey = new DataStreamKey(id);
+        var dsKey = new DataStreamKey(toLocalId(id));
         var dsInfo = db.getDataStreamStore().get(dsKey);
         if (dsInfo == null)
             return null;
@@ -180,15 +198,9 @@ public class SystemDatabaseTransactionHandler
     }
     
     
-    protected SystemTransactionHandler createSystemHandler(FeatureKey systemKey, String sysUID)
-    {
-        return new SystemTransactionHandler(systemKey, sysUID, this);
-    }
-    
-    
     /**
      * Create a handler for an existing datastream with the specified system and output name
-     * @param sysUID system unique ID
+     * @param sysUID System unique ID
      * @param outputName Output name
      * @return The new datastream handler or null if datastream doesn't exist
      */
@@ -209,15 +221,27 @@ public class SystemDatabaseTransactionHandler
     
     /**
      * Create a handler for an existing command stream with the specified ID
-     * @param id Command stream internal ID
+     * @param id Command stream public ID
      * @return The new command stream handler or null if command stream doesn't exist
      */
     public CommandStreamTransactionHandler getCommandStreamHandler(long id)
     {
+        return getCommandStreamHandler(id, false);
+    }
+    
+    
+    /**
+     * Create a handler for an existing command stream with the specified ID
+     * @param id Command stream public ID
+     * @param isPublicDb true if the DB used is the federated DB
+     * @return The new command stream handler or null if command stream doesn't exist
+     */
+    public CommandStreamTransactionHandler getCommandStreamHandler(long id, boolean isPublicDb)
+    {
         OshAsserts.checkValidInternalID(id);
         
         // load command stream info from DB
-        var csKey = new CommandStreamKey(id);
+        var csKey = new CommandStreamKey(isPublicDb ? id : toLocalId(id));
         var csInfo = db.getCommandStreamStore().get(csKey);
         if (csInfo == null)
             return null;
@@ -274,5 +298,11 @@ public class SystemDatabaseTransactionHandler
     public BigInteger toPublicId(BigInteger id)
     {
         return dbRegistry.getPublicID(db.getDatabaseNum(), id);
+    }
+    
+    
+    public long toLocalId(long id)
+    {
+        return dbRegistry.getLocalID(db.getDatabaseNum(), id);
     }
 }

@@ -45,8 +45,6 @@ import org.sensorhub.utils.DataComponentChecks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
-import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataEncoding;
 
 
 /**
@@ -63,13 +61,16 @@ public class CommandStreamTransactionHandler implements IEventListener
 {
     static Logger log = LoggerFactory.getLogger(CommandStreamTransactionHandler.class);
     protected final SystemDatabaseTransactionHandler rootHandler;
-    protected final CommandStreamKey csKey;
+    protected final CommandStreamKey csKey; // local DB key
     protected ICommandStreamInfo csInfo;
     protected IEventPublisher commandDataEventPublisher;
     protected IEventPublisher cmdStatusEventPublisher;
     
     
-    public CommandStreamTransactionHandler(CommandStreamKey csKey, ICommandStreamInfo csInfo, SystemDatabaseTransactionHandler rootHandler)
+    /*
+     * csKey must always be the local DB key
+     */
+    CommandStreamTransactionHandler(CommandStreamKey csKey, ICommandStreamInfo csInfo, SystemDatabaseTransactionHandler rootHandler)
     {
         this.csKey = csKey;
         this.csInfo = csInfo;
@@ -77,26 +78,30 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
     
     
-    public boolean update(DataComponent dataStruct, DataEncoding dataEncoding)
+    public boolean update(ICommandStreamInfo csInfo)
     {
-        var oldCsInfo = getCommandStreamStore().get(csKey);
+        var oldCsInfo = this.csInfo;
         if (oldCsInfo == null)
             return false;
+        
+        // check control input name wasn't changed
+        if (!csInfo.getControlInputName().equals(oldCsInfo.getControlInputName()))
+            throw new IllegalArgumentException("Cannot change the name of the control input associated to an existing command stream");
         
         // check if command stream already has commands
         var hasCmd = oldCsInfo.getIssueTimeRange() != null;
         if (hasCmd &&
-            (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), dataStruct) ||
-             !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), dataEncoding)))
+            (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
+             !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding())))
             throw new IllegalArgumentException("Cannot update the record structure or encoding of a command interface if it already has received commands");
         
         // update datastream info
         var newCsInfo = new CommandStreamInfo.Builder()
-            .withName(oldCsInfo.getName())
-            .withDescription(oldCsInfo.getDescription())
-            .withSystem(csInfo.getSystemID())
-            .withRecordDescription(dataStruct)
-            .withRecordEncoding(dataEncoding)
+            .withName(csInfo.getName())
+            .withDescription(csInfo.getDescription())
+            .withSystem(oldCsInfo.getSystemID())
+            .withRecordDescription(csInfo.getRecordStructure())
+            .withRecordEncoding(csInfo.getRecordEncoding())
             .withValidTime(oldCsInfo.getValidTime())
             .build();
         getCommandStreamStore().replace(csKey, newCsInfo);
@@ -477,9 +482,16 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
     
     
-    public CommandStreamKey getCommandStreamKey()
+    public CommandStreamKey getLocalCommandStreamKey()
     {
         return csKey;
+    }
+    
+    
+    public CommandStreamKey getPublicCommandStreamKey()
+    {
+        var publicId = rootHandler.toPublicId(csKey.getInternalID());
+        return new CommandStreamKey(publicId);
     }
     
     
