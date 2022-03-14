@@ -28,7 +28,7 @@ import org.h2.mvstore.type.DataType;
  * @author Alex Robin
  * @date Apr 7, 2018
  */
-class MVTimeSeriesProcKeyDataType implements DataType
+class MVTimeSeriesSystemKeyDataType implements DataType
 {
     private static final int MIN_MEM_SIZE = 8+8+4;
     

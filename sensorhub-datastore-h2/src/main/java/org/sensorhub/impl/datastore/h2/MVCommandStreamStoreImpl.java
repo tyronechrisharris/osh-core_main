@@ -161,7 +161,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         // command stream by system index
         mapName = cmdStore.getDatastoreName() + ":" + CDMSTREAM_SYSTEM_MAP_NAME;
         this.cmdStreamBySystemIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesSystemKey, Boolean>()
-                .keyType(new MVTimeSeriesProcKeyDataType())
+                .keyType(new MVTimeSeriesSystemKeyDataType())
                 .valueType(new MVVoidDataType()));
         
         // full-text index
@@ -392,7 +392,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
             try
             {
                 // add to main index
-                ICommandStreamInfo oldValue = cmdStreamIndex.put(key, csInfo);
+                var oldValue = cmdStreamIndex.put(key, csInfo);
                 
                 // check if we're allowed to replace existing entry
                 boolean isNewEntry = (oldValue == null);
@@ -460,7 +460,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
                 // remove entry in secondary index
                 cmdStreamBySystemIndex.remove(new MVTimeSeriesSystemKey(
                     oldValue.getSystemID().getInternalID(),
-                    oldValue.getName(),
+                    oldValue.getControlInputName(),
                     oldValue.getValidTime().begin()));
                 
                 // remove from full-text index

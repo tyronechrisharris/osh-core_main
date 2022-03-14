@@ -107,7 +107,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 
                 // if valid time ends at now and there is a more recent version, compute the actual end time
                 if (validTime.endsNow())
-                {                
+                {
                     var procDsKey = new MVTimeSeriesSystemKey(
                         getSystemID().getInternalID(),
                         getOutputName(),
@@ -161,7 +161,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         // open observation series map
         mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_SYSTEM_MAP_NAME;
         this.dataStreamBySystemIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesSystemKey, Boolean>()
-                .keyType(new MVTimeSeriesProcKeyDataType())
+                .keyType(new MVTimeSeriesSystemKeyDataType())
                 .valueType(new MVVoidDataType()));
         
         // full-text index
@@ -280,7 +280,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 .filter(k -> {
                     MVTimeSeriesSystemKey saveLastKey = lastKey.value;
                     lastKey.value = k;
-                                            
+                    
                     if (k.validStartTime > filterEndTime)
                         return false;
                     
@@ -403,7 +403,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             try
             {
                 // add to main index
-                IDataStreamInfo oldValue = dataStreamIndex.put(key, dsInfo);
+                var oldValue = dataStreamIndex.put(key, dsInfo);
                 
                 // check if we're allowed to replace existing entry
                 boolean isNewEntry = (oldValue == null);
@@ -471,7 +471,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 // remove entry in secondary index
                 dataStreamBySystemIndex.remove(new MVTimeSeriesSystemKey(
                     oldValue.getSystemID().getInternalID(),
-                    oldValue.getName(),
+                    oldValue.getOutputName(),
                     oldValue.getValidTime().begin()));
                 
                 // remove from full-text index
