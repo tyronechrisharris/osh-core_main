@@ -35,7 +35,7 @@ public abstract class ResourceEventsHandler<T extends Event> extends BaseHandler
 {
     public static final String[] NAMES = { "events" };
     
-    public static final String EVENTS_STREAM_ONLY_ERROR_MSG = "Only streaming requests supported on 'events' resource";
+    public static final String EVENTS_STREAM_ONLY_ERROR_MSG = "Only streaming requests supported on this resource";
     public static final String RESOURCE_ADDED_EVENT_TYPE = "ADDED";
     public static final String RESOURCE_DELETED_EVENT_TYPE = "REMOVED";
     public static final String RESOURCE_UPDATED_EVENT_TYPE = "UPDATED";
@@ -130,7 +130,7 @@ public abstract class ResourceEventsHandler<T extends Event> extends BaseHandler
         if (ctx.isEndOfPath())
         {
             ctx.getSecurityHandler().checkPermission(permissions.stream);
-            if (ctx.getSecurityHandler() == null)
+            if (!ctx.isStreamRequest())
                 throw new InvalidRequestException(ErrorCode.BAD_REQUEST, EVENTS_STREAM_ONLY_ERROR_MSG);
             
             subscribe(ctx);
