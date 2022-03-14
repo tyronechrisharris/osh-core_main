@@ -77,8 +77,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
         
         this.eventBus = eventBus;
         this.db = db;
-        this.transactionHandler = !db.isReadOnly() ?
-            new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb()) : null;
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
         this.threadPool = threadPool;
         this.idConverter = db.getIdConverter();
     }

@@ -64,6 +64,16 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
         }
     }
     
+    
+    /* constructor used when reading a nested resource */
+    protected ResourceBindingJson(RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
+    {
+        super(ctx, idEncoder);
+        this.reader = reader;
+        this.writer = null;
+    }
+    
+    
     public abstract V deserialize(JsonReader reader) throws IOException;
     public abstract void serialize(K key, V res, boolean showLinks, JsonWriter writer) throws IOException;
     

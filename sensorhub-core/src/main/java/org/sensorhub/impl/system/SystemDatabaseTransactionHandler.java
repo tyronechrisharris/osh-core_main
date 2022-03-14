@@ -17,7 +17,6 @@ package org.sensorhub.impl.system;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -50,17 +49,11 @@ public class SystemDatabaseTransactionHandler
     protected IDatabaseRegistry dbRegistry;
     
     
-    public SystemDatabaseTransactionHandler(ISensorHub hub, IObsSystemDatabase db)
-    {
-        this(hub.getEventBus(), db);
-        this.dbRegistry = Asserts.checkNotNull(hub.getDatabaseRegistry(), IDatabaseRegistry.class);
-    }
-    
-    
-    public SystemDatabaseTransactionHandler(IEventBus eventBus, IObsSystemDatabase db)
+    public SystemDatabaseTransactionHandler(IEventBus eventBus, IObsSystemDatabase db, IDatabaseRegistry dbRegistry)
     {
         this.eventBus = Asserts.checkNotNull(eventBus, IEventBus.class);
         this.db = Asserts.checkNotNull(db, IObsSystemDatabase.class);
+        this.dbRegistry = Asserts.checkNotNull(dbRegistry, IDatabaseRegistry.class);
     }
     
     

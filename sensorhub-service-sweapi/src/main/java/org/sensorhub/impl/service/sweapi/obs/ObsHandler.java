@@ -53,7 +53,6 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
-import com.esotericsoftware.minlog.Log;
 
 
 public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
@@ -86,8 +85,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         
         this.eventBus = eventBus;
         this.db = db;
-        this.transactionHandler = !db.isReadOnly() ?
-            new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb()) : null;
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
         this.threadPool = threadPool;
         this.idConverter = db.getIdConverter();
         this.customFormats = Asserts.checkNotNull(customFormats);

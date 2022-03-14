@@ -52,7 +52,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     {
         super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.eventBus = eventBus;
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db, db.getDatabaseRegistry());
         this.eventsHandler = new DataStreamEventsHandler(eventBus, db, permissions);
         this.customFormats = Asserts.checkNotNull(customFormats, "customFormats");
     }

@@ -117,7 +117,10 @@ public class SPSServlet extends SWEServlet
         for (var config: service.getConfiguration().customConnectors)
             connectorConfigs.put(config.systemUID, config);
         
-        this.commandTxnHandler = new SystemDatabaseTransactionHandler(service.getParentHub(), readDatabase);
+        this.commandTxnHandler = new SystemDatabaseTransactionHandler(
+            service.getParentHub().getEventBus(),
+            readDatabase,
+            service.getParentHub().getDatabaseRegistry());
         
         generateCapabilities();
     }

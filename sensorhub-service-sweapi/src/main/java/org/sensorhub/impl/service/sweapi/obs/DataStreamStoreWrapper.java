@@ -50,11 +50,11 @@ public class DataStreamStoreWrapper extends AbstractResourceStoreWrapper<DataStr
     @Override
     public DataStreamKey add(IDataStreamInfo value) throws DataStoreException
     {
-        var procInternalID = idConverter.toInternalID(value.getSystemID().getInternalID()); 
+        var sysID = idConverter.toInternalID(value.getSystemID().getInternalID()); 
         var sysUID = value.getSystemID().getUniqueID();
                 
         value = DataStreamInfo.Builder.from(value)
-            .withSystem(new SystemId(procInternalID, sysUID))
+            .withSystem(new SystemId(sysID, sysUID))
             .build();
         
         return toPublicKey(getWriteStore().add(value));

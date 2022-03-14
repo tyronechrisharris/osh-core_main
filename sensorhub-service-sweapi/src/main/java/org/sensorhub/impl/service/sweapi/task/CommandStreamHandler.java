@@ -50,7 +50,7 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     {
         super(db.getCommandStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.eventBus = eventBus;
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db, db.getDatabaseRegistry());
         this.eventsHandler = new CommandStreamEventsHandler(eventBus, db, permissions);
     }
     

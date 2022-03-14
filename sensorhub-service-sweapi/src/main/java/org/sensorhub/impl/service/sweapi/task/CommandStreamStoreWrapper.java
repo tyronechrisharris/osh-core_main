@@ -50,11 +50,11 @@ public class CommandStreamStoreWrapper extends AbstractResourceStoreWrapper<Comm
     @Override
     public CommandStreamKey add(ICommandStreamInfo value) throws DataStoreException
     {
-        var procInternalID = idConverter.toInternalID(value.getSystemID().getInternalID()); 
+        var sysID = idConverter.toInternalID(value.getSystemID().getInternalID()); 
         var sysUID = value.getSystemID().getUniqueID();
                 
         value = CommandStreamInfo.Builder.from(value)
-            .withSystem(new SystemId(procInternalID, sysUID))
+            .withSystem(new SystemId(sysID, sysUID))
             .build();
         
         return toPublicKey(getWriteStore().add(value));

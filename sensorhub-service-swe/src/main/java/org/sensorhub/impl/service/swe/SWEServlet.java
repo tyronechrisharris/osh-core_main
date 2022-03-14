@@ -96,7 +96,10 @@ public abstract class SWEServlet extends OWSServlet
         this.service = service;
         this.readDatabase = service.getReadDatabase();
         this.writeDatabase = service.getWriteDatabase();
-        this.transactionHandler = new SystemDatabaseTransactionHandler(service.getParentHub(), writeDatabase);
+        this.transactionHandler = new SystemDatabaseTransactionHandler(
+            service.getParentHub().getEventBus(),
+            writeDatabase,
+            service.getParentHub().getDatabaseRegistry());
     }
     
     
