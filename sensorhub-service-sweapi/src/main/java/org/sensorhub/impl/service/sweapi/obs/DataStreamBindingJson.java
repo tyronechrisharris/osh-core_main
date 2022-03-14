@@ -14,9 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -56,36 +54,27 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     final SWEStaxBindings sweBindings;
     final IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     final Map<String, CustomObsFormat> customFormats;
-    JsonReader reader;
     SWEJsonStreamReader sweReader;
-    JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
     
     
     DataStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoder, forReading);
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
         this.customFormats = Asserts.checkNotNull(customFormats);
         
         if (forReading)
-        {
-            InputStream is = new BufferedInputStream(ctx.getInputStream());
-            this.reader = getJsonReader(is);
             this.sweReader = new SWEJsonStreamReader(reader);
-        }
         else
-        {
-            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
             this.sweWriter = new SWEJsonStreamWriter(writer);
-        }
     }
     
     
     @Override
-    public IDataStreamInfo deserialize() throws IOException
+    public IDataStreamInfo deserialize(JsonReader reader) throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
@@ -152,7 +141,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
 
 
     @Override
-    public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks) throws IOException
+    public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
         var publicSysID = sysIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());

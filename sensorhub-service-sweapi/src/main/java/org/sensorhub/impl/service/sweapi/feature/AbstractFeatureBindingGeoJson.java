@@ -14,7 +14,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.feature;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -45,27 +44,14 @@ import com.google.gson.stream.JsonWriter;
  */
 public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends ResourceBindingJson<FeatureKey, V>
 {
-    protected JsonReader reader;
-    protected JsonWriter writer;
     protected GeoJsonBindings geoJsonBindings;
     protected AtomicBoolean showLinks = new AtomicBoolean();
     
     
     public AbstractFeatureBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder);
-        
+        super(ctx, idEncoder, forReading);
         this.geoJsonBindings = getJsonBindings();
-        
-        if (forReading)
-        {
-            InputStream is = new BufferedInputStream(ctx.getInputStream());
-            this.reader = getJsonReader(is);
-        }
-        else
-        {
-            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
-        }
     }
     
     
@@ -77,7 +63,7 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
 
     @Override
     @SuppressWarnings("unchecked")
-    public V deserialize() throws IOException
+    public V deserialize(JsonReader reader) throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
@@ -87,7 +73,7 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
 
 
     @Override
-    public void serialize(FeatureKey key, V res, boolean showLinks) throws IOException
+    public void serialize(FeatureKey key, V res, boolean showLinks, JsonWriter writer) throws IOException
     {
         try
         {

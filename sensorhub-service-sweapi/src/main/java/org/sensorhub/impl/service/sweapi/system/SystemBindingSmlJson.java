@@ -14,9 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.system;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -46,34 +44,25 @@ import com.google.gson.stream.JsonWriter;
  */
 public class SystemBindingSmlJson extends ResourceBindingJson<FeatureKey, ISystemWithDesc>
 {
-    JsonReader reader;
     SMLJsonStreamReader smlReader;
-    JsonWriter writer;
     SMLJsonStreamWriter smlWriter;
     SMLStaxBindings smlBindings;
     
     
     SystemBindingSmlJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoder, forReading);
         this.smlBindings = new SMLStaxBindings();
         
         if (forReading)
-        {
-            InputStream is = new BufferedInputStream(ctx.getInputStream());
-            this.reader = getJsonReader(is);
             this.smlReader = new SMLJsonStreamReader(reader);
-        }
         else
-        {
-            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
             this.smlWriter = new SMLJsonStreamWriter(writer);
-        }
     }
 
 
     @Override
-    public ISystemWithDesc deserialize() throws IOException
+    public ISystemWithDesc deserialize(JsonReader reader) throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
@@ -92,7 +81,7 @@ public class SystemBindingSmlJson extends ResourceBindingJson<FeatureKey, ISyste
 
 
     @Override
-    public void serialize(FeatureKey key, ISystemWithDesc res, boolean showLinks) throws IOException
+    public void serialize(FeatureKey key, ISystemWithDesc res, boolean showLinks, JsonWriter writer) throws IOException
     {
         try
         {

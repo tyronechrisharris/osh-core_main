@@ -14,9 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.task;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
@@ -53,36 +51,27 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
 {
     String rootURL;
     SWEStaxBindings sweBindings;
-    JsonReader reader;
     SWEJsonStreamReader sweReader;
-    JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
     IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     
     
     CommandStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoder, forReading);
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
         
         if (forReading)
-        {
-            InputStream is = new BufferedInputStream(ctx.getInputStream());
-            this.reader = getJsonReader(is);
             this.sweReader = new SWEJsonStreamReader(reader);
-        }
         else
-        {
-            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
             this.sweWriter = new SWEJsonStreamWriter(writer);
-        }
     }
     
     
     @Override
-    public ICommandStreamInfo deserialize() throws IOException
+    public ICommandStreamInfo deserialize(JsonReader reader) throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
@@ -103,12 +92,12 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                     name = reader.nextString();
                 else if ("description".equals(prop))
                     description = reader.nextString();
-                else if ("resultSchema".equals(prop))
+                else if ("commandSchema".equals(prop))
                 {
                     sweReader.nextTag();
                     resultStruct = sweBindings.readDataComponent(sweReader);
                 }
-                else if ("resultEncoding".equals(prop))
+                else if ("commandEncoding".equals(prop))
                 {
                     sweReader.nextTag();
                     resultEncoding = sweBindings.readAbstractEncoding(sweReader);
@@ -149,7 +138,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
 
 
     @Override
-    public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks) throws IOException
+    public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
         var publicSysID = sysIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
@@ -162,10 +151,8 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("system").beginObject()
-            .name("id").value(Long.toString(publicSysID, 36))
-            .name("outputName").value(dsInfo.getControlInputName())
-            .endObject();
+        writer.name("system@id").value(Long.toString(publicSysID, 36));
+        writer.name("outputName").value(dsInfo.getControlInputName());
         
         writer.name("validTime").beginArray()
             .value(dsInfo.getValidTime().begin().toString())

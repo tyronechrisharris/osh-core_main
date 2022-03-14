@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.resource;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -42,11 +43,42 @@ import com.google.gson.stream.JsonWriter;
 public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
 {
     public static final String INVALID_JSON_ERROR_MSG = "Invalid JSON: ";
+    protected final JsonReader reader;
+    protected final JsonWriter writer;
     
     
-    protected ResourceBindingJson(RequestContext ctx, IdEncoder idEncoder)
+    protected ResourceBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder);
+        
+        if (forReading)
+        {
+            InputStream is = new BufferedInputStream(ctx.getInputStream());
+            this.reader = getJsonReader(is);
+            this.writer = null;
+        }
+        else
+        {
+            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
+            this.reader = null;
+        }
+    }
+    
+    public abstract V deserialize(JsonReader reader) throws IOException;
+    public abstract void serialize(K key, V res, boolean showLinks, JsonWriter writer) throws IOException;
+    
+    
+    @Override
+    public V deserialize() throws IOException
+    {
+        return deserialize(this.reader);
+    }
+    
+    
+    @Override
+    public void serialize(K key, V res, boolean showLinks) throws IOException
+    {
+        serialize(key, res, showLinks, this.writer);
     }
     
     

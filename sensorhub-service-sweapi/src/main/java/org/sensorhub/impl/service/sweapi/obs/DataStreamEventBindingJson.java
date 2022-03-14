@@ -29,6 +29,7 @@ import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
+import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 
@@ -42,27 +43,25 @@ import com.google.gson.stream.JsonWriter;
  */
 public class DataStreamEventBindingJson extends ResourceBindingJson<Long, DataStreamEvent>
 {
-    JsonWriter writer;
     IdEncoder sysIdEncoder;
     
     
     DataStreamEventBindingJson(RequestContext ctx) throws IOException
     {
-        super(ctx, new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED));
-        this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
+        super(ctx, new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED), false);
         this.sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     }
 
 
     @Override
-    public DataStreamEvent deserialize() throws IOException
+    public DataStreamEvent deserialize(JsonReader reader) throws IOException
     {
         throw new UnsupportedOperationException();
     }
 
 
     @Override
-    public void serialize(Long key, DataStreamEvent res, boolean showLinks) throws IOException
+    public void serialize(Long key, DataStreamEvent res, boolean showLinks, JsonWriter writer) throws IOException
     {
         var eventType =
             (res instanceof DataStreamAddedEvent) ? RESOURCE_ADDED_EVENT_TYPE :

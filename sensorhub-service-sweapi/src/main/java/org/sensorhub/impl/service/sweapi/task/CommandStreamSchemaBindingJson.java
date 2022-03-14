@@ -14,9 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.task;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
@@ -35,49 +33,39 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
 {
     String rootURL;
     SWEStaxBindings sweBindings;
-    JsonReader reader;
     SWEJsonStreamReader sweReader;
-    JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
     
     
     CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoder, forReading);
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
         
         if (forReading)
-        {
-            InputStream is = new BufferedInputStream(ctx.getInputStream());
-            this.reader = getJsonReader(is);
             this.sweReader = new SWEJsonStreamReader(reader);
-        }
         else
-        {
-            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
             this.sweWriter = new SWEJsonStreamWriter(writer);
-        }
     }
     
     
     @Override
-    public ICommandStreamInfo deserialize() throws IOException
+    public ICommandStreamInfo deserialize(JsonReader reader) throws IOException
     {
-        // not needed since we never create the schema separately
         throw new UnsupportedOperationException();
     }
 
 
     @Override
-    public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks) throws IOException
+    public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
         
         writer.beginObject();
         
-        writer.name("commandstream").value(Long.toString(publicDsID, 36));
+        writer.name("commandstream@id").value(Long.toString(publicDsID, 36));
         
         // result structure & encoding
         try

@@ -14,9 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -38,43 +36,33 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
 {
     String rootURL;
     SWEStaxBindings sweBindings;
-    JsonReader reader;
     SWEJsonStreamReader sweReader;
-    JsonWriter writer;
     SWEJsonStreamWriter sweWriter;
     
     
     DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoder, forReading);
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
         
         if (forReading)
-        {
-            InputStream is = new BufferedInputStream(ctx.getInputStream());
-            this.reader = getJsonReader(is);
             this.sweReader = new SWEJsonStreamReader(reader);
-        }
         else
-        {
-            this.writer = getJsonWriter(ctx.getOutputStream(), ctx.getPropertyFilter());
             this.sweWriter = new SWEJsonStreamWriter(writer);
-        }
     }
     
     
     @Override
-    public IDataStreamInfo deserialize() throws IOException
+    public IDataStreamInfo deserialize(JsonReader reader) throws IOException
     {
-        // not needed since we never create the schema separately
         throw new UnsupportedOperationException();
     }
 
 
     @Override
-    public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks) throws IOException
+    public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
         var publicDsID = encodeID(key.getInternalID());
         

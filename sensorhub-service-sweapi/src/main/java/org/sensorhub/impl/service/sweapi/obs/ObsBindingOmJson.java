@@ -14,9 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
@@ -54,8 +52,6 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
 {
     ObsHandlerContextData contextData;
     IObsStore obsStore;
-    JsonReader reader;
-    JsonWriter writer;
     JsonDataParserGson resultReader;
     Map<Long, DataStreamWriter> resultWriters;
     IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
@@ -64,20 +60,16 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     
     ObsBindingOmJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoder, forReading);
         this.contextData = (ObsHandlerContextData)ctx.getData();
         this.obsStore = obsStore;
         
         if (forReading)
         {
-            InputStream is = new BufferedInputStream(ctx.getInputStream());
-            this.reader = getJsonReader(is);
             resultReader = getSweCommonParser(contextData.dsInfo, reader);
         }
         else
         {
-            var os = ctx.getOutputStream();
-            this.writer = getJsonWriter(os, ctx.getPropertyFilter());
             this.resultWriters = new HashMap<>();
             
             // init result writer only in case of single datastream
@@ -92,7 +84,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     
     
     @Override
-    public IObsData deserialize() throws IOException
+    public IObsData deserialize(JsonReader reader) throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
@@ -145,7 +137,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
 
 
     @Override
-    public void serialize(BigInteger key, IObsData obs, boolean showLinks) throws IOException
+    public void serialize(BigInteger key, IObsData obs, boolean showLinks, JsonWriter writer) throws IOException
     {
         writer.beginObject();
         

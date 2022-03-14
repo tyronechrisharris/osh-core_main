@@ -24,34 +24,33 @@ import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.vast.json.JsonInliningWriter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 
 
 public class ObsStatsBindingJson extends ResourceBindingJson<BigInteger, ObsStats>
 {
-    JsonInliningWriter writer;
     IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
     IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
 
     
     ObsStatsBindingJson(RequestContext ctx) throws IOException
     {
-        super(ctx, new IdEncoder(0));        
-        var os = ctx.getOutputStream();
-        this.writer = (JsonInliningWriter)getJsonWriter(os, ctx.getPropertyFilter());
+        super(ctx, new IdEncoder(0), false);
     }
     
     
     @Override
-    public ObsStats deserialize() throws IOException
+    public ObsStats deserialize(JsonReader reader) throws IOException
     {
         throw new UnsupportedOperationException();
     }
 
 
     @Override
-    public void serialize(BigInteger key, ObsStats stats, boolean showLinks) throws IOException
+    public void serialize(BigInteger key, ObsStats stats, boolean showLinks, JsonWriter writer) throws IOException
     {
         writer.beginObject();
         
@@ -85,11 +84,11 @@ public class ObsStatsBindingJson extends ResourceBindingJson<BigInteger, ObsStat
         if (stats.getObsCountsByTime() != null)
         {
             writer.name("histogram").beginArray();
-            writer.writeInline(true);
+            ((JsonInliningWriter)writer).writeInline(true);
             for (int val: stats.getObsCountsByTime())
                 writer.value(val);
             writer.endArray();
-            writer.writeInline(false);
+            ((JsonInliningWriter)writer).writeInline(false);
         }
         
         writer.endObject();
@@ -100,13 +99,13 @@ public class ObsStatsBindingJson extends ResourceBindingJson<BigInteger, ObsStat
     @Override
     public void startCollection() throws IOException
     {
-        startJsonCollection(writer);        
+        startJsonCollection(writer);
     }
 
 
     @Override
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
-        endJsonCollection(writer, links);        
+        endJsonCollection(writer, links);
     }
 }

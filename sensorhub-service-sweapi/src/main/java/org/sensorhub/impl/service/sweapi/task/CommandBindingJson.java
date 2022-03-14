@@ -14,9 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.task;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
@@ -57,8 +55,6 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
 {
     CommandHandlerContextData contextData;
     ICommandStore cmdStore;
-    JsonReader reader;
-    JsonWriter writer;
     JsonDataParserGson paramsReader;
     Map<Long, DataStreamWriter> paramsWriters;
     IdEncoder dsIdEncoder = new IdEncoder(CommandStreamHandler.EXTERNAL_ID_SEED);
@@ -68,14 +64,12 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
     
     CommandBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, ICommandStore cmdStore) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoder, forReading);
         this.contextData = (CommandHandlerContextData)ctx.getData();
         this.cmdStore = cmdStore;
         
         if (forReading)
         {
-            InputStream is = new BufferedInputStream(ctx.getInputStream());
-            this.reader = getJsonReader(is);
             this.paramsReader = getSweCommonParser(contextData.dsInfo, reader);
             
             var user = ctx.getSecurityHandler().getCurrentUser();
@@ -83,8 +77,6 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
         }
         else
         {
-            var os = ctx.getOutputStream();
-            this.writer = getJsonWriter(os, ctx.getPropertyFilter());
             this.paramsWriters = new HashMap<>();
             
             // init params writer only in case of single command stream
@@ -99,7 +91,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
     
     
     @Override
-    public ICommandData deserialize() throws IOException
+    public ICommandData deserialize(JsonReader reader) throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
@@ -149,7 +141,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
 
 
     @Override
-    public void serialize(BigInteger key, ICommandData cmd, boolean showLinks) throws IOException
+    public void serialize(BigInteger key, ICommandData cmd, boolean showLinks, JsonWriter writer) throws IOException
     {
         writer.beginObject();
         
