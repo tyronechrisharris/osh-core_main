@@ -415,7 +415,6 @@ public class SystemTransactionHandler
             fk = getFoiStore().add(sysKey.getInternalID(), foi);
             isNew = true;
             log.debug("Added FOI {}", foi.getUniqueIdentifier());
-            
         }
         
         // otherwise add it only if its newer than the one already in storage

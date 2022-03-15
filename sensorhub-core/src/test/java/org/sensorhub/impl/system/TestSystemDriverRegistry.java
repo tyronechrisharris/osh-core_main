@@ -64,7 +64,7 @@ public class TestSystemDriverRegistry
     ISensorHub hub;
     ISystemDriverRegistry registry;
     IObsSystemDatabase stateDb;
-    IObsSystemDatabase otherDb;
+    IObsSystemDatabase federatedDb;
     
     
     @Before
@@ -74,6 +74,7 @@ public class TestSystemDriverRegistry
         hub.start();
         registry = hub.getSystemDriverRegistry();
         stateDb = hub.getSystemDriverRegistry().getSystemStateDatabase();
+        federatedDb = hub.getDatabaseRegistry().getFederatedObsDatabase();
     }
     
     
@@ -125,7 +126,7 @@ public class TestSystemDriverRegistry
             return sensor.startSendingData();
             //return ((IFakeSensorOutput)sensor.getOutputs().get(NAME_OUTPUT1)).start(false);
         })
-        .thenRun(() -> {            
+        .thenRun(() -> {
             // check latest record is in DB
             assertEquals(2, stateDb.getObservationStore().size());
         })
@@ -206,7 +207,7 @@ public class TestSystemDriverRegistry
                     assertEquals(output.getName(), ds.getOutputName());
                     assertEquals(sensorName + " - " + output.getRecordDescription().getLabel(), ds.getName());
                 }
-            }           
+            }
         })
         .thenCompose(nil -> {
             // check data is forwarded to event bus
@@ -217,7 +218,7 @@ public class TestSystemDriverRegistry
             {
                 var topic = EventUtils.getDataStreamDataTopicID(sensor.getOutputs().get(NAME_OUTPUT1));
                 System.out.println("Subscribe to channel " + topic);
-                subBuilder.withTopicID(topic);                     
+                subBuilder.withTopicID(topic);
             }
             
             subBuilder.consume(e -> {
@@ -234,7 +235,7 @@ public class TestSystemDriverRegistry
             
             return sensorNet.startSendingData();
         })
-        .thenRun(() -> {            
+        .thenRun(() -> {
             // check latest records are in DB
             assertEquals(numMembers*2, stateDb.getObservationStore().size());
         })
@@ -329,7 +330,7 @@ public class TestSystemDriverRegistry
                 var ds = stateDb.getDataStreamStore().getLatestVersion(sensorNet.getUniqueIdentifier(), output.getName());
                 assertEquals(output.getName(), ds.getOutputName());
                 assertEquals(sensorName + " - " + output.getRecordDescription().getLabel(), ds.getName());
-            }           
+            }
         })
         .thenCompose(nil -> {
             // check data is forwarded to event bus
@@ -341,7 +342,7 @@ public class TestSystemDriverRegistry
                 .consume(e -> {
                     var obs = e.getObservations()[0];
                     var foiId = obs.getFoiID();
-                    var foiStr = foiId > 0 ? stateDb.getFoiStore().getCurrentVersion(foiId).getUniqueIdentifier() : NO_FOI;
+                    var foiStr = foiId > 0 ? federatedDb.getFoiStore().getCurrentVersion(foiId).getUniqueIdentifier() : NO_FOI;
                     System.out.println("Record received from " + e.getSourceID() +
                         ", ts=" + Instant.ofEpochMilli(e.getTimeStamp()) +
                         ", foi=" + foiStr);
@@ -364,7 +365,7 @@ public class TestSystemDriverRegistry
         .join();
         
         // check we received all records from event bus
-        AsyncTests.waitForCondition(() -> sampleCounter.get() >= numObs, 1000L);
+        AsyncTests.waitForCondition(() -> sampleCounter.get() >= numObs, 100000L);
         for (var sampleCountEntry: sampleCountsPerFoi.entrySet())
         {
             Integer expectedCount;
