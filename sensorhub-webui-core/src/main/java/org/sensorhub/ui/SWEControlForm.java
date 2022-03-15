@@ -100,7 +100,7 @@ public class SWEControlForm extends SWEEditForm
                     {
                         var cmd = new CommandData.Builder()
                             .withSender(userID)
-                            .withCommandStream(commandTxn.getCommandStreamKey().getInternalID())
+                            .withCommandStream(commandTxn.getLocalCommandStreamKey().getInternalID())
                             .withParams(cmdData)
                             .build();
                         commandTxn.submitCommand((int)(Math.random()*1e9), cmd, null);

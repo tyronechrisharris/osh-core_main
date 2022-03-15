@@ -51,6 +51,7 @@ public class SystemDatabaseTransactionHandler
     
     /*
      * db must always be a transactional DB, not the federated DB
+     * exception is when submitting commands to systems that are not in the local DB
      */
     public SystemDatabaseTransactionHandler(IEventBus eventBus, IObsSystemDatabase db, IDatabaseRegistry dbRegistry)
     {
