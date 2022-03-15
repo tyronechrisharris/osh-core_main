@@ -110,7 +110,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             
             // create transaction handler here so it can be reused multiple times
             contextData.dsID = idConverter.toInternalID(publicDsID);
-            contextData.dsHandler = transactionHandler.getDataStreamHandler(contextData.dsID);
+            contextData.dsHandler = transactionHandler.getDataStreamHandler(publicDsID);
             if (contextData.dsHandler == null)
                 throw ServiceErrors.notWritable();
             
