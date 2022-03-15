@@ -27,6 +27,7 @@ import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsData;
 import org.sensorhub.api.data.ObsEvent;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.Event;
@@ -86,7 +87,7 @@ public class DataStreamTransactionHandler implements IEventListener
     }
     
     
-    public boolean update(IDataStreamInfo dsInfo)
+    public boolean update(IDataStreamInfo dsInfo) throws DataStoreException
     {
         var oldDsInfo = this.dsInfo;
         if (oldDsInfo == null)
@@ -94,14 +95,14 @@ public class DataStreamTransactionHandler implements IEventListener
         
         // check output name wasn't changed
         if (!dsInfo.getOutputName().equals(oldDsInfo.getOutputName()))
-            throw new IllegalArgumentException("Cannot change a datastream output name");
+            throw new DataStoreException("The system output (outputName) associated to a datastream cannot be changed");
         
         // check if datastream already has observations
         var hasObs = oldDsInfo.getResultTimeRange() != null;
         if (hasObs &&
             (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
              !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding())))
-            throw new IllegalArgumentException("Cannot update the record structure or encoding of a datastream if it already has observations");
+            throw new DataStoreException("Cannot update the record structure or encoding of a datastream if it already has observations");
         
         // update datastream info
         var newDsInfo = new DataStreamInfo.Builder()
@@ -123,7 +124,7 @@ public class DataStreamTransactionHandler implements IEventListener
     }
     
     
-    public boolean delete()
+    public boolean delete() throws DataStoreException
     {
         var oldDsKey = getDataStreamStore().remove(dsKey);
         if (oldDsKey == null)

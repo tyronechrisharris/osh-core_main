@@ -33,6 +33,7 @@ import org.sensorhub.api.command.CommandStreamRemovedEvent;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.event.Event;
@@ -78,7 +79,7 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
     
     
-    public boolean update(ICommandStreamInfo csInfo)
+    public boolean update(ICommandStreamInfo csInfo) throws DataStoreException
     {
         var oldCsInfo = this.csInfo;
         if (oldCsInfo == null)
@@ -86,14 +87,14 @@ public class CommandStreamTransactionHandler implements IEventListener
         
         // check control input name wasn't changed
         if (!csInfo.getControlInputName().equals(oldCsInfo.getControlInputName()))
-            throw new IllegalArgumentException("Cannot change the name of the control input associated to an existing command stream");
+            throw new DataStoreException("The system control input (controlInputName) associated to a command stream cannot be changed");
         
         // check if command stream already has commands
         var hasCmd = oldCsInfo.getIssueTimeRange() != null;
         if (hasCmd &&
             (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
              !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding())))
-            throw new IllegalArgumentException("Cannot update the record structure or encoding of a command interface if it already has received commands");
+            throw new DataStoreException("Cannot update the record structure or encoding of a command interface if it already has received commands");
         
         // update datastream info
         var newCsInfo = new CommandStreamInfo.Builder()
@@ -115,7 +116,7 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
     
     
-    public boolean delete()
+    public boolean delete() throws DataStoreException
     {
         var oldCsKey = getCommandStreamStore().remove(csKey);
         if (oldCsKey == null)
