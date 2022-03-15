@@ -99,7 +99,7 @@ public class SystemMembersHandler extends SystemHandler
         if (sml != null)
             SystemUtils.addDatastreamsFromOutputs(procHandler, sml.getOutputList());
         
-        return procHandler.getLocalSystemKey();
+        return procHandler.getPublicSystemKey();
     }
     
     

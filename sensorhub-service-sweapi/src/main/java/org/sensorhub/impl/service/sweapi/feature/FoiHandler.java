@@ -119,7 +119,9 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     protected FeatureKey addEntry(final RequestContext ctx, final IFeature foi) throws DataStoreException
     {        
         var procHandler = transactionHandler.getSystemHandler(ctx.getParentID());
-        return procHandler.addOrUpdateFoi(foi);
+        var fk = procHandler.addOrUpdateFoi(foi);
+        var publicId = transactionHandler.toPublicId(fk.getInternalID());
+        return new FeatureKey(publicId, fk.getValidStartTime());
     }
 
 
