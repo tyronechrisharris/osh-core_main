@@ -249,7 +249,14 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     
     protected void addTemporalFeatures(long parentID, int startIndex, int numFeatures, OffsetDateTime startTime) throws Exception
     {
+        addTemporalFeatures(parentID, startIndex, numFeatures, startTime, false); 
+    }
+    
+    
+    protected void addTemporalFeatures(long parentID, int startIndex, int numFeatures, OffsetDateTime startTime, boolean endNow) throws Exception
+    {
         QName fType = new QName("http://mydomain/features", "MyTimeFeature");
+        var now = Instant.now().atOffset(ZoneOffset.UTC);
         
         long t0 = System.currentTimeMillis();
         for (int i = startIndex; i < startIndex+numFeatures; i++)
@@ -259,7 +266,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             {
                 GenericTemporalFeatureImpl f = new GenericTemporalFeatureImpl(fType);
                 OffsetDateTime beginTime = startTime.plus(j*30, ChronoUnit.DAYS).plus(i, ChronoUnit.HOURS);
-                OffsetDateTime endTime = beginTime.plus(30, ChronoUnit.DAYS);
+                OffsetDateTime endTime = endNow && now.isAfter(beginTime) ? now : beginTime.plus(30, ChronoUnit.DAYS);
                 f.setValidTimePeriod(beginTime, endTime);
                 setCommonFeatureProperties(f, i);
                 addOrPutFeature(parentID, f);
@@ -898,15 +905,17 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         addGeoFeaturesPoint2D(group1Id, 0, 20);
         addNonGeoFeatures(group2Id, 40, 35);
         addTemporalGeoFeatures(group3Id, 100, 46);
+        addTemporalFeatures(group2Id, 200, 40, OffsetDateTime.now().minusDays(90), false);
+        addTemporalFeatures(0L, 300, 10, OffsetDateTime.now().minusDays(110), true);
         
         // select with parent and time range
-        var timeRange = Range.closed(
+        var timeRange1 = Range.closed(
             FIRST_VERSION_TIME.toInstant(),
             FIRST_VERSION_TIME.toInstant().plus(70, ChronoUnit.DAYS));
         
         var filter1 = new FeatureFilter.Builder()
             .withParents(group1Id, group3Id)
-            .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
+            .withValidTimeDuring(timeRange1.lowerEndpoint(), timeRange1.upperEndpoint())
             .build();
         
         Map<FeatureKey, IFeature> expectedResults = allFeatures.entrySet().stream()
@@ -916,7 +925,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
             })
             .filter(e -> {
                 return e.getValue().getValidTime() == null ||
-                    timeRange.isConnected(e.getValue().getValidTime().asRange());
+                    timeRange1.isConnected(e.getValue().getValidTime().asRange());
             })
             .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
         
@@ -968,6 +977,57 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         resultStream = featureStore.selectEntries(filter3);
         checkSelectedEntries(filter3, resultStream, expectedResults);
+        
+        // no filtering on parent and time range until now
+        var timeExtent4 = TimeExtent.period(
+            FIRST_VERSION_TIME.toInstant(),
+            Instant.now());
+        
+        var filter4 = new FeatureFilter.Builder()
+            .withValidTimeDuring(timeExtent4)
+            .build();
+                
+        expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> {
+                return e.getValue().getValidTime() == null ||
+                    e.getValue().getValidTime().asRange().isConnected(timeExtent4.asRange());
+            })             
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        resultStream = featureStore.selectEntries(filter4);
+        checkSelectedEntries(filter4, resultStream, expectedResults);
+        
+        // no filtering on parent and time range from now
+        var timeExtent5 = TimeExtent.period(
+            Instant.now(),
+            Instant.now().plusSeconds(3600));
+        
+        var filter5 = new FeatureFilter.Builder()
+            .withValidTimeDuring(timeExtent5)
+            .build();
+                
+        expectedResults = allFeatures.entrySet().stream()
+            .filter(e -> {
+                return e.getValue().getValidTime() == null ||
+                    e.getValue().getValidTime().asRange().isConnected(timeExtent5.asRange());
+            })             
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        resultStream = featureStore.selectEntries(filter5);
+        checkSelectedEntries(filter5, resultStream, expectedResults);
+        
+        // no filtering on parent and all times
+        var timeExtent6 = TimeExtent.ALL_TIMES;
+        
+        var filter6 = new FeatureFilter.Builder()
+            .withValidTimeDuring(timeExtent6)
+            .build();
+                
+        expectedResults = allFeatures.entrySet().stream()
+            .collect(Collectors.toMap(e->e.getKey(), e->e.getValue()));
+        
+        resultStream = featureStore.selectEntries(filter6);
+        checkSelectedEntries(filter6, resultStream, expectedResults);
     }
     
     

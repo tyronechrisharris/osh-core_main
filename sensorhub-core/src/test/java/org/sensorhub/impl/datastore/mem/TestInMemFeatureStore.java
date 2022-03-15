@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.mem;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import org.junit.Test;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -85,9 +86,9 @@ public class TestInMemFeatureStore extends AbstractTestFeatureStore<InMemoryFeat
     }
     
     
-    protected void addTemporalFeatures(long parentID, int startIndex, int numFeatures) throws Exception
+    protected void addTemporalFeatures(long parentID, int startIndex, int numFeatures, OffsetDateTime startTime, boolean endNow) throws Exception
     {
-        super.addTemporalFeatures(parentID, startIndex, numFeatures);
+        super.addTemporalFeatures(parentID, startIndex, numFeatures, startTime, endNow);
         removeNonCurrentFeatures();
     }
     

@@ -481,10 +481,10 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                     
                     var prevAfterStart = prevK.getValidStartTime().compareTo(filterStartTime) >= 0;
                     var prevBeforeEnd = prevK.getValidStartTime().compareTo(filterEndTime) <= 0;
-                    var nextStartsAfter = k.getValidStartTime().compareTo(filterStartTime) > 0;
+                    var nextAfterStart = k.getValidStartTime().compareTo(filterStartTime) > 0;
                     var nextHasNewId = k.getInternalID() != prevK.getInternalID();
                     if ((prevAfterStart && prevBeforeEnd) ||
-                        (!prevAfterStart && nextStartsAfter) ||
+                        (!prevAfterStart && nextAfterStart) ||
                         (!prevAfterStart && nextHasNewId))
                       action.accept(previous);
                     
@@ -493,8 +493,10 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 
                 if (!more)
                 {
+                    // special case for last entry
                     FeatureKey prevK = previous.getKey();
-                    if (prevK.getValidStartTime().compareTo(filterStartTime) <= 0)
+                    var prevBeforeEnd = prevK.getValidStartTime().compareTo(filterEndTime) <= 0;
+                    if (prevBeforeEnd)
                         action.accept(previous);
                 }
                 
