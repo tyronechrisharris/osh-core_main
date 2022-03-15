@@ -68,7 +68,7 @@ public class OshAsserts
     }
     
     
-    public static String checkProcedureObject(IProcedure f)
+    public static String checkSystemObject(IProcedure f)
     {
         Asserts.checkNotNull(f, IProcedure.class);
         return checkValidUID(f.getUniqueIdentifier(), "System UID");

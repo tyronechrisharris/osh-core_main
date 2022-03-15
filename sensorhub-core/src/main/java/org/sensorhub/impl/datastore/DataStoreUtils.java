@@ -87,9 +87,9 @@ public class DataStoreUtils
         return OshAsserts.checkFeatureObject(f);
     }
     
-    public static String checkProcedureObject(IProcedure f)
+    public static String checkSystemObject(IProcedure f)
     {
-        return OshAsserts.checkProcedureObject(f);
+        return OshAsserts.checkSystemObject(f);
     }
     
     public static String checkUniqueID(String uid)

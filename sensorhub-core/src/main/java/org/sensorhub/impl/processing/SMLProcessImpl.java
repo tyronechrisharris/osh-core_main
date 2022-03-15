@@ -108,7 +108,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
                 wrapperProcess = (AggregateProcessImpl)smlUtils.readProcess(is);
                 //smlProcess = (AbstractProcessImpl)wrapperProcess.getComponent(PROCESS_NAME);
                 
-                OshAsserts.checkProcedureObject(wrapperProcess);
+                OshAsserts.checkSystemObject(wrapperProcess);
                 
                 // set default name if none set in SensorML file
                 if (wrapperProcess.getName() == null)

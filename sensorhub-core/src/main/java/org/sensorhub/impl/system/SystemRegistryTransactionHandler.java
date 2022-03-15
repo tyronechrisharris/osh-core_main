@@ -30,7 +30,7 @@ class SystemRegistryTransactionHandler extends SystemDatabaseTransactionHandler
     Executor parentExecutor;
     
 
-    public SystemRegistryTransactionHandler(ISensorHub hub, IObsSystemDatabase db, Executor parentExecutor)
+    SystemRegistryTransactionHandler(ISensorHub hub, IObsSystemDatabase db, Executor parentExecutor)
     {
         super(hub.getEventBus(), db, hub.getDatabaseRegistry());
         this.parentExecutor = parentExecutor;

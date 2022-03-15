@@ -100,24 +100,24 @@ public class SystemTransactionHandler
     }
     
     
-    public synchronized boolean update(ISystemWithDesc proc) throws DataStoreException
+    public synchronized boolean update(ISystemWithDesc system) throws DataStoreException
     {
-        OshAsserts.checkProcedureObject(proc);
+        OshAsserts.checkSystemObject(system);
         
-        if (!getSystemDescStore().contains(proc.getUniqueIdentifier()))
+        if (!getSystemDescStore().contains(system.getUniqueIdentifier()))
             return false;
         
         checkParent();
         
-        var validTime = proc.getFullDescription().getValidTime();
+        var validTime = system.getFullDescription().getValidTime();
         if (validTime == null || sysKey.getValidStartTime().isBefore(validTime.begin()))
         {
-            sysKey = getSystemDescStore().add(proc);
+            sysKey = getSystemDescStore().add(system);
             publishSystemEvent(new SystemChangedEvent(sysUID));
         }
         else if (sysKey.getValidStartTime().equals(validTime.begin()))
         {
-            getSystemDescStore().put(sysKey, proc);
+            getSystemDescStore().put(sysKey, system);
         }
         else
             throw new DataStoreException("A version of the system description with a more recent valid time already exists");
@@ -131,15 +131,15 @@ public class SystemTransactionHandler
         checkParent();
         
         // error if associated datastreams still exist
-        var procDsFilter = new DataStreamFilter.Builder()
+        var dsFilter = new DataStreamFilter.Builder()
             .withSystems(sysKey.getInternalID())
             .build();
-        if (getDataStreamStore().countMatchingEntries(procDsFilter) > 0)
+        if (getDataStreamStore().countMatchingEntries(dsFilter) > 0)
             throw new DataStoreException("System cannot be deleted because it is referenced by a datastream");
         
         // remove from datastore
-        var procKey = getSystemDescStore().remove(sysUID);
-        if (procKey != null)
+        var sysKey = getSystemDescStore().remove(sysUID);
+        if (sysKey != null)
         {
             // send deleted event
             publishSystemEvent(new SystemRemovedEvent(sysUID, parentGroupUID));
@@ -169,16 +169,16 @@ public class SystemTransactionHandler
      * Member helper methods
      */    
     
-    public synchronized SystemTransactionHandler addMember(ISystemWithDesc proc) throws DataStoreException
+    public synchronized SystemTransactionHandler addMember(ISystemWithDesc system) throws DataStoreException
     {
-        OshAsserts.checkProcedureObject(proc);
+        OshAsserts.checkSystemObject(system);
         
         var parentGroupUID = this.sysUID;
         var parentGroupID = this.sysKey.getInternalID();
         
         // add to datastore
-        var memberKey = getSystemDescStore().add(parentGroupID, proc);
-        var memberUID = proc.getUniqueIdentifier();
+        var memberKey = getSystemDescStore().add(parentGroupID, system);
+        var memberUID = system.getUniqueIdentifier();
         
         // send event
         publishSystemEvent(new SystemAddedEvent(memberUID, parentGroupUID));
@@ -188,19 +188,19 @@ public class SystemTransactionHandler
     }
     
     
-    public synchronized SystemTransactionHandler addOrUpdateMember(ISystemWithDesc proc) throws DataStoreException
+    public synchronized SystemTransactionHandler addOrUpdateMember(ISystemWithDesc system) throws DataStoreException
     {
-        var uid = OshAsserts.checkProcedureObject(proc);
+        var uid = OshAsserts.checkSystemObject(system);
         
         var memberKey = getSystemDescStore().getCurrentVersionKey(uid);
         if (memberKey != null)
         {
             var memberHandler = createMemberHandler(memberKey, uid);
-            memberHandler.update(proc);
+            memberHandler.update(system);
             return memberHandler;
         }
         else
-            return addMember(proc);
+            return addMember(system);
     }
     
     

@@ -69,7 +69,7 @@ public class SystemDatabaseTransactionHandler
      */
     public SystemTransactionHandler addSystem(ISystemWithDesc system) throws DataStoreException
     {
-        OshAsserts.checkProcedureObject(system);
+        OshAsserts.checkSystemObject(system);
         
         // add system to store
         var systemKey = db.getSystemDescStore().add(system);
@@ -93,7 +93,7 @@ public class SystemDatabaseTransactionHandler
      */
     public SystemTransactionHandler updateSystem(ISystemWithDesc system) throws DataStoreException
     {
-        OshAsserts.checkProcedureObject(system);
+        OshAsserts.checkSystemObject(system);
         
         var systemHandler = getSystemHandler(system.getUniqueIdentifier());
         systemHandler.update(system);
@@ -113,7 +113,7 @@ public class SystemDatabaseTransactionHandler
      */
     public SystemTransactionHandler addOrUpdateSystem(ISystemWithDesc system) throws DataStoreException
     {
-        OshAsserts.checkProcedureObject(system);
+        OshAsserts.checkSystemObject(system);
         
         var systemHandler = getSystemHandler(system.getUniqueIdentifier());
         if (systemHandler != null)
