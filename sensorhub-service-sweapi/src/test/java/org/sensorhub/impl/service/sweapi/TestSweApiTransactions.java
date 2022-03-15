@@ -41,7 +41,6 @@ import org.sensorhub.impl.service.HttpServerConfig;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamWriter;
@@ -51,8 +50,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataEncoding;
 
 
 public class TestSweApiTransactions
@@ -399,7 +398,7 @@ public class TestSweApiTransactions
         var ids = new ArrayList<String>();
         for (int i = 0; i < numDatastreams; i++)
         {
-            var url = addDatastream(procUrl, i);
+            var url = addDatastreamOmJson(procUrl, i);
             var id = url.substring(url.lastIndexOf('/')+1);
             ids.add(id);
         }
@@ -411,7 +410,7 @@ public class TestSweApiTransactions
     }
     
     
-    protected String addDatastream(String procUrl, int num) throws Exception
+    protected String addDatastreamOmJson(String procUrl, int num) throws Exception
     {
         var swe = new SWEHelper();
         var rec = swe.createRecord()
@@ -426,7 +425,7 @@ public class TestSweApiTransactions
             .build();
         
         // add datastream
-        var json = createDatastream(rec, new TextEncodingImpl());
+        var json = createDatastreamOmJson(rec);
         var httpResp = sendPostRequest(concat(procUrl, DATASTREAM_COLLECTION), json);
         var url = getLocation(httpResp);
         
@@ -440,13 +439,14 @@ public class TestSweApiTransactions
     }
     
     
-    protected JsonObject createDatastream(DataComponent resultStruct, DataEncoding resultEncoding) throws Exception
+    protected JsonObject createDatastreamOmJson(DataComponent resultStruct) throws Exception
     {
         var buffer = new StringWriter();
         var writer = new JsonWriter(buffer);
         
         writer.beginObject();
-        writer.name("name").value(resultStruct.getName());
+        writer.name("name").value("Name of datastream " + resultStruct.getName());
+        writer.name("outputName").value(resultStruct.getName());
         
         // result schema & encoding
         try
@@ -454,12 +454,50 @@ public class TestSweApiTransactions
             SWEJsonStreamWriter sweWriter = new SWEJsonStreamWriter(writer);
             SWEStaxBindings sweBindings = new SWEStaxBindings();
             
+            writer.name("schema").beginObject();
+            
+            writer.name("obsFormat").value("application/om+json");
+            writer.name("resultSchema");
+            sweBindings.writeDataComponent(sweWriter, resultStruct, false);
+            
+            writer.endObject();
+        }
+        catch (Exception e)
+        {
+            throw new IOException("Error writing SWE Common result structure", e);
+        }
+        
+        writer.endObject();
+        
+        return (JsonObject)JsonParser.parseString(buffer.getBuffer().toString());
+    }
+    
+    
+    protected JsonObject createDatastreamSweBinary(DataComponent resultStruct, BinaryEncoding resultEncoding) throws Exception
+    {
+        var buffer = new StringWriter();
+        var writer = new JsonWriter(buffer);
+        
+        writer.beginObject();
+        writer.name("name").value("Name of datastream " + resultStruct.getName());
+        writer.name("outputName").value(resultStruct.getName());
+        
+        // result schema & encoding
+        try
+        {
+            SWEJsonStreamWriter sweWriter = new SWEJsonStreamWriter(writer);
+            SWEStaxBindings sweBindings = new SWEStaxBindings();
+            
+            writer.name("schema").beginObject();
+            
             writer.name("resultSchema");
             sweBindings.writeDataComponent(sweWriter, resultStruct, false);
             
             sweWriter.resetContext();
             writer.name("resultEncoding");
             sweBindings.writeAbstractEncoding(sweWriter, resultEncoding);
+            
+            writer.endObject();
         }
         catch (Exception e)
         {
@@ -496,7 +534,7 @@ public class TestSweApiTransactions
         var procUrl = addSystem(33);
         
         // add datastream
-        var dsUrl = addDatastream(procUrl, 115);
+        var dsUrl = addDatastreamOmJson(procUrl, 115);
         
         // add observations
         var now = Instant.now();
@@ -573,7 +611,7 @@ public class TestSweApiTransactions
     {
         // remove some fields not present in POST request before comparison
         actual.remove("id");
-        actual.remove("datastreamId");
+        actual.remove("datastream@id");
         assertEquals(expected, actual);
     }
     

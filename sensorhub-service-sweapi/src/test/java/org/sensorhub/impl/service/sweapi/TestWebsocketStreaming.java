@@ -59,7 +59,7 @@ public class TestWebsocketStreaming
         var procUrl = apiTest.addSystem(33);
         
         // add datastream
-        var dsUrl = apiTest.addDatastream(procUrl, 115);
+        var dsUrl = apiTest.addDatastreamOmJson(procUrl, 115);
         
         // add observations
         var ids = new ArrayList<String>();
