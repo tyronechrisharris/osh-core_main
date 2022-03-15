@@ -163,7 +163,7 @@ public class SystemTaskingConnector implements ISPSConnector
         // create the command
         var cmd = new CommandData.Builder()
             .withSender(servlet.getCurrentUser())
-            .withCommandStream(txnHandler.getCommandStreamKey().getInternalID())
+            .withCommandStream(txnHandler.getLocalCommandStreamKey().getInternalID())
             .withParams(data)
             .build();
         

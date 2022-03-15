@@ -117,6 +117,8 @@ public class SPSServlet extends SWEServlet
         for (var config: service.getConfiguration().customConnectors)
             connectorConfigs.put(config.systemUID, config);
         
+        // I know the doc says otherwise but we need to use the federated DB for command transactions here
+        // because we don't write to DB directly but rather send commands to systems that can be in other databases
         this.commandTxnHandler = new SystemDatabaseTransactionHandler(
             service.getParentHub().getEventBus(),
             readDatabase,
