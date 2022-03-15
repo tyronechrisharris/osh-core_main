@@ -50,7 +50,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     public SystemHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getSystemDescStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
         this.eventBus = eventBus;
         this.eventsHandler = new SystemEventsHandler(eventBus, db, permissions);
         addSubResource(eventsHandler);
@@ -146,7 +146,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         if (sml != null)
             SystemUtils.addDatastreamsFromOutputs(procHandler, sml.getOutputList());
         
-        return procHandler.getSystemKey();
+        return procHandler.getPublicSystemKey();
     }
     
     
@@ -172,7 +172,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     
     
     protected boolean deleteEntry(final RequestContext ctx, final FeatureKey key) throws DataStoreException
-    {        
+    {
         var procHandler = transactionHandler.getSystemHandler(key.getInternalID());
         if (procHandler == null)
             return false;

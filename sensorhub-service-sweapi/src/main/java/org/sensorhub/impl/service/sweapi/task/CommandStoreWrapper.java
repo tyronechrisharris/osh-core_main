@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.sweapi.task;
 
 import java.math.BigInteger;
 import java.util.stream.Stream;
-import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
@@ -53,17 +52,7 @@ public class CommandStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IC
     @Override
     public BigInteger add(ICommandData cmd)
     {
-        var csInternalID = idConverter.toInternalID(cmd.getCommandStreamID());
-        
-        /*var foiInternalID = cmd.hasFoi() ?
-            idConverter.toInternalID(cmd.getFoiID()) :
-            IObsData.NO_FOI;*/
-        
-        cmd = CommandData.Builder.from(cmd)
-            .withCommandStream(csInternalID)
-            .build();
-        
-        return toPublicKey(getWriteStore().add(cmd));
+        return getWriteStore().add(cmd);
     }
 
 
@@ -71,20 +60,6 @@ public class CommandStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IC
     public Stream<CommandStats> getStatistics(CommandStatsQuery query)
     {
         return getReadStore().getStatistics(query);
-    }
-
-
-    @Override
-    protected BigInteger toInternalKey(BigInteger publicKey)
-    {
-        return idConverter.toInternalID(publicKey);
-    }
-
-
-    @Override
-    protected BigInteger toPublicKey(BigInteger internalKey)
-    {
-        return idConverter.toPublicID(internalKey);
     }
 
 

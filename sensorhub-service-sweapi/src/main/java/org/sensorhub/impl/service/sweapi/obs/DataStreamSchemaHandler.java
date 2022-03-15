@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.io.IOException;
 import java.util.Map;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -137,26 +136,6 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     {
         // TODO Auto-generated method stub
         
-    }
-    
-    
-    @Override
-    protected DataStreamKey addEntry(final RequestContext ctx, final IDataStreamInfo res) throws DataStoreException
-    {        
-        return null;
-    }
-    
-    
-    @Override
-    protected boolean updateEntry(final RequestContext ctx, final DataStreamKey key, final IDataStreamInfo res) throws DataStoreException
-    {        
-        return false;
-    }
-    
-    
-    protected boolean deleteEntry(final RequestContext ctx, final DataStreamKey key) throws DataStoreException
-    {        
-        return false;
     }
 
 

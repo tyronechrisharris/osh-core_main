@@ -18,20 +18,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.data.DataIterator;
-import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
@@ -43,13 +42,14 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.Vector;
 
 
 public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
 {
+    static final String NO_NAME = "noname";
+    
     final String rootURL;
     final SWEStaxBindings sweBindings;
     final IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
@@ -81,8 +81,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 
         String name = null;
         String description = null;
-        DataComponent resultStruct = null;
-        DataEncoding resultEncoding = new TextEncodingImpl();
+        String outputName = null;
+        IDataStreamInfo dsInfo = null;
         
         try
         {
@@ -95,45 +95,53 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                     name = reader.nextString();
                 else if ("description".equals(prop))
                     description = reader.nextString();
-                else if ("resultSchema".equals(prop))
+                else if ("outputName".equals(prop))
+                    outputName = reader.nextString();
+                else if ("schema".equals(prop))
                 {
-                    sweReader.nextTag();
-                    resultStruct = sweBindings.readDataComponent(sweReader);
-                }
-                else if ("resultEncoding".equals(prop))
-                {
-                    sweReader.nextTag();
-                    resultEncoding = sweBindings.readAbstractEncoding(sweReader);
+                    reader.beginObject();
+                    
+                    // obsFormat must come first!
+                    if (!reader.nextName().equals("obsFormat"))
+                        throw new ResourceParseException(MISSING_PROP_ERROR_MSG + "schema/obsFormat");
+                    var obsFormat = reader.nextString();
+                    
+                    ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding = null;
+                    if (ResourceFormat.OM_JSON.getMimeType().equals(obsFormat))
+                        schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoder, reader);
+                    
+                    if (schemaBinding == null)
+                        throw ServiceErrors.unsupportedFormat(obsFormat);
+                    
+                    dsInfo = schemaBinding.deserialize(reader);
                 }
                 else
                     reader.skipValue();
             }
             reader.endObject();
         }
-        catch (XMLStreamException e)
+        catch (InvalidRequestException | ResourceParseException e)
+        {
+            throw e;
+        }
+        catch (IOException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
-        catch (IllegalStateException e)
-        {
-            throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
-        }
         
-        if (resultStruct == null)
-            throw new ResourceParseException("Missing resultSchema");
+        // check that mandatory properties have been parsed
+        if (outputName == null)
+            throw new ResourceParseException(MISSING_PROP_ERROR_MSG + "outputName");
+        if (dsInfo == null)
+            throw new ResourceParseException(MISSING_PROP_ERROR_MSG + "schema");
         
-        // set name and description inside data component
-        if (name != null)
-            resultStruct.setName(name);
-        if (description != null)
-            resultStruct.setDescription(description);
+        // assign outputName to data component
+        dsInfo.getRecordStructure().setName(outputName);
         
-        var dsInfo = new DataStreamInfo.Builder()
+        // create datastream info object
+        dsInfo = DataStreamInfo.Builder.from(dsInfo)
             .withName(name)
             .withDescription(description)
-            .withSystem(new SystemId(1, "temp-uid")) // use dummy UID since it will be replaced later
-            .withRecordDescription(resultStruct)
-            .withRecordEncoding(resultEncoding)
             .build();
         
         return dsInfo;

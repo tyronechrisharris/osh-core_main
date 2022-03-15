@@ -16,19 +16,27 @@ package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
 import java.util.Collection;
+import javax.xml.stream.XMLStreamException;
+import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.JSONEncoding;
 
 
@@ -44,7 +52,19 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
     DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
-        
+        init(obsFormat, ctx, forReading);
+    }
+    
+    
+    DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
+    {
+        super(ctx, idEncoder, reader);
+        init(obsFormat, ctx, true);
+    }
+    
+    
+    void init(ResourceFormat obsFormat, RequestContext ctx, boolean forReading)
+    {
         this.rootURL = ctx.getApiRootURL();
         this.obsFormat = obsFormat;
         this.sweBindings = new SWEStaxBindings();
@@ -59,7 +79,52 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
     @Override
     public IDataStreamInfo deserialize(JsonReader reader) throws IOException
     {
-        throw new UnsupportedOperationException();
+        DataComponent resultStruct = null;
+        DataEncoding resultEncoding = new TextEncodingImpl();
+        
+        try
+        {
+            // read BEGIN_OBJECT only if not already read by caller
+            // this happens when reading embedded schema and auto-detecting obs format
+            if (reader.peek() == JsonToken.BEGIN_OBJECT)
+                reader.beginObject();
+            
+            while (reader.hasNext())
+            {
+                var prop = reader.nextName();
+                
+                if ("recordSchema".equals(prop))
+                {
+                    sweReader.nextTag();
+                    resultStruct = sweBindings.readDataComponent(sweReader);
+                }
+                else if ("recordEncoding".equals(prop))
+                {
+                    sweReader.nextTag();
+                    resultEncoding = sweBindings.readAbstractEncoding(sweReader);
+                }
+                else
+                    reader.skipValue();
+            }
+            reader.endObject();
+        }
+        catch (XMLStreamException e)
+        {
+            throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
+        }
+        catch (IllegalStateException e)
+        {
+            throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
+        }
+        
+        var dsInfo = new DataStreamInfo.Builder()
+            .withName("noname") // name will be set later
+            .withSystem(SystemId.NO_SYSTEM_ID) // System ID will be set later
+            .withRecordDescription(resultStruct)
+            .withRecordEncoding(resultEncoding)
+            .build();
+        
+        return dsInfo;
     }
 
 

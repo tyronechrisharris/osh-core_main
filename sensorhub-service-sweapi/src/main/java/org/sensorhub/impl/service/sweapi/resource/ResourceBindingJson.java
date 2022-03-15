@@ -43,6 +43,7 @@ import com.google.gson.stream.JsonWriter;
 public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
 {
     public static final String INVALID_JSON_ERROR_MSG = "Invalid JSON: ";
+    public static final String MISSING_PROP_ERROR_MSG = "Missing property: ";
     protected final JsonReader reader;
     protected final JsonWriter writer;
     

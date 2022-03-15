@@ -46,7 +46,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     public FoiHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getFoiStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db, db.getDatabaseRegistry());
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
     }
 
 

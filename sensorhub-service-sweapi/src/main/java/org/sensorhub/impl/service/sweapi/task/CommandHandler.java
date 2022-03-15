@@ -29,7 +29,6 @@ import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
-import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
@@ -88,9 +87,12 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
         
         this.eventBus = eventBus;
         this.db = db;
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db, db.getDatabaseRegistry());
         this.threadPool = threadPool;
         this.idConverter = db.getIdConverter();
+        
+        // I know the doc says otherwise but we need to use the federated DB for command transactions here
+        // because we don't write to DB directly but rather send commands to systems that can be in other databases
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getReadDb(), db.getDatabaseRegistry());
     }
     
     
@@ -128,12 +130,12 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
                 
         if (forReading)
         {
-            // when ingesting obs, datastream should be known at this stage
-            Asserts.checkNotNull(contextData.dsInfo, IDataStreamInfo.class);
+            // when ingesting commands, datastream should be known at this stage
+            Asserts.checkNotNull(contextData.dsInfo, ICommandStreamInfo.class);
             
             // create transaction handler here so it can be reused multiple times
             contextData.streamID = publicDsID;
-            contextData.dsHandler = transactionHandler.getCommandStreamHandler(contextData.streamID);
+            contextData.dsHandler = transactionHandler.getCommandStreamHandler(publicDsID, true);
             if (contextData.dsHandler == null)
                 throw ServiceErrors.notWritable();
             

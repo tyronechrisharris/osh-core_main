@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.resource;
 
 import java.util.Map;
-import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
@@ -104,12 +103,6 @@ public abstract class ResourceHandler<
         var keywords = parseMultiValuesArg("q", queryParams);
         if (keywords != null && !keywords.isEmpty())
             builder.withKeywords(keywords);
-    }
-    
-    
-    protected K addEntry(final RequestContext ctx, final V res) throws DataStoreException
-    {        
-        return dataStore.add(res);
     }
     
     

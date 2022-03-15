@@ -23,66 +23,28 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
-import org.sensorhub.impl.service.sweapi.feature.FoiStoreWrapper;
-import org.sensorhub.impl.service.sweapi.obs.DataStreamStoreWrapper;
-import org.sensorhub.impl.service.sweapi.obs.ObsStoreWrapper;
-import org.sensorhub.impl.service.sweapi.system.SystemStoreWrapper;
-import org.sensorhub.impl.service.sweapi.task.CommandStoreWrapper;
-import org.sensorhub.impl.service.sweapi.task.CommandStreamStoreWrapper;
 import org.vast.util.Asserts;
 
 
 public class ObsSystemDbWrapper implements IObsSystemDatabase
 {
+    IObsSystemDatabase readDb;
     IObsSystemDatabase writeDb;
     IdConverter idConverter;
-    ISystemDescStore systemStore;
-    IDataStreamStore dataStreamStore;
-    IObsStore obsStore;
-    IFoiStore foiStore;
-    ICommandStreamStore commandStreamStore;
-    ICommandStore commandStore;
+    IDatabaseRegistry dbRegistry;
     
     
     public ObsSystemDbWrapper(IObsSystemDatabase readDb, IObsSystemDatabase writeDb, IDatabaseRegistry dbRegistry)
     {
         Asserts.checkNotNull(readDb);
+        this.readDb = readDb;
         this.writeDb = writeDb;
+        this.dbRegistry = Asserts.checkNotNull(dbRegistry, IDatabaseRegistry.class);
         
         // init public <-> internal ID converter
         this.idConverter = new DatabaseRegistryIdConverter(
             Asserts.checkNotNull(dbRegistry, IDatabaseRegistry.class),
             writeDb != null ? writeDb.getDatabaseNum() : 0);
-        
-        this.systemStore = new SystemStoreWrapper(
-            readDb.getSystemDescStore(),
-            writeDb != null ? writeDb.getSystemDescStore() : null,
-            idConverter);
-        
-        this.dataStreamStore = new DataStreamStoreWrapper(
-            readDb.getDataStreamStore(),
-            writeDb != null ? writeDb.getDataStreamStore() : null,
-            idConverter);
-        
-        this.obsStore = new ObsStoreWrapper(
-            readDb.getObservationStore(),
-            writeDb != null ? writeDb.getObservationStore() : null,
-            idConverter);
-        
-        this.commandStreamStore = new CommandStreamStoreWrapper(
-            readDb.getCommandStreamStore(),
-            writeDb != null ? writeDb.getCommandStreamStore() : null,
-            idConverter);
-        
-        this.commandStore = new CommandStoreWrapper(
-            readDb.getCommandStore(),
-            writeDb != null ? writeDb.getCommandStore() : null,
-            idConverter);
-        
-        this.foiStore = new FoiStoreWrapper(
-            readDb.getFoiStore(),
-            writeDb != null ? writeDb.getFoiStore() : null,
-            idConverter);
     }
     
     
@@ -127,42 +89,48 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase
     @Override
     public ISystemDescStore getSystemDescStore()
     {
-        return systemStore;
+        return readDb.getSystemDescStore();
     }
 
 
     @Override
     public IFoiStore getFoiStore()
     {
-        return foiStore;
+        return readDb.getFoiStore();
     }
     
     
     @Override
     public IDataStreamStore getDataStreamStore()
     {
-        return dataStreamStore;
+        return readDb.getDataStreamStore();
     }
 
 
     @Override
     public IObsStore getObservationStore()
     {
-        return obsStore;
+        return readDb.getObservationStore();
     }
 
 
     @Override
     public ICommandStreamStore getCommandStreamStore()
     {
-        return commandStreamStore;
+        return readDb.getCommandStreamStore();
     }
 
 
     @Override
     public ICommandStore getCommandStore()
     {
-        return commandStore;
+        return readDb.getCommandStore();
+    }
+
+
+    public IObsSystemDatabase getReadDb()
+    {
+        return readDb;
     }
 
 
@@ -175,6 +143,12 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase
     public IdConverter getIdConverter()
     {
         return idConverter;
+    }
+    
+    
+    public IDatabaseRegistry getDatabaseRegistry()
+    {
+        return dbRegistry;
     }
 
 }

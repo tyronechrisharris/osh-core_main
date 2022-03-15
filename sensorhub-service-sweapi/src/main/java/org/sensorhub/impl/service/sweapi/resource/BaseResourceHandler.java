@@ -70,7 +70,6 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected abstract K getKey(final RequestContext ctx, final String id) throws InvalidRequestException;
     protected abstract String encodeKey(final RequestContext ctx, K key);
     protected abstract F getFilter(final ResourceRef parent, final Map<String, String[]> queryParams, long offset, long limit) throws InvalidRequestException;
-    protected abstract K addEntry(final RequestContext ctx, final V res) throws DataStoreException;
     protected abstract boolean isValidID(long internalID);
     protected abstract void validate(V resource) throws ResourceParseException;
         
@@ -318,11 +317,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                 }
                 catch (DataStoreException e)
                 {
-                    throw ServiceErrors.badRequest(e.getMessage());
-                }
-                catch (Exception e)
-                {
-                    throw new IOException("Error ingesting entry", e);
+                    var msg = "Error creating resource";
+                    throw ServiceErrors.badRequest(msg + ": " + e.getMessage());
                 }
             }
             
@@ -334,7 +330,13 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             throw ServiceErrors.invalidPayload(e.getMessage());
         }
     }
-        
+    
+    
+    protected K addEntry(final RequestContext ctx, final V res) throws DataStoreException
+    {
+        throw new DataStoreException("Creating resource not supported");
+    }
+    
     
     protected void update(final RequestContext ctx, final String id) throws IOException
     {
@@ -372,19 +374,22 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             if (updateEntry(ctx, key, res))
                 ctx.getLogger().debug("Updated resource {}, key={}", id, key);
+            else
+                throw ServiceErrors.notFound(id);
         }
         catch (DataStoreException e)
         {
-            throw new IOException("Error updating resource " + id, e);
+            var msg = "Error updating resource '" + id + "'";
+            throw ServiceErrors.badRequest(msg + ": " + e.getMessage());
         }
     }
     
     
     protected boolean updateEntry(final RequestContext ctx, final K key, final V res) throws DataStoreException
-    {        
-        return dataStore.replace(key, res) != null;
+    {
+        throw new DataStoreException("Updating resource not supported");
     }
-        
+    
     
     protected void delete(final RequestContext ctx, final String id) throws IOException
     {
@@ -399,17 +404,20 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             if (deleteEntry(ctx, key))
                 ctx.getLogger().info("Deleted resource {}, key={}", id, key);
+            else
+                throw ServiceErrors.notFound(id);
         }
         catch (DataStoreException e)
         {
-            throw new IOException("Error deleting resource " + id, e);
+            var msg = "Error deleting resource '" + id + "'";
+            throw ServiceErrors.badRequest(msg + ": " + e.getMessage());
         }
     }
     
     
     protected boolean deleteEntry(final RequestContext ctx, final K key) throws DataStoreException
-    {        
-        return dataStore.remove(key) != null;
+    {
+        throw new DataStoreException("Deleting resource not supported");
     }
     
     

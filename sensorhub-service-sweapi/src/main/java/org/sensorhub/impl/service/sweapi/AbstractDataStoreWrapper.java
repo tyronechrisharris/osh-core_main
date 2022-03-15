@@ -60,10 +60,6 @@ public abstract class AbstractDataStoreWrapper<
         this.readStore = readStore;
         this.writeStore = writeStore;
     }
-
-
-    protected abstract K toInternalKey(K publicKey);
-    protected abstract K toPublicKey(K internalKey);
     
     
     protected S getReadStore()
@@ -210,7 +206,7 @@ public abstract class AbstractDataStoreWrapper<
 
     public V put(K key, V value)
     {
-        return getWriteStore().put(toInternalKey(key), value);
+        return getWriteStore().put(key, value);
     }
 
 
@@ -220,10 +216,9 @@ public abstract class AbstractDataStoreWrapper<
     }
 
 
-    @SuppressWarnings("unchecked")
     public V remove(Object key)
     {
-        return getWriteStore().remove(toInternalKey((K)key));
+        return getWriteStore().remove(key);
     }
 
 
@@ -247,44 +242,43 @@ public abstract class AbstractDataStoreWrapper<
 
     public V putIfAbsent(K key, V value)
     {
-        return getWriteStore().putIfAbsent(toInternalKey(key), value);
+        return getWriteStore().putIfAbsent(key, value);
     }
 
 
-    @SuppressWarnings("unchecked")
     public boolean remove(Object key, Object value)
     {
-        return getWriteStore().remove(toInternalKey((K)key), value);
+        return getWriteStore().remove(key, value);
     }
 
 
     public boolean replace(K key, V oldValue, V newValue)
     {
-        return getWriteStore().replace(toInternalKey(key), oldValue, newValue);
+        return getWriteStore().replace(key, oldValue, newValue);
     }
 
 
     public V replace(K key, V value)
     {
-        return getWriteStore().replace(toInternalKey(key), value);
+        return getWriteStore().replace(key, value);
     }
 
 
     public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction)
     {
-        return getWriteStore().computeIfAbsent(toInternalKey(key), mappingFunction);
+        return getWriteStore().computeIfAbsent(key, mappingFunction);
     }
 
 
     public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction)
     {
-        return getWriteStore().computeIfPresent(toInternalKey(key), remappingFunction);
+        return getWriteStore().computeIfPresent(key, remappingFunction);
     }
 
 
     public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction)
     {
-        return getWriteStore().compute(toInternalKey(key), remappingFunction);
+        return getWriteStore().compute(key, remappingFunction);
     }
 
 

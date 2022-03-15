@@ -50,8 +50,7 @@ public abstract class AbstractFeatureStoreWrapper<V extends IFeature, VF extends
     @Override
     public FeatureKey add(long parentId, V value) throws DataStoreException
     {
-        parentId = idConverter.toInternalID(parentId);
-        return toPublicKey(getWriteStore().add(parentId, value));
+        return getWriteStore().add(parentId, value);
     }
     
     
@@ -66,24 +65,6 @@ public abstract class AbstractFeatureStoreWrapper<V extends IFeature, VF extends
     public Bbox getFeaturesBbox()
     {
         return getReadStore().getFeaturesBbox();
-    }
-
-
-    @Override
-    protected FeatureKey toInternalKey(FeatureKey publicKey)
-    {
-        return new FeatureKey(
-            idConverter.toInternalID(publicKey.getInternalID()),
-            publicKey.getValidStartTime());
-    }
-
-
-    @Override
-    protected FeatureKey toPublicKey(FeatureKey internalKey)
-    {
-        return new FeatureKey(
-            idConverter.toPublicID(internalKey.getInternalID()),
-            internalKey.getValidStartTime());
     }
 
 }

@@ -17,11 +17,9 @@ package org.sensorhub.impl.service.sweapi.task;
 import java.io.IOException;
 import java.util.Map;
 import org.sensorhub.api.command.ICommandStreamInfo;
-import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
-import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
@@ -129,26 +127,6 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     {
         // TODO Auto-generated method stub
         
-    }
-    
-    
-    @Override
-    protected CommandStreamKey addEntry(final RequestContext ctx, final ICommandStreamInfo res) throws DataStoreException
-    {
-        return null;
-    }
-    
-    
-    @Override
-    protected boolean updateEntry(final RequestContext ctx, final CommandStreamKey key, final ICommandStreamInfo res) throws DataStoreException
-    {
-        return false;
-    }
-    
-    
-    protected boolean deleteEntry(final RequestContext ctx, final DataStreamKey key) throws DataStoreException
-    {
-        return false;
     }
 
 

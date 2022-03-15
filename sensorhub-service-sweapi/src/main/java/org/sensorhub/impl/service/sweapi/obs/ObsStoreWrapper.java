@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.math.BigInteger;
 import java.util.stream.Stream;
 import org.sensorhub.api.data.IObsData;
-import org.sensorhub.api.data.ObsData;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
@@ -52,18 +51,7 @@ public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IObsDa
     @Override
     public BigInteger add(IObsData obs)
     {
-        var dsInternalID = idConverter.toInternalID(obs.getDataStreamID());
-        
-        var foiInternalID = obs.hasFoi() ?
-            idConverter.toInternalID(obs.getFoiID()) :
-            IObsData.NO_FOI;
-        
-        obs = ObsData.Builder.from(obs)
-            .withDataStream(dsInternalID)
-            .withFoi(foiInternalID)
-            .build();
-        
-        return toPublicKey(getWriteStore().add(obs));
+        return getWriteStore().add(obs);
     }
 
 
@@ -85,20 +73,6 @@ public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IObsDa
     public IDataStreamStore getDataStreams()
     {
         return getReadStore().getDataStreams();
-    }
-
-
-    @Override
-    protected BigInteger toInternalKey(BigInteger publicKey)
-    {
-        return idConverter.toInternalID(publicKey);
-    }
-
-
-    @Override
-    protected BigInteger toPublicKey(BigInteger internalKey)
-    {
-        return idConverter.toPublicID(internalKey);
     }
 
 }

@@ -14,15 +14,12 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
-import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
-import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;
 import org.vast.util.Asserts;
@@ -45,42 +42,12 @@ public class DataStreamStoreWrapper extends AbstractResourceStoreWrapper<DataStr
     {
         return (DataStreamFilter.Builder)super.filterBuilder();
     }
-    
-    
-    @Override
-    public DataStreamKey add(IDataStreamInfo value) throws DataStoreException
-    {
-        var sysID = idConverter.toInternalID(value.getSystemID().getInternalID()); 
-        var sysUID = value.getSystemID().getUniqueID();
-                
-        value = DataStreamInfo.Builder.from(value)
-            .withSystem(new SystemId(sysID, sysUID))
-            .build();
-        
-        return toPublicKey(getWriteStore().add(value));
-    }
 
 
     @Override
     public void linkTo(ISystemDescStore systemStore)
     {
         throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    protected DataStreamKey toInternalKey(DataStreamKey publicKey)
-    {
-        return new DataStreamKey(
-            idConverter.toInternalID(publicKey.getInternalID()));
-    }
-
-
-    @Override
-    protected DataStreamKey toPublicKey(DataStreamKey internalKey)
-    {
-        return new DataStreamKey(
-            idConverter.toPublicID(internalKey.getInternalID()));
     }
 
 }

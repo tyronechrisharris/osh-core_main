@@ -52,7 +52,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     {
         super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.eventBus = eventBus;
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db, db.getDatabaseRegistry());
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
         this.eventsHandler = new DataStreamEventsHandler(eventBus, db, permissions);
         this.customFormats = Asserts.checkNotNull(customFormats, "customFormats");
     }
@@ -133,39 +133,38 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     @Override
     protected DataStreamKey addEntry(final RequestContext ctx, final IDataStreamInfo res) throws DataStoreException
-    {        
+    {
         var sysID = ctx.getParentID();
-        var procHandler = transactionHandler.getSystemHandler(sysID);
         
-        var dsHandler = procHandler.addOrUpdateDataStream(res.getOutputName(), res.getRecordStructure(), res.getRecordEncoding());
-        var dsKey = dsHandler.getDataStreamKey();
+        var sysHandler = transactionHandler.getSystemHandler(sysID);
+        var dsHandler = sysHandler.addOrUpdateDataStream(res);
         
-        return new DataStreamKey(dsKey.getInternalID());
+        return dsHandler.getPublicDataStreamKey();
     }
     
     
     @Override
     protected boolean updateEntry(final RequestContext ctx, final DataStreamKey key, final IDataStreamInfo res) throws DataStoreException
-    {        
+    {
         var dsID = key.getInternalID();
-        var dsHandler = transactionHandler.getDataStreamHandler(dsID);
         
+        var dsHandler = transactionHandler.getDataStreamHandler(dsID);
         if (dsHandler == null)
             return false;
-        else
-            return dsHandler.update(res.getRecordStructure(), res.getRecordEncoding());
+        
+        return dsHandler.update(res);
     }
     
     
     protected boolean deleteEntry(final RequestContext ctx, final DataStreamKey key) throws DataStoreException
-    {        
+    {
         var dsID = key.getInternalID();
         
         var dsHandler = transactionHandler.getDataStreamHandler(dsID);
         if (dsHandler == null)
             return false;
-        else
-            return dsHandler.delete();
+        
+        return dsHandler.delete();
     }
 
 

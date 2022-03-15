@@ -50,7 +50,7 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     {
         super(db.getCommandStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.eventBus = eventBus;
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db, db.getDatabaseRegistry());
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
         this.eventsHandler = new CommandStreamEventsHandler(eventBus, db, permissions);
     }
     
@@ -130,39 +130,38 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     
     @Override
     protected CommandStreamKey addEntry(final RequestContext ctx, final ICommandStreamInfo res) throws DataStoreException
-    {        
+    {
         var sysID = ctx.getParentID();
-        var procHandler = transactionHandler.getSystemHandler(sysID);
         
-        var csHandler = procHandler.addOrUpdateCommandStream(res.getControlInputName(), res.getRecordStructure(), res.getRecordEncoding());
-        var csKey = csHandler.getCommandStreamKey();
+        var sysHandler = transactionHandler.getSystemHandler(sysID);
+        var csHandler = sysHandler.addOrUpdateCommandStream(res);
         
-        return new CommandStreamKey(csKey.getInternalID());
+        return csHandler.getPublicCommandStreamKey();
     }
     
     
     @Override
     protected boolean updateEntry(final RequestContext ctx, final CommandStreamKey key, final ICommandStreamInfo res) throws DataStoreException
-    {        
+    {
         var csID = key.getInternalID();
-        var csHandler = transactionHandler.getCommandStreamHandler(csID);
         
+        var csHandler = transactionHandler.getCommandStreamHandler(csID);
         if (csHandler == null)
             return false;
-        else
-            return csHandler.update(res.getRecordStructure(), res.getRecordEncoding());
+        
+        return csHandler.update(res);
     }
     
     
     protected boolean deleteEntry(final RequestContext ctx, final CommandStreamKey key) throws DataStoreException
-    {        
+    {
         var dsID = key.getInternalID();
         
         var csHandler = transactionHandler.getCommandStreamHandler(dsID);
         if (csHandler == null)
             return false;
-        else
-            return csHandler.delete();
+        
+        return csHandler.delete();
     }
 
 

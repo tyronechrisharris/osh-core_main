@@ -52,6 +52,12 @@ public class ServiceErrors
     }
     
     
+    public static InvalidRequestException unsupportedFormat(String format)
+    {
+        return new InvalidRequestException(ErrorCode.BAD_REQUEST, UNSUPPORTED_FORMAT_ERROR_MSG + format);
+    }
+    
+    
     public static InvalidRequestException notWritable()
     {
         return new InvalidRequestException(ErrorCode.BAD_REQUEST, NOT_WRITABLE_ERROR_MSG);

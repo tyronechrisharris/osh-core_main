@@ -14,15 +14,12 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.task;
 
-import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
-import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore.CommandStreamInfoField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
-import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;
 import org.vast.util.Asserts;
@@ -45,42 +42,12 @@ public class CommandStreamStoreWrapper extends AbstractResourceStoreWrapper<Comm
     {
         return (CommandStreamFilter.Builder)super.filterBuilder();
     }
-    
-    
-    @Override
-    public CommandStreamKey add(ICommandStreamInfo value) throws DataStoreException
-    {
-        var sysID = idConverter.toInternalID(value.getSystemID().getInternalID()); 
-        var sysUID = value.getSystemID().getUniqueID();
-                
-        value = CommandStreamInfo.Builder.from(value)
-            .withSystem(new SystemId(sysID, sysUID))
-            .build();
-        
-        return toPublicKey(getWriteStore().add(value));
-    }
 
 
     @Override
     public void linkTo(ISystemDescStore systemStore)
     {
         throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    protected CommandStreamKey toInternalKey(CommandStreamKey publicKey)
-    {
-        return new CommandStreamKey(
-            idConverter.toInternalID(publicKey.getInternalID()));
-    }
-
-
-    @Override
-    protected CommandStreamKey toPublicKey(CommandStreamKey internalKey)
-    {
-        return new CommandStreamKey(
-            idConverter.toPublicID(internalKey.getInternalID()));
     }
 
 }
