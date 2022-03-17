@@ -412,13 +412,14 @@ public class SWEApiServlet extends HttpServlet
     {
         try
         {
-            resp.setStatus(code);
+            resp.sendError(code, msg);
+            /*resp.setStatus(code);
             
             if (msg != null)
             {
                 msg = "{ \"error\": \"" + msg + "\" }";
                 resp.getOutputStream().write(msg.getBytes());
-            }
+            }*/
         }
         catch (IOException e)
         {
