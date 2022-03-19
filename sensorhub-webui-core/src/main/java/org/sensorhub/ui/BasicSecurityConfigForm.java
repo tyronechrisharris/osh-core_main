@@ -311,7 +311,8 @@ public class BasicSecurityConfigForm extends GenericConfigForm
         for (String moduleIdString: moduleIdStrings)
         {
             IPermission perm = getParentHub().getSecurityManager().getModulePermissions(moduleIdString);
-            addPermToTree(table, perm, null);
+            if (perm != null)
+                addPermToTree(table, perm, null);
         }
         
         this.permissionTable = table;
