@@ -724,6 +724,9 @@ public class MVCommandStoreImpl implements ICommandStore
                 MVTimeSeriesRecordKey key = mapToInternalKey(keyObj);
                 ICommandData oldCmd = cmdRecordsIndex.remove(key);
                 
+                // also remove status reports associated to this command
+                cmdStatusStore.removeAllStatus((BigInteger)keyObj);
+                
                 // don't check and remove empty command series here since in many cases they will be reused.
                 // it can be done automatically during cleanup/compaction phase or with specific method.
                 

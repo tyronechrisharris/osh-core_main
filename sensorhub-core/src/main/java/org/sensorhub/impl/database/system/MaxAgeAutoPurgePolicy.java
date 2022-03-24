@@ -17,6 +17,8 @@ package org.sensorhub.impl.database.system;
 import org.sensorhub.api.database.IObsSystemDbAutoPurgePolicy;
 import org.sensorhub.api.datastore.RangeFilter.RangeOp;
 import org.sensorhub.api.datastore.TemporalFilter;
+import org.sensorhub.api.datastore.command.CommandFilter;
+import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -52,7 +54,7 @@ public class MaxAgeAutoPurgePolicy implements IObsSystemDbAutoPurgePolicy
     @Override
     public void trimStorage(IObsSystemDatabase db, Logger log)
     {
-        // remove all systems, datastreams and fois whose validity time period
+        // remove all systems, datastreams, commandstreams and fois whose validity time period
         // ended before (now - max age)        
         var oldestRecordTime = Instant.now().minusSeconds((long)config.maxRecordAge);
         
@@ -77,6 +79,13 @@ public class MaxAgeAutoPurgePolicy implements IObsSystemDbAutoPurgePolicy
                 .build())
             .build());
         
+        long numCsRemoved = db.getCommandStreamStore().removeEntries(new CommandStreamFilter.Builder()
+            .withValidTime(new TemporalFilter.Builder()
+                .withOperator(RangeOp.CONTAINS)
+                .withRange(Instant.MIN, oldestRecordTime)
+                .build())
+            .build());
+        
         // for each remaining datastream, remove all obs with a timestamp older than
         // the latest result time minus the max age
         long numObsRemoved = 0;
@@ -88,7 +97,7 @@ public class MaxAgeAutoPurgePolicy implements IObsSystemDbAutoPurgePolicy
             var resultTimeRange = dsEntry.getValue().getResultTimeRange();
             
             if (resultTimeRange != null)
-            {            
+            {
                 var oldestResultTime = resultTimeRange.end().minusSeconds((long)config.maxRecordAge);
                 numObsRemoved += db.getObservationStore().removeEntries(new ObsFilter.Builder()
                     .withDataStreams(dsID)
@@ -96,12 +105,32 @@ public class MaxAgeAutoPurgePolicy implements IObsSystemDbAutoPurgePolicy
                     .build());
             }
         }
+        
+        // for each remaining command stream, remove all commands and status with a timestamp older than
+        // the latest issue time minus the max age
+        long numCmdRemoved = 0;
+        var allCmdStreams = db.getCommandStreamStore().selectEntries(db.getCommandStreamStore().selectAllFilter()).iterator();
+        while (allCmdStreams.hasNext())
+        {
+            var dsEntry = allCmdStreams.next();
+            var dsID = dsEntry.getKey().getInternalID();
+            var issueTimeRange = dsEntry.getValue().getIssueTimeRange();
+            
+            if (issueTimeRange != null)
+            {
+                var oldestIssueTime = issueTimeRange.end().minusSeconds((long)config.maxRecordAge);
+                numCmdRemoved += db.getCommandStore().removeEntries(new CommandFilter.Builder()
+                    .withCommandStreams(dsID)
+                    .withIssueTimeDuring(Instant.MIN, oldestIssueTime)
+                    .build());
+            }
+        }
                 
         if (log.isInfoEnabled())
         {
-            log.info("Purging data until {}. Removed records: {} systems, {} fois, {} datastreams, {} observations",
+            log.info("Purging data until {}. Removed records: {} systems, {} fois, {} datastreams, {} observations, {} command streams, {} commands",
                 oldestRecordTime.truncatedTo(ChronoUnit.SECONDS),
-                numProcRemoved, numFoisRemoved, numDsRemoved, numObsRemoved);
+                numProcRemoved, numFoisRemoved, numDsRemoved, numObsRemoved, numCsRemoved, numCmdRemoved);
         }
     }
 
