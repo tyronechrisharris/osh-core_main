@@ -15,7 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.system;
 
 import java.math.BigInteger;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -30,6 +29,7 @@ import org.sensorhub.api.utils.OshAsserts;
 import org.vast.util.Asserts;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 
 /**
@@ -274,19 +274,19 @@ public class SystemDatabaseTransactionHandler
     }
     
     
-    protected Map<String, Long> createFoiIdCache()
+    protected LoadingCache<String, Long> createFoiIdCache()
     {
         return CacheBuilder.newBuilder()
-            .maximumSize(1000)
+            .maximumSize(10000)
             .expireAfterAccess(1, TimeUnit.HOURS)
             .build(new CacheLoader<String, Long>() {
                 @Override
-                public Long load(String uid) throws Exception
+                public Long load(String uid)
                 {
                     var fk = db.getFoiStore().getCurrentVersionKey(uid);
                     return fk.getInternalID();
                 }
-            }).asMap();
+            });
     }
     
     

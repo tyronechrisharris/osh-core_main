@@ -15,7 +15,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.system;
 
 import java.math.BigInteger;
-import java.util.Map;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.DataStreamChangedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
@@ -40,6 +39,7 @@ import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.ScalarIndexer;
 import org.vast.util.Asserts;
+import com.google.common.cache.LoadingCache;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -60,7 +60,7 @@ public class DataStreamTransactionHandler implements IEventListener
     protected IDataStreamInfo dsInfo;
     protected IEventPublisher dataEventPublisher;
     protected ScalarIndexer timeStampIndexer;
-    protected Map<String, Long> foiUidToIdMap;
+    protected LoadingCache<String, Long> foiUidToIdMap;
     
     
     /*
@@ -75,7 +75,7 @@ public class DataStreamTransactionHandler implements IEventListener
     /*
      * dsKey must always be the local DB key
      */
-    DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, Map<String, Long> foiIdMap, SystemDatabaseTransactionHandler rootHandler)
+    DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, LoadingCache<String, Long> foiIdMap, SystemDatabaseTransactionHandler rootHandler)
     {
         this.dsKey = dsKey;
         this.dsInfo = dsInfo;
@@ -181,24 +181,14 @@ public class DataStreamTransactionHandler implements IEventListener
         //checkInitialized();
         
         // if event carries an FOI UID, try to fetch the full Id object
-        Long foiId;
+        Long foiId = IObsData.NO_FOI;
         String foiUID = e.getFoiUID();
         if (foiUID != null)
         {
-            foiId = foiUidToIdMap.get(foiUID);
+            foiId = foiUidToIdMap.getUnchecked(foiUID);
             if (foiId == null)
                 throw new IllegalStateException("Unknown FOI: " + foiUID);
         }
-        
-        // else use the single FOI if there is one
-        else if (foiUidToIdMap.size() == 1)
-        {
-            foiId = foiUidToIdMap.values().iterator().next();
-        }
-        
-        // else don't associate to any FOI
-        else
-            foiId = IObsData.NO_FOI;
         
         // process all records
         var obsArray = new ObsDelegate[e.getRecords().length];

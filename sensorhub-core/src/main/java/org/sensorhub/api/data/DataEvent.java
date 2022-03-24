@@ -65,6 +65,11 @@ public class DataEvent extends DataStreamEvent
              dataInterface.getName(),
              records);
         this.source = dataInterface;
+        
+        // infer FOI in case there is only one
+        var fois = dataInterface.getParentProducer().getCurrentFeaturesOfInterest();
+        if (fois.size() == 1)
+            this.foiUID = fois.keySet().stream().findFirst().orElse(null);
     }
 
 
