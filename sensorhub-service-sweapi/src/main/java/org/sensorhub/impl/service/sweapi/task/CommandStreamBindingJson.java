@@ -152,7 +152,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
             writer.name("description").value(dsInfo.getDescription());
         
         writer.name("system@id").value(Long.toString(publicSysID, 36));
-        writer.name("outputName").value(dsInfo.getControlInputName());
+        writer.name("inputName").value(dsInfo.getControlInputName());
         
         writer.name("validTime").beginArray()
             .value(dsInfo.getValidTime().begin().toString())

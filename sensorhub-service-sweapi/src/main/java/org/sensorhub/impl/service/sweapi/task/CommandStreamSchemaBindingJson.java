@@ -65,7 +65,7 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
         
         writer.beginObject();
         
-        writer.name("commandstream@id").value(Long.toString(publicDsID, 36));
+        writer.name("control@id").value(Long.toString(publicDsID, 36));
         
         // result structure & encoding
         try

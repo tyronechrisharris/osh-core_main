@@ -81,7 +81,7 @@ public class CommandStreamEventBindingJson extends ResourceBindingJson<Long, Com
         // write event message
         writer.beginObject();
         writer.name("time").value(Instant.ofEpochMilli(res.getTimeStamp()).toString());
-        writer.name("controls@id").value(Long.toString(publicDsID, 36));
+        writer.name("control@id").value(Long.toString(publicDsID, 36));
         writer.name("system@id").value(Long.toString(publicSysID, 36));
         writer.name("eventType").value(eventType);
         writer.endObject();

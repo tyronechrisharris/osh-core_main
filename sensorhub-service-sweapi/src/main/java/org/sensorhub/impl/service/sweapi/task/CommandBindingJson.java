@@ -150,7 +150,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
         
         var dsID = cmd.getCommandStreamID();
         var externalDsId = dsIdEncoder.encodeID(dsID);
-        writer.name("commandstream").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
+        writer.name("control@id").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
         
         if (cmd.hasFoi())
         {
