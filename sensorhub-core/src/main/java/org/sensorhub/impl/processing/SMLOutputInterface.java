@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.processing;
 
+import net.opengis.swe.v20.AbstractSWEIdentifiable;
 import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -26,7 +27,7 @@ import org.sensorhub.api.processing.ProcessingException;
 import org.sensorhub.impl.event.BasicEventHandler;
 import org.vast.process.DataQueue;
 import org.vast.process.ProcessException;
-import org.vast.swe.SWEHelper;
+import org.vast.sensorML.SMLHelper;
 import org.vast.util.Asserts;
 
 
@@ -77,16 +78,16 @@ class SMLOutputInterface implements IStreamingDataInterface
     };
     
 
-    protected SMLOutputInterface(SMLProcessImpl parentProcess, DataComponent outputDef, DataComponent chainOutput) throws ProcessingException
+    protected SMLOutputInterface(SMLProcessImpl parentProcess, DataComponent parentProcessOutputDef, AbstractSWEIdentifiable chainOutput) throws ProcessingException
     {
         this.parentProcess = parentProcess;
-        this.outputDef = outputDef;
-        this.outputEncoding = SWEHelper.getDefaultEncoding(outputDef);
+        this.outputDef = parentProcessOutputDef;
+        this.outputEncoding = SMLHelper.getIOEncoding(chainOutput);
         this.eventHandler = new BasicEventHandler();
         
         try
         {
-            parentProcess.wrapperProcess.connect(chainOutput, outputQueue);
+            parentProcess.wrapperProcess.connect(SMLHelper.getIOComponent(chainOutput), outputQueue);
         }
         catch (ProcessException e)
         {

@@ -23,6 +23,7 @@ import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.impl.system.wrapper.ProcessWrapper;
 import org.vast.data.TextEncodingImpl;
 import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.sensorml.v20.DataInterface;
 import net.opengis.sensorml.v20.IOPropertyList;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataStream;
@@ -43,10 +44,13 @@ public class SystemUtils
     {
         for (var output: outputs)
         {
+            if (output instanceof DataInterface)
+                output = ((DataInterface)output).getData();
+            
             if (output instanceof DataStream)
             {
                 var ds = (DataStream)output;
-                procHandler.addOrUpdateDataStream(ds.getName(), ds.getElementType(), ds.getEncoding());
+                procHandler.addOrUpdateDataStream(ds.getElementTypeProperty().getName(), ds.getElementType(), ds.getEncoding());
             }
             else if (output instanceof DataComponent)
             {
@@ -61,11 +65,14 @@ public class SystemUtils
     {
         for (var param: params)
         {
+            if (param instanceof DataInterface)
+                param = ((DataInterface)param).getData();
+            
             if (param instanceof DataStream)
             {
                 var ds = (DataStream)param;
                 if (ds.getElementType().isSetUpdatable())
-                    procHandler.addOrUpdateCommandStream(ds.getName(), ds.getElementType(), ds.getEncoding());
+                    procHandler.addOrUpdateCommandStream(ds.getElementTypeProperty().getName(), ds.getElementType(), ds.getEncoding());
             }
             else if (param instanceof DataComponent)
             {

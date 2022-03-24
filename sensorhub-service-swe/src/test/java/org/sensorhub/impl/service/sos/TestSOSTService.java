@@ -31,8 +31,8 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.vast.data.DataList;
 import org.vast.data.DataRecordImpl;
+import org.vast.data.DataStreamImpl;
 import org.vast.data.QuantityImpl;
 import org.vast.data.TextEncodingImpl;
 import org.vast.data.TimeImpl;
@@ -94,31 +94,31 @@ public class TestSOSTService
         procedure.setUniqueIdentifier(SENSOR_UID);
         
         // output 1
-        DataStream tempOutput = new DataList();
+        DataStream tempOutput = new DataStreamImpl();
         procedure.addOutput("tempOut", tempOutput);
         tempOutput.setEncoding(new TextEncodingImpl());
         
         DataRecord tempRec = new DataRecordImpl(2);
         tempRec.setDefinition(URI_OUTPUT1);
-        tempOutput.setElementType("tempOut", tempRec);        
+        tempOutput.setElementType("tempOut", tempRec);
         Time timeTag = new TimeImpl();
         timeTag.setDefinition(SWEConstants.DEF_SAMPLING_TIME);
         timeTag.getUom().setHref(Time.ISO_TIME_UNIT);
-        tempRec.addComponent("time", timeTag);        
+        tempRec.addComponent("time", timeTag);
         Quantity tempVal = new QuantityImpl();
         tempVal.setDefinition("http://mmisw.org/ont/cf/parameter/air_temperature");
         tempVal.getUom().setCode("Cel");
-        tempRec.addComponent("temp", tempVal);        
+        tempRec.addComponent("temp", tempVal);
         
         // output 2
-        DataStream posOutput = new DataList();
+        DataStream posOutput = new DataStreamImpl();
         procedure.addOutput("posOut", posOutput);
         posOutput.setEncoding(new TextEncodingImpl());
         
         DataRecord posRec = new DataRecordImpl(2);
         posRec.setDefinition(URI_OUTPUT2);
-        posOutput.setElementType("posOut", posRec);        
-        posRec.addComponent("time", timeTag.copy());        
+        posOutput.setElementType("posOut", posRec);
+        posRec.addComponent("time", timeTag.copy());
         Vector posVector = new VectorImpl(3);
         posVector.setDefinition(SWEConstants.DEF_SAMPLING_LOC);
         posVector.setReferenceFrame("http://www.opengis.net/def/crs/EPSG/0/4979");

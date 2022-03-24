@@ -53,6 +53,7 @@ import net.opengis.sensorml.v20.Settings;
 import net.opengis.sensorml.v20.SimpleProcess;
 import net.opengis.swe.v20.AbstractSWEIdentifiable;
 import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataStream;
 
 
 /**
@@ -640,6 +641,12 @@ public class ProcessWrapper<T extends AbstractProcess> implements AbstractProces
     }
 
 
+    public void addInput(String name, DataStream input)
+    {
+        throw new UnsupportedOperationException(IMMUTABLE_ERROR);
+    }
+
+
     public void addInput(String name, DataInterface input)
     {
         throw new UnsupportedOperationException(IMMUTABLE_ERROR);
@@ -682,6 +689,12 @@ public class ProcessWrapper<T extends AbstractProcess> implements AbstractProces
     }
 
 
+    public void addOutput(String name, DataStream output)
+    {
+        throw new UnsupportedOperationException(IMMUTABLE_ERROR);
+    }
+
+
     public void addOutput(String name, DataInterface output)
     {
         throw new UnsupportedOperationException(IMMUTABLE_ERROR);
@@ -695,6 +708,12 @@ public class ProcessWrapper<T extends AbstractProcess> implements AbstractProces
 
 
     public void addParameter(String name, DataComponent parameter)
+    {
+        throw new UnsupportedOperationException(IMMUTABLE_ERROR);
+    }
+
+
+    public void addParameter(String name, DataStream parameter)
     {
         throw new UnsupportedOperationException(IMMUTABLE_ERROR);
     }

@@ -131,6 +131,26 @@ public class TestStreamProcess implements IEventListener
     }
     
     
+    @Test
+    public void testSMLSimpleProcessWithOutputDataStream() throws Exception
+    {
+        createSensorDataSource1();
+        String smlUrl = TestStreamProcess.class.getResource("/test-processchain-datastream.xml").getFile();
+        IProcessModule<?> process = createSMLProcess(smlUrl);
+        runProcess(process);
+    }
+    
+    
+    @Test
+    public void testSMLSimpleProcessWithOutputDataInterface() throws Exception
+    {
+        createSensorDataSource1();
+        String smlUrl = TestStreamProcess.class.getResource("/test-processchain-datainterface.xml").getFile();
+        IProcessModule<?> process = createSMLProcess(smlUrl);
+        runProcess(process);
+    }
+    
+    
     @Override
     public void handleEvent(Event e)
     {

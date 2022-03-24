@@ -174,7 +174,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
             ioMap.put(ioName, ioCompCopy);
             
             if (isOutput)
-                outputInterfaces.put(ioName, new SMLOutputInterface(this, ioCompCopy, ioComponent));
+                outputInterfaces.put(ioName, new SMLOutputInterface(this, ioCompCopy, ioDesc));
         }
     }
     
