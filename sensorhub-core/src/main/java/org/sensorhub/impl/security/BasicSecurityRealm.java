@@ -79,14 +79,15 @@ public class BasicSecurityRealm extends AbstractModule<BasicSecurityRealmConfig>
     protected void doStart() throws SensorHubException
     {
         getParentHub().getSecurityManager().registerUserRegistry(this);
-        getParentHub().getSecurityManager().registerAuthorizer(this);        
+        getParentHub().getSecurityManager().registerAuthorizer(this);
     }
     
 
     @Override
     protected void doStop() throws SensorHubException
     {
-        
+        getParentHub().getSecurityManager().unregisterUserRegistry(this);
+        getParentHub().getSecurityManager().unregisterAuthorizer(this);
     }
     
 

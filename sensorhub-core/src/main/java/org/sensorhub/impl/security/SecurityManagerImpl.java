@@ -44,26 +44,33 @@ public class SecurityManagerImpl implements ISecurityManager
 {
     private static final long TIMEOUT = 10000L;
     private static final Logger log = LoggerFactory.getLogger(SecurityManagerImpl.class);
+
+    private static final String REGISTERING_LOG_MSG = "Registering {} module {}";
+    private static final String UNREGISTERING_LOG_MSG = "Unregistering {} module {}";
+    private static final String ALREADY_REGISTERED_ERROR = " implementation is already registered";
+    private static final String CANNOT_UNREGISTER_ERROR = " implementation can only unregister itself";
     
-    ModuleRegistry moduleRegistry;
-    AuthenticatorWrapper authenticator = new AuthenticatorWrapper();
-    AtomicReference<IUserRegistry> userDB = new AtomicReference<>();
-    AtomicReference<IAuthorizer> authorizer = new AtomicReference<>();
-    Map<String, IPermission> modulePermissions = new LinkedHashMap<>();
-    
+    final ModuleRegistry moduleRegistry;
+    final AuthenticatorWrapper authenticator;
+    final AtomicReference<IUserRegistry> userDB;
+    final AtomicReference<IAuthorizer> authorizer;
+    final Map<String, IPermission> modulePermissions;
     
     
     public SecurityManagerImpl(ISensorHub hub)
     {
         this.moduleRegistry = hub.getModuleRegistry();
+        this.authenticator = new AuthenticatorWrapper();
+        this.userDB = new AtomicReference<>();
+        this.authorizer = new AtomicReference<>();
+        this.modulePermissions = Collections.synchronizedMap(new LinkedHashMap<>());
     }
     
     
     @Override
     public boolean isAccessControlEnabled()
-    {        
-        return userDB != null && userDB.get() != null &&
-               authorizer != null && authorizer.get() != null;
+    {
+        return userDB.get() != null && authorizer.get() != null;
     }
     
     
@@ -71,8 +78,17 @@ public class SecurityManagerImpl implements ISecurityManager
     public void registerAuthenticator(Authenticator authenticator)
     {
         if (!this.authenticator.delegate.compareAndSet(null, authenticator))
-            throw new IllegalStateException("An Authenticator implementation is already registered");
-        log.info("Authenticator provided by module " + authenticator.toString());
+            throw new IllegalStateException("An Authenticator" + ALREADY_REGISTERED_ERROR);
+        log.info(REGISTERING_LOG_MSG, "Authenticator", authenticator.toString());
+    }
+    
+    
+    @Override
+    public void unregisterAuthenticator(Authenticator authenticator)
+    {
+        if (!this.authenticator.delegate.compareAndSet(authenticator, null))
+            throw new IllegalStateException("An Authenticator" + CANNOT_UNREGISTER_ERROR);
+        log.info(UNREGISTERING_LOG_MSG, "Authenticator", authenticator.toString());
     }
     
     
@@ -80,8 +96,17 @@ public class SecurityManagerImpl implements ISecurityManager
     public void registerUserRegistry(IUserRegistry userRegistry)
     {
         if (!this.userDB.compareAndSet(null, userRegistry))
-            throw new IllegalStateException("A UserRegistry implementation is already registered");
-        log.info("User registry provided by module " + userRegistry.toString());
+            throw new IllegalStateException("A UserRegistry" + ALREADY_REGISTERED_ERROR);
+        log.info(REGISTERING_LOG_MSG, "User Registry", userRegistry.toString());
+    }
+    
+    
+    @Override
+    public void unregisterUserRegistry(IUserRegistry userRegistry)
+    {
+        if (!this.userDB.compareAndSet(userRegistry, null))
+            throw new IllegalStateException("A UserRegistry" + CANNOT_UNREGISTER_ERROR);
+        log.info(UNREGISTERING_LOG_MSG, "User Registry", userRegistry.toString());
     }
     
     
@@ -89,21 +114,25 @@ public class SecurityManagerImpl implements ISecurityManager
     public void registerAuthorizer(IAuthorizer authorizer)
     {
         if (!this.authorizer.compareAndSet(null, authorizer))
-            throw new IllegalStateException("An Authorizer implementation is already registered");
-        log.info("Authorizer provided by module " + authorizer.toString());
+            throw new IllegalStateException("An Authorizer" + ALREADY_REGISTERED_ERROR);
+        log.info(REGISTERING_LOG_MSG, "Authorizer", authorizer.toString());
     }
-        
+    
+    
+    @Override
+    public void unregisterAuthorizer(IAuthorizer authorizer)
+    {
+        if (!this.authorizer.compareAndSet(authorizer, null))
+            throw new IllegalStateException("An Authorizer" + CANNOT_UNREGISTER_ERROR);
+        log.info(UNREGISTERING_LOG_MSG, "Authorizer", authorizer.toString());
+    }
+    
     
     @Override
     public IUserInfo getUserInfo(String userID)
     {
         Asserts.checkState(userDB.get() != null, "No IUserRegistry implementation registered");
-        
-        IUserRegistry users = this.userDB.get();
-        if (users != null)
-            return users.getUserInfo(userID);
-        else
-            return null;
+        return userDB.get().getUserInfo(userID);
     }
     
     
@@ -111,12 +140,7 @@ public class SecurityManagerImpl implements ISecurityManager
     public boolean isAuthorized(IUserInfo user, IPermissionPath request)
     {
         Asserts.checkState(authorizer.get() != null, "No IAuthorizer implementation registered");
-        
-        IAuthorizer authz = this.authorizer.get();
-        if (authz != null)
-            return authz.isAuthorized(user, request);
-        else
-            return true;
+        return authorizer.get().isAuthorized(user, request);
     }
 
 
