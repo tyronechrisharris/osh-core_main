@@ -70,8 +70,8 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     
     protected SMLUtils smlUtils;
     protected List<StreamDataSource> streamSources;
+    protected AggregateProcessImpl processDescription;
     protected AggregateProcessImpl wrapperProcess;
-    //protected AbstractProcessImpl smlProcess; // actual processing component (can be atomic or a chain itself)
     protected long lastUpdatedProcess = Long.MIN_VALUE;
     protected boolean paused = false;
     protected int errorCount = 0;
@@ -105,21 +105,19 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
             // parse SensorML file
             try (InputStream is = new BufferedInputStream(new FileInputStream(smlPath)))
             {
-                wrapperProcess = (AggregateProcessImpl)smlUtils.readProcess(is);
-                //smlProcess = (AbstractProcessImpl)wrapperProcess.getComponent(PROCESS_NAME);
-                
-                OshAsserts.checkSystemObject(wrapperProcess);
+                processDescription = (AggregateProcessImpl)smlUtils.readProcess(is);
+                OshAsserts.checkSystemObject(processDescription);
                 
                 // set default name if none set in SensorML file
-                if (wrapperProcess.getName() == null)
-                    wrapperProcess.setName(this.getName());
+                if (processDescription.getName() == null)
+                    processDescription.setName(this.getName());
             }
             catch (Exception e)
             {
                 throw new ProcessingException(String.format("Cannot read SensorML description from '%s'", smlPath), e);
             }
             
-            if (wrapperProcess != null)
+            if (processDescription != null)
                 initChain();
         }
     }
@@ -130,7 +128,8 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         // make process executable
         try
         {
-            smlUtils.makeProcessExecutable(wrapperProcess, true);
+            //smlUtils.makeProcessExecutable(wrapperProcess, true);
+            wrapperProcess = (AggregateProcessImpl)smlUtils.getExecutableInstance(processDescription, true);
             wrapperProcess.setInstanceName("chain");
             wrapperProcess.setParentLogger(getLogger());
             wrapperProcess.init();
@@ -145,9 +144,9 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         }
         
         // advertise process inputs and outputs
-        refreshIOList(wrapperProcess.getInputList(), inputs, false);
-        refreshIOList(wrapperProcess.getParameterList(), parameters, false);
-        refreshIOList(wrapperProcess.getOutputList(), outputs, true);
+        refreshIOList(processDescription.getInputList(), inputs, false);
+        refreshIOList(processDescription.getParameterList(), parameters, false);
+        refreshIOList(processDescription.getOutputList(), outputs, true);
     }
     
     
@@ -170,11 +169,10 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
             AbstractSWEIdentifiable ioDesc = ioList.get(i);
             
             DataComponent ioComponent = SMLHelper.getIOComponent(ioDesc);
-            DataComponent ioCompCopy = ioComponent.copy();
-            ioMap.put(ioName, ioCompCopy);
+            ioMap.put(ioName, ioComponent);
             
             if (isOutput)
-                outputInterfaces.put(ioName, new SMLOutputInterface(this, ioCompCopy, ioDesc));
+                outputInterfaces.put(ioName, new SMLOutputInterface(this, ioDesc));
         }
     }
     
@@ -288,14 +286,14 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     @Override
     public String getUniqueIdentifier()
     {
-        return wrapperProcess.getUniqueIdentifier();
+        return processDescription.getUniqueIdentifier();
     }
 
 
     @Override
     public synchronized AbstractProcess getCurrentDescription()
     {
-        return wrapperProcess;
+        return processDescription;
     }
 
 

@@ -74,20 +74,21 @@ class SMLOutputInterface implements IStreamingDataInterface
             lastRecordTime = now;
             DataEvent e = new DataEvent(now, SMLOutputInterface.this, data);
             eventHandler.publish(e);
-        }        
+        }
     };
     
 
-    protected SMLOutputInterface(SMLProcessImpl parentProcess, DataComponent parentProcessOutputDef, AbstractSWEIdentifiable chainOutput) throws ProcessingException
+    protected SMLOutputInterface(SMLProcessImpl parentProcess, AbstractSWEIdentifiable outputDescriptor) throws ProcessingException
     {
         this.parentProcess = parentProcess;
-        this.outputDef = parentProcessOutputDef;
-        this.outputEncoding = SMLHelper.getIOEncoding(chainOutput);
+        this.outputDef = SMLHelper.getIOComponent(outputDescriptor);
+        this.outputEncoding = SMLHelper.getIOEncoding(outputDescriptor);
         this.eventHandler = new BasicEventHandler();
         
         try
         {
-            parentProcess.wrapperProcess.connect(SMLHelper.getIOComponent(chainOutput), outputQueue);
+            DataComponent execOutput = parentProcess.wrapperProcess.getOutputComponent(outputDef.getName());
+            parentProcess.wrapperProcess.connect(execOutput, outputQueue);
         }
         catch (ProcessException e)
         {

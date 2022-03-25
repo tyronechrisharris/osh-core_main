@@ -205,8 +205,8 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
     @Override
     protected void beforeUpdateConfig() throws ProcessingException
     {
-        if (module instanceof SMLProcessImpl)
-            saveProcessChain();
+        //if (module instanceof SMLProcessImpl)
+        //    saveProcessChain();
     }
     
     
