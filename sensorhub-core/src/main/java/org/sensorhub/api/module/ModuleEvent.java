@@ -187,4 +187,10 @@ public class ModuleEvent extends Event
     {
         return error;
     }
+    
+    
+    public String getMessage()
+    {
+        return msg;
+    }
 }
