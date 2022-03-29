@@ -41,6 +41,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
     
     public static class FeatureField extends ValueField
     {
+        public static final FeatureField TYPE = new FeatureField("type");
         public static final FeatureField UID = new FeatureField("UID");
         public static final FeatureField NAME = new FeatureField("name");
         public static final FeatureField DESCRIPTION = new FeatureField("description");

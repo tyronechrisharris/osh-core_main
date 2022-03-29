@@ -15,8 +15,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore.system;
 
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
-import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
 import org.sensorhub.api.system.ISystemWithDesc;
 
@@ -32,10 +32,14 @@ import org.sensorhub.api.system.ISystemWithDesc;
 public interface ISystemDescStore extends IFeatureStoreBase<ISystemWithDesc, SystemField, SystemFilter>
 {
 
-    public static class SystemField extends FeatureField
+    public static class SystemField extends ProcedureField
     {
-        public static final SystemField TYPE = new SystemField("type");
-        public static final SystemField GENERAL_METADATA = new SystemField("metadata");
+        public static final SystemField ATTACHED_TO = new SystemField("attachedTo");
+        public static final SystemField SPATIAL_REF_FRAMES = new SystemField("localReferenceFrame");
+        public static final SystemField TIME_REF_FRAMES = new SystemField("localTimeFrame");
+        public static final SystemField POSITION = new SystemField("position");
+        public static final SystemField LOCAL_TIME = new SystemField("timePosition");
+        
         
         public SystemField(String name)
         {
