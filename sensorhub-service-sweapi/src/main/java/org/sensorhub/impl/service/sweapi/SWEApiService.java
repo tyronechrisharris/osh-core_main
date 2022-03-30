@@ -34,6 +34,7 @@ import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamSchemaHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsStatsHandler;
+import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.system.SystemDetailsHandler;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.system.SystemHistoryHandler;
@@ -152,6 +153,10 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         
         var procMembersHandler = new SystemMembersHandler(eventBus, db, security.system_summary_permissions);
         systemsHandler.addSubResource(procMembersHandler);
+        
+        // procedures
+        var procHandler = new ProcedureHandler(eventBus, new EmptyFeatureDatabase(), security.system_details_permissions);
+        rootHandler.addSubResource(procHandler);
         
         // features of interest and sub-resources
         var foiHandler = new FoiHandler(eventBus, db, security.foi_permissions);

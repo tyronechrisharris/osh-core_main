@@ -39,7 +39,7 @@ import com.google.gson.stream.JsonWriter;
 public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
 {
     
-    FeatureBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public FeatureBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
     }

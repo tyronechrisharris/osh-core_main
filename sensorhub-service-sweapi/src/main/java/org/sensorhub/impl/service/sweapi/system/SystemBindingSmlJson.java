@@ -49,7 +49,7 @@ public class SystemBindingSmlJson extends ResourceBindingJson<FeatureKey, ISyste
     SMLStaxBindings smlBindings;
     
     
-    SystemBindingSmlJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public SystemBindingSmlJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
         this.smlBindings = new SMLStaxBindings();

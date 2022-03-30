@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.system;
 
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
@@ -41,6 +42,13 @@ public class SystemStoreWrapper extends AbstractFeatureStoreWrapper<ISystemWithD
 
     @Override
     public void linkTo(IDataStreamStore dataStreamStore)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procedureStore)
     {
         throw new UnsupportedOperationException();
     }

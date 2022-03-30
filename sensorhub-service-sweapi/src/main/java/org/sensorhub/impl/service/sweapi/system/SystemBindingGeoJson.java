@@ -47,7 +47,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemWithDesc>
 {
     
-    SystemBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public SystemBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
     }

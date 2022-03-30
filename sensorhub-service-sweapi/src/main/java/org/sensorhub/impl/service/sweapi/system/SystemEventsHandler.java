@@ -23,16 +23,19 @@ import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.event.ResourceEventsHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
+import org.vast.util.Asserts;
 
 
 public class SystemEventsHandler extends ResourceEventsHandler<SystemEvent>
 {
+    final ObsSystemDbWrapper db;
     boolean onlyMembers = false;
     
     
     protected SystemEventsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super("system", eventBus, db, permissions);
+        super("system", eventBus, permissions);
+        this.db = Asserts.checkNotNull(db, ObsSystemDbWrapper.class);
     }
     
 
