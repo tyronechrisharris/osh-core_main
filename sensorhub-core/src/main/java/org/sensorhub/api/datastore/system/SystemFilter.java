@@ -18,6 +18,7 @@ import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.vast.ogc.om.IProcedure;
 
@@ -35,6 +36,7 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
 {
     protected SystemFilter parentFilter;
     protected DataStreamFilter dataStreamFilter;
+    protected ProcedureFilter procedureFilter;
 
     
     /*
@@ -52,6 +54,12 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
     public DataStreamFilter getDataStreamFilter()
     {
         return dataStreamFilter;
+    }
+    
+    
+    public ProcedureFilter getProcedureFilter()
+    {
+        return procedureFilter;
     }
     
     
@@ -82,6 +90,10 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
         var dataStreamFilter = this.dataStreamFilter != null ? this.dataStreamFilter.intersect(otherFilter.dataStreamFilter) : otherFilter.dataStreamFilter;
         if (dataStreamFilter != null)
             builder.withDataStreams(dataStreamFilter);
+        
+        var procedureFilter = this.procedureFilter != null ? this.procedureFilter.intersect(otherFilter.procedureFilter) : otherFilter.procedureFilter;
+        if (procedureFilter != null)
+            builder.withProcedures(procedureFilter);
         
         return builder;
     }
@@ -130,7 +142,7 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
             super(new SystemFilter());
             this.parent = parent;
         }
-                
+        
         public abstract B done();
     }
     
@@ -146,7 +158,7 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
         {
             super(instance);
         }
-                
+        
         
         @Override
         public B copyFrom(F base)
@@ -154,6 +166,7 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
             super.copyFrom(base);
             instance.parentFilter = base.parentFilter;
             instance.dataStreamFilter = base.dataStreamFilter;
+            instance.procedureFilter = base.procedureFilter;
             return (B)this;
         }
         
@@ -183,7 +196,7 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
                 {
                     SystemFilterBuilder.this.withParents(build());
                     return (B)SystemFilterBuilder.this;
-                }                
+                }
             };
         }
         
@@ -253,7 +266,37 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
                 {
                     SystemFilterBuilder.this.withDataStreams(build());
                     return (B)SystemFilterBuilder.this;
-                }                
+                }
+            };
+        }
+        
+        
+        /**
+         * Select only systems that implement one of the procedures matching the filter
+         * @param filter Procedure filter
+         * @return This builder for chaining
+         */
+        public B withProcedures(ProcedureFilter filter)
+        {
+            instance.procedureFilter = filter;
+            return (B)this;
+        }
+
+        
+        /**
+         * Select only systems that implement one of the procedures matching the filter.<br/>
+         * Call done() on the nested builder to go back to main builder.
+         * @return The {@link DataStreamFilter} builder for chaining
+         */
+        public ProcedureFilter.NestedBuilder<B> withProcedures()
+        {
+            return new ProcedureFilter.NestedBuilder<B>((B)this) {
+                @Override
+                public B done()
+                {
+                    SystemFilterBuilder.this.withProcedures(build());
+                    return (B)SystemFilterBuilder.this;
+                }
             };
         }
         

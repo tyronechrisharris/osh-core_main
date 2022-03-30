@@ -16,6 +16,7 @@ package org.sensorhub.api.datastore.system;
 
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
 import org.sensorhub.api.system.ISystemWithDesc;
@@ -60,5 +61,12 @@ public interface ISystemDescStore extends IFeatureStoreBase<ISystemWithDesc, Sys
      * @param dataStreamStore
      */
     public void linkTo(IDataStreamStore dataStreamStore);
+    
+    
+    /**
+     * Link this store to a procedure store to enable JOIN queries
+     * @param procedureStore
+     */
+    public void linkTo(IProcedureStore procedureStore);
     
 }
