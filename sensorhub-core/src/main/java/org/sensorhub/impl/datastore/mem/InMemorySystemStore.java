@@ -19,6 +19,7 @@ import java.util.stream.Stream;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
@@ -40,6 +41,7 @@ import org.sensorhub.impl.datastore.DataStoreUtils;
 public class InMemorySystemStore extends InMemoryBaseFeatureStore<ISystemWithDesc, SystemField, SystemFilter> implements ISystemDescStore
 {
     IDataStreamStore dataStreamStore;
+    IProcedureStore procedureStore;
     
     
     public InMemorySystemStore()
@@ -92,5 +94,12 @@ public class InMemorySystemStore extends InMemoryBaseFeatureStore<ISystemWithDes
     public void linkTo(IDataStreamStore dataStreamStore)
     {
         this.dataStreamStore = Asserts.checkNotNull(dataStreamStore, IDataStreamStore.class);
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procedureStore)
+    {
+        this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
     }
 }

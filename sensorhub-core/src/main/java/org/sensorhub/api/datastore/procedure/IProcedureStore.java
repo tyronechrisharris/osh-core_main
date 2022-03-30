@@ -17,7 +17,6 @@ package org.sensorhub.api.datastore.procedure;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
-import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 
 
@@ -64,12 +63,5 @@ public interface IProcedureStore extends IFeatureStoreBase<IProcedureWithDesc, P
     {
         return new ProcedureFilter.Builder();
     }
-    
-    
-    /**
-     * Link this store to a system store to enable JOIN queries
-     * @param systemStore
-     */
-    public void linkTo(ISystemDescStore systemStore);
     
 }

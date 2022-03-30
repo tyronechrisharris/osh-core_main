@@ -31,6 +31,8 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.utils.OshAsserts;
@@ -267,12 +269,56 @@ public class DataStoreUtils
         {
             Asserts.checkState(systemStore != null, "No linked system store");
             
-            // otherwise get all feature keys matching the filter from linked datastore
-            // we apply the distinct operation to make sure the same feature is not
+            // otherwise get all systems matching the filter from linked datastore
+            // we apply the distinct operation to make sure the same system is not
             // listed twice (it can happen when there exists several versions of the
-            // same feature with different valid times)
+            // same system description with different valid times)
             return systemStore.selectKeys(filter)
                 .map(k -> k.getInternalID())
+                .distinct();
+        }
+    }
+    
+    
+    public static Stream<Long> selectProcedureIDs(IProcedureStore procStore, ProcedureFilter filter)
+    {
+        if (filter.getInternalIDs() != null)
+        {
+            // if only internal IDs were specified, no need to search the linked datastore
+            return filter.getInternalIDs().stream();
+        }
+        else
+        {
+            Asserts.checkState(procStore != null, "No linked procedure store");
+            
+            // otherwise get all procedures matching the filter from linked datastore
+            // we apply the distinct operation to make sure the same system is not
+            // listed twice (it can happen when there exists several versions of the
+            // same system description with different valid times)
+            return procStore.selectKeys(filter)
+                .map(k -> k.getInternalID())
+                .distinct();
+        }
+    }
+    
+    
+    public static Stream<String> selectProcedureUIDs(IProcedureStore procStore, ProcedureFilter filter)
+    {
+        if (filter.getUniqueIDs() != null)
+        {
+            // if only internal unique IDs were specified, no need to search the linked datastore
+            return filter.getUniqueIDs().stream();
+        }
+        else
+        {
+            Asserts.checkState(procStore != null, "No linked procedure store");
+            
+            // otherwise get all procedures matching the filter from linked datastore
+            // we apply the distinct operation to make sure the same procedure is not
+            // listed twice (it can happen when there exists several versions of the
+            // same procedure description with different valid times)
+            return procStore.select(filter)
+                .map(proc -> proc.getUniqueIdentifier())
                 .distinct();
         }
     }
@@ -298,7 +344,7 @@ public class DataStoreUtils
     
     public static Stream<IDataStreamInfo> selectDataStreams(IDataStreamStore dataStreamStore, DataStreamFilter filter)
     {
-        Asserts.checkState(dataStreamStore != null, "No linked datastream store");            
+        Asserts.checkState(dataStreamStore != null, "No linked datastream store");
         return dataStreamStore.select(filter);
     }
     

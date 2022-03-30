@@ -20,6 +20,7 @@ import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
@@ -137,7 +138,14 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
     @Override
     public void linkTo(IDataStreamStore dataStreamStore)
     {
-        throw new UnsupportedOperationException();        
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procedureStore)
+    {
+        throw new UnsupportedOperationException();
     }
 
 }

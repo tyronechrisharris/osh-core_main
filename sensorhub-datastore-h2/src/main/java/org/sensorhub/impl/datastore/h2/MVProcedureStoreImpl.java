@@ -25,13 +25,10 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.type.DataType;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.datastore.system.ISystemDescStore;
-import org.sensorhub.api.datastore.system.SystemFilter;
-import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
-import org.sensorhub.api.system.ISystemWithDesc;
-import org.vast.util.Asserts;
+import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.vast.util.TimeExtent;
 import com.google.common.hash.Hashing;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -41,32 +38,29 @@ import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 
 /**
  * <p>
- * System description store implementation based on H2 MVStore.<br/>
+ * Procedure description store implementation based on H2 MVStore.<br/>
  * Most of the work is done in {@link MVBaseFeatureStoreImpl} 
  * </p>
  *
  * @author Alex Robin
- * @date Apr 8, 2018
+ * @date Oct 4, 2021
  */
-public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDesc, SystemField, SystemFilter> implements ISystemDescStore
+public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
 {
-    IDataStreamStore dataStreamStore;
-    IProcedureStore procedureStore;
     
-    
-    protected MVSystemDescStoreImpl()
+    protected MVProcedureStoreImpl()
     {
     }
     
     
     /**
-     * Opens an existing system store or create a new one with the specified name
+     * Opens an existing procedure store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
      * @param idProviderType Type of ID provider to use to generate new IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVSystemDescStoreImpl open(MVStore mvStore, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
+    public static MVProcedureStoreImpl open(MVStore mvStore, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -76,7 +70,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
         }
         
         // create ID provider
-        IdProvider<ISystemWithDesc> idProvider = null;
+        IdProvider<IProcedureWithDesc> idProvider = null;
         if (idProviderType == IdProviderType.UID_HASH)
         {
             var hashFunc = Hashing.murmur3_128(212158449);
@@ -86,7 +80,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
             };
         }
         
-        return (MVSystemDescStoreImpl)new MVSystemDescStoreImpl().init(mvStore, dataStoreInfo, idProvider);
+        return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo, idProvider);
     }
     
     
@@ -98,13 +92,13 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
     
     
     @Override
-    protected Stream<Entry<MVFeatureParentKey, ISystemWithDesc>> getIndexedStream(SystemFilter filter)
+    protected Stream<Entry<MVFeatureParentKey, IProcedureWithDesc>> getIndexedStream(ProcedureFilter filter)
     {
         var resultStream = super.getIndexedStream(filter);
         
         if (filter.getParentFilter() != null)
         {
-            var parentIDStream = DataStoreUtils.selectFeatureIDs(this, filter.getParentFilter());
+            var parentIDStream = DataStoreUtils.selectProcedureIDs(this, filter.getParentFilter());
             
             if (resultStream == null)
             {
@@ -123,53 +117,18 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
             }
         }
         
-        if (filter.getDataStreamFilter() != null)
-        {
-            var sysIDs = DataStoreUtils.selectDataStreams(dataStreamStore, filter.getDataStreamFilter())
-                .map(ds -> ds.getSystemID().getInternalID())
-                .collect(Collectors.toSet());
-            
-            if (resultStream == null)
-            {            
-                return super.getIndexedStream(SystemFilter.Builder.from(filter)
-                    .withInternalIDs(sysIDs)
-                    .build());
-            }
-            else
-            {
-                resultStream = resultStream
-                    .filter(e -> sysIDs.contains(e.getKey().getInternalID()));
-            }
-        }
-        
-        if (filter.getProcedureFilter() != null)
-        {
-            var procUIDs = DataStoreUtils.selectProcedureUIDs(procedureStore, filter.getProcedureFilter())
-                .collect(Collectors.toSet());
-            
-            if (resultStream == null)
-                resultStream = featuresIndex.entrySet().stream();
-            
-            resultStream = resultStream
-               .filter(e -> {
-                   var typeOf = e.getValue().getFullDescription().getTypeOf();
-                   return (typeOf.getHref() != null && procUIDs.contains(typeOf.getHref())) ||
-                          (typeOf.getTitle() != null && procUIDs.contains(typeOf.getTitle()));
-               });
-        }
-        
         return resultStream;
     }
 
 
     @Override
-    public Stream<Entry<FeatureKey, ISystemWithDesc>> selectEntries(SystemFilter filter, Set<SystemField> fields)
+    public Stream<Entry<FeatureKey, IProcedureWithDesc>> selectEntries(ProcedureFilter filter, Set<ProcedureField> fields)
     {
         // update validTime in the case it ends at now and there is a
         // more recent version of the system description available
-        Stream<Entry<FeatureKey, ISystemWithDesc>> resultStream = super.selectEntries(filter, fields).map(e -> {
-            var proc = (ISystemWithDesc)e.getValue();
-            var procWrap = new ISystemWithDesc()
+        Stream<Entry<FeatureKey, IProcedureWithDesc>> resultStream = super.selectEntries(filter, fields).map(e -> {
+            var proc = (IProcedureWithDesc)e.getValue();
+            var procWrap = new IProcedureWithDesc()
             {
                 TimeExtent validTime;
                 
@@ -196,7 +155,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
                 }
             };
             
-            return new DataUtils.MapEntry<FeatureKey, ISystemWithDesc>(e.getKey(), procWrap);
+            return new DataUtils.MapEntry<FeatureKey, IProcedureWithDesc>(e.getKey(), procWrap);
         });
         
         // apply post filter on time now that we computed the correct valid time period
@@ -204,20 +163,6 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
             resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
         
         return resultStream;
-    }
-
-
-    @Override
-    public void linkTo(IDataStreamStore dataStreamStore)
-    {
-        this.dataStreamStore = Asserts.checkNotNull(dataStreamStore, IDataStreamStore.class);
-    }
-
-
-    @Override
-    public void linkTo(IProcedureStore procedureStore)
-    {
-        this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
     }
 
 }

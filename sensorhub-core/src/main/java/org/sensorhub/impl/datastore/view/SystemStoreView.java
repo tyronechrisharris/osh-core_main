@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.view;
 
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
@@ -41,6 +42,13 @@ public class SystemStoreView extends FeatureStoreViewBase<ISystemWithDesc, Syste
     
     @Override
     public void linkTo(IDataStreamStore dataStreamStore)
+    {
+        throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
+    }
+
+
+    @Override
+    public void linkTo(IProcedureStore procedureStore)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

@@ -16,7 +16,6 @@ package org.sensorhub.api.datastore.procedure;
 
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
-import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.vast.ogc.om.IProcedure;
 
@@ -33,7 +32,6 @@ import org.vast.ogc.om.IProcedure;
 public class ProcedureFilter extends FeatureFilterBase<IProcedure>
 {
     protected ProcedureFilter parentFilter;
-    protected SystemFilter systemFilter;
 
     
     /*
@@ -45,12 +43,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     public ProcedureFilter getParentFilter()
     {
         return parentFilter;
-    }
-    
-    
-    public SystemFilter getSystemFilter()
-    {
-        return systemFilter;
     }
     
     
@@ -77,10 +69,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         var parentFilter = this.parentFilter != null ? this.parentFilter.intersect(otherFilter.parentFilter) : otherFilter.parentFilter;
         if (parentFilter != null)
             builder.withParents(parentFilter);
-        
-        var systemFilter = this.systemFilter != null ? this.systemFilter.intersect(otherFilter.systemFilter) : otherFilter.systemFilter;
-        if (systemFilter != null)
-            builder.withSystems(systemFilter);
         
         return builder;
     }
@@ -152,7 +140,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         {
             super.copyFrom(base);
             instance.parentFilter = base.parentFilter;
-            instance.systemFilter = base.systemFilter;
             return (B)this;
         }
         
@@ -226,36 +213,6 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
             return withParents()
                 .withInternalIDs(0)
                 .done();
-        }
-        
-        
-        /**
-         * Keep only procedures used by systems matching the filter
-         * @param filter Data stream filter
-         * @return This builder for chaining
-         */
-        public B withSystems(SystemFilter filter)
-        {
-            instance.systemFilter = filter;
-            return (B)this;
-        }
-
-        
-        /**
-         * Select procedures used by systems matching the filter.<br/>
-         * Call done() on the nested builder to go back to main builder.
-         * @return The {@link SystemFilter} builder for chaining
-         */
-        public SystemFilter.NestedBuilder<B> withSystems()
-        {
-            return new SystemFilter.NestedBuilder<B>((B)this) {
-                @Override
-                public B done()
-                {
-                    ProcedureFilterBuilder.this.withSystems(build());
-                    return (B)ProcedureFilterBuilder.this;
-                }
-            };
         }
     }
 }
