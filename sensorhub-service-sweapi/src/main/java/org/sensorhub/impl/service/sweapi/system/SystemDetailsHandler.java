@@ -62,6 +62,8 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.SML_JSON))
             return new SystemBindingSmlJson(ctx, idEncoder, forReading);
+        else if (format.isOneOf(ResourceFormat.APPLI_XML, ResourceFormat.SML_XML))
+            return new SystemBindingSmlXml(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
