@@ -162,7 +162,7 @@ public abstract class SWEEditForm extends SWECommonForm
         l.setContentMode(ContentMode.HTML);
         l.addStyleName(UIConstants.STYLE_SMALL);
         l.setValue(getCaption(component, false));
-        l.setDescription(getTooltip(component));
+        l.setDescription(getTooltip(component), ContentMode.HTML);
         header.addComponent(l);
         header.setComponentAlignment(l, Alignment.MIDDLE_LEFT);
         
