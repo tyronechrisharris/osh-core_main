@@ -32,7 +32,7 @@ import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
-import org.sensorhub.impl.system.SystemUtils;
+import org.sensorhub.impl.system.wrapper.ProcessWrapper;
 import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -132,8 +132,9 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         // generate outputs from datastreams
         // + override ID
         var idStr = Long.toString(idEncoder.encodeID(internalID), 36);
-        sml = SystemUtils.addOutputsFromDatastreams(internalID, sml, db.getDataStreamStore())
-            .withId(idStr);
+        //sml = SystemUtils.addOutputsFromDatastreams(internalID, sml, db.getDataStreamStore())
+        //    .withId(idStr);
+        sml = ProcessWrapper.getWrapper(sml).withId(idStr);
         
         var queryParams = ctx.getParameterMap();
         var responseFormat = parseFormat(queryParams);
