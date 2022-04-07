@@ -100,7 +100,8 @@ public class SystemBindingHtml extends AbstractFeatureBindingHtml<ISystemWithDes
     {
         var sysId = Long.toString(encodeID(key.getInternalID()), ResourceBinding.ID_RADIX);
         var requestUrl = ctx.getRequestUrl();
-        var resourceUrl = isCollection ? requestUrl + "/" + sysId : requestUrl;
+        //var resourceUrl = isCollection ? requestUrl + "/" + sysId : requestUrl;
+        var resourceUrl = isCollection ? ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId : requestUrl;
         
         var hasSubSystems = db.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
             .withParents(key.getInternalID())
