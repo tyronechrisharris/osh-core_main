@@ -484,8 +484,11 @@ public class SWEApiServlet extends HttpServlet
     }
 
 
-    public String getApiRootURL()
+    public String getApiRootURL(HttpServletRequest req)
     {
+        if (rootUrl.contains("localhost") && req != null)
+            return rootUrl.replace("localhost", req.getServerName());
+        
         return rootUrl;
     }
     

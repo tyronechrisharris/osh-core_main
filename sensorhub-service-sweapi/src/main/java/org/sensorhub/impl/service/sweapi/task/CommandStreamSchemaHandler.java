@@ -52,7 +52,9 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     {
         var format = ctx.getFormat();
         
-        if (format.equals(ResourceFormat.JSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+            return new CommandStreamBindingHtml(ctx, idEncoder);
+        else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
             return new CommandStreamSchemaBindingJson(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);

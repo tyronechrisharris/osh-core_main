@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi;
 
 import java.io.IOException;
+import org.sensorhub.impl.service.sweapi.home.HomePageHandler;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 
@@ -22,11 +23,14 @@ import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 public class RootHandler extends BaseHandler
 {
     static final String READ_ONLY_ERROR = "API is configured as read-only";
+    
+    HomePageHandler homePage;
     boolean readOnly;
     
     
-    public RootHandler(boolean readOnly)
+    public RootHandler(HomePageHandler homePage, boolean readOnly)
     {
+        this.homePage = homePage;
         this.readOnly = readOnly;
     }
 
@@ -34,7 +38,9 @@ public class RootHandler extends BaseHandler
     @Override
     public void doGet(RequestContext ctx) throws IOException
     {
-        IResourceHandler resource = getSubResource(ctx);
+        IResourceHandler resource = ctx.isEndOfPath() ?
+            homePage :
+            getSubResource(ctx);
         resource.doGet(ctx);
     }
 

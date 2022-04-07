@@ -482,13 +482,6 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         
         return builder.build();
     }
-    
-    
-    @Override
-    protected ResourceFormat parseFormat(final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        return super.parseFormat(queryParams, ResourceFormat.AUTO);
-    }
 
 
     @Override

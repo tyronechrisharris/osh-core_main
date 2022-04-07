@@ -29,6 +29,8 @@ import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.feature.FoiHistoryHandler;
+import org.sensorhub.impl.service.sweapi.home.ConformanceHandler;
+import org.sensorhub.impl.service.sweapi.home.HomePageHandler;
 import org.sensorhub.impl.service.sweapi.obs.CustomObsFormat;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamSchemaHandler;
@@ -134,12 +136,14 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         
         // create obs db read/write wrapper
         var db = new ObsSystemDbWrapper(obsReadDatabase, obsWriteDatabase, getParentHub().getDatabaseRegistry());
-        
-        // create resource handlers hierarchy
-        var readOnly = obsWriteDatabase == null || obsWriteDatabase.isReadOnly();
-        RootHandler rootHandler = new RootHandler(readOnly);
         var eventBus = getParentHub().getEventBus();
         var security = (SWEApiSecurity)this.securityHandler;
+        var readOnly = obsWriteDatabase == null || obsWriteDatabase.isReadOnly();
+        
+        // create resource handlers hierarchy
+        var homePage = new HomePageHandler(config);
+        var rootHandler = new RootHandler(homePage, readOnly);
+        rootHandler.addSubResource(new ConformanceHandler(config));
         
         // systems and sub-resources
         var systemsHandler = new SystemHandler(eventBus, db, security.system_summary_permissions);

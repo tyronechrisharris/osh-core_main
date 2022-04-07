@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.system;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
@@ -43,6 +44,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     public static final String[] NAMES = { "systems" };
     
     final IEventBus eventBus;
+    final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;
     final SystemEventsHandler eventsHandler;
     
@@ -50,8 +52,10 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     public SystemHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getSystemDescStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
         this.eventBus = eventBus;
+        this.db = db.getReadDb();
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
+        
         this.eventsHandler = new SystemEventsHandler(eventBus, db, permissions);
         addSubResource(eventsHandler);
     }
@@ -62,7 +66,12 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     {
         var format = ctx.getFormat();
         
-        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        {
+            var title = ctx.getParentID() != 0 ? "Subsystems of {}" : "All Systems";
+            return new SystemBindingHtml(ctx, idEncoder, true, title, db);
+        }
+        else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new SystemBindingGeoJson(ctx, idEncoder, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
             return new SystemBindingSmlJson(ctx, idEncoder, forReading);

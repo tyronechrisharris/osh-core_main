@@ -24,26 +24,20 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
-import org.vast.data.DataIterator;
-import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
 import org.vast.util.Asserts;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataRecord;
-import net.opengis.swe.v20.Vector;
 
 
 public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
@@ -196,15 +190,15 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         // observed properties
         writer.name("observedProperties").beginArray();
-        for (var obsProp: getObservables(dsInfo))
+        for (var prop: SWECommonUtils.getProperties(dsInfo.getRecordStructure()))
         {
             writer.beginObject();
-            if (obsProp.getDefinition() != null)
-                writer.name("definition").value(obsProp.getDefinition());
-            if (obsProp.getLabel() != null)
-                writer.name("label").value(obsProp.getLabel());
-            if (obsProp.getDescription() != null)
-                writer.name("description").value(obsProp.getDescription());
+            if (prop.getDefinition() != null)
+                writer.name("definition").value(prop.getDefinition());
+            if (prop.getLabel() != null)
+                writer.name("label").value(prop.getLabel());
+            if (prop.getDescription() != null)
+                writer.name("description").value(prop.getDescription());
             writer.endObject();
         }
         /*for (var obsProp: getObservables(dsInfo))
@@ -216,24 +210,11 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         // available formats
         writer.name("formats").beginArray();
-        writer.value(ResourceFormat.OM_JSON.getMimeType());
-        if (ResourceFormat.allowNonBinaryFormat(dsInfo.getRecordEncoding()))
-        {
-            writer.value(ResourceFormat.SWE_JSON.getMimeType());
-            writer.value(ResourceFormat.SWE_TEXT.getMimeType());
-            writer.value(ResourceFormat.SWE_XML.getMimeType());
-        }
-        writer.value(ResourceFormat.SWE_BINARY.getMimeType());
-        
-        // also list compatible custom formats
-        for (var formatEntry: customFormats.entrySet())
-        {
-            if (formatEntry.getValue().isCompatible(dsInfo))
-                writer.value(formatEntry.getKey());
-        }
-        
+        for (var f: SWECommonUtils.getAvailableFormats(dsInfo, customFormats))
+            writer.value(f);
         writer.endArray();
         
+        // links
         if (showLinks)
         {
             var links = new ArrayList<ResourceLink>();
@@ -263,46 +244,16 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     }
     
     
-    protected Iterable<DataComponent> getObservables(IDataStreamInfo dsInfo)
-    {
-        return Iterables.filter(new DataIterator(dsInfo.getRecordStructure()), comp -> {
-            var def = comp.getDefinition();
-            
-            // skip vector coordinates
-            if (comp.getParent() != null && comp.getParent() instanceof Vector)
-                return false;
-            
-            // skip data records
-            if (comp instanceof DataRecord)
-                return false;
-            
-            // skip well known fields
-            if (SWEConstants.DEF_SAMPLING_TIME.equals(def) ||
-                SWEConstants.DEF_PHENOMENON_TIME.equals(def) ||
-                SWEConstants.DEF_SYSTEM_ID.equals(def))
-                return false;
-            
-            // skip if no metadata was set
-            if (Strings.isNullOrEmpty(def) &&
-                Strings.isNullOrEmpty(comp.getLabel()) &&
-                Strings.isNullOrEmpty(comp.getDescription()))
-                return false;
-            
-            return true;
-        });
-    }
-
-
     @Override
     public void startCollection() throws IOException
     {
-        startJsonCollection(writer);        
+        startJsonCollection(writer);
     }
 
 
     @Override
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
-        endJsonCollection(writer, links);        
+        endJsonCollection(writer, links);
     }
 }

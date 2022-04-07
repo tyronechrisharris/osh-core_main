@@ -35,6 +35,7 @@ import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
+import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.impl.system.DataStreamTransactionHandler;
 
@@ -70,7 +71,12 @@ public class ObsStatsHandler extends BaseHandler
     
     protected ResourceBinding<BigInteger, ObsStats> getBinding(RequestContext ctx) throws IOException
     {
-        return new ObsStatsBindingJson(ctx);
+        var format = ctx.getFormat();
+        
+        if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
+            return new ObsStatsBindingJson(ctx);
+        else
+            throw ServiceErrors.unsupportedFormat(format);
     }
     
     

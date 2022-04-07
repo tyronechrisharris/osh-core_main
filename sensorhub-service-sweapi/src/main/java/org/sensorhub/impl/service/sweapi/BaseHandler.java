@@ -112,7 +112,7 @@ public abstract class BaseHandler implements IResourceHandler
     protected ResourceFormat parseFormat(final Map<String, String[]> queryParams) throws InvalidRequestException
     {
         // defaults to json;
-        return parseFormat(queryParams, ResourceFormat.JSON); // defaults to json;
+        return parseFormat(queryParams, ResourceFormat.AUTO);
     }
     
     
@@ -330,17 +330,19 @@ public abstract class BaseHandler implements IResourceHandler
     
     protected Collection<ResourceLink> getPagingLinks(final RequestContext ctx, long offset, long limit, boolean hasMore) throws InvalidRequestException
     {
-        var resourcePath = ctx.getApiRootURL() + "/" + getNames()[0];
-        var queryParams = ctx.getParameterMap();
+        var resourcePath = ctx.getRequestUrl();//ctx.getApiRootURL() + "/" + getNames()[0];
+        var queryParams = new HashMap<>(ctx.getParameterMap());
         var links = new ArrayList<ResourceLink>();
         
         // prev link
         if (offset > 0)
         {
             var prevOffset = Math.max(0, offset-limit);
+            queryParams.put("offset", new String[] { Long.toString(prevOffset) });
+            
             links.add(new ResourceLink.Builder()
                 .rel("prev")
-                .href(resourcePath + getQueryString(queryParams, prevOffset))
+                .href(resourcePath + RequestContext.buildQueryString(queryParams))
                 .type(ctx.getFormat().getMimeType())
                 .build());
         }
@@ -349,9 +351,11 @@ public abstract class BaseHandler implements IResourceHandler
         if (hasMore)
         {
             var nextOffset = offset+limit;
+            queryParams.put("offset", new String[] { Long.toString(nextOffset) });
+            
             links.add(new ResourceLink.Builder()
                 .rel("next")
-                .href(resourcePath + getQueryString(queryParams, nextOffset))
+                .href(resourcePath + RequestContext.buildQueryString(queryParams))
                 .type(ctx.getFormat().getMimeType())
                 .build());
         }
@@ -360,30 +364,6 @@ public abstract class BaseHandler implements IResourceHandler
     }
     
     
-    String getQueryString(Map<String, String[]> queryParams, long offset)
-    {
-        offset = Math.max(0, offset);
-        
-        var buf = new StringBuilder();
-        buf.append('?');
-        
-        for (var e: queryParams.entrySet())
-        {
-            if (!"offset".equals(e.getKey()))
-            {
-                buf.append(e.getKey()).append("=");
-                for (var s: e.getValue())
-                    buf.append(s).append(',');
-                buf.setCharAt(buf.length()-1, '&');
-            }
-        }
-        
-        if (offset > 0)
-            buf.append("offset=").append(offset);
-        else
-            buf.setLength(buf.length()-1);
-        
-        return buf.toString();
-    }
+    
 
 }

@@ -60,7 +60,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IFeature, FeatureFi
     {
         var format = ctx.getFormat();
         
-        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
+        if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return (ResourceBinding)new SystemBindingGeoJson(ctx, idEncoder, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
             return (ResourceBinding)new SystemBindingSmlJson(ctx, idEncoder, forReading);

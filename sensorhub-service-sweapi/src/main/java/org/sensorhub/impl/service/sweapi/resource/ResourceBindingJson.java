@@ -31,7 +31,7 @@ import com.google.gson.stream.JsonWriter;
 
 /**
  * <p>
- * Base class for all JSON resource formatter
+ * Base class for all JSON resource formatters
  * </p>
  * 
  * @param <K> Resource Key

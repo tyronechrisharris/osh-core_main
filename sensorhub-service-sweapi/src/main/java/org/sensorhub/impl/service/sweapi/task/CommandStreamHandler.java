@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.task;
 import java.io.IOException;
 import java.util.Map;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
@@ -41,6 +42,7 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     public static final int EXTERNAL_ID_SEED = 34945557;
     public static final String[] NAMES = { "controls" };
     
+    final IObsSystemDatabase db;
     final IEventBus eventBus;
     final SystemDatabaseTransactionHandler transactionHandler;
     final CommandStreamEventsHandler eventsHandler;
@@ -49,9 +51,12 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     public CommandStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getCommandStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        this.db = db.getReadDb();
         this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
+        
         this.eventsHandler = new CommandStreamEventsHandler(eventBus, db, permissions);
+        addSubResource(eventsHandler);
     }
     
     
@@ -60,7 +65,12 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     {
         var format = ctx.getFormat();
         
-        if (format.equals(ResourceFormat.JSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        {
+            var title = ctx.getParentID() != 0 ? "Control channels of {}" : "All Controls";
+            return new CommandStreamBindingHtml(ctx, idEncoder, true, title, db);
+        }
+        else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
             return new CommandStreamBindingJson(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);

@@ -151,7 +151,7 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
         }
         
         // select binding depending on format
-        if (format.isOneOf(ResourceFormat.JSON))
+        if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
             return new CommandBindingJson(ctx, idEncoder, forReading, dataStore);
         else
             return new CommandBindingSweCommon(ctx, idEncoder, forReading, dataStore);

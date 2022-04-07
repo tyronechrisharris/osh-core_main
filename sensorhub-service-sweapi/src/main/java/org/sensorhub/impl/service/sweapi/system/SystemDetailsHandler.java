@@ -18,13 +18,13 @@ import java.io.IOException;
 import java.util.Map;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
@@ -45,13 +45,13 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
     static final Logger log = LoggerFactory.getLogger(SystemDetailsHandler.class);
     public static final String[] NAMES = { "details", "specsheet" }; //"fullDescription"; //"specs"; //"specsheet"; //"metadata";
     
-    IDataStreamStore dataStreamStore;
+    final IObsSystemDatabase db;
     
     
-    public SystemDetailsHandler(IEventBus eventBus, IObsSystemDatabase db, ResourcePermissions permissions)
+    public SystemDetailsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getSystemDescStore(), new IdEncoder(SystemHandler.EXTERNAL_ID_SEED), permissions);
-        this.dataStreamStore = db.getDataStreamStore();
+        this.db = db.getReadDb();
     }
 
 
@@ -60,7 +60,9 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
     {
         var format = ctx.getFormat();
         
-        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.SML_JSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+            return new SystemBindingHtml(ctx, idEncoder, false, "Specsheet of {}", db);
+        else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.SML_JSON))
             return new SystemBindingSmlJson(ctx, idEncoder, forReading);
         else if (format.isOneOf(ResourceFormat.APPLI_XML, ResourceFormat.SML_XML))
             return new SystemBindingSmlXml(ctx, idEncoder, forReading);
@@ -130,7 +132,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         // generate outputs from datastreams
         // + override ID
         var idStr = Long.toString(idEncoder.encodeID(internalID), 36);
-        sml = SystemUtils.addOutputsFromDatastreams(internalID, sml, dataStreamStore)
+        sml = SystemUtils.addOutputsFromDatastreams(internalID, sml, db.getDataStreamStore())
             .withId(idStr);
         
         var queryParams = ctx.getParameterMap();
@@ -138,7 +140,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         var binding = getBinding(ctx, false);
         
-        ctx.setResponseContentType(responseFormat.getMimeType());        
+        ctx.setResponseContentType(responseFormat.getMimeType());
         binding.serialize(key, new SystemWrapper(sml), true);
     }
 

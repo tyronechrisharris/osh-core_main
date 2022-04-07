@@ -20,6 +20,8 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -44,8 +46,9 @@ public class RequestContext
     private final HttpServletResponse resp;
     private final StreamHandler streamHandler;
     private InputStream inputStream;
-    private Deque<String> path;
-    private Map<String, String[]> queryParams;
+    private final Collection<String> originalPath;
+    private final Deque<String> path;
+    private final Map<String, String[]> queryParams;
     private String contentType;
     private ResourceRef parentResource = new ResourceRef();
     private ResourceFormat format;
@@ -81,6 +84,7 @@ public class RequestContext
         this.resp = Asserts.checkNotNull(resp, HttpServletResponse.class);
         this.streamHandler = null;
         this.path = splitPath(req.getPathInfo());
+        this.originalPath = new ArrayList<>(this.path);
         this.queryParams = req.getParameterMap();
         this.contentType = req.getContentType();
     }
@@ -96,6 +100,7 @@ public class RequestContext
         this.resp = Asserts.checkNotNull(resp, HttpServletResponse.class);
         this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
         this.path = splitPath(req.getPathInfo());
+        this.originalPath = new ArrayList<>(this.path);
         this.queryParams = req.getParameterMap();
         this.contentType = req.getContentType();
     }
@@ -112,6 +117,7 @@ public class RequestContext
         this.streamHandler = null;
         this.inputStream = Asserts.checkNotNull(is, InputStream.class);
         this.path = splitPath(resourceURI.getPath());
+        this.originalPath = new ArrayList<>(this.path);
         this.queryParams = parseQueryParams(resourceURI.getQuery());
     }
     
@@ -126,6 +132,7 @@ public class RequestContext
         this.resp = null;
         this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
         this.path = splitPath(resourceURI.getPath());
+        this.originalPath = new ArrayList<>(this.path);
         this.queryParams = parseQueryParams(resourceURI.getQuery());
     }
     
@@ -248,9 +255,49 @@ public class RequestContext
     }
     
     
+    public Collection<String> getRequestPath()
+    {
+        return originalPath;
+    }
+    
+    
+    public String getRequestUrl()
+    {
+        return req != null ? req.getRequestURL().toString() : null;
+    }
+    
+    
+    public String getRequestUrlWithQuery(Map<String, String[]> queryParams)
+    {
+        return getRequestUrlWithQuery(queryParams, false);
+    }
+    
+    
+    public String getRequestUrlWithQuery(Map<String, String[]> queryParams, boolean appendToExistingParams)
+    {
+        if (req == null)
+            return null;
+        
+        if (appendToExistingParams)
+        {
+            var allQueryParams = new HashMap<>(this.queryParams);
+            allQueryParams.putAll(queryParams);
+            queryParams = allQueryParams;
+        }
+        
+        return getRequestUrl() + buildQueryString(queryParams);
+    }
+    
+    
     public String getRequestContentType()
     {
         return this.contentType;
+    }
+    
+    
+    public void setRequestContentType(String contentType)
+    {
+        this.contentType = contentType;
     }
     
     
@@ -260,9 +307,10 @@ public class RequestContext
     }
     
     
-    public void setRequestContentType(String contentType)
+    public boolean isBrowserHtmlRequest()
     {
-        this.contentType = contentType;
+        var acceptHdr = getRequestHeader("Accept");
+        return acceptHdr != null && acceptHdr.contains("text/html");
     }
     
     
@@ -350,7 +398,7 @@ public class RequestContext
     
     public String getApiRootURL()
     {
-        return servlet.getApiRootURL();
+        return servlet.getApiRootURL(req);
     }
     
     
@@ -363,5 +411,23 @@ public class RequestContext
     public SWEApiSecurity getSecurityHandler()
     {
         return servlet.getSecurityHandler();
+    }
+    
+    
+    public static String buildQueryString(Map<String, String[]> queryParams)
+    {
+        var buf = new StringBuilder();
+        buf.append('?');
+        
+        for (var e: queryParams.entrySet())
+        {
+            buf.append(e.getKey()).append("=");
+            for (var s: e.getValue())
+                buf.append(s).append(',');
+            buf.setCharAt(buf.length()-1, '&');
+        }
+        
+        buf.setLength(buf.length()-1);
+        return buf.toString();
     }
 }

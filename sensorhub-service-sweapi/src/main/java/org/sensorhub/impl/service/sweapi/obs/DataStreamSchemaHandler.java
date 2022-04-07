@@ -51,7 +51,7 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     protected ResourceBinding<DataStreamKey, IDataStreamInfo> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
-        if (!format.equals(ResourceFormat.JSON))
+        if (!format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
             throw ServiceErrors.unsupportedFormat(format);
         
         // generate proper schema depending on obs format
@@ -59,9 +59,11 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
         if (obsFormat == null)
             obsFormat = ResourceFormat.OM_JSON;
         
-        if (obsFormat.equals(ResourceFormat.OM_JSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+            return new DataStreamBindingHtml(ctx, idEncoder, obsFormat);
+        else if (obsFormat.equals(ResourceFormat.OM_JSON))
             return new DataStreamSchemaBindingOmJson(ctx, idEncoder, forReading);
-        if (obsFormat.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
+        else if (obsFormat.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
             return new DataStreamSchemaBindingSweCommon(obsFormat, ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(obsFormat);

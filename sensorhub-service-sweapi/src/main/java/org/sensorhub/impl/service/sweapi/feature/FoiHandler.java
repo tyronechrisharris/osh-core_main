@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
@@ -40,12 +41,14 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     public static final int EXTERNAL_ID_SEED = 433584715;
     public static final String[] NAMES = { "featuresOfInterest", "fois" };
     
-    SystemDatabaseTransactionHandler transactionHandler;
+    final IObsSystemDatabase db;
+    final SystemDatabaseTransactionHandler transactionHandler;
     
     
     public FoiHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getFoiStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        this.db = db;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
     }
 
@@ -55,7 +58,9 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     {
         var format = ctx.getFormat();
         
-        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+            return new FeatureBindingHtml(ctx, idEncoder, true, db);
+        else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);

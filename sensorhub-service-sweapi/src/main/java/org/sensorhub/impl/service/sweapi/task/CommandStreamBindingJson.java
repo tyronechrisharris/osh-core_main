@@ -24,27 +24,21 @@ import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
-import org.vast.data.DataIterator;
 import org.vast.data.TextEncodingImpl;
-import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import net.opengis.swe.v20.DataChoice;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
-import net.opengis.swe.v20.DataRecord;
-import net.opengis.swe.v20.Vector;
 
 
 public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
@@ -177,15 +171,15 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         
         // observed properties
         writer.name("actuableProperties").beginArray();
-        for (var obsProp: getActuables(dsInfo))
+        for (var prop: SWECommonUtils.getProperties(dsInfo.getRecordStructure()))
         {
             writer.beginObject();
-            if (obsProp.getDefinition() != null)
-                writer.name("definition").value(obsProp.getDefinition());
-            if (obsProp.getLabel() != null)
-                writer.name("label").value(obsProp.getLabel());
-            if (obsProp.getDescription() != null)
-                writer.name("description").value(obsProp.getDescription());
+            if (prop.getDefinition() != null)
+                writer.name("definition").value(prop.getDefinition());
+            if (prop.getLabel() != null)
+                writer.name("label").value(prop.getLabel());
+            if (prop.getDescription() != null)
+                writer.name("description").value(prop.getDescription());
             writer.endObject();
         }
         writer.endArray();
@@ -228,36 +222,6 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         
         writer.endObject();
         writer.flush();
-    }
-    
-    
-    protected Iterable<DataComponent> getActuables(ICommandStreamInfo dsInfo)
-    {
-        return Iterables.filter(new DataIterator(dsInfo.getRecordStructure()), comp -> {
-            var def = comp.getDefinition();
-            
-            // skip vector coordinates
-            if (comp.getParent() != null && comp.getParent() instanceof Vector)
-                return false;
-            
-            // skip data records and choices
-            if (comp instanceof DataRecord || comp instanceof DataChoice)
-                return false;
-            
-            // skip well known fields
-            if (SWEConstants.DEF_SAMPLING_TIME.equals(def) ||
-                SWEConstants.DEF_PHENOMENON_TIME.equals(def) ||
-                SWEConstants.DEF_SYSTEM_ID.equals(def))
-                return false;
-            
-            // skip if no metadata was set
-            if (Strings.isNullOrEmpty(def) &&
-                Strings.isNullOrEmpty(comp.getLabel()) &&
-                Strings.isNullOrEmpty(comp.getDescription()))
-                return false;
-            
-            return true;
-        });
     }
 
 

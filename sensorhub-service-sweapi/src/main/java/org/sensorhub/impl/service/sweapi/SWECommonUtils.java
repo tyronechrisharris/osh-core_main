@@ -14,20 +14,29 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.impl.service.sweapi.obs.CustomObsFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.vast.data.DataIterator;
 import org.vast.data.JSONEncodingImpl;
 import org.vast.data.TextEncodingImpl;
 import org.vast.data.XMLEncodingImpl;
 import org.vast.swe.IComponentFilter;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import net.opengis.swe.v20.DataRecord;
 import net.opengis.swe.v20.TextEncoding;
+import net.opengis.swe.v20.Vector;
 
 
 public class SWECommonUtils
@@ -108,4 +117,64 @@ public class SWECommonUtils
         
         throw ServiceErrors.unsupportedFormat(format);
     }
+    
+    
+    /*
+     * Get list of format available for a given datastream
+     */
+    public static Collection<String> getAvailableFormats(IDataStreamInfo dsInfo, Map<String, CustomObsFormat> customFormats)
+    {
+        var formatList = new ArrayList<String>();
+        
+        formatList.add(ResourceFormat.OM_JSON.getMimeType());
+        
+        if (ResourceFormat.allowNonBinaryFormat(dsInfo.getRecordEncoding()))
+        {
+            formatList.add(ResourceFormat.SWE_JSON.getMimeType());
+            formatList.add(ResourceFormat.SWE_TEXT.getMimeType());
+            formatList.add(ResourceFormat.SWE_XML.getMimeType());
+        }
+        
+        formatList.add(ResourceFormat.SWE_BINARY.getMimeType());
+        
+        // also list compatible custom formats
+        for (var formatEntry: customFormats.entrySet())
+        {
+            if (formatEntry.getValue().isCompatible(dsInfo))
+                formatList.add(formatEntry.getKey());
+        }
+        
+        return formatList;
+    }
+    
+    
+    public static Iterable<DataComponent> getProperties(DataComponent dataStruct)
+    {
+        return Iterables.filter(new DataIterator(dataStruct), comp -> {
+            var def = comp.getDefinition();
+            
+            // skip vector coordinates
+            if (comp.getParent() != null && comp.getParent() instanceof Vector)
+                return false;
+            
+            // skip data records
+            if (comp instanceof DataRecord)
+                return false;
+            
+            // skip well known fields
+            if (SWEConstants.DEF_SAMPLING_TIME.equals(def) ||
+                SWEConstants.DEF_PHENOMENON_TIME.equals(def) ||
+                SWEConstants.DEF_SYSTEM_ID.equals(def))
+                return false;
+            
+            // skip if no metadata was set
+            if (Strings.isNullOrEmpty(def) &&
+                Strings.isNullOrEmpty(comp.getLabel()) &&
+                Strings.isNullOrEmpty(comp.getDescription()))
+                return false;
+            
+            return true;
+        });
+    }
+
 }

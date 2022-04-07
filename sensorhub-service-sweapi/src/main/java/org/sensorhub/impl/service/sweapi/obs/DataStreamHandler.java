@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.io.IOException;
 import java.util.Map;
 import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -42,19 +43,23 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     public static final int EXTERNAL_ID_SEED = 918742953;
     public static final String[] NAMES = { "datastreams" };
     
+    final IObsSystemDatabase db;
     final IEventBus eventBus;
     final SystemDatabaseTransactionHandler transactionHandler;
-    final DataStreamEventsHandler eventsHandler;
     final Map<String, CustomObsFormat> customFormats;
+    final DataStreamEventsHandler eventsHandler;
     
     
     public DataStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
         super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        this.db = db.getReadDb();
         this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
-        this.eventsHandler = new DataStreamEventsHandler(eventBus, db, permissions);
         this.customFormats = Asserts.checkNotNull(customFormats, "customFormats");
+        
+        this.eventsHandler = new DataStreamEventsHandler(eventBus, db, permissions);
+        addSubResource(eventsHandler);
     }
     
     
@@ -63,7 +68,12 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     {
         var format = ctx.getFormat();
         
-        if (format.equals(ResourceFormat.JSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        {
+            var title = ctx.getParentID() != 0 ? "Datastreams of {}" : "All Datastreams";
+            return new DataStreamBindingHtml(ctx, idEncoder, true, title, db, customFormats);
+        }
+        else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
             return new DataStreamBindingJson(ctx, idEncoder, forReading, customFormats);
         else
             throw ServiceErrors.unsupportedFormat(format);

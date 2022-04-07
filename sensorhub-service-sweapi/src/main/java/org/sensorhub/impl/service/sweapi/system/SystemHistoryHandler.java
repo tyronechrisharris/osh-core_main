@@ -22,6 +22,7 @@ import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHistoryHandler;
@@ -32,10 +33,13 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 
 public class SystemHistoryHandler extends AbstractFeatureHistoryHandler<ISystemWithDesc, SystemFilter, SystemFilter.Builder, ISystemDescStore>
 {
+    final IObsSystemDatabase db;
     
-    public SystemHistoryHandler(IEventBus eventBus, IObsSystemDatabase db, ResourcePermissions permissions)
+    
+    public SystemHistoryHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getSystemDescStore(), new IdEncoder(SystemHandler.EXTERNAL_ID_SEED), permissions);
+        this.db = db.getReadDb();
     }
 
 
@@ -44,7 +48,9 @@ public class SystemHistoryHandler extends AbstractFeatureHistoryHandler<ISystemW
     {
         var format = ctx.getFormat();
         
-        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+            return new SystemBindingHtml(ctx, idEncoder, true, "History of {}", db);
+        else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new SystemBindingGeoJson(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
