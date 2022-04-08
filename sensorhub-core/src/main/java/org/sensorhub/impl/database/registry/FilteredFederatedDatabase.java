@@ -15,17 +15,18 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.database.registry;
 
 import java.math.BigInteger;
-import java.util.AbstractCollection;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Set;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.impl.datastore.view.ObsSystemDatabaseView;
+import org.sensorhub.impl.datastore.view.ProcedureDatabaseView;
 import org.vast.util.Asserts;
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
 
@@ -38,40 +39,56 @@ import com.google.common.collect.Sets;
  * @author Alex Robin
  * @since Dec 11, 2020
  */
-public class FilteredFederatedObsDatabase extends FederatedDatabase
+public class FilteredFederatedDatabase extends FederatedDatabase
 {
     final Set<Integer> unfilteredDatabases = Sets.newHashSet();
     final ObsFilter obsFilter;
     final CommandFilter cmdFilter;
+    final ProcedureFilter procFilter;
     
     
-    public FilteredFederatedObsDatabase(IDatabaseRegistry registry, ObsFilter obsFilter, int... unfilteredDatabases)
+    public FilteredFederatedDatabase(IDatabaseRegistry registry, ObsFilter obsFilter, int... unfilteredDatabases)
     {
         super(registry);
         this.obsFilter = Asserts.checkNotNull(obsFilter, ObsFilter.class);
         this.cmdFilter = null;
+        this.procFilter = null;
         
         for (int dbNum: unfilteredDatabases)
             this.unfilteredDatabases.add(dbNum);
     }
     
     
-    public FilteredFederatedObsDatabase(IDatabaseRegistry registry, CommandFilter cmdFilter, int... unfilteredDatabases)
+    public FilteredFederatedDatabase(IDatabaseRegistry registry, CommandFilter cmdFilter, int... unfilteredDatabases)
     {
         super(registry);
         this.obsFilter = null;
         this.cmdFilter = Asserts.checkNotNull(cmdFilter, CommandFilter.class);
+        this.procFilter = null;
         
         for (int dbNum: unfilteredDatabases)
             this.unfilteredDatabases.add(dbNum);
     }
     
     
-    public FilteredFederatedObsDatabase(IDatabaseRegistry registry, ObsFilter obsFilter, CommandFilter cmdFilter, int... unfilteredDatabases)
+    public FilteredFederatedDatabase(IDatabaseRegistry registry, ObsFilter obsFilter, CommandFilter cmdFilter, int... unfilteredDatabases)
     {
         super(registry);
         this.obsFilter = Asserts.checkNotNull(obsFilter, ObsFilter.class);
         this.cmdFilter = Asserts.checkNotNull(cmdFilter, CommandFilter.class);
+        this.procFilter = null;
+        
+        for (int dbNum: unfilteredDatabases)
+            this.unfilteredDatabases.add(dbNum);
+    }
+    
+    
+    public FilteredFederatedDatabase(IDatabaseRegistry registry, ObsFilter obsFilter, CommandFilter cmdFilter, ProcedureFilter procFilter, int... unfilteredDatabases)
+    {
+        super(registry);
+        this.obsFilter = Asserts.checkNotNull(obsFilter, ObsFilter.class);
+        this.cmdFilter = Asserts.checkNotNull(cmdFilter, CommandFilter.class);
+        this.procFilter = Asserts.checkNotNull(procFilter, ProcedureFilter.class);
         
         for (int dbNum: unfilteredDatabases)
             this.unfilteredDatabases.add(dbNum);
@@ -110,29 +127,25 @@ public class FilteredFederatedObsDatabase extends FederatedDatabase
     protected Collection<IObsSystemDatabase> getAllObsDatabases()
     {
         var allDbs = super.getAllObsDatabases();
-        
-        return new AbstractCollection<>() {
-
-            @Override
-            public Iterator<IObsSystemDatabase> iterator()
-            {
-                return Iterators.transform(allDbs.iterator(), db -> {
-                    var dbNum = db.getDatabaseNum();
-                    if (!unfilteredDatabases.contains(dbNum))
-                        return new ObsSystemDatabaseView(db, obsFilter, cmdFilter);
-                    return db;
-                });
-            }
-
-            @Override
-            public int size()
-            {
-                return allDbs.size();
-            }            
-        };
+        return Collections2.transform(allDbs, db -> {
+            var dbNum = db.getDatabaseNum();
+            if (!unfilteredDatabases.contains(dbNum))
+                return new ObsSystemDatabaseView(db, obsFilter, cmdFilter);
+            return db;
+        });
     }
     
-    
-    
+
+    @Override
+    protected Collection<IProcedureDatabase> getAllProcDatabases()
+    {
+        var allDbs = super.getAllProcDatabases();
+        return Collections2.transform(allDbs, db -> {
+            var dbNum = db.getDatabaseNum();
+            if (!unfilteredDatabases.contains(dbNum))
+                return new ProcedureDatabaseView(db, procFilter);
+            return db;
+        });
+    }
 
 }

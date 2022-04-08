@@ -23,7 +23,7 @@ import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.service.IServiceModule;
-import org.sensorhub.impl.database.registry.FilteredFederatedObsDatabase;
+import org.sensorhub.impl.database.registry.FilteredFederatedDatabase;
 import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.utils.NamedThreadFactory;
 
@@ -76,13 +76,13 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
                 // its content via this service by flagging it as unfiltered
                 if (filter instanceof ObsFilter)
                 {
-                    readDatabase = new FilteredFederatedObsDatabase(
+                    readDatabase = new FilteredFederatedDatabase(
                         getParentHub().getDatabaseRegistry(),
                         (ObsFilter)filter, writeDatabase.getDatabaseNum());
                 }
                 else if (filter instanceof CommandFilter)
                 {
-                    readDatabase = new FilteredFederatedObsDatabase(
+                    readDatabase = new FilteredFederatedDatabase(
                         getParentHub().getDatabaseRegistry(),
                         (CommandFilter)filter, writeDatabase.getDatabaseNum());
                 }
