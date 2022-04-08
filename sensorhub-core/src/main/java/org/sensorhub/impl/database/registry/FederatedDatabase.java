@@ -22,59 +22,70 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.database.IFederatedDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 
 
-public class FederatedObsDatabase implements IObsSystemDatabase
+public class FederatedDatabase implements IFederatedDatabase
 {
     final FederatedSystemDescStore systemStore;
     final FederatedFoiStore foiStore;
     final FederatedObsStore obsStore;
     final FederatedCommandStore commandStore;
+    final FederatedProcedureStore procedureStore;
     final IDatabaseRegistry registry;
     
     
-    public static class LocalDatabaseInfo
+    static class LocalDbInfo<T>
     {
-        IObsSystemDatabase db;
+        T db;
         int databaseNum;
         long entryID;
         BigInteger bigEntryID;
     }
     
-    
-    public static class LocalFilterInfo
+    static class LocalFilterInfo<T>
     {
-        IObsSystemDatabase db;
+        T db;
         int databaseNum;
         Set<Long> internalIds = new TreeSet<>();
         Set<BigInteger> bigInternalIds = new TreeSet<>();
         IQueryFilter filter;
     }
     
+    static class ObsSystemDbInfo extends LocalDbInfo<IObsSystemDatabase> { }
+    static class ObsSystemDbFilterInfo extends LocalFilterInfo<IObsSystemDatabase> { }
+    
+    static class ProcedureDbInfo extends LocalDbInfo<IProcedureDatabase> { }
+    static class ProcedureDbFilterInfo extends LocalFilterInfo<IProcedureDatabase> { }
+    
 
-    public FederatedObsDatabase(IDatabaseRegistry registry)
+    public FederatedDatabase(IDatabaseRegistry registry)
     {
         this.registry = registry;
         this.systemStore = new FederatedSystemDescStore(registry, this);
         this.foiStore = new FederatedFoiStore(registry, this);
         this.obsStore = new FederatedObsStore(registry, this);
         this.commandStore = new FederatedCommandStore(registry, this);
+        this.procedureStore = new FederatedProcedureStore(registry, this);
     }
     
     
     /*
-     * Convert from the public ID to the local database ID
+     * Get local obs DB containing resource with the given public ID
      */
-    protected LocalDatabaseInfo getLocalDbInfo(long publicID)
+    protected ObsSystemDbInfo getLocalObsDbInfo(long publicID)
     {
-        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
+        var dbInfo = new ObsSystemDbInfo();
         dbInfo.databaseNum = registry.getDatabaseNum(publicID);
         dbInfo.db = registry.getObsDatabaseByNum(dbInfo.databaseNum);
         dbInfo.entryID = registry.getLocalID(dbInfo.databaseNum, publicID);
@@ -87,11 +98,11 @@ public class FederatedObsDatabase implements IObsSystemDatabase
     
     
     /*
-     * Convert from the public ID to the local database ID
+     * Get local obs DB containing resource with the given public ID
      */
-    protected LocalDatabaseInfo getLocalDbInfo(BigInteger publicID)
+    protected ObsSystemDbInfo getLocalObsDbInfo(BigInteger publicID)
     {
-        LocalDatabaseInfo dbInfo = new LocalDatabaseInfo();
+        var dbInfo = new ObsSystemDbInfo();
         dbInfo.databaseNum = registry.getDatabaseNum(publicID);
         dbInfo.db = registry.getObsDatabaseByNum(dbInfo.databaseNum);
         dbInfo.bigEntryID = registry.getLocalID(dbInfo.databaseNum, publicID);
@@ -106,17 +117,17 @@ public class FederatedObsDatabase implements IObsSystemDatabase
     /*
      * Get map with an entry for each DB ID extracted from public IDs
      */
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(Set<Long> publicIDs)
+    protected Map<Integer, ObsSystemDbFilterInfo> getObsDbFilterDispatchMap(Set<Long> publicIDs)
     {
-        Map<Integer, LocalFilterInfo> map = new LinkedHashMap<>();
+        Map<Integer, ObsSystemDbFilterInfo> map = new LinkedHashMap<>();
         
         for (long publicID: publicIDs)
         {
-            LocalDatabaseInfo dbInfo = getLocalDbInfo(publicID);
+            var dbInfo = getLocalObsDbInfo(publicID);
             if (dbInfo == null)
                 continue;
                 
-            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new LocalFilterInfo());
+            var filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new ObsSystemDbFilterInfo());
             filterInfo.db = dbInfo.db;
             filterInfo.databaseNum = dbInfo.databaseNum;
             filterInfo.internalIds.add(dbInfo.entryID);
@@ -126,20 +137,57 @@ public class FederatedObsDatabase implements IObsSystemDatabase
     }
     
     
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMapBigInt(Set<BigInteger> publicIDs)
+    protected Map<Integer, ObsSystemDbFilterInfo> getObsDbFilterDispatchMapBigInt(Set<BigInteger> publicIDs)
     {
-        Map<Integer, LocalFilterInfo> map = new LinkedHashMap<>();
+        Map<Integer, ObsSystemDbFilterInfo> map = new LinkedHashMap<>();
         
         for (BigInteger publicID: publicIDs)
         {
-            LocalDatabaseInfo dbInfo = getLocalDbInfo(publicID);
+            var dbInfo = getLocalObsDbInfo(publicID);
             if (dbInfo == null)
                 continue;
                 
-            LocalFilterInfo filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new LocalFilterInfo());
+            var filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new ObsSystemDbFilterInfo());
             filterInfo.db = dbInfo.db;
             filterInfo.databaseNum = dbInfo.databaseNum;
             filterInfo.bigInternalIds.add(dbInfo.bigEntryID);
+        }
+        
+        return map;
+    }
+    
+    
+    /*
+     * Get local obs DB containing resource with the given public ID
+     */
+    protected ProcedureDbInfo getLocalProcDbInfo(long publicID)
+    {
+        var dbInfo = new ProcedureDbInfo();
+        dbInfo.databaseNum = registry.getDatabaseNum(publicID);
+        dbInfo.db = registry.getProcedureDatabaseByNum(dbInfo.databaseNum);
+        dbInfo.entryID = registry.getLocalID(dbInfo.databaseNum, publicID);
+        
+        if (dbInfo.db == null)
+            return null;
+        
+        return dbInfo;
+    }
+    
+    
+    protected Map<Integer, ProcedureDbFilterInfo> getProcDbFilterDispatchMap(Set<Long> publicIDs)
+    {
+        Map<Integer, ProcedureDbFilterInfo> map = new LinkedHashMap<>();
+        
+        for (long publicID: publicIDs)
+        {
+            var dbInfo = getLocalProcDbInfo(publicID);
+            if (dbInfo == null)
+                continue;
+                
+            var filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new ProcedureDbFilterInfo());
+            filterInfo.db = dbInfo.db;
+            filterInfo.databaseNum = dbInfo.databaseNum;
+            filterInfo.internalIds.add(dbInfo.entryID);
         }
         
         return map;
@@ -172,11 +220,31 @@ public class FederatedObsDatabase implements IObsSystemDatabase
     {
         return commandStore;
     }
-    
-    
-    protected Collection<IObsSystemDatabase> getAllDatabases()
+
+
+    @Override
+    public IProcedureStore getProcedureStore()
     {
-        return registry.getRegisteredObsDatabases();
+        return procedureStore;
+    }
+
+
+    @Override
+    public IFeatureStore getFeatureStore()
+    {
+        return null;
+    }
+    
+    
+    protected Collection<IObsSystemDatabase> getAllObsDatabases()
+    {
+        return registry.getObsSystemDatabases();
+    }
+    
+    
+    protected Collection<IProcedureDatabase> getAllProcDatabases()
+    {
+        return registry.getProcedureDatabases();
     }
 
 

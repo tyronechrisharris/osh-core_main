@@ -74,7 +74,7 @@ public class TestSystemDriverRegistry
         hub.start();
         registry = hub.getSystemDriverRegistry();
         stateDb = hub.getSystemDriverRegistry().getSystemStateDatabase();
-        federatedDb = hub.getDatabaseRegistry().getFederatedObsDatabase();
+        federatedDb = hub.getDatabaseRegistry().getFederatedDatabase();
     }
     
     

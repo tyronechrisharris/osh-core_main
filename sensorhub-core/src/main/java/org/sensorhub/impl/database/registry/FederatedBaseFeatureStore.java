@@ -15,17 +15,19 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.database.registry;
 
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IDatabaseRegistry;
-import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.LocalDbInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.LocalFilterInfo;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.ogc.gml.IFeature;
@@ -40,32 +42,36 @@ import org.vast.util.Bbox;
  * </p>
  * 
  * @param <T> Feature type
- * @param <VF> Feature field Type
+ * @param <VF> Feature field type
  * @param <F> Filter type
+ * @param <DB> Parent database type
  *
  * @author Alex Robin
  * @date Dec 3, 2020
  */
-public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>> extends ReadOnlyDataStore<FeatureKey, T, VF, F> implements IFeatureStoreBase<T, VF, F>
+public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>, DB extends IDatabase> extends ReadOnlyDataStore<FeatureKey, T, VF, F> implements IFeatureStoreBase<T, VF, F>
 {
     final IDatabaseRegistry registry;
-    final FederatedObsDatabase parentDb;
+    final FederatedDatabase parentDb;
     
     
-    FederatedBaseFeatureStore(IDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedBaseFeatureStore(IDatabaseRegistry registry, FederatedDatabase db)
     {
         this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
-        this.parentDb = Asserts.checkNotNull(db, FederatedObsDatabase.class);
+        this.parentDb = Asserts.checkNotNull(db, FederatedDatabase.class);
     }
     
     
-    /*
-     * Should return the type of store that this class binds to
-     */
-    protected abstract IFeatureStoreBase<T, VF, F> getFeatureStore(IObsSystemDatabase db);
+    protected abstract Collection<DB> getAllDatabases();
     
     
-    protected abstract Map<Integer, LocalFilterInfo> getFilterDispatchMap(F filter);
+    protected abstract IFeatureStoreBase<T, VF, F> getFeatureStore(DB db);
+    
+    
+    protected abstract LocalDbInfo<DB> getLocalDbInfo(long internalID);
+    
+    
+    protected abstract Map<Integer, ? extends LocalFilterInfo<DB>> getFilterDispatchMap(F filter);
     
 
 
@@ -80,7 +86,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     public long getNumFeatures()
     {
         long count = 0;
-        for (var db: parentDb.getAllDatabases())
+        for (var db: getAllDatabases())
             count += getFeatureStore(db).getNumFeatures();
         return count;
     }
@@ -90,7 +96,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     public long getNumRecords()
     {
         long count = 0;
-        for (var db: parentDb.getAllDatabases())
+        for (var db: getAllDatabases())
             count += getFeatureStore(db).getNumRecords();
         return count;
     }
@@ -100,7 +106,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     public Bbox getFeaturesBbox()
     {
         Bbox bbox = new Bbox();
-        for (var db: parentDb.getAllDatabases())
+        for (var db: getAllDatabases())
             bbox.add(getFeatureStore(db).getFeaturesBbox());
         return bbox;
     }
@@ -112,7 +118,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         DataStoreUtils.checkInternalID(internalID);
         
         // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(internalID);
+        var dbInfo = getLocalDbInfo(internalID);
         if (dbInfo == null)
             return false;
         else
@@ -125,7 +131,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     {
         DataStoreUtils.checkUniqueID(uid);
         
-        for (var db: parentDb.getAllDatabases())
+        for (var db: getAllDatabases())
         {
             if (getFeatureStore(db).contains(uid))
                 return true;
@@ -141,7 +147,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         FeatureKey key = DataStoreUtils.checkFeatureKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
+        var dbInfo = getLocalDbInfo(key.getInternalID());
         if (dbInfo == null)
             return false;
         
@@ -152,7 +158,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     @Override
     public boolean containsValue(Object value)
     {
-        for (var db: parentDb.getAllDatabases())
+        for (var db: getAllDatabases())
         {
             if (getFeatureStore(db).containsValue(value))
                 return true;
@@ -166,7 +172,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     public Long getParent(long internalID)
     {
         // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(internalID);
+        var dbInfo = getLocalDbInfo(internalID);
         if (dbInfo != null)
         {
             var parentID = getFeatureStore(dbInfo.db).getParent(dbInfo.entryID);
@@ -183,7 +189,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         FeatureKey key = DataStoreUtils.checkFeatureKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
+        var dbInfo = getLocalDbInfo(key.getInternalID());
         if (dbInfo == null)
             return null;
         
@@ -214,7 +220,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         // otherwise scan all DBs
         else
         {
-            return parentDb.getAllDatabases().stream()
+            return getAllDatabases().stream()
                 .flatMap(db -> {
                     int dbNum = db.getDatabaseNum();
                     return getFeatureStore(db).selectEntries(filter, fields)

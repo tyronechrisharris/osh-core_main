@@ -19,28 +19,32 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.database.IFederatedDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.impl.SensorHub;
+import org.sensorhub.impl.datastore.mem.InMemoryProcedureDatabase;
 import org.sensorhub.impl.datastore.mem.InMemorySystemStateDatabase;
 import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.vast.sensorML.SimpleProcessImpl;
-import com.google.common.collect.Sets;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
 public class TestFederatedDatabaseRegistry
 {
     IDatabaseRegistry registry;
-    IObsSystemDatabase mainObsDatabase;
+    IFederatedDatabase federatedDatabase;
     
     
     @Rule
+    @SuppressWarnings("deprecation")
     public ExpectedException errors = ExpectedException.none();
     
     
@@ -50,64 +54,80 @@ public class TestFederatedDatabaseRegistry
         SensorHub hub = new SensorHub();
         hub.start();
         this.registry = hub.getDatabaseRegistry();
-        this.mainObsDatabase = registry.getFederatedObsDatabase();
+        this.federatedDatabase = registry.getFederatedDatabase();
     }
     
     
     @Test
     public void testRegister()
     {
-        registry.register(Sets.newHashSet("sensor001", "sensor002"), new InMemorySystemStateDatabase((byte)1));
-        registry.register(Sets.newHashSet("sensor003", "sensor004"), new InMemorySystemStateDatabase((byte)2));
+        IDatabase db1, db2;
+        
+        registry.register(db1 = new InMemorySystemStateDatabase((byte)1));
+        registry.register(db2 = new InMemorySystemStateDatabase((byte)22));
+        
+        assertEquals(registry.getObsDatabaseByNum(1), db1);
+        assertEquals(registry.getObsDatabaseByNum(22), db2);
     }
-    
-    
+
+
     @Test
-    public void testRegisterDuplicateProcUIDs()
+    public void testRegisterDuplicateIDs()
     {
-        registry.register(Sets.newHashSet("sensor001", "sensor002"), new InMemorySystemStateDatabase((byte)1));
+        IDatabase db1;
+        registry.register(db1 = new InMemorySystemStateDatabase((byte)1));
+        
         errors.expect(IllegalStateException.class);
-        registry.register(Sets.newHashSet("sensor002", "sensor004"), new InMemorySystemStateDatabase((byte)2));
+        registry.register(new InMemorySystemStateDatabase((byte)1));
+        
+        assertEquals(registry.getObsDatabaseByNum(1), db1);
     }
     
     
     @Test
     public void testEmptyDatabases()
     {
-        registry.register(Sets.newHashSet("sensor001", "sensor002"), new InMemorySystemStateDatabase((byte)3));
-        registry.register(Sets.newHashSet("sensor003", "sensor004"), new InMemorySystemStateDatabase((byte)4));
+        registry.register(new InMemorySystemStateDatabase((byte)3));
+        registry.register(new InMemorySystemStateDatabase((byte)4));
+        registry.register(new InMemoryProcedureDatabase((byte)55));
         
-        assertEquals(0, mainObsDatabase.getSystemDescStore().getNumFeatures());
-        assertEquals(0, mainObsDatabase.getSystemDescStore().getNumRecords());
-        assertEquals(0, mainObsDatabase.getFoiStore().getNumFeatures());
-        assertEquals(0, mainObsDatabase.getFoiStore().getNumRecords());
-        assertEquals(0, mainObsDatabase.getObservationStore().getNumRecords());
-        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().getNumRecords());
+        assertEquals(0, federatedDatabase.getSystemDescStore().getNumFeatures());
+        assertEquals(0, federatedDatabase.getSystemDescStore().getNumRecords());
+        assertEquals(0, federatedDatabase.getFoiStore().getNumFeatures());
+        assertEquals(0, federatedDatabase.getFoiStore().getNumRecords());
+        assertEquals(0, federatedDatabase.getObservationStore().getNumRecords());
+        assertEquals(0, federatedDatabase.getObservationStore().getDataStreams().getNumRecords());
+        assertEquals(0, federatedDatabase.getProcedureStore().getNumFeatures());
         
-        assertTrue(mainObsDatabase.getSystemDescStore().isEmpty());
-        assertTrue(mainObsDatabase.getFoiStore().isEmpty());
-        assertTrue(mainObsDatabase.getObservationStore().isEmpty());
-        assertTrue(mainObsDatabase.getObservationStore().getDataStreams().isEmpty());
+        assertTrue(federatedDatabase.getSystemDescStore().isEmpty());
+        assertTrue(federatedDatabase.getFoiStore().isEmpty());
+        assertTrue(federatedDatabase.getObservationStore().isEmpty());
+        assertTrue(federatedDatabase.getObservationStore().getDataStreams().isEmpty());
+        assertTrue(federatedDatabase.getProcedureStore().isEmpty());
         
-        assertEquals(0, mainObsDatabase.getSystemDescStore().keySet().size());
-        assertEquals(0, mainObsDatabase.getFoiStore().keySet().size());
-        assertEquals(0, mainObsDatabase.getObservationStore().keySet().size());
-        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().keySet().size());
+        assertEquals(0, federatedDatabase.getSystemDescStore().keySet().size());
+        assertEquals(0, federatedDatabase.getFoiStore().keySet().size());
+        assertEquals(0, federatedDatabase.getObservationStore().keySet().size());
+        assertEquals(0, federatedDatabase.getObservationStore().getDataStreams().keySet().size());
+        assertEquals(0, federatedDatabase.getProcedureStore().keySet().size());
         
-        assertEquals(0, mainObsDatabase.getSystemDescStore().entrySet().size());
-        assertEquals(0, mainObsDatabase.getFoiStore().entrySet().size());
-        assertEquals(0, mainObsDatabase.getObservationStore().entrySet().size());
-        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().entrySet().size());
+        assertEquals(0, federatedDatabase.getSystemDescStore().entrySet().size());
+        assertEquals(0, federatedDatabase.getFoiStore().entrySet().size());
+        assertEquals(0, federatedDatabase.getObservationStore().entrySet().size());
+        assertEquals(0, federatedDatabase.getObservationStore().getDataStreams().entrySet().size());
+        assertEquals(0, federatedDatabase.getProcedureStore().entrySet().size());
         
-        assertEquals(0, mainObsDatabase.getSystemDescStore().values().size());
-        assertEquals(0, mainObsDatabase.getFoiStore().values().size());
-        assertEquals(0, mainObsDatabase.getObservationStore().values().size());
-        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().values().size());
+        assertEquals(0, federatedDatabase.getSystemDescStore().values().size());
+        assertEquals(0, federatedDatabase.getFoiStore().values().size());
+        assertEquals(0, federatedDatabase.getObservationStore().values().size());
+        assertEquals(0, federatedDatabase.getObservationStore().getDataStreams().values().size());
+        assertEquals(0, federatedDatabase.getProcedureStore().values().size());
         
-        assertEquals(0, mainObsDatabase.getSystemDescStore().selectEntries(new SystemFilter.Builder().build()).count());
-        assertEquals(0, mainObsDatabase.getFoiStore().selectEntries(new FoiFilter.Builder().build()).count());
-        assertEquals(0, mainObsDatabase.getObservationStore().selectEntries(new ObsFilter.Builder().build()).count());
-        assertEquals(0, mainObsDatabase.getObservationStore().getDataStreams().selectEntries(new DataStreamFilter.Builder().build()).count());
+        assertEquals(0, federatedDatabase.getSystemDescStore().selectEntries(new SystemFilter.Builder().build()).count());
+        assertEquals(0, federatedDatabase.getFoiStore().selectEntries(new FoiFilter.Builder().build()).count());
+        assertEquals(0, federatedDatabase.getObservationStore().selectEntries(new ObsFilter.Builder().build()).count());
+        assertEquals(0, federatedDatabase.getObservationStore().getDataStreams().selectEntries(new DataStreamFilter.Builder().build()).count());
+        assertEquals(0, federatedDatabase.getProcedureStore().selectEntries(new ProcedureFilter.Builder().build()).count());
     }
     
     
@@ -116,8 +136,8 @@ public class TestFederatedDatabaseRegistry
     {
         IObsSystemDatabase db1 = new InMemorySystemStateDatabase((byte)1);
         IObsSystemDatabase db2 = new InMemorySystemStateDatabase((byte)2);
-        registry.register(Sets.newHashSet("sensor001", "sensor002"), db1);
-        registry.register(Sets.newHashSet("sensor003", "sensor004"), db2);
+        registry.register(db1);
+        registry.register(db2);
         
         AbstractProcess proc1 = new SimpleProcessImpl();
         proc1.setUniqueIdentifier("sensor001");
@@ -127,13 +147,13 @@ public class TestFederatedDatabaseRegistry
         proc3.setUniqueIdentifier("sensor003");
         FeatureKey fk3 = db2.getSystemDescStore().add(new SystemWrapper(proc3));
         
-        FeatureKey id1 = mainObsDatabase.getSystemDescStore().getCurrentVersionKey("sensor001");
+        FeatureKey id1 = federatedDatabase.getSystemDescStore().getCurrentVersionKey("sensor001");
         assertTrue(fk1.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db1.getDatabaseNum() == id1.getInternalID());
         
-        FeatureKey id3 = mainObsDatabase.getSystemDescStore().getCurrentVersionKey("sensor003");
+        FeatureKey id3 = federatedDatabase.getSystemDescStore().getCurrentVersionKey("sensor003");
         assertTrue(fk3.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db2.getDatabaseNum() == id3.getInternalID());
         
-        assertEquals(2, mainObsDatabase.getSystemDescStore().keySet().size());        
+        assertEquals(2, federatedDatabase.getSystemDescStore().keySet().size());
     }
 
 }

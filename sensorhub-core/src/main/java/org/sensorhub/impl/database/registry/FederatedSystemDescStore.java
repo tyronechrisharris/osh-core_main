@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 import org.sensorhub.api.database.IDatabaseRegistry;
@@ -25,7 +26,8 @@ import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
 import org.sensorhub.api.system.ISystemWithDesc;
-import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbInfo;
 
 
 /**
@@ -37,12 +39,18 @@ import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemWithDesc, SystemField, SystemFilter> implements ISystemDescStore
+public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemWithDesc, SystemField, SystemFilter, IObsSystemDatabase> implements ISystemDescStore
 {
     
-    FederatedSystemDescStore(IDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedSystemDescStore(IDatabaseRegistry registry, FederatedDatabase db)
     {
         super(registry, db);
+    }
+    
+    
+    protected Collection<IObsSystemDatabase> getAllDatabases()
+    {
+        return parentDb.getAllObsDatabases();
     }
     
     
@@ -52,15 +60,21 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
     }
     
     
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(SystemFilter filter)
+    protected ObsSystemDbInfo getLocalDbInfo(long internalID)
     {
-        Map<Integer, LocalFilterInfo> dataStreamFilterDispatchMap = null;
-        Map<Integer, LocalFilterInfo> parentFilterDispatchMap = null;
-        Map<Integer, LocalFilterInfo> procFilterDispatchMap = new TreeMap<>();
+        return parentDb.getLocalObsDbInfo(internalID);
+    }
+    
+    
+    protected Map<Integer, ObsSystemDbFilterInfo> getFilterDispatchMap(SystemFilter filter)
+    {
+        Map<Integer, ObsSystemDbFilterInfo> dataStreamFilterDispatchMap = null;
+        Map<Integer, ObsSystemDbFilterInfo> parentFilterDispatchMap = null;
+        Map<Integer, ObsSystemDbFilterInfo> procFilterDispatchMap = new TreeMap<>();
         
         if (filter.getInternalIDs() != null)
         {
-            var filterDispatchMap = parentDb.getFilterDispatchMap(filter.getInternalIDs());
+            var filterDispatchMap = parentDb.getObsDbFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = SystemFilter.Builder
@@ -100,7 +114,7 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
                 if (parentfilterInfo != null)
                     builder.withParents((SystemFilter)parentfilterInfo.filter);
                     
-                var filterInfo = new LocalFilterInfo();
+                var filterInfo = new ObsSystemDbFilterInfo();
                 filterInfo.databaseNum = dataStreamFilterInfo.databaseNum;
                 filterInfo.db = dataStreamFilterInfo.db;
                 filterInfo.filter = builder.build();
@@ -117,7 +131,7 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
                 // only process DBs not already processed in first loop above
                 if (!procFilterDispatchMap.containsKey(entry.getKey()))
                 {
-                    var filterInfo = new LocalFilterInfo();
+                    var filterInfo = new ObsSystemDbFilterInfo();
                     filterInfo.databaseNum = parentFilterInfo.databaseNum;
                     filterInfo.db = parentFilterInfo.db;
                     filterInfo.filter = SystemFilter.Builder.from(filter)

@@ -29,13 +29,16 @@ import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.ISystemStateDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.command.CommandStreamFilter;
+import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.api.system.ISystemDriverRegistry;
-import org.sensorhub.api.system.ISystemDriverDatabase;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.database.system.SystemDriverDatabase;
 import org.sensorhub.impl.database.system.SystemDriverDatabaseConfig;
 import org.sensorhub.impl.system.wrapper.SystemWrapper;
+import org.sensorhub.utils.MapWithWildcards;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IFeature;
@@ -59,8 +62,9 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
     static final Logger log = LoggerFactory.getLogger(DefaultSystemRegistry.class);
     
     ISensorHub hub;
-    SystemDriverDatabase procStateDb;
     IObsSystemDatabase federatedDb;
+    SystemDriverDatabase systemStateDb;
+    MapWithWildcards<IObsSystemDatabase> obsSystemDatabases;
     ReadWriteLock lock = new ReentrantReadWriteLock();
     Map<String, SystemDriverTransactionHandler> driverHandlers = new ConcurrentSkipListMap<>();
     Executor executor = ForkJoinPool.commonPool();
@@ -75,7 +79,8 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
 
     void initDatabase(DatabaseConfig stateDbConfig)
     {
-        this.federatedDb = hub.getDatabaseRegistry().getFederatedObsDatabase();
+        this.federatedDb = hub.getDatabaseRegistry().getFederatedDatabase();
+        this.obsSystemDatabases = new MapWithWildcards<>();
         
         try
         {
@@ -83,10 +88,10 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
             dbListenerConfig.databaseNum = 0;
             dbListenerConfig.dbConfig = stateDbConfig;
 
-            procStateDb = new SystemDriverDatabase();
-            procStateDb.setParentHub(hub);
-            procStateDb.init(dbListenerConfig);
-            procStateDb.start();
+            systemStateDb = new SystemDriverDatabase();
+            systemStateDb.setParentHub(hub);
+            systemStateDb.init(dbListenerConfig);
+            systemStateDb.start();
         }
         catch (Exception e)
         {
@@ -152,23 +157,6 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
     }
     
     
-    protected IObsSystemDatabase getDatabaseForDriver(ISystemDriver driver)
-    {
-        var sysUID = driver.getUniqueIdentifier();
-        
-        // get DB handling this system
-        // this call with return the dedicated DB if available, or the default state DB
-        IObsSystemDatabase db = hub.getDatabaseRegistry().getObsDatabaseBySystemUID(sysUID);
-        
-        // error if DB is not an event handler DB
-        if (!(db instanceof ISystemDriverDatabase))
-            throw new IllegalStateException("Another database already contains a system with UID " + sysUID);
-        log.info("System " + sysUID + " handled by DB #" + db.getDatabaseNum());
-        
-        return db;
-    }
-    
-    
     public boolean isRegistered(String uid)
     {
         return driverHandlers.containsKey(uid);
@@ -231,12 +219,101 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
         
         return getDriverHandler(sysUID).register(foi);
     }
+    
+    
+    /*
+     * Databases registered to handle data from drivers
+     */
+    
+    protected IObsSystemDatabase getDatabaseForDriver(ISystemDriver driver)
+    {
+        var sysUID = driver.getUniqueIdentifier();
+        
+        // get DB handling this system
+        // this call with return the dedicated DB if available, or the default state DB
+        IObsSystemDatabase db = obsSystemDatabases.get(sysUID);
+        if (db == null)
+            db = systemStateDb;
+        
+        // error if DB is not an event handler DB
+        log.info("System driver {} handled by DB {} (#{})", sysUID, db, db.getDatabaseNum());
+        
+        return db;
+    }
+    
+    
+    @Override
+    public synchronized void registerDatabase(String uid, IObsSystemDatabase db)
+    {
+        Asserts.checkNotNull(uid, "systemUID");
+        Asserts.checkNotNull(db, IObsSystemDatabase.class);
+        
+        if (db.isReadOnly())
+            throw new IllegalStateException("Cannot use a read-only database to collect system driver data");
+        
+        // only insert mapping if not already registered by another database
+        if (obsSystemDatabases.putIfAbsent(uid, db) != null)
+            throw new IllegalStateException("System " + uid + " is already handled by another database");
+        
+        // remove all entries from default state DB since it's now handled by another DB
+        if (systemStateDb != null)
+        {
+            var procFilter = new SystemFilter.Builder()
+                .withUniqueIDs(uid)
+                .build();
+            
+            var dsFilter = new DataStreamFilter.Builder()
+                .withSystems(procFilter)
+                .build();
+            
+            var csFilter = new CommandStreamFilter.Builder()
+                .withSystems(procFilter)
+                .build();
+            
+            systemStateDb.getDataStreamStore().removeEntries(dsFilter);
+            systemStateDb.getCommandStreamStore().removeEntries(csFilter);
+            var count = systemStateDb.getSystemDescStore().removeEntries(procFilter);
+            
+            if (count > 0)
+                log.info("Database #{} now handles system {}. Removing all records from state DB", db.getDatabaseNum(), uid);
+        }
+    }
 
 
     @Override
+    public synchronized void unregisterDatabase(IObsSystemDatabase db)
+    {
+        Asserts.checkNotNull(db, IObsSystemDatabase.class);
+        
+        var it = obsSystemDatabases.values().iterator();
+        while (it.hasNext())
+        {
+            if (it.next() == db)
+                it.remove();
+            
+            // TODO update DB used by transaction handlers on the fly!
+        }
+    }
+
+
+    @Override
+    public boolean hasDatabase(String systemUID)
+    {
+        return obsSystemDatabases.get(systemUID) != null;
+    }
+
+
+    @Override
+    public IObsSystemDatabase getDatabase(String systemUID)
+    {
+        return obsSystemDatabases.get(systemUID);
+    }
+    
+    
+    @Override
     public ISystemStateDatabase getSystemStateDatabase()
     {
-        return (ISystemStateDatabase)procStateDb.getWrappedDatabase();
+        return (ISystemStateDatabase)systemStateDb.getWrappedDatabase();
     }
 
 }

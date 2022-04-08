@@ -105,7 +105,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
                 obsReadDatabase = config.exposedResources.getFilteredView(getParentHub());
         }
         else
-            obsReadDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
+            obsReadDatabase = getParentHub().getDatabaseRegistry().getFederatedDatabase();
 
         // init thread pool
         threadPool = Executors.newScheduledThreadPool(

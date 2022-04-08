@@ -53,7 +53,7 @@ public class ObsSystemDatabaseViewConfig
     {
         var srcDatabase = sourceDatabaseId != null ?
             hub.getDatabaseRegistry().getObsDatabaseByModuleID(sourceDatabaseId) :
-            hub.getDatabaseRegistry().getFederatedObsDatabase();
+            hub.getDatabaseRegistry().getFederatedDatabase();
          
         if (includeFilter != null)
             return new ObsSystemDatabaseView(srcDatabase, getObsFilter(), getCommandFilter());

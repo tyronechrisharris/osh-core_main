@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
+import java.util.Collection;
 import java.util.Map;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -25,7 +26,8 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
-import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbInfo;
 import org.vast.ogc.gml.IFeature;
 
 
@@ -38,12 +40,18 @@ import org.vast.ogc.gml.IFeature;
  * @author Alex Robin
  * @date Oct 3, 2019
  */
-public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiField, FoiFilter> implements IFoiStore
+public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiField, FoiFilter, IObsSystemDatabase> implements IFoiStore
 {
         
-    FederatedFoiStore(IDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedFoiStore(IDatabaseRegistry registry, FederatedDatabase db)
     {
         super(registry, db);
+    }
+    
+    
+    protected Collection<IObsSystemDatabase> getAllDatabases()
+    {
+        return parentDb.getAllObsDatabases();
     }
     
     
@@ -53,11 +61,17 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiFi
     }
     
     
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(FoiFilter filter)
+    protected ObsSystemDbInfo getLocalDbInfo(long internalID)
+    {
+        return parentDb.getLocalObsDbInfo(internalID);
+    }
+    
+    
+    protected Map<Integer, ObsSystemDbFilterInfo> getFilterDispatchMap(FoiFilter filter)
     {
         if (filter.getInternalIDs() != null)
         {
-            var filterDispatchMap = parentDb.getFilterDispatchMap(filter.getInternalIDs());
+            var filterDispatchMap = parentDb.getObsDbFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = FoiFilter.Builder

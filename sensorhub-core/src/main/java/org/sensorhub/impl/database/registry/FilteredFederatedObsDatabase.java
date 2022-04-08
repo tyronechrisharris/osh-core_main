@@ -38,7 +38,7 @@ import com.google.common.collect.Sets;
  * @author Alex Robin
  * @since Dec 11, 2020
  */
-public class FilteredFederatedObsDatabase extends FederatedObsDatabase
+public class FilteredFederatedObsDatabase extends FederatedDatabase
 {
     final Set<Integer> unfilteredDatabases = Sets.newHashSet();
     final ObsFilter obsFilter;
@@ -79,9 +79,9 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
     
 
     @Override
-    protected LocalDatabaseInfo getLocalDbInfo(long publicID)
+    protected ObsSystemDbInfo getLocalObsDbInfo(long publicID)
     {
-        var dbInfo = super.getLocalDbInfo(publicID);
+        var dbInfo = super.getLocalObsDbInfo(publicID);
         if (dbInfo == null)
             return null;
         
@@ -93,9 +93,9 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
     
 
     @Override
-    protected LocalDatabaseInfo getLocalDbInfo(BigInteger publicID)
+    protected ObsSystemDbInfo getLocalObsDbInfo(BigInteger publicID)
     {
-        var dbInfo = super.getLocalDbInfo(publicID);
+        var dbInfo = super.getLocalObsDbInfo(publicID);
         if (dbInfo == null)
             return null;
         
@@ -107,9 +107,9 @@ public class FilteredFederatedObsDatabase extends FederatedObsDatabase
     
 
     @Override
-    protected Collection<IObsSystemDatabase> getAllDatabases()
+    protected Collection<IObsSystemDatabase> getAllObsDatabases()
     {
-        var allDbs = super.getAllDatabases();
+        var allDbs = super.getAllObsDatabases();
         
         return new AbstractCollection<>() {
 

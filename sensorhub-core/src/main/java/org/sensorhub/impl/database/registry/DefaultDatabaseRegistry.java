@@ -22,15 +22,13 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IDatabaseRegistry;
-import org.sensorhub.api.database.IFeatureDatabase;
+import org.sensorhub.api.database.IFederatedDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
-import org.sensorhub.api.datastore.obs.DataStreamFilter;
-import org.sensorhub.api.datastore.system.SystemFilter;
-import org.sensorhub.api.system.ISystemDriverDatabase;
-import org.sensorhub.utils.MapWithWildcards;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.util.Asserts;
+import com.google.common.collect.Collections2;
 
 
 /**
@@ -50,20 +48,31 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     static final int MAX_NUM_DB = 100;
     static final BigInteger MAX_NUM_DB_BIGINT = BigInteger.valueOf(MAX_NUM_DB);
     static final String END_PREFIX_CHAR = "\n";
+    static final String DB_NUM_ERROR_MSG = "Database number must be > 0 and < " + MAX_NUM_DB;
     
     ISensorHub hub;
-    MapWithWildcards<Integer> obsDatabaseIDs;
-    Map<Integer, IObsSystemDatabase> obsDatabases;
-    FederatedObsDatabase globalObsDatabase;
-    
+    Map<Integer, IDatabase> databases;
+    IFederatedDatabase federatedDb;
+    Collection<IDatabase> allDatabases;
+    Collection<IObsSystemDatabase> obsSystemDatabases;
+    Collection<IProcedureDatabase> procedureDatabases;
     
     
     public DefaultDatabaseRegistry(ISensorHub hub)
     {
         this.hub = hub;
-        this.obsDatabaseIDs = new MapWithWildcards<>();
-        this.obsDatabases = new ConcurrentSkipListMap<>();
-        this.globalObsDatabase = new FederatedObsDatabase(this);
+        this.databases = new ConcurrentSkipListMap<>();
+        this.federatedDb = new FederatedDatabase(this);
+        
+        this.allDatabases = Collections.unmodifiableCollection(databases.values());
+        
+        this.obsSystemDatabases = Collections2.transform(
+            Collections2.filter(allDatabases, db -> db instanceof IObsSystemDatabase),
+            db -> (IObsSystemDatabase)db);
+        
+        this.procedureDatabases = Collections2.transform(
+            Collections2.filter(allDatabases, db -> db instanceof IProcedureDatabase),
+            db -> (IProcedureDatabase)db);
     }
     
     
@@ -71,103 +80,15 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public synchronized void register(IDatabase db)
     {
         Asserts.checkNotNull(db, IDatabase.class);
-        Asserts.checkArgument(db.getDatabaseNum() != null && db.getDatabaseNum() < MAX_NUM_DB, "Database number must be > 0 and < " + MAX_NUM_DB);
+        checkDbNum(db.getDatabaseNum());
         
         log.info("Registering database {} with ID {}", db.getClass().getSimpleName(), db.getDatabaseNum());
         
-        if (db instanceof IObsSystemDatabase)
-            registerObsDatabase((IObsSystemDatabase)db);
-        else if (db instanceof IFeatureDatabase)
-            registerFeatureDatabase((IFeatureDatabase)db);
-    }
-
-
-    @Override
-    public synchronized void register(String systemUID, IObsSystemDatabase db)
-    {
-        Asserts.checkNotNull(db, IObsSystemDatabase.class);
-        
-        int databaseID = registerObsDatabase(db);
-        registerMapping(systemUID, databaseID);
-    }
-
-
-    @Override
-    public synchronized void register(Collection<String> systemUIDs, IObsSystemDatabase db)
-    {
-        int databaseID = registerObsDatabase(db);
-        for (String uid: systemUIDs)
-            registerMapping(uid, databaseID);
-    }
-    
-    
-    protected int registerObsDatabase(IObsSystemDatabase db)
-    {
         int dbNum = db.getDatabaseNum();
         
-        // add to Id->DB instance map only if not already present        
-        if (obsDatabases.putIfAbsent(dbNum, db) != null)
-            throw new IllegalStateException("A database with number " + dbNum + " was already registered");
-        
-        // case of database w/ event handler
-        if (db instanceof ISystemDriverDatabase)
-        {
-            try
-            {
-                if (db.isReadOnly())
-                    throw new IllegalStateException("Cannot use a read-only database to collect system data");
-                            
-                for (var sysUID: ((ISystemDriverDatabase) db).getHandledSystems())
-                    registerMapping(sysUID, dbNum);
-            }
-            catch (IllegalStateException e)
-            {
-                // remove database if 2nd registration step failed
-                obsDatabases.remove(dbNum);
-                throw e;
-            }
-        }
-        
-        return dbNum;
-    }
-    
-    
-    protected int registerFeatureDatabase(IFeatureDatabase db)
-    {
-        return 0;
-    }
-    
-    
-    protected void registerMapping(String uid, int dbNum)
-    {
-        Asserts.checkArgument(dbNum > 0, "Database number must be > 0");        
-        
-        // only insert mapping if not already registered by another database
-        // or if registered in state database only (ID 0)
-        if (obsDatabaseIDs.putIfAbsent(uid, dbNum) != null)
-            throw new IllegalStateException("System " + uid + " is already handled by another database");
-        
-        // remove all entries from default state DB (DB 0) since it's now handled by another DB
-        if (dbNum != 0)
-        {
-            IObsSystemDatabase defaultDB = obsDatabases.get(0);
-            if (defaultDB != null)
-            {
-                var procFilter = new SystemFilter.Builder()
-                    .withUniqueIDs(uid)
-                    .build();
-                
-                var dsFilter = new DataStreamFilter.Builder()
-                    .withSystems(procFilter)
-                    .build();
-                
-                defaultDB.getDataStreamStore().removeEntries(dsFilter);
-                var count = defaultDB.getSystemDescStore().removeEntries(procFilter);
-                
-                if (count > 0)
-                    log.info("Database #{} now handles system {}. Removing all records from state DB", dbNum, uid);
-            }
-        }
+        // add to Id->DB instance map only if not already present
+        if (databases.putIfAbsent(dbNum, db) != null)
+            throw new IllegalStateException("An obs system database with number " + dbNum + " was already registered");
     }
     
     
@@ -175,36 +96,37 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public synchronized void unregister(IDatabase db)
     {
         Asserts.checkNotNull(db, IDatabase.class);
-        
-        var it = obsDatabaseIDs.values().iterator();
-        while (it.hasNext())
-        {
-            var dbNum = it.next();
-            if (dbNum == db.getDatabaseNum())
-                it.remove();
-        }
-            
-        obsDatabases.remove(db.getDatabaseNum());
-    }
-
-
-    @Override
-    public synchronized void unregister(String uid, IObsSystemDatabase db)
-    {
-        Asserts.checkNotNull(uid, "systemUID");
-        
-        if (uid.endsWith("*"))
-            uid = uid.substring(0, uid.length()-1) + END_PREFIX_CHAR;
-        
-        obsDatabaseIDs.remove(uid);
+        databases.remove(db.getDatabaseNum(), db);
     }
     
+    
+    @Override
+    public Collection<IDatabase> getAllDatabases()
+    {
+        return allDatabases;
+    }
+    
+    
+    void checkDbNum(Integer dbNum)
+    {
+        Asserts.checkArgument(dbNum != null && dbNum < MAX_NUM_DB, DB_NUM_ERROR_MSG);
+    }
+
+
+    /*
+     * Obs System Databases
+     */
     
     @Override
     public IObsSystemDatabase getObsDatabaseByNum(int dbNum)
     {
-        Asserts.checkArgument(dbNum >= 0);
-        return obsDatabases.get(dbNum);
+        checkDbNum(dbNum);
+        var db = databases.get(dbNum);
+        
+        if (db instanceof IObsSystemDatabase)
+            return (IObsSystemDatabase)db;
+        else
+            throw new IllegalArgumentException("Cannot find obs system database with num " + dbNum);
     }
     
     
@@ -214,38 +136,56 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         Asserts.checkNotNullOrBlank(moduleID, "moduleID");
         var m = hub.getModuleRegistry().getLoadedModuleById(moduleID);
         if (m == null || !(m instanceof IObsSystemDatabase))
-            throw new IllegalArgumentException("Cannot find a database module with ID " + moduleID);
+            throw new IllegalArgumentException("Cannot find obs system database module with ID " + moduleID);
         return (IObsSystemDatabase)m;
     }
 
 
     @Override
-    public IObsSystemDatabase getObsDatabaseBySystemUID(String sysUID)
+    public Collection<IObsSystemDatabase> getObsSystemDatabases()
     {
-        Integer dbNum = obsDatabaseIDs.get(sysUID);
-        if (dbNum == null)
-            dbNum = DEFAULT_DB_ID;
-        return getObsDatabaseByNum(dbNum);
+        return obsSystemDatabases;
     }
     
     
+    /*
+     * Procedure Databases
+     */
+    
     @Override
-    public Collection<IObsSystemDatabase> getRegisteredObsDatabases()
+    public IProcedureDatabase getProcedureDatabaseByNum(int dbNum)
     {
-        return Collections.unmodifiableCollection(obsDatabases.values());
+        checkDbNum(dbNum);
+        var db = databases.get(dbNum);
+        
+        if (db instanceof IProcedureDatabase)
+            return (IProcedureDatabase)db;
+        else
+            throw new IllegalArgumentException("No procedure database with num " + dbNum);
     }
 
 
     @Override
-    public boolean hasDatabase(String systemUID)
+    public Collection<IProcedureDatabase> getProcedureDatabases()
     {
-        return obsDatabaseIDs.containsKey(systemUID);
+        return procedureDatabases;
+    }
+    
+    
+    /*
+     * Federated database
+     */
+    
+    @Override
+    public IFederatedDatabase getFederatedDatabase()
+    {
+        return federatedDb;
     }
     
     
     /*
      * Federated ID management methods
-     */    
+     */
     
     @Override
     public long getLocalID(int dbNum, long publicID)
@@ -287,12 +227,5 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public int getDatabaseNum(BigInteger publicID)
     {
         return publicID.mod(MAX_NUM_DB_BIGINT).intValue();
-    }
-
-
-    @Override
-    public IObsSystemDatabase getFederatedObsDatabase()
-    {
-        return globalObsDatabase;
     }
 }

@@ -34,7 +34,7 @@ import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
 import org.sensorhub.impl.datastore.MergeSortSpliterator;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
@@ -52,14 +52,14 @@ import org.vast.util.Asserts;
 public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, ObsField, ObsFilter> implements IObsStore
 {
     final IDatabaseRegistry registry;
-    final FederatedObsDatabase parentDb;
+    final FederatedDatabase parentDb;
     final FederatedDataStreamStore dataStreamStore;
     
     
-    FederatedObsStore(IDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedObsStore(IDatabaseRegistry registry, FederatedDatabase db)
     {
         this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
-        this.parentDb = Asserts.checkNotNull(db, FederatedObsDatabase.class);
+        this.parentDb = Asserts.checkNotNull(db, FederatedDatabase.class);
         this.dataStreamStore = new FederatedDataStreamStore(registry, db);
     }
 
@@ -75,7 +75,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     public long getNumRecords()
     {
         long count = 0;
-        for (var db: parentDb.getAllDatabases())
+        for (var db: parentDb.getAllObsDatabases())
             count += db.getObservationStore().getNumRecords();
         return count;
     }
@@ -151,7 +151,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         BigInteger key = ensureObsKey(obj);
         
         // use datastream public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(key);
+        var dbInfo = parentDb.getLocalObsDbInfo(key);
         if (dbInfo == null)
             return false;
         else
@@ -163,7 +163,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     @Override
     public boolean containsValue(Object value)
     {
-        for (var db: parentDb.getAllDatabases())
+        for (var db: parentDb.getAllObsDatabases())
         {
             if (db.getObservationStore().containsValue(value))
                 return true;
@@ -179,7 +179,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         BigInteger key = ensureObsKey(obj);
         
         // use datastream public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(key);
+        var dbInfo = parentDb.getLocalObsDbInfo(key);
         if (dbInfo == null)
             return null;
         
@@ -191,16 +191,16 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
     }
     
     
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(ObsFilter filter)
+    protected Map<Integer, ObsSystemDbFilterInfo> getFilterDispatchMap(ObsFilter filter)
     {
-        Map<Integer, LocalFilterInfo> dataStreamFilterDispatchMap = null;
-        Map<Integer, LocalFilterInfo> foiFilterDispatchMap = null;
-        Map<Integer, LocalFilterInfo> obsFilterDispatchMap = new TreeMap<>();
+        Map<Integer, ObsSystemDbFilterInfo> dataStreamFilterDispatchMap = null;
+        Map<Integer, ObsSystemDbFilterInfo> foiFilterDispatchMap = null;
+        Map<Integer, ObsSystemDbFilterInfo> obsFilterDispatchMap = new TreeMap<>();
         
         // use internal IDs if present
         if (filter.getInternalIDs() != null)
         {
-            var filterDispatchMap = parentDb.getFilterDispatchMapBigInt(filter.getInternalIDs());
+            var filterDispatchMap = parentDb.getObsDbFilterDispatchMapBigInt(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = ObsFilter.Builder
@@ -234,7 +234,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                 if (foifilterInfo != null)
                     builder.withFois((FoiFilter)foifilterInfo.filter);
                     
-                var filterInfo = new LocalFilterInfo();
+                var filterInfo = new ObsSystemDbFilterInfo();
                 filterInfo.databaseNum = dataStreamFilterInfo.databaseNum;
                 filterInfo.db = dataStreamFilterInfo.db;
                 filterInfo.filter = builder.build();
@@ -251,7 +251,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
                 // only process DBs not already processed in first loop above
                 if (!obsFilterDispatchMap.containsKey(entry.getKey()))
                 {
-                    var filterInfo = new LocalFilterInfo();
+                    var filterInfo = new ObsSystemDbFilterInfo();
                     filterInfo.databaseNum = foiFilterInfo.databaseNum;
                     filterInfo.db = foiFilterInfo.db;
                     filterInfo.filter = ObsFilter.Builder.from(filter)
@@ -290,7 +290,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         }
         else
         {
-            parentDb.getAllDatabases().stream()
+            parentDb.getAllObsDatabases().stream()
                 .forEach(db -> {
                     int dbNum = db.getDatabaseNum();
                     var obsStream = db.getObservationStore().selectEntries(filter, fields)
@@ -332,7 +332,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         }
         else
         {
-            return parentDb.getAllDatabases().stream()
+            return parentDb.getAllObsDatabases().stream()
                 .flatMap(db -> {
                     int dbNum = db.getDatabaseNum();
                     return db.getObservationStore().selectObservedFois(filter)
@@ -394,7 +394,7 @@ public class FederatedObsStore extends ReadOnlyDataStore<BigInteger, IObsData, O
         }
         else
         {
-            return parentDb.getAllDatabases().stream()
+            return parentDb.getAllObsDatabases().stream()
                 .flatMap(db -> {
                     int dbNum = db.getDatabaseNum();
                     return db.getObservationStore().getStatistics(query)

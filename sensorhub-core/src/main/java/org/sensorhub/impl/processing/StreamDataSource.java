@@ -76,7 +76,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
         
         if (producerUri != null)
         {
-            var db = hub.getDatabaseRegistry().getFederatedObsDatabase();
+            var db = hub.getDatabaseRegistry().getFederatedDatabase();
             var procEntry = db.getSystemDescStore().getCurrentVersionEntry(producerUri);
             if (procEntry == null)
                 throw new IllegalStateException("System with URI " + producerUri + " not found");

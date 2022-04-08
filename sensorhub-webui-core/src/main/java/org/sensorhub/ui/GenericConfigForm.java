@@ -936,7 +936,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     protected Component buildSystemList(final String propId, final ContainerProperty prop)
     {
         return buildSimpleList(propId, prop, String.class, callback -> {
-            var popup = new SystemSelectionPopup(800, callback, getParentHub().getDatabaseRegistry().getFederatedObsDatabase());
+            var popup = new SystemSelectionPopup(800, callback, getParentHub().getDatabaseRegistry().getFederatedDatabase());
             popup.setModal(true);
             getUI().addWindow(popup); 
         });

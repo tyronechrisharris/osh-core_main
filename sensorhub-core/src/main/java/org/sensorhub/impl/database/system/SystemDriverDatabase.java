@@ -96,16 +96,28 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
     @Override
     protected void afterStart()
     {
-        if (hasParentHub() && config.databaseNum != null)
-            getParentHub().getDatabaseRegistry().register(this);
+        if (hasParentHub())
+        {
+            var systemUIDs = getHandledSystems();
+            if (!systemUIDs.isEmpty())
+                getParentHub().getSystemDriverRegistry().registerDatabase(systemUIDs, this);
+            
+            if (config.databaseNum != null)
+                getParentHub().getDatabaseRegistry().register(this);
+        }
     }
     
     
     @Override
     protected void beforeStop()
     {
-        if (hasParentHub() && config.databaseNum != null)
-            getParentHub().getDatabaseRegistry().unregister(this);
+        if (hasParentHub())
+        {
+            getParentHub().getSystemDriverRegistry().unregisterDatabase(this);
+            
+            if (config.databaseNum != null)
+                getParentHub().getDatabaseRegistry().unregister(this);
+        }
     }
     
     

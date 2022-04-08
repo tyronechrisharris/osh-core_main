@@ -95,7 +95,7 @@ public abstract class SWEService<ConfigType extends SWEServiceConfig> extends Ab
         
         // else expose all systems on this hub
         else
-            readDatabase = getParentHub().getDatabaseRegistry().getFederatedObsDatabase();
+            readDatabase = getParentHub().getDatabaseRegistry().getFederatedDatabase();
 
         // init thread pool
         var threadPool = new ScheduledThreadPoolExecutor(

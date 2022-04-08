@@ -27,7 +27,7 @@ import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
 import org.sensorhub.api.datastore.command.ICommandStatusStore.CommandStatusField;
-import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
 import org.sensorhub.impl.datastore.MergeSortSpliterator;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
@@ -45,14 +45,14 @@ import org.vast.util.Asserts;
 public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, ICommandStatus, CommandStatusField, CommandStatusFilter> implements ICommandStatusStore
 {
     final IDatabaseRegistry registry;
-    final FederatedObsDatabase parentDb;
+    final FederatedDatabase parentDb;
     final FederatedCommandStore commandStore;
     
     
-    FederatedCommandStatusStore(IDatabaseRegistry registry, FederatedObsDatabase db, FederatedCommandStore cmdStore)
+    FederatedCommandStatusStore(IDatabaseRegistry registry, FederatedDatabase db, FederatedCommandStore cmdStore)
     {
         this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
-        this.parentDb = Asserts.checkNotNull(db, FederatedObsDatabase.class);
+        this.parentDb = Asserts.checkNotNull(db, FederatedDatabase.class);
         this.commandStore = cmdStore;
     }
 
@@ -68,7 +68,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
     public long getNumRecords()
     {
         long count = 0;
-        for (var db: parentDb.getAllDatabases())
+        for (var db: parentDb.getAllObsDatabases())
             count += db.getCommandStore().getNumRecords();
         return count;
     }
@@ -134,7 +134,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
         BigInteger key = ensureCommandKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(key);
+        var dbInfo = parentDb.getLocalObsDbInfo(key);
         if (dbInfo == null)
             return false;
         else
@@ -146,7 +146,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
     @Override
     public boolean containsValue(Object value)
     {
-        for (var db: parentDb.getAllDatabases())
+        for (var db: parentDb.getAllObsDatabases())
         {
             if (db.getCommandStore().containsValue(value))
                 return true;
@@ -162,7 +162,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
         BigInteger key = ensureCommandKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(key);
+        var dbInfo = parentDb.getLocalObsDbInfo(key);
         if (dbInfo == null)
             return null;
         
@@ -174,7 +174,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
     }
     
     
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(CommandStatusFilter filter)
+    protected Map<Integer, ObsSystemDbFilterInfo> getFilterDispatchMap(CommandStatusFilter filter)
     {
         if (filter.getCommandFilter() != null)
         {
@@ -219,7 +219,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
         }
         else
         {
-            parentDb.getAllDatabases().stream()
+            parentDb.getAllObsDatabases().stream()
                 .forEach(db -> {
                     int dbNum = db.getDatabaseNum();
                     var cmdStream = db.getCommandStatusStore().selectEntries(filter, fields)

@@ -69,7 +69,7 @@ public class SWEControlForm extends SWEEditForm
             var sysUID = controlInput.getParentProducer().getUniqueIdentifier();
             var eventBus = ui.getParentHub().getEventBus();
             var dbRegistry = ui.getParentHub().getDatabaseRegistry();
-            var db = dbRegistry.getFederatedObsDatabase();
+            var db = dbRegistry.getFederatedDatabase();
             var sysTxnHandler = new SystemDatabaseTransactionHandler(eventBus, db, dbRegistry);
             this.commandTxn = sysTxnHandler.getCommandStreamHandler(sysUID, controlInput.getName());
         }

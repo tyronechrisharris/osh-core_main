@@ -28,7 +28,7 @@ import org.sensorhub.api.datastore.command.ICommandStreamStore.CommandStreamInfo
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.system.SystemId;
-import org.sensorhub.impl.database.registry.FederatedObsDatabase.LocalFilterInfo;
+import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.sensorhub.impl.datastore.command.CommandStreamInfoWrapper;
 import org.vast.util.Asserts;
@@ -46,7 +46,7 @@ import org.vast.util.Asserts;
 public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStreamKey, ICommandStreamInfo, CommandStreamInfoField, CommandStreamFilter> implements ICommandStreamStore
 {
     final IDatabaseRegistry registry;
-    final FederatedObsDatabase parentDb;
+    final FederatedDatabase parentDb;
     
     
     class CommandStreamInfoWithPublicId extends CommandStreamInfoWrapper
@@ -67,10 +67,10 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
     }
     
     
-    FederatedCommandStreamStore(IDatabaseRegistry registry, FederatedObsDatabase db)
+    FederatedCommandStreamStore(IDatabaseRegistry registry, FederatedDatabase db)
     {
         this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
-        this.parentDb = Asserts.checkNotNull(db, FederatedObsDatabase.class);
+        this.parentDb = Asserts.checkNotNull(db, FederatedDatabase.class);
     }
 
 
@@ -85,7 +85,7 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
     public long getNumRecords()
     {
         long count = 0;
-        for (var db: parentDb.getAllDatabases())
+        for (var db: parentDb.getAllObsDatabases())
             count += db.getCommandStore().getCommandStreams().getNumRecords();
         return count;
     }
@@ -104,7 +104,7 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
         var key = ensureCommandStreamKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
+        var dbInfo = parentDb.getLocalObsDbInfo(key.getInternalID());
         if (dbInfo == null)
             return false;
         else
@@ -115,7 +115,7 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
     @Override
     public boolean containsValue(Object value)
     {
-        for (var db: parentDb.getAllDatabases())
+        for (var db: parentDb.getAllObsDatabases())
         {
             if (db.getCommandStore().getCommandStreams().containsValue(value))
                 return true;
@@ -131,7 +131,7 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
         var key = ensureCommandStreamKey(obj);
         
         // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalDbInfo(key.getInternalID());
+        var dbInfo = parentDb.getLocalObsDbInfo(key.getInternalID());
         if (dbInfo != null)
         {
             ICommandStreamInfo dsInfo = dbInfo.db.getCommandStore().getCommandStreams().get(new CommandStreamKey(dbInfo.entryID));
@@ -178,11 +178,11 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
     /*
      * Get dispatch map according to internal IDs used in filter
      */
-    protected Map<Integer, LocalFilterInfo> getFilterDispatchMap(CommandStreamFilter filter)
+    protected Map<Integer, ObsSystemDbFilterInfo> getFilterDispatchMap(CommandStreamFilter filter)
     {
         if (filter.getInternalIDs() != null)
         {
-            var filterDispatchMap = parentDb.getFilterDispatchMap(filter.getInternalIDs());
+            var filterDispatchMap = parentDb.getObsDbFilterDispatchMap(filter.getInternalIDs());
             for (var filterInfo: filterDispatchMap.values())
             {
                 filterInfo.filter = CommandStreamFilter.Builder
@@ -255,7 +255,7 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
         // otherwise scan all DBs
         else
         {
-            return parentDb.getAllDatabases().stream()
+            return parentDb.getAllObsDatabases().stream()
                 .flatMap(db -> {
                     int dbNum = db.getDatabaseNum();
                     return db.getCommandStore().getCommandStreams().selectEntries(filter, fields)

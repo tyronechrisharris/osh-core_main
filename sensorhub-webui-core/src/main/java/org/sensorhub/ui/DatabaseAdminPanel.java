@@ -72,7 +72,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
         if (!db.isInitialized() && db.getConfiguration().databaseNum == null)
         {
             int highestDbNum = 0;
-            for (var otherDb: getParentHub().getDatabaseRegistry().getRegisteredObsDatabases())
+            for (var otherDb: getParentHub().getDatabaseRegistry().getAllDatabases())
                 highestDbNum = Math.max(otherDb.getDatabaseNum(), highestDbNum);
             for (var otherDb: getParentHub().getModuleRegistry().getLoadedModules(IObsSystemDatabase.class))
             {
