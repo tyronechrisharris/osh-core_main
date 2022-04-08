@@ -12,20 +12,19 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.system;
+package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import javax.xml.namespace.QName;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureBindingGeoJson;
-import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
-import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
+import org.sensorhub.impl.service.sweapi.system.SystemFeatureAdapter;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
@@ -44,10 +43,10 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemWithDesc>
+public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProcedureWithDesc>
 {
     
-    public SystemBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public ProcedureBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
     }
@@ -79,30 +78,16 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                     links.add(new ResourceLink.Builder()
                         .rel("details")
                         .title("Detailed system specsheet in SensorML format")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + SystemDetailsHandler.NAMES[0])
+                        .href("/" + ProcedureHandler.NAMES[0] + "/" +
+                            bean.getId() + "/" + ProcedureDetailsHandler.NAMES[0])
                         .build());
                     
-                    links.add(new ResourceLink.Builder()
+                    /*links.add(new ResourceLink.Builder()
                         .rel("members")
                         .title("List of subsystems")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + SystemMembersHandler.NAMES[0])
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("datastreams")
-                        .title("List of system datastreams")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + DataStreamHandler.NAMES[0])
-                        .build());
-                    
-                    links.add(new ResourceLink.Builder()
-                        .rel("fois")
-                        .title("List of system features of interest")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + FoiHandler.NAMES[0])
-                        .build());
+                        .href("/" + ProcedureHandler.NAMES[0] + "/" +
+                            bean.getId() + "/" + ProcedureMembersHandler.NAMES[0])
+                        .build());*/
                     
                     writeLinksAsJson(writer, links);
                 }
@@ -112,12 +97,12 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
     
     
     @Override
-    protected ISystemWithDesc getFeatureWithId(FeatureKey key, ISystemWithDesc proc)
+    protected IProcedureWithDesc getFeatureWithId(FeatureKey key, IProcedureWithDesc proc)
     {
         Asserts.checkNotNull(key, FeatureKey.class);
-        Asserts.checkNotNull(proc, ISystemWithDesc.class);
+        Asserts.checkNotNull(proc, IProcedureWithDesc.class);
         
-        return new ISystemWithDesc()
+        return new IProcedureWithDesc()
         {
             public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
             public String getName() { return proc.getName(); }
@@ -128,7 +113,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
         
             public String getId()
             {
-                var externalID = SystemBindingGeoJson.this.encodeID(key.getInternalID());
+                var externalID = ProcedureBindingGeoJson.this.encodeID(key.getInternalID());
                 return Long.toString(externalID, ResourceBinding.ID_RADIX);
             }
         };

@@ -48,6 +48,7 @@ import org.vast.util.Asserts;
  */
 public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extends IDataStore<K, V, ?, F>> extends BaseHandler implements IResourceHandler
 {
+    public static final String READ_ONLY_ERROR = "Resource type is read-only";
     public static final String INVALID_VERSION_ERROR_MSG = "Invalid version number: ";
     public static final String ALREADY_EXISTS_ERROR_MSG = "Resource already exists";
     public static final String STREAMING_UNSUPPORTED_ERROR_MSG = "Streaming not supported on this resource collection";
@@ -56,7 +57,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected final S dataStore;
     protected final IdEncoder idEncoder;
     protected final ResourcePermissions permissions;
-            
+    protected boolean readOnly = false;
+    
     
     public BaseResourceHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
     {
@@ -277,6 +279,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected void create(final RequestContext ctx) throws IOException
     {
+        if (readOnly)
+            throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
+        
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.create);
         
@@ -340,6 +345,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected void update(final RequestContext ctx, final String id) throws IOException
     {
+        if (readOnly)
+            throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
+        
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.update);
                 
@@ -393,6 +401,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected void delete(final RequestContext ctx, final String id) throws IOException
     {
+        if (readOnly)
+            throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
+        
         // check permissions
         ctx.getSecurityHandler().checkPermission(permissions.delete);
         

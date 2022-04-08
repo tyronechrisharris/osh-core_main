@@ -71,7 +71,8 @@ public class HomePageHtml extends ResourceBindingHtml<Long, SWEApiServiceConfig>
         
         // links
         renderCard("Available Resources",
-           p(a("Observing systems registered on this server").withHref(ctx.getApiRootURL() + "/systems")),
+            p(a("Observing procedures registered on this server").withHref(ctx.getApiRootURL() + "/procedures")),
+            p(a("Observing systems registered on this server").withHref(ctx.getApiRootURL() + "/systems")),
             p(a("Datastreams available through this server").withHref(ctx.getApiRootURL() + "/datastreams")),
             p(a("Observations available through this server").withHref(ctx.getApiRootURL() + "/observations")),
             p(a("Features of interest observed by systems registered on this server").withHref(ctx.getApiRootURL() + "/featuresOfInterest"))

@@ -31,7 +31,14 @@ public class ProcedureDatabaseView implements IProcedureDatabase
     public ProcedureDatabaseView(IProcedureDatabase delegate, ProcedureFilter procFilter)
     {
         this.delegate = Asserts.checkNotNull(delegate, IProcedureDatabase.class);
-        Asserts.checkNotNull(procFilter, ProcedureFilter.class);
+        
+        if (procFilter == null)
+        {
+            // create filter that will never match anything
+            procFilter = new ProcedureFilter.Builder()
+                .withInternalIDs(0L)
+                .build();
+        }
         
         this.procStoreView = new ProcedureStoreView(delegate.getProcedureStore(), procFilter);
     }

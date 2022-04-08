@@ -12,19 +12,19 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.system;
+package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
-import org.sensorhub.impl.system.wrapper.SystemWrapper;
+import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 import org.vast.sensorML.SMLStaxBindings;
 import org.vast.sensorML.json.SMLJsonStreamReader;
 import org.vast.sensorML.json.SMLJsonStreamWriter;
@@ -38,18 +38,20 @@ import com.google.gson.stream.JsonWriter;
  * <p>
  * SensorML JSON formatter for system resources
  * </p>
+ * 
+ * @param <V> Type of SML feature resource
  *
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class SystemBindingSmlJson extends ResourceBindingJson<FeatureKey, ISystemWithDesc>
+public class SmlFeatureBindingSmlJson<V extends IProcedureWithDesc> extends ResourceBindingJson<FeatureKey, V>
 {
     SMLJsonStreamReader smlReader;
     SMLJsonStreamWriter smlWriter;
     SMLStaxBindings smlBindings;
     
     
-    public SystemBindingSmlJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public SmlFeatureBindingSmlJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
         this.smlBindings = new SMLStaxBindings();
@@ -62,7 +64,7 @@ public class SystemBindingSmlJson extends ResourceBindingJson<FeatureKey, ISyste
 
 
     @Override
-    public ISystemWithDesc deserialize(JsonReader reader) throws IOException
+    public V deserialize(JsonReader reader) throws IOException
     {
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
@@ -71,7 +73,10 @@ public class SystemBindingSmlJson extends ResourceBindingJson<FeatureKey, ISyste
         {
             smlReader.nextTag();
             var sml = smlBindings.readAbstractProcess(smlReader);
-            return new SystemWrapper(sml);
+            
+            @SuppressWarnings("unchecked")
+            var wrapper = (V)new SmlFeatureWrapper(sml);
+            return wrapper;
         }
         catch (JsonParseException | XMLStreamException e)
         {
@@ -81,7 +86,7 @@ public class SystemBindingSmlJson extends ResourceBindingJson<FeatureKey, ISyste
 
 
     @Override
-    public void serialize(FeatureKey key, ISystemWithDesc res, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(FeatureKey key, V res, boolean showLinks, JsonWriter writer) throws IOException
     {
         try
         {

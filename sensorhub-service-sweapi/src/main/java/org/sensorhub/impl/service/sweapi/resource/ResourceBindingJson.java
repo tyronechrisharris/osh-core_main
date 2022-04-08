@@ -23,8 +23,10 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.json.FilteredJsonWriter;
 import org.vast.json.JsonInliningWriter;
+import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
@@ -82,7 +84,14 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     @Override
     public V deserialize() throws IOException
     {
-        return deserialize(this.reader);
+        try
+        {
+            return deserialize(this.reader);
+        }
+        catch (JsonParseException e)
+        {
+            throw ServiceErrors.invalidPayload(INVALID_JSON_ERROR_MSG + e.getMessage());
+        }
     }
     
     

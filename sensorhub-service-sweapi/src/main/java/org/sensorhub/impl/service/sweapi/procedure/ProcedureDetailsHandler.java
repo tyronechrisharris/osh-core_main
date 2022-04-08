@@ -12,24 +12,22 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.system;
+package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.Map;
-import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.datastore.system.ISystemDescStore;
-import org.sensorhub.api.datastore.system.SystemFilter;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
-import org.sensorhub.impl.service.sweapi.procedure.SmlFeatureBindingSmlJson;
-import org.sensorhub.impl.service.sweapi.procedure.SmlFeatureBindingSmlXml;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
@@ -42,32 +40,32 @@ import org.vast.util.Asserts;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
-public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc, SystemFilter, SystemFilter.Builder, ISystemDescStore>
+public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
-    static final Logger log = LoggerFactory.getLogger(SystemDetailsHandler.class);
-    public static final String[] NAMES = { "details", "specsheet" }; //"fullDescription"; //"specs"; //"specsheet"; //"metadata";
+    static final Logger log = LoggerFactory.getLogger(ProcedureDetailsHandler.class);
+    public static final String[] NAMES = { "details", "specsheet" };
     
-    final IObsSystemDatabase db;
+    final IProcedureDatabase db;
     
     
-    public SystemDetailsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
+    public ProcedureDetailsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getSystemDescStore(), new IdEncoder(SystemHandler.EXTERNAL_ID_SEED), permissions);
-        this.db = db.getReadDb();
+        super(((IProcedureDatabase)db.getReadDb()).getProcedureStore(), new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED), permissions);
+        this.db = (IProcedureDatabase)db.getReadDb();
     }
 
 
     @Override
-    protected ResourceBinding<FeatureKey, ISystemWithDesc> getBinding(RequestContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IProcedureWithDesc> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new SystemBindingHtml(ctx, idEncoder, false, "Specsheet of {}", db);
+            return new ProcedureBindingHtml(ctx, idEncoder, false, "Specsheet of {}", db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlJson<IProcedureWithDesc>(ctx, idEncoder, forReading);
         else if (format.isOneOf(ResourceFormat.APPLI_XML, ResourceFormat.SML_XML))
-            return new SmlFeatureBindingSmlXml<ISystemWithDesc>(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlXml<IProcedureWithDesc>(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -149,7 +147,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
 
 
     @Override
-    protected void buildFilter(final ResourceRef parent, final Map<String, String[]> queryParams, final SystemFilter.Builder builder) throws InvalidRequestException
+    protected void buildFilter(final ResourceRef parent, final Map<String, String[]> queryParams, final ProcedureFilter.Builder builder) throws InvalidRequestException
     {
         super.buildFilter(parent, queryParams, builder);
         
@@ -158,7 +156,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
 
 
     @Override
-    protected void validate(ISystemWithDesc resource)
+    protected void validate(IProcedureWithDesc resource)
     {
         // TODO Auto-generated method stub
         

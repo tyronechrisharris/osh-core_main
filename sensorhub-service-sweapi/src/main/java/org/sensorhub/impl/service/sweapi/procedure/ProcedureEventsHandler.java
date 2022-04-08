@@ -15,7 +15,7 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
-import org.sensorhub.api.database.IFeatureDatabase;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.system.SystemEvent;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
@@ -27,9 +27,9 @@ import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 public class ProcedureEventsHandler extends ResourceEventsHandler<SystemEvent>
 {
     
-    protected ProcedureEventsHandler(IEventBus eventBus, IFeatureDatabase db, ResourcePermissions permissions)
+    protected ProcedureEventsHandler(IEventBus eventBus, IProcedureDatabase db, ResourcePermissions permissions)
     {
-        super("system", eventBus, permissions);
+        super("procedure", eventBus, permissions);
     }
     
 

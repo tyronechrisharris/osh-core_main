@@ -25,7 +25,9 @@ import org.sensorhub.impl.security.ModulePermissions;
 
 
 public class SWEApiSecurity extends ModuleSecurity
-{    
+{
+    private static final String NAME_PROCEDURE_SUMMARY = "proc_summary";
+    private static final String NAME_PROCEDURE_DETAILS = "proc_details";
     private static final String NAME_SYSTEM_SUMMARY = "system_summary";
     private static final String NAME_SYSTEM_DETAILS = "system_details";
     private static final String NAME_FOI = "fois";
@@ -34,6 +36,8 @@ public class SWEApiSecurity extends ModuleSecurity
     private static final String NAME_CONTROLS = "controls";
     private static final String NAME_COMMANDS = "commands";
     
+    private static final String LABEL_PROCEDURE_SUMMARY = "Procedure Summaries";
+    private static final String LABEL_PROCEDURE_DETAILS = "Procedure Details";
     private static final String LABEL_SYSTEM_SUMMARY = "System Summaries";
     private static final String LABEL_SYSTEM_DETAILS = "System Details";
     private static final String LABEL_FOI = "Features of Interest";
@@ -60,6 +64,8 @@ public class SWEApiSecurity extends ModuleSecurity
     public final IPermission api_delete;
     public final IPermission api_stream;
     
+    public final ResourcePermissions proc_summary_permissions = new ResourcePermissions();
+    public final ResourcePermissions proc_details_permissions = new ResourcePermissions();
     public final ResourcePermissions system_summary_permissions = new ResourcePermissions();
     public final ResourcePermissions system_details_permissions = new ResourcePermissions();
     public final ResourcePermissions foi_permissions = new ResourcePermissions();
@@ -97,6 +103,8 @@ public class SWEApiSecurity extends ModuleSecurity
         
         // register permission structure
         api_read = new ItemPermission(rootPerm, "get");
+        proc_summary_permissions.read = new ItemPermission(api_read, NAME_PROCEDURE_SUMMARY, LABEL_PROCEDURE_SUMMARY);
+        proc_details_permissions.read = new ItemPermission(api_read, NAME_PROCEDURE_DETAILS, LABEL_PROCEDURE_DETAILS);
         system_summary_permissions.read = new ItemPermission(api_read, NAME_SYSTEM_SUMMARY, LABEL_SYSTEM_SUMMARY);
         system_details_permissions.read = new ItemPermission(api_read, NAME_SYSTEM_DETAILS, LABEL_SYSTEM_DETAILS);
         foi_permissions.read = new ItemPermission(api_read, NAME_FOI, LABEL_FOI);
@@ -106,6 +114,8 @@ public class SWEApiSecurity extends ModuleSecurity
         command_permissions.read = new ItemPermission(api_read, NAME_COMMANDS, LABEL_COMMANDS);
         
         api_create = new ItemPermission(rootPerm, "create");
+        proc_summary_permissions.create = new ItemPermission(api_create, NAME_PROCEDURE_SUMMARY, LABEL_PROCEDURE_SUMMARY);
+        proc_details_permissions.create = new ItemPermission(api_create, NAME_PROCEDURE_DETAILS, LABEL_PROCEDURE_DETAILS);
         system_summary_permissions.create = new ItemPermission(api_create, NAME_SYSTEM_SUMMARY, LABEL_SYSTEM_SUMMARY);
         system_details_permissions.create = new ItemPermission(api_create, NAME_SYSTEM_DETAILS, LABEL_SYSTEM_DETAILS);
         foi_permissions.create = new ItemPermission(api_create, NAME_FOI, LABEL_FOI);
@@ -115,6 +125,8 @@ public class SWEApiSecurity extends ModuleSecurity
         command_permissions.create = new ItemPermission(api_create, NAME_COMMANDS, LABEL_COMMANDS);
         
         api_update = new ItemPermission(rootPerm, "update");
+        proc_summary_permissions.update = new ItemPermission(api_update, NAME_PROCEDURE_SUMMARY, LABEL_PROCEDURE_SUMMARY);
+        proc_details_permissions.update = new ItemPermission(api_update, NAME_PROCEDURE_DETAILS, LABEL_PROCEDURE_DETAILS);
         system_summary_permissions.update = new ItemPermission(api_update, NAME_SYSTEM_SUMMARY, LABEL_SYSTEM_SUMMARY);
         system_details_permissions.update = new ItemPermission(api_update, NAME_SYSTEM_DETAILS, LABEL_SYSTEM_DETAILS);
         foi_permissions.update = new ItemPermission(api_update, NAME_FOI, LABEL_FOI);
@@ -124,6 +136,8 @@ public class SWEApiSecurity extends ModuleSecurity
         command_permissions.update = new ItemPermission(api_update, NAME_COMMANDS, LABEL_COMMANDS);
         
         api_delete = new ItemPermission(rootPerm, "delete");
+        proc_summary_permissions.delete = new ItemPermission(api_delete, NAME_PROCEDURE_SUMMARY, LABEL_PROCEDURE_SUMMARY);
+        proc_details_permissions.delete = new ItemPermission(api_delete, NAME_PROCEDURE_DETAILS, LABEL_PROCEDURE_DETAILS);
         system_summary_permissions.delete = new ItemPermission(api_delete, NAME_SYSTEM_SUMMARY, LABEL_SYSTEM_SUMMARY);
         system_details_permissions.delete = new ItemPermission(api_delete, NAME_SYSTEM_DETAILS, LABEL_SYSTEM_DETAILS);
         foi_permissions.delete = new ItemPermission(api_delete, NAME_FOI, LABEL_FOI);
@@ -133,6 +147,8 @@ public class SWEApiSecurity extends ModuleSecurity
         command_permissions.delete = new ItemPermission(api_delete, NAME_COMMANDS, LABEL_COMMANDS);
         
         api_stream = new ItemPermission(rootPerm, "stream");
+        proc_summary_permissions.stream = new ItemPermission(api_stream, NAME_PROCEDURE_SUMMARY, LABEL_PROCEDURE_SUMMARY);
+        proc_details_permissions.stream = new ItemPermission(api_stream, NAME_PROCEDURE_DETAILS, LABEL_PROCEDURE_DETAILS);
         system_summary_permissions.stream = new ItemPermission(api_stream, NAME_SYSTEM_SUMMARY, LABEL_SYSTEM_SUMMARY);
         system_details_permissions.stream = new ItemPermission(api_stream, NAME_SYSTEM_DETAILS, LABEL_SYSTEM_DETAILS);
         foi_permissions.stream = new ItemPermission(api_stream, NAME_FOI, LABEL_FOI);

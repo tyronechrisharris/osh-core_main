@@ -83,7 +83,7 @@ public class SystemMembersHandler extends SystemHandler
         var sml = res.getFullDescription();
         if (sml != null)
         {
-            res = new SystemWrapper(res.getFullDescription())
+            res = new SmlFeatureWrapper(res.getFullDescription())
                 .hideOutputs()
                 .hideTaskableParams()
                 .defaultToValidFromNow();

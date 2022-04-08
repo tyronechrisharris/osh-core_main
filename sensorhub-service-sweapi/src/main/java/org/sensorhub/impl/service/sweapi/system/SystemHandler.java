@@ -29,13 +29,14 @@ import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
+import org.sensorhub.impl.service.sweapi.procedure.SmlFeatureBindingSmlJson;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.impl.system.SystemUtils;
-import org.sensorhub.impl.system.wrapper.SystemWrapper;
+import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 
 
 public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, SystemFilter, SystemFilter.Builder, ISystemDescStore>
@@ -74,7 +75,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new SystemBindingGeoJson(ctx, idEncoder, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
-            return new SystemBindingSmlJson(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -143,7 +144,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         var sml = res.getFullDescription();
         if (sml != null)
         {
-            res = new SystemWrapper(res.getFullDescription())
+            res = new SmlFeatureWrapper(res.getFullDescription())
                 .hideOutputs()
                 .hideTaskableParams()
                 .defaultToValidFromNow();
@@ -170,7 +171,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         var sml = res.getFullDescription();
         if (sml != null)
         {
-            res = new SystemWrapper(res.getFullDescription())
+            res = new SmlFeatureWrapper(res.getFullDescription())
                 .hideOutputs()
                 .hideTaskableParams()
                 .defaultToValidFromNow();

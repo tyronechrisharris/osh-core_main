@@ -12,19 +12,19 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.system;
+package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingXml;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
-import org.sensorhub.impl.system.wrapper.SystemWrapper;
+import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 import org.vast.sensorML.SMLStaxBindings;
 
 
@@ -32,16 +32,18 @@ import org.vast.sensorML.SMLStaxBindings;
  * <p>
  * SensorML XML formatter for system resources
  * </p>
+ * 
+ * @param <V> Type of SML feature resource
  *
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class SystemBindingSmlXml extends ResourceBindingXml<FeatureKey, ISystemWithDesc>
+public class SmlFeatureBindingSmlXml<V extends IProcedureWithDesc> extends ResourceBindingXml<FeatureKey, V>
 {
     SMLStaxBindings smlBindings;
     
     
-    public SystemBindingSmlXml(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public SmlFeatureBindingSmlXml(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
         
@@ -62,7 +64,7 @@ public class SystemBindingSmlXml extends ResourceBindingXml<FeatureKey, ISystemW
 
 
     @Override
-    public ISystemWithDesc deserialize() throws IOException
+    public V deserialize() throws IOException
     {
         try
         {
@@ -71,7 +73,10 @@ public class SystemBindingSmlXml extends ResourceBindingXml<FeatureKey, ISystemW
             
             xmlReader.nextTag();
             var sml = smlBindings.readAbstractProcess(xmlReader);
-            return new SystemWrapper(sml);
+            
+            @SuppressWarnings("unchecked")
+            var wrapper = (V)new SmlFeatureWrapper(sml);
+            return wrapper;
         }
         catch (XMLStreamException e)
         {
@@ -81,7 +86,7 @@ public class SystemBindingSmlXml extends ResourceBindingXml<FeatureKey, ISystemW
 
 
     @Override
-    public void serialize(FeatureKey key, ISystemWithDesc res, boolean showLinks) throws IOException
+    public void serialize(FeatureKey key, V res, boolean showLinks) throws IOException
     {
         try
         {

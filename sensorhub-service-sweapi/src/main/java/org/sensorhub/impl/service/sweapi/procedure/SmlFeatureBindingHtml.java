@@ -12,21 +12,16 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.system;
+package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
+import java.util.Optional;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
-import org.sensorhub.api.database.IObsSystemDatabase;
-import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.datastore.feature.FoiFilter;
-import org.sensorhub.api.datastore.obs.DataStreamFilter;
-import org.sensorhub.api.datastore.system.SystemFilter;
-import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureBindingHtml;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import j2html.tags.DomContent;
 import net.opengis.sensorml.v20.AbstractMetadataList;
 import net.opengis.sensorml.v20.Term;
@@ -37,43 +32,32 @@ import static j2html.TagCreator.*;
  * <p>
  * HTML formatter for system resources
  * </p>
+ * 
+ * @param <V> Type of SML feature resource
  *
  * @author Alex Robin
  * @since March 31, 2022
  */
-public class SystemBindingHtml extends AbstractFeatureBindingHtml<ISystemWithDesc>
+public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc> extends AbstractFeatureBindingHtml<V>
 {
-    final IObsSystemDatabase db;
     final boolean isSummary;
-    final String collectionTitle;
     
     
-    public SystemBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, String collectionTitle, IObsSystemDatabase db) throws IOException
+    public SmlFeatureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary) throws IOException
     {
         super(ctx, idEncoder);
-        this.db = db;
         this.isSummary = isSummary;
-        
-        if (ctx.getParentID() != 0L)
-        {
-            // fetch parent system name
-            var parentSys = db.getSystemDescStore().getCurrentVersion(ctx.getParentID());
-            this.collectionTitle = collectionTitle.replace("{}", parentSys.getName());
-        }
-        else
-            this.collectionTitle = collectionTitle;
     }
     
     
-    @Override
-    protected String getCollectionTitle()
-    {
-        return collectionTitle;
-    }
+    protected abstract String getResourceUrl(FeatureKey key);
+    
+    
+    protected abstract DomContent getLinks(long id, String resourceUrl);
     
     
     @Override
-    public void serialize(FeatureKey key, ISystemWithDesc sys, boolean showLinks) throws IOException
+    public void serialize(FeatureKey key, V sys, boolean showLinks) throws IOException
     {
         if (isSummary)
         {
@@ -87,7 +71,7 @@ public class SystemBindingHtml extends AbstractFeatureBindingHtml<ISystemWithDes
     }
     
     
-    protected void serializeSingleSummary(FeatureKey key, ISystemWithDesc sys) throws IOException
+    protected void serializeSingleSummary(FeatureKey key, IProcedureWithDesc sys) throws IOException
     {
         writeHeader();
         serializeSummary(key, sys);
@@ -96,78 +80,33 @@ public class SystemBindingHtml extends AbstractFeatureBindingHtml<ISystemWithDes
     }
     
     
-    protected void serializeSummary(FeatureKey key, ISystemWithDesc sys) throws IOException
+    protected void serializeSummary(FeatureKey key, IProcedureWithDesc f) throws IOException
     {
-        var sysId = Long.toString(encodeID(key.getInternalID()), ResourceBinding.ID_RADIX);
-        var requestUrl = ctx.getRequestUrl();
-        //var resourceUrl = isCollection ? requestUrl + "/" + sysId : requestUrl;
-        var resourceUrl = isCollection ? ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId : requestUrl;
-        
-        var hasSubSystems = db.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
-            .withParents(key.getInternalID())
-            .withCurrentVersion()
-            .build()) > 0;
-            
-        var hasFois = db.getFoiStore().countMatchingEntries(new FoiFilter.Builder()
-            .withParents()
-                .withInternalIDs(key.getInternalID())
-                .includeMembers(true)
-                .done()
-            .includeMembers(true)
-            .withCurrentVersion()
-            .build()) > 0;
-            
-        var hasDataStreams = db.getDataStreamStore().countMatchingEntries(new DataStreamFilter.Builder()
-            .withSystems()
-                .withInternalIDs(key.getInternalID())
-                .includeMembers(true)
-                .done()
-            .withCurrentVersion()
-            .build()) > 0;
-            
-        var hasControls = db.getCommandStreamStore().countMatchingEntries(new CommandStreamFilter.Builder()
-            .withSystems()
-                .withInternalIDs(key.getInternalID())
-                .includeMembers(true)
-                .done()
-            .withCurrentVersion()
-            .build()) > 0;
+        var resourceUrl = getResourceUrl(key);
         
         renderCard(
-            a(sys.getName())
+            a(f.getName())
                 .withHref(resourceUrl)
                 .withClass("text-decoration-none"),
-            iff(sys.getDescription() != null, div(
-                sys.getDescription()
-            ).withClasses(CSS_CARD_SUBTITLE)),
+            iff(Optional.ofNullable(f.getDescription()), desc -> div(desc)
+                .withClasses(CSS_CARD_SUBTITLE)),
             div(
                 span("UID: ").withClass(CSS_BOLD),
-                span(sys.getUniqueIdentifier())
+                span(f.getUniqueIdentifier())
             ).withClass("mt-2"),
-            iff(sys.getType() != null, div(
+            iff(Optional.ofNullable(f.getType()), type -> div(
                 span("System Type: ").withClass(CSS_BOLD),
-                span(sys.getType().substring(sys.getType().lastIndexOf('/')+1))
+                span(f.getType().substring(type.lastIndexOf('/')+1))
             )),
             div(
                 span("Validity Period: ").withClass(CSS_BOLD),
-                getTimeExtentHtml(sys.getValidTime(), "Always")
+                getTimeExtentHtml(f.getValidTime(), "Always")
             ).withClass("mt-2"),
-            div(
-                a("Spec Sheet").withHref(resourceUrl + "/details").withClasses(CSS_LINK_BTN_CLASSES),
-                iff(hasSubSystems,
-                    a("Subsystems").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES)),
-                iff(hasFois,
-                    a("Sampling Features").withHref(resourceUrl + "/fois").withClasses(CSS_LINK_BTN_CLASSES)),
-                iff(hasDataStreams,
-                    a("Datastreams").withHref(resourceUrl + "/datastreams").withClasses(CSS_LINK_BTN_CLASSES)),
-                iff(hasControls,
-                    a("Control Channels").withHref(resourceUrl + "/controls").withClasses(CSS_LINK_BTN_CLASSES)),
-                a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES)
-            ).withClass("mt-4"));
+            getLinks(key.getInternalID(), resourceUrl));
     }
     
     
-    protected void serializeDetails(FeatureKey key, ISystemWithDesc sys) throws IOException
+    protected void serializeDetails(FeatureKey key, IProcedureWithDesc sys) throws IOException
     {
         writeHeader();
         
