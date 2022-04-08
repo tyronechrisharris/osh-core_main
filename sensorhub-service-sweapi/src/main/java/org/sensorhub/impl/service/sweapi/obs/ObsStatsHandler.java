@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.ObsStats;
@@ -45,8 +46,8 @@ public class ObsStatsHandler extends BaseHandler
     static final String READ_ONLY_ERROR = "Statistics is a read-only resource";
     public static final String[] NAMES = { "stats" };
     
-    final ObsSystemDbWrapper db;
-    IdConverter idConverter;
+    final IObsSystemDatabase db;
+    final IdConverter idConverter;
     final IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
     final IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
     final ResourcePermissions permissions;
@@ -63,7 +64,7 @@ public class ObsStatsHandler extends BaseHandler
     
     public ObsStatsHandler(ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        this.db = db;
+        this.db = db.getReadDb();
         this.permissions = permissions;
         this.idConverter = db.getIdConverter();
     }

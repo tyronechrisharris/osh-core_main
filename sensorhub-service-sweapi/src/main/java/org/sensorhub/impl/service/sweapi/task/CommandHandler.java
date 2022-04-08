@@ -28,6 +28,7 @@ import org.sensorhub.api.command.CommandEvent;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandFilter;
@@ -64,7 +65,7 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
     public static final String[] NAMES = { "commands" };
     
     final IEventBus eventBus;
-    final ObsSystemDbWrapper db;
+    final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;
     final ScheduledExecutorService threadPool;
     final IdConverter idConverter;
@@ -83,10 +84,10 @@ public class CommandHandler extends BaseResourceHandler<BigInteger, ICommandData
     
     public CommandHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions)
     {
-        super(db.getCommandStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getCommandStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         
         this.eventBus = eventBus;
-        this.db = db;
+        this.db = db.getReadDb();
         this.threadPool = threadPool;
         this.idConverter = db.getIdConverter();
         

@@ -29,6 +29,7 @@ import java.util.concurrent.ScheduledFuture;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsEvent;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -61,7 +62,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     public static final String[] NAMES = { "observations" };
     
     final IEventBus eventBus;
-    final ObsSystemDbWrapper db;
+    final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;
     final ScheduledExecutorService threadPool;
     final IdConverter idConverter;
@@ -81,10 +82,10 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     
     public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
-        super(db.getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         
         this.eventBus = eventBus;
-        this.db = db;
+        this.db = db.getReadDb();
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
         this.threadPool = threadPool;
         this.idConverter = db.getIdConverter();

@@ -34,7 +34,7 @@ public class DataStreamEventsHandler extends ResourceEventsHandler<DataStreamEve
     protected DataStreamEventsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super("datastream", eventBus, permissions);
-        this.sysStore = db.getSystemDescStore();
+        this.sysStore = db.getReadDb().getSystemDescStore();
     }
     
 

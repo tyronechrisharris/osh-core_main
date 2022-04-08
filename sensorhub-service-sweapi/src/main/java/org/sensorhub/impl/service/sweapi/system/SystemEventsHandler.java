@@ -55,7 +55,7 @@ public class SystemEventsHandler extends ResourceEventsHandler<SystemEvent>
         if (ctx.getParentID() > 0)
         {
             var sysId = ctx.getParentID();
-            sysUid = db.getSystemDescStore().getCurrentVersion(sysId).getUniqueIdentifier();
+            sysUid = db.getReadDb().getSystemDescStore().getCurrentVersion(sysId).getUniqueIdentifier();
             topic = EventUtils.getSystemStatusTopicID(sysUid);
         }
         else

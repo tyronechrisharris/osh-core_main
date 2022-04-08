@@ -26,6 +26,7 @@ import org.sensorhub.api.command.CommandStatusEvent;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
@@ -56,7 +57,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
     public static final String[] NAMES = { "status" };
     
     final IEventBus eventBus;
-    final ObsSystemDbWrapper db;
+    final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;
     final ScheduledExecutorService threadPool;
     final IdConverter idConverter;
@@ -73,10 +74,10 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
     
     public CommandStatusHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions)
     {
-        super(db.getCommandStatusStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getCommandStatusStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         
         this.eventBus = eventBus;
-        this.db = db;
+        this.db = db.getReadDb();
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
         this.threadPool = threadPool;
         this.idConverter = db.getIdConverter();

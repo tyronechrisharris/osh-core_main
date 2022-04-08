@@ -14,12 +14,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.system.wrapper;
 
-import java.time.Instant;
 import org.sensorhub.api.system.ISystemWithDesc;
-import org.vast.util.Asserts;
-import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
-import net.opengis.sensorml.v20.IOPropertyList;
 
 
 /**
@@ -31,111 +27,11 @@ import net.opengis.sensorml.v20.IOPropertyList;
  * @author Alex Robin
  * @date Oct 4, 2020
  */
-public class SystemWrapper implements ISystemWithDesc
+public class SystemWrapper extends SmlFeatureWrapper implements ISystemWithDesc
 {
-    ProcessWrapper<?> processWrapper;
-
-
+    
     public SystemWrapper(AbstractProcess fullDesc)
     {
-        Asserts.checkNotNull(fullDesc, AbstractProcess.class);
-        
-        if (fullDesc instanceof ProcessWrapper)
-            this.processWrapper = (ProcessWrapper<?>)fullDesc;
-        else
-            this.processWrapper = ProcessWrapper.getWrapper(fullDesc);
-    }
-    
-    
-    public SystemWrapper hideOutputs()
-    {
-        processWrapper.withOutputs(new IOPropertyList());
-        return this;
-    }
-    
-    
-    public SystemWrapper hideTaskableParams()
-    {
-        processWrapper.withParams(new IOPropertyList());
-        return this;
-    }
-    
-    
-    /**
-     * This methods sets valid time to be from 'currentTime' to 'now' (indeterminate)
-     * in two cases:
-     * - if no valid time was set at all
-     * - if end of validity period was set to 'now' but begin is in the future. In this
-     *   case, we override begin time stamp with current server time (not that this edge
-     *   case can happen with a bad time sync on sender side and causes problems
-     *   downstream when adding members and/or datastreams)
-     * @return This wrapper for chaining
-     */
-    public SystemWrapper defaultToValidFromNow()
-    {
-        var validTime = processWrapper.getValidTime();
-        var now = Instant.now();
-        
-        if (validTime == null || (validTime.endsNow() && validTime.begin().isAfter(now)))
-            processWrapper.withValidTime(TimeExtent.endNow(Instant.now()));
-        
-        return this;
-    }
-
-
-    public SystemWrapper defaultToValidTime(TimeExtent validTime)
-    {
-        if (processWrapper.getValidTime() == null)
-            processWrapper.withValidTime(validTime);
-        return this;
-    }
-
-
-    @Override
-    public String getId()
-    {
-        return processWrapper.getId();
-    }
-    
-    
-    @Override
-    public String getUniqueIdentifier()
-    {
-        return processWrapper.getUniqueIdentifier();
-    }
-
-
-    @Override
-    public String getName()
-    {
-        return processWrapper.getName();
-    }
-
-
-    @Override
-    public String getDescription()
-    {
-        return processWrapper.getDescription();
-    }
-    
-
-    @Override
-    public String getType()
-    {
-        return processWrapper.getType();
-    }
-
-
-    @Override
-    public TimeExtent getValidTime()
-    {
-        return processWrapper.getValidTime();
-    }
-
-
-    @Override
-    public ProcessWrapper<?> getFullDescription()
-    {
-        return processWrapper;
+        super(fullDesc);
     }
 }

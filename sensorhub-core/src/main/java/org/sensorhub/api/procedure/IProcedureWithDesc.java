@@ -29,7 +29,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * <li>A sensor type datasheet/specsheet</li>
  * <li>A platform type datasheet/specsheet</li>
  * <li>A method that can be followed by a person</li>
- * <li>An algorithm that can implemented by a processing instance</li>
+ * <li>An algorithm that can be implemented by a processing instance</li>
  * </p>
  * 
  * @author Alex Robin
@@ -39,7 +39,7 @@ public interface IProcedureWithDesc extends IProcedure
 {
 
     /**
-     * @return The procedure type as a URI
+     * @return The procedure/system type as a URI
      */
     @Override
     public default String getType()

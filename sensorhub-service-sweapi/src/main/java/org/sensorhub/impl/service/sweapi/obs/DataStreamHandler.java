@@ -52,7 +52,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     public DataStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
-        super(db.getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
         this.db = db.getReadDb();
         this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());

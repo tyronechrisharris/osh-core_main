@@ -28,7 +28,7 @@ import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.impl.system.SystemUtils;
-import org.sensorhub.impl.system.wrapper.SystemWrapper;
+import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 
 
 public class SystemMembersHandler extends SystemHandler

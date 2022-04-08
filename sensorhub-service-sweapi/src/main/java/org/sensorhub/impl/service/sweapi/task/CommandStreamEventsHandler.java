@@ -34,7 +34,7 @@ public class CommandStreamEventsHandler extends ResourceEventsHandler<CommandStr
     protected CommandStreamEventsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super("control channel", eventBus, permissions);
-        this.sysStore = db.getSystemDescStore();
+        this.sysStore = db.getReadDb().getSystemDescStore();
     }
     
 

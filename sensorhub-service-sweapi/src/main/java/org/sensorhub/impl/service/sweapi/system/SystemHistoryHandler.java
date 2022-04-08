@@ -38,7 +38,7 @@ public class SystemHistoryHandler extends AbstractFeatureHistoryHandler<ISystemW
     
     public SystemHistoryHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getSystemDescStore(), new IdEncoder(SystemHandler.EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getSystemDescStore(), new IdEncoder(SystemHandler.EXTERNAL_ID_SEED), permissions);
         this.db = db.getReadDb();
     }
 

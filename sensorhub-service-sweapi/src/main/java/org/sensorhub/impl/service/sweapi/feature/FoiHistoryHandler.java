@@ -15,12 +15,12 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
-import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -32,9 +32,9 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
 {
     
-    public FoiHistoryHandler(IEventBus eventBus, IObsSystemDatabase db, ResourcePermissions permissions)
+    public FoiHistoryHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getFoiStore(), new IdEncoder(FoiHandler.EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getFoiStore(), new IdEncoder(FoiHandler.EXTERNAL_ID_SEED), permissions);
     }
 
 

@@ -41,7 +41,7 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     
     public DataStreamSchemaHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getDataStreamStore(),
+        super(db.getReadDb().getDataStreamStore(),
               new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED),
               permissions);
     }
