@@ -21,11 +21,13 @@ import org.h2.mvstore.MVStore;
 import org.h2.mvstore.MVStoreTool;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IObsSystemDatabaseModule;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
@@ -41,7 +43,7 @@ import org.sensorhub.utils.FileUtils;
  * @author Alex Robin
  * @date Sep 23, 2019
  */
-public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfig> implements IObsSystemDatabase, IObsSystemDatabaseModule<MVObsSystemDatabaseConfig>
+public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfig> implements IObsSystemDatabase, IProcedureDatabase, IObsSystemDatabaseModule<MVObsSystemDatabaseConfig>
 {
     public final static int CURRENT_VERSION = 1;
     final static String KRYO_CLASS_MAP_NAME = "kryo_class_map";
@@ -49,12 +51,14 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
     final static String FOI_STORE_NAME = "foi_store";
     final static String OBS_STORE_NAME = "obs_store";
     final static String CMD_STORE_NAME = "cmd_store";
+    final static String PROC_STORE_NAME = "proc_store";
     
     MVStore mvStore;
     MVSystemDescStoreImpl sysStore;
     MVObsStoreImpl obsStore;
     MVFoiStoreImpl foiStore;
     MVCommandStoreImpl cmdStore;
+    MVProcedureStoreImpl procStore;
     
     
     @Override
@@ -109,6 +113,11 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
             // open command store
             cmdStore = MVCommandStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(CMD_STORE_NAME)
+                .build());
+            
+            // open procedure store
+            procStore = MVProcedureStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
+                .withName(PROC_STORE_NAME)
                 .build());
             
             sysStore.linkTo(obsStore.getDataStreams());
@@ -218,6 +227,14 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
     {
         checkStarted();
         return cmdStore;
+    }
+
+
+    @Override
+    public IProcedureStore getProcedureStore()
+    {
+        checkStarted();
+        return procStore;
     }
 
 
