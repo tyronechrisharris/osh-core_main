@@ -377,7 +377,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             .findUnit(code)
             .getPrintSymbol();
         
-        return symbol == null || code.equals(symbol) ? code : code + " (" + symbol + ")";
+        return symbol == null || code.equals(symbol) ? code : symbol + " (" + code + ")";
     }
     
     
