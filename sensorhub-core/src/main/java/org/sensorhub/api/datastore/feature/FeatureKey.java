@@ -16,6 +16,7 @@ package org.sensorhub.api.datastore.feature;
 
 import java.time.Instant;
 import java.util.Objects;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.resource.ResourceKey;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
@@ -37,17 +38,11 @@ public class FeatureKey extends ResourceKey<FeatureKey>
     protected Instant validStartTime = TIMELESS;
     
     
-    /* for deserialization only */
-    protected FeatureKey()
-    {        
-    }
-    
-    
     /**
      * Creates a key for a timeless feature
      * @param internalID Internal ID of desired feature
      */
-    public FeatureKey(long internalID)
+    public FeatureKey(BigId internalID)
     {
         super(internalID);
     }
@@ -58,19 +53,22 @@ public class FeatureKey extends ResourceKey<FeatureKey>
      * @param internalID Internal ID of desired feature
      * @param validStartTime Start of feature version validity period
      */
-    public FeatureKey(long internalID, Instant validStartTime)
+    public FeatureKey(BigId internalID, Instant validStartTime)
     {
-        this(internalID);
+        super(internalID);
         this.validStartTime = Asserts.checkNotNull(validStartTime, Instant.class);
     }
-
-
+    
+    
     /**
-     * @return The feature internal ID
+     * Creates a key for the version of a feature valid at a specific time
+     * @param scope Internal ID scope
+     * @param internalID Internal ID of desired feature
+     * @param validStartTime Start of feature version validity period
      */
-    public long getInternalID()
+    public FeatureKey(int scope, long internalID, Instant validStartTime)
     {
-        return internalID;
+        this(BigId.fromLong(scope, internalID), validStartTime);
     }
 
 
@@ -95,31 +93,33 @@ public class FeatureKey extends ResourceKey<FeatureKey>
     @Override
     public int hashCode()
     {
-        return java.util.Objects.hash(
-                getInternalID(),
-                getValidStartTime());
+        return Objects.hash(
+            getInternalID(),
+            getValidStartTime());
     }
     
     
     @Override
     public boolean equals(Object obj)
     {
-        if (obj == null || !(obj instanceof FeatureKey))
+        if (obj == this)
+            return true;
+        
+        if (!(obj instanceof FeatureKey))
             return false;
         
         FeatureKey other = (FeatureKey)obj;
-        return getInternalID() == other.getInternalID() &&
+        return Objects.equals(getInternalID(), other.getInternalID()) &&
                Objects.equals(getValidStartTime(), other.getValidStartTime());
     }
 
 
     @Override
-    public int compareTo(FeatureKey o)
+    public int compareTo(FeatureKey other)
     {
-        int res = Long.compare(internalID, o.getInternalID());
-        if (res != 0)
-            return res;
-        
-        return validStartTime.compareTo(o.getValidStartTime());
+        int res = super.compareTo(other);
+        if (res == 0)
+            res = getValidStartTime().compareTo(other.getValidStartTime());
+        return res;
     }
 }

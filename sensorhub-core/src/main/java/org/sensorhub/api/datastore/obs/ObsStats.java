@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.obs;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
@@ -33,7 +34,7 @@ import org.vast.util.TimeExtent;
  */
 public class ObsStats
 {
-    protected Long dataStreamID;
+    protected BigId dataStreamID;
     protected FeatureId foiID;
     protected TimeExtent phenomenonTimeRange;
     protected TimeExtent resultTimeRange;
@@ -53,7 +54,7 @@ public class ObsStats
     /**
      * @return The ID of the datastream that these statistics apply to
      */
-    public Long getDataStreamID()
+    public BigId getDataStreamID()
     {
         return dataStreamID;
     }
@@ -174,7 +175,7 @@ public class ObsStats
         }
 
         
-        public B withDataStreamID(long dataStreamID)
+        public B withDataStreamID(BigId dataStreamID)
         {
             instance.dataStreamID = dataStreamID;
             return (B)this;
@@ -225,7 +226,7 @@ public class ObsStats
         
         public T build()
         {
-            Asserts.checkArgument(instance.dataStreamID != null && instance.dataStreamID > 0, "dataStreamID must be > 0");
+            Asserts.checkNotNull(instance.dataStreamID, "dataStreamID");
             Asserts.checkState(instance.phenomenonTimeRange != null || instance.resultTimeRange != null, "At least one time range must be set");
             return super.build();
         }

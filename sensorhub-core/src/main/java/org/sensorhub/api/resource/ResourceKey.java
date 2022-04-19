@@ -14,8 +14,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.resource;
 
+import java.util.Objects;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.utils.ObjectUtils;
-import org.vast.util.Asserts;
 
 
 /**
@@ -29,26 +31,25 @@ import org.vast.util.Asserts;
 @SuppressWarnings("javadoc")
 public class ResourceKey<T extends ResourceKey<T>> implements Comparable<T>
 {
-    protected long internalID = -1;
+    protected BigId internalID = BigId.NONE;
     
     
     /* for deserialization only */
     protected ResourceKey()
-    {        
+    {
     }
     
     
-    public ResourceKey(long internalID)
+    public ResourceKey(BigId internalID)
     {
-        Asserts.checkArgument(internalID > 0, "internalID must be > 0");
-        this.internalID = internalID;
+        this.internalID = OshAsserts.checkValidInternalID(internalID, "internalID");
     }
     
     
     /**
      * @return Resource internal numeric ID
      */
-    public long getInternalID()
+    public BigId getInternalID()
     {
         return internalID;
     }
@@ -64,7 +65,7 @@ public class ResourceKey<T extends ResourceKey<T>> implements Comparable<T>
     @Override
     public int hashCode()
     {
-        return Long.hashCode(getInternalID());
+        return internalID.hashCode();
     }
     
     
@@ -78,13 +79,13 @@ public class ResourceKey<T extends ResourceKey<T>> implements Comparable<T>
             return false;
         
         ResourceKey<?> other = (ResourceKey<?>)obj;
-        return getInternalID() == other.getInternalID();
+        return Objects.equals(getInternalID(), other.getInternalID());
     }
 
 
     @Override
     public int compareTo(T o)
     {
-        return Long.compare(internalID, o.getInternalID());
+        return BigId.compareLongs(internalID, o.getInternalID());
     }
 }

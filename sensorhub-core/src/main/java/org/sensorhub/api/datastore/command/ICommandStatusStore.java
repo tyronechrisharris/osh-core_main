@@ -14,8 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.command;
 
-import java.math.BigInteger;
 import org.sensorhub.api.command.ICommandStatus;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.command.ICommandStatusStore.CommandStatusField;
@@ -31,7 +31,7 @@ import org.sensorhub.api.datastore.command.ICommandStatusStore.CommandStatusFiel
  * @author Alex Robin
  * @date Dec 21, 2021
  */
-public interface ICommandStatusStore extends IDataStore<BigInteger, ICommandStatus, CommandStatusField, CommandStatusFilter>
+public interface ICommandStatusStore extends IDataStore<BigId, ICommandStatus, CommandStatusField, CommandStatusFilter>
 {
     public static class CommandStatusField extends ValueField
     {
@@ -53,7 +53,7 @@ public interface ICommandStatusStore extends IDataStore<BigInteger, ICommandStat
      * @param rec Status report
      * @return The auto-generated ID
      */
-    public BigInteger add(ICommandStatus rec);
+    public BigId add(ICommandStatus rec);
 
 
     /**

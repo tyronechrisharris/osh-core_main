@@ -14,6 +14,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.command;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
@@ -31,7 +32,7 @@ import org.vast.util.TimeExtent;
  */
 public class CommandStats
 {
-    protected Long commandStreamID;
+    protected BigId commandStreamID;
     protected TimeExtent issueTimeRange;
     protected TimeExtent actuationTimeRange;
     protected long totalCommandCount = 0;
@@ -49,7 +50,7 @@ public class CommandStats
     /**
      * @return The ID of the command stream that these statistics apply to
      */
-    public Long getCommandStreamID()
+    public BigId getCommandStreamID()
     {
         return commandStreamID;
     }
@@ -139,7 +140,7 @@ public class CommandStats
         }
 
         
-        public B withCommandStreamID(long commandStreamID)
+        public B withCommandStreamID(BigId commandStreamID)
         {
             instance.commandStreamID = commandStreamID;
             return (B)this;
@@ -176,7 +177,7 @@ public class CommandStats
         
         public T build()
         {
-            Asserts.checkArgument(instance.commandStreamID != null && instance.commandStreamID > 0, "commandStreamID must be > 0");
+            Asserts.checkNotNull(instance.commandStreamID, "commandStreamID");
             Asserts.checkState(instance.issueTimeRange != null || instance.actuationTimeRange != null, "At least one time range must be set");
             return super.build();
         }

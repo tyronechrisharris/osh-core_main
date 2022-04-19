@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.TemporalFilter;
@@ -32,7 +33,6 @@ import org.vast.data.DataIterator;
 import org.vast.swe.SWEConstants;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Streams;
-import com.google.common.primitives.Longs;
 import net.opengis.swe.v20.DataComponent;
 
 
@@ -299,9 +299,9 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withSystems(long... ids)
+        public B withSystems(BigId... ids)
         {
-            return withSystems(Longs.asList(ids));
+            return withSystems(Arrays.asList(ids));
         }
 
 
@@ -310,7 +310,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
          * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withSystems(Collection<Long> ids)
+        public B withSystems(Collection<BigId> ids)
         {
             withSystems(new SystemFilter.Builder()
                 .withInternalIDs(ids)

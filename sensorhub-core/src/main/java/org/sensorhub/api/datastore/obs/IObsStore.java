@@ -14,8 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.obs;
 
-import java.math.BigInteger;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
@@ -39,7 +39,7 @@ import com.google.common.collect.Sets;
  * @author Alex Robin
  * @date Mar 19, 2018
  */
-public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, ObsFilter>
+public interface IObsStore extends IDataStore<BigId, IObsData, ObsField, ObsFilter>
 {
     public static class ObsField extends ValueField
     {
@@ -69,7 +69,7 @@ public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, Ob
      * @param obs
      * @return The auto-generated ID
      */
-    public BigInteger add(IObsData obs);
+    public BigId add(IObsData obs);
     
     
     /**
@@ -89,7 +89,7 @@ public interface IObsStore extends IDataStore<BigInteger, IObsData, ObsField, Ob
      * @param filter
      * @return Stream of FOI internal IDs
      */
-    public default Stream<Long> selectObservedFois(ObsFilter filter)
+    public default Stream<BigId> selectObservedFois(ObsFilter filter)
     {
         return select(filter, Sets.newHashSet(ObsField.FOI_ID))
             .filter(o -> o.getFoiID() != IObsData.NO_FOI)

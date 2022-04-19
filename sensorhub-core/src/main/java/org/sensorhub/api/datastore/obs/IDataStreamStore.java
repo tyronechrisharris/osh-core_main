@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.obs;
 
-import java.util.Optional;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
@@ -78,7 +77,7 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
      */
     public default DataStreamKey getLatestVersionKey(String sysUID, String outputName)
     {
-        Entry<DataStreamKey, IDataStreamInfo> e = getLatestVersionEntry(sysUID, outputName);
+        var e = getLatestVersionEntry(sysUID, outputName);
         return e != null ? e.getKey() : null;
     }
     
@@ -92,7 +91,7 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
      */
     public default IDataStreamInfo getLatestVersion(String sysUID, String outputName)
     {
-        Entry<DataStreamKey, IDataStreamInfo> e = getLatestVersionEntry(sysUID, outputName);
+        var e = getLatestVersionEntry(sysUID, outputName);
         return e != null ? e.getValue() : null;
     }
     
@@ -106,7 +105,7 @@ public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStr
      */
     public default Entry<DataStreamKey, IDataStreamInfo> getLatestVersionEntry(String sysUID, String outputName)
     {
-        Optional<Entry<DataStreamKey, IDataStreamInfo>> entryOpt = selectEntries(new DataStreamFilter.Builder()
+        var entryOpt = selectEntries(new DataStreamFilter.Builder()
             .withSystems()
                 .withUniqueIDs(sysUID)
                 .done()

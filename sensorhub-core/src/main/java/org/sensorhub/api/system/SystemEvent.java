@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.system;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.utils.OshAsserts;
@@ -33,7 +34,7 @@ public abstract class SystemEvent extends Event
 {
     protected String systemUID;
     protected String sourceID;
-    protected long systemID;
+    protected BigId systemID;
     
 
     public SystemEvent(long timeStamp, String sysUID)
@@ -65,7 +66,7 @@ public abstract class SystemEvent extends Event
     /**
      * @return Local ID of the system related to this event
      */
-    public long getSystemID()
+    public BigId getSystemID()
     {
         return systemID;
     }
@@ -77,9 +78,9 @@ public abstract class SystemEvent extends Event
      * dispatched.
      * @param internalID Local ID of related system
      */
-    public void assignSystemID(long internalID)
+    public void assignSystemID(BigId internalID)
     {
-        Asserts.checkState(systemID == 0, "System ID is already assigned");
+        Asserts.checkState(systemID == null, "System ID is already assigned");
         this.systemID = internalID;
     }
     

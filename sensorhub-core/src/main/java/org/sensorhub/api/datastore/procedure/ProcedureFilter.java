@@ -14,6 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.procedure;
 
+import java.util.Collection;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.resource.ResourceFilter;
@@ -182,7 +184,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
          * @param ids List of IDs of parent procedures
          * @return This builder for chaining
          */
-        public B withParents(long... ids)
+        public B withParents(BigId... ids)
         {
             return withParents()
                 .withInternalIDs(ids)
@@ -192,14 +194,14 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         
         /**
          * Keep only procedures that are sub-types of the procedures with the
-         * specified unique IDs
-         * @param uids List of UIDs of parent procedures
+         * specified internal IDs
+         * @param ids Collection of IDs of parent procedures
          * @return This builder for chaining
          */
-        public B withParents(String... uids)
+        public B withParents(Collection<BigId> ids)
         {
             return withParents()
-                .withUniqueIDs(uids)
+                .withInternalIDs(ids)
                 .done();
         }
         
@@ -211,7 +213,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
         public B withNoParent()
         {
             return withParents()
-                .withInternalIDs(0)
+                .withInternalIDs(BigId.NONE)
                 .done();
         }
     }

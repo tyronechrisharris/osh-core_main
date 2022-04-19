@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.SortedSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.datastore.IQueryFilter;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.FullTextFilter;
 import org.sensorhub.utils.FilterUtils;
@@ -27,7 +28,6 @@ import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
 import org.vast.util.IResource;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.primitives.Longs;
 
 
 /**
@@ -44,7 +44,7 @@ import com.google.common.primitives.Longs;
  */
 public abstract class ResourceFilter<T extends IResource> implements IQueryFilter, Predicate<T>
 {
-    protected SortedSet<Long> internalIDs;
+    protected SortedSet<BigId> internalIDs;
     protected FullTextFilter fullText;
     protected Predicate<T> valuePredicate;
     protected long limit = Long.MAX_VALUE;
@@ -53,7 +53,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
     protected ResourceFilter() {}
     
     
-    public SortedSet<Long> getInternalIDs()
+    public SortedSet<BigId> getInternalIDs()
     {
         return internalIDs;
     }
@@ -161,7 +161,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          */
         public B copyFrom(F base)
         {
-            Asserts.checkNotNull(base, ResourceFilter.class);            
+            Asserts.checkNotNull(base, ResourceFilter.class);
             instance.internalIDs = base.getInternalIDs();
             instance.fullText = base.getFullTextFilter();
             instance.valuePredicate = base.getValuePredicate();
@@ -175,9 +175,9 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          * @param ids One or more internal IDs of resources to select
          * @return This builder for chaining
          */
-        public B withInternalIDs(long... ids)
+        public B withInternalIDs(BigId... ids)
         {
-            return withInternalIDs(Longs.asList(ids));
+            return withInternalIDs(Arrays.asList(ids));
         }
         
         
@@ -186,7 +186,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
          * @param ids Collection of internal IDs
          * @return This builder for chaining
          */
-        public B withInternalIDs(Collection<Long> ids)
+        public B withInternalIDs(Collection<BigId> ids)
         {
             instance.internalIDs = ImmutableSortedSet.copyOf(ids);
             return (B)this;
@@ -216,7 +216,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
                 {
                     ResourceFilterBuilder.this.instance.fullText = build();
                     return (B)ResourceFilterBuilder.this;
-                }                
+                }
             };
         }
         

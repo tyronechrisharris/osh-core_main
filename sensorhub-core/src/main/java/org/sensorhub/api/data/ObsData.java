@@ -17,6 +17,8 @@ package org.sensorhub.api.data;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
@@ -35,8 +37,8 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class ObsData implements IObsData
 {
-    protected long dataStreamID = 0;
-    protected long foiID = IObsData.NO_FOI;
+    protected BigId dataStreamID = BigId.NONE;
+    protected BigId foiID = BigId.NONE;
     protected Instant resultTime = null;
     protected Instant phenomenonTime = null;
     protected Map<String, Object> parameters = null;
@@ -51,14 +53,14 @@ public class ObsData implements IObsData
     
 
     @Override
-    public long getDataStreamID()
+    public BigId getDataStreamID()
     {
         return dataStreamID;
     }
 
 
     @Override
-    public long getFoiID()
+    public BigId getFoiID()
     {
         return foiID;
     }
@@ -158,14 +160,14 @@ public class ObsData implements IObsData
         }
 
 
-        public B withDataStream(long id)
+        public B withDataStream(BigId id)
         {
             instance.dataStreamID = id;
             return (B)this;
         }
 
 
-        public B withFoi(long id)
+        public B withFoi(BigId id)
         {
             instance.foiID = id;
             return (B)this;
@@ -211,8 +213,8 @@ public class ObsData implements IObsData
         
         public T build()
         {
-            Asserts.checkArgument(instance.dataStreamID >= 0, "dataStreamID must be >= 0");
-            Asserts.checkArgument(instance.foiID >= 0, "foiID must be >= 0");
+            OshAsserts.checkValidInternalID(instance.dataStreamID, "dataStreamID");
+            OshAsserts.checkValidInternalID(instance.foiID, "foiID");
             Asserts.checkNotNull(instance.phenomenonTime, "phenomenonTime");
             Asserts.checkNotNull(instance.result, "result");
             return super.build();

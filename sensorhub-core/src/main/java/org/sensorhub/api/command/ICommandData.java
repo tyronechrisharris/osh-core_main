@@ -14,9 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import java.math.BigInteger;
 import java.time.Instant;
-import org.sensorhub.api.data.IObsData;
+import org.sensorhub.api.common.BigId;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -34,32 +33,32 @@ public interface ICommandData
     /**
      * @return The ID of the command or null if not yet assigned.
      */
-    BigInteger getID();
+    BigId getID();
     
     
     /**
      * Assign the command ID. This property is immutable once it is set.
      * @param id
      */
-    void assignID(BigInteger id);
+    void assignID(BigId id);
     
     
     /**
      * @return The ID of the command stream that this command is part of.
      */
-    long getCommandStreamID();
+    BigId getCommandStreamID();
     
     
     /**
      * @return The feature of interest (can be the receiver system itself,
      * a subsystem, or another feature) that the command will have an impact on.
      */
-    long getFoiID();
+    BigId getFoiID();
 
 
     public default boolean hasFoi()
     {
-        return getFoiID() != IObsData.NO_FOI;
+        return getFoiID() != null && getFoiID() != BigId.NONE;
     }
     
     

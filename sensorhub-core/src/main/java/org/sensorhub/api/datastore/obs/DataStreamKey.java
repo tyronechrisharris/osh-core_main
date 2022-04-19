@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.obs;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.resource.ResourceKey;
 
 
@@ -28,8 +29,14 @@ import org.sensorhub.api.resource.ResourceKey;
 public class DataStreamKey extends ResourceKey<DataStreamKey>
 {
 
-    public DataStreamKey(long internalID)
+    public DataStreamKey(BigId id)
     {
-        super(internalID);
+        super(id);
+    }
+    
+    
+    public DataStreamKey(int scope, long internalID)
+    {
+        super(BigId.fromLong(scope, internalID));
     }
 }

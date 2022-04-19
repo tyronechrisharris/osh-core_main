@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.feature;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.ValueField;
@@ -72,7 +73,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      */
     default FeatureKey add(V value) throws DataStoreException
     {
-        return add(0L, value);
+        return add(BigId.NONE, value);
     }
     
     
@@ -85,7 +86,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * @throws DataStoreException if a feature with the same UID and
      * valid time already exists, or if the parent ID is unknown
      */
-    FeatureKey add(long parentID, V value) throws DataStoreException;
+    FeatureKey add(BigId parentID, V value) throws DataStoreException;
 
 
     /**
@@ -93,7 +94,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * @param internalID The feature internal ID
      * @return True if a feature with the given ID exists, false otherwise
      */
-    public default boolean contains(long internalID)
+    public default boolean contains(BigId internalID)
     {
         return selectKeys(filterBuilder()
                 .withInternalIDs(internalID)
@@ -122,9 +123,9 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * Get a feature's parent ID
      * @param internalID Internal ID of feature
      * @return Internal ID of parent feature or null if no feature with
-     * the given ID was found
+     * the given ID was found or the feature has no parent
      */
-    public Long getParent(long internalID);
+    public BigId getParent(BigId internalID);
     
     
     /**
@@ -150,14 +151,14 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * @param internalID The feature internal ID
      * @return The feature entry or null if no feature with the given ID was found
      */
-    public default Entry<FeatureKey, V> getCurrentVersionEntry(long internalID)
+    public default Entry<FeatureKey, V> getCurrentVersionEntry(BigId internalID)
     {
         return selectEntries(filterBuilder()
                 .withInternalIDs(internalID)
                 .withCurrentVersion()
                 .build())
             .findFirst()
-            .orElse(null);            
+            .orElse(null);
     }
     
     
@@ -180,7 +181,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * @param internalID The feature internal ID
      * @return The feature key or null if no feature with the given ID was found
      */
-    public default FeatureKey getCurrentVersionKey(long internalID)
+    public default FeatureKey getCurrentVersionKey(BigId internalID)
     {
         var e = getCurrentVersionEntry(internalID);
         return e != null ? e.getKey() : null;
@@ -208,7 +209,7 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      * @return The feature representation or null if no feature with the
      * given ID was found
      */
-    public default V getCurrentVersion(long internalID)
+    public default V getCurrentVersion(BigId internalID)
     {
         var e = getCurrentVersionEntry(internalID);
         return e != null ? e.getValue() : null;

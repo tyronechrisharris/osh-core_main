@@ -14,7 +14,6 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.command;
 
-import java.util.Optional;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
@@ -92,7 +91,7 @@ public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, IC
      */
     public default ICommandStreamInfo getLatestVersion(String sysUID, String commandName)
     {
-        Entry<CommandStreamKey, ICommandStreamInfo> e = getLatestVersionEntry(sysUID, commandName);
+        var e = getLatestVersionEntry(sysUID, commandName);
         return e != null ? e.getValue() : null;
     }
     
@@ -106,7 +105,7 @@ public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, IC
      */
     public default Entry<CommandStreamKey, ICommandStreamInfo> getLatestVersionEntry(String sysUID, String controlInput)
     {
-        Optional<Entry<CommandStreamKey, ICommandStreamInfo>> entryOpt = selectEntries(new CommandStreamFilter.Builder()
+        var entryOpt = selectEntries(new CommandStreamFilter.Builder()
             .withSystems()
                 .withUniqueIDs(sysUID)
                 .done()

@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.command;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,6 +21,7 @@ import java.util.SortedSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
@@ -376,7 +376,7 @@ public class CommandStatusFilter implements IQueryFilter, Predicate<ICommandStat
          * @param ids Internal IDs of one or more commands
          * @return This builder for chaining
          */
-        public B withCommands(BigInteger... ids)
+        public B withCommands(BigId... ids)
         {
             return withCommands(Arrays.asList(ids));
         }
@@ -387,7 +387,7 @@ public class CommandStatusFilter implements IQueryFilter, Predicate<ICommandStat
          * @param ids Collection of commands internal IDs 
          * @return This builder for chaining
          */
-        public B withCommands(Collection<BigInteger> ids)
+        public B withCommands(Collection<BigId> ids)
         {
             return withCommands(new CommandFilter.Builder()
                 .withInternalIDs(ids)

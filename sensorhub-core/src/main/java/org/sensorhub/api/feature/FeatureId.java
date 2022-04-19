@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.feature;
 
 import java.util.Objects;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.utils.OshAsserts;
 
 
@@ -29,9 +30,9 @@ import org.sensorhub.api.utils.OshAsserts;
  */
 public class FeatureId
 {
-    public static FeatureId NULL_FEATURE = new FeatureId(0L);
+    public static FeatureId NULL_FEATURE = new FeatureId(BigId.NONE);
 
-    protected long internalID = -1; // 0 is reserved and can never be used as ID
+    protected BigId internalID;
     protected String uniqueID;
 
 
@@ -40,13 +41,13 @@ public class FeatureId
     }
 
 
-    private FeatureId(long internalID)
+    private FeatureId(BigId internalID)
     {
         this.internalID = internalID;
     }
 
 
-    public FeatureId(long internalID, String uid)
+    public FeatureId(BigId internalID, String uid)
     {
         this(OshAsserts.checkValidInternalID(internalID));
         this.uniqueID = OshAsserts.checkValidUID(uid);
@@ -56,7 +57,7 @@ public class FeatureId
     /**
      * @return The feature internal ID
      */
-    public long getInternalID()
+    public BigId getInternalID()
     {
         return internalID;
     }
@@ -87,7 +88,7 @@ public class FeatureId
             return false;
 
         FeatureId other = (FeatureId)obj;
-        return getInternalID() == other.getInternalID() &&
+        return Objects.equals(getInternalID(), other.getInternalID()) &&
                Objects.equals(getUniqueID(), other.getUniqueID());
     }
 
@@ -95,6 +96,6 @@ public class FeatureId
     @Override
     public String toString()
     {
-        return uniqueID + " (" + Long.toUnsignedString(internalID, 36) + ")";
+        return uniqueID + " (" + internalID + ")";
     }
 }

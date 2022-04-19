@@ -14,12 +14,12 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.obs;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
 import java.util.function.Predicate;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.IQueryFilter;
@@ -31,7 +31,6 @@ import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.primitives.Longs;
 
 
 /**
@@ -45,7 +44,7 @@ import com.google.common.primitives.Longs;
  */
 public class ObsFilter implements IQueryFilter, Predicate<IObsData>
 {
-    protected SortedSet<BigInteger> internalIDs;
+    protected SortedSet<BigId> internalIDs;
     protected TemporalFilter phenomenonTime;
     protected TemporalFilter resultTime;
     protected SpatialFilter phenomenonLocation;
@@ -61,7 +60,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
     protected ObsFilter() {}
 
 
-    public SortedSet<BigInteger> getInternalIDs()
+    public SortedSet<BigId> getInternalIDs()
     {
         return internalIDs;
     }
@@ -138,7 +137,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
     {
         return (phenomenonLocation == null || 
                 (v.getPhenomenonLocation() != null &&
-                phenomenonLocation.test(v.getPhenomenonLocation())));            
+                phenomenonLocation.test(v.getPhenomenonLocation())));
     }
     
     
@@ -288,7 +287,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param ids One or more internal IDs to select
          * @return This builder for chaining
          */
-        public B withInternalIDs(BigInteger... ids)
+        public B withInternalIDs(BigId... ids)
         {
             return withInternalIDs(Arrays.asList(ids));
         }
@@ -299,7 +298,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param ids Collection of internal IDs
          * @return This builder for chaining
          */
-        public B withInternalIDs(Collection<BigInteger> ids)
+        public B withInternalIDs(Collection<BigId> ids)
         {
             instance.internalIDs = ImmutableSortedSet.copyOf(ids);
             return (B)this;
@@ -457,9 +456,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param ids Internal IDs of one or more data streams
          * @return This builder for chaining
          */
-        public B withDataStreams(long... ids)
+        public B withDataStreams(BigId... ids)
         {
-            return withDataStreams(Longs.asList(ids));
+            return withDataStreams(Arrays.asList(ids));
         }
 
 
@@ -468,7 +467,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param ids Collection of internal IDs of data streams
          * @return This builder for chaining
          */
-        public B withDataStreams(Collection<Long> ids)
+        public B withDataStreams(Collection<BigId> ids)
         {
             return withDataStreams(new DataStreamFilter.Builder()
                 .withInternalIDs(ids)
@@ -512,9 +511,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withSystems(long... ids)
+        public B withSystems(BigId... ids)
         {
-            return withSystems(Longs.asList(ids));
+            return withSystems(Arrays.asList(ids));
         }
 
 
@@ -523,25 +522,10 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param ids Collection of internal IDs of systems
          * @return This builder for chaining
          */
-        public B withSystems(Collection<Long> ids)
+        public B withSystems(Collection<BigId> ids)
         {
             return withDataStreams(new DataStreamFilter.Builder()
                 .withSystems(ids)
-                .build());
-        }
-
-
-        /**
-         * Keep only observations produced by certain outputs of a specific system
-         * @param sysID Internal ID of the system
-         * @param outputNames Names of one or more outputs of interest
-         * @return This builder for chaining
-         */
-        public B withSystem(long sysID, String... outputNames)
-        {
-            return withDataStreams(new DataStreamFilter.Builder()
-                .withSystems(sysID)
-                .withOutputNames(outputNames)
                 .build());
         }
 
@@ -581,9 +565,9 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param foiIDs Internal IDs of one or more fois
          * @return This builder for chaining
          */
-        public B withFois(long... foiIDs)
+        public B withFois(BigId... foiIDs)
         {
-            return withFois(Longs.asList(foiIDs));
+            return withFois(Arrays.asList(foiIDs));
         }
 
 
@@ -592,7 +576,7 @@ public class ObsFilter implements IQueryFilter, Predicate<IObsData>
          * @param foiIDs Collection of FOI internal IDs
          * @return This builder for chaining
          */
-        public B withFois(Collection<Long> foiIDs)
+        public B withFois(Collection<BigId> foiIDs)
         {
             return withFois(new FoiFilter.Builder()
                 .withInternalIDs(foiIDs)

@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.system;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.feature.FeatureId;
 
 /**
@@ -27,16 +28,16 @@ import org.sensorhub.api.feature.FeatureId;
  */
 public class SystemId extends FeatureId
 {
-    public static SystemId NO_SYSTEM_ID = new SystemId(0L);
+    public static SystemId NO_SYSTEM_ID = new SystemId(BigId.NONE);
     
     
-    private SystemId(long internalID)
+    private SystemId(BigId internalID)
     {
         this.internalID = internalID;
     }
     
     
-    public SystemId(long internalID, String uid)
+    public SystemId(BigId internalID, String uid)
     {
         super(internalID, uid);
     }

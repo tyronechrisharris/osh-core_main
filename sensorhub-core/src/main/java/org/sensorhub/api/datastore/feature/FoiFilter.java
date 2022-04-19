@@ -14,6 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.feature;
 
+import java.util.Collection;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
@@ -206,7 +208,7 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
          * @param ids List of IDs of parent systems
          * @return This builder for chaining
          */
-        public B withParents(long... ids)
+        public B withParents(BigId... ids)
         {
             return withParents()
                 .withInternalIDs(ids)
@@ -216,18 +218,18 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
         
         /**
          * Select only sampling features attached to systems with
-         * specific unique IDs
-         * @param uids List of UIDs of parent systems
+         * specific internal IDs
+         * @param ids Collection of internal IDs
          * @return This builder for chaining
          */
-        public B withParents(String... uids)
+        public B withParents(Collection<BigId> ids)
         {
             return withParents()
-                .withUniqueIDs(uids)
+                .withInternalIDs(ids)
                 .done();
         }
         
-
+        
         /**
          * Select only FOIs that are sampling the features matching the filter
          * @param filter Sampled features filter
@@ -239,7 +241,7 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
             return (B)this;
         }
         
-
+        
         /**
          * Select only FOIs that are sampling the features matching the filter.<br/>
          * Call done() on the nested builder to go back to main builder.
@@ -257,7 +259,7 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
             };
         }
         
-
+        
         /**
          * Select only FOIs with observations matching the filter
          * @param filter Observation filter
@@ -268,7 +270,7 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
             instance.obsFilter = filter;
             return (B)this;
         }
-
+        
         
         /**
          * Select only FOIs with observations matching the filter.<br/>

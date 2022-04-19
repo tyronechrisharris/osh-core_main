@@ -16,7 +16,7 @@ package org.sensorhub.api.data;
 
 import java.time.Instant;
 import java.util.Map;
-import org.sensorhub.api.feature.FeatureId;
+import org.sensorhub.api.common.BigId;
 import com.vividsolutions.jts.geom.Geometry;
 import net.opengis.swe.v20.DataBlock;
 
@@ -31,20 +31,20 @@ import net.opengis.swe.v20.DataBlock;
  */
 public interface IObsData
 {
-    public static final long NO_FOI = FeatureId.NULL_FEATURE.getInternalID();
+    public static final BigId NO_FOI = BigId.NONE;
     
     
     /**
      * @return The internal ID of the data stream that the observation is part of.
      */
-    public long getDataStreamID();
+    public BigId getDataStreamID();
 
 
     /**
      * @return The ID of the feature of interest that was observed.<br/>
      * This can be 0 if no feature of interest was reported.
      */
-    public long getFoiID();
+    public BigId getFoiID();
 
 
     public default boolean hasFoi()

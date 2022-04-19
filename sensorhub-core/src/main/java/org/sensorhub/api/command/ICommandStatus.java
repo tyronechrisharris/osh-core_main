@@ -14,8 +14,8 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import java.math.BigInteger;
 import java.time.Instant;
+import org.sensorhub.api.common.BigId;
 import org.vast.util.TimeExtent;
 
 
@@ -144,7 +144,7 @@ public interface ICommandStatus
      * @return The internal ID of the command that this status relates to. 
      * The initial status report must always include the command ID.
      */
-    BigInteger getCommandID();
+    BigId getCommandID();
     
     
     /**

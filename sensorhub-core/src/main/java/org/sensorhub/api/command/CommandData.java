@@ -14,8 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import java.math.BigInteger;
 import java.time.Instant;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
@@ -36,9 +36,9 @@ public class CommandData implements ICommandData
 {
     public static final String UNKNOWN_SENDER = "%NA%";
     
-    protected BigInteger id;
-    protected long commandStreamID;
-    protected long foiID;
+    protected BigId id;
+    protected BigId commandStreamID;
+    protected BigId foiID = BigId.NONE;
     protected String senderID;
     protected Instant issueTime;
     protected DataBlock params;
@@ -52,29 +52,29 @@ public class CommandData implements ICommandData
     
     /**
      * Helper constructor to send a command directly to a driver.
-     * You need to use the builder when sending a command via the event system
-     * since other parameters are needed in this case.
+     * The builder MUST be used instead when sending a command via the
+     * event system since other parameters are needed in this case.
      * @param id Command ID
      * @param params Command parameters
      */
-    public CommandData(long id, DataBlock params)
+    public CommandData(BigId id, DataBlock params)
     {
-        this.id = BigInteger.valueOf(id);
-        this.commandStreamID = 1;
+        this.id = id;
+        this.commandStreamID = BigId.fromLong(0, 1L);
         this.params = Asserts.checkNotNull(params, DataBlock.class);
         this.issueTime = Instant.now();
     }
     
     
     @Override
-    public BigInteger getID()
+    public BigId getID()
     {
         return id;
     }
     
     
     @Override
-    public void assignID(BigInteger id)
+    public void assignID(BigId id)
     {
         Asserts.checkState(this.id == null, "Command ID cannot be reassigned");
         this.id = id;
@@ -82,14 +82,14 @@ public class CommandData implements ICommandData
 
 
     @Override
-    public long getCommandStreamID()
+    public BigId getCommandStreamID()
     {
         return commandStreamID;
     }
 
 
     @Override
-    public long getFoiID()
+    public BigId getFoiID()
     {
         return foiID;
     }
@@ -163,28 +163,21 @@ public class CommandData implements ICommandData
         }
 
 
-        public B withId(BigInteger id)
+        public B withId(BigId id)
         {
             instance.id = id;
             return (B)this;
         }
 
 
-        public B withId(long id)
-        {
-            instance.id = BigInteger.valueOf(id);
-            return (B)this;
-        }
-
-
-        public B withCommandStream(long id)
+        public B withCommandStream(BigId id)
         {
             instance.commandStreamID = id;
             return (B)this;
         }
 
 
-        public B withFoi(long id)
+        public B withFoi(BigId id)
         {
             instance.foiID = id;
             return (B)this;

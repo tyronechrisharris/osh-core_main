@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.command;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,6 +21,7 @@ import java.util.SortedSet;
 import java.util.function.Predicate;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.TemporalFilter;
@@ -30,7 +30,6 @@ import org.sensorhub.utils.FilterUtils;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.BaseBuilder;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.primitives.Longs;
 
 
 /**
@@ -44,7 +43,7 @@ import com.google.common.primitives.Longs;
  */
 public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
 {
-    protected SortedSet<BigInteger> internalIDs;
+    protected SortedSet<BigId> internalIDs;
     protected CommandStreamFilter commandStreamFilter;
     protected TemporalFilter issueTime;
     protected SortedSet<String> senderIDs;
@@ -59,7 +58,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
     protected CommandFilter() {}
 
 
-    public SortedSet<BigInteger> getInternalIDs()
+    public SortedSet<BigId> getInternalIDs()
     {
         return internalIDs;
     }
@@ -260,7 +259,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
          * @param ids One or more internal IDs to select
          * @return This builder for chaining
          */
-        public B withInternalIDs(BigInteger... ids)
+        public B withInternalIDs(BigId... ids)
         {
             return withInternalIDs(Arrays.asList(ids));
         }
@@ -271,7 +270,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
          * @param ids Collection of internal IDs
          * @return This builder for chaining
          */
-        public B withInternalIDs(Collection<BigInteger> ids)
+        public B withInternalIDs(Collection<BigId> ids)
         {
             instance.internalIDs = ImmutableSortedSet.copyOf(ids);
             return (B)this;
@@ -413,9 +412,9 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
          * @param ids Internal IDs of one or more command streams
          * @return This builder for chaining
          */
-        public B withCommandStreams(long... ids)
+        public B withCommandStreams(BigId... ids)
         {
-            return withCommandStreams(Longs.asList(ids));
+            return withCommandStreams(Arrays.asList(ids));
         }
 
 
@@ -424,7 +423,7 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
          * @param ids Collection of internal IDs of command streams
          * @return This builder for chaining
          */
-        public B withCommandStreams(Collection<Long> ids)
+        public B withCommandStreams(Collection<BigId> ids)
         {
             return withCommandStreams(new CommandStreamFilter.Builder()
                 .withInternalIDs(ids)
@@ -468,9 +467,9 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
          * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withSystems(long... ids)
+        public B withSystems(BigId... ids)
         {
-            return withSystems(Longs.asList(ids));
+            return withSystems(Arrays.asList(ids));
         }
 
 
@@ -479,25 +478,10 @@ public class CommandFilter implements IQueryFilter, Predicate<ICommandData>
          * @param ids Collection of internal IDs of systems
          * @return This builder for chaining
          */
-        public B withSystems(Collection<Long> ids)
+        public B withSystems(Collection<BigId> ids)
         {
             return withCommandStreams(new CommandStreamFilter.Builder()
                 .withSystems(ids)
-                .build());
-        }
-
-
-        /**
-         * Keep only commands from selected tasking inputs of a specific system
-         * @param sysID Internal ID of the system
-         * @param commandNames Names of one or more command inputs of interest
-         * @return This builder for chaining
-         */
-        public B withSystem(long sysID, String... commandNames)
-        {
-            return withCommandStreams(new CommandStreamFilter.Builder()
-                .withSystems(sysID)
-                .withControlInputNames(commandNames)
                 .build());
         }
 

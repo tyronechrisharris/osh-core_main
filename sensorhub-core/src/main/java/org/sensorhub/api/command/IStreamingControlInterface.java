@@ -14,9 +14,9 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import java.math.BigInteger;
 import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.event.IEventProducer;
 import net.opengis.swe.v20.DataComponent;
 
@@ -127,7 +127,7 @@ public interface IStreamingControlInterface extends IEventProducer
      * @return A future that will complete normally if the cancellation is accepted or
      * exceptionally if the task cannot be canceled.
      */
-    default public CompletableFuture<Void> cancelCommand(BigInteger cmdID)
+    default public CompletableFuture<Void> cancelCommand(BigId cmdID)
     {
         return CompletableFuture.failedFuture(new CommandException(ERROR_NO_CANCEL));
     }

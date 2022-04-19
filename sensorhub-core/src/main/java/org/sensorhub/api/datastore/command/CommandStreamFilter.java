@@ -19,13 +19,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.SortedSet;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.utils.FilterUtils;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.primitives.Longs;
 import net.opengis.swe.v20.DataComponent;
 
 
@@ -214,7 +214,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
             super(new CommandStreamFilter());
             this.parent = parent;
         }
-                
+        
         public abstract B done();
     }
 
@@ -280,9 +280,9 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
          * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withSystems(long... ids)
+        public B withSystems(BigId... ids)
         {
-            return withSystems(Longs.asList(ids));
+            return withSystems(Arrays.asList(ids));
         }
 
 
@@ -291,7 +291,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
          * @param ids Internal IDs of one or more systems
          * @return This builder for chaining
          */
-        public B withSystems(Collection<Long> ids)
+        public B withSystems(Collection<BigId> ids)
         {
             withSystems(new SystemFilter.Builder()
                 .withInternalIDs(ids)
@@ -325,7 +325,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
                 {
                     CommandStreamFilterBuilder.this.withCommands(build());
                     return (B)CommandStreamFilterBuilder.this;
-                }                
+                }
             };
         }
         

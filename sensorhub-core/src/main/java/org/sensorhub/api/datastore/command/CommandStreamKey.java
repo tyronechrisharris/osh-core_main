@@ -14,6 +14,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.command;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.resource.ResourceKey;
 
 
@@ -27,9 +28,15 @@ import org.sensorhub.api.resource.ResourceKey;
  */
 public class CommandStreamKey extends ResourceKey<CommandStreamKey>
 {
-
-    public CommandStreamKey(long internalID)
+    
+    public CommandStreamKey(BigId id)
     {
-        super(internalID);
+        super(id);
+    }
+    
+    
+    public CommandStreamKey(int scope, long internalID)
+    {
+        super(BigId.fromLong(scope, internalID));
     }
 }

@@ -14,6 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.feature;
 
+import java.util.Collection;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.vast.ogc.gml.IFeature;
@@ -156,7 +158,7 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
                 {
                     FeatureFilterBuilder.this.withParents(build());
                     return (B)FeatureFilterBuilder.this;
-                }                
+                }
             };
         }
         
@@ -166,7 +168,7 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
          * @param ids List of IDs of parent feature collections
          * @return This builder for chaining
          */
-        public B withParents(long... ids)
+        public B withParents(BigId... ids)
         {
             return withParents()
                 .withInternalIDs(ids)
@@ -175,14 +177,14 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         
         
         /**
-         * Select only features belonging to the collections with specific unique IDs
-         * @param uids List of UIDs of parent feature collections
+         * Select only features belonging to the collections with specific internal IDs
+         * @param ids Collection of IDs of parent feature collections
          * @return This builder for chaining
          */
-        public B withParents(String... uids)
+        public B withParents(Collection<BigId> ids)
         {
             return withParents()
-                .withUniqueIDs(uids)
+                .withInternalIDs(ids)
                 .done();
         }
         
@@ -194,7 +196,7 @@ public class FeatureFilter extends FeatureFilterBase<IFeature>
         public B withNoParent()
         {
             return withParents()
-                .withInternalIDs(0)
+                .withInternalIDs(BigId.NONE)
                 .done();
         }
     }

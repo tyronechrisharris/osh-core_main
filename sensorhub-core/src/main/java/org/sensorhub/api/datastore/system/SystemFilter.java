@@ -14,6 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.system;
 
+import java.util.Collection;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FoiFilter;
@@ -207,7 +209,7 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
          * @param ids List of IDs of parent systems
          * @return This builder for chaining
          */
-        public B withParents(long... ids)
+        public B withParents(BigId... ids)
         {
             return withParents()
                 .withInternalIDs(ids)
@@ -217,14 +219,14 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
         
         /**
          * Select only systems belonging to the parent systems with
-         * specific unique IDs
-         * @param uids List of UIDs of parent systems
+         * specific internal IDs
+         * @param ids Collection of IDs of parent systems
          * @return This builder for chaining
          */
-        public B withParents(String... uids)
+        public B withParents(Collection<BigId> ids)
         {
             return withParents()
-                .withUniqueIDs(uids)
+                .withInternalIDs(ids)
                 .done();
         }
         
@@ -236,7 +238,7 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
         public B withNoParent()
         {
             return withParents()
-                .withInternalIDs(0)
+                .withInternalIDs(BigId.NONE)
                 .done();
         }
         

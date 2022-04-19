@@ -14,8 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.command;
 
-import java.math.BigInteger;
 import java.time.Instant;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
@@ -33,7 +33,7 @@ import org.vast.util.TimeExtent;
  */
 public class CommandStatus implements ICommandStatus
 {
-    protected BigInteger commandID;
+    protected BigId commandID;
     protected Instant reportTime;
     protected TimeExtent executionTime;
     protected CommandStatusCode statusCode;
@@ -47,7 +47,7 @@ public class CommandStatus implements ICommandStatus
     }
     
     
-    protected CommandStatus(BigInteger commandID, CommandStatusCode statusCode, TimeExtent executionTime)
+    protected CommandStatus(BigId commandID, CommandStatusCode statusCode, TimeExtent executionTime)
     {
         this.commandID = commandID;
         this.reportTime = Instant.now();
@@ -62,7 +62,7 @@ public class CommandStatus implements ICommandStatus
      * @param commandID The ID of the command triggering the report
      * @return The status report
      */
-    public static ICommandStatus completed(BigInteger commandID)
+    public static ICommandStatus completed(BigId commandID)
     {
         return new CommandStatus(commandID, CommandStatusCode.COMPLETED, TimeExtent.currentTime());
     }
@@ -74,7 +74,7 @@ public class CommandStatus implements ICommandStatus
      * @param errorMsg The error message
      * @return The status report
      */
-    public static ICommandStatus rejected(BigInteger commandID, String errorMsg)
+    public static ICommandStatus rejected(BigId commandID, String errorMsg)
     {
         var status = new CommandStatus(commandID, CommandStatusCode.REJECTED, null);
         status.message = errorMsg;
@@ -88,7 +88,7 @@ public class CommandStatus implements ICommandStatus
      * @param errorMsg The error message
      * @return The status report
      */
-    public static ICommandStatus failed(BigInteger commandID, String errorMsg)
+    public static ICommandStatus failed(BigId commandID, String errorMsg)
     {
         var status = new CommandStatus(commandID, CommandStatusCode.FAILED, null);
         status.message = errorMsg;
@@ -103,7 +103,7 @@ public class CommandStatus implements ICommandStatus
      * @param taskID ID assigned to the command/task
      * @return The status report
      */
-    public static ICommandStatus pending(BigInteger commandID)
+    public static ICommandStatus pending(BigId commandID)
     {
         var status = new CommandStatus(commandID, CommandStatusCode.PENDING, null);
         return status;
@@ -116,7 +116,7 @@ public class CommandStatus implements ICommandStatus
      * @param commandID The ID of the command triggering the report
      * @return The status report
      */
-    public static ICommandStatus accepted(BigInteger commandID)
+    public static ICommandStatus accepted(BigId commandID)
     {
         var status = new CommandStatus(commandID, CommandStatusCode.ACCEPTED, null);
         return status;
@@ -131,7 +131,7 @@ public class CommandStatus implements ICommandStatus
      * is scheduled to execute
      * @return The status report
      */
-    public static ICommandStatus scheduled(BigInteger commandID, TimeExtent execTime)
+    public static ICommandStatus scheduled(BigId commandID, TimeExtent execTime)
     {
         var status = new CommandStatus(commandID, CommandStatusCode.SCHEDULED, execTime);
         return status;
@@ -147,7 +147,7 @@ public class CommandStatus implements ICommandStatus
      * @param execTime The new estimate of the execution time
      * @return The status report
      */
-    public static ICommandStatus progress(BigInteger commandID, int progress, String message, TimeExtent execTime)
+    public static ICommandStatus progress(BigId commandID, int progress, String message, TimeExtent execTime)
     {
         var status = new CommandStatus(commandID, CommandStatusCode.EXECUTING, execTime);
         status.progress = progress;
@@ -163,14 +163,14 @@ public class CommandStatus implements ICommandStatus
      * @param execTime The actual time (or time period) the command was executed
      * @return The status report
      */
-    public static ICommandStatus completed(BigInteger commandID, TimeExtent execTime)
+    public static ICommandStatus completed(BigId commandID, TimeExtent execTime)
     {
         return new CommandStatus(commandID, CommandStatusCode.COMPLETED, execTime);
     }
 
 
     @Override
-    public BigInteger getCommandID()
+    public BigId getCommandID()
     {
         return commandID;
     }
@@ -258,7 +258,7 @@ public class CommandStatus implements ICommandStatus
         }
 
 
-        public B withCommand(BigInteger id)
+        public B withCommand(BigId id)
         {
             instance.commandID = id;
             return (B)this;
