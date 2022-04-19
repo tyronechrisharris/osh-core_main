@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -65,11 +66,11 @@ public abstract class AbstractTestObsDatabase<DbType extends IObsSystemDatabase>
     }
     
     
-    protected long[] addSystems(int... uidSuffixes)
+    protected BigId[] addSystems(int... uidSuffixes)
     {
         try
         {
-            long[] internalIDs = new long[uidSuffixes.length];
+            var internalIDs = new BigId[uidSuffixes.length];
 
             for (int i = 0 ; i < uidSuffixes.length; i++)
             {
@@ -108,7 +109,7 @@ public abstract class AbstractTestObsDatabase<DbType extends IObsSystemDatabase>
     public void testSelectDatastreamWithSystemFilterJoin() throws Exception
     {
         int procUids[] = {13, 5, 25};
-        long[] procIds = addSystems(procUids);
+        var procIds = addSystems(procUids);
         
         dataStreamTests.addSimpleDataStream(procIds[0], "out1", TimeExtent.beginAt(Instant.EPOCH));
         var dsId1 = dataStreamTests.addSimpleDataStream(procIds[0], "out2", TimeExtent.beginAt(Instant.EPOCH));

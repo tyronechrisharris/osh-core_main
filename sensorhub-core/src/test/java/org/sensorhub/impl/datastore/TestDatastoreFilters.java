@@ -17,9 +17,9 @@ package org.sensorhub.impl.datastore;
 import static org.junit.Assert.*;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.function.Predicate;
 import org.junit.Test;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.vast.ogc.om.IProcedure;
 import org.vast.sensorML.SMLHelper;
@@ -38,7 +38,7 @@ public class TestDatastoreFilters
             .build();
         
         // internal IDs
-        var internalIDs = Arrays.asList(20L, 20L, 30L);
+        var internalIDs = BigId.fromLongs(0, 20L, 20L, 30L);
         filter = new SystemFilter.Builder()
             .withInternalIDs(internalIDs)
             .build();
@@ -155,7 +155,7 @@ public class TestDatastoreFilters
         assertFalse(new SystemFilter.Builder()
             .withKeywords("robot")
             .build()
-            .test(proc));        
+            .test(proc));
     }
 
 }

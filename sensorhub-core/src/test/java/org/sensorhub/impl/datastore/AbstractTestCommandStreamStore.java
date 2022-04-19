@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
@@ -56,6 +57,7 @@ import net.opengis.swe.v20.DataComponent;
  */
 public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandStreamStore>
 {
+    protected static int DATABASE_NUM = 5;
     protected static String PROC_UID_PREFIX = "urn:osh:test:sensor:";
     
     protected StoreType cmdStreamStore;
@@ -69,7 +71,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     @Before
     public void init() throws Exception
     {
-        this.cmdStreamStore = initStore();        
+        this.cmdStreamStore = initStore();
     }
     
 
@@ -124,13 +126,13 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     }
     
     
-    protected CommandStreamKey addSimpleCommandStream(long sysID, String outputName, TimeExtent validTime) throws DataStoreException
+    protected CommandStreamKey addSimpleCommandStream(BigId sysID, String outputName, TimeExtent validTime) throws DataStoreException
     {
         return addSimpleCommandStream(new SystemId(sysID, PROC_UID_PREFIX+sysID), outputName, "command stream description", validTime);
     }
     
     
-    protected CommandStreamKey addSimpleCommandStream(long sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
+    protected CommandStreamKey addSimpleCommandStream(BigId sysID, String outputName, String description, TimeExtent validTime) throws DataStoreException
     {
         return addSimpleCommandStream(new SystemId(sysID, PROC_UID_PREFIX+sysID), outputName, description, validTime);
     }
@@ -184,6 +186,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         System.out.println(resultMap.size() + " entries selected");
         
         resultMap.forEach((k, v) -> {
+            assertEquals("Invalid scope", DATABASE_NUM, k.getInternalID().getScope());
             assertTrue("Result set contains extra key "+k, expectedResults.containsKey(k));
             checkCommandStreamEqual(expectedResults.get(k), v);
         });
@@ -202,7 +205,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         int numDs = 100;
         for (int i = 1; i < numDs; i++)
         {
-            long sysID = i;
+            var sysID = BigId.fromLong(0, i);
             addSimpleCommandStream(sysID, "test1", now);
         }
         
@@ -221,23 +224,23 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     @Test
     public void testGetWrongKey() throws Exception
     {
-        assertNull(cmdStreamStore.get(new CommandStreamKey(1L)));
-        assertNull(cmdStreamStore.get(new CommandStreamKey(21L)));
+        assertNull(cmdStreamStore.get(new CommandStreamKey(0, 1L)));
+        assertNull(cmdStreamStore.get(new CommandStreamKey(0, 21L)));
         
         // add N different command streams
-        var idList = new ArrayList<Long>();
+        var idList = new ArrayList<BigId>();
         var now = TimeExtent.beginAt(Instant.now());
         for (int i = 1; i < 5; i++)
         {
-            long sysID = i;
+            var sysID = BigId.fromLong(0, i);
             var k = addSimpleCommandStream(sysID, "test1", now);
             idList.add(k.getInternalID());
         }
         
         assertNotNull(cmdStreamStore.get(new CommandStreamKey(idList.get(0))));
-        assertNull(cmdStreamStore.get(new CommandStreamKey(21L)));
+        assertNull(cmdStreamStore.get(new CommandStreamKey(0, 21L)));
         forceReadBackFromStorage();
-        assertNull(cmdStreamStore.get(new CommandStreamKey(11L)));
+        assertNull(cmdStreamStore.get(new CommandStreamKey(0, 11L)));
         assertNotNull(cmdStreamStore.get(new CommandStreamKey(idList.get(3))));
         
     }
@@ -279,7 +282,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         int numDs = 56;
         for (int i = numDs; i < numDs*2; i++)
         {
-            long sysID = i;
+            var sysID = BigId.fromLong(0, i);
             addSimpleCommandStream(sysID, "out" + (int)(Math.random()*10), now);
         }
         
@@ -298,7 +301,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         int numDs = 56;
         for (int i = numDs; i < numDs*2; i++)
         {
-            long sysID = i;
+            var sysID = BigId.fromLong(0, i);
             addSimpleCommandStream(sysID, "out" + (int)(Math.random()*10), now);
         }
         
@@ -308,7 +311,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         for (var id: allCmdStreams.keySet())
         {
             var ds = cmdStreamStore.remove(id);
-            checkCommandStreamEqual(allCmdStreams.get(id), ds);            
+            checkCommandStreamEqual(allCmdStreams.get(id), ds);
             
             if (i % 5 == 0)
                 forceReadBackFromStorage();
@@ -326,12 +329,12 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     public void testAddAndRemoveByFilter() throws Exception
     {
         // add N different command streams
-        var idList = new ArrayList<Long>();
+        var idList = new ArrayList<BigId>();
         var now = TimeExtent.beginAt(Instant.now());
         int numDs = 45;
         for (int i = 1; i <= numDs; i++)
         {
-            long sysID = i;
+            var sysID = BigId.fromLong(0, i);
             var key = addSimpleCommandStream(sysID, "out"+i, now);
             idList.add(key.getInternalID());
         }
@@ -340,8 +343,8 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         assertEquals(numRecords, cmdStreamStore.getNumRecords());
         
         // remove some by ID
-        var removedIds = new long[] {idList.get(3), idList.get(15), idList.get(36), idList.get(24)};
-        for (long id: removedIds)
+        var removedIds = new BigId[] {idList.get(3), idList.get(15), idList.get(36), idList.get(24)};
+        for (var id: removedIds)
             allCmdStreams.remove(new CommandStreamKey(id));
         cmdStreamStore.removeEntries(new CommandStreamFilter.Builder()
                 .withInternalIDs(removedIds)
@@ -355,7 +358,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         var removedNames = removedIdsList.stream()
             .map(id -> allCmdStreams.get(new CommandStreamKey(id)).getControlInputName())
             .collect(Collectors.toList());
-        for (long id: removedIdsList)
+        for (var id: removedIdsList)
             allCmdStreams.remove(new CommandStreamKey(id));
         cmdStreamStore.removeEntries(new CommandStreamFilter.Builder()
                 .withControlInputNames(removedNames)
@@ -377,8 +380,8 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     {
         Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
 
-        long sysID = 10;
         var now = Instant.now();
+        var sysID = BigId.fromLong(0, 20);
         var ds1v0 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
         var ds1v1 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
         var ds1v2 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now));
@@ -413,8 +416,8 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     {
         Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
 
-        long sysID = 1;
         var now = Instant.now();
+        var sysID = BigId.fromLong(0, 1);
         var ds1v0 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
         var ds1v1 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
         var ds1v2 = addSimpleCommandStream(sysID, "test1", TimeExtent.beginAt(now));
@@ -452,14 +455,16 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var ds1v0 = addSimpleCommandStream(1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
-        var ds1v1 = addSimpleCommandStream(1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds2v0 = addSimpleCommandStream(1, "out2", TimeExtent.beginAt(now.minus(520, ChronoUnit.DAYS)));
-        var ds2v1 = addSimpleCommandStream(1, "out2", TimeExtent.beginAt(now.minus(10, ChronoUnit.DAYS)));        
-        var ds3v0 = addSimpleCommandStream(1, "out3", TimeExtent.beginAt(now.minus(30, ChronoUnit.DAYS)));
-        var ds3v1 = addSimpleCommandStream(1, "out3", TimeExtent.beginAt(now.minus(1, ChronoUnit.DAYS)));
-        var ds4v0 = addSimpleCommandStream(3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
-        var ds5v0 = addSimpleCommandStream(3, "hum", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var sysID1 = BigId.fromLong(0, 1);
+        var sysID3 = BigId.fromLong(0, 3);
+        var ds1v0 = addSimpleCommandStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
+        var ds1v1 = addSimpleCommandStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds2v0 = addSimpleCommandStream(sysID1, "out2", TimeExtent.beginAt(now.minus(520, ChronoUnit.DAYS)));
+        var ds2v1 = addSimpleCommandStream(sysID1, "out2", TimeExtent.beginAt(now.minus(10, ChronoUnit.DAYS)));
+        var ds3v0 = addSimpleCommandStream(sysID1, "out3", TimeExtent.beginAt(now.minus(30, ChronoUnit.DAYS)));
+        var ds3v1 = addSimpleCommandStream(sysID1, "out3", TimeExtent.beginAt(now.minus(1, ChronoUnit.DAYS)));
+        var ds4v0 = addSimpleCommandStream(sysID3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
+        var ds5v0 = addSimpleCommandStream(sysID3, "hum", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
         
         // select from t0 to now
         CommandStreamFilter filter = new CommandStreamFilter.Builder()
@@ -484,7 +489,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         // select from t0 to t1, only proc 3
         forceReadBackFromStorage();
         filter = new CommandStreamFilter.Builder()
-            .withSystems(3)
+            .withSystems(sysID3)
             .withValidTimeDuring(now.minus(90, ChronoUnit.DAYS), now.minus(30, ChronoUnit.DAYS))
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
@@ -502,7 +507,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
             case 1: addToExpectedResults(1, 3, 4, 5, 7); break;
             case 2: addToExpectedResults(0, 1, 2, 4, 7); break;
             case 3: addToExpectedResults(7); break;
-        }        
+        }
     }
     
     
@@ -513,12 +518,15 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var ds1v0 = addSimpleCommandStream(1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
-        var ds1v1 = addSimpleCommandStream(1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds2v0 = addSimpleCommandStream(1, "out2", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds3v0 = addSimpleCommandStream(2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds4v0 = addSimpleCommandStream(3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
-        var ds5v0 = addSimpleCommandStream(3, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var sysID1 = BigId.fromLong(0, 1);
+        var sysID2 = BigId.fromLong(0, 2);
+        var sysID3 = BigId.fromLong(0, 3);
+        var ds1v0 = addSimpleCommandStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
+        var ds1v1 = addSimpleCommandStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds2v0 = addSimpleCommandStream(sysID1, "out2", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds3v0 = addSimpleCommandStream(sysID2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds4v0 = addSimpleCommandStream(sysID3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
+        var ds5v0 = addSimpleCommandStream(sysID3, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
         
         // select from t0 to now
         CommandStreamFilter filter = new CommandStreamFilter.Builder()
@@ -544,16 +552,19 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         Stream<Entry<CommandStreamKey, ICommandStreamInfo>> resultStream;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var ds1v0 = addSimpleCommandStream(1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
-        var ds1v1 = addSimpleCommandStream(1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds2v0 = addSimpleCommandStream(1, "out2", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds3v0 = addSimpleCommandStream(2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds4v0 = addSimpleCommandStream(3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
-        var ds5v0 = addSimpleCommandStream(3, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var sysID1 = BigId.fromLong(0, 1);
+        var sysID2 = BigId.fromLong(0, 2);
+        var sysID3 = BigId.fromLong(0, 3);
+        var ds1v0 = addSimpleCommandStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
+        var ds1v1 = addSimpleCommandStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds2v0 = addSimpleCommandStream(sysID1, "out2", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds3v0 = addSimpleCommandStream(sysID2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds4v0 = addSimpleCommandStream(sysID3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
+        var ds5v0 = addSimpleCommandStream(sysID3, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
         
         // select from t0 to now
         CommandStreamFilter filter = new CommandStreamFilter.Builder()
-            .withSystems(2, 3)
+            .withSystems(sysID2, sysID3)
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
         
@@ -576,12 +587,15 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         CommandStreamFilter filter;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var ds1v0 = addSimpleCommandStream(1, "out1", "Stationary weather data", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
-        var ds1v1 = addSimpleCommandStream(1, "out1", "Stationary weather data", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds2v0 = addSimpleCommandStream(1, "out2", "Traffic video stream", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds3v0 = addSimpleCommandStream(2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds4v0 = addSimpleCommandStream(3, "temp", "Air temperature", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
-        var ds5v0 = addSimpleCommandStream(3, "out1", "Air pressure", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var sysID1 = BigId.fromLong(0, 1);
+        var sysID2 = BigId.fromLong(0, 2);
+        var sysID3 = BigId.fromLong(0, 3);
+        var ds1v0 = addSimpleCommandStream(sysID1, "out1", "Stationary weather data", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
+        var ds1v1 = addSimpleCommandStream(sysID1, "out1", "Stationary weather data", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds2v0 = addSimpleCommandStream(sysID1, "out2", "Traffic video stream", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds3v0 = addSimpleCommandStream(sysID2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds4v0 = addSimpleCommandStream(sysID3, "temp", "Air temperature", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
+        var ds5v0 = addSimpleCommandStream(sysID3, "out1", "Air pressure", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
         
         // select with one keyword
         filter = new CommandStreamFilter.Builder()
@@ -615,7 +629,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         
         // select with system and keywords (partial words)
         filter = new CommandStreamFilter.Builder()
-            .withSystems(3)
+            .withSystems(sysID3)
             .withKeywords("weather", "temp")
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
@@ -626,7 +640,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
         
         // select unknown keywords
         filter = new CommandStreamFilter.Builder()
-            .withSystems(3)
+            .withSystems(sysID3)
             .withKeywords("lidar", "humidity")
             .build();
         resultStream = cmdStreamStore.selectEntries(filter);
@@ -645,7 +659,7 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
             case 2: addToExpectedResults(0, 1, 4, 5); break;
             case 3: addToExpectedResults(2, 4, 5); break;
             case 4: addToExpectedResults(4); break;
-        }        
+        }
     }
     
     
@@ -653,8 +667,9 @@ public abstract class AbstractTestCommandStreamStore<StoreType extends ICommandS
     public void testErrorAddWithExistingInput() throws Exception
     {
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        addSimpleCommandStream(1, "cmd1", TimeExtent.beginAt(now));
-        addSimpleCommandStream(1, "cmd1", TimeExtent.beginAt(now));
+        var sysID1 = BigId.fromLong(0, 1);
+        addSimpleCommandStream(sysID1, "cmd1", TimeExtent.beginAt(now));
+        addSimpleCommandStream(sysID1, "cmd1", TimeExtent.beginAt(now));
     }
     
     

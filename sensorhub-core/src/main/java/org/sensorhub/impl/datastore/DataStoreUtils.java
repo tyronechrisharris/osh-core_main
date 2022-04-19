@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -53,6 +54,8 @@ import org.vast.util.TimeExtent;
  */
 public class DataStoreUtils
 {
+    public static final String ERROR_INVALID_KEY = "Key must be an instance of " + BigId.class.getSimpleName();
+    
     public static final String ERROR_INVALID_DATASTREAM_KEY = "Key must be an instance of " + DataStreamKey.class.getSimpleName();
     public static final String ERROR_EXISTING_DATASTREAM = "Datastore already contains datastream for the same system, output and validTime";
     public static final String ERROR_INVALID_COMMANDSTREAM_KEY = "Key must be an instance of " + CommandStreamKey.class.getSimpleName();
@@ -70,6 +73,20 @@ public class DataStoreUtils
     {
         Asserts.checkArgument(internalID > 0, "ID must be > 0");
         return internalID;
+    }
+    
+    
+    public static BigId checkInternalID(BigId internalID)
+    {
+        return OshAsserts.checkValidInternalID(internalID, "internalID");
+    }
+    
+    
+    public static BigId checkBigIdKey(Object key)
+    {
+        Asserts.checkNotNull(key, BigId.class);
+        Asserts.checkArgument(key instanceof BigId, ERROR_INVALID_KEY);
+        return (BigId)key;
     }
     
     
@@ -99,15 +116,15 @@ public class DataStoreUtils
         return OshAsserts.checkValidUID(uid);
     }
     
-    public static void checkParentFeatureExists(IFeatureStoreBase<?,?,?> dataStore, long parentID) throws DataStoreException
+    public static void checkParentFeatureExists(IFeatureStoreBase<?,?,?> dataStore, BigId parentID) throws DataStoreException
     {
-        if (parentID != 0 && !dataStore.contains(parentID))
+        if (parentID != null && parentID != BigId.NONE && !dataStore.contains(parentID))
             throw new DataStoreException(DataStoreUtils.ERROR_UNKNOWN_PARENT_FEATURE + parentID);
     }
     
-    public static void checkParentFeatureExists(long parentID, IFeatureStoreBase<?,?,?>... dataStores) throws DataStoreException
+    public static void checkParentFeatureExists(BigId parentID, IFeatureStoreBase<?,?,?>... dataStores) throws DataStoreException
     {
-        if (parentID != 0)
+        if (parentID != null && parentID != BigId.NONE)
         {
             for (var dataStore: dataStores)
             {
@@ -183,7 +200,7 @@ public class DataStoreUtils
     public static CommandStreamKey checkCommandStreamKey(Object key)
     {
         Asserts.checkNotNull(key, CommandStreamKey.class);
-        Asserts.checkArgument(key instanceof CommandStreamKey, ERROR_INVALID_DATASTREAM_KEY);
+        Asserts.checkArgument(key instanceof CommandStreamKey, ERROR_INVALID_COMMANDSTREAM_KEY);
         return (CommandStreamKey)key;
     }
     
@@ -236,7 +253,7 @@ public class DataStoreUtils
     // Helpers methods for JOIN operations
     //////////////////////////////////////////
         
-    public static <V extends IFeature, F extends FeatureFilterBase<? super V>> Stream<Long> selectFeatureIDs(IFeatureStoreBase<V,?,F> featureStore, F filter)
+    public static <V extends IFeature, F extends FeatureFilterBase<? super V>> Stream<BigId> selectFeatureIDs(IFeatureStoreBase<V,?,F> featureStore, F filter)
     {
         if (filter.getInternalIDs() != null && !filter.includeMembers())
         {
@@ -258,7 +275,7 @@ public class DataStoreUtils
     }
     
     
-    public static Stream<Long> selectSystemIDs(ISystemDescStore systemStore, SystemFilter filter)
+    public static Stream<BigId> selectSystemIDs(ISystemDescStore systemStore, SystemFilter filter)
     {
         if (filter.getInternalIDs() != null && !filter.includeMembers())
         {
@@ -280,7 +297,7 @@ public class DataStoreUtils
     }
     
     
-    public static Stream<Long> selectProcedureIDs(IProcedureStore procStore, ProcedureFilter filter)
+    public static Stream<BigId> selectProcedureIDs(IProcedureStore procStore, ProcedureFilter filter)
     {
         if (filter.getInternalIDs() != null)
         {
@@ -324,7 +341,7 @@ public class DataStoreUtils
     }
     
     
-    public static Stream<Long> selectDataStreamIDs(IDataStreamStore dataStreamStore, DataStreamFilter filter)
+    public static Stream<BigId> selectDataStreamIDs(IDataStreamStore dataStreamStore, DataStreamFilter filter)
     {
         if (filter.getInternalIDs() != null)
         {
@@ -333,9 +350,8 @@ public class DataStoreUtils
         }
         else
         {
-            Asserts.checkState(dataStreamStore != null, "No linked datastream store");
-            
             // otherwise get all datastream keys matching the filter from linked datastore
+            Asserts.checkState(dataStreamStore != null, "No linked datastream store");
             return dataStreamStore.selectKeys(filter)
                 .map(k -> k.getInternalID());
         }
@@ -349,7 +365,7 @@ public class DataStoreUtils
     }
     
     
-    public static Stream<Long> selectCommandStreamIDs(ICommandStreamStore cmdStreamStore, CommandStreamFilter filter)
+    public static Stream<BigId> selectCommandStreamIDs(ICommandStreamStore cmdStreamStore, CommandStreamFilter filter)
     {
         if (filter.getInternalIDs() != null)
         {
