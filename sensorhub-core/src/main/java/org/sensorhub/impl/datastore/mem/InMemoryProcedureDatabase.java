@@ -45,7 +45,7 @@ public class InMemoryProcedureDatabase extends AbstractModule<DatabaseConfig> im
     public InMemoryProcedureDatabase(int databaseNum)
     {
         this.databaseNum = databaseNum;
-        this.procStore = new InMemoryProcedureStore();
+        this.procStore = new InMemoryProcedureStore(databaseNum);
     }
     
     

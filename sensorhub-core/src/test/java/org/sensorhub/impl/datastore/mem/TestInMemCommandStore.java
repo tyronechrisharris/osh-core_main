@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.mem;
 
 import static org.junit.Assert.assertEquals;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,6 +24,7 @@ import java.util.stream.Stream;
 import org.junit.Test;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStatus;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.impl.datastore.AbstractTestCommandStore;
@@ -37,7 +37,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     
     protected InMemoryCommandStore initStore() throws Exception
     {
-        return new InMemoryCommandStore();
+        return new InMemoryCommandStore(DATABASE_NUM);
     }
 
 
@@ -46,7 +46,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     public void testGetNumRecordsOneDataStream() throws Exception
     {
         // add one command stream
-        var csKey = addSimpleCommandStream(10, "out1");
+        var csKey = addSimpleCommandStream(bigId(10), "out1");
         
         // add multiple commands
         addCommands(csKey.getInternalID(), Instant.parse("2000-01-01T00:00:00Z"), 100);
@@ -61,8 +61,8 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     public void testGetNumRecordsTwoDataStreams() throws Exception
     {
         // add 2 command streams
-        var cs1 = addSimpleCommandStream(1, "out1");
-        var cs2 = addSimpleCommandStream(2, "out1");
+        var cs1 = addSimpleCommandStream(bigId(1), "out1");
+        var cs2 = addSimpleCommandStream(bigId(2), "out1");
 
         // add multiple commands to both streams
         addCommands(cs1.getInternalID(), Instant.parse("2000-06-21T14:36:12Z"), 100);
@@ -81,9 +81,9 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     }
     
     
-    private Map<BigInteger, ICommandData> getOnlyLatestCommands()
+    private Map<BigId, ICommandData> getOnlyLatestCommands()
     {
-        Map<Long, Entry<BigInteger, ICommandData>> latestPerStream = new LinkedHashMap<>();
+        Map<BigId, Entry<BigId, ICommandData>> latestPerStream = new LinkedHashMap<>();
         for (var entry: allCommands.entrySet())
         {
             var cmd = entry.getValue();
@@ -98,7 +98,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     }
     
     
-    private Map<BigInteger, ICommandData> keepOnlyLatestCommands(Map<BigInteger, ICommandData> expectedResults)
+    private Map<BigId, ICommandData> keepOnlyLatestCommands(Map<BigId, ICommandData> expectedResults)
     {
         var onlyLatests = getOnlyLatestCommands();
         return Maps.filterKeys(expectedResults, k -> onlyLatests.containsKey(k));
@@ -106,7 +106,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     
     
     @Override
-    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandData>> resultStream, Map<BigInteger, ICommandData> expectedResults, CommandFilter filter)
+    protected void checkSelectedEntries(Stream<Entry<BigId, ICommandData>> resultStream, Map<BigId, ICommandData> expectedResults, CommandFilter filter)
     {
         // keep only latest commands in expected results
         expectedResults = keepOnlyLatestCommands(expectedResults);
@@ -115,7 +115,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     
     
     @Override
-    protected void checkSelectedEntries(Stream<Entry<BigInteger, ICommandStatus>> resultStream, Map<BigInteger, ICommandStatus> expectedResults, CommandStatusFilter filter)
+    protected void checkSelectedEntries(Stream<Entry<BigId, ICommandStatus>> resultStream, Map<BigId, ICommandStatus> expectedResults, CommandStatusFilter filter)
     {
         // keep only status of latest commands in expected results
         var onlyLatests = getOnlyLatestCommands();
@@ -126,7 +126,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     
     
     @Override
-    protected void checkMapKeySet(Set<BigInteger> keySet)
+    protected void checkMapKeySet(Set<BigId> keySet)
     {
         var saveAllCommands = allCommands;
         allCommands = keepOnlyLatestCommands(allCommands);

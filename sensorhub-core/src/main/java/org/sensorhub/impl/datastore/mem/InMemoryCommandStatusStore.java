@@ -14,24 +14,25 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.mem;
 
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandStatus;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
+import org.sensorhub.utils.AtomicInitializer;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 
@@ -50,19 +51,63 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
 {
     static final TemporalFilter ALL_TIMES_FILTER = new TemporalFilter.Builder().withAllTimes().build();
     
-    NavigableMap<StatusKey, ICommandStatus> map = new ConcurrentSkipListMap<>(new StatusKeyComparator());
+    final NavigableMap<StatusKey, ICommandStatus> map = new ConcurrentSkipListMap<>(new StatusKeyComparator());
     final InMemoryCommandStore cmdStore;
     
     
-    static class StatusKey
-    {    
-        BigInteger cmdID;
+    static class StatusKey implements BigId
+    {
+        int scope;
+        BigId cmdID;
         Instant reportTime = null;
+        AtomicInitializer<byte[]> cachedId = new AtomicInitializer<>();
         
-        StatusKey(BigInteger cmdID, Instant reportTime)
+        StatusKey(int scope, BigId cmdID, Instant reportTime)
         {
+            this.scope = scope;
             this.cmdID = cmdID;
             this.reportTime = reportTime;
+        }
+
+        @Override
+        public int getScope()
+        {
+            return scope;
+        }
+
+        @Override
+        public byte[] getIdAsBytes()
+        {
+            // compute byte[] representation lazily
+            return cachedId.get(() -> {
+                byte[] cmdIDBytes = cmdID.getIdAsBytes();
+                ByteBuffer buf = ByteBuffer.allocate(cmdIDBytes.length + 13); // 1+8+4
+                buf.put((byte)cmdIDBytes.length);
+                buf.put(cmdIDBytes);
+                buf.putInt((int)(reportTime.getEpochSecond()));
+                buf.putInt(reportTime.getNano());
+                return buf.array();
+            });
+        }
+        
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(
+                scope, cmdID, reportTime
+            );
+        }
+        
+        @Override
+        public boolean equals(Object o)
+        {
+            if (!(o instanceof StatusKey))
+                return false;
+            
+            var other = (StatusKey)o;
+            return scope == other.scope &&
+                Objects.equals(cmdID, other.cmdID) &&
+                Objects.equals(reportTime, other.reportTime);
         }
 
         @Override
@@ -79,7 +124,7 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
         public int compare(StatusKey k1, StatusKey k2)
         {
             // first compare command IDs
-            int comp = k1.cmdID.compareTo(k2.cmdID);
+            int comp = BigId.compare(k1.cmdID, k2.cmdID);
             if (comp != 0)
                 return comp;
             
@@ -95,58 +140,40 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
     }
     
     
-    BigInteger toExternalKey(StatusKey key)
-    {
-        byte[] cmdID = key.cmdID.toByteArray();
-        ByteBuffer buf = ByteBuffer.allocate(cmdID.length + 13); // 1+8+4
-        buf.put((byte)cmdID.length);
-        buf.put(cmdID);
-        buf.putInt((int)(key.reportTime.getEpochSecond()));
-        buf.putInt(key.reportTime.getNano());
-        return new BigInteger(buf.array(), 0, buf.position());
-    }
-    
-    
     StatusKey toInternalKey(Object keyObj)
     {
-        Asserts.checkArgument(keyObj instanceof BigInteger);
-        BigInteger key = (BigInteger)keyObj;
+        Asserts.checkArgument(keyObj instanceof BigId);
+        BigId key = (BigId)keyObj;
 
         try
         {
             // parse from BigInt
-            ByteBuffer buf = ByteBuffer.wrap(key.toByteArray());
+            ByteBuffer buf = ByteBuffer.wrap(key.getIdAsBytes());
             int cmdIdLen = buf.get();
-            BigInteger cmdID = new BigInteger(buf.array(), 1, cmdIdLen);
+            BigId cmdID = BigId.fromBytes(0, buf.array(), 1, cmdIdLen);
             buf.position(cmdIdLen+1);
             Instant reportTime = Instant.ofEpochSecond(buf.getInt(), buf.getInt());
-            return new StatusKey(cmdID, reportTime);
+            return new StatusKey(0, cmdID, reportTime);
         }
         catch (Exception e)
         {
             // invalid bigint key
             // return key object that will never match
-            return new StatusKey(BigInteger.ZERO, Instant.MAX);
+            return new StatusKey(0, BigId.NONE, Instant.MAX);
         }
     }
     
     
-    Stream<Entry<StatusKey, ICommandStatus>> getStatusByCommand(BigInteger cmdKey)
+    Stream<Entry<StatusKey, ICommandStatus>> getStatusByCommand(BigId cmdKey)
     {
-        StatusKey fromKey = new StatusKey(cmdKey, Instant.MIN);
-        StatusKey toKey = new StatusKey(cmdKey, Instant.MAX);
+        StatusKey fromKey = new StatusKey(0, cmdKey, Instant.MIN);
+        StatusKey toKey = new StatusKey(0, cmdKey, Instant.MAX);
         return map.subMap(fromKey, true, toKey, true).entrySet().stream();
-    }
-    
-    
-    Entry<BigInteger, ICommandStatus> toExternalEntry(Entry<StatusKey, ICommandStatus> e)
-    {
-        return new AbstractMap.SimpleEntry<>(toExternalKey(e.getKey()), e.getValue());
     }
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandStatus>> selectEntries(CommandStatusFilter filter, Set<CommandStatusField> fields)
+    public Stream<Entry<BigId, ICommandStatus>> selectEntries(CommandStatusFilter filter, Set<CommandStatusField> fields)
     {
         Stream<Entry<StatusKey, ICommandStatus>> resultStream = null;
         
@@ -164,10 +191,14 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
         }
             
         // filter with predicate and apply limit
-        return resultStream
+        resultStream = resultStream
             .filter(e -> filter.test(e.getValue()))
-            .limit(filter.getLimit())
-            .map(e -> toExternalEntry(e));
+            .limit(filter.getLimit());
+        
+        // casting is ok since keys are subtypes of BigId
+        @SuppressWarnings({ "unchecked", })
+        var castedResultStream = (Stream<Entry<BigId, ICommandStatus>>)(Stream<?>)resultStream;
+        return castedResultStream;
     }
 
 
@@ -181,7 +212,7 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
     @Override
     public boolean containsKey(Object key)
     {
-        return key instanceof BigInteger && map.containsKey(toInternalKey(key));
+        return key instanceof BigId && map.containsKey(toInternalKey(key));
     }
 
 
@@ -192,12 +223,12 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
     }
 
 
-    public Set<Entry<BigInteger, ICommandStatus>> entrySet()
+    public Set<Entry<BigId, ICommandStatus>> entrySet()
     {
-        return new AbstractSet<Entry<BigInteger, ICommandStatus>>()
+        return new AbstractSet<Entry<BigId, ICommandStatus>>()
         {
             @Override
-            public Iterator<Entry<BigInteger, ICommandStatus>> iterator()
+            public Iterator<Entry<BigId, ICommandStatus>> iterator()
             {
                 // TODO Auto-generated method stub
                 return null;
@@ -221,7 +252,7 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
 
 
     @Override
-    public ICommandStatus put(BigInteger key, ICommandStatus cmd)
+    public ICommandStatus put(BigId key, ICommandStatus cmd)
     {
         StatusKey cmdKey = toInternalKey(key);
         ICommandStatus oldCmd = map.replace(cmdKey, cmd);
@@ -234,14 +265,15 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
 
 
     @Override
-    public BigInteger add(ICommandStatus status)
+    public BigId add(ICommandStatus status)
     {
         StatusKey key = new StatusKey(
+            cmdStore.idScope,
             status.getCommandID(),
             status.getReportTime());
         map.remove(key);
         map.put(key, status);
-        return toExternalKey(key);
+        return key;
     }
 
 
@@ -253,10 +285,9 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
 
 
     @Override
-    public Set<BigInteger> keySet()
+    public Set<BigId> keySet()
     {
         return map.keySet().stream()
-            .map(this::toExternalKey)
             .collect(Collectors.toSet());
     }
 
@@ -288,11 +319,11 @@ public class InMemoryCommandStatusStore extends InMemoryDataStore implements ICo
     }
     
     
-    protected void removeAllStatus(BigInteger cmdID)
+    protected void removeAllStatus(BigId cmdID)
     {
         // remove all series and commands
-        var first = new StatusKey(cmdID, Instant.MIN);
-        var last = new StatusKey(cmdID, Instant.MAX);
+        var first = new StatusKey(0, cmdID, Instant.MIN);
+        var last = new StatusKey(0, cmdID, Instant.MAX);
         map.subMap(first, last).clear();
     }
 

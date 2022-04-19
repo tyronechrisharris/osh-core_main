@@ -53,10 +53,10 @@ public class InMemorySystemStateDatabase extends AbstractModule<DatabaseConfig> 
     {
         this.databaseNum = databaseNum;
         
-        this.procStore = new InMemorySystemStore();
-        this.foiStore = new InMemoryFoiStore();
-        this.obsStore = new InMemoryObsStore();
-        this.cmdStore = new InMemoryCommandStore();
+        this.procStore = new InMemorySystemStore(databaseNum);
+        this.foiStore = new InMemoryFoiStore(databaseNum);
+        this.obsStore = new InMemoryObsStore(databaseNum);
+        this.cmdStore = new InMemoryCommandStore(databaseNum);
         
         procStore.linkTo(obsStore.getDataStreams());
         foiStore.linkTo(procStore);

@@ -23,7 +23,7 @@ public class TestInMemCommandStreamStore extends AbstractTestCommandStreamStore<
     
     protected InMemoryCommandStreamStore initStore() throws Exception
     {
-        return (InMemoryCommandStreamStore)new InMemoryCommandStore().getCommandStreams();
+        return (InMemoryCommandStreamStore)new InMemoryCommandStore(DATABASE_NUM).getCommandStreams();
     }
     
     

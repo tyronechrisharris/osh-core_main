@@ -44,15 +44,15 @@ public class InMemorySystemStore extends InMemoryBaseFeatureStore<ISystemWithDes
     IProcedureStore procedureStore;
     
     
-    public InMemorySystemStore()
+    public InMemorySystemStore(int idScope)
     {
-        this.idProvider = new HashCodeFeatureIdProvider(1353704900);
+        super(idScope, new HashCodeFeatureIdProvider(1353704900));
     }
     
     
-    public InMemorySystemStore(IdProvider<? super ISystemWithDesc> idProvider)
+    public InMemorySystemStore(int idScope, IdProvider<? super ISystemWithDesc> idProvider)
     {
-        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);            
+        super(idScope, idProvider);
     }
     
     

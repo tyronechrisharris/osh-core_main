@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
@@ -35,6 +36,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
+import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.index.quadtree.Quadtree;
@@ -56,12 +58,13 @@ import com.vividsolutions.jts.index.quadtree.Quadtree;
  */
 public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>> extends InMemoryDataStore implements IFeatureStoreBase<T, VF, F>
 {
-    NavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
-    NavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
-    NavigableMap<Long, Set<Long>> parentChildMap = new ConcurrentSkipListMap<>();
-    Quadtree spatialIndex = new Quadtree();
-    Bbox allFeaturesBbox = new Bbox();
-    IdProvider<? super T> idProvider = new InMemoryIdProvider<>(1);
+    final NavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
+    final NavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
+    final NavigableMap<BigId, Set<BigId>> parentChildMap = new ConcurrentSkipListMap<>();
+    final Quadtree spatialIndex = new Quadtree();
+    final Bbox allFeaturesBbox = new Bbox();
+    final IdProvider<? super T> idProvider;
+    final int idScope;
     
     
     /*
@@ -73,8 +76,10 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         @Override
         public int compare(FeatureKey k1, FeatureKey k2)
         {
-            return Long.compare(k1.getInternalID(), k2.getInternalID());
-        }        
+            return Long.compare(
+                k1.getInternalID().getIdAsLong(),
+                k2.getInternalID().getIdAsLong());
+        }
     }
     
     
@@ -85,15 +90,14 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
      */
     static class MutableFeatureKey extends FeatureKey
     {
-        MutableFeatureKey(long internalID, Instant validStartTime)
+        MutableFeatureKey(BigId internalID, Instant validStartTime)
         {
-            this.internalID = internalID;
-            this.validStartTime = validStartTime;
+            super(internalID, validStartTime);
         }
         
-        MutableFeatureKey(FeatureKey fk)
+        MutableFeatureKey(FeatureKey key)
         {
-            this(fk.getInternalID(), fk.getValidStartTime());
+            super(key.getInternalID(), key.getValidStartTime());
         }
         
         void updateValidTime(Instant validStartTime)
@@ -101,10 +105,17 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             this.validStartTime = validStartTime;
         }
     }
+    
+    
+    protected InMemoryBaseFeatureStore(int idScope, IdProvider<? super T> idProvider)
+    {
+        this.idScope = idScope;
+        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
+    }
 
 
     @Override
-    public synchronized FeatureKey add(long parentID, T feature) throws DataStoreException
+    public synchronized FeatureKey add(BigId parentID, T feature) throws DataStoreException
     {        
         var uid = DataStoreUtils.checkFeatureObject(feature);
         checkParentFeatureExists(parentID);
@@ -112,7 +123,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         var existingKey = uidMap.get(uid);
         FeatureKey newKey = generateKey(existingKey, feature);
         if (existingKey != null && existingKey.getValidStartTime().equals(newKey.getValidStartTime()))
-            throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);     
+            throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);
                 
         put(newKey, feature);
         
@@ -132,7 +143,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     }
     
     
-    protected void checkParentFeatureExists(long parentID) throws DataStoreException
+    protected void checkParentFeatureExists(BigId parentID) throws DataStoreException
     {
         DataStoreUtils.checkParentFeatureExists(this, parentID);
     }
@@ -140,8 +151,8 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     
     protected FeatureKey generateKey(FeatureKey existingKey, T f)
     {
-        long internalID = existingKey != null ? 
-            existingKey.getInternalID() : idProvider.newInternalID(f);
+        BigId internalID = existingKey != null ? 
+            existingKey.getInternalID() : BigId.fromLong(idScope, idProvider.newInternalID(f));
         
         // get valid start time from feature object
         // or use default value (meaning always valid) if no valid time is set
@@ -156,7 +167,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     
     
     @Override
-    public boolean contains(long internalID)
+    public boolean contains(BigId internalID)
     {
         DataStoreUtils.checkInternalID(internalID);
         return map.containsKey(new FeatureKey(internalID));
@@ -172,10 +183,10 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     
     
     @Override
-    public Entry<FeatureKey, T> getCurrentVersionEntry(long id)
+    public Entry<FeatureKey, T> getCurrentVersionEntry(BigId id)
     {
         var entry = map.ceilingEntry(new FeatureKey(id));
-        if (entry == null || entry.getKey().getInternalID() != id)
+        if (entry == null || entry.getKey().getInternalID().getIdAsLong() != id.getIdAsLong())
             return null;
         return entry;
     }
@@ -192,10 +203,10 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     
     
     @Override
-    public FeatureKey getCurrentVersionKey(long id)
+    public FeatureKey getCurrentVersionKey(BigId id)
     {
         var k = map.ceilingKey(new FeatureKey(id));
-        if (k == null || k.getInternalID() != id)
+        if (k == null || k.getInternalID().getIdAsLong() != id.getIdAsLong())
             return null;
         return k;
     }
@@ -210,12 +221,12 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     
     
     @Override
-    public Long getParent(long internalID)
+    public BigId getParent(BigId internalID)
     {
         for (var entry: parentChildMap.entrySet())
         {
             if (entry.getValue().contains(internalID))
-                return entry.getKey() == 0 ? null : entry.getKey();
+                return entry.getKey() == BigId.NONE ? null : entry.getKey();
         }
         
         return null;
@@ -243,18 +254,19 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     }
     
     
-    protected Stream<Entry<FeatureKey, T>> entryStream(Stream<Long> idStream)
+    protected Stream<Entry<FeatureKey, T>> entryStream(Stream<BigId> idStream)
     {
         return idStream.map(id -> {
                 FeatureKey key = new FeatureKey(id);
                 var entry = map.ceilingEntry(key);
-                return entry != null && entry.getKey().getInternalID() == id ? entry : null;
+                var fid = entry.getKey().getInternalID();
+                return entry != null && fid.getIdAsLong() == id.getIdAsLong() ? entry : null;
             })
             .filter(Objects::nonNull);
     }
     
     
-    protected Stream<Entry<FeatureKey, T>> getFeaturesByParent(long parentID)
+    protected Stream<Entry<FeatureKey, T>> getFeaturesByParent(BigId parentID)
     {
         var children = parentChildMap.get(parentID);
         if (children == null)
@@ -263,7 +275,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     }
     
     
-    protected Stream<Entry<FeatureKey, T>> postFilterOnParents(Stream<Entry<FeatureKey, T>> resultStream, Stream<Long> parentIDStream)
+    protected Stream<Entry<FeatureKey, T>> postFilterOnParents(Stream<Entry<FeatureKey, T>> resultStream, Stream<? extends BigId> parentIDStream)
     {
         if (resultStream == null)
         {
@@ -272,7 +284,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         else
         {
             // collect child ids from all selected parents
-            var allIds = new HashSet<Long>();
+            var allIds = new HashSet<BigId>();
             parentIDStream.forEach(id -> {
                 var children = parentChildMap.get(id);
                 if (children != null)
@@ -288,7 +300,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     }
     
     
-    protected Stream<Long> getKeyStreamForUniqueIdOrPrefix(String uid)
+    protected Stream<BigId> getKeyStreamForUniqueIdOrPrefix(String uid)
     {
         // case of wildcard
         if (uid.endsWith(FilterUtils.WILDCARD_CHAR))
@@ -331,8 +343,8 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             {
                 var bbox = filter.getLocationFilter().getRoi().getEnvelopeInternal();
                 @SuppressWarnings("unchecked")
-                var idStream = (Stream<Long>)spatialIndex.query(bbox).stream()
-                    .map(k -> ((FeatureKey)k).getInternalID())
+                var idStream = (Stream<BigId>)spatialIndex.query(bbox).stream()
+                    .map(k ->((FeatureKey)k).getInternalID())
                     .distinct();
                 return entryStream(idStream);
             }
@@ -401,7 +413,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     @Override
     public T get(Object key)
     {
-        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);                
+        FeatureKey fk = DataStoreUtils.checkFeatureKey(key);
         return map.get(fk);
     }
 
@@ -429,12 +441,12 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         // check that no other feature with same UID exists
         var uid = feature.getUniqueIdentifier();
         var existingKey = uidMap.get(uid);
-        if (existingKey != null && existingKey.getInternalID() != key.getInternalID())
+        if (existingKey != null && existingKey.equals(key))
             throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
         
         // skip silently if feature currently in store is newer
         // or if new feature has a valid time in the future
-        if ((existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime()) ) || 
+        if ((existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime())) || 
             key.getValidStartTime().isAfter(Instant.now()) )
             return map.get(existingKey);
         
@@ -449,7 +461,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
                 return feature;
             });
             
-            // make sure form now on we use the same key object
+            // make sure from now on we use the same key object
             // as the one already in the main map
             fk = existingKey;
         }

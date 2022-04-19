@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
@@ -52,22 +53,22 @@ import org.vast.util.TimeExtent;
  */
 public class InMemoryDataStreamStore implements IDataStreamStore
 {
-    NavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
-    NavigableMap<Long, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
-    InMemoryObsStore obsStore;
+    final NavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
+    final NavigableMap<BigId, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
+    final InMemoryObsStore obsStore;
     ISystemDescStore systemStore;
     
     
     class DataStreamInfoWithTimeRanges extends DataStreamInfoWrapper
     {
-        long id;
+        BigId id;
         TimeExtent phenomenonTimeRange;
         
-        DataStreamInfoWithTimeRanges(long internalID, IDataStreamInfo dsInfo)
+        DataStreamInfoWithTimeRanges(BigId id, IDataStreamInfo dsInfo)
         {
             super(dsInfo);
-            this.id = internalID;
-        }        
+            this.id = id;
+        }
         
         @Override
         public TimeExtent getPhenomenonTimeRange()
@@ -132,7 +133,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
             dsInfo.getSystemID().getInternalID(),
             dsInfo.getOutputName(),
             dsInfo.getValidTime());
-        return new DataStreamKey(hash & 0xFFFFFFFFL);
+        return new DataStreamKey(obsStore.idScope, hash & 0xFFFFFFFFL);
     }
 
 
@@ -263,7 +264,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     @Override
     public IDataStreamInfo remove(Object key)
     {
-        var dsKey = DataStoreUtils.checkDataStreamKey(key);        
+        var dsKey = DataStoreUtils.checkDataStreamKey(key);
         var oldValue = new AtomicReference<IDataStreamInfo>();
         
         map.computeIfPresent(dsKey, (k, v) -> {

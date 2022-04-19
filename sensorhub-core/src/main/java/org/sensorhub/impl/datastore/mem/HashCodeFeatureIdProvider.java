@@ -32,7 +32,7 @@ public class HashCodeFeatureIdProvider implements IdProvider<IFeature>
     
     public HashCodeFeatureIdProvider(int seed)
     {
-        hashFunc = Hashing.murmur3_128(seed);
+        this.hashFunc = Hashing.murmur3_128(seed);
     }
     
     

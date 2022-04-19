@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.mem;
 
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.AbstractMap;
@@ -31,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
@@ -40,6 +40,7 @@ import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.sensorhub.utils.AtomicInitializer;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 
@@ -61,21 +62,66 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
     final NavigableMap<CmdKey, ICommandData> map = new ConcurrentSkipListMap<>(new CmdKeyComparator());
     final InMemoryCommandStreamStore cmdStreamStore;
     final InMemoryCommandStatusStore cmdStatusStore;
+    final int idScope;
     IFoiStore foiStore;
     AtomicLong cmdCounter = new AtomicLong();
     
     
-    private static class CmdKey
-    {    
-        long cmdStreamID = 0;
-        long foiID = 0;
-        Instant issueTime = null;
+    private static class CmdKey implements BigId
+    {
+        int scope;
+        long cmdStreamID;
+        long foiID;
+        Instant issueTime;
+        AtomicInitializer<byte[]> cachedId = new AtomicInitializer<>();
         
-        CmdKey(long cmdStreamID, long foiID, Instant issueTime)
+        CmdKey(int scope, long cmdStreamID, long foiID, Instant issueTime)
         {
+            this.scope = scope;
             this.cmdStreamID = cmdStreamID;
             this.foiID = foiID;
             this.issueTime = issueTime;
+        }
+
+        @Override
+        public int getScope()
+        {
+            return scope;
+        }
+
+        @Override
+        public byte[] getIdAsBytes()
+        {
+            // compute byte[] representation lazily
+            return cachedId.get(() -> {
+                ByteBuffer buf = ByteBuffer.allocate(28);
+                buf.putLong(cmdStreamID);
+                buf.putLong(foiID);
+                buf.putLong(issueTime.getEpochSecond());
+                buf.putInt(issueTime.getNano());
+                return buf.array();
+            });
+        }
+        
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(
+                scope, cmdStreamID, foiID, issueTime
+            );
+        }
+        
+        @Override
+        public boolean equals(Object o)
+        {
+            if (!(o instanceof CmdKey))
+                return false;
+            
+            var other = (CmdKey)o;
+            return scope == other.scope &&
+                cmdStreamID == other.cmdStreamID &&
+                foiID == other.foiID &&
+                Objects.equals(issueTime, other.issueTime);
         }
 
         @Override
@@ -107,71 +153,51 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
     }
     
     
-    public InMemoryCommandStore()
+    public InMemoryCommandStore(int idScope)
     {
+        this.idScope = idScope;
         this.cmdStreamStore = new InMemoryCommandStreamStore(this);
         this.cmdStatusStore = new InMemoryCommandStatusStore(this);
     }
     
     
-    BigInteger toExternalKey(CmdKey cmdKey)
-    {
-        // compute internal ID
-        ByteBuffer buf = ByteBuffer.allocate(28);
-        buf.putLong(cmdKey.cmdStreamID);
-        buf.putLong(cmdKey.foiID);
-        buf.putLong(cmdKey.issueTime.getEpochSecond());
-        buf.putInt(cmdKey.issueTime.getNano());
-        return new BigInteger(buf.array(), 0, buf.position());
-    }
-    
-    
     CmdKey toInternalKey(Object keyObj)
     {
-        Asserts.checkArgument(keyObj instanceof BigInteger);
-        BigInteger key = (BigInteger)keyObj;
+        Asserts.checkArgument(keyObj instanceof BigId);
+        BigId key = (BigId)keyObj;
+        
+        if (key instanceof CmdKey)
+            return (CmdKey)key;
 
         try
         {
-            // parse from BigInt
-            byte[] bigIntBytes = key.toByteArray();
-            ByteBuffer buf = ByteBuffer.allocate(28);
-            for (int i=0; i<(28-bigIntBytes.length); i++)
-                buf.put((byte)0);
-            buf.put(bigIntBytes);
-            buf.flip();
-            
+            // parse from BigId
+            var buf = ByteBuffer.wrap(key.getIdAsBytes());
             long dsID = buf.getLong();
             long foiID = buf.getLong();
             Instant issueTime = Instant.ofEpochSecond(buf.getLong(), buf.getInt());
-            return new CmdKey(dsID, foiID, issueTime);
+            return new CmdKey(idScope, dsID, foiID, issueTime);
         }
         catch (Exception e)
         {
-            // invalid bigint key
+            // invalid BigId key
             // return key object that will never match
-            return new CmdKey(0, 0, Instant.MAX);
+            return new CmdKey(0, 0, 0, Instant.MAX);
         }
     }
     
     
-    Stream<Entry<CmdKey, ICommandData>> getCommandsByCommandStream(long cmdStreamID)
+    Stream<Entry<CmdKey, ICommandData>> getCommandsByCommandStream(BigId cmdStreamID)
     {
-        CmdKey fromKey = new CmdKey(cmdStreamID, 0, Instant.MIN);
-        CmdKey toKey = new CmdKey(cmdStreamID, Long.MAX_VALUE, Instant.MAX);
+        CmdKey fromKey = new CmdKey(0, cmdStreamID.getIdAsLong(), 0, Instant.MIN);
+        CmdKey toKey = new CmdKey(0, cmdStreamID.getIdAsLong(), Long.MAX_VALUE, Instant.MAX);
         
         return map.subMap(fromKey, true, toKey, true).entrySet().stream();
-    }
-    
-    
-    Entry<BigInteger, ICommandData> toExternalEntry(Entry<CmdKey, ICommandData> e)
-    {
-        return new AbstractMap.SimpleEntry<>(toExternalKey(e.getKey()), e.getValue());
     }
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
+    public Stream<Entry<BigId, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {
         Stream<Entry<CmdKey, ICommandData>> resultStream = null;
         
@@ -206,16 +232,20 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
         if (filter.getStatusFilter() != null)
         {
             resultStream = resultStream.filter(cmd -> {
-                return cmdStatusStore.getStatusByCommand(toExternalKey(cmd.getKey()))
+                return cmdStatusStore.getStatusByCommand(cmd.getKey())
                     .anyMatch(status -> filter.getStatusFilter().test(status.getValue()));
             });
         }
             
         // filter with predicate and apply limit
-        return resultStream
+        resultStream = resultStream
             .filter(e -> filter.test(e.getValue()))
-            .limit(filter.getLimit())
-            .map(e -> toExternalEntry(e));
+            .limit(filter.getLimit());
+        
+        // casting is ok since keys are subtypes of BigId
+        @SuppressWarnings({ "unchecked", })
+        var castedResultStream = (Stream<Entry<BigId, ICommandData>>)(Stream<?>)resultStream;
+        return castedResultStream;
     }
 
 
@@ -229,7 +259,7 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
     @Override
     public boolean containsKey(Object key)
     {
-        return key instanceof BigInteger && map.containsKey(toInternalKey(key));
+        return key instanceof BigId && map.containsKey(toInternalKey(key));
     }
 
 
@@ -240,12 +270,12 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
     }
 
 
-    public Set<Entry<BigInteger, ICommandData>> entrySet()
+    public Set<Entry<BigId, ICommandData>> entrySet()
     {
-        return new AbstractSet<Entry<BigInteger, ICommandData>>()
+        return new AbstractSet<Entry<BigId, ICommandData>>()
         {
             @Override
-            public Iterator<Entry<BigInteger, ICommandData>> iterator()
+            public Iterator<Entry<BigId, ICommandData>> iterator()
             {
                 // TODO Auto-generated method stub
                 return null;
@@ -269,7 +299,7 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
 
 
     @Override
-    public ICommandData put(BigInteger key, ICommandData cmd)
+    public ICommandData put(BigId key, ICommandData cmd)
     {
         var cmdKey = toInternalKey(key);
         var oldCmd = map.replace(cmdKey, cmd);
@@ -282,11 +312,12 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
 
 
     @Override
-    public BigInteger add(ICommandData cmd)
+    public BigId add(ICommandData cmd)
     {
         CmdKey key = new CmdKey(
-            cmd.getCommandStreamID(),
-            cmd.getFoiID(),
+            idScope,
+            cmd.getCommandStreamID().getIdAsLong(),
+            cmd.getFoiID().getIdAsLong(),
             cmd.getIssueTime());
         
         // add new command and remove older ones atomically
@@ -295,14 +326,21 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
             return cmd;
         });
         
-        return toExternalKey(key);
+        return key;
     }
     
     
     protected void removeOlderCommands(CmdKey newKey, ICommandData newCmd)
     {
-        var first = new CmdKey(newCmd.getCommandStreamID(), newCmd.getFoiID(), Instant.MIN);
-        var last = new CmdKey(newCmd.getCommandStreamID(), newCmd.getFoiID(), Instant.MAX);
+        var first = new CmdKey(0,
+            newCmd.getCommandStreamID().getIdAsLong(),
+            newCmd.getFoiID().getIdAsLong(),
+            Instant.MIN);
+        
+        var last = new CmdKey(0,
+            newCmd.getCommandStreamID().getIdAsLong(),
+            newCmd.getFoiID().getIdAsLong(),
+            Instant.MAX);
         
         // remove all other commands for same stream/foi combination
         var it = map.subMap(first, last).keySet().iterator();
@@ -311,7 +349,7 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
             var oldKey = it.next();
             if (oldKey != newKey)
             {
-                cmdStatusStore.removeAllStatus(toExternalKey(oldKey));
+                cmdStatusStore.removeAllStatus(oldKey);
                 it.remove();
             }
         }
@@ -326,10 +364,9 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
 
 
     @Override
-    public Set<BigInteger> keySet()
+    public Set<BigId> keySet()
     {
         return map.keySet().stream()
-            .map(this::toExternalKey)
             .collect(Collectors.toSet());
     }
 

@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
@@ -52,19 +53,19 @@ import org.vast.util.TimeExtent;
  */
 public class InMemoryCommandStreamStore implements ICommandStreamStore
 {
-    NavigableMap<CommandStreamKey, ICommandStreamInfo> map = new ConcurrentSkipListMap<>();
-    NavigableMap<Long, Set<CommandStreamKey>> procIdToCsKeys = new ConcurrentSkipListMap<>();
-    InMemoryCommandStore cmdStore;
+    final NavigableMap<CommandStreamKey, ICommandStreamInfo> map = new ConcurrentSkipListMap<>();
+    final NavigableMap<BigId, Set<CommandStreamKey>> procIdToCsKeys = new ConcurrentSkipListMap<>();
+    final InMemoryCommandStore cmdStore;
     ISystemDescStore systemStore;
     
     
     class CommandStreamInfoWithTimeRanges extends CommandStreamInfoWrapper
     {
-        long id;
+        BigId id;
         TimeExtent issueTimeRange;
         TimeExtent executionTimeRange;
         
-        CommandStreamInfoWithTimeRanges(long internalID, ICommandStreamInfo csInfo)
+        CommandStreamInfoWithTimeRanges(BigId internalID, ICommandStreamInfo csInfo)
         {
             super(csInfo);
             this.id = internalID;
@@ -163,7 +164,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
             csInfo.getSystemID().getInternalID(),
             csInfo.getControlInputName(),
             csInfo.getValidTime());
-        return new CommandStreamKey(hash & 0xFFFFFFFFL);
+        return new CommandStreamKey(cmdStore.idScope, hash & 0xFFFFFFFFL);
     }
 
 
@@ -286,7 +287,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
         
         // add new command stream
         var oldDsInfo = map.put(csKey, csInfo);
-        procDsKeys.add(csKey);        
+        procDsKeys.add(csKey);
         return oldDsInfo;
     }
 

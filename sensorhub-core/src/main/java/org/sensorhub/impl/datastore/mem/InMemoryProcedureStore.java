@@ -21,7 +21,6 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.vast.util.Asserts;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 
 
@@ -38,15 +37,15 @@ import org.sensorhub.impl.datastore.DataStoreUtils;
 public class InMemoryProcedureStore extends InMemoryBaseFeatureStore<IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
 {
     
-    public InMemoryProcedureStore()
+    public InMemoryProcedureStore(int idScope)
     {
-        this.idProvider = new HashCodeFeatureIdProvider(1353704900);
+        super(idScope, new HashCodeFeatureIdProvider(471489332));
     }
     
     
-    public InMemoryProcedureStore(IdProvider<? super IProcedureWithDesc> idProvider)
+    public InMemoryProcedureStore(int idScope, IdProvider<? super IProcedureWithDesc> idProvider)
     {
-        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
+        super(idScope, idProvider);
     }
     
     

@@ -18,17 +18,17 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import org.junit.Test;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
 
 
 public class TestInMemFeatureStore extends AbstractTestFeatureStore<InMemoryFeatureStore>
 {
-       
     
     protected InMemoryFeatureStore initStore() throws Exception
     {
-        return new InMemoryFeatureStore(new InMemoryIdProvider<>(1));
+        return new InMemoryFeatureStore(DATABASE_NUM, new InMemoryIdProvider<>(1));
     }
     
     
@@ -40,7 +40,7 @@ public class TestInMemFeatureStore extends AbstractTestFeatureStore<InMemoryFeat
     protected void removeNonCurrentFeatures()
     {
         // remove all features that are not valid now
-        var now = Instant.now();        
+        var now = Instant.now();
         var keysToRemove = new ArrayList<FeatureKey>();
         FeatureKey prevKey = null;
         
@@ -52,10 +52,10 @@ public class TestInMemFeatureStore extends AbstractTestFeatureStore<InMemoryFeat
             if (k.getValidStartTime().compareTo(now) > 0) {
                 keysToRemove.add(k);
             }
-            else if (prevKey != null && prevKey.getInternalID() == k.getInternalID()) {
+            else if (prevKey != null && prevKey.getInternalID().equals(k.getInternalID())) {
                 if (k.getValidStartTime().compareTo(now) <= 0)
                     keysToRemove.add(prevKey);
-            }           
+            }
             
             prevKey = k;
         }
@@ -65,35 +65,35 @@ public class TestInMemFeatureStore extends AbstractTestFeatureStore<InMemoryFeat
     }
     
     
-    protected void addNonGeoFeatures(long parentID, int startIndex, int numFeatures) throws Exception
+    protected void addNonGeoFeatures(BigId parentID, int startIndex, int numFeatures) throws Exception
     {
         super.addNonGeoFeatures(parentID, startIndex, numFeatures);
         removeNonCurrentFeatures();
     }
     
     
-    protected void addGeoFeaturesPoint2D(long parentID, int startIndex, int numFeatures) throws Exception
+    protected void addGeoFeaturesPoint2D(BigId parentID, int startIndex, int numFeatures) throws Exception
     {
         super.addGeoFeaturesPoint2D(parentID, startIndex, numFeatures);
         removeNonCurrentFeatures();
     }
     
     
-    protected void addSamplingPoints2D(long parentID, int startIndex, int numFeatures) throws Exception
+    protected void addSamplingPoints2D(BigId parentID, int startIndex, int numFeatures) throws Exception
     {
         super.addSamplingPoints2D(parentID, startIndex, numFeatures);
         removeNonCurrentFeatures();
     }
     
     
-    protected void addTemporalFeatures(long parentID, int startIndex, int numFeatures, OffsetDateTime startTime, boolean endNow) throws Exception
+    protected void addTemporalFeatures(BigId parentID, int startIndex, int numFeatures, OffsetDateTime startTime, boolean endNow) throws Exception
     {
         super.addTemporalFeatures(parentID, startIndex, numFeatures, startTime, endNow);
         removeNonCurrentFeatures();
     }
     
     
-    protected void addTemporalGeoFeatures(long parentID, int startIndex, int numFeatures) throws Exception
+    protected void addTemporalGeoFeatures(BigId parentID, int startIndex, int numFeatures) throws Exception
     {
         super.addTemporalGeoFeatures(parentID, startIndex, numFeatures);
         removeNonCurrentFeatures();

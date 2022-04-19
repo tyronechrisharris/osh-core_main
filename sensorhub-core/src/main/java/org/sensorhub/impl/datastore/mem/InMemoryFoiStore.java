@@ -16,6 +16,7 @@ package org.sensorhub.impl.datastore.mem;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -46,20 +47,20 @@ public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IFeature, FoiFiel
     IObsStore obsStore;
     
     
-    public InMemoryFoiStore()
+    public InMemoryFoiStore(int idScope)
     {
-        this.idProvider = new HashCodeFeatureIdProvider(806335237);
+        super(idScope, new HashCodeFeatureIdProvider(806335237));
     }
     
     
-    public InMemoryFoiStore(IdProvider<? super IFeature> idProvider)
+    public InMemoryFoiStore(int idScope, IdProvider<? super IFeature> idProvider)
     {
-        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
+        super(idScope, idProvider);
     }
     
     
     @Override
-    protected void checkParentFeatureExists(long parentID) throws DataStoreException
+    protected void checkParentFeatureExists(BigId parentID) throws DataStoreException
     {
         if (procStore != null)
             DataStoreUtils.checkParentFeatureExists(parentID, procStore, this);

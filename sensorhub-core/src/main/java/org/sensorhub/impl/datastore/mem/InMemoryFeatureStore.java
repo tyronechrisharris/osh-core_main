@@ -22,7 +22,6 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.ogc.gml.IFeature;
-import org.vast.util.Asserts;
 
 
 /**
@@ -38,15 +37,15 @@ import org.vast.util.Asserts;
 public class InMemoryFeatureStore extends InMemoryBaseFeatureStore<IFeature, FeatureField, FeatureFilter> implements IFeatureStore
 {
     
-    public InMemoryFeatureStore()
+    public InMemoryFeatureStore(int idScope)
     {
-        this.idProvider = new HashCodeFeatureIdProvider(831496768);
+        super(idScope, new HashCodeFeatureIdProvider(831496768));
     }
     
     
-    public InMemoryFeatureStore(IdProvider<? super IFeature> idProvider)
+    public InMemoryFeatureStore(int idScope, IdProvider<? super IFeature> idProvider)
     {
-        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
+        super(idScope, idProvider);
     }
     
     

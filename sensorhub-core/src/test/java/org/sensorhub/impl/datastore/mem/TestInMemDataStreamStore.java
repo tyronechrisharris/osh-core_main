@@ -23,7 +23,7 @@ public class TestInMemDataStreamStore extends AbstractTestDataStreamStore<InMemo
     
     protected InMemoryDataStreamStore initStore() throws Exception
     {
-        return (InMemoryDataStreamStore)new InMemoryObsStore().getDataStreams();
+        return (InMemoryDataStreamStore)new InMemoryObsStore(DATABASE_NUM).getDataStreams();
     }
     
     

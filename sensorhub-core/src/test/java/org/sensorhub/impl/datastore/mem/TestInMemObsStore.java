@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.mem;
 
 import static org.junit.Assert.assertEquals;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -24,6 +23,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 import org.junit.Test;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.impl.datastore.AbstractTestObsStore;
@@ -36,7 +36,7 @@ public class TestInMemObsStore extends AbstractTestObsStore<InMemoryObsStore>
     
     protected InMemoryObsStore initStore() throws Exception
     {
-        return new InMemoryObsStore();
+        return new InMemoryObsStore(DATABASE_NUM);
     }
 
 
@@ -45,10 +45,10 @@ public class TestInMemObsStore extends AbstractTestObsStore<InMemoryObsStore>
     public void testGetNumRecordsOneDataStream() throws Exception
     {
         // add one datastream
-        var dsKey = addSimpleDataStream(10, "out1");
+        var dsID = addSimpleDataStream(bigId(10), "out1");
         
         // add multiple obs
-        addSimpleObsWithoutResultTime(dsKey.getInternalID(), 0, Instant.parse("2000-01-01T00:00:00Z"), 100);
+        addSimpleObsWithoutResultTime(dsID, BigId.NONE, Instant.parse("2000-01-01T00:00:00Z"), 100);
         
         // check that we have only one record in store
         assertEquals(1, obsStore.getNumRecords());
@@ -60,34 +60,34 @@ public class TestInMemObsStore extends AbstractTestObsStore<InMemoryObsStore>
     public void testGetNumRecordsTwoDataStreams() throws Exception
     {
         // add 2 datastreams
-        var ds1 = addSimpleDataStream(1, "out1");
-        var ds2 = addSimpleDataStream(2, "out1");
+        var ds1 = addSimpleDataStream(bigId(1), "out1");
+        var ds2 = addSimpleDataStream(bigId(2), "out1");
 
         // add multiple obs to both streams
-        addSimpleObsWithoutResultTime(ds1.getInternalID(), 0, Instant.parse("2000-06-21T14:36:12Z"), 100);
-        addSimpleObsWithoutResultTime(ds2.getInternalID(), 0, Instant.parse("1970-01-01T00:00:00Z"), 50);
+        addSimpleObsWithoutResultTime(ds1, BigId.NONE, Instant.parse("2000-06-21T14:36:12Z"), 100);
+        addSimpleObsWithoutResultTime(ds2, BigId.NONE, Instant.parse("1970-01-01T00:00:00Z"), 50);
         
         // check that we have only 2 records, one in each stream
         assertEquals(2, obsStore.getNumRecords());
         
         assertEquals(1, obsStore.countMatchingEntries(new ObsFilter.Builder()
-            .withDataStreams(ds1.getInternalID())
+            .withDataStreams(ds1)
             .build()));
         
         assertEquals(1, obsStore.countMatchingEntries(new ObsFilter.Builder()
-            .withDataStreams(ds2.getInternalID())
+            .withDataStreams(ds2)
             .build()));
     }
     
     
-    private Map<BigInteger, IObsData> keepOnlyLatestObs(Map<BigInteger, IObsData> expectedResults)
+    private Map<BigId, IObsData> keepOnlyLatestObs(Map<BigId, IObsData> expectedResults)
     {
-        Map<Integer, Entry<BigInteger, IObsData>> latestPerStream = new LinkedHashMap<>();
+        Map<Integer, Entry<BigId, IObsData>> latestPerStream = new LinkedHashMap<>();
         for (var entry: allObs.entrySet())
         {
             var obs = entry.getValue();
             var dsFoiKey = Objects.hash(obs.getDataStreamID(), obs.getFoiID());
-            var savedEntry = latestPerStream.get(dsFoiKey);            
+            var savedEntry = latestPerStream.get(dsFoiKey);
             
             if (savedEntry == null || savedEntry.getValue().getResultTime().isBefore(obs.getResultTime()))
                 latestPerStream.put(dsFoiKey, entry);
@@ -98,7 +98,7 @@ public class TestInMemObsStore extends AbstractTestObsStore<InMemoryObsStore>
     }
     
     
-    protected void checkSelectedEntries(Stream<Entry<BigInteger, IObsData>> resultStream, Map<BigInteger, IObsData> expectedResults, ObsFilter filter)
+    protected void checkSelectedEntries(Stream<Entry<BigId, IObsData>> resultStream, Map<BigId, IObsData> expectedResults, ObsFilter filter)
     {
         // keep only latest command in expected results
         expectedResults = keepOnlyLatestObs(expectedResults);
@@ -107,7 +107,7 @@ public class TestInMemObsStore extends AbstractTestObsStore<InMemoryObsStore>
     
     
     @Override
-    protected void checkMapKeySet(Set<BigInteger> keySet)
+    protected void checkMapKeySet(Set<BigId> keySet)
     {
         var saveAllCommands = allObs;
         allObs = keepOnlyLatestObs(allObs);
