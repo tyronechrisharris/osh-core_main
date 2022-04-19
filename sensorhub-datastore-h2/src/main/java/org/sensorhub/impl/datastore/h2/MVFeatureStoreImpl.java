@@ -25,6 +25,7 @@ import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.feature.FeatureWrapper;
 import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.TimeExtent;
 
@@ -38,12 +39,14 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
     
     
     /**
-     * Opens an existing feature store or create a new one with the specified name
+     * Opens an existing feature store or create a new one with the specified info
      * @param mvStore MVStore instance containing the required maps
+     * @param idScope Internal ID scope (database num)
+     * @param idProviderType Type of ID provider to use to generate new IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVFeatureStoreImpl open(MVStore mvStore, MVDataStoreInfo newStoreInfo)
+    public static MVFeatureStoreImpl open(MVStore mvStore, int idScope, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -52,7 +55,7 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
             H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         }
         
-        return (MVFeatureStoreImpl)new MVFeatureStoreImpl().init(mvStore, dataStoreInfo, null);
+        return (MVFeatureStoreImpl)new MVFeatureStoreImpl().init(mvStore, idScope, idProviderType, dataStoreInfo);
     }
     
     
@@ -63,14 +66,17 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
         
         if (filter.getParentFilter() != null)
         {
+            var parentIDStream = DataStoreUtils.selectFeatureIDs(this, filter.getParentFilter());
+            
             if (resultStream == null)
             {
-                resultStream = selectParentIDs(filter.getParentFilter())
+                resultStream = parentIDStream
                     .flatMap(id -> getParentResultStream(id, filter.getValidTime()));
             }
             else
             {
-                var parentIDs = selectParentIDs(filter.getParentFilter())
+                var parentIDs = parentIDStream
+                    .map(id -> id.getIdAsLong())
                     .collect(Collectors.toSet());
                 
                 resultStream = resultStream.filter(
@@ -83,12 +89,6 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
         }
         
         return resultStream;
-    }
-    
-    
-    protected Stream<Long> selectParentIDs(FeatureFilter parentFilter)
-    {
-        return DataStoreUtils.selectFeatureIDs(this, parentFilter);
     }
 
 
@@ -109,9 +109,11 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
                         if (validTime == null)
                         {
                             var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
-                            if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
-                                f.getValidTime() != null && f.getValidTime().endsNow())
+                            if (nextKey != null && f.getValidTime() != null && f.getValidTime().endsNow() &&
+                                nextKey.getInternalID().getIdAsLong() == e.getKey().getInternalID().getIdAsLong())
+                            {
                                 validTime = TimeExtent.period(f.getValidTime().begin(), nextKey.getValidStartTime());
+                            }
                             else
                                 validTime = f.getValidTime();
                         }

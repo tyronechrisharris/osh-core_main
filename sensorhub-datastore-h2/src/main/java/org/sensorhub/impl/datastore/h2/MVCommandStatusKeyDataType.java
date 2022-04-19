@@ -14,10 +14,10 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
+import org.sensorhub.api.common.BigId;
 
 
 /**
@@ -30,7 +30,13 @@ import org.h2.mvstore.type.DataType;
  */
 class MVCommandStatusKeyDataType implements DataType
 {
-    private static final int MEM_SIZE = 24;
+    int idScope;
+    
+    
+    MVCommandStatusKeyDataType(int idScope)
+    {
+        this.idScope = idScope;
+    }
     
     
     @Override
@@ -52,7 +58,15 @@ class MVCommandStatusKeyDataType implements DataType
     @Override
     public int getMemory(Object obj)
     {
-        return MEM_SIZE;
+        var key = (MVCommandStatusKey)obj;
+        return getEncodedLen(key);
+    }
+    
+    
+    public static int getEncodedLen(MVCommandStatusKey key)
+    {
+        return 1 + key.cmdID.size() +
+            H2Utils.getInstantEncodedLen(key.reportTime);
     }
     
 
@@ -60,7 +74,14 @@ class MVCommandStatusKeyDataType implements DataType
     public void write(WriteBuffer wbuf, Object obj)
     {
         MVCommandStatusKey key = (MVCommandStatusKey)obj;
-        byte[] cmdID = key.cmdID.toByteArray();
+        //encode(wbuf, key);
+        wbuf.put(key.getIdAsBytes());
+    }
+    
+    
+    public static void encode(WriteBuffer wbuf, MVCommandStatusKey key)
+    {
+        byte[] cmdID = key.cmdID.getIdAsBytes();
         wbuf.put((byte)cmdID.length);
         wbuf.put(cmdID);
         H2Utils.writeInstant(wbuf, key.reportTime);
@@ -78,9 +99,16 @@ class MVCommandStatusKeyDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
+        return decode(idScope, buff);
+    }
+    
+    
+    public static MVCommandStatusKey decode(int idScope, ByteBuffer buff)
+    {
         int cmdIdLen = buff.get();
-        var cmdID = new BigInteger(buff.array(), buff.position(), cmdIdLen);
-        buff.position(buff.position()+cmdIdLen);
+        byte[] id = new byte[cmdIdLen];
+        buff.get(id);
+        var cmdID = BigId.fromBytes(idScope, id);
         var reportTime = H2Utils.readInstant(buff);
         return new MVCommandStatusKey(cmdID, reportTime);
     }

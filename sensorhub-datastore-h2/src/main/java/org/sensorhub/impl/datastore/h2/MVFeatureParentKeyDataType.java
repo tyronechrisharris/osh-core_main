@@ -32,11 +32,13 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
  */
 class MVFeatureParentKeyDataType implements DataType
 {
-    boolean storeValidTime;
+    final int idScope;
+    final boolean storeValidTime;
     
     
-    MVFeatureParentKeyDataType(boolean storeValidTime)
+    MVFeatureParentKeyDataType(int idScope, boolean storeValidTime)
     {
+        this.idScope = idScope;
         this.storeValidTime = storeValidTime;
     }
     
@@ -55,7 +57,7 @@ class MVFeatureParentKeyDataType implements DataType
             return comp;
         
         // if parent IDs are the same, compare internal IDs
-        comp = Long.compare(a.getInternalID(), b.getInternalID());
+        comp = Long.compare(a.getInternalID().getIdAsLong(), b.getInternalID().getIdAsLong());
         if (comp != 0)
             return comp;
         
@@ -69,7 +71,7 @@ class MVFeatureParentKeyDataType implements DataType
     {
         MVFeatureParentKey key = (MVFeatureParentKey)obj;
         return DataUtils.getVarLongLen(key.getParentID()) +
-            DataUtils.getVarLongLen(key.getInternalID());
+               DataUtils.getVarLongLen(key.getInternalID().getIdAsLong());
     }
     
 
@@ -78,7 +80,7 @@ class MVFeatureParentKeyDataType implements DataType
     {
         MVFeatureParentKey key = (MVFeatureParentKey)obj;
         wbuf.putVarLong(key.getParentID());
-        wbuf.putVarLong(key.getInternalID());
+        wbuf.putVarLong(key.getInternalID().getIdAsLong());
         
         if (storeValidTime)
             H2Utils.writeInstant(wbuf, key.getValidStartTime());
@@ -102,10 +104,10 @@ class MVFeatureParentKeyDataType implements DataType
         if (storeValidTime)
         {
             var validStartTime = H2Utils.readInstant(buf);
-            return new MVFeatureParentKey(parentID, internalID, validStartTime);
+            return new MVFeatureParentKey(idScope, parentID, internalID, validStartTime);
         }
         else
-            return new MVFeatureParentKey(parentID, internalID);
+            return new MVFeatureParentKey(idScope, parentID, internalID, FeatureKey.TIMELESS);
     }
     
 
@@ -113,6 +115,6 @@ class MVFeatureParentKeyDataType implements DataType
     public void read(ByteBuffer buf, Object[] obj, int len, boolean key)
     {
         for (int i=0; i<len; i++)
-            obj[i] = read(buf);        
+            obj[i] = read(buf);
     }
 }

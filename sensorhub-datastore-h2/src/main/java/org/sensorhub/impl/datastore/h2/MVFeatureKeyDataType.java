@@ -33,10 +33,16 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
  */
 class MVFeatureKeyDataType implements DataType
 {
-    private static final int MEM_SIZE = 10+14+2;
     Comparator<Instant> timeCompare = Comparator.nullsFirst(Comparator.naturalOrder());
+    int idScope;
     
-            
+    
+    MVFeatureKeyDataType(int idScope)
+    {
+        this.idScope = idScope;
+    }
+    
+    
     @Override
     public int compare(Object objA, Object objB)
     {
@@ -44,7 +50,7 @@ class MVFeatureKeyDataType implements DataType
         FeatureKey b = (FeatureKey)objB;
         
         // first compare internal ID part of the key
-        int idComp = Long.compare(a.getInternalID(), b.getInternalID());
+        int idComp = Long.compare(a.getInternalID().getIdAsLong(), b.getInternalID().getIdAsLong());
         if (idComp != 0)
             return idComp;
         
@@ -56,7 +62,9 @@ class MVFeatureKeyDataType implements DataType
     @Override
     public int getMemory(Object obj)
     {
-        return MEM_SIZE;
+        FeatureKey key = (FeatureKey)obj;
+        return DataUtils.getVarLongLen(key.getInternalID().getIdAsLong()) + 
+               H2Utils.getInstantEncodedLen(key.getValidStartTime());
     }
     
 
@@ -64,7 +72,7 @@ class MVFeatureKeyDataType implements DataType
     public void write(WriteBuffer wbuf, Object obj)
     {
         FeatureKey key = (FeatureKey)obj;
-        wbuf.putVarLong(key.getInternalID());
+        wbuf.putVarLong(key.getInternalID().getIdAsLong());
         H2Utils.writeInstant(wbuf, key.getValidStartTime());
     }
     
@@ -82,7 +90,7 @@ class MVFeatureKeyDataType implements DataType
     {
         long internalID = DataUtils.readVarLong(buff); 
         Instant validStartTime = H2Utils.readInstant(buff);
-        return new FeatureKey(internalID, validStartTime);
+        return new FeatureKey(idScope, internalID, validStartTime);
     }
     
 
@@ -90,7 +98,7 @@ class MVFeatureKeyDataType implements DataType
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
     {
         for (int i=0; i<len; i++)
-            obj[i] = read(buff);        
+            obj[i] = read(buff);
     }
 
 }

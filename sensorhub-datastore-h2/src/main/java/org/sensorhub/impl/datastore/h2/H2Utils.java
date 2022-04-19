@@ -151,6 +151,12 @@ public class H2Utils
     }
     
     
+    public static int getInstantEncodedLen(Instant instant)
+    {
+        return DataUtils.getVarLongLen(instant.getEpochSecond()) + 4;
+    }
+    
+    
     public static Instant readInstant(ByteBuffer buf)
     {
         long epochSeconds = DataUtils.readVarLong(buf);

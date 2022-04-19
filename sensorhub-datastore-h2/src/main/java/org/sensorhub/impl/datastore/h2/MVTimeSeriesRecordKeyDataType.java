@@ -32,7 +32,13 @@ import org.h2.mvstore.type.DataType;
  */
 class MVTimeSeriesRecordKeyDataType implements DataType
 {
-    private static final int MEM_SIZE = 8+12; // long ID + instant
+    final int idScope;
+    
+    
+    MVTimeSeriesRecordKeyDataType(int idScope)
+    {
+        this.idScope = idScope;
+    }
     
     
     @Override
@@ -54,7 +60,15 @@ class MVTimeSeriesRecordKeyDataType implements DataType
     @Override
     public int getMemory(Object obj)
     {
-        return MEM_SIZE;
+        MVTimeSeriesRecordKey key = (MVTimeSeriesRecordKey)obj;
+        return getEncodedLen(key);
+    }
+    
+    
+    public static int getEncodedLen(MVTimeSeriesRecordKey key)
+    {
+        return DataUtils.getVarLongLen(key.seriesID) +
+               H2Utils.getInstantEncodedLen(key.timeStamp);
     }
     
 
@@ -62,6 +76,13 @@ class MVTimeSeriesRecordKeyDataType implements DataType
     public void write(WriteBuffer wbuf, Object obj)
     {
         MVTimeSeriesRecordKey key = (MVTimeSeriesRecordKey)obj;
+        //encode(wbuf, key);
+        wbuf.put(key.getIdAsBytes());
+    }
+    
+    
+    public static void encode(WriteBuffer wbuf, MVTimeSeriesRecordKey key)
+    {
         wbuf.putVarLong(key.seriesID);
         H2Utils.writeInstant(wbuf, key.getTimeStamp());
     }
@@ -78,9 +99,15 @@ class MVTimeSeriesRecordKeyDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
+        return decode(idScope, buff);
+    }
+    
+    
+    public static MVTimeSeriesRecordKey decode(int idScope, ByteBuffer buff)
+    {
         long seriesID = DataUtils.readVarLong(buff);
-        Instant phenomenonTime = H2Utils.readInstant(buff);        
-        return new MVTimeSeriesRecordKey(seriesID, phenomenonTime);
+        Instant phenomenonTime = H2Utils.readInstant(buff);
+        return new MVTimeSeriesRecordKey(idScope, seriesID, phenomenonTime);
     }
     
 
@@ -88,7 +115,7 @@ class MVTimeSeriesRecordKeyDataType implements DataType
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
     {
         for (int i=0; i<len; i++)
-            obj[i] = read(buff);        
+            obj[i] = read(buff);
     }
 
 }

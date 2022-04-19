@@ -31,22 +31,32 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
  */
 class MVDataStreamKeyDataType implements DataType
 {
-    private static final int MEM_SIZE = 8;
+    final int idScope;
     
-            
+    
+    MVDataStreamKeyDataType(int idScope)
+    {
+        this.idScope = idScope;
+    }
+    
+    
     @Override
     public int compare(Object objA, Object objB)
     {
         DataStreamKey a = (DataStreamKey)objA;
-        DataStreamKey b = (DataStreamKey)objB;        
-        return Long.compare(a.getInternalID(), b.getInternalID());
+        DataStreamKey b = (DataStreamKey)objB;
+        
+        return Long.compare(
+            a.getInternalID().getIdAsLong(),
+            b.getInternalID().getIdAsLong());
     }
     
 
     @Override
     public int getMemory(Object obj)
     {
-        return MEM_SIZE;
+        var id = ((DataStreamKey)obj).getInternalID().getIdAsLong();
+        return DataUtils.getVarLongLen(id);
     }
     
 
@@ -54,7 +64,7 @@ class MVDataStreamKeyDataType implements DataType
     public void write(WriteBuffer wbuf, Object obj)
     {
         DataStreamKey key = (DataStreamKey)obj;
-        wbuf.putVarLong(key.getInternalID());
+        wbuf.putVarLong(key.getInternalID().getIdAsLong());
     }
     
 
@@ -69,8 +79,8 @@ class MVDataStreamKeyDataType implements DataType
     @Override
     public Object read(ByteBuffer buff)
     {
-        long internalID = DataUtils.readVarLong(buff);       
-        return new DataStreamKey(internalID);
+        long internalID = DataUtils.readVarLong(buff);
+        return new DataStreamKey(idScope, internalID);
     }
     
 
@@ -78,7 +88,7 @@ class MVDataStreamKeyDataType implements DataType
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
     {
         for (int i=0; i<len; i++)
-            obj[i] = read(buff);        
+            obj[i] = read(buff);
     }
 
 }

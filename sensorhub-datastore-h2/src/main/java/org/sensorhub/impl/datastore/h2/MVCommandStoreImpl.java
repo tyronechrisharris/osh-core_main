@@ -17,7 +17,6 @@ package org.sensorhub.impl.datastore.h2;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
@@ -29,14 +28,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
-import org.h2.mvstore.WriteBuffer;
 import org.sensorhub.api.command.ICommandData;
-import org.sensorhub.api.command.ICommandStreamInfo;
-import org.sensorhub.api.datastore.IdProvider;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
 import org.sensorhub.api.datastore.command.CommandStatsQuery;
@@ -51,7 +47,6 @@ import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
-import com.google.common.hash.Hashing;
 
 
 /**
@@ -76,6 +71,7 @@ public class MVCommandStoreImpl implements ICommandStore
     protected MVCommandStatusStoreImpl cmdStatusStore;
     protected MVBTreeMap<MVTimeSeriesRecordKey, ICommandData> cmdRecordsIndex;
     protected MVBTreeMap<MVTimeSeriesKey, MVTimeSeriesInfo> cmdSeriesMainIndex;
+    protected int idScope;
     
     protected IFoiStore foiStore;
     protected int maxSelectedSeriesOnJoin = 200;
@@ -108,12 +104,12 @@ public class MVCommandStoreImpl implements ICommandStore
     /**
      * Opens an existing command store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
-     * @param systemStore associated system descriptions data store
-     * @param idProviderType Type of ID provider to use to generate new command stream IDs
+     * @param idScope Internal ID scope (database num)
+     * @param dsIdProviderType Type of ID provider to use to generate new command stream IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVCommandStoreImpl open(MVStore mvStore, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
+    public static MVCommandStoreImpl open(MVStore mvStore, int idScope, IdProviderType dsIdProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -122,29 +118,16 @@ public class MVCommandStoreImpl implements ICommandStore
             H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         }
         
-        // create ID provider
-        IdProvider<ICommandStreamInfo> idProvider = null;
-        if (idProviderType == IdProviderType.UID_HASH)
-        {
-            var hashFunc = Hashing.murmur3_128(741532149);
-            idProvider = dsInfo -> {
-                var hasher = hashFunc.newHasher();
-                hasher.putLong(dsInfo.getSystemID().getInternalID());
-                hasher.putUnencodedChars(dsInfo.getControlInputName());
-                hasher.putLong(dsInfo.getValidTime().begin().toEpochMilli());
-                return hasher.hash().asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
-            };
-        }
-        
-        return new MVCommandStoreImpl().init(mvStore, dataStoreInfo, idProvider);
+        return new MVCommandStoreImpl().init(mvStore, idScope, dsIdProviderType, dataStoreInfo);
     }
     
     
-    private MVCommandStoreImpl init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider<ICommandStreamInfo> dsIdProvider)
+    private MVCommandStoreImpl init(MVStore mvStore, int idScope, IdProviderType dsIdProviderType, MVDataStoreInfo dataStoreInfo)
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
-        this.cmdStreamStore = new MVCommandStreamStoreImpl(this, dsIdProvider);
+        this.idScope = idScope;
+        this.cmdStreamStore = new MVCommandStreamStoreImpl(this, dsIdProviderType);
         this.cmdStatusStore = new MVCommandStatusStoreImpl(this);
         
         // persistent class mappings for Kryo
@@ -153,7 +136,7 @@ public class MVCommandStoreImpl implements ICommandStore
         // commands map
         String mapName = dataStoreInfo.getName() + ":" + CMD_RECORDS_MAP_NAME;
         this.cmdRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, ICommandData>()
-                .keyType(new MVTimeSeriesRecordKeyDataType())
+                .keyType(new MVTimeSeriesRecordKeyDataType(idScope))
                 .valueType(new CommandDataType(kryoClassMap)));
         
         // commands series map
@@ -238,42 +221,22 @@ public class MVCommandStoreImpl implements ICommandStore
     }
     
     
-    BigInteger mapToPublicKey(MVTimeSeriesRecordKey internalKey)
+    MVTimeSeriesRecordKey toInternalKey(Object keyObj)
     {
-        // compute internal ID
-        WriteBuffer buf = new WriteBuffer(24); // seriesID + timestamp seconds + nanos
-        DataUtils.writeVarLong(buf.getBuffer(), internalKey.getSeriesID());
-        H2Utils.writeInstant(buf, internalKey.getTimeStamp());
-        return new BigInteger(buf.getBuffer().array(), 0, buf.position());
-    }
-    
-    
-    MVTimeSeriesRecordKey mapToInternalKey(Object keyObj)
-    {
-        Asserts.checkArgument(keyObj instanceof BigInteger, "key must be a BigInteger");
-        BigInteger key = (BigInteger)keyObj;
+        Asserts.checkArgument(keyObj instanceof BigId, "key must be a BigId");
+        BigId key = (BigId)keyObj;
 
         try
         {
-            // parse from BigInt
-            ByteBuffer buf = ByteBuffer.wrap(key.toByteArray());
-            long seriesID = DataUtils.readVarLong(buf);
-            Instant issueTime = H2Utils.readInstant(buf);
-            
-            return new MVTimeSeriesRecordKey(seriesID, issueTime);
+            // parse from BigId bytes
+            ByteBuffer buf = ByteBuffer.wrap(key.getIdAsBytes());
+            return MVTimeSeriesRecordKeyDataType.decode(idScope, buf);
         }
         catch (Exception e)
         {
             // invalid bigint key
             return null;
         }
-    }
-    
-    
-    Entry<BigInteger, ICommandData> mapToPublicEntry(Entry<MVTimeSeriesRecordKey, ICommandData> internalEntry)
-    {
-        BigInteger cmdID = mapToPublicKey(internalEntry.getKey());
-        return new DataUtils.MapEntry<>(cmdID, internalEntry.getValue());
     }
     
     
@@ -296,7 +259,7 @@ public class MVCommandStoreImpl implements ICommandStore
         {
             // stream directly from list of selected datastreams
             cmdSeries = DataStoreUtils.selectCommandStreamIDs(cmdStreamStore, filter.getCommandStreamFilter())
-                .flatMap(id -> getCommandSeriesByDataStream(id));
+                .flatMap(id -> getCommandSeriesByDataStream(id.getIdAsLong()));
         }
         
         return cmdSeries;
@@ -304,17 +267,16 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
+    public Stream<Entry<BigId, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {        
         // stream command directly in case of filtering by internal IDs
         if (filter.getInternalIDs() != null)
         {
             var cmdStream = filter.getInternalIDs().stream()
-                .map(k -> mapToInternalKey(k))
+                .map(k -> toInternalKey(k))
                 .map(k -> cmdRecordsIndex.getEntry(k));
             
-            return getPostFilteredResultStream(cmdStream, filter)
-                .map(this::mapToPublicEntry);
+            return getPostFilteredResultStream(cmdStream, filter);
         }
         
         // select command series matching the filter
@@ -323,7 +285,7 @@ public class MVCommandStoreImpl implements ICommandStore
         
         // create command streams for each selected series
         // and keep all spliterators in array list
-        final var cmdStreams = new ArrayList<Stream<Entry<MVTimeSeriesRecordKey, ICommandData>>>(100);
+        final var cmdStreams = new ArrayList<Stream<Entry<BigId, ICommandData>>>(100);
         cmdStreams.add(cmdSeries
             .peek(s -> {
                 // make sure list size cannot go over a threshold
@@ -338,18 +300,17 @@ public class MVCommandStoreImpl implements ICommandStore
         
         
         // stream and merge commands from all selected command streams and time periods
-        var mergeSortIt = new MergeSortSpliterator<Entry<MVTimeSeriesRecordKey, ICommandData>>(cmdStreams,
+        var mergeSortIt = new MergeSortSpliterator<Entry<BigId, ICommandData>>(cmdStreams,
                 (e1, e2) -> e1.getValue().getIssueTime().compareTo(e2.getValue().getIssueTime()));
                
         // stream output of merge sort iterator + apply limit
         return StreamSupport.stream(mergeSortIt, false)
-            .map(this::mapToPublicEntry)
             .limit(filter.getLimit())
             .onClose(() -> mergeSortIt.close());
     }
     
     
-    Stream<Entry<MVTimeSeriesRecordKey, ICommandData>> getPostFilteredResultStream(Stream<Entry<MVTimeSeriesRecordKey, ICommandData>> resultStream, CommandFilter filter)
+    Stream<Entry<BigId, ICommandData>> getPostFilteredResultStream(Stream<Entry<MVTimeSeriesRecordKey, ICommandData>> resultStream, CommandFilter filter)
     {
         // first test with command filter
         resultStream = resultStream.filter(e -> filter.test(e.getValue()));
@@ -359,12 +320,15 @@ public class MVCommandStoreImpl implements ICommandStore
         {
             var statusFilter = filter.getStatusFilter();
             resultStream = resultStream.filter(cmd -> {
-                return cmdStatusStore.getStatusStream(mapToPublicKey(cmd.getKey()), statusFilter.getReportTime())
+                return cmdStatusStore.getStatusStream(cmd.getKey(), statusFilter.getReportTime())
                     .anyMatch(status -> statusFilter.test(status.getValue()));
             });
         }
         
-        return resultStream;
+        // casting is ok since keys are subtypes of BigId
+        @SuppressWarnings({ "unchecked" })
+        var castedStream = (Stream<Entry<BigId, ICommandData>>)(Stream<?>)resultStream;
+        return castedStream;
     }
         
     
@@ -496,7 +460,7 @@ public class MVCommandStoreImpl implements ICommandStore
                    var cmdCount = getCommandSeriesCount(series.id, statsTimeRange);
                        
                    var cmdStats = new CommandStats.Builder()
-                       .withCommandStreamID(dsID)
+                       .withCommandStreamID(BigId.fromLong(idScope, dsID))
                        .withActuationTimeRange(TimeExtent.period(statsTimeRange))
                        .withIssueTimeRange(TimeExtent.period(issueTimeRange))
                        .withTotalCommandCount(cmdCount);
@@ -567,7 +531,7 @@ public class MVCommandStoreImpl implements ICommandStore
     @Override
     public boolean containsKey(Object key)
     {
-        MVTimeSeriesRecordKey cmdKey = mapToInternalKey(key);
+        MVTimeSeriesRecordKey cmdKey = toInternalKey(key);
         return cmdKey == null ? false : cmdRecordsIndex.containsKey(cmdKey);
     }
 
@@ -582,7 +546,7 @@ public class MVCommandStoreImpl implements ICommandStore
     @Override
     public ICommandData get(Object key)
     {
-        MVTimeSeriesRecordKey cmdKey = mapToInternalKey(key);
+        MVTimeSeriesRecordKey cmdKey = toInternalKey(key);
         return cmdKey == null ? null : cmdRecordsIndex.get(cmdKey);
     }
 
@@ -595,45 +559,49 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public Set<Entry<BigInteger, ICommandData>> entrySet()
-    {
-        return new AbstractSet<>() {        
-            @Override
-            public Iterator<Entry<BigInteger, ICommandData>> iterator() {
-                return getAllCommandSeries()
-                    .flatMap(series -> {
-                        RangeCursor<MVTimeSeriesRecordKey, ICommandData> cursor = getCommandCursor(series.id, H2Utils.ALL_TIMES_RANGE);
-                        return cursor.entryStream().map(e -> {
-                            return mapToPublicEntry(e);
-                        });
-                    }).iterator();
-            }
-
-            @Override
-            public int size() {
-                return cmdRecordsIndex.size();
-            }
-
-            @Override
-            public boolean contains(Object o) {
-                return MVCommandStoreImpl.this.containsKey(o);
-            }
-        };
-    }
-
-
-    @Override
-    public Set<BigInteger> keySet()
+    public Set<Entry<BigId, ICommandData>> entrySet()
     {
         return new AbstractSet<>() {
             @Override
-            public Iterator<BigInteger> iterator() {
+            public Iterator<Entry<BigId, ICommandData>> iterator() {
                 return getAllCommandSeries()
                     .flatMap(series -> {
                         RangeCursor<MVTimeSeriesRecordKey, ICommandData> cursor = getCommandCursor(series.id, H2Utils.ALL_TIMES_RANGE);
-                        return cursor.keyStream().map(e -> {
-                            return mapToPublicKey(e);
-                        });
+                        
+                        // casting is ok since set is read-only and keys are subtypes of BigId
+                        @SuppressWarnings({ "unchecked" })
+                        var castedStream = (Stream<Entry<BigId, ICommandData>>)(Stream<?>)cursor.entryStream();
+                        return castedStream;
+                    }).iterator();
+            }
+
+            @Override
+            public int size() {
+                return cmdRecordsIndex.size();
+            }
+
+            @Override
+            public boolean contains(Object o) {
+                return MVCommandStoreImpl.this.containsKey(o);
+            }
+        };
+    }
+
+
+    @Override
+    public Set<BigId> keySet()
+    {
+        return new AbstractSet<>() {
+            @Override
+            public Iterator<BigId> iterator() {
+                return getAllCommandSeries()
+                    .flatMap(series -> {
+                        RangeCursor<MVTimeSeriesRecordKey, ICommandData> cursor = getCommandCursor(series.id, H2Utils.ALL_TIMES_RANGE);
+                        
+                        // casting is ok since set is read-only and keys are subtypes of BigId
+                        @SuppressWarnings({ "unchecked" })
+                        var castedStream = (Stream<BigId>)(Stream<?>)cursor.keyStream();
+                        return castedStream;
                     }).iterator();
             }
 
@@ -651,7 +619,7 @@ public class MVCommandStoreImpl implements ICommandStore
     
     
     @Override
-    public BigInteger add(ICommandData cmd)
+    public BigId add(ICommandData cmd)
     {
         // check that command stream exists
         if (!cmdStreamStore.containsKey(new CommandStreamKey(cmd.getCommandStreamID())))
@@ -664,7 +632,9 @@ public class MVCommandStoreImpl implements ICommandStore
             
             try
             {
-                MVTimeSeriesKey seriesKey = new MVTimeSeriesKey(cmd.getCommandStreamID(), cmd.getFoiID());
+                MVTimeSeriesKey seriesKey = new MVTimeSeriesKey(
+                    cmd.getCommandStreamID().getIdAsLong(),
+                    cmd.getFoiID().getIdAsLong());
                 
                 MVTimeSeriesInfo series = cmdSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
                     return new MVTimeSeriesInfo(
@@ -672,10 +642,10 @@ public class MVCommandStoreImpl implements ICommandStore
                 });
                 
                 // add to main command index
-                MVTimeSeriesRecordKey cmdKey = new MVTimeSeriesRecordKey(series.id, cmd.getIssueTime());
+                MVTimeSeriesRecordKey cmdKey = new MVTimeSeriesRecordKey(idScope, series.id, cmd.getIssueTime());
                 cmdRecordsIndex.put(cmdKey, cmd);
                 
-                return mapToPublicKey(cmdKey);
+                return cmdKey;
             }
             catch (Exception e)
             {
@@ -687,7 +657,7 @@ public class MVCommandStoreImpl implements ICommandStore
 
 
     @Override
-    public ICommandData put(BigInteger key, ICommandData cmd)
+    public ICommandData put(BigId key, ICommandData cmd)
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -696,7 +666,7 @@ public class MVCommandStoreImpl implements ICommandStore
             
             try
             {
-                MVTimeSeriesRecordKey cmdKey = mapToInternalKey(key);
+                MVTimeSeriesRecordKey cmdKey = toInternalKey(key);
                 ICommandData oldCmd = cmdRecordsIndex.replace(cmdKey, cmd);
                 if (oldCmd == null)
                     throw new UnsupportedOperationException("put can only be used to update existing keys");
@@ -721,11 +691,11 @@ public class MVCommandStoreImpl implements ICommandStore
             
             try
             {
-                MVTimeSeriesRecordKey key = mapToInternalKey(keyObj);
+                MVTimeSeriesRecordKey key = toInternalKey(keyObj);
                 ICommandData oldCmd = cmdRecordsIndex.remove(key);
                 
                 // also remove status reports associated to this command
-                cmdStatusStore.removeAllStatus((BigInteger)keyObj);
+                cmdStatusStore.removeAllStatus((BigId)keyObj);
                 
                 // don't check and remove empty command series here since in many cases they will be reused.
                 // it can be done automatically during cleanup/compaction phase or with specific method.
@@ -757,7 +727,7 @@ public class MVCommandStoreImpl implements ICommandStore
                 cmdRecordsIndex.remove(k);
                 
                 // remove all status reports
-                cmdStatusStore.removeAllStatus(mapToPublicKey(k));
+                cmdStatusStore.removeAllStatus(k);
             });
             
             // remove series from index
@@ -791,14 +761,14 @@ public class MVCommandStoreImpl implements ICommandStore
     @Override
     public void backup(OutputStream output) throws IOException
     {
-        // TODO Auto-generated method stub        
+        // TODO Auto-generated method stub
     }
 
 
     @Override
     public void restore(InputStream input) throws IOException
     {
-        // TODO Auto-generated method stub        
+        // TODO Auto-generated method stub
     }
 
 

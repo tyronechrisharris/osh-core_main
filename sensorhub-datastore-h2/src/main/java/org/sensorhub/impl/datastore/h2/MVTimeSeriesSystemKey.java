@@ -37,13 +37,13 @@ class MVTimeSeriesSystemKey
     
     
     MVTimeSeriesSystemKey(long sysID, String outputName, Instant validStartTime)
-    {        
+    {
         this(0, sysID, outputName, validStartTime.getEpochSecond());
     }
     
     
     MVTimeSeriesSystemKey(long internalID, long sysID, String signalName, long validStartTime)
-    {        
+    {
         this.internalID = internalID;
         this.systemID = sysID;
         this.signalName = Asserts.checkNotNull(signalName, "signalName");

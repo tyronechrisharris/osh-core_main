@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.type.DataType;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 
 
@@ -31,7 +32,7 @@ class MVFeatureParentKeyByIdDataType extends MVFeatureParentKeyDataType implemen
     
     MVFeatureParentKeyByIdDataType()
     {
-        super(false);
+        super(0, false);
     }
     
 
@@ -39,10 +40,10 @@ class MVFeatureParentKeyByIdDataType extends MVFeatureParentKeyDataType implemen
     public int compare(Object objA, Object objB)
     {
         long idA = (objA instanceof FeatureKey) ? 
-            ((FeatureKey)objA).getInternalID() : (long)objA;
+            ((FeatureKey)objA).getInternalID().getIdAsLong() : ((BigId)objA).getIdAsLong();
             
         long idB = (objB instanceof FeatureKey) ? 
-            ((FeatureKey)objB).getInternalID() : (long)objB;
+            ((FeatureKey)objB).getInternalID().getIdAsLong() : ((BigId)objB).getIdAsLong();
         
         return Long.compare(idA, idB);
     }

@@ -29,12 +29,12 @@ public class TestMVCommandStore extends AbstractTestCommandStore<MVCommandStoreI
     private static String DB_FILE_PREFIX = "test-mvobs-";
     protected File dbFile;
     protected MVStore mvStore;
-        
+    
     
     protected MVCommandStoreImpl initStore() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
-        dbFile.deleteOnExit();        
+        dbFile.deleteOnExit();
         return openMVStore();
     }
     
@@ -60,7 +60,7 @@ public class TestMVCommandStore extends AbstractTestCommandStore<MVCommandStoreI
                 .cacheSize(10)
                 .open();
         
-        return MVCommandStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,
+        return MVCommandStoreImpl.open(mvStore, DATABASE_NUM, IdProviderType.SEQUENTIAL,
             MVDataStoreInfo.builder()
                 .withName(CMD_DATASTORE_NAME)
                 .build());

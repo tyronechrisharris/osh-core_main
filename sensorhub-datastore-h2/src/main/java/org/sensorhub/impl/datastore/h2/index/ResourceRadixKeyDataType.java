@@ -35,7 +35,7 @@ public class ResourceRadixKeyDataType extends RadixKeyBytesDataType
         // extract long id from value object
         long id;
         if (value instanceof ResourceKey<?>)
-            id = ((ResourceKey<?>)value).getInternalID();
+            id = ((ResourceKey<?>)value).getInternalID().getIdAsLong();
         else if (value instanceof Long)
             id = (Long)value;
         else

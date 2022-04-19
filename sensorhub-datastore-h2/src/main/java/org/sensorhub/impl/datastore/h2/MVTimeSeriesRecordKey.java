@@ -15,6 +15,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.time.Instant;
+import java.util.Objects;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.utils.AtomicInitializer;
 import org.sensorhub.utils.ObjectUtils;
 
 
@@ -28,16 +31,28 @@ import org.sensorhub.utils.ObjectUtils;
  * @author Alex Robin
  * @date Sep 12, 2019
  */
-class MVTimeSeriesRecordKey
+class MVTimeSeriesRecordKey implements BigId
 {
-    protected long seriesID;
-    protected Instant timeStamp = null;
+    int scope;
+    final long seriesID;
+    final Instant timeStamp;
+    AtomicInitializer<byte[]> cachedId = new AtomicInitializer<>();
     
     
+    /*
+     * Constructor w/o scope, used for querying only!
+     */
     MVTimeSeriesRecordKey(long seriesID, Instant timeStamp)
     {
         this.seriesID = seriesID;
         this.timeStamp = timeStamp;
+    }
+    
+    
+    MVTimeSeriesRecordKey(int scope, long seriesID, Instant timeStamp)
+    {
+        this(seriesID, timeStamp);
+        this.scope = scope;
     }
 
 
@@ -50,6 +65,47 @@ class MVTimeSeriesRecordKey
     public Instant getTimeStamp()
     {
         return timeStamp;
+    }
+
+
+    @Override
+    public int getScope()
+    {
+        return scope;
+    }
+
+
+    @Override
+    public byte[] getIdAsBytes()
+    {
+        // compute byte[] representation lazily
+        return cachedId.get(() -> {
+            var buf = new FixedSizeWriteBuffer(MVTimeSeriesRecordKeyDataType.getEncodedLen(this));
+            MVTimeSeriesRecordKeyDataType.encode(buf, this);
+            return buf.getBuffer().array();
+        });
+    }
+
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(
+            scope, seriesID, timeStamp
+        );
+    }
+
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (!(o instanceof MVTimeSeriesRecordKey))
+            return false;
+        
+        var other = (MVTimeSeriesRecordKey)o;
+        return scope == other.scope &&
+               seriesID == other.seriesID &&
+               Objects.equals(timeStamp, other.timeStamp);
     }
 
 

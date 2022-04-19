@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import java.time.Instant;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.vast.util.Asserts;
 
@@ -34,15 +35,18 @@ public class MVFeatureParentKey extends FeatureKey
     protected long parentID; // 0 indicates no parent
     
     
-    public MVFeatureParentKey(long parentID, long internalID)
+    public MVFeatureParentKey(long parentID, BigId internalID, Instant validStartTime)
     {
-        this(parentID, internalID, TIMELESS);
+        super(internalID, validStartTime);
+        
+        Asserts.checkArgument(parentID >= 0, "Invalid parentID");
+        this.parentID = parentID;
     }
     
     
-    public MVFeatureParentKey(long parentID, long internalID, Instant validStartTime)
+    public MVFeatureParentKey(int idScope, long parentID, long internalID, Instant validStartTime)
     {
-        super(internalID, validStartTime);
+        super(idScope, internalID, validStartTime);
         
         Asserts.checkArgument(parentID >= 0, "Invalid parentID");
         this.parentID = parentID;

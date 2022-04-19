@@ -38,10 +38,12 @@ import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.sensorhub.impl.datastore.h2.index.FullTextIndex;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
+import com.google.common.hash.Hashing;
 
 
 /**
@@ -60,8 +62,9 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
     protected MVStore mvStore;
     protected MVObsStoreImpl obsStore;
-    protected ISystemDescStore systemStore;
     protected IdProvider<IDataStreamInfo> idProvider;
+    protected int idScope;
+    protected ISystemDescStore systemStore;
     
     /*
      * Main index
@@ -85,7 +88,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     /*
      * DataStreamInfo object wrapper used to compute time ranges lazily
      */
-    class DataStreamInfoWithTimeRanges extends DataStreamInfoWrapper
+    protected class DataStreamInfoWithTimeRanges extends DataStreamInfoWrapper
     {
         Long dsID;
         TimeExtent validTime;
@@ -108,15 +111,15 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 // if valid time ends at now and there is a more recent version, compute the actual end time
                 if (validTime.endsNow())
                 {
-                    var procDsKey = new MVTimeSeriesSystemKey(
-                        getSystemID().getInternalID(),
+                    var sysDsKey = new MVTimeSeriesSystemKey(
+                        getSystemID().getInternalID().getIdAsLong(),
                         getOutputName(),
                         getValidTime().begin());
                     
-                    var nextKey = dataStreamBySystemIndex.lowerKey(procDsKey); // use lower cause time sorting is reversed
+                    var nextKey = dataStreamBySystemIndex.lowerKey(sysDsKey); // use lower cause time sorting is reversed
                     if (nextKey != null &&
-                        nextKey.systemID == procDsKey.systemID &&
-                        nextKey.signalName.equals(procDsKey.signalName))
+                        nextKey.systemID == sysDsKey.systemID &&
+                        nextKey.signalName.equals(sysDsKey.signalName))
                         validTime = TimeExtent.period(validTime.begin(), Instant.ofEpochSecond(nextKey.validStartTime));
                 }
             }
@@ -142,12 +145,50 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             return resultTimeRange;
         }
     }
-
-
+    
+    
     public MVDataStreamStoreImpl(MVObsStoreImpl obsStore, IdProvider<IDataStreamInfo> idProvider)
     {
-        this.obsStore = Asserts.checkNotNull(obsStore, MVObsStoreImpl.class);
+        init(obsStore, idProvider);
+    }
+    
+    
+    public MVDataStreamStoreImpl(MVObsStoreImpl obsStore, IdProviderType idProviderType)
+    {
+        // create ID provider
+        IdProvider<IDataStreamInfo> idProvider;
+        switch (idProviderType)
+        {
+            case UID_HASH:
+                var hashFunc = Hashing.murmur3_128(741532149);
+                idProvider = dsInfo -> {
+                    var hasher = hashFunc.newHasher();
+                    hasher.putLong(dsInfo.getSystemID().getInternalID().getIdAsLong());
+                    hasher.putUnencodedChars(dsInfo.getOutputName());
+                    hasher.putLong(dsInfo.getValidTime().begin().toEpochMilli());
+                    return hasher.hash().asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
+                };
+                
+            default:
+            case SEQUENTIAL:
+                idProvider = dsInfo -> {
+                    if (dataStreamIndex.isEmpty())
+                        return 1;
+                    else
+                        return dataStreamIndex.lastKey().getInternalID().getIdAsLong()+1;
+                };
+        }
+        
+        init(obsStore, idProvider);
+    }
+
+
+    protected void init(MVObsStoreImpl obsStore, IdProvider<IDataStreamInfo> idProvider)
+    {
         this.mvStore = Asserts.checkNotNull(obsStore.mvStore, MVStore.class);
+        this.obsStore = Asserts.checkNotNull(obsStore, MVObsStoreImpl.class);
+        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
+        this.idScope = obsStore.idScope;
         
         // persistent class mappings for Kryo
         var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
@@ -155,7 +196,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         // open observation map
         String mapName = obsStore.getDatastoreName() + ":" + DATASTREAM_MAP_NAME;
         this.dataStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<DataStreamKey, IDataStreamInfo>()
-                .keyType(new MVDataStreamKeyDataType())
+                .keyType(new MVDataStreamKeyDataType(idScope))
                 .valueType(new DataStreamInfoDataType(kryoClassMap)));
 
         // open observation series map
@@ -178,18 +219,6 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 });
             }
         };
-
-        // ID provider
-        this.idProvider = idProvider;
-        if (idProvider == null) // use default if nothing is set
-        {
-            this.idProvider = dsInfo -> {
-                if (dataStreamIndex.isEmpty())
-                    return 1;
-                else
-                    return dataStreamIndex.lastKey().getInternalID()+1;
-            };
-        }
     }
     
     
@@ -212,7 +241,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     
     protected DataStreamKey generateKey(IDataStreamInfo dsInfo)
     {
-        return new DataStreamKey(idProvider.newInternalID(dsInfo));
+        return new DataStreamKey(idScope, idProvider.newInternalID(dsInfo));
     }
 
 
@@ -225,7 +254,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         if (dsInfo == null)
             return null;
         
-        return new DataStreamInfoWithTimeRanges(dsKey.getInternalID(), dsInfo);
+        return new DataStreamInfoWithTimeRanges(dsKey.getInternalID().getIdAsLong(), dsInfo);
     }
 
 
@@ -312,7 +341,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         // if filtering by internal IDs, use these IDs directly
         if (filter.getInternalIDs() != null)
         {
-            idStream = filter.getInternalIDs().stream();
+            idStream = filter.getInternalIDs().stream()
+                .map(id -> id.getIdAsLong());
         }
 
         // if system filter is used
@@ -320,7 +350,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         {
             // first select systems and fetch corresponding datastreams
             idStream = DataStoreUtils.selectSystemIDs(systemStore, filter.getSystemFilter())
-                .flatMap(id -> getDataStreamIdsBySystem(id, filter.getOutputNames(), filter.getValidTimeFilter()));
+                .flatMap(id -> getDataStreamIdsBySystem(id.getIdAsLong(), filter.getOutputNames(), filter.getValidTimeFilter()));
         }
 
         // if observation filter is used
@@ -328,7 +358,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         {
             // get all data stream IDs referenced by observations matching the filter
             idStream = obsStore.select(filter.getObservationFilter(), ObsField.DATASTREAM_ID)
-                .map(obs -> obs.getDataStreamID());
+                .map(obs -> obs.getDataStreamID().getIdAsLong());
         }
         
         // if full-text filter is used, use full-text index as primary
@@ -345,7 +375,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         }
 
         resultStream = idStream
-            .map(id -> dataStreamIndex.getEntry(new DataStreamKey(id)))
+            .map(id -> dataStreamIndex.getEntry(new DataStreamKey(idScope, id)))
             .filter(Objects::nonNull);
         
         if (filter.getFullTextFilter() != null && !fullTextFilterApplied)
@@ -365,7 +395,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         resultStream = resultStream.map(e -> {
             return new DataUtils.MapEntry<DataStreamKey, IDataStreamInfo>(
                 e.getKey(),
-                new DataStreamInfoWithTimeRanges(e.getKey().getInternalID(), e.getValue())
+                new DataStreamInfoWithTimeRanges(e.getKey().getInternalID().getIdAsLong(), e.getValue())
             ); 
         });
         
@@ -395,6 +425,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     
     protected synchronized IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo, boolean replace) throws DataStoreException
     {
+        var dsID = key.getInternalID().getIdAsLong();
+        
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
         {
@@ -410,20 +442,20 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 if (!isNewEntry && !replace)
                     throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
-                // update proc/output index
+                // update sys/output index
                 // remove old entry if needed
                 if (oldValue != null && replace)
                 {
-                    MVTimeSeriesSystemKey procKey = new MVTimeSeriesSystemKey(key.getInternalID(),
-                        oldValue.getSystemID().getInternalID(),
+                    MVTimeSeriesSystemKey procKey = new MVTimeSeriesSystemKey(dsID,
+                        oldValue.getSystemID().getInternalID().getIdAsLong(),
                         oldValue.getOutputName(),
                         oldValue.getValidTime().begin().getEpochSecond());
                     dataStreamBySystemIndex.remove(procKey);
                 }
 
                 // add new entry
-                MVTimeSeriesSystemKey procKey = new MVTimeSeriesSystemKey(key.getInternalID(),
-                    dsInfo.getSystemID().getInternalID(),
+                MVTimeSeriesSystemKey procKey = new MVTimeSeriesSystemKey(dsID,
+                    dsInfo.getSystemID().getInternalID().getIdAsLong(),
                     dsInfo.getOutputName(),
                     dsInfo.getValidTime().begin().getEpochSecond());
                 var oldProcKey = dataStreamBySystemIndex.put(procKey, Boolean.TRUE);
@@ -432,9 +464,9 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
                 
                 // update full-text index
                 if (isNewEntry)
-                    fullTextIndex.add(key.getInternalID(), dsInfo);
+                    fullTextIndex.add(dsID, dsInfo);
                 else
-                    fullTextIndex.update(key.getInternalID(), oldValue, dsInfo);
+                    fullTextIndex.update(dsID, oldValue, dsInfo);
                 
                 return oldValue;
             }
@@ -451,6 +483,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
     public synchronized IDataStreamInfo remove(Object key)
     {
         var dsKey = DataStoreUtils.checkDataStreamKey(key);
+        var dsID = dsKey.getInternalID().getIdAsLong();
 
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -461,7 +494,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
             {
                 // remove all obs
                 if (obsStore != null)
-                    obsStore.removeAllObsAndSeries(dsKey.getInternalID());
+                    obsStore.removeAllObsAndSeries(dsID);
                 
                 // remove from main index
                 IDataStreamInfo oldValue = dataStreamIndex.remove(dsKey);
@@ -470,12 +503,12 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
 
                 // remove entry in secondary index
                 dataStreamBySystemIndex.remove(new MVTimeSeriesSystemKey(
-                    oldValue.getSystemID().getInternalID(),
+                    oldValue.getSystemID().getInternalID().getIdAsLong(),
                     oldValue.getOutputName(),
                     oldValue.getValidTime().begin()));
                 
                 // remove from full-text index
-                fullTextIndex.remove(dsKey.getInternalID(), oldValue);
+                fullTextIndex.remove(dsID, oldValue);
 
                 return oldValue;
             }

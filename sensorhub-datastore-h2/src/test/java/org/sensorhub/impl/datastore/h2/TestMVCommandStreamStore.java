@@ -32,7 +32,7 @@ public class TestMVCommandStreamStore extends AbstractTestCommandStreamStore<MVC
     protected MVCommandStreamStoreImpl initStore() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
-        dbFile.deleteOnExit();        
+        dbFile.deleteOnExit();
         return openMVStore();
     }
     
@@ -58,10 +58,11 @@ public class TestMVCommandStreamStore extends AbstractTestCommandStreamStore<MVC
                 .cacheSize(10)
                 .open();
         
-        var cmdStore = MVCommandStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,
+        var cmdStore = MVCommandStoreImpl.open(mvStore, DATABASE_NUM, IdProviderType.SEQUENTIAL,
             MVDataStoreInfo.builder()
                 .withName("CMD_STORE")
-                .build());
+                .build()
+            );
         
         return (MVCommandStreamStoreImpl)cmdStore.getCommandStreams();
     }

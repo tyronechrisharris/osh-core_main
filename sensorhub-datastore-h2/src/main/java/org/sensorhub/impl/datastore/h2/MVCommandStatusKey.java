@@ -14,8 +14,12 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.math.BigInteger;
 import java.time.Instant;
+import java.util.Objects;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.utils.AtomicInitializer;
+import org.sensorhub.utils.ObjectUtils;
+import org.vast.util.Asserts;
 
 
 /**
@@ -26,15 +30,63 @@ import java.time.Instant;
  * @author Alex Robin
  * @date Jan 5, 2021
  */
-class MVCommandStatusKey
+class MVCommandStatusKey implements BigId
 {
-    BigInteger cmdID;
+    BigId cmdID;
     Instant reportTime;
+    AtomicInitializer<byte[]> cachedId = new AtomicInitializer<>();
     
     
-    MVCommandStatusKey(BigInteger cmdID, Instant reportTime)
+    MVCommandStatusKey(BigId cmdID, Instant reportTime)
     {
-        this.cmdID = cmdID;
+        this.cmdID = Asserts.checkNotNull(cmdID, "cmdID");
         this.reportTime = reportTime;
+    }
+
+
+    @Override
+    public int getScope()
+    {
+        return cmdID.getScope();
+    }
+
+
+    @Override
+    public byte[] getIdAsBytes()
+    {
+        // compute byte[] representation lazily
+        return cachedId.get(() -> {
+            var wbuf = new FixedSizeWriteBuffer(MVCommandStatusKeyDataType.getEncodedLen(this));
+            MVCommandStatusKeyDataType.encode(wbuf, this);
+            return wbuf.getBuffer().array();
+        });
+    }
+
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(
+            cmdID, reportTime
+        );
+    }
+
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (!(o instanceof MVCommandStatusKey))
+            return false;
+        
+        var other = (MVCommandStatusKey)o;
+        return Objects.equals(cmdID, other.cmdID) &&
+               Objects.equals(reportTime, other.reportTime);
+    }
+
+
+    @Override
+    public String toString()
+    {
+        return ObjectUtils.toString(this, true);
     }
 }

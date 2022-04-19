@@ -95,28 +95,30 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
             mvStore.setAutoCommitDelay(config.autoCommitPeriod*1000);
             mvStore.setVersionsToKeep(0);
             
+            var idScope = getDatabaseNum() != null ? getDatabaseNum() : 0;
+            
             // open system desc store
-            sysStore = MVSystemDescStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
+            sysStore = MVSystemDescStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(SYSTEM_STORE_NAME)
                 .build());
             
             // open foi store
-            foiStore = MVFoiStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
+            foiStore = MVFoiStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(FOI_STORE_NAME)
                 .build());
             
             // open observation store
-            obsStore = MVObsStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
+            obsStore = MVObsStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(OBS_STORE_NAME)
                 .build());
             
             // open command store
-            cmdStore = MVCommandStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
+            cmdStore = MVCommandStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(CMD_STORE_NAME)
                 .build());
             
             // open procedure store
-            procStore = MVProcedureStoreImpl.open(mvStore, config.idProviderType, MVDataStoreInfo.builder()
+            procStore = MVProcedureStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(PROC_STORE_NAME)
                 .build());
             

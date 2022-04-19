@@ -23,14 +23,12 @@ import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.type.DataType;
-import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.vast.util.TimeExtent;
-import com.google.common.hash.Hashing;
 import net.opengis.sensorml.v20.AbstractProcess;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
@@ -56,11 +54,12 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
     /**
      * Opens an existing procedure store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
+     * @param idScope Internal ID scope (database num)
      * @param idProviderType Type of ID provider to use to generate new IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVProcedureStoreImpl open(MVStore mvStore, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
+    public static MVProcedureStoreImpl open(MVStore mvStore, int idScope, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -69,18 +68,7 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
             H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         }
         
-        // create ID provider
-        IdProvider<IProcedureWithDesc> idProvider = null;
-        if (idProviderType == IdProviderType.UID_HASH)
-        {
-            var hashFunc = Hashing.murmur3_128(212158449);
-            idProvider = f -> {
-                var hc = hashFunc.hashUnencodedChars(f.getUniqueIdentifier());
-                return hc.asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
-            };
-        }
-        
-        return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, dataStoreInfo, idProvider);
+        return (MVProcedureStoreImpl)new MVProcedureStoreImpl().init(mvStore, idScope, idProviderType, dataStoreInfo);
     }
     
     
@@ -107,7 +95,10 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
             }
             else
             {
-                var parentIDs = parentIDStream.collect(Collectors.toSet());
+                var parentIDs = parentIDStream
+                    .map(id -> id.getIdAsLong())
+                    .collect(Collectors.toSet());
+                
                 resultStream = resultStream.filter(
                     e -> parentIDs.contains(((MVFeatureParentKey)e.getKey()).getParentID()));
                 
@@ -137,16 +128,18 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
                 public String getName() { return proc.getName(); }
                 public String getDescription() { return proc.getDescription(); }
                 public Map<QName, Object> getProperties() { return proc.getProperties(); }
-                public AbstractProcess getFullDescription() { return proc.getFullDescription(); }  
+                public AbstractProcess getFullDescription() { return proc.getFullDescription(); }
                 
                 public TimeExtent getValidTime()
                 {
                     if (validTime == null)
                     {
                         var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
-                        if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
-                            proc.getValidTime() != null && proc.getValidTime().endsNow())
+                        if (nextKey != null && proc.getValidTime() != null && proc.getValidTime().endsNow() &&
+                            nextKey.getInternalID().getIdAsLong() == e.getKey().getInternalID().getIdAsLong())
+                        {
                             validTime = TimeExtent.period(proc.getValidTime().begin(), nextKey.getValidStartTime());
+                        }
                         else
                             validTime = proc.getValidTime();
                     }

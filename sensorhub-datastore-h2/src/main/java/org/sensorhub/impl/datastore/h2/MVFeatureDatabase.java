@@ -56,7 +56,7 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
             
             if (config.memoryCacheSize > 0)
                 builder.cacheSize(config.memoryCacheSize/1024);
-                                      
+            
             if (config.autoCommitBufferSize > 0)
                 builder.autoCommitBufferSize(config.autoCommitBufferSize);
             
@@ -67,7 +67,8 @@ public class MVFeatureDatabase extends AbstractModule<MVFeatureDatabaseConfig> i
             mvStore.setVersionsToKeep(0);
             
             // open feature store
-            featureStore = MVFeatureStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+            var idScope = getDatabaseNum() != null ? getDatabaseNum() : 0;
+            featureStore = MVFeatureStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(FEATURE_STORE_NAME)
                 .build());
         }

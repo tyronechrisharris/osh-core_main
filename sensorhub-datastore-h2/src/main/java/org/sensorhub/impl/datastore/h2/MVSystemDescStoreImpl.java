@@ -23,7 +23,6 @@ import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.type.DataType;
-import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -33,7 +32,6 @@ import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
-import com.google.common.hash.Hashing;
 import net.opengis.sensorml.v20.AbstractProcess;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
@@ -62,11 +60,12 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
     /**
      * Opens an existing system store or create a new one with the specified name
      * @param mvStore MVStore instance containing the required maps
+     * @param idScope Internal ID scope (database num)
      * @param idProviderType Type of ID provider to use to generate new IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVSystemDescStoreImpl open(MVStore mvStore, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
+    public static MVSystemDescStoreImpl open(MVStore mvStore, int idScope, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -75,18 +74,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
             H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         }
         
-        // create ID provider
-        IdProvider<ISystemWithDesc> idProvider = null;
-        if (idProviderType == IdProviderType.UID_HASH)
-        {
-            var hashFunc = Hashing.murmur3_128(212158449);
-            idProvider = f -> {
-                var hc = hashFunc.hashUnencodedChars(f.getUniqueIdentifier());
-                return hc.asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
-            };
-        }
-        
-        return (MVSystemDescStoreImpl)new MVSystemDescStoreImpl().init(mvStore, dataStoreInfo, idProvider);
+        return (MVSystemDescStoreImpl)new MVSystemDescStoreImpl().init(mvStore, idScope, idProviderType, dataStoreInfo);
     }
     
     
@@ -113,7 +101,10 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
             }
             else
             {
-                var parentIDs = parentIDStream.collect(Collectors.toSet());
+                var parentIDs = parentIDStream
+                    .map(id -> id.getIdAsLong())
+                    .collect(Collectors.toSet());
+                
                 resultStream = resultStream.filter(
                     e -> parentIDs.contains(((MVFeatureParentKey)e.getKey()).getParentID()));
                 
@@ -185,9 +176,11 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
                     if (validTime == null)
                     {
                         var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
-                        if (nextKey != null && nextKey.getInternalID() == e.getKey().getInternalID() &&
-                            proc.getValidTime() != null && proc.getValidTime().endsNow())
+                        if (nextKey != null && proc.getValidTime() != null && proc.getValidTime().endsNow() &&
+                            nextKey.getInternalID().getIdAsLong() == e.getKey().getInternalID().getIdAsLong())
+                        {
                             validTime = TimeExtent.period(proc.getValidTime().begin(), nextKey.getValidStartTime());
+                        }
                         else
                             validTime = proc.getValidTime();
                     }

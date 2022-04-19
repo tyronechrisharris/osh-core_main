@@ -39,9 +39,11 @@ import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.command.CommandStreamInfoWrapper;
 import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.sensorhub.impl.datastore.h2.index.FullTextIndex;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
+import com.google.common.hash.Hashing;
 
 
 /**
@@ -60,8 +62,9 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
 
     protected MVStore mvStore;
     protected MVCommandStoreImpl commandStore;
-    protected ISystemDescStore systemStore;
     protected IdProvider<ICommandStreamInfo> idProvider;
+    protected int idScope;
+    protected ISystemDescStore systemStore;
     
     /*
      * Main index
@@ -85,14 +88,14 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
     /*
      * CommandStreamInfo object wrapper used to compute time ranges lazily
      */
-    class CommandStreamInfoWithTimeRanges extends CommandStreamInfoWrapper
+    protected class CommandStreamInfoWithTimeRanges extends CommandStreamInfoWrapper
     {
-        Long csID;
+        long csID;
         TimeExtent validTime;
         TimeExtent executionTimeRange;
         TimeExtent issueTimeRange;
-                
-        CommandStreamInfoWithTimeRanges(Long internalID, ICommandStreamInfo csInfo)
+        
+        CommandStreamInfoWithTimeRanges(long internalID, ICommandStreamInfo csInfo)
         {
             super(csInfo);
             this.csID = internalID;
@@ -107,9 +110,9 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
                 
                 // if valid time ends at now and there is a more recent version, compute the actual end time
                 if (validTime.endsNow())
-                {                
+                {
                     var procDsKey = new MVTimeSeriesSystemKey(
-                        getSystemID().getInternalID(),
+                        getSystemID().getInternalID().getIdAsLong(),
                         getControlInputName(),
                         getValidTime().begin());
                     
@@ -146,8 +149,46 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
 
     public MVCommandStreamStoreImpl(MVCommandStoreImpl cmdStore, IdProvider<ICommandStreamInfo> idProvider)
     {
+        init(cmdStore, idProvider);
+    }
+
+
+    public MVCommandStreamStoreImpl(MVCommandStoreImpl cmdStore, IdProviderType idProviderType)
+    {
+        // create ID provider
+        IdProvider<ICommandStreamInfo> idProvider;
+        switch (idProviderType)
+        {
+            case UID_HASH:
+                var hashFunc = Hashing.murmur3_128(741532149);
+                idProvider = dsInfo -> {
+                    var hasher = hashFunc.newHasher();
+                    hasher.putLong(dsInfo.getSystemID().getInternalID().getIdAsLong());
+                    hasher.putUnencodedChars(dsInfo.getControlInputName());
+                    hasher.putLong(dsInfo.getValidTime().begin().toEpochMilli());
+                    return hasher.hash().asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
+                };
+                
+            default:
+            case SEQUENTIAL:
+                idProvider = dsInfo -> {
+                    if (cmdStreamIndex.isEmpty())
+                        return 1;
+                    else
+                        return cmdStreamIndex.lastKey().getInternalID().getIdAsLong()+1;
+                };
+        }
+        
+        init(cmdStore, idProvider);
+    }
+    
+    
+    public void init(MVCommandStoreImpl cmdStore, IdProvider<ICommandStreamInfo> idProvider)
+    {
         this.commandStore = Asserts.checkNotNull(cmdStore, MVCommandStoreImpl.class);
         this.mvStore = Asserts.checkNotNull(cmdStore.mvStore, MVStore.class);
+        this.idProvider = Asserts.checkNotNull(idProvider, IdProvider.class);
+        this.idScope = cmdStore.idScope;
         
         // persistent class mappings for Kryo
         var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
@@ -155,7 +196,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         // open command stream map
         String mapName = cmdStore.getDatastoreName() + ":" + CMDSTREAM_MAP_NAME;
         this.cmdStreamIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<CommandStreamKey, ICommandStreamInfo>()
-                .keyType(new MVCommandStreamKeyDataType())
+                .keyType(new MVCommandStreamKeyDataType(cmdStore.idScope))
                 .valueType(new CommandStreamInfoDataType(kryoClassMap)));
 
         // command stream by system index
@@ -169,16 +210,17 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         this.fullTextIndex = new FullTextIndex<>(mvStore, mapName, new MVVarLongDataType());
 
         // ID provider
-        this.idProvider = idProvider;
         if (idProvider == null) // use default if nothing is set
         {
             this.idProvider = csInfo -> {
                 if (cmdStreamIndex.isEmpty())
                     return 1;
                 else
-                    return cmdStreamIndex.lastKey().getInternalID()+1;
+                    return cmdStreamIndex.lastKey().getInternalID().getIdAsLong()+1;
             };
         }
+        else
+            this.idProvider = idProvider;
     }
     
     
@@ -201,7 +243,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
     
     protected CommandStreamKey generateKey(ICommandStreamInfo csInfo)
     {
-        return new CommandStreamKey(idProvider.newInternalID(csInfo));
+        return new CommandStreamKey(idScope, idProvider.newInternalID(csInfo));
     }
 
 
@@ -214,7 +256,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         if (csInfo == null)
             return null;
         
-        return new CommandStreamInfoWithTimeRanges(csKey.getInternalID(), csInfo);
+        return new CommandStreamInfoWithTimeRanges(csKey.getInternalID().getIdAsLong(), csInfo);
     }
 
 
@@ -301,7 +343,8 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         // if filtering by internal IDs, use these IDs directly
         if (filter.getInternalIDs() != null)
         {
-            idStream = filter.getInternalIDs().stream();
+            idStream = filter.getInternalIDs().stream()
+                .map(id -> id.getIdAsLong());
         }
 
         // if system filter is used
@@ -309,7 +352,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         {
             // first select systems and fetch corresponding command streams
             idStream = DataStoreUtils.selectSystemIDs(systemStore, filter.getSystemFilter())
-                .flatMap(id -> getCommandStreamIdsBySystem(id, filter.getControlInputNames(), filter.getValidTimeFilter()));
+                .flatMap(id -> getCommandStreamIdsBySystem(id.getIdAsLong(), filter.getControlInputNames(), filter.getValidTimeFilter()));
         }
 
         // if command filter is used
@@ -317,7 +360,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         {
             // get all command stream IDs referenced by commands matching the filter
             idStream = commandStore.select(filter.getCommandFilter(), CommandField.COMMANDSTREAM_ID)
-                .map(cmd -> cmd.getCommandStreamID());
+                .map(cmd -> cmd.getCommandStreamID().getIdAsLong());
         }
         
         // if full-text filter is used, use full-text index as primary
@@ -334,7 +377,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         }
 
         resultStream = idStream
-            .map(id -> cmdStreamIndex.getEntry(new CommandStreamKey(id)))
+            .map(id -> cmdStreamIndex.getEntry(new CommandStreamKey(idScope, id)))
             .filter(Objects::nonNull);
         
         if (filter.getFullTextFilter() != null && !fullTextFilterApplied)
@@ -354,7 +397,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         resultStream = resultStream.map(e -> {
             return new DataUtils.MapEntry<CommandStreamKey, ICommandStreamInfo>(
                 e.getKey(),
-                new CommandStreamInfoWithTimeRanges(e.getKey().getInternalID(), e.getValue())
+                new CommandStreamInfoWithTimeRanges(e.getKey().getInternalID().getIdAsLong(), e.getValue())
             ); 
         });
         
@@ -384,6 +427,8 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
     
     protected synchronized ICommandStreamInfo put(CommandStreamKey key, ICommandStreamInfo csInfo, boolean replace) throws DataStoreException
     {
+        var csID = key.getInternalID().getIdAsLong();
+        
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
         {
@@ -399,31 +444,31 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
                 if (!isNewEntry && !replace)
                     throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
-                // update proc/output index
+                // update sys/output index
                 // remove old entry if needed
                 if (oldValue != null && replace)
                 {
-                    MVTimeSeriesSystemKey procKey = new MVTimeSeriesSystemKey(key.getInternalID(),
-                        oldValue.getSystemID().getInternalID(),
+                    var sysKey = new MVTimeSeriesSystemKey(csID,
+                        oldValue.getSystemID().getInternalID().getIdAsLong(),
                         oldValue.getControlInputName(),
                         oldValue.getValidTime().begin().getEpochSecond());
-                    cmdStreamBySystemIndex.remove(procKey);
+                    cmdStreamBySystemIndex.remove(sysKey);
                 }
 
                 // add new entry
-                MVTimeSeriesSystemKey procKey = new MVTimeSeriesSystemKey(key.getInternalID(),
-                    csInfo.getSystemID().getInternalID(),
+                var sysKey = new MVTimeSeriesSystemKey(csID,
+                    csInfo.getSystemID().getInternalID().getIdAsLong(),
                     csInfo.getControlInputName(),
                     csInfo.getValidTime().begin().getEpochSecond());
-                var oldProcKey = cmdStreamBySystemIndex.put(procKey, Boolean.TRUE);
+                var oldProcKey = cmdStreamBySystemIndex.put(sysKey, Boolean.TRUE);
                 if (oldProcKey != null && !replace)
                     throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
                 
                 // update full-text index
                 if (isNewEntry)
-                    fullTextIndex.add(key.getInternalID(), csInfo);
+                    fullTextIndex.add(csID, csInfo);
                 else
-                    fullTextIndex.update(key.getInternalID(), oldValue, csInfo);
+                    fullTextIndex.update(csID, oldValue, csInfo);
                 
                 return oldValue;
             }
@@ -439,7 +484,8 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
     @Override
     public synchronized ICommandStreamInfo remove(Object key)
     {
-        var dsKey = DataStoreUtils.checkCommandStreamKey(key);
+        var csKey = DataStoreUtils.checkCommandStreamKey(key);
+        var csID = csKey.getInternalID().getIdAsLong();
 
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -450,21 +496,21 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
             {
                 // remove all commands
                 if (commandStore != null)
-                    commandStore.removeAllCommandsAndSeries(dsKey.getInternalID());
+                    commandStore.removeAllCommandsAndSeries(csID);
                 
                 // remove from main index
-                ICommandStreamInfo oldValue = cmdStreamIndex.remove(dsKey);
+                ICommandStreamInfo oldValue = cmdStreamIndex.remove(csKey);
                 if (oldValue == null)
                     return null;
 
                 // remove entry in secondary index
                 cmdStreamBySystemIndex.remove(new MVTimeSeriesSystemKey(
-                    oldValue.getSystemID().getInternalID(),
+                    oldValue.getSystemID().getInternalID().getIdAsLong(),
                     oldValue.getControlInputName(),
                     oldValue.getValidTime().begin()));
                 
                 // remove from full-text index
-                fullTextIndex.remove(dsKey.getInternalID(), oldValue);
+                fullTextIndex.remove(csID, oldValue);
 
                 return oldValue;
             }

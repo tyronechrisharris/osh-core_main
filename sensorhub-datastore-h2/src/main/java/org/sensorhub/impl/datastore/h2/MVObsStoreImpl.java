@@ -17,7 +17,6 @@ package org.sensorhub.impl.datastore.h2;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
@@ -31,14 +30,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
-import org.h2.mvstore.WriteBuffer;
-import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
-import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -53,7 +49,6 @@ import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
-import com.google.common.hash.Hashing;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -80,6 +75,7 @@ public class MVObsStoreImpl implements IObsStore
     protected MVBTreeMap<MVTimeSeriesRecordKey, IObsData> obsRecordsIndex;
     protected MVBTreeMap<MVTimeSeriesKey, MVTimeSeriesInfo> obsSeriesMainIndex;
     protected MVBTreeMap<MVTimeSeriesKey, Boolean> obsSeriesByFoiIndex;
+    protected int idScope;
     
     protected IFoiStore foiStore;
     protected int maxSelectedSeriesOnJoin = 10000;
@@ -115,15 +111,14 @@ public class MVObsStoreImpl implements IObsStore
 
 
     /**
-     * Opens an existing obs store or create a new one with the specified name
+     * Opens an existing obs store or create a new one with the specified info
      * @param mvStore MVStore instance containing the required maps
-     * @param systemStore associated system descriptions data store
-     * @param foiStore associated FOIs data store
-     * @param idProviderType Type of ID provider to use to generate new datastream IDs
+     * @param idScope Internal ID scope (database num)
+     * @param dsIdProviderType Type of ID provider to use to generate new datastream IDs
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVObsStoreImpl open(MVStore mvStore, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
+    public static MVObsStoreImpl open(MVStore mvStore, int idScope, IdProviderType dsIdProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -132,29 +127,16 @@ public class MVObsStoreImpl implements IObsStore
             H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         }
         
-        // create ID provider
-        IdProvider<IDataStreamInfo> idProvider = null;
-        if (idProviderType == IdProviderType.UID_HASH)
-        {
-            var hashFunc = Hashing.murmur3_128(741532149);
-            idProvider = dsInfo -> {
-                var hasher = hashFunc.newHasher();
-                hasher.putLong(dsInfo.getSystemID().getInternalID());
-                hasher.putUnencodedChars(dsInfo.getOutputName());
-                hasher.putLong(dsInfo.getValidTime().begin().toEpochMilli());
-                return hasher.hash().asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
-            };
-        }
-        
-        return new MVObsStoreImpl().init(mvStore, dataStoreInfo, idProvider);
+        return new MVObsStoreImpl().init(mvStore, idScope, dsIdProviderType, dataStoreInfo);
     }
     
     
-    private MVObsStoreImpl init(MVStore mvStore, MVDataStoreInfo dataStoreInfo, IdProvider<IDataStreamInfo> dsIdProvider)
+    private MVObsStoreImpl init(MVStore mvStore, int idScope, IdProviderType dsIdProviderType, MVDataStoreInfo dataStoreInfo)
     {
         this.mvStore = Asserts.checkNotNull(mvStore, MVStore.class);
         this.dataStoreInfo = Asserts.checkNotNull(dataStoreInfo, MVDataStoreInfo.class);
-        this.dataStreamStore = new MVDataStreamStoreImpl(this, dsIdProvider);
+        this.idScope = idScope;
+        this.dataStreamStore = new MVDataStreamStoreImpl(this, dsIdProviderType);
         
         // persistent class mappings for Kryo
         var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
@@ -162,7 +144,7 @@ public class MVObsStoreImpl implements IObsStore
         // open observation map
         String mapName = dataStoreInfo.getName() + ":" + OBS_RECORDS_MAP_NAME;
         this.obsRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, IObsData>()
-                .keyType(new MVTimeSeriesRecordKeyDataType())
+                .keyType(new MVTimeSeriesRecordKeyDataType(idScope))
                 .valueType(new ObsDataType(kryoClassMap)));
         
         // open observation series map
@@ -290,7 +272,7 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getObsStream(MVTimeSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean currentTimeOnly, boolean latestResultOnly)
+    Stream<Entry<MVTimeSeriesRecordKey, IObsData>> getObsStream(MVTimeSeriesInfo series, Range<Instant> resultTimeRange, Range<Instant> phenomenonTimeRange, boolean currentTimeOnly, boolean latestResultOnly)
     {
         // if series is a special case where all obs have resultTime = phenomenonTime
         if (series.key.resultTime == Instant.MIN)
@@ -302,7 +284,7 @@ public class MVObsStoreImpl implements IObsStore
                 MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.now());
                 Entry<MVTimeSeriesRecordKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
                 if (e != null && e.getKey().seriesID == series.id)
-                    return Stream.of(mapToPublicEntry(e));
+                    return Stream.of(e);
                 else
                     return Stream.empty();
             }
@@ -313,7 +295,7 @@ public class MVObsStoreImpl implements IObsStore
                 MVTimeSeriesRecordKey maxKey = new MVTimeSeriesRecordKey(series.id, Instant.MAX);
                 Entry<MVTimeSeriesRecordKey, IObsData> e = obsRecordsIndex.floorEntry(maxKey);
                 if (e != null && e.getKey().seriesID == series.id)
-                    return Stream.of(mapToPublicEntry(e));
+                    return Stream.of(e);
                 else
                     return Stream.empty();
             }
@@ -325,49 +307,26 @@ public class MVObsStoreImpl implements IObsStore
         // scan using a cursor on main obs index
         // recreating full entries in the process
         RangeCursor<MVTimeSeriesRecordKey, IObsData> cursor = getObsCursor(series.id, phenomenonTimeRange);
-        return cursor.entryStream()
-            .map(e -> {
-                return mapToPublicEntry(e);
-            });
+        return cursor.entryStream();
     }
     
     
-    BigInteger mapToPublicKey(MVTimeSeriesRecordKey internalKey)
+    MVTimeSeriesRecordKey toInternalKey(Object keyObj)
     {
-        // compute internal ID
-        WriteBuffer buf = new WriteBuffer(24); // seriesID + timestamp seconds + nanos
-        DataUtils.writeVarLong(buf.getBuffer(), internalKey.getSeriesID());
-        H2Utils.writeInstant(buf, internalKey.getTimeStamp());
-        return new BigInteger(buf.getBuffer().array(), 0, buf.position());
-    }
-    
-    
-    MVTimeSeriesRecordKey mapToInternalKey(Object keyObj)
-    {
-        Asserts.checkArgument(keyObj instanceof BigInteger, "key must be a BigInteger");
-        BigInteger key = (BigInteger)keyObj;
+        Asserts.checkArgument(keyObj instanceof BigId, "key must be a BigId");
+        BigId key = (BigId)keyObj;
 
         try
         {
-            // parse from BigInt
-            ByteBuffer buf = ByteBuffer.wrap(key.toByteArray());
-            long seriesID = DataUtils.readVarLong(buf);
-            Instant phenomenonTime = H2Utils.readInstant(buf);
-            
-            return new MVTimeSeriesRecordKey(seriesID, phenomenonTime);
+            // parse from BigId bytes
+            ByteBuffer buf = ByteBuffer.wrap(key.getIdAsBytes());
+            return MVTimeSeriesRecordKeyDataType.decode(idScope, buf);
         }
         catch (Exception e)
         {
             // invalid bigint key
             return null;
         }
-    }
-    
-    
-    Entry<BigInteger, IObsData> mapToPublicEntry(Entry<MVTimeSeriesRecordKey, IObsData> internalEntry)
-    {
-        BigInteger obsID = mapToPublicKey(internalEntry.getKey());
-        return new DataUtils.MapEntry<>(obsID, internalEntry.getValue());
     }
     
     
@@ -390,7 +349,7 @@ public class MVObsStoreImpl implements IObsStore
         {
             // stream directly from list of selected datastreams
             obsSeries = DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
-                .flatMap(id -> getObsSeriesByDataStream(id, timeParams.resultTimeRange, timeParams.latestResultOnly));
+                .flatMap(id -> getObsSeriesByDataStream(id.getIdAsLong(), timeParams.resultTimeRange, timeParams.latestResultOnly));
         }
         
         // only FOI filter used
@@ -398,7 +357,7 @@ public class MVObsStoreImpl implements IObsStore
         {
             // stream directly from list of selected fois
             obsSeries = DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
-                .flatMap(id -> getObsSeriesByFoi(id, timeParams.resultTimeRange, timeParams.latestResultOnly));
+                .flatMap(id -> getObsSeriesByFoi(id.getIdAsLong(), timeParams.resultTimeRange, timeParams.latestResultOnly));
         }
         
         // both datastream and FOI filters used
@@ -406,12 +365,13 @@ public class MVObsStoreImpl implements IObsStore
         {
             // create set of selected datastreams
             AtomicInteger counter = new AtomicInteger();
-            Set<Long> dataStreamIDs = DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
+            var dataStreamIDs = DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
                 .peek(s -> {
                     // make sure set size cannot go over a threshold
                     if (counter.incrementAndGet() >= 100*maxSelectedSeriesOnJoin)
                         throw new IllegalStateException("Too many datastreams selected. Please refine your filter");
                 })
+                .map(id -> id.getIdAsLong())
                 .collect(Collectors.toSet());
 
             if (dataStreamIDs.isEmpty())
@@ -420,7 +380,7 @@ public class MVObsStoreImpl implements IObsStore
             // stream from fois and filter on datastream IDs
             obsSeries = DataStoreUtils.selectFeatureIDs(foiStore, filter.getFoiFilter())
                 .flatMap(id -> {
-                    return getObsSeriesByFoi(id, timeParams.resultTimeRange, timeParams.latestResultOnly)
+                    return getObsSeriesByFoi(id.getIdAsLong(), timeParams.resultTimeRange, timeParams.latestResultOnly)
                         .filter(s -> dataStreamIDs.contains(s.key.dataStreamID));
                 });
         }
@@ -430,16 +390,15 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
-    public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
+    public Stream<Entry<BigId, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
     {        
         // stream obs directly in case of filtering by internal IDs
         if (filter.getInternalIDs() != null)
         {
             var obsStream = filter.getInternalIDs().stream()
-                .map(k -> mapToInternalKey(k))
+                .map(k -> toInternalKey(k))
                 .map(k -> obsRecordsIndex.getEntry(k))
-                .filter(Objects::nonNull)
-                .map(e -> mapToPublicEntry(e));
+                .filter(Objects::nonNull);
             
             return getPostFilteredResultStream(obsStream, filter);
         }
@@ -450,14 +409,14 @@ public class MVObsStoreImpl implements IObsStore
         
         // create obs streams for each selected series
         // and keep all spliterators in array list
-        final var obsStreams = new ArrayList<Stream<Entry<BigInteger, IObsData>>>(100);
+        final var obsStreams = new ArrayList<Stream<Entry<BigId, IObsData>>>(100);
         obsSeries.peek(s -> {
                 // make sure list size cannot go over a threshold
                 if (obsStreams.size() >= maxSelectedSeriesOnJoin)
                     throw new IllegalStateException("Too many datastreams or features of interest selected. Please refine your filter");
             })
             .forEach(series -> {
-                Stream<Entry<BigInteger, IObsData>> obsStream = getObsStream(series, 
+                var obsStream = getObsStream(series, 
                     timeParams.resultTimeRange,
                     timeParams.phenomenonTimeRange,
                     timeParams.currentTimeOnly,
@@ -472,7 +431,7 @@ public class MVObsStoreImpl implements IObsStore
         // TODO group by result time when series with different result times are selected
         
         // stream and merge obs from all selected datastreams and time periods
-        MergeSortSpliterator<Entry<BigInteger, IObsData>> mergeSortIt = new MergeSortSpliterator<>(obsStreams,
+        var mergeSortIt = new MergeSortSpliterator<Entry<BigId, IObsData>>(obsStreams,
                 (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));
         
         // stream output of merge sort iterator + apply limit
@@ -482,17 +441,20 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
-    Stream<Entry<BigInteger, IObsData>> getPostFilteredResultStream(Stream<Entry<BigInteger, IObsData>> resultStream, ObsFilter filter)
+    Stream<Entry<BigId, IObsData>> getPostFilteredResultStream(Stream<Entry<MVTimeSeriesRecordKey, IObsData>> resultStream, ObsFilter filter)
     {
         if (filter.getValuePredicate() != null)
             resultStream = resultStream.filter(e -> filter.testValuePredicate(e.getValue()));
         
-        return resultStream;
+        // casting is ok since keys are subtypes of BigId
+        @SuppressWarnings({ "unchecked" })
+        var castedStream = (Stream<Entry<BigId, IObsData>>)(Stream<?>)resultStream;
+        return castedStream;
     }
     
     
     @Override
-    public Stream<Long> selectObservedFois(ObsFilter filter)
+    public Stream<BigId> selectObservedFois(ObsFilter filter)
     {
         var timeParams = new TimeParams(filter);
         
@@ -500,12 +462,12 @@ public class MVObsStoreImpl implements IObsStore
         {
             return DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
                 .flatMap(dsID -> {
-                    return getObsSeriesByDataStream(dsID, timeParams.resultTimeRange, timeParams.latestResultOnly)
+                    return getObsSeriesByDataStream(dsID.getIdAsLong(), timeParams.resultTimeRange, timeParams.latestResultOnly)
                         .filter(s -> {
                             var timeRange = getObsSeriesPhenomenonTimeRange(s.id);
                             return timeRange != null && timeRange.isConnected(timeParams.phenomenonTimeRange);
                         })
-                        .map(s -> s.key.foiID)
+                        .map(s -> BigId.fromLong(idScope, s.key.foiID))
                         .distinct();
                 });
         }
@@ -641,7 +603,7 @@ public class MVObsStoreImpl implements IObsStore
                 .map(series -> {
                    var dsID = series.key.dataStreamID;
                    var foiID = series.key.foiID > 0 ?
-                       new FeatureId(series.key.foiID, "urn:foi:unknown") :
+                       new FeatureId(BigId.fromLong(idScope, series.key.foiID), "urn:foi:unknown") :
                        FeatureId.NULL_FEATURE;
                    
                    var seriesTimeRange = getObsSeriesPhenomenonTimeRange(series.id);
@@ -659,7 +621,7 @@ public class MVObsStoreImpl implements IObsStore
                    var obsCount = getObsSeriesCount(series.id, statsTimeRange);
                        
                    var obsStats = new ObsStats.Builder()
-                       .withDataStreamID(dsID)
+                       .withDataStreamID(BigId.fromLong(idScope, dsID))
                        .withFoiID(foiID)
                        .withPhenomenonTimeRange(TimeExtent.period(statsTimeRange))
                        .withResultTimeRange(TimeExtent.period(resultTimeRange))
@@ -732,7 +694,7 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public boolean containsKey(Object key)
     {
-        MVTimeSeriesRecordKey obsKey = mapToInternalKey(key);
+        MVTimeSeriesRecordKey obsKey = toInternalKey(key);
         return obsKey == null ? false : obsRecordsIndex.containsKey(obsKey);
     }
 
@@ -747,7 +709,7 @@ public class MVObsStoreImpl implements IObsStore
     @Override
     public IObsData get(Object key)
     {
-        MVTimeSeriesRecordKey obsKey = mapToInternalKey(key);
+        MVTimeSeriesRecordKey obsKey = toInternalKey(key);
         return obsKey == null ? null : obsRecordsIndex.get(obsKey);
     }
 
@@ -760,17 +722,19 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
-    public Set<Entry<BigInteger, IObsData>> entrySet()
+    public Set<Entry<BigId, IObsData>> entrySet()
     {
         return new AbstractSet<>() {
             @Override
-            public Iterator<Entry<BigInteger, IObsData>> iterator() {
+            public Iterator<Entry<BigId, IObsData>> iterator() {
                 return getAllObsSeries(H2Utils.ALL_TIMES_RANGE)
                     .flatMap(series -> {
-                        RangeCursor<MVTimeSeriesRecordKey, IObsData> cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
-                        return cursor.entryStream().map(e -> {
-                            return mapToPublicEntry(e);
-                        });
+                        var cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
+                        
+                        // casting is ok since set is read-only and keys are subtypes of BigId
+                        @SuppressWarnings({ "unchecked" })
+                        var castedStream = (Stream<Entry<BigId, IObsData>>)(Stream<?>)cursor.entryStream();
+                        return castedStream;
                     }).iterator();
             }
 
@@ -788,17 +752,19 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
-    public Set<BigInteger> keySet()
+    public Set<BigId> keySet()
     {
         return new AbstractSet<>() {
             @Override
-            public Iterator<BigInteger> iterator() {
+            public Iterator<BigId> iterator() {
                 return getAllObsSeries(H2Utils.ALL_TIMES_RANGE)
                     .flatMap(series -> {
                         RangeCursor<MVTimeSeriesRecordKey, IObsData> cursor = getObsCursor(series.id, H2Utils.ALL_TIMES_RANGE);
-                        return cursor.keyStream().map(e -> {
-                            return mapToPublicKey(e);
-                        });
+                        
+                        // casting is ok since set is read-only and keys are subtypes of BigId
+                        @SuppressWarnings({ "unchecked" })
+                        var castedStream = (Stream<BigId>)(Stream<?>)cursor.keyStream();
+                        return castedStream;
                     }).iterator();
             }
 
@@ -816,7 +782,7 @@ public class MVObsStoreImpl implements IObsStore
     
     
     @Override
-    public BigInteger add(IObsData obs)
+    public BigId add(IObsData obs)
     {
         // check that datastream exists
         if (!dataStreamStore.containsKey(new DataStreamKey(obs.getDataStreamID())))
@@ -830,8 +796,8 @@ public class MVObsStoreImpl implements IObsStore
             try
             {
                 MVTimeSeriesKey seriesKey = new MVTimeSeriesKey(
-                    obs.getDataStreamID(),
-                    obs.getFoiID(),
+                    obs.getDataStreamID().getIdAsLong(),
+                    obs.getFoiID().getIdAsLong(),
                     obs.getResultTime().equals(obs.getPhenomenonTime()) ? Instant.MIN : obs.getResultTime());
                 
                 MVTimeSeriesInfo series = obsSeriesMainIndex.computeIfAbsent(seriesKey, k -> {
@@ -843,10 +809,10 @@ public class MVObsStoreImpl implements IObsStore
                 });
                 
                 // add to main obs index
-                MVTimeSeriesRecordKey obsKey = new MVTimeSeriesRecordKey(series.id, obs.getPhenomenonTime());
+                MVTimeSeriesRecordKey obsKey = new MVTimeSeriesRecordKey(idScope, series.id, obs.getPhenomenonTime());
                 obsRecordsIndex.put(obsKey, obs);
                 
-                return mapToPublicKey(obsKey);
+                return obsKey;
             }
             catch (Exception e)
             {
@@ -858,7 +824,7 @@ public class MVObsStoreImpl implements IObsStore
 
 
     @Override
-    public IObsData put(BigInteger key, IObsData obs)
+    public IObsData put(BigId key, IObsData obs)
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -867,7 +833,7 @@ public class MVObsStoreImpl implements IObsStore
             
             try
             {
-                MVTimeSeriesRecordKey obsKey = mapToInternalKey(key);
+                MVTimeSeriesRecordKey obsKey = toInternalKey(key);
                 IObsData oldObs = obsRecordsIndex.replace(obsKey, obs);
                 if (oldObs == null)
                     throw new UnsupportedOperationException("put can only be used to update existing entries");
@@ -892,7 +858,7 @@ public class MVObsStoreImpl implements IObsStore
             
             try
             {
-                MVTimeSeriesRecordKey key = mapToInternalKey(keyObj);
+                MVTimeSeriesRecordKey key = toInternalKey(keyObj);
                 IObsData oldObs = obsRecordsIndex.remove(key);
                 
                 // don't check and remove empty obs series here since in many cases they will be reused.

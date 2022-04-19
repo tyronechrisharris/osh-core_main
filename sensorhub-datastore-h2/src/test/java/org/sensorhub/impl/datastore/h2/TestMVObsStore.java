@@ -29,12 +29,12 @@ public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
     private static String DB_FILE_PREFIX = "test-mvobs-";
     protected File dbFile;
     protected MVStore mvStore;
-        
+    
     
     protected MVObsStoreImpl initStore() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
-        dbFile.deleteOnExit();        
+        dbFile.deleteOnExit();
         return openMVStore();
     }
     
@@ -60,7 +60,7 @@ public class TestMVObsStore extends AbstractTestObsStore<MVObsStoreImpl>
                 .cacheSize(1)
                 .open();
         
-        return MVObsStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,
+        return MVObsStoreImpl.open(mvStore, DATABASE_NUM, IdProviderType.SEQUENTIAL,
             MVDataStoreInfo.builder()
                 .withName(OBS_DATASTORE_NAME)
                 .build());

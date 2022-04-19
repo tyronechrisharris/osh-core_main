@@ -32,7 +32,7 @@ public class TestMVDataStreamStore extends AbstractTestDataStreamStore<MVDataStr
     protected MVDataStreamStoreImpl initStore() throws Exception
     {
         dbFile = File.createTempFile(DB_FILE_PREFIX, ".dat");
-        dbFile.deleteOnExit();        
+        dbFile.deleteOnExit();
         return openMVStore();
     }
     
@@ -58,7 +58,7 @@ public class TestMVDataStreamStore extends AbstractTestDataStreamStore<MVDataStr
                 .cacheSize(10)
                 .open();
         
-        var obsStore = MVObsStoreImpl.open(mvStore, IdProviderType.SEQUENTIAL,
+        var obsStore = MVObsStoreImpl.open(mvStore, DATABASE_NUM, IdProviderType.SEQUENTIAL,
             MVDataStoreInfo.builder()
                 .withName("OBS_STORE")
                 .build());

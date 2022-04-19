@@ -17,7 +17,6 @@ package org.sensorhub.impl.datastore.h2;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -26,14 +25,11 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.RangeCursor;
-import org.h2.mvstore.WriteBuffer;
 import org.sensorhub.api.command.ICommandStatus;
-import org.sensorhub.api.command.ICommandStreamInfo;
-import org.sensorhub.api.datastore.IdProvider;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
@@ -58,13 +54,11 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
 {
     private static final String CMD_RECORDS_MAP_NAME = "status_records";
     
-    protected MVStore mvStore;
-    protected MVCommandStoreImpl cmdStore;
-    protected IdProvider<ICommandStreamInfo> idProvider;
-    
-    protected MVBTreeMap<MVCommandStatusKey, ICommandStatus> statusIndex;
-    
-    protected int maxSelectedSeriesOnJoin = 200;
+    final MVStore mvStore;
+    final MVCommandStoreImpl cmdStore;
+    final int idScope;
+    final MVBTreeMap<MVCommandStatusKey, ICommandStatus> statusIndex;
+    final int maxSelectedSeriesOnJoin = 200;
     
     
     static class TimeParams
@@ -104,6 +98,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
     {
         this.cmdStore = Asserts.checkNotNull(cmdStore, MVCommandStoreImpl.class);
         this.mvStore = Asserts.checkNotNull(cmdStore.mvStore, MVStore.class);
+        this.idScope = cmdStore.idScope;
         
         // persistent class mappings for Kryo
         var kryoClassMap = mvStore.openMap(MVObsSystemDatabase.KRYO_CLASS_MAP_NAME, new MVBTreeMap.Builder<String, Integer>());
@@ -111,7 +106,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
         // commands map
         String mapName = cmdStore.getDatastoreName() + ":" + CMD_RECORDS_MAP_NAME;
         this.statusIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVCommandStatusKey, ICommandStatus>()
-                .keyType(new MVCommandStatusKeyDataType())
+                .keyType(new MVCommandStatusKeyDataType(cmdStore.idScope))
                 .valueType(new CommandStatusDataType(kryoClassMap)));
     }
 
@@ -130,31 +125,16 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
     }
     
     
-    BigInteger toExternalKey(MVCommandStatusKey internalKey)
-    {
-        byte[] cmdID = internalKey.cmdID.toByteArray();
-        WriteBuffer buf = new WriteBuffer(cmdID.length + 13); // 1+8+4
-        buf.put((byte)cmdID.length);
-        buf.put(cmdID);
-        H2Utils.writeInstant(buf, internalKey.reportTime);
-        return new BigInteger(buf.getBuffer().array(), 0, buf.position());
-    }
-    
-    
     MVCommandStatusKey toInternalKey(Object keyObj)
     {
-        Asserts.checkArgument(keyObj instanceof BigInteger, "key must be a BigInteger");
-        BigInteger key = (BigInteger)keyObj;
+        Asserts.checkArgument(keyObj instanceof BigId, "key must be a BigId");
+        BigId key = (BigId)keyObj;
 
         try
         {
-            // parse from BigInt
-            ByteBuffer buf = ByteBuffer.wrap(key.toByteArray());
-            int cmdIdLen = buf.get();
-            BigInteger cmdID = new BigInteger(buf.array(), 1, cmdIdLen);
-            buf.position(cmdIdLen+1);
-            Instant reportTime = H2Utils.readInstant(buf);
-            return new MVCommandStatusKey(cmdID, reportTime);
+            // parse from BigId
+            ByteBuffer buf = ByteBuffer.wrap(key.getIdAsBytes());
+            return MVCommandStatusKeyDataType.decode(idScope, buf);
         }
         catch (Exception e)
         {
@@ -164,14 +144,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
     }
     
     
-    Entry<BigInteger, ICommandStatus> toExternalEntry(Entry<MVCommandStatusKey, ICommandStatus> internalEntry)
-    {
-        BigInteger cmdID = toExternalKey(internalEntry.getKey());
-        return new DataUtils.MapEntry<>(cmdID, internalEntry.getValue());
-    }
-    
-    
-    RangeCursor<MVCommandStatusKey, ICommandStatus> getStatusCursor(BigInteger cmdID, Range<Instant> reportTimeRange)
+    RangeCursor<MVCommandStatusKey, ICommandStatus> getStatusCursor(BigId cmdID, Range<Instant> reportTimeRange)
     {
         MVCommandStatusKey first = new MVCommandStatusKey(cmdID, reportTimeRange.lowerEndpoint());
         MVCommandStatusKey last = new MVCommandStatusKey(cmdID, reportTimeRange.upperEndpoint());
@@ -179,7 +152,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
     }
     
     
-    Stream<Entry<MVCommandStatusKey, ICommandStatus>> getStatusStream(BigInteger cmdID, TemporalFilter reportTimeFilter)
+    Stream<Entry<MVCommandStatusKey, ICommandStatus>> getStatusStream(BigId cmdID, TemporalFilter reportTimeFilter)
     {
         // if request if for latest only, get only the latest command in series
         if (reportTimeFilter != null && reportTimeFilter.isLatestTime())
@@ -200,7 +173,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandStatus>> selectEntries(CommandStatusFilter filter, Set<CommandStatusField> fields)
+    public Stream<Entry<BigId, ICommandStatus>> selectEntries(CommandStatusFilter filter, Set<CommandStatusField> fields)
     {
         Stream<Entry<MVCommandStatusKey, ICommandStatus>> resultStream;
         var commandFilter = filter.getCommandFilter();
@@ -213,10 +186,13 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
             .flatMap(k -> getStatusStream(k, filter.getReportTime()));
         
         // post filter status record
-        // creating public entries in the process
-        return resultStream.filter(e -> filter.test(e.getValue()))
-            .map(e -> toExternalEntry(e))
+        resultStream = resultStream.filter(e -> filter.test(e.getValue()))
             .limit(filter.getLimit());
+        
+        // casting is ok since keys are subtypes of BigId
+        @SuppressWarnings({ "unchecked" })
+        var castedStream = (Stream<Entry<BigId, ICommandStatus>>)(Stream<?>)resultStream;
+        return castedStream;
     }
     
     
@@ -224,7 +200,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
     {
         // create filter to select all commands from stream
         var filter = new CommandFilter.Builder()
-            .withCommandStreams(streamID)
+            .withCommandStreams(BigId.fromLongs(0, streamID))
             .build();
         
         Instant[] timeRange = new Instant[] {Instant.MAX, Instant.MIN};
@@ -307,14 +283,17 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
 
 
     @Override
-    public Set<Entry<BigInteger, ICommandStatus>> entrySet()
+    public Set<Entry<BigId, ICommandStatus>> entrySet()
     {
         return new AbstractSet<>() {
             @Override
-            public Iterator<Entry<BigInteger, ICommandStatus>> iterator() {
-                return statusIndex.entrySet().stream()
-                    .map(e -> toExternalEntry(e))
-                    .iterator();
+            public Iterator<Entry<BigId, ICommandStatus>> iterator() {
+                var it = statusIndex.entrySet().stream().iterator();
+                
+                // casting is ok since set is read-only and keys are subtypes of BigId
+                @SuppressWarnings({ "unchecked" })
+                var castedStream = (Iterator<Entry<BigId, ICommandStatus>>)(Iterator<?>)it;
+                return castedStream;
             }
 
             @Override
@@ -331,14 +310,17 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
 
 
     @Override
-    public Set<BigInteger> keySet()
+    public Set<BigId> keySet()
     {
         return new AbstractSet<>() {
             @Override
-            public Iterator<BigInteger> iterator() {
-                return statusIndex.keyStream()
-                    .map(key -> toExternalKey(key))
-                    .iterator();
+            public Iterator<BigId> iterator() {
+                var it = statusIndex.keyStream().iterator();
+                
+                // casting is ok since set is read-only and keys are subtypes of BigId
+                @SuppressWarnings({ "unchecked" })
+                var castedStream = (Iterator<BigId>)(Iterator<?>)it;
+                return castedStream;
             }
 
             @Override
@@ -355,7 +337,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
     
     
     @Override
-    public BigInteger add(ICommandStatus status)
+    public BigId add(ICommandStatus status)
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -370,7 +352,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
                     status.getReportTime());
                 statusIndex.put(key, status);
                 
-                return toExternalKey(key);
+                return key;
             }
             catch (Exception e)
             {
@@ -382,7 +364,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
 
 
     @Override
-    public ICommandStatus put(BigInteger key, ICommandStatus status)
+    public ICommandStatus put(BigId key, ICommandStatus status)
     {
         // synchronize on MVStore to avoid autocommit in the middle of things
         synchronized (mvStore)
@@ -433,7 +415,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
     }
     
 
-    protected void removeAllStatus(BigInteger cmdID)
+    protected void removeAllStatus(BigId cmdID)
     {
         // remove all series and commands
         MVCommandStatusKey first = new MVCommandStatusKey(cmdID, Instant.MIN);

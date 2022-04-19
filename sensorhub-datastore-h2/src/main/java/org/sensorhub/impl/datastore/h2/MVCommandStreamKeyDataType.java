@@ -18,6 +18,7 @@ import java.nio.ByteBuffer;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 
 
@@ -31,22 +32,32 @@ import org.sensorhub.api.datastore.command.CommandStreamKey;
  */
 class MVCommandStreamKeyDataType implements DataType
 {
-    private static final int MEM_SIZE = 8;
+    final int idScope;
     
-            
+    
+    MVCommandStreamKeyDataType(int idScope)
+    {
+        this.idScope = idScope;
+    }
+    
+    
     @Override
     public int compare(Object objA, Object objB)
     {
         CommandStreamKey a = (CommandStreamKey)objA;
         CommandStreamKey b = (CommandStreamKey)objB;
-        return Long.compare(a.getInternalID(), b.getInternalID());
+        
+        return Long.compare(
+            a.getInternalID().getIdAsLong(),
+            b.getInternalID().getIdAsLong());
     }
     
 
     @Override
     public int getMemory(Object obj)
     {
-        return MEM_SIZE;
+        var id = ((CommandStreamKey)obj).getInternalID().getIdAsLong();
+        return DataUtils.getVarLongLen(id);
     }
     
 
@@ -54,7 +65,7 @@ class MVCommandStreamKeyDataType implements DataType
     public void write(WriteBuffer wbuf, Object obj)
     {
         CommandStreamKey key = (CommandStreamKey)obj;
-        wbuf.putVarLong(key.getInternalID());
+        wbuf.putVarLong(key.getInternalID().getIdAsLong());
     }
     
 
@@ -70,7 +81,7 @@ class MVCommandStreamKeyDataType implements DataType
     public Object read(ByteBuffer buff)
     {
         long internalID = DataUtils.readVarLong(buff);
-        return new CommandStreamKey(internalID);
+        return new CommandStreamKey(BigId.fromLong(idScope, internalID));
     }
     
 

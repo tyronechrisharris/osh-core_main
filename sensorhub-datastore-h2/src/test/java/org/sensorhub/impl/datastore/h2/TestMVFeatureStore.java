@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import org.h2.mvstore.MVStore;
 import org.junit.After;
 import org.sensorhub.impl.datastore.AbstractTestFeatureStore;
+import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 
 
 public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreImpl>
@@ -57,7 +58,7 @@ public class TestMVFeatureStore extends AbstractTestFeatureStore<MVFeatureStoreI
                 .cacheSize(1)
                 .open();
         
-        return MVFeatureStoreImpl.open(mvStore, MVDataStoreInfo.builder()
+        return MVFeatureStoreImpl.open(mvStore, DATABASE_NUM, IdProviderType.SEQUENTIAL, MVDataStoreInfo.builder()
             .withName(DATASTORE_NAME)
             .build());
     }
