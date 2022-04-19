@@ -14,10 +14,10 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import java.math.BigInteger;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
@@ -40,7 +40,7 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Mar 12, 2021
  */
-public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandData, CommandField, CommandFilter> implements ICommandStore
+public class CommandStoreView extends ReadOnlyDataStore<BigId, ICommandData, CommandField, CommandFilter> implements ICommandStore
 {
     ICommandStore delegate;
     CommandStreamStoreView commandStreamStoreView;
@@ -65,7 +65,7 @@ public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandData
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
+    public Stream<Entry<BigId, ICommandData>> selectEntries(CommandFilter filter, Set<CommandField> fields)
     {
         try
         {
@@ -132,7 +132,7 @@ public class CommandStoreView extends ReadOnlyDataStore<BigInteger, ICommandData
 
 
     @Override
-    public BigInteger add(ICommandData cmd)
+    public BigId add(ICommandData cmd)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

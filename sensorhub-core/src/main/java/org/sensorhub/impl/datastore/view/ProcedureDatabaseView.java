@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.view;
 
 import java.util.concurrent.Callable;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
@@ -36,7 +37,7 @@ public class ProcedureDatabaseView implements IProcedureDatabase
         {
             // create filter that will never match anything
             procFilter = new ProcedureFilter.Builder()
-                .withInternalIDs(0L)
+                .withInternalIDs(BigId.NONE)
                 .build();
         }
         

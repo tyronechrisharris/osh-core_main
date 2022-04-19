@@ -14,9 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import java.math.BigInteger;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -38,7 +38,7 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Nov 3, 2020
  */
-public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsField, ObsFilter> implements IObsStore
+public class ObsStoreView extends ReadOnlyDataStore<BigId, IObsData, ObsField, ObsFilter> implements IObsStore
 {
     IObsStore delegate;
     DataStreamStoreView dataStreamStoreView;
@@ -54,7 +54,7 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
 
 
     @Override
-    public Stream<Entry<BigInteger, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
+    public Stream<Entry<BigId, IObsData>> selectEntries(ObsFilter filter, Set<ObsField> fields)
     {
         try
         {
@@ -128,7 +128,7 @@ public class ObsStoreView extends ReadOnlyDataStore<BigInteger, IObsData, ObsFie
 
 
     @Override
-    public BigInteger add(IObsData obs)
+    public BigId add(IObsData obs)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

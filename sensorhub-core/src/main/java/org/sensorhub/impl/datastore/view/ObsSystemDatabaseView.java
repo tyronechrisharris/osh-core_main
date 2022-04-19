@@ -14,8 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import java.math.BigInteger;
 import java.util.concurrent.Callable;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.ICommandStore;
@@ -55,7 +55,7 @@ public class ObsSystemDatabaseView implements IObsSystemDatabase
         {
             // create filter that will never match anything
             cmdFilter = new CommandFilter.Builder()
-                .withInternalIDs(BigInteger.ZERO)
+                .withInternalIDs(BigId.NONE)
                 .build();
         }
         
@@ -63,7 +63,7 @@ public class ObsSystemDatabaseView implements IObsSystemDatabase
         {
             // create filter that will never match anything
             obsFilter = new ObsFilter.Builder()
-                .withInternalIDs(BigInteger.ZERO)
+                .withInternalIDs(BigId.NONE)
                 .build();
         }
         

@@ -16,6 +16,7 @@ package org.sensorhub.impl.datastore.view;
 
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -99,7 +100,7 @@ public abstract class FeatureStoreViewBase<
     
     
     @Override
-    public Long getParent(long internalID)
+    public BigId getParent(BigId internalID)
     {
         if (contains(internalID))
             return delegate.getParent(internalID);
@@ -130,7 +131,7 @@ public abstract class FeatureStoreViewBase<
 
 
     @Override
-    public FeatureKey add(long parentId, V value)
+    public FeatureKey add(BigId parentId, V value)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

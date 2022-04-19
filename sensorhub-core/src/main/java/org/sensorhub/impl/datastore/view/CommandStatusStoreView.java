@@ -14,10 +14,10 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.view;
 
-import java.math.BigInteger;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandStatus;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
@@ -34,7 +34,7 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Jan 4, 2022
  */
-public class CommandStatusStoreView extends ReadOnlyDataStore<BigInteger, ICommandStatus, CommandStatusField, CommandStatusFilter> implements ICommandStatusStore
+public class CommandStatusStoreView extends ReadOnlyDataStore<BigId, ICommandStatus, CommandStatusField, CommandStatusFilter> implements ICommandStatusStore
 {
     ICommandStatusStore delegate;
     CommandStoreView commandStreamStoreView;
@@ -49,7 +49,7 @@ public class CommandStatusStoreView extends ReadOnlyDataStore<BigInteger, IComma
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandStatus>> selectEntries(CommandStatusFilter filter, Set<CommandStatusField> fields)
+    public Stream<Entry<BigId, ICommandStatus>> selectEntries(CommandStatusFilter filter, Set<CommandStatusField> fields)
     {
         try
         {
@@ -95,7 +95,7 @@ public class CommandStatusStoreView extends ReadOnlyDataStore<BigInteger, IComma
 
 
     @Override
-    public BigInteger add(ICommandStatus status)
+    public BigId add(ICommandStatus status)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }
