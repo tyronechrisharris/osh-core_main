@@ -14,9 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.common.BigId;
 import org.vast.util.Asserts;
 import net.opengis.swe.v20.DataBlock;
 
@@ -42,21 +42,21 @@ public class CommandDelegate implements ICommandData
 
 
     @Override
-    public BigInteger getID()
+    public BigId getID()
     {
         return delegate.getID();
     }
     
     
     @Override
-    public long getCommandStreamID()
+    public BigId getCommandStreamID()
     {
         return delegate.getCommandStreamID();
     }
 
 
     @Override
-    public long getFoiID()
+    public BigId getFoiID()
     {
         return delegate.getFoiID();
     }
@@ -84,7 +84,7 @@ public class CommandDelegate implements ICommandData
 
 
     @Override
-    public void assignID(BigInteger id)
+    public void assignID(BigId id)
     {
         throw new UnsupportedOperationException();
         

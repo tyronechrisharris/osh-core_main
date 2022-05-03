@@ -14,9 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import org.sensorhub.api.command.ICommandStatus;
+import org.sensorhub.api.common.BigId;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 
@@ -42,7 +42,7 @@ public class CommandStatusDelegate implements ICommandStatus
     
     
     @Override
-    public BigInteger getCommandID()
+    public BigId getCommandID()
     {
         return delegate.getCommandID();
     }

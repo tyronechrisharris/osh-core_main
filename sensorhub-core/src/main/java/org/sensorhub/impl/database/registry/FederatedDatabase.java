@@ -14,13 +14,13 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IFederatedDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -45,149 +45,75 @@ public class FederatedDatabase implements IFederatedDatabase
     final IDatabaseRegistry registry;
     
     
-    static class LocalDbInfo<T>
-    {
-        T db;
-        int databaseNum;
-        long entryID;
-        BigInteger bigEntryID;
-    }
-    
     static class LocalFilterInfo<T>
     {
         T db;
-        int databaseNum;
-        Set<Long> internalIds = new TreeSet<>();
-        Set<BigInteger> bigInternalIds = new TreeSet<>();
+        Set<BigId> ids = new TreeSet<>();
         IQueryFilter filter;
     }
     
-    static class ObsSystemDbInfo extends LocalDbInfo<IObsSystemDatabase> { }
     static class ObsSystemDbFilterInfo extends LocalFilterInfo<IObsSystemDatabase> { }
-    
-    static class ProcedureDbInfo extends LocalDbInfo<IProcedureDatabase> { }
     static class ProcedureDbFilterInfo extends LocalFilterInfo<IProcedureDatabase> { }
     
 
     public FederatedDatabase(IDatabaseRegistry registry)
     {
         this.registry = registry;
-        this.systemStore = new FederatedSystemDescStore(registry, this);
-        this.foiStore = new FederatedFoiStore(registry, this);
-        this.obsStore = new FederatedObsStore(registry, this);
-        this.commandStore = new FederatedCommandStore(registry, this);
-        this.procedureStore = new FederatedProcedureStore(registry, this);
+        this.systemStore = new FederatedSystemDescStore(this);
+        this.foiStore = new FederatedFoiStore(this);
+        this.obsStore = new FederatedObsStore(this);
+        this.commandStore = new FederatedCommandStore(this);
+        this.procedureStore = new FederatedProcedureStore(this);
     }
     
     
-    /*
-     * Get local obs DB containing resource with the given public ID
-     */
-    protected ObsSystemDbInfo getLocalObsDbInfo(long publicID)
+    protected IObsSystemDatabase getObsSystemDatabase(BigId id)
     {
-        var dbInfo = new ObsSystemDbInfo();
-        dbInfo.databaseNum = registry.getDatabaseNum(publicID);
-        dbInfo.db = registry.getObsDatabaseByNum(dbInfo.databaseNum);
-        dbInfo.entryID = registry.getLocalID(dbInfo.databaseNum, publicID);
-        
-        if (dbInfo.db == null)
-            return null;
-        
-        return dbInfo;
+        return registry.getObsDatabaseByNum(id.getScope());
     }
     
     
-    /*
-     * Get local obs DB containing resource with the given public ID
-     */
-    protected ObsSystemDbInfo getLocalObsDbInfo(BigInteger publicID)
+    protected IProcedureDatabase getProcedureDatabase(BigId id)
     {
-        var dbInfo = new ObsSystemDbInfo();
-        dbInfo.databaseNum = registry.getDatabaseNum(publicID);
-        dbInfo.db = registry.getObsDatabaseByNum(dbInfo.databaseNum);
-        dbInfo.bigEntryID = registry.getLocalID(dbInfo.databaseNum, publicID);
-        
-        if (dbInfo.db == null)
-            return null;
-        
-        return dbInfo;
+        return registry.getProcedureDatabaseByNum(id.getScope());
     }
     
     
     /*
-     * Get map with an entry for each DB ID extracted from public IDs
+     * Get map with an entry for each local DB
      */
-    protected Map<Integer, ObsSystemDbFilterInfo> getObsDbFilterDispatchMap(Set<Long> publicIDs)
+    protected Map<Integer, ObsSystemDbFilterInfo> getObsDbFilterDispatchMap(Set<BigId> idList)
     {
         Map<Integer, ObsSystemDbFilterInfo> map = new LinkedHashMap<>();
         
-        for (long publicID: publicIDs)
+        for (var id: idList)
         {
-            var dbInfo = getLocalObsDbInfo(publicID);
-            if (dbInfo == null)
+            var db = getObsSystemDatabase(id);
+            if (db == null)
                 continue;
                 
-            var filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new ObsSystemDbFilterInfo());
-            filterInfo.db = dbInfo.db;
-            filterInfo.databaseNum = dbInfo.databaseNum;
-            filterInfo.internalIds.add(dbInfo.entryID);
+            var filterInfo = map.computeIfAbsent(db.getDatabaseNum(), k -> new ObsSystemDbFilterInfo());
+            filterInfo.db = db;
+            filterInfo.ids.add(id);
         }
         
         return map;
     }
     
     
-    protected Map<Integer, ObsSystemDbFilterInfo> getObsDbFilterDispatchMapBigInt(Set<BigInteger> publicIDs)
-    {
-        Map<Integer, ObsSystemDbFilterInfo> map = new LinkedHashMap<>();
-        
-        for (BigInteger publicID: publicIDs)
-        {
-            var dbInfo = getLocalObsDbInfo(publicID);
-            if (dbInfo == null)
-                continue;
-                
-            var filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new ObsSystemDbFilterInfo());
-            filterInfo.db = dbInfo.db;
-            filterInfo.databaseNum = dbInfo.databaseNum;
-            filterInfo.bigInternalIds.add(dbInfo.bigEntryID);
-        }
-        
-        return map;
-    }
-    
-    
-    /*
-     * Get local obs DB containing resource with the given public ID
-     */
-    protected ProcedureDbInfo getLocalProcDbInfo(long publicID)
-    {
-        var dbInfo = new ProcedureDbInfo();
-        dbInfo.databaseNum = registry.getDatabaseNum(publicID);
-        dbInfo.db = registry.getProcedureDatabaseByNum(dbInfo.databaseNum);
-        dbInfo.entryID = registry.getLocalID(dbInfo.databaseNum, publicID);
-        
-        if (dbInfo.db == null)
-            return null;
-        
-        return dbInfo;
-    }
-    
-    
-    protected Map<Integer, ProcedureDbFilterInfo> getProcDbFilterDispatchMap(Set<Long> publicIDs)
+    protected Map<Integer, ProcedureDbFilterInfo> getProcDbFilterDispatchMap(Set<BigId> idList)
     {
         Map<Integer, ProcedureDbFilterInfo> map = new LinkedHashMap<>();
         
-        for (long publicID: publicIDs)
+        for (var id: idList)
         {
-            var dbInfo = getLocalProcDbInfo(publicID);
-            if (dbInfo == null)
+            var db = getProcedureDatabase(id);
+            if (db == null)
                 continue;
                 
-            var filterInfo = map.computeIfAbsent(dbInfo.databaseNum, k -> new ProcedureDbFilterInfo());
-            filterInfo.db = dbInfo.db;
-            filterInfo.databaseNum = dbInfo.databaseNum;
-            filterInfo.internalIds.add(dbInfo.entryID);
+            var filterInfo = map.computeIfAbsent(db.getDatabaseNum(), k -> new ProcedureDbFilterInfo());
+            filterInfo.db = db;
+            filterInfo.ids.add(id);
         }
         
         return map;

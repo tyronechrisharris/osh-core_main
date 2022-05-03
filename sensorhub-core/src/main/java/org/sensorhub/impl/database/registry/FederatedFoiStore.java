@@ -16,7 +16,7 @@ package org.sensorhub.impl.database.registry;
 
 import java.util.Collection;
 import java.util.Map;
-import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
@@ -27,7 +27,6 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
-import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbInfo;
 import org.vast.ogc.gml.IFeature;
 
 
@@ -43,9 +42,9 @@ import org.vast.ogc.gml.IFeature;
 public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiField, FoiFilter, IObsSystemDatabase> implements IFoiStore
 {
         
-    FederatedFoiStore(IDatabaseRegistry registry, FederatedDatabase db)
+    FederatedFoiStore(FederatedDatabase db)
     {
-        super(registry, db);
+        super(db);
     }
     
     
@@ -55,15 +54,15 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiFi
     }
     
     
-    protected IFoiStore getFeatureStore(IObsSystemDatabase db)
+    protected IObsSystemDatabase getDatabase(BigId id)
     {
-        return db.getFoiStore();
+        return parentDb.getObsSystemDatabase(id);
     }
     
     
-    protected ObsSystemDbInfo getLocalDbInfo(long internalID)
+    protected IFoiStore getFeatureStore(IObsSystemDatabase db)
     {
-        return parentDb.getLocalObsDbInfo(internalID);
+        return db.getFoiStore();
     }
     
     
@@ -76,7 +75,7 @@ public class FederatedFoiStore extends FederatedBaseFeatureStore<IFeature, FoiFi
             {
                 filterInfo.filter = FoiFilter.Builder
                     .from(filter)
-                    .withInternalIDs(filterInfo.internalIds)
+                    .withInternalIDs(filterInfo.ids)
                     .build();
             }
             

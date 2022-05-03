@@ -16,6 +16,7 @@ package org.sensorhub.impl.database.registry;
 
 import java.time.Instant;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import com.vividsolutions.jts.geom.Geometry;
 import net.opengis.swe.v20.DataBlock;
@@ -41,13 +42,13 @@ public class ObsDelegate implements IObsData
     }
     
     
-    public long getDataStreamID()
+    public BigId getDataStreamID()
     {
         return delegate.getDataStreamID();
     }
 
 
-    public long getFoiID()
+    public BigId getFoiID()
     {
         return delegate.getFoiID();
     }

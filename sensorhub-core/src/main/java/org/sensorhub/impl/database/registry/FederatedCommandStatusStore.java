@@ -14,15 +14,13 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.math.BigInteger;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.sensorhub.api.command.ICommandStatus;
-import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
@@ -42,16 +40,14 @@ import org.vast.util.Asserts;
  * @author Alex Robin
  * @date Mar 24, 2021
  */
-public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, ICommandStatus, CommandStatusField, CommandStatusFilter> implements ICommandStatusStore
+public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigId, ICommandStatus, CommandStatusField, CommandStatusFilter> implements ICommandStatusStore
 {
-    final IDatabaseRegistry registry;
     final FederatedDatabase parentDb;
     final FederatedCommandStore commandStore;
     
     
-    FederatedCommandStatusStore(IDatabaseRegistry registry, FederatedDatabase db, FederatedCommandStore cmdStore)
+    FederatedCommandStatusStore(FederatedDatabase db, FederatedCommandStore cmdStore)
     {
-        this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
         this.parentDb = Asserts.checkNotNull(db, FederatedDatabase.class);
         this.commandStore = cmdStore;
     }
@@ -74,72 +70,24 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
     }
     
     
-    protected BigInteger ensureCommandKey(Object obj)
+    protected BigId ensureCommandKey(Object obj)
     {
-        Asserts.checkArgument(obj instanceof BigInteger, "Key must be a BigInteger");
-        return (BigInteger)obj;
-    }
-    
-    
-    /*
-     * Convert to local keys on the way in
-     */
-    protected BigInteger toLocalKey(int databaseID, BigInteger key)
-    {
-        return registry.getLocalID(databaseID, key);
-    }
-    
-    
-    /*
-     * Convert to public keys on the way out
-     */
-    protected BigInteger toPublicKey(int databaseID, BigInteger k)
-    {
-        return registry.getPublicID(databaseID, k);
-    }
-    
-    
-    /*
-     * Convert to public values on the way out
-     */
-    protected ICommandStatus toPublicValue(int databaseID, ICommandStatus status)
-    {
-        var cmdPublicId = registry.getPublicID(databaseID, status.getCommandID());
-        
-        // wrap original command status to return correct public IDs
-        return new CommandStatusDelegate(status) {
-            @Override
-            public BigInteger getCommandID()
-            {
-                return cmdPublicId;
-            }
-        };
-    }
-    
-    
-    /*
-     * Convert to public entries on the way out
-     */
-    protected Entry<BigInteger, ICommandStatus> toPublicEntry(int databaseID, Entry<BigInteger, ICommandStatus> e)
-    {
-        return new AbstractMap.SimpleEntry<>(
-            toPublicKey(databaseID, e.getKey()),
-            toPublicValue(databaseID, e.getValue()));
+        Asserts.checkArgument(obj instanceof BigId, "Key must be a BigId");
+        return (BigId)obj;
     }
 
 
     @Override
     public boolean containsKey(Object obj)
     {
-        BigInteger key = ensureCommandKey(obj);
+        BigId key = ensureCommandKey(obj);
         
-        // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalObsDbInfo(key);
-        if (dbInfo == null)
-            return false;
+        // delegate to database identified by id scope
+        var db = parentDb.getObsSystemDatabase(key);
+        if (db != null)
+            return db.getCommandStore().containsKey(key);
         else
-            return dbInfo.db.getCommandStore().containsKey(
-                toLocalKey(dbInfo.databaseNum, key));
+            return false;
     }
 
 
@@ -159,18 +107,14 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
     @Override
     public ICommandStatus get(Object obj)
     {
-        BigInteger key = ensureCommandKey(obj);
+        BigId key = ensureCommandKey(obj);
         
-        // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalObsDbInfo(key);
-        if (dbInfo == null)
+        // delegate to database identified by id scope
+        var db = parentDb.getObsSystemDatabase(key);
+        if (db != null)
+            return db.getCommandStatusStore().get(key);
+        else
             return null;
-        
-        ICommandStatus cmd = dbInfo.db.getCommandStatusStore().get(toLocalKey(dbInfo.databaseNum, key));
-        if (cmd == null)
-            return null;
-        
-        return toPublicValue(dbInfo.databaseNum, cmd);
     }
     
     
@@ -199,9 +143,9 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
 
 
     @Override
-    public Stream<Entry<BigInteger, ICommandStatus>> selectEntries(CommandStatusFilter filter, Set<CommandStatusField> fields)
+    public Stream<Entry<BigId, ICommandStatus>> selectEntries(CommandStatusFilter filter, Set<CommandStatusField> fields)
     {
-        final var cmdStreams = new ArrayList<Stream<Entry<BigInteger, ICommandStatus>>>(100);
+        final var cmdStreams = new ArrayList<Stream<Entry<BigId, ICommandStatus>>>(100);
         
         // if any kind of internal IDs are used, we need to dispatch the correct filter
         // to the corresponding DB so we create this map
@@ -211,9 +155,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
         {
             filterDispatchMap.values().stream()
                 .forEach(v -> {
-                    int dbNum = v.databaseNum;
-                    var cmdStream = v.db.getCommandStatusStore().selectEntries((CommandStatusFilter)v.filter, fields)
-                        .map(e -> toPublicEntry(dbNum, e));
+                    var cmdStream = v.db.getCommandStatusStore().selectEntries((CommandStatusFilter)v.filter, fields);
                     cmdStreams.add(cmdStream);
                 });
         }
@@ -221,9 +163,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
         {
             parentDb.getAllObsDatabases().stream()
                 .forEach(db -> {
-                    int dbNum = db.getDatabaseNum();
-                    var cmdStream = db.getCommandStatusStore().selectEntries(filter, fields)
-                        .map(e -> toPublicEntry(dbNum, e));
+                    var cmdStream = db.getCommandStatusStore().selectEntries(filter, fields);
                     cmdStreams.add(cmdStream);
                 });
         }
@@ -232,7 +172,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
             return Stream.empty();
         
         // stream and merge commands from all selected command streams and time periods
-        var mergeSortIt = new MergeSortSpliterator<Entry<BigInteger, ICommandStatus>>(cmdStreams,
+        var mergeSortIt = new MergeSortSpliterator<Entry<BigId, ICommandStatus>>(cmdStreams,
             (e1, e2) -> e1.getValue().getReportTime().compareTo(e2.getValue().getReportTime()));
                
         // stream output of merge sort iterator + apply limit
@@ -243,7 +183,7 @@ public class FederatedCommandStatusStore extends ReadOnlyDataStore<BigInteger, I
     
     
     @Override
-    public BigInteger add(ICommandStatus cmd)
+    public BigId add(ICommandStatus cmd)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

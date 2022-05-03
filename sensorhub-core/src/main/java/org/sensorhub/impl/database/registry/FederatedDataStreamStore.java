@@ -14,12 +14,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -27,10 +25,8 @@ import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
-import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
-import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
 import org.vast.util.Asserts;
 
 
@@ -45,31 +41,11 @@ import org.vast.util.Asserts;
  */
 public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {
-    final IDatabaseRegistry registry;
     final FederatedDatabase parentDb;
     
     
-    class DataStreamInfoWithPublicId extends DataStreamInfoWrapper
+    FederatedDataStreamStore(FederatedDatabase db)
     {
-        SystemId publicProcId;        
-        
-        DataStreamInfoWithPublicId(SystemId publicProcId, IDataStreamInfo dsInfo)
-        {
-            super(dsInfo);
-            this.publicProcId = publicProcId;
-        }        
-        
-        @Override
-        public SystemId getSystemID()
-        {
-            return publicProcId;
-        }
-    }
-    
-    
-    FederatedDataStreamStore(IDatabaseRegistry registry, FederatedDatabase db)
-    {
-        this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
         this.parentDb = Asserts.checkNotNull(db, FederatedDatabase.class);
     }
 
@@ -102,13 +78,14 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     public boolean containsKey(Object obj)
     {
         var key = ensureDataStreamKey(obj);
+        var id = key.getInternalID();
         
-        // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalObsDbInfo(key.getInternalID());
-        if (dbInfo == null)
-            return false;
+        // delegate to database identified by id scope
+        var db = parentDb.getObsSystemDatabase(id);
+        if (db != null)
+            return db.getObservationStore().getDataStreams().containsKey(key);
         else
-            return dbInfo.db.getObservationStore().getDataStreams().containsKey(new DataStreamKey(dbInfo.entryID));
+            return false;
     }
 
 
@@ -129,49 +106,14 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
     public IDataStreamInfo get(Object obj)
     {
         var key = ensureDataStreamKey(obj);
+        var id = key.getInternalID();
         
-        // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalObsDbInfo(key.getInternalID());
-        if (dbInfo != null)
-        {
-            IDataStreamInfo dsInfo = dbInfo.db.getObservationStore().getDataStreams().get(new DataStreamKey(dbInfo.entryID));
-            if (dsInfo != null)
-                return toPublicValue(dbInfo.databaseNum, dsInfo);
-        }
-        
-        return null;
-    }
-    
-    
-    /*
-     * Convert to public keys on the way out
-     */
-    protected DataStreamKey toPublicKey(int databaseID, DataStreamKey k)
-    {
-        long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return new DataStreamKey(publicID);
-    }
-    
-    
-    /*
-     * Convert to public values on the way out
-     */
-    protected IDataStreamInfo toPublicValue(int databaseID, IDataStreamInfo dsInfo)
-    {
-        long procPublicID = registry.getPublicID(databaseID, dsInfo.getSystemID().getInternalID());
-        SystemId publicId = new SystemId(procPublicID, dsInfo.getSystemID().getUniqueID());
-        return new DataStreamInfoWithPublicId(publicId, dsInfo);
-    }
-    
-    
-    /*
-     * Convert to public entries on the way out
-     */
-    protected Entry<DataStreamKey, IDataStreamInfo> toPublicEntry(int databaseID, Entry<DataStreamKey, IDataStreamInfo> e)
-    {
-        return new AbstractMap.SimpleEntry<>(
-            toPublicKey(databaseID, e.getKey()),
-            toPublicValue(databaseID, e.getValue()));
+        // delegate to database identified by id scope
+        var db = parentDb.getObsSystemDatabase(id);
+        if (db != null)
+            return db.getObservationStore().getDataStreams().get(key);
+        else
+            return null;
     }
     
     
@@ -187,7 +129,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
             {
                 filterInfo.filter = DataStreamFilter.Builder
                     .from(filter)
-                    .withInternalIDs(filterInfo.internalIds)
+                    .withInternalIDs(filterInfo.ids)
                     .build();
             }
             
@@ -245,9 +187,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         {
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
-                    int dbNum = v.databaseNum;
-                    return v.db.getObservationStore().getDataStreams().selectEntries((DataStreamFilter)v.filter, fields)
-                        .map(e -> toPublicEntry(dbNum, e));
+                    return v.db.getObservationStore().getDataStreams().selectEntries((DataStreamFilter)v.filter, fields);
                 })
                 .limit(filter.getLimit());
         }
@@ -257,9 +197,7 @@ public class FederatedDataStreamStore extends ReadOnlyDataStore<DataStreamKey, I
         {
             return parentDb.getAllObsDatabases().stream()
                 .flatMap(db -> {
-                    int dbNum = db.getDatabaseNum();
-                    return db.getObservationStore().getDataStreams().selectEntries(filter, fields)
-                        .map(e -> toPublicEntry(dbNum, e));
+                    return db.getObservationStore().getDataStreams().selectEntries(filter, fields);
                 })
                 .limit(filter.getLimit());
         }

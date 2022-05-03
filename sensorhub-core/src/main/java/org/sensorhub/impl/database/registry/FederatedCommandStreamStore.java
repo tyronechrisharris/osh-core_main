@@ -14,12 +14,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandStreamInfo;
-import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
@@ -27,10 +25,8 @@ import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore.CommandStreamInfoField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
-import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
-import org.sensorhub.impl.datastore.command.CommandStreamInfoWrapper;
 import org.vast.util.Asserts;
 
 
@@ -45,31 +41,11 @@ import org.vast.util.Asserts;
  */
 public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStreamKey, ICommandStreamInfo, CommandStreamInfoField, CommandStreamFilter> implements ICommandStreamStore
 {
-    final IDatabaseRegistry registry;
     final FederatedDatabase parentDb;
     
     
-    class CommandStreamInfoWithPublicId extends CommandStreamInfoWrapper
+    FederatedCommandStreamStore(FederatedDatabase db)
     {
-        SystemId publicProcId;        
-        
-        CommandStreamInfoWithPublicId(SystemId publicProcId, ICommandStreamInfo dsInfo)
-        {
-            super(dsInfo);
-            this.publicProcId = publicProcId;
-        }        
-        
-        @Override
-        public SystemId getSystemID()
-        {
-            return publicProcId;
-        }
-    }
-    
-    
-    FederatedCommandStreamStore(IDatabaseRegistry registry, FederatedDatabase db)
-    {
-        this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
         this.parentDb = Asserts.checkNotNull(db, FederatedDatabase.class);
     }
 
@@ -102,13 +78,14 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
     public boolean containsKey(Object obj)
     {
         var key = ensureCommandStreamKey(obj);
+        var id = key.getInternalID();
         
-        // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalObsDbInfo(key.getInternalID());
-        if (dbInfo == null)
-            return false;
+        // delegate to database identified by id scope
+        var db = parentDb.getObsSystemDatabase(id);
+        if (db != null)
+            return db.getCommandStore().getCommandStreams().containsKey(key);
         else
-            return dbInfo.db.getCommandStore().getCommandStreams().containsKey(new CommandStreamKey(dbInfo.entryID));
+            return false;
     }
 
 
@@ -129,49 +106,14 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
     public ICommandStreamInfo get(Object obj)
     {
         var key = ensureCommandStreamKey(obj);
+        var id = key.getInternalID();
         
-        // use public key to lookup database and local key
-        var dbInfo = parentDb.getLocalObsDbInfo(key.getInternalID());
-        if (dbInfo != null)
-        {
-            ICommandStreamInfo dsInfo = dbInfo.db.getCommandStore().getCommandStreams().get(new CommandStreamKey(dbInfo.entryID));
-            if (dsInfo != null)
-                return toPublicValue(dbInfo.databaseNum, dsInfo);
-        }
-        
-        return null;
-    }
-    
-    
-    /*
-     * Convert to public keys on the way out
-     */
-    protected CommandStreamKey toPublicKey(int databaseID, CommandStreamKey k)
-    {
-        long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return new CommandStreamKey(publicID);
-    }
-    
-    
-    /*
-     * Convert to public values on the way out
-     */
-    protected ICommandStreamInfo toPublicValue(int databaseID, ICommandStreamInfo dsInfo)
-    {
-        long procPublicID = registry.getPublicID(databaseID, dsInfo.getSystemID().getInternalID());
-        SystemId publicId = new SystemId(procPublicID, dsInfo.getSystemID().getUniqueID());
-        return new CommandStreamInfoWithPublicId(publicId, dsInfo);
-    }
-    
-    
-    /*
-     * Convert to public entries on the way out
-     */
-    protected Entry<CommandStreamKey, ICommandStreamInfo> toPublicEntry(int databaseID, Entry<CommandStreamKey, ICommandStreamInfo> e)
-    {
-        return new AbstractMap.SimpleEntry<>(
-            toPublicKey(databaseID, e.getKey()),
-            toPublicValue(databaseID, e.getValue()));
+        // delegate to database identified by id scope
+        var db = parentDb.getObsSystemDatabase(id);
+        if (db != null)
+            return db.getCommandStore().getCommandStreams().get(key);
+        else
+            return null;
     }
     
     
@@ -187,7 +129,7 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
             {
                 filterInfo.filter = CommandStreamFilter.Builder
                     .from(filter)
-                    .withInternalIDs(filterInfo.internalIds)
+                    .withInternalIDs(filterInfo.ids)
                     .build();
             }
             
@@ -245,9 +187,7 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
         {
             return filterDispatchMap.values().stream()
                 .flatMap(v -> {
-                    int dbNum = v.databaseNum;
-                    return v.db.getCommandStore().getCommandStreams().selectEntries((CommandStreamFilter)v.filter, fields)
-                        .map(e -> toPublicEntry(dbNum, e));
+                    return v.db.getCommandStore().getCommandStreams().selectEntries((CommandStreamFilter)v.filter, fields);
                 })
                 .limit(filter.getLimit());
         }
@@ -257,9 +197,7 @@ public class FederatedCommandStreamStore extends ReadOnlyDataStore<CommandStream
         {
             return parentDb.getAllObsDatabases().stream()
                 .flatMap(db -> {
-                    int dbNum = db.getDatabaseNum();
-                    return db.getCommandStore().getCommandStreams().selectEntries(filter, fields)
-                        .map(e -> toPublicEntry(dbNum, e));
+                    return db.getCommandStore().getCommandStreams().selectEntries(filter, fields);
                 })
                 .limit(filter.getLimit());
         }

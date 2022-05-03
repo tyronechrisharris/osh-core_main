@@ -14,7 +14,6 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.database;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import org.sensorhub.api.system.ISystemDriverDatabase;
 
@@ -118,32 +117,4 @@ public interface IDatabaseRegistry
      */
     IFederatedDatabase getFederatedDatabase();
     
-
-    /**
-     * Convert from a local DB entry ID to the public ID
-     * @param dbNum Database number (unique on a given hub instance)
-     * @param dbLocalID Internal ID of database entry
-     * @return The public ID exposed by the registry
-     */
-    long getPublicID(int dbNum, long dbLocalID);
-    BigInteger getPublicID(int dbNum, BigInteger dbLocalID);
-
-
-    /**
-     * Convert from a public registry ID to a local DB entry ID
-     * @param dbNum Database number (unique on a given hub instance)
-     * @param publicID Public ID of entry
-     * @return The entry ID used internally by the database
-     */
-    long getLocalID(int dbNum, long publicID);
-    BigInteger getLocalID(int dbNum, BigInteger publicID);
-
-
-    /**
-     * Extract the database ID from a public ID
-     * @param publicID Public ID of entry
-     * @return The database ID
-     */
-    int getDatabaseNum(long publicID);
-    int getDatabaseNum(BigInteger publicID);
 }

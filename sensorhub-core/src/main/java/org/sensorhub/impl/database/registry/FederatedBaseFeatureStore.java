@@ -14,19 +14,16 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IDatabase;
-import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
-import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.impl.database.registry.FederatedDatabase.LocalDbInfo;
 import org.sensorhub.impl.database.registry.FederatedDatabase.LocalFilterInfo;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
@@ -51,13 +48,11 @@ import org.vast.util.Bbox;
  */
 public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super T>, DB extends IDatabase> extends ReadOnlyDataStore<FeatureKey, T, VF, F> implements IFeatureStoreBase<T, VF, F>
 {
-    final IDatabaseRegistry registry;
     final FederatedDatabase parentDb;
     
     
-    FederatedBaseFeatureStore(IDatabaseRegistry registry, FederatedDatabase db)
+    FederatedBaseFeatureStore(FederatedDatabase db)
     {
-        this.registry = Asserts.checkNotNull(registry, IDatabaseRegistry.class);
         this.parentDb = Asserts.checkNotNull(db, FederatedDatabase.class);
     }
     
@@ -65,10 +60,10 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     protected abstract Collection<DB> getAllDatabases();
     
     
+    protected abstract DB getDatabase(BigId id);
+    
+    
     protected abstract IFeatureStoreBase<T, VF, F> getFeatureStore(DB db);
-    
-    
-    protected abstract LocalDbInfo<DB> getLocalDbInfo(long internalID);
     
     
     protected abstract Map<Integer, ? extends LocalFilterInfo<DB>> getFilterDispatchMap(F filter);
@@ -113,16 +108,16 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     
     
     @Override
-    public boolean contains(long internalID)
+    public boolean contains(BigId id)
     {
-        DataStoreUtils.checkInternalID(internalID);
+        DataStoreUtils.checkInternalID(id);
         
-        // use public key to lookup database and local key
-        var dbInfo = getLocalDbInfo(internalID);
-        if (dbInfo == null)
-            return false;
+        // delegate to database identified by id scope
+        var db = getDatabase(id);
+        if (db != null)
+            return getFeatureStore(db).contains(id);
         else
-            return getFeatureStore(dbInfo.db).contains(dbInfo.entryID);
+            return false;
     }
 
 
@@ -146,12 +141,12 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     {
         FeatureKey key = DataStoreUtils.checkFeatureKey(obj);
         
-        // use public key to lookup database and local key
-        var dbInfo = getLocalDbInfo(key.getInternalID());
-        if (dbInfo == null)
+        // delegate to database identified by id scope
+        var db = getDatabase(key.getInternalID());
+        if (db != null)
+            return getFeatureStore(db).containsKey(key);
+        else
             return false;
-        
-        return getFeatureStore(dbInfo.db).containsKey(new FeatureKey(dbInfo.entryID));
     }
 
 
@@ -169,15 +164,12 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     
     
     @Override
-    public Long getParent(long internalID)
+    public BigId getParent(BigId id)
     {
         // use public key to lookup database and local key
-        var dbInfo = getLocalDbInfo(internalID);
-        if (dbInfo != null)
-        {
-            var parentID = getFeatureStore(dbInfo.db).getParent(dbInfo.entryID);
-            return parentID == null ? null : registry.getPublicID(dbInfo.databaseNum, parentID);
-        }
+        var db = getDatabase(id);
+        if (db != null)
+            return getFeatureStore(db).getParent(id);
         else
             return null;
     }
@@ -188,13 +180,12 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     {
         FeatureKey key = DataStoreUtils.checkFeatureKey(obj);
         
-        // use public key to lookup database and local key
-        var dbInfo = getLocalDbInfo(key.getInternalID());
-        if (dbInfo == null)
+        // delegate to database identified by id scope
+        var db = getDatabase(key.getInternalID());
+        if (db != null)
+            return getFeatureStore(db).get(key);
+        else
             return null;
-        
-        return getFeatureStore(dbInfo.db).get(
-            new FeatureKey(dbInfo.entryID, key.getValidStartTime()));
     }
 
 
@@ -209,11 +200,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         if (filterDispatchMap != null)
         {
             return filterDispatchMap.values().stream()
-                .flatMap(v -> {
-                    int dbNum = v.databaseNum;
-                    return getFeatureStore(v.db).selectEntries((F)v.filter, fields)
-                        .map(e -> toPublicEntry(dbNum, e));
-                })
+                .flatMap(v -> getFeatureStore(v.db).selectEntries((F)v.filter, fields))
                 .limit(filter.getLimit());
         }
         
@@ -221,47 +208,9 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
         else
         {
             return getAllDatabases().stream()
-                .flatMap(db -> {
-                    int dbNum = db.getDatabaseNum();
-                    return getFeatureStore(db).selectEntries(filter, fields)
-                        .map(e -> toPublicEntry(dbNum, e));
-                })
+                .flatMap(db -> getFeatureStore(db).selectEntries(filter, fields))
                 .limit(filter.getLimit());
         }
-    }
-    
-    
-    /*
-     * Convert to public IDs on the way out
-     */
-    protected FeatureId toPublicID(int databaseID, FeatureId id)
-    {
-        if (id == null)
-            return null;
-        
-        long publicID = registry.getPublicID(databaseID, id.getInternalID());
-        return new FeatureId(publicID, id.getUniqueID());
-    }
-    
-    
-    /*
-     * Convert to public keys on the way out
-     */
-    protected FeatureKey toPublicKey(int databaseID, FeatureKey k)
-    {
-        long publicID = registry.getPublicID(databaseID, k.getInternalID());
-        return new FeatureKey(publicID, k.getValidStartTime());
-    }
-    
-    
-    /*
-     * Convert to public entries on the way out
-     */
-    protected Entry<FeatureKey, T> toPublicEntry(int databaseID, Entry<FeatureKey, T> e)
-    {
-        return new AbstractMap.SimpleEntry<>(
-            toPublicKey(databaseID, e.getKey()),
-            e.getValue());
     }
     
     
@@ -273,7 +222,7 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
 
 
     @Override
-    public FeatureKey add(long parentId, T value)
+    public FeatureKey add(BigId parentId, T value)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
     }

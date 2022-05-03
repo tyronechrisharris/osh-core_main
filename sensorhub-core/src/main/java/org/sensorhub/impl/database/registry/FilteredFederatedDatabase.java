@@ -14,9 +14,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.database.registry;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Set;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IProcedureDatabase;
@@ -94,32 +94,24 @@ public class FilteredFederatedDatabase extends FederatedDatabase
             this.unfilteredDatabases.add(dbNum);
     }
     
-
-    @Override
-    protected ObsSystemDbInfo getLocalObsDbInfo(long publicID)
+    
+    protected IObsSystemDatabase getObsSystemDatabase(BigId id)
     {
-        var dbInfo = super.getLocalObsDbInfo(publicID);
-        if (dbInfo == null)
+        var db = super.getObsSystemDatabase(id);
+        if (db != null)
+            return new ObsSystemDatabaseView(db, obsFilter, cmdFilter);
+        else
             return null;
-        
-        if (!unfilteredDatabases.contains(dbInfo.databaseNum))
-            dbInfo.db = new ObsSystemDatabaseView(dbInfo.db, obsFilter, cmdFilter);
-        
-        return dbInfo;
     }
     
-
-    @Override
-    protected ObsSystemDbInfo getLocalObsDbInfo(BigInteger publicID)
+    
+    protected IProcedureDatabase getProcedureDatabase(BigId id)
     {
-        var dbInfo = super.getLocalObsDbInfo(publicID);
-        if (dbInfo == null)
+        var db = super.getProcedureDatabase(id);
+        if (db != null)
+            return new ProcedureDatabaseView(db, procFilter);
+        else
             return null;
-        
-        if (!unfilteredDatabases.contains(dbInfo.databaseNum))
-            dbInfo.db = new ObsSystemDatabaseView(dbInfo.db, obsFilter, cmdFilter);
-        
-        return dbInfo;
     }
     
 
@@ -135,7 +127,7 @@ public class FilteredFederatedDatabase extends FederatedDatabase
         });
     }
     
-
+    
     @Override
     protected Collection<IProcedureDatabase> getAllProcDatabases()
     {

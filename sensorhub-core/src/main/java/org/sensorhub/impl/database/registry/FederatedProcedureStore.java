@@ -16,14 +16,13 @@ package org.sensorhub.impl.database.registry;
 
 import java.util.Collection;
 import java.util.Map;
-import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.database.registry.FederatedDatabase.ProcedureDbFilterInfo;
-import org.sensorhub.impl.database.registry.FederatedDatabase.ProcedureDbInfo;
 
 
 /**
@@ -38,9 +37,9 @@ import org.sensorhub.impl.database.registry.FederatedDatabase.ProcedureDbInfo;
 public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedureWithDesc, ProcedureField, ProcedureFilter, IProcedureDatabase> implements IProcedureStore
 {
     
-    FederatedProcedureStore(IDatabaseRegistry registry, FederatedDatabase db)
+    FederatedProcedureStore(FederatedDatabase db)
     {
-        super(registry, db);
+        super(db);
     }
     
     
@@ -50,15 +49,15 @@ public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedur
     }
     
     
-    protected IProcedureStore getFeatureStore(IProcedureDatabase db)
+    protected IProcedureDatabase getDatabase(BigId id)
     {
-        return db.getProcedureStore();
+        return parentDb.getProcedureDatabase(id);
     }
     
     
-    protected ProcedureDbInfo getLocalDbInfo(long internalID)
+    protected IProcedureStore getFeatureStore(IProcedureDatabase db)
     {
-        return parentDb.getLocalProcDbInfo(internalID);
+        return db.getProcedureStore();
     }
     
     
@@ -71,7 +70,7 @@ public class FederatedProcedureStore extends FederatedBaseFeatureStore<IProcedur
             {
                 filterInfo.filter = ProcedureFilter.Builder
                     .from(filter)
-                    .withInternalIDs(filterInfo.internalIds)
+                    .withInternalIDs(filterInfo.ids)
                     .build();
             }
             

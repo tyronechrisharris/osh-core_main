@@ -17,7 +17,7 @@ package org.sensorhub.impl.database.registry;
 import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
-import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -27,7 +27,6 @@ import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbFilterInfo;
-import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbInfo;
 
 
 /**
@@ -42,9 +41,9 @@ import org.sensorhub.impl.database.registry.FederatedDatabase.ObsSystemDbInfo;
 public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemWithDesc, SystemField, SystemFilter, IObsSystemDatabase> implements ISystemDescStore
 {
     
-    FederatedSystemDescStore(IDatabaseRegistry registry, FederatedDatabase db)
+    FederatedSystemDescStore(FederatedDatabase db)
     {
-        super(registry, db);
+        super(db);
     }
     
     
@@ -54,15 +53,15 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
     }
     
     
-    protected ISystemDescStore getFeatureStore(IObsSystemDatabase db)
+    protected IObsSystemDatabase getDatabase(BigId id)
     {
-        return db.getSystemDescStore();
+        return parentDb.getObsSystemDatabase(id);
     }
     
     
-    protected ObsSystemDbInfo getLocalDbInfo(long internalID)
+    protected ISystemDescStore getFeatureStore(IObsSystemDatabase db)
     {
-        return parentDb.getLocalObsDbInfo(internalID);
+        return db.getSystemDescStore();
     }
     
     
@@ -79,7 +78,7 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
             {
                 filterInfo.filter = SystemFilter.Builder
                     .from(filter)
-                    .withInternalIDs(filterInfo.internalIds)
+                    .withInternalIDs(filterInfo.ids)
                     .build();
             }
             
@@ -95,7 +94,7 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
             // if parent ID 0 is selected (meaning top level resource)
             // skip because we need to search all databases
             var parentFilter = filter.getParentFilter();
-            if (parentFilter.getInternalIDs() == null || parentFilter.getInternalIDs().first() != 0)
+            if (parentFilter.getInternalIDs() == null || parentFilter.getInternalIDs().first().getIdAsLong() != 0)
                 parentFilterDispatchMap = getFilterDispatchMap(filter.getParentFilter());
         }
         
@@ -105,7 +104,7 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
             for (var entry: dataStreamFilterDispatchMap.entrySet())
             {
                 var dataStreamFilterInfo = entry.getValue();
-                                
+                
                 var builder = SystemFilter.Builder
                     .from(filter)
                     .withDataStreams((DataStreamFilter)dataStreamFilterInfo.filter);
@@ -115,7 +114,6 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
                     builder.withParents((SystemFilter)parentfilterInfo.filter);
                     
                 var filterInfo = new ObsSystemDbFilterInfo();
-                filterInfo.databaseNum = dataStreamFilterInfo.databaseNum;
                 filterInfo.db = dataStreamFilterInfo.db;
                 filterInfo.filter = builder.build();
                 procFilterDispatchMap.put(entry.getKey(), filterInfo);
@@ -132,7 +130,6 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
                 if (!procFilterDispatchMap.containsKey(entry.getKey()))
                 {
                     var filterInfo = new ObsSystemDbFilterInfo();
-                    filterInfo.databaseNum = parentFilterInfo.databaseNum;
                     filterInfo.db = parentFilterInfo.db;
                     filterInfo.filter = SystemFilter.Builder.from(filter)
                         .withParents((SystemFilter)parentFilterInfo.filter)
