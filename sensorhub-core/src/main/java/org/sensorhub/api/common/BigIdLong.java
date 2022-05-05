@@ -15,8 +15,8 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.common;
 
 import java.util.Arrays;
+import org.sensorhub.utils.VarInt;
 import org.vast.util.Asserts;
-import com.google.common.primitives.Longs;
 
 
 /**
@@ -51,7 +51,9 @@ public class BigIdLong implements BigId
     @Override
     public byte[] getIdAsBytes()
     {
-        return Longs.toByteArray(id);
+        var buf = new byte[VarInt.varLongSize(id)];
+        VarInt.putVarLong(id, buf, 0);
+        return buf;
     }
 
 
@@ -65,7 +67,7 @@ public class BigIdLong implements BigId
     @Override
     public int size()
     {
-        return 8;
+        return VarInt.varLongSize(id);
     }
 
 

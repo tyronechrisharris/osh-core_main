@@ -15,6 +15,7 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.common;
 
 import java.util.Arrays;
+import org.sensorhub.utils.VarInt;
 import org.vast.util.Asserts;
 import com.google.common.io.BaseEncoding;
 
@@ -43,6 +44,21 @@ public class BigIdBytes implements BigId
     public byte[] getIdAsBytes()
     {
         return id;
+    }
+    
+    
+    @Override
+    public long getIdAsLong()
+    {
+        if (size() > 8)
+            throw new IllegalArgumentException(NO_LONG_REPRESENTATION);
+        return VarInt.getVarLong(id, 0);
+        
+        /*long val = 0;
+        byte[] bytes = getIdAsBytes();
+        for (int i = bytes.length-1, shift = 0; i >= 0; i--, shift += 8)
+            val |= (bytes[i] & 0xFFL) << shift;
+        return val;*/
     }
 
 
