@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -86,14 +87,14 @@ public class DatabaseStreamPanel extends VerticalLayout
     PagedTable table;
     
     IObsSystemDatabase db;
-    long dataStreamID;
+    BigId dataStreamID;
     IDataStreamInfo dsInfo;
     TimeExtent fullTimeRange;
     TimeExtent zoomTimeRange;
     LazyLoadingObsContainer obsDataContainer;
     
     
-    public DatabaseStreamPanel(IObsSystemDatabase db, IDataStreamInfo dsInfo, long dataStreamID)
+    public DatabaseStreamPanel(IObsSystemDatabase db, IDataStreamInfo dsInfo, BigId dataStreamID)
     {
         this.db = db;
         this.dataStreamID = dataStreamID;

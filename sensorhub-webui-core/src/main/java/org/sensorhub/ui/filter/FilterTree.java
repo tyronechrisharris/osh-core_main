@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.FullTextFilter;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.SpatialFilter;
@@ -100,7 +101,7 @@ public abstract class FilterTree<T extends IQueryFilter, B extends BaseBuilder<T
         {
             var sb = new StringBuilder();
             prop.stream().forEach(elt -> {
-                String s = elt instanceof Long ? Long.toString((long)elt, 36) : elt.toString();
+                String s = elt instanceof BigId ? BigId.toString32((BigId)elt) : elt.toString();
                 sb.append(s).append('\n');
             });
             sb.setLength(sb.length()-1);
@@ -256,10 +257,10 @@ public abstract class FilterTree<T extends IQueryFilter, B extends BaseBuilder<T
     protected abstract void fromTreeItem(TreeTable tree, Object parentId, String itemName, String itemValue, B builder);
     
     
-    protected Collection<Long> readIdList(String itemValue)
+    protected Collection<BigId> readIdList(String itemValue)
     {
         var tokens = itemValue.split(",|\n");
-        return Lists.transform(Arrays.asList(tokens), id -> Long.parseLong(id, 36));
+        return Lists.transform(Arrays.asList(tokens), s -> BigId.fromString32(s));
     }
     
     

@@ -68,9 +68,8 @@ public class SWEControlForm extends SWEEditForm
             
             var sysUID = controlInput.getParentProducer().getUniqueIdentifier();
             var eventBus = ui.getParentHub().getEventBus();
-            var dbRegistry = ui.getParentHub().getDatabaseRegistry();
-            var db = dbRegistry.getFederatedDatabase();
-            var sysTxnHandler = new SystemDatabaseTransactionHandler(eventBus, db, dbRegistry);
+            var db = ui.getParentHub().getDatabaseRegistry().getFederatedDatabase();
+            var sysTxnHandler = new SystemDatabaseTransactionHandler(eventBus, db);
             this.commandTxn = sysTxnHandler.getCommandStreamHandler(sysUID, controlInput.getName());
         }
     }
@@ -100,7 +99,7 @@ public class SWEControlForm extends SWEEditForm
                     {
                         var cmd = new CommandData.Builder()
                             .withSender(userID)
-                            .withCommandStream(commandTxn.getLocalCommandStreamKey().getInternalID())
+                            .withCommandStream(commandTxn.getCommandStreamKey().getInternalID())
                             .withParams(cmdData)
                             .build();
                         commandTxn.submitCommand((int)(Math.random()*1e9), cmd, null);

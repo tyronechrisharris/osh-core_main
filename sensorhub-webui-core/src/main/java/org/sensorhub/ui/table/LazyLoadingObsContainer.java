@@ -16,6 +16,7 @@ package org.sensorhub.ui.table;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.vast.swe.ScalarIndexer;
@@ -27,14 +28,14 @@ import com.vaadin.v7.data.util.IndexedContainer;
 public class LazyLoadingObsContainer extends IndexedContainer
 {
     IObsSystemDatabase db;
-    long dataStreamID;
+    BigId dataStreamID;
     List<ScalarIndexer> indexers;
     int startIndexCache = -1;
     int size = -1;
     TimeExtent timeRange;
     
     
-    public LazyLoadingObsContainer(IObsSystemDatabase db, long dataStreamID, List<ScalarIndexer> indexers)
+    public LazyLoadingObsContainer(IObsSystemDatabase db, BigId dataStreamID, List<ScalarIndexer> indexers)
     {
         this.db = db;
         this.dataStreamID = dataStreamID;
