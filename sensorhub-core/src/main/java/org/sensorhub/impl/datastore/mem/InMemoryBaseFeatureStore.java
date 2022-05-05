@@ -441,7 +441,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         // check that no other feature with same UID exists
         var uid = feature.getUniqueIdentifier();
         var existingKey = uidMap.get(uid);
-        if (existingKey != null && existingKey.equals(key))
+        if (existingKey != null && existingKey.getInternalID().getIdAsLong() != key.getInternalID().getIdAsLong())
             throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
         
         // skip silently if feature currently in store is newer
