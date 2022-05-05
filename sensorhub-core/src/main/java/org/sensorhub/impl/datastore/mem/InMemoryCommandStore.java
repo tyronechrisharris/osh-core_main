@@ -42,6 +42,7 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.AtomicInitializer;
 import org.sensorhub.utils.ObjectUtils;
+import org.sensorhub.utils.VarInt;
 import org.vast.util.Asserts;
 
 
@@ -94,10 +95,14 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
         {
             // compute byte[] representation lazily
             return cachedId.get(() -> {
-                ByteBuffer buf = ByteBuffer.allocate(28);
-                buf.putLong(cmdStreamID);
-                buf.putLong(foiID);
-                buf.putLong(issueTime.getEpochSecond());
+                var sz = VarInt.varLongSize(cmdStreamID)
+                       + VarInt.varLongSize(foiID) 
+                       + VarInt.varLongSize(issueTime.getEpochSecond())
+                       + 4;
+                ByteBuffer buf = ByteBuffer.allocate(sz);
+                VarInt.putVarLong(cmdStreamID, buf);
+                VarInt.putVarLong(foiID, buf);
+                VarInt.putVarLong(issueTime.getEpochSecond(), buf);
                 buf.putInt(issueTime.getNano());
                 return buf.array();
             });
@@ -173,9 +178,11 @@ public class InMemoryCommandStore extends InMemoryDataStore implements ICommandS
         {
             // parse from BigId
             var buf = ByteBuffer.wrap(key.getIdAsBytes());
-            long dsID = buf.getLong();
-            long foiID = buf.getLong();
-            Instant issueTime = Instant.ofEpochSecond(buf.getLong(), buf.getInt());
+            long dsID = VarInt.getVarLong(buf);
+            long foiID = VarInt.getVarLong(buf);
+            Instant issueTime = Instant.ofEpochSecond(
+                VarInt.getVarLong(buf),
+                buf.getInt());
             return new CmdKey(idScope, dsID, foiID, issueTime);
         }
         catch (Exception e)

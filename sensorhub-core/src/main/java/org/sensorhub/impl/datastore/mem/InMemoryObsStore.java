@@ -43,6 +43,7 @@ import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.AtomicInitializer;
 import org.sensorhub.utils.ObjectUtils;
+import org.sensorhub.utils.VarInt;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
@@ -98,10 +99,14 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         {
             // compute byte[] representation lazily
             return cachedId.get(() -> {
-                ByteBuffer buf = ByteBuffer.allocate(28);
-                buf.putLong(dataStreamID);
-                buf.putLong(foiID);
-                buf.putLong(phenomenonTime.getEpochSecond());
+                var sz = VarInt.varLongSize(dataStreamID)
+                       + VarInt.varLongSize(foiID) 
+                       + VarInt.varLongSize(phenomenonTime.getEpochSecond())
+                       + 4;
+                ByteBuffer buf = ByteBuffer.allocate(sz);
+                VarInt.putVarLong(dataStreamID, buf);
+                VarInt.putVarLong(foiID, buf);
+                VarInt.putVarLong(phenomenonTime.getEpochSecond(), buf);
                 buf.putInt(phenomenonTime.getNano());
                 return buf.array();
             });
@@ -176,9 +181,11 @@ public class InMemoryObsStore extends InMemoryDataStore implements IObsStore
         {
             // parse from BigId
             var buf = ByteBuffer.wrap(key.getIdAsBytes());
-            long dsID = buf.getLong();
-            long foiID = buf.getLong();
-            Instant phenomenonTime = Instant.ofEpochSecond(buf.getLong(), buf.getInt());
+            long dsID = VarInt.getVarLong(buf);
+            long foiID = VarInt.getVarLong(buf);
+            Instant phenomenonTime = Instant.ofEpochSecond(
+                VarInt.getVarLong(buf),
+                buf.getInt());
             return new ObsKey(idScope, dsID, foiID, phenomenonTime);
         }
         catch (Exception e)

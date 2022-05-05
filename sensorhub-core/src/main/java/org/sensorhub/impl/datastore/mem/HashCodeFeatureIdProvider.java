@@ -18,8 +18,8 @@ import com.google.common.hash.Hashing;
 
 /**
  * <p>
- * An ID provider that generates internal IDs based on computing the hash
- * code of a feature unique ID
+ * An ID provider that generates internal IDs based on computing a hash of
+ * the feature unique ID.
  * </p>
  *
  * @author Alex Robin
@@ -39,9 +39,9 @@ public class HashCodeFeatureIdProvider implements IdProvider<IFeature>
     @Override
     public long newInternalID(IFeature f)
     {
-        //var hash = Objects.hash(f.getUniqueIdentifier());
-        //return hash & 0xFFFFFFFFL;
+        // We keep only 42-bits so it can fit on a 8-bytes DES encrypted block,
+        // along with the ID scope and using variable length encoding.
         var hash = hashFunc.newHasher().putString(f.getUniqueIdentifier(), Charsets.UTF_8).hash();
-        return hash.asInt() & 0xFFFFFFFFL;
+        return hash.asLong() & 0x3FFFFFFFFFFL;
     }
 }
