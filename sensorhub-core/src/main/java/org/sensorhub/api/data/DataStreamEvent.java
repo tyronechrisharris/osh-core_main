@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.data;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.system.SystemEvent;
 import org.vast.util.Asserts;
@@ -30,7 +31,7 @@ import org.vast.util.Asserts;
 public abstract class DataStreamEvent extends SystemEvent
 {
     protected String outputName;
-    protected long dataStreamID;
+    protected BigId dataStreamID;
 
 
     /**
@@ -77,9 +78,9 @@ public abstract class DataStreamEvent extends SystemEvent
 
 
     /**
-     * @return Local ID of the datastream related to this event
+     * @return Internal ID of the datastream related to this event
      */
-    public long getDataStreamID()
+    public BigId getDataStreamID()
     {
         return dataStreamID;
     }
@@ -91,9 +92,9 @@ public abstract class DataStreamEvent extends SystemEvent
      * dispatched.
      * @param internalID Local ID of related datastream
      */
-    public void assignDataStreamID(long internalID)
+    public void assignDataStreamID(BigId internalID)
     {
-        Asserts.checkState(dataStreamID == 0, "Datastream ID is already assigned");
+        Asserts.checkState(dataStreamID == null, "Datastream ID is already assigned");
         this.dataStreamID = internalID;
     }
 

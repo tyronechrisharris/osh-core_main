@@ -57,9 +57,9 @@ public class CommandData implements ICommandData
      * @param id Command ID
      * @param params Command parameters
      */
-    public CommandData(BigId id, DataBlock params)
+    public CommandData(long id, DataBlock params)
     {
-        this.id = id;
+        this.id = BigId.fromLong(0, id);
         this.commandStreamID = BigId.fromLong(0, 1L);
         this.params = Asserts.checkNotNull(params, DataBlock.class);
         this.issueTime = Instant.now();
