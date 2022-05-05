@@ -55,10 +55,21 @@ public class VarInt {
    *
    * @param src source buffer to retrieve from
    * @param offset offset within src
-   * @param dst the resulting int value
-   * @return the updated offset after reading the varint
+   * @return The integer value of the decoded varint
    */
   public static int getVarInt(byte[] src, int offset) {
+      return getVarInt(src, offset, null);
+  }
+
+  /**
+   * Reads a varint from src, starting at the given offset.
+   *
+   * @param src source buffer to retrieve from
+   * @param offset offset within src
+   * @param endOffset the updated offset after reading the varint
+   * @return The integer value of the decoded varint
+   */
+  public static int getVarInt(byte[] src, int offset, int[] endOffset) {
     int result = 0;
     int shift = 0;
     int b;
@@ -72,6 +83,8 @@ public class VarInt {
       result |= (b & 0x7F) << shift;
       shift += 7;
     } while ((b & 0x80) != 0);
+    if (endOffset != null)
+        endOffset[0] = offset;
     return result;
   }
 
@@ -211,10 +224,22 @@ public class VarInt {
    *
    * @param src source buffer to retrieve from
    * @param offset offset within src
-   * @param dst the resulting int value
-   * @return the updated offset after reading the varint
+   * @param endOffset the updated offset after reading the varint
+   * @return The long value of the decoded varint
    */
   public static long getVarLong(byte[] src, int offset) {
+      return getVarLong(src, offset, null);
+  }
+  
+  /**
+   * Reads an up to 64 bit long varint from src, starting at the given offset
+   *
+   * @param src source buffer to retrieve from
+   * @param offset offset within src
+   * @param endOffset the updated offset after reading the varint
+   * @return The long value of the decoded varint
+   */
+  public static long getVarLong(byte[] src, int offset, int[] endOffset) {
     long result = 0;
     int shift = 0;
     long b;
@@ -228,6 +253,8 @@ public class VarInt {
       result |= (b & 0x7F) << shift;
       shift += 7;
     } while ((b & 0x80) != 0);
+    if (endOffset != null)
+        endOffset[0] = offset;
     return result;
   }
 
@@ -239,7 +266,7 @@ public class VarInt {
    * decoded varint.
    *
    * @param src the ByteBuffer to get the var int from
-   * @return The integer value of the decoded long varint
+   * @return The long value of the decoded long varint
    */
   public static long getVarLong(ByteBuffer src) {
     long tmp;

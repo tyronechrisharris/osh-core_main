@@ -51,7 +51,19 @@ public class BigIdBytes implements BigId
     {
         if (size() > 10)
             throw new IllegalArgumentException(NO_LONG_REPRESENTATION);
-        return VarInt.getVarLong(id, 0);
+        
+        try
+        {
+            var v = VarInt.getVarLong(id, 0);
+            if (VarInt.varLongSize(v) < id.length)
+                throw new IllegalArgumentException(NO_LONG_REPRESENTATION);
+            return v;
+        }
+        catch (Exception e)
+        {
+            throw new IllegalArgumentException(NO_LONG_REPRESENTATION, e);
+        }
+        
     }
 
 
@@ -82,6 +94,6 @@ public class BigIdBytes implements BigId
     @Override
     public String toString()
     {
-        return String.format("BigId {scope=%u, id='%s'}", scope, BASE32_ENCODING.encode(id));
+        return String.format("BigId {scope=%d, id='%s'}", scope, BASE32_ENCODING.encode(id));
     }
 }

@@ -14,7 +14,6 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.common;
 
-import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
@@ -202,6 +201,8 @@ public interface BigId extends Comparable<BigId>
      * Parse a BigId from a base32 encoded string
      * @param s
      * @return A BigId instance
+     * @throws IllegalArgumentException if the provided string is not a valid base32 string
+     * as per <a href="https://datatracker.ietf.org/doc/html/rfc4648#section-7">IETF RFC 4648 section 7</a>
      */
     public static BigId fromString32(String s)
     {
@@ -215,9 +216,9 @@ public interface BigId extends Comparable<BigId>
             var id = is.readAllBytes();
             return BigId.fromBytes(scope, id);
         }
-        catch (IOException e)
+        catch (Exception e)
         {
-            throw new IllegalStateException("Error decoding BigId", e);
+            throw new IllegalArgumentException("Error decoding BigId: " + s, e);
         }
     }
     
@@ -235,9 +236,9 @@ public interface BigId extends Comparable<BigId>
             os.close();
             return writer.toString();
         }
-        catch (IOException e)
+        catch (Exception e)
         {
-            throw new IllegalStateException("Error encoding BigId", e);
+            throw new IllegalStateException("Error encoding BigId: " + id, e);
         }
     }
 }
