@@ -33,6 +33,7 @@ import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.VersionFilter;
 import org.sensorhub.api.datastore.func.JavascriptPredicate;
 import org.vast.util.DateTimeFormat;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.FullTextFilter;
 import org.sensorhub.api.datastore.SpatialFilter.SpatialOp;
 import com.google.common.collect.Range;
@@ -70,7 +71,9 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
     {
           Class<T> rawType = (Class<T>) type.getRawType();
           
-          if (rawType == Instant.class)
+          if (rawType == BigId.class)
+              return (TypeAdapter<T>)new BigIdTypeAdapter().nullSafe();
+          else if (rawType == Instant.class)
               return (TypeAdapter<T>)new InstantTypeAdapter().nullSafe();
           else if (rawType == Duration.class)
               return (TypeAdapter<T>)new DurationTypeAdapter().nullSafe();
@@ -90,6 +93,24 @@ public class DataStoreFiltersTypeAdapterFactory implements TypeAdapterFactory
               return (TypeAdapter<T>)new QueryFilterTypeAdapter(gson, this, type).nullSafe();
           
           return null;
+    }
+    
+    
+    public static class BigIdTypeAdapter extends TypeAdapter<BigId>
+    {
+        @Override
+        public void write(JsonWriter writer, BigId id) throws IOException
+        {
+            var idStr = BigId.toString32(id);
+            writer.value(idStr);
+        }
+
+        @Override
+        public BigId read(JsonReader reader) throws IOException
+        {
+            var idStr = reader.nextString();
+            return BigId.fromString32(idStr);
+        }
     }
     
     

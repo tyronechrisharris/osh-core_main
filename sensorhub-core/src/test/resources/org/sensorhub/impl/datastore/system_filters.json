@@ -23,7 +23,7 @@
         "validTime": {
             "indeterminate": "latest"
         },
-        "internalIDs": [100, 200, 300],
+        "internalIDs": ["4e5ttbr2r220c", "s12on5el3aca2", "ujgnh3d8866e6"],
         "uniqueIDs": [
             "urn:osh:sim:gps",
             "urn:osh:temp*",
@@ -55,7 +55,7 @@
         },
         "withParents": {
             "includeMembers": false,
-            "internalIDs": [1235]
+            "internalIDs": ["eef0"]
         },
         "fullText": {
             "keywords": []

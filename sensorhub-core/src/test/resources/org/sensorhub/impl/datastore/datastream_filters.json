@@ -6,14 +6,14 @@
         "outputNames": ["press", "temp"],
         "withSystems": {
             "includeMembers": false,
-            "internalIDs": [12, 568944]
+            "internalIDs": ["4e5ttbr2r220c", "ak12se8"]
         }
     },
     {
         "validTime": {
             "indeterminate": "current"
         },
-        "internalIDs": [100, 200, 300]
+        "internalIDs": ["45e0", "sk12o", "ttbr2r22"]
     },
     {
         "validTime": {
