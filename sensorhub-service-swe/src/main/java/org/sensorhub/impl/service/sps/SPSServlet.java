@@ -15,7 +15,6 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sps;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -34,6 +33,7 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
@@ -121,8 +121,7 @@ public class SPSServlet extends SWEServlet
         // because we don't write to DB directly but rather send commands to systems that can be in other databases
         this.commandTxnHandler = new SystemDatabaseTransactionHandler(
             service.getParentHub().getEventBus(),
-            readDatabase,
-            service.getParentHub().getDatabaseRegistry());
+            readDatabase);
         
         generateCapabilities();
     }
@@ -401,7 +400,7 @@ public class SPSServlet extends SWEServlet
                 var taskID = request.getTaskID(); 
                 var status = getReadDatabase().getCommandStatusStore()
                     .select(new CommandStatusFilter.Builder()
-                        .withCommands(new BigInteger(taskID, 36))
+                        .withCommands(BigId.fromString32(taskID))
                         .latestReport()
                         .build())
                     .findFirst().orElse(null);
@@ -434,7 +433,7 @@ public class SPSServlet extends SWEServlet
     protected StatusReport toStatusReport(ICommandStatus status)
     {
         StatusReport sr = new StatusReport();
-        sr.setTaskID(status.getCommandID().toString(36));
+        sr.setTaskID(BigId.toString32(status.getCommandID()));
         sr.setLastUpdate(new DateTime(status.getReportTime().toEpochMilli()));
         if (status.getProgress() >= 0)
             sr.setPercentCompletion(status.getProgress());
@@ -824,7 +823,7 @@ public class SPSServlet extends SWEServlet
         // check query parameters
         String procUID = request.getProcedureID();
         OWSExceptionReport report = new OWSExceptionReport();
-        var procKey = checkQueryProcedure(procUID, report);
+        checkQueryProcedure(procUID, report);
         report.process();
                 
         var commandStruct = request.getTaskingParameters();
@@ -837,10 +836,7 @@ public class SPSServlet extends SWEServlet
             {
                 // retrieve transaction helper
                 var procHandler = transactionHandler.getSystemHandler(procUID);
-                
-                // get procedure internal key
-                var sysID = getParentHub().getDatabaseRegistry().getLocalID(
-                    writeDatabase.getDatabaseNum(), procKey.getInternalID());
+                var sysID = procHandler.getSystemKey().getInternalID();
                 
                 // get existing command streams of this procedure
                 var controlInputs = writeDatabase.getCommandStreamStore().selectEntries(new CommandStreamFilter.Builder()

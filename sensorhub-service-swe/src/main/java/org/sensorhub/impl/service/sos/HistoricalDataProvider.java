@@ -21,6 +21,7 @@ import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -161,7 +162,7 @@ public class HistoricalDataProvider extends SystemDataProvider
             throw new SOSException(SOSException.response_too_big_code, null, null, TOO_MANY_OBS_MSG);
         
         // notify consumer with subscription
-        var dataStreams = new HashMap<Long, DataStreamInfoCache>();
+        var dataStreams = new HashMap<BigId, DataStreamInfoCache>();
         consumer.onSubscribe(
             new StreamSubscription<>(
                 consumer,

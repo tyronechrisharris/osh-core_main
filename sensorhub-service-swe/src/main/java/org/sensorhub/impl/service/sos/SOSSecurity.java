@@ -18,7 +18,6 @@ import org.sensorhub.api.security.IPermission;
 import org.sensorhub.impl.module.ModuleSecurity;
 import org.sensorhub.impl.security.ItemPermission;
 import org.sensorhub.impl.security.ModulePermissions;
-import org.vast.util.Asserts;
 
 
 public class SOSSecurity extends ModuleSecurity

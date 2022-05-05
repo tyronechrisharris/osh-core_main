@@ -643,9 +643,9 @@ public class SOSServlet extends SWEServlet
         // check query parameters
         String procUID = getProcedureUID(request.getOffering());
         OWSExceptionReport report = new OWSExceptionReport();
-        var procKey = checkQueryProcedure(procUID, report);
+        checkQueryProcedure(procUID, report);
         report.process();
-                
+        
         var resultStruct = request.getResultStructure();
         var resultEncoding = request.getResultEncoding();
         
@@ -656,10 +656,7 @@ public class SOSServlet extends SWEServlet
             {
                 // retrieve transaction helper
                 var procHandler = transactionHandler.getSystemHandler(procUID);
-                
-                // get system internal key
-                var sysID = getParentHub().getDatabaseRegistry().getLocalID(
-                    writeDatabase.getDatabaseNum(), procKey.getInternalID());
+                var sysID = procHandler.getSystemKey().getInternalID();
                 
                 // get existing datastreams of this procedure
                 var outputs = writeDatabase.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
@@ -683,11 +680,11 @@ public class SOSServlet extends SWEServlet
                     outputName = generateOutputName(resultStruct, outputs.size());
                     getLogger().info("Adding new output {} to procedure {}", outputName, procUID);
                 }
-                                
+                
                 // add or update datastream
                 resultStruct.setName(outputName);
                 procHandler.addOrUpdateDataStream(outputName, resultStruct, resultEncoding);
-                                
+                
                 // build and send response
                 String templateID = generateTemplateID(procUID, outputName);
                 InsertResultTemplateResponse resp = new InsertResultTemplateResponse();
@@ -698,7 +695,7 @@ public class SOSServlet extends SWEServlet
             catch (Exception e)
             {
                 throw new CompletionException(e);
-            }            
+            }
         }, service.getThreadPool())
         .exceptionally(ex -> {
             handleError(

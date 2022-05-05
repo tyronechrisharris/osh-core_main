@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.sensorhub.api.client.ClientException;
 import org.sensorhub.api.client.IClientModule;
 import org.sensorhub.api.event.EventUtils;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataStreamAddedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
@@ -112,7 +113,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         public int measPeriodMs = 1000;
         public int errorCount = 0;
         private int minRecordsPerRequest = 10;
-        private long internalID;
+        private BigId internalID;
         private String sysUID;
         private String outputName;
         private String topicId;
@@ -329,7 +330,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     /*
      * Register system, subscribe to its events and start all selected datastreams
      */
-    protected void addProcedure(long sysID, ISystemWithDesc proc)
+    protected void addProcedure(BigId sysID, ISystemWithDesc proc)
     {
         try
         {
@@ -402,7 +403,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     /*
      * Register sensor at remote SOS
      */
-    protected ProcedureInfo registerSensor(long sysID, ISystemWithDesc proc) throws ClientException
+    protected ProcedureInfo registerSensor(BigId sysID, ISystemWithDesc proc) throws ClientException
     {
         var sysUID = proc.getUniqueIdentifier();
         
@@ -509,7 +510,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     /*
      * Register datastream at remote SOS
      */
-    protected StreamInfo registerDataStream(long dsID, IDataStreamInfo dsInfo) throws ClientException
+    protected StreamInfo registerDataStream(BigId dsID, IDataStreamInfo dsInfo) throws ClientException
     {
         var dsTopicId = EventUtils.getDataStreamDataTopicID(dsInfo);
         

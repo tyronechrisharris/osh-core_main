@@ -85,8 +85,7 @@ public interface ISOSDataProvider
     
     
     /**
-     * Prefix to use for generating full FOI URIs
-     * @return
+     * @return Prefix to use for generating full FOI URIs
      */
     public String getProducerIDPrefix();
     

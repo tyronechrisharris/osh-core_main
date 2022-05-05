@@ -27,6 +27,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.SpatialFilter;
@@ -68,12 +69,12 @@ public abstract class SystemDataProvider implements ISOSAsyncDataProvider
 
     class DataStreamInfoCache
     {
-        long internalId;
+        BigId internalId;
         String sysUID;
         DataComponent resultStruct;
         RecordTemplate resultTemplate;
 
-        DataStreamInfoCache(long dsId, IDataStreamInfo dsInfo)
+        DataStreamInfoCache(BigId dsId, IDataStreamInfo dsInfo)
         {
             this.internalId = dsId;
             this.sysUID = dsInfo.getSystemID().getUniqueID();
@@ -319,13 +320,13 @@ public abstract class SystemDataProvider implements ISOSAsyncDataProvider
     }
     
     
-    protected ObsFilter getObsFilter(GetObservationRequest req, Long dataStreamId) throws SOSException
+    protected ObsFilter getObsFilter(GetObservationRequest req, BigId dataStreamId) throws SOSException
     {
         return getObsFilter(req, dataStreamId, Long.MAX_VALUE);
     }
     
     
-    protected ObsFilter getObsFilter(GetObservationRequest req, Long dataStreamId, long limit) throws SOSException
+    protected ObsFilter getObsFilter(GetObservationRequest req, BigId dataStreamId, long limit) throws SOSException
     {
         // build obs query filter
         var obsFilter = new ObsFilter.Builder()

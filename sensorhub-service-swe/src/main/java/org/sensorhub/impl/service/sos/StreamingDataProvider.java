@@ -22,6 +22,7 @@ import java.util.concurrent.Flow.Subscription;
 import java.util.stream.Collectors;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -77,9 +78,9 @@ public class StreamingDataProvider extends SystemDataProvider
         var obsFilter = getObsFilter(req, null);
         
         // cache of datastreams info
-        var dataStreams = new HashMap<Long, DataStreamInfoCache>();
+        var dataStreams = new HashMap<BigId, DataStreamInfoCache>();
         var dataStreamsByTopic = new HashMap<String, DataStreamInfoCache>();
-        var foiIdCache = new HashMap<Long, String>();
+        var foiIdCache = new HashMap<BigId, String>();
         
         // query selected datastreams
         var dsFilter = obsFilter.getDataStreamFilter();
@@ -150,7 +151,7 @@ public class StreamingDataProvider extends SystemDataProvider
     
     
     @Override
-    protected ObsFilter getObsFilter(GetObservationRequest req, Long dataStreamId) throws SOSException
+    protected ObsFilter getObsFilter(GetObservationRequest req, BigId dataStreamId) throws SOSException
     {
         var obsFilter = super.getObsFilter(req, dataStreamId);
         
@@ -171,7 +172,7 @@ public class StreamingDataProvider extends SystemDataProvider
     }
     
     
-    protected void subscribeAndProcessDataEvents(Map<Long, DataStreamInfoCache> dataStreams, TimeExtent timeFilter, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
+    protected void subscribeAndProcessDataEvents(Map<BigId, DataStreamInfoCache> dataStreams, TimeExtent timeFilter, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
     {        
         // create set of event sources
         var topics = new HashSet<String>();
@@ -316,7 +317,7 @@ public class StreamingDataProvider extends SystemDataProvider
     }
     
     
-    protected void sendLatestRecordsOnly(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
+    protected void sendLatestRecordsOnly(Map<BigId, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
     {
         consumer.onSubscribe(new Subscription() {
             boolean currentTimeRecordsSent = false;
@@ -344,7 +345,7 @@ public class StreamingDataProvider extends SystemDataProvider
     /*
      * Send the latest record of each data source to the consumer
      */
-    protected void sendLatestRecords(Map<Long, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
+    protected void sendLatestRecords(Map<BigId, DataStreamInfoCache> dataStreams, ObsFilter obsFilter, Subscriber<ObsEvent> consumer)
     {
         var eventTime = System.currentTimeMillis();
         database.getObservationStore().select(obsFilter)
