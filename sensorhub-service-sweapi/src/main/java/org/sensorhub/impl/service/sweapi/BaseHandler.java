@@ -149,7 +149,7 @@ public abstract class BaseHandler implements IResourceHandler
                         var internalID = idEncoder.decodeID(id);
                         allValues.add(internalID);
                     }
-                    catch (NumberFormatException e)
+                    catch (IllegalArgumentException e)
                     {
                         throw ServiceErrors.badRequest("Invalid resource ID: " + id);
                     }

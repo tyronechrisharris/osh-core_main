@@ -210,6 +210,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     {
         // fetch from data store
         final V res = dataStore.get(key);
+        System.out.println(key);
         if (res != null)
         {            
             var queryParams = ctx.getParameterMap();

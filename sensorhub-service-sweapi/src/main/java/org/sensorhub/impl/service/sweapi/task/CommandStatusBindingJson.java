@@ -106,7 +106,7 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + "Invalid ISO8601 date/time at " + reader.getPath());
         }
-        catch (IllegalStateException | ReaderException e)
+        catch (IllegalArgumentException | IllegalStateException | ReaderException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
