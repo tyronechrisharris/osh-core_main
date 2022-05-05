@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamAddedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
 import org.sensorhub.api.data.DataStreamEnabledEvent;
@@ -191,7 +192,7 @@ public class TestSystemDriverRegistry
             for (var memberUID: sensorNet.getMembers().keySet())
                 assertTrue("Missing child system in DB: " + memberUID, stateDb.getSystemDescStore().contains(memberUID));
             var numRegisteredMembers = stateDb.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
-                .withParents(sensorNet.getUniqueIdentifier())
+                .withParents().withUniqueIDs(sensorNet.getUniqueIdentifier()).done()
                 .build());
             System.out.println(numRegisteredMembers + " child systems registered");
             assertEquals(numMembers, numRegisteredMembers);
@@ -318,7 +319,7 @@ public class TestSystemDriverRegistry
             
             // check no members are in DB
             var numRegisteredMembers = stateDb.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
-                .withParents(sensorNet.getUniqueIdentifier())
+                .withParents().withUniqueIDs(sensorNet.getUniqueIdentifier()).done()
                 .build());
             assertEquals(0, numRegisteredMembers);
             
@@ -342,7 +343,7 @@ public class TestSystemDriverRegistry
                 .consume(e -> {
                     var obs = e.getObservations()[0];
                     var foiId = obs.getFoiID();
-                    var foiStr = foiId > 0 ? federatedDb.getFoiStore().getCurrentVersion(foiId).getUniqueIdentifier() : NO_FOI;
+                    var foiStr = foiId != BigId.NONE ? federatedDb.getFoiStore().getCurrentVersion(foiId).getUniqueIdentifier() : NO_FOI;
                     System.out.println("Record received from " + e.getSourceID() +
                         ", ts=" + Instant.ofEpochMilli(e.getTimeStamp()) +
                         ", foi=" + foiStr);

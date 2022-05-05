@@ -57,7 +57,7 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
             dbConfig = (DatabaseConfig)config.dbConfig.clone();
             dbConfig.id = getLocalID();
             dbConfig.name = getName();
-            dbConfig.databaseNum = 0;
+            dbConfig.databaseNum = config.databaseNum;
             
             var dbModule = getParentHub().getModuleRegistry().loadSubModule(dbConfig, true);
             dbModule.waitForState(ModuleState.INITIALIZED, 10000);

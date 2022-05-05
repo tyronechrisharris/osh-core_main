@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import org.sensorhub.api.command.CommandStreamAddedEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamAddedEvent;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
@@ -72,7 +73,7 @@ public class SystemTransactionHandler
     protected final String sysUID;
     protected FeatureKey sysKey; // local DB key
     protected String parentGroupUID;
-    protected LoadingCache<String, Long> foiIdMap;
+    protected LoadingCache<String, BigId> foiIdMap;
     protected boolean newlyCreated;
     
     
@@ -479,8 +480,7 @@ public class SystemTransactionHandler
         String topic;
         
         // assign internal ID before event is dispatched
-        var publicSysId = rootHandler.toPublicId(sysKey.getInternalID());
-        event.assignSystemID(publicSysId);
+        event.assignSystemID(sysKey.getInternalID());
         
         // publish on system status channel
         topic = EventUtils.getSystemStatusTopicID(sysUID);
@@ -490,7 +490,7 @@ public class SystemTransactionHandler
         if (parentGroupUID != null)
         {
             var parentKey = rootHandler.db.getSystemDescStore().getCurrentVersionKey(parentGroupUID);
-            Long parentId = parentKey != null ? parentKey.getInternalID() : null;
+            var parentId = parentKey != null ? parentKey.getInternalID() : null;
             while (parentId != null)
             {
                 var sysUid = rootHandler.db.getSystemDescStore().getCurrentVersion(parentId).getUniqueIdentifier();
@@ -512,7 +512,7 @@ public class SystemTransactionHandler
         if (parentGroupUID == null)
         {
             var parentID = getSystemDescStore().getParent(sysKey.getInternalID());
-            if (parentID != null && parentID > 0)
+            if (parentID != null && parentID.getIdAsLong() > 0)
                 parentGroupUID = getSystemDescStore().getCurrentVersion(parentID).getUniqueIdentifier();
         }
     }
@@ -524,16 +524,9 @@ public class SystemTransactionHandler
     }
     
     
-    public FeatureKey getLocalSystemKey()
+    public FeatureKey getSystemKey()
     {
         return sysKey;
-    }
-    
-    
-    public FeatureKey getPublicSystemKey()
-    {
-        var publicId = rootHandler.toPublicId(sysKey.getInternalID());
-        return new FeatureKey(publicId, sysKey.getValidStartTime());
     }
     
     

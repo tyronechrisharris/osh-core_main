@@ -14,9 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.system;
 
-import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
-import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
@@ -46,18 +45,16 @@ public class SystemDatabaseTransactionHandler
 {
     final protected IEventBus eventBus;
     final protected IObsSystemDatabase db;
-    protected IDatabaseRegistry dbRegistry;
     
     
     /*
      * db must always be a transactional DB, not the federated DB
      * exception is when submitting commands to systems that are not in the local DB
      */
-    public SystemDatabaseTransactionHandler(IEventBus eventBus, IObsSystemDatabase db, IDatabaseRegistry dbRegistry)
+    public SystemDatabaseTransactionHandler(IEventBus eventBus, IObsSystemDatabase db)
     {
         this.eventBus = Asserts.checkNotNull(eventBus, IEventBus.class);
         this.db = Asserts.checkNotNull(db, IObsSystemDatabase.class);
-        this.dbRegistry = Asserts.checkNotNull(dbRegistry, IDatabaseRegistry.class);
     }
     
     
@@ -128,15 +125,15 @@ public class SystemDatabaseTransactionHandler
     
     /**
      * Create a handler for an existing system with the specified ID
-     * @param id System public ID
+     * @param id System internal ID
      * @return The new system handler or null if system doesn't exist
      */
-    public SystemTransactionHandler getSystemHandler(long id)
+    public SystemTransactionHandler getSystemHandler(BigId id)
     {
         OshAsserts.checkValidInternalID(id);
         
         // load system object from DB
-        var systemEntry = db.getSystemDescStore().getCurrentVersionEntry(toLocalId(id));
+        var systemEntry = db.getSystemDescStore().getCurrentVersionEntry(id);
         if (systemEntry == null)
             return null;
         
@@ -172,24 +169,17 @@ public class SystemDatabaseTransactionHandler
     }
     
     
-    protected FeatureKey toLocalKey(FeatureKey key)
-    {
-        var localId = toLocalId(key.getInternalID());
-        return new FeatureKey(localId, key.getValidStartTime());
-    }
-    
-    
     /**
      * Create a handler for an existing datastream with the specified ID
-     * @param id Datastream public ID
+     * @param id Datastream internal ID
      * @return The new datastream handler or null if datastream doesn't exist
      */
-    public DataStreamTransactionHandler getDataStreamHandler(long id)
+    public DataStreamTransactionHandler getDataStreamHandler(BigId id)
     {
         OshAsserts.checkValidInternalID(id);
         
         // load datastream info from DB
-        var dsKey = new DataStreamKey(toLocalId(id));
+        var dsKey = new DataStreamKey(id);
         var dsInfo = db.getDataStreamStore().get(dsKey);
         if (dsInfo == null)
             return null;
@@ -222,27 +212,15 @@ public class SystemDatabaseTransactionHandler
     
     /**
      * Create a handler for an existing command stream with the specified ID
-     * @param id Command stream public ID
+     * @param id Command stream internal ID
      * @return The new command stream handler or null if command stream doesn't exist
      */
-    public CommandStreamTransactionHandler getCommandStreamHandler(long id)
-    {
-        return getCommandStreamHandler(id, false);
-    }
-    
-    
-    /**
-     * Create a handler for an existing command stream with the specified ID
-     * @param id Command stream public ID
-     * @param isPublicDb true if the DB used is the federated DB
-     * @return The new command stream handler or null if command stream doesn't exist
-     */
-    public CommandStreamTransactionHandler getCommandStreamHandler(long id, boolean isPublicDb)
+    public CommandStreamTransactionHandler getCommandStreamHandler(BigId id)
     {
         OshAsserts.checkValidInternalID(id);
         
         // load command stream info from DB
-        var csKey = new CommandStreamKey(isPublicDb ? id : toLocalId(id));
+        var csKey = new CommandStreamKey(id);
         var csInfo = db.getCommandStreamStore().get(csKey);
         if (csInfo == null)
             return null;
@@ -274,36 +252,18 @@ public class SystemDatabaseTransactionHandler
     }
     
     
-    protected LoadingCache<String, Long> createFoiIdCache()
+    protected LoadingCache<String, BigId> createFoiIdCache()
     {
         return CacheBuilder.newBuilder()
             .maximumSize(10000)
             .expireAfterAccess(1, TimeUnit.HOURS)
-            .build(new CacheLoader<String, Long>() {
+            .build(new CacheLoader<String, BigId>() {
                 @Override
-                public Long load(String uid)
+                public BigId load(String uid)
                 {
                     var fk = db.getFoiStore().getCurrentVersionKey(uid);
                     return fk.getInternalID();
                 }
             });
-    }
-    
-    
-    public long toPublicId(long id)
-    {
-        return dbRegistry.getPublicID(db.getDatabaseNum(), id);
-    }
-    
-    
-    public BigInteger toPublicId(BigInteger id)
-    {
-        return dbRegistry.getPublicID(db.getDatabaseNum(), id);
-    }
-    
-    
-    public long toLocalId(long id)
-    {
-        return dbRegistry.getLocalID(db.getDatabaseNum(), id);
     }
 }

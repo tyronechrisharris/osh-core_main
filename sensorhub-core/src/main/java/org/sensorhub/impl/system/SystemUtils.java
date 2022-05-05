@@ -14,6 +14,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.system;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
@@ -85,7 +86,7 @@ public class SystemUtils
     
     
     @SuppressWarnings("unchecked")
-    public static <T extends AbstractProcess> ProcessWrapper<T> addOutputsFromDatastreams(long sysID, T sml, IDataStreamStore dataStreamStore)
+    public static <T extends AbstractProcess> ProcessWrapper<T> addOutputsFromDatastreams(BigId sysID, T sml, IDataStreamStore dataStreamStore)
     {
         var outputList = new IOPropertyList();
                 
@@ -106,7 +107,7 @@ public class SystemUtils
     
     
     @SuppressWarnings("unchecked")
-    public static <T extends AbstractProcess> ProcessWrapper<T> addTaskableParamsFromCommandStreams(long sysID, T sml, ICommandStreamStore cmdStreamStore)
+    public static <T extends AbstractProcess> ProcessWrapper<T> addTaskableParamsFromCommandStreams(BigId sysID, T sml, ICommandStreamStore cmdStreamStore)
     {
         var paramList = new IOPropertyList();
                 
@@ -127,7 +128,7 @@ public class SystemUtils
     }
     
     
-    public static <T extends AbstractProcess> ProcessWrapper<T> addIOsFromDataStore(long sysID, T sml, IObsSystemDatabase db)
+    public static <T extends AbstractProcess> ProcessWrapper<T> addIOsFromDataStore(BigId sysID, T sml, IObsSystemDatabase db)
     {
         var wrapper = addOutputsFromDatastreams(sysID, sml, db.getDataStreamStore());
         wrapper = addTaskableParamsFromCommandStreams(sysID, sml, db.getCommandStreamStore());

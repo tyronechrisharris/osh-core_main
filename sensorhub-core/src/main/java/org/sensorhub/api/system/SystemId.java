@@ -34,6 +34,7 @@ public class SystemId extends FeatureId
     private SystemId(BigId internalID)
     {
         this.internalID = internalID;
+        this.uniqueID = "urn:none";
     }
     
     

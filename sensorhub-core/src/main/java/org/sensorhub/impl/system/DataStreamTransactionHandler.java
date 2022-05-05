@@ -14,7 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.system;
 
-import java.math.BigInteger;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.DataStreamChangedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
@@ -33,7 +33,6 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.impl.database.registry.ObsDelegate;
 import org.sensorhub.utils.DataComponentChecks;
 import org.sensorhub.utils.SWEDataUtils;
 import org.vast.swe.SWEHelper;
@@ -60,7 +59,7 @@ public class DataStreamTransactionHandler implements IEventListener
     protected IDataStreamInfo dsInfo;
     protected IEventPublisher dataEventPublisher;
     protected ScalarIndexer timeStampIndexer;
-    protected LoadingCache<String, Long> foiUidToIdMap;
+    protected LoadingCache<String, BigId> foiUidToIdMap;
     
     
     /*
@@ -75,7 +74,7 @@ public class DataStreamTransactionHandler implements IEventListener
     /*
      * dsKey must always be the local DB key
      */
-    DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, LoadingCache<String, Long> foiIdMap, SystemDatabaseTransactionHandler rootHandler)
+    DataStreamTransactionHandler(DataStreamKey dsKey, IDataStreamInfo dsInfo, LoadingCache<String, BigId> foiIdMap, SystemDatabaseTransactionHandler rootHandler)
     {
         this.dsKey = dsKey;
         this.dsInfo = dsInfo;
@@ -156,7 +155,7 @@ public class DataStreamTransactionHandler implements IEventListener
     }
     
     
-    public BigInteger addObs(DataBlock rec)
+    public BigId addObs(DataBlock rec)
     {
         // no checks since this is called at high rate
         //Asserts.checkNotNull(rec, DataBlock.class);
@@ -174,14 +173,14 @@ public class DataStreamTransactionHandler implements IEventListener
      * @param e
      * @return ID of last observation inserted
      */
-    public BigInteger addObs(DataEvent e)
+    public BigId addObs(DataEvent e)
     {
         // no checks since this is called at high rate
         //Asserts.checkNotNull(e, DataEvent.class);
         //checkInitialized();
         
         // if event carries an FOI UID, try to fetch the full Id object
-        Long foiId = IObsData.NO_FOI;
+        var foiId = IObsData.NO_FOI;
         String foiUID = e.getFoiUID();
         if (foiUID != null)
         {
@@ -191,7 +190,7 @@ public class DataStreamTransactionHandler implements IEventListener
         }
         
         // process all records
-        var obsArray = new ObsDelegate[e.getRecords().length];
+        var obsArray = new IObsData[e.getRecords().length];
         for (int i = 0; i < obsArray.length; i++)
         {
             var rec = e.getRecords()[i];
@@ -211,7 +210,7 @@ public class DataStreamTransactionHandler implements IEventListener
                 .withResult(rec)
                 .build();
             
-            obsArray[i] = toPublicObs(obs);
+            obsArray[i] = obs;
         }
         
         // first forward to event bus to minimize latency
@@ -222,15 +221,15 @@ public class DataStreamTransactionHandler implements IEventListener
             obsArray));
         
         // then add all obs to store
-        BigInteger obsID = null;
+        BigId obsID = null;
         for (var obs: obsArray)
-            obsID = rootHandler.db.getObservationStore().add(obs.getDelegate());
+            obsID = rootHandler.db.getObservationStore().add(obs);
         
         return obsID;
     }
     
     
-    public BigInteger addObs(IObsData obs)
+    public BigId addObs(IObsData obs)
     {
         // no checks since this is called at high rate
         //Asserts.checkNotNull(obs, IObsData.class);
@@ -242,38 +241,10 @@ public class DataStreamTransactionHandler implements IEventListener
             timeStamp,
             dsInfo.getSystemID().getUniqueID(),
             dsInfo.getOutputName(),
-            toPublicObs(obs)));
+            obs));
         
         // add to store
         return rootHandler.db.getObservationStore().add(obs);
-    }
-    
-    
-    /*
-     * Convert to public values on the way out
-     */
-    protected ObsDelegate toPublicObs(IObsData obs)
-    {
-        long dsPublicId = rootHandler.toPublicId(obs.getDataStreamID());
-        
-        long foiPublicId = obs.hasFoi() ?
-            rootHandler.toPublicId(obs.getFoiID()) :
-            IObsData.NO_FOI;
-            
-        // wrap original observation to return correct public IDs
-        return new ObsDelegate(obs) {
-            @Override
-            public long getDataStreamID()
-            {
-                return dsPublicId;
-            }
-
-            @Override
-            public long getFoiID()
-            {
-                return foiPublicId;
-            }
-        };
     }
 
 
@@ -306,10 +277,8 @@ public class DataStreamTransactionHandler implements IEventListener
         String topic;
         
         // assign internal ID before event is dispatched
-        var publicSysId = rootHandler.toPublicId(dsInfo.getSystemID().getInternalID());
-        var publicDsId = rootHandler.toPublicId(dsKey.getInternalID());
-        event.assignSystemID(publicSysId);
-        event.assignDataStreamID(publicDsId);
+        event.assignSystemID(dsInfo.getSystemID().getInternalID());
+        event.assignDataStreamID(dsKey.getInternalID());
         
         // publish on this datastream status channel
         topic = EventUtils.getDataStreamStatusTopicID(dsInfo);
@@ -322,7 +291,7 @@ public class DataStreamTransactionHandler implements IEventListener
         
         // publish on parent systems status recursively
         //Long parentId = rootHandler.db.getSystemDescStore().getCurrentVersionKey(sysUid).getInternalID();
-        Long parentId = dsInfo.getSystemID().getInternalID();
+        var parentId = dsInfo.getSystemID().getInternalID();
         while ((parentId = rootHandler.db.getSystemDescStore().getParent(parentId)) != null)
         {
             sysUid = rootHandler.db.getSystemDescStore().getCurrentVersion(parentId).getUniqueIdentifier();
@@ -342,16 +311,9 @@ public class DataStreamTransactionHandler implements IEventListener
     }
     
     
-    public DataStreamKey getLocalDataStreamKey()
+    public DataStreamKey getDataStreamKey()
     {
         return dsKey;
-    }
-    
-    
-    public DataStreamKey getPublicDataStreamKey()
-    {
-        var publicId = rootHandler.toPublicId(dsKey.getInternalID());
-        return new DataStreamKey(publicId);
     }
     
     

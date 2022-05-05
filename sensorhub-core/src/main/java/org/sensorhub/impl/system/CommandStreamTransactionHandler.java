@@ -14,7 +14,6 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.system;
 
-import java.math.BigInteger;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
@@ -33,6 +32,7 @@ import org.sensorhub.api.command.CommandStreamRemovedEvent;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
@@ -201,7 +201,7 @@ public class CommandStreamTransactionHandler implements IEventListener
         // subscription will be automatically canceled at the end
         var cmdSubscriber = new DelegatingSubscriberAdapter<CommandStatusEvent, ICommandStatus>(subscriber) {
             Subscription subscription;
-            BigInteger cmdID = null;
+            BigId cmdID = null;
 
             @Override
             public void onSubscribe(Subscription subscription)
@@ -276,7 +276,7 @@ public class CommandStreamTransactionHandler implements IEventListener
         {
             publishStatusEvent(
                 correlationID,
-                CommandStatus.rejected(BigInteger.ZERO, "Receiving system is disabled"));
+                CommandStatus.rejected(BigId.NONE, "Receiving system is disabled"));
             return;
         }
         
@@ -375,13 +375,13 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
     
     
-    public BigInteger sendStatus(long correlationID, ICommandStatus status)
+    public BigId sendStatus(long correlationID, ICommandStatus status)
     {
         log.debug("Sending status {}: {}", correlationID, status);
         
         // convert command ID to public ID
         var publicStatus = CommandStatus.Builder.from(status)
-            .withCommand(rootHandler.toPublicId(status.getCommandID()))
+            .withCommand(status.getCommandID())
             .build();
         
         // forward to event bus
@@ -447,10 +447,8 @@ public class CommandStreamTransactionHandler implements IEventListener
         String topic;
         
         // assign internal ID before event is dispatched
-        var publicSysId = rootHandler.toPublicId(csInfo.getSystemID().getInternalID());
-        var publicCsId = rootHandler.toPublicId(csKey.getInternalID());
-        event.assignSystemID(publicSysId);
-        event.assignCommandStreamID(publicCsId);
+        event.assignSystemID(csInfo.getSystemID().getInternalID());
+        event.assignCommandStreamID(csKey.getInternalID());
         
         // publish on this datastream status channel
         topic = EventUtils.getCommandStreamStatusTopicID(csInfo);
@@ -463,7 +461,7 @@ public class CommandStreamTransactionHandler implements IEventListener
         
         // publish on parent systems status recursively
         //Long parentId = rootHandler.db.getSystemDescStore().getCurrentVersionKey(sysUid).getInternalID();
-        Long parentId = csInfo.getSystemID().getInternalID();
+        var parentId = csInfo.getSystemID().getInternalID();
         while ((parentId = rootHandler.db.getSystemDescStore().getParent(parentId)) != null)
         {
             sysUid = rootHandler.db.getSystemDescStore().getCurrentVersion(parentId).getUniqueIdentifier();
@@ -483,16 +481,9 @@ public class CommandStreamTransactionHandler implements IEventListener
     }
     
     
-    public CommandStreamKey getLocalCommandStreamKey()
+    public CommandStreamKey getCommandStreamKey()
     {
         return csKey;
-    }
-    
-    
-    public CommandStreamKey getPublicCommandStreamKey()
-    {
-        var publicId = rootHandler.toPublicId(csKey.getInternalID());
-        return new CommandStreamKey(publicId);
     }
     
     

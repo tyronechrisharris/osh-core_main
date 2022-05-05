@@ -16,6 +16,7 @@ package org.sensorhub.impl.system;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
@@ -39,13 +40,13 @@ import net.opengis.swe.v20.DataBlock;
  */
 public class DataEventToObsConverter
 {
-    protected long dsID;
+    protected BigId dsID;
     protected IDataStreamInfo dsInfo;
-    protected Function<String, Long> foiIdMapper;
+    protected Function<String, BigId> foiIdMapper;
     protected ScalarIndexer timeStampIndexer;
     
     
-    public DataEventToObsConverter(long dsID, IDataStreamInfo dsInfo, Function<String, Long> foiIdMapper)
+    public DataEventToObsConverter(BigId dsID, IDataStreamInfo dsInfo, Function<String, BigId> foiIdMapper)
     {
         this.dsID = OshAsserts.checkValidInternalID(dsID);
         this.dsInfo = Asserts.checkNotNull(dsInfo, IDataStreamInfo.class);
@@ -57,7 +58,7 @@ public class DataEventToObsConverter
     public void toObs(DataEvent e, Consumer<IObsData> obsSink)
     {
         // if event carries an FOI UID, try to fetch the full Id object
-        Long foiId = IObsData.NO_FOI;
+        var foiId = IObsData.NO_FOI;
         String foiUID = e.getFoiUID();
         if (foiUID != null)
         {
