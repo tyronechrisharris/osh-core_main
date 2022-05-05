@@ -20,16 +20,15 @@ import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
 import org.sensorhub.api.system.ISystemWithDesc;
-import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureStoreWrapper;
 
 
 public class SystemStoreWrapper extends AbstractFeatureStoreWrapper<ISystemWithDesc, SystemField, SystemFilter, ISystemDescStore> implements ISystemDescStore
 {
     
-    public SystemStoreWrapper(ISystemDescStore readStore, ISystemDescStore writeStore, IdConverter idConverter)
+    public SystemStoreWrapper(ISystemDescStore readStore, ISystemDescStore writeStore)
     {
-        super(readStore, writeStore, idConverter);
+        super(readStore, writeStore);
     }
     
     

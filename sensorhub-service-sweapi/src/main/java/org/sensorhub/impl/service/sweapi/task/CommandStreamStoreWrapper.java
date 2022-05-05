@@ -20,20 +20,15 @@ import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore.CommandStreamInfoField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
-import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;
-import org.vast.util.Asserts;
 
 
 public class CommandStreamStoreWrapper extends AbstractResourceStoreWrapper<CommandStreamKey, ICommandStreamInfo, CommandStreamInfoField, CommandStreamFilter, ICommandStreamStore> implements ICommandStreamStore
 {
-    final IdConverter idConverter;
     
-    
-    public CommandStreamStoreWrapper(ICommandStreamStore readStore, ICommandStreamStore writeStore, IdConverter idConverter)
+    public CommandStreamStoreWrapper(ICommandStreamStore readStore, ICommandStreamStore writeStore)
     {
         super(readStore, writeStore);
-        this.idConverter = Asserts.checkNotNull(idConverter, IdConverter.class);
     }
 
 

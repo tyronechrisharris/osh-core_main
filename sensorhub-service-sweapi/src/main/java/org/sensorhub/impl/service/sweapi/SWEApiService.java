@@ -20,7 +20,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IObsSystemDatabase;
-import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
@@ -48,6 +47,7 @@ import org.sensorhub.impl.service.sweapi.task.CommandStatusHandler;
 import org.sensorhub.impl.service.sweapi.task.CommandStreamHandler;
 import org.sensorhub.impl.service.sweapi.task.CommandStreamSchemaHandler;
 import org.sensorhub.utils.NamedThreadFactory;
+import com.google.common.base.Strings;
 
 
 /**
@@ -81,7 +81,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         IObsSystemDatabase writeDb;
         
         // get handle to obs system database
-        if (config.databaseID != null)
+        if (!Strings.isNullOrEmpty(config.databaseID))
         {
             writeDb = (IObsSystemDatabase)getParentHub().getModuleRegistry()
                 .getModuleById(config.databaseID);
@@ -136,7 +136,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         }
         
         // create obs db read/write wrapper
-        var db = new ObsSystemDbWrapper(readDb, writeDb, getParentHub().getDatabaseRegistry());
+        var db = new ObsSystemDbWrapper(readDb, writeDb);
         var eventBus = getParentHub().getEventBus();
         var security = (SWEApiSecurity)this.securityHandler;
         var readOnly = writeDb == null || writeDb.isReadOnly();
@@ -160,11 +160,11 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         systemsHandler.addSubResource(sysMembersHandler);
         
         // procedures
-        if (db.getReadDb() instanceof IProcedureDatabase)
+        if (db.getProcedureStore() != null)
         {
             var procHandler = new ProcedureHandler(eventBus, db, security.proc_summary_permissions);
             rootHandler.addSubResource(procHandler);
-            
+                
             var procDetailsHandler = new ProcedureDetailsHandler(eventBus, db, security.proc_details_permissions);
             procHandler.addSubResource(procDetailsHandler);
         }

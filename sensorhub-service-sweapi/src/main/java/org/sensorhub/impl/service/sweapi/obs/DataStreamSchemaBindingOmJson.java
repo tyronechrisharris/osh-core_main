@@ -124,11 +124,9 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var publicDsID = encodeID(key.getInternalID());
-        
         writer.beginObject();
         
-        writer.name("datastream@id").value(Long.toString(publicDsID, 36));
+        writer.name("datastream@id").value(encodeID(key.getInternalID()));
         writer.name("obsFormat").value(ResourceFormat.OM_JSON.toString());
         
         // result structure 

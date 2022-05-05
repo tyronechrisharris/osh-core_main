@@ -16,11 +16,11 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.time.Instant;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
-import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
@@ -35,8 +35,6 @@ public abstract class AbstractFeatureHandler<
     B extends FeatureFilterBaseBuilder<B,? super V,F>,
     S extends IFeatureStoreBase<V,?,F>> extends ResourceHandler<FeatureKey, V, F, B, S>
 {
-    IdConverter idConverter;
-    
     
     protected AbstractFeatureHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
     {
@@ -74,13 +72,13 @@ public abstract class AbstractFeatureHandler<
 
 
     @Override
-    protected FeatureKey getKey(long publicID)
+    protected FeatureKey getKey(BigId internalID)
     {
-        return dataStore.getCurrentVersionKey(publicID);
+        return dataStore.getCurrentVersionKey(internalID);
     }
     
     
-    protected FeatureKey getKey(long internalID, long version)
+    protected FeatureKey getKey(BigId internalID, long version)
     {
         if (version == 0)
             return getKey(internalID);

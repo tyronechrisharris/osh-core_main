@@ -17,11 +17,11 @@ package org.sensorhub.impl.service.sweapi.task;
 import java.io.IOException;
 import java.util.Map;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -41,9 +41,7 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     
     public CommandStreamSchemaHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getCommandStreamStore(),
-              new IdEncoder(CommandStreamHandler.EXTERNAL_ID_SEED),
-              permissions);
+        super(db.getReadDb().getCommandStreamStore(), db.getIdEncoder(), permissions);
     }
     
     
@@ -62,7 +60,7 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.containsKey(new CommandStreamKey(internalID));
     }
@@ -133,7 +131,7 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
 
 
     @Override
-    protected CommandStreamKey getKey(long publicID)
+    protected CommandStreamKey getKey(BigId publicID)
     {
         return new CommandStreamKey(publicID);
     }

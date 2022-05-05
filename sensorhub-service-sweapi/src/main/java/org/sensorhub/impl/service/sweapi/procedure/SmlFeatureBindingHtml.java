@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.procedure;
 import java.io.IOException;
 import java.util.Optional;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
@@ -53,7 +54,7 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc> extend
     protected abstract String getResourceUrl(FeatureKey key);
     
     
-    protected abstract DomContent getLinks(long id, String resourceUrl);
+    protected abstract DomContent getLinks(BigId id, String resourceUrl);
     
     
     @Override

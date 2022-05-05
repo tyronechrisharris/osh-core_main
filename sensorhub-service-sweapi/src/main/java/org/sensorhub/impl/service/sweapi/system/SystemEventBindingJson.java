@@ -44,9 +44,9 @@ public class SystemEventBindingJson extends ResourceBindingJson<Long, SystemEven
 {
     
     
-    SystemEventBindingJson(RequestContext ctx) throws IOException
+    SystemEventBindingJson(RequestContext ctx, IdEncoder idEncoder) throws IOException
     {
-        super(ctx, new IdEncoder(SystemHandler.EXTERNAL_ID_SEED), false);
+        super(ctx, idEncoder, false);
     }
 
 
@@ -71,13 +71,10 @@ public class SystemEventBindingJson extends ResourceBindingJson<Long, SystemEven
         if (eventType == null)
             return;
         
-        // generate public ID
-        var publicSysID = idEncoder.encodeID(res.getSystemID());
-        
         // write event message
         writer.beginObject();
         writer.name("time").value(Instant.ofEpochMilli(res.getTimeStamp()).toString());
-        writer.name("system@id").value(Long.toString(publicSysID, 36));
+        writer.name("system@id").value(encodeID(res.getSystemID()));
         writer.name("eventType").value(eventType);
         writer.endObject();
         writer.flush();

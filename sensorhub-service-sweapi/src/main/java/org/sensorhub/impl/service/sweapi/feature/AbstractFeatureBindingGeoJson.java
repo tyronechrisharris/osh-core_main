@@ -93,14 +93,14 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
     @Override
     public void startCollection() throws IOException
     {
-        startJsonCollection(writer);        
+        startJsonCollection(writer);
     }
 
 
     @Override
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
-        endJsonCollection(writer, links);        
+        endJsonCollection(writer, links);
     }
     
     

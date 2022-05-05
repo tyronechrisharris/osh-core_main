@@ -20,20 +20,15 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
-import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;
-import org.vast.util.Asserts;
 
 
 public class DataStreamStoreWrapper extends AbstractResourceStoreWrapper<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter, IDataStreamStore> implements IDataStreamStore
 {
-    final IdConverter idConverter;
     
-    
-    public DataStreamStoreWrapper(IDataStreamStore readStore, IDataStreamStore writeStore, IdConverter idConverter)
+    public DataStreamStoreWrapper(IDataStreamStore readStore, IDataStreamStore writeStore)
     {
         super(readStore, writeStore);
-        this.idConverter = Asserts.checkNotNull(idConverter, IdConverter.class);
     }
 
 

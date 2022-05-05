@@ -21,7 +21,6 @@ import javax.xml.namespace.QName;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GenericFeature;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.GeoJsonBindings;
@@ -111,8 +110,7 @@ public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJs
             @Override
             public String getId()
             {
-                var externalID = FeatureCollectionBindingGeoJson.this.encodeID(key.getInternalID());
-                return Long.toString(externalID, ResourceBinding.ID_RADIX);
+                return FeatureCollectionBindingGeoJson.this.encodeID(key.getInternalID());
             }
 
             @Override

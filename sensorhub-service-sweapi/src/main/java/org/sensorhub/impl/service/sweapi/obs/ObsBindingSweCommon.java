@@ -17,8 +17,8 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
 import java.util.Collection;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsData;
@@ -51,7 +51,7 @@ import net.opengis.swe.v20.TextEncoding;
 import net.opengis.swe.v20.XMLEncoding;
 
 
-public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
+public class ObsBindingSweCommon extends ResourceBinding<BigId, IObsData>
 {       
     ObsHandlerContextData contextData;
     DataStreamParser resultReader;
@@ -104,7 +104,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigInteger, IObsData>
 
 
     @Override
-    public void serialize(BigInteger key, IObsData obs, boolean showLinks) throws IOException
+    public void serialize(BigId key, IObsData obs, boolean showLinks) throws IOException
     {
         resultWriter.write(obs.getResult());
         resultWriter.flush();

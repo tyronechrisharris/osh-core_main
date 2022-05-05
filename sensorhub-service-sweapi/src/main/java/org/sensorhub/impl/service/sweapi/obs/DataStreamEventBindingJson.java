@@ -27,7 +27,6 @@ import org.sensorhub.api.data.DataStreamRemovedEvent;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
-import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -43,13 +42,10 @@ import com.google.gson.stream.JsonWriter;
  */
 public class DataStreamEventBindingJson extends ResourceBindingJson<Long, DataStreamEvent>
 {
-    IdEncoder sysIdEncoder;
     
-    
-    DataStreamEventBindingJson(RequestContext ctx) throws IOException
+    DataStreamEventBindingJson(RequestContext ctx, IdEncoder idEncoder) throws IOException
     {
-        super(ctx, new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED), false);
-        this.sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
+        super(ctx, idEncoder, false);
     }
 
 
@@ -74,15 +70,11 @@ public class DataStreamEventBindingJson extends ResourceBindingJson<Long, DataSt
         if (eventType == null)
             return;
         
-        // generate public IDs
-        var publicDsID = idEncoder.encodeID(res.getDataStreamID());
-        var publicSysID = sysIdEncoder.encodeID(res.getSystemID());
-        
         // write event message
         writer.beginObject();
         writer.name("time").value(Instant.ofEpochMilli(res.getTimeStamp()).toString());
-        writer.name("datastream@id").value(Long.toString(publicDsID, 36));
-        writer.name("system@id").value(Long.toString(publicSysID, 36));
+        writer.name("datastream@id").value(encodeID(res.getDataStreamID()));
+        writer.name("system@id").value(encodeID(res.getSystemID()));
         writer.name("eventType").value(eventType);
         writer.endObject();
         writer.flush();

@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.task;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
@@ -24,17 +23,16 @@ import java.util.Map;
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
-import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.task.CommandHandler.CommandHandlerContextData;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.swe.BinaryDataWriter;
@@ -51,14 +49,12 @@ import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
 
 
-public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommandData>
+public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
 {
     CommandHandlerContextData contextData;
     ICommandStore cmdStore;
     JsonDataParserGson paramsReader;
-    Map<Long, DataStreamWriter> paramsWriters;
-    IdEncoder dsIdEncoder = new IdEncoder(CommandStreamHandler.EXTERNAL_ID_SEED);
-    IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
+    Map<BigId, DataStreamWriter> paramsWriters;
     String userID;
 
     
@@ -132,7 +128,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
         
-        if (contextData.foiId != 0)
+        if (contextData.foiId != null)
             cmd.withFoi(contextData.foiId);
         
         // also set timestamp
@@ -141,21 +137,20 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
 
 
     @Override
-    public void serialize(BigInteger key, ICommandData cmd, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(BigId key, ICommandData cmd, boolean showLinks, JsonWriter writer) throws IOException
     {
         writer.beginObject();
         
         if (key != null)
-            writer.name("id").value(key.toString(ResourceBinding.ID_RADIX));
+            writer.name("id").value(encodeID(key));
         
         var dsID = cmd.getCommandStreamID();
-        var externalDsId = dsIdEncoder.encodeID(dsID);
-        writer.name("control@id").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
+        writer.name("control@id").value(encodeID(dsID));
         
         if (cmd.hasFoi())
         {
-            var externalfoiId = foiIdEncoder.encodeID(cmd.getFoiID());
-            writer.name("foi").value(Long.toString(externalfoiId, ResourceBinding.ID_RADIX));
+            var foiID = cmd.getFoiID();
+            writer.name("foi").value(encodeID(foiID));
         }
         
         writer.name("issueTime").value(cmd.getIssueTime().toString());
@@ -189,7 +184,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigInteger, ICommand
     }
     
     
-    protected DataStreamWriter getSweCommonWriter(long dsID, JsonWriter writer, PropertyFilter propFilter)
+    protected DataStreamWriter getSweCommonWriter(BigId dsID, JsonWriter writer, PropertyFilter propFilter)
     {
         var dsInfo = cmdStore.getCommandStreams().get(new CommandStreamKey(dsID));
         return getSweCommonWriter(dsInfo, writer, propFilter);

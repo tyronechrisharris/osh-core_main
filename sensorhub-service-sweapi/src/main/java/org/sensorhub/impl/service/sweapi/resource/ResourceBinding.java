@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.resource;
 
 import java.io.IOException;
 import java.util.Collection;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.vast.util.Asserts;
 
@@ -33,7 +34,6 @@ import org.vast.util.Asserts;
  */
 public abstract class ResourceBinding<K, V>
 {
-    public static final int ID_RADIX = 36;
     public static final String INDENT = "  ";
     
     
@@ -54,13 +54,13 @@ public abstract class ResourceBinding<K, V>
     public abstract void endCollection(Collection<ResourceLink> links) throws IOException;
     
     
-    public long decodeID(long encodedID)
+    public BigId decodeID(String encodedID)
     {
         return idEncoder.decodeID(encodedID);
     }
     
     
-    public long encodeID(long decodedID)
+    public String encodeID(BigId decodedID)
     {
         return idEncoder.encodeID(decodedID);
     }

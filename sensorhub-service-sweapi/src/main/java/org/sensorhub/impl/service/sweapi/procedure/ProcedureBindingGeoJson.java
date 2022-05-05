@@ -25,7 +25,6 @@ import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.system.SystemFeatureAdapter;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -113,8 +112,7 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
         
             public String getId()
             {
-                var externalID = ProcedureBindingGeoJson.this.encodeID(key.getInternalID());
-                return Long.toString(externalID, ResourceBinding.ID_RADIX);
+                return ProcedureBindingGeoJson.this.encodeID(key.getInternalID());
             }
         };
     }

@@ -15,13 +15,13 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.system;
 
 import java.io.IOException;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.system.ISystemWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
@@ -38,7 +38,7 @@ public class SystemHistoryHandler extends AbstractFeatureHistoryHandler<ISystemW
     
     public SystemHistoryHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getSystemDescStore(), new IdEncoder(SystemHandler.EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getSystemDescStore(), db.getIdEncoder(), permissions);
         this.db = db.getReadDb();
     }
 
@@ -58,7 +58,7 @@ public class SystemHistoryHandler extends AbstractFeatureHistoryHandler<ISystemW
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.contains(internalID);
     }

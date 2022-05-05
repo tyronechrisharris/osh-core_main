@@ -61,11 +61,9 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     @Override
     public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var publicDsID = encodeID(key.getInternalID());
-        
         writer.beginObject();
         
-        writer.name("control@id").value(Long.toString(publicDsID, 36));
+        writer.name("control@id").value(encodeID(key.getInternalID()));
         
         // result structure & encoding
         try

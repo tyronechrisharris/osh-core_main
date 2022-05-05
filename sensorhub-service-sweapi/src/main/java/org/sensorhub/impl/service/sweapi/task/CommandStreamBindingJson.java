@@ -47,7 +47,6 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
     SWEStaxBindings sweBindings;
     SWEJsonStreamReader sweReader;
     SWEJsonStreamWriter sweWriter;
-    IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     
     
     CommandStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
@@ -122,7 +121,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         var csInfo = new CommandStreamInfo.Builder()
             .withName(name)
             .withDescription(description)
-            .withSystem(new SystemId(1, "temp-uid")) // use dummy UID since it will be replaced later
+            .withSystem(SystemId.NO_SYSTEM_ID) // dummy UID since it will be replaced later
             .withRecordDescription(resultStruct)
             .withRecordEncoding(resultEncoding)
             .build();
@@ -134,18 +133,18 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
     @Override
     public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var publicDsID = encodeID(key.getInternalID());
-        var publicSysID = sysIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
+        var dsID = encodeID(key.getInternalID());
+        var sysID = encodeID(dsInfo.getSystemID().getInternalID());
         
         writer.beginObject();
         
-        writer.name("id").value(Long.toString(publicDsID, 36));
+        writer.name("id").value(dsID);
         writer.name("name").value(dsInfo.getName());
         
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("system@id").value(Long.toString(publicSysID, 36));
+        writer.name("system@id").value(sysID);
         writer.name("inputName").value(dsInfo.getControlInputName());
         
         writer.name("validTime").beginArray()
@@ -205,7 +204,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                 .title("Parent system")
                 .href(rootURL +
                       "/" + SystemHandler.NAMES[0] +
-                      "/" + Long.toString(publicSysID, 36))
+                      "/" + sysID)
                 .build());
             
             links.add(new ResourceLink.Builder()
@@ -213,7 +212,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                 .title("Collection of commands")
                 .href(rootURL +
                       "/" + CommandStreamHandler.NAMES[0] +
-                      "/" + Long.toString(publicDsID, 36) +
+                      "/" + dsID +
                       "/" + CommandHandler.NAMES[0])
                 .build());
             

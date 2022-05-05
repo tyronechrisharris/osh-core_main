@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.resource;
 
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
@@ -55,14 +56,13 @@ public abstract class ResourceHandler<
     }
     
     
-    protected abstract K getKey(long publicID);
+    protected abstract K getKey(BigId internalID);
     
     
     @Override
     protected K getKey(final RequestContext ctx, final String id) throws InvalidRequestException
     {
-        // get resource ID
-        long decodedID = decodeID(ctx, id);
+        var decodedID = decodeID(ctx, id);
         return getKey(decodedID);
     }
         
@@ -109,7 +109,6 @@ public abstract class ResourceHandler<
     @Override
     protected String encodeKey(final RequestContext ctx, K key)
     {
-        long externalID = idEncoder.encodeID(key.getInternalID());
-        return Long.toString(externalID, ResourceBinding.ID_RADIX);
+        return idEncoder.encodeID(key.getInternalID());
     }
 }

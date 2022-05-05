@@ -22,7 +22,6 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.vast.util.Asserts;
@@ -53,7 +52,7 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
         this.obsFormat = null;
         this.isSummary = isSummary;
         
-        if (ctx.getParentID() != 0L)
+        if (ctx.getParentID() != null)
         {
             // fetch parent system name
             var parentSys = db.getSystemDescStore().getCurrentVersion(ctx.getParentID());
@@ -101,7 +100,7 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     
     protected void serializeSummary(DataStreamKey key, IDataStreamInfo dsInfo) throws IOException
     {
-        var dsId = Long.toString(encodeID(key.getInternalID()), ResourceBinding.ID_RADIX);
+        var dsId = encodeID(key.getInternalID());
         var requestUrl = ctx.getRequestUrl();
         var resourceUrl = isCollection ? requestUrl + "/" + dsId : requestUrl;
         

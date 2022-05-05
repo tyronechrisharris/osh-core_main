@@ -33,7 +33,7 @@ public class DataStreamEventsHandler extends ResourceEventsHandler<DataStreamEve
     
     protected DataStreamEventsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super("datastream", eventBus, permissions);
+        super("datastream", eventBus, db.getIdEncoder(), permissions);
         this.sysStore = db.getReadDb().getSystemDescStore();
     }
     
@@ -45,12 +45,12 @@ public class DataStreamEventsHandler extends ResourceEventsHandler<DataStreamEve
         //var filter = getFilter(ctx.getParentRef(), queryParams, 0, Long.MAX_VALUE);
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
-        var serializer = new DataStreamEventBindingJson(ctx);
+        var serializer = new DataStreamEventBindingJson(ctx, idEncoder);
         
         // use registry topic if all data stream events are requested
         // otherwise use specific system topic
         String topic = null;
-        if (ctx.getParentID() > 0)
+        if (ctx.getParentID() != null)
         {
             var sysId = ctx.getParentID();
             var sys = sysStore.getCurrentVersion(sysId);

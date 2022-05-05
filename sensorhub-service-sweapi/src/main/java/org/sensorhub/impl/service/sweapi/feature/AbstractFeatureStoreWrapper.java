@@ -14,29 +14,25 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.feature;
 
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
-import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.resource.AbstractResourceStoreWrapper;
 import org.vast.ogc.gml.IFeature;
-import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 
 
 public abstract class AbstractFeatureStoreWrapper<V extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super V>, S extends IFeatureStoreBase<V, VF, F>>
     extends AbstractResourceStoreWrapper<FeatureKey, V, VF, F, S> implements IFeatureStoreBase<V, VF, F>
 {
-    final IdConverter idConverter;
     
-    
-    protected AbstractFeatureStoreWrapper(S readStore, S writeStore, IdConverter idConverter)
+    protected AbstractFeatureStoreWrapper(S readStore, S writeStore)
     {
         super(readStore, writeStore);
-        this.idConverter = Asserts.checkNotNull(idConverter, IdConverter.class);
     }
 
 
@@ -48,14 +44,14 @@ public abstract class AbstractFeatureStoreWrapper<V extends IFeature, VF extends
 
 
     @Override
-    public FeatureKey add(long parentId, V value) throws DataStoreException
+    public FeatureKey add(BigId parentId, V value) throws DataStoreException
     {
         return getWriteStore().add(parentId, value);
     }
     
     
     @Override
-    public Long getParent(long internalID)
+    public BigId getParent(BigId internalID)
     {
         return getReadStore().getParent(internalID);
     }

@@ -14,9 +14,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.task;
 
-import java.math.BigInteger;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandData;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStats;
 import org.sensorhub.api.datastore.command.CommandStatsQuery;
@@ -26,19 +26,14 @@ import org.sensorhub.api.datastore.command.ICommandStore.CommandField;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.impl.service.sweapi.AbstractDataStoreWrapper;
-import org.sensorhub.impl.service.sweapi.IdConverter;
-import org.vast.util.Asserts;
 
 
-public class CommandStoreWrapper extends AbstractDataStoreWrapper<BigInteger, ICommandData, CommandField, CommandFilter, ICommandStore> implements ICommandStore
+public class CommandStoreWrapper extends AbstractDataStoreWrapper<BigId, ICommandData, CommandField, CommandFilter, ICommandStore> implements ICommandStore
 {
-    final IdConverter idConverter;
     
-    
-    public CommandStoreWrapper(ICommandStore readStore, ICommandStore writeStore, IdConverter idConverter)
+    public CommandStoreWrapper(ICommandStore readStore, ICommandStore writeStore)
     {
         super(readStore, writeStore);
-        this.idConverter = Asserts.checkNotNull(idConverter, IdConverter.class);
     }
 
 
@@ -50,7 +45,7 @@ public class CommandStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IC
 
 
     @Override
-    public BigInteger add(ICommandData cmd)
+    public BigId add(ICommandData cmd)
     {
         return getWriteStore().add(cmd);
     }

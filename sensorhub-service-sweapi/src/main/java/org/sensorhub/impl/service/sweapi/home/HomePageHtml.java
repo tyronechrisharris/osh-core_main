@@ -31,7 +31,7 @@ public class HomePageHtml extends ResourceBindingHtml<Long, SWEApiServiceConfig>
     
     public HomePageHtml(RequestContext ctx) throws IOException
     {
-        super(ctx, new IdEncoder(0));
+        super(ctx, new IdEncoder());
     }
     
     

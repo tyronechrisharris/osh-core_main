@@ -14,26 +14,28 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
+import java.io.StringReader;
+import java.io.StringWriter;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.utils.VarInt;
+import com.google.common.io.BaseEncoding;
 
 
 /**
  * <p>
  * Helper class to manage resource identifiers. We use this class to convert
- * from public facing resource IDs exposed via the API to internal OSH IDs.
+ * from public facing resource IDs exposed via the API as Strings to internal
+ * OSH IDs (BigId instances).
  * </p><p>
+ * In addition to converting ids to/from String representations, this class
+ * can optionally encrypt IDs for added security.
  * We do this because internal IDs are often generated in sequence for
  * performance reason but we don't want to expose them to the outside for
  * security reasons (i.e. if IDs are assigned sequentially, one ID can be used
  * to infer the presence of another resource even if the user doesn't have
  * access to it, which facilitate certain kinds of cyber attacks).
- * </p><p>
- * In order to achieve some level of protection w/o requiring an ID mapping
- * table, we generate external IDs by including the internal ID as lower bits
- * and completing with a hash of the ID to generate a bigger number that
- * doesn't look sequential.
  * </p>
  *
  * @author Alex Robin
@@ -41,85 +43,117 @@ import com.google.common.hash.Hashing;
  */
 public class IdEncoder
 {
-    static final long MAXID = 1L << 56;
-    static final int INTERNAL_ID_SIZE_BITS = 6;
-    static final int AVAILABLE_BITS = 63 - INTERNAL_ID_SIZE_BITS;
-    static final int MIN_HASH_BITS = 8;
-    static final int MIN_ENCODED_ID_BITS = 40 - INTERNAL_ID_SIZE_BITS;
-    
-    // 58 bits fits into 10 base58 digits
-    // 40 bits fits into 10 hexadecimal digits (preferred?)
-    // 39 bits = fits in 12 decimal digits
-    // 36 bits fits into 11 decimal digits
-    // 33 bits fits into 10 decimal digits
-    
-    HashFunction hf;
+    static final BaseEncoding BASE32_ENCODING = BaseEncoding.base32Hex().lowerCase().omitPadding();
+    final ThreadLocal<Cipher> ecipher;
+    final ThreadLocal<Cipher> dcipher;
     
     
-    public IdEncoder(int seed)
+    public IdEncoder()
     {
-        hf = Hashing.murmur3_32(seed);
+        this.ecipher = null;
+        this.dcipher = null;
     }
     
     
-    public long encodeID(long internalID)
+    public IdEncoder(SecretKey key)
     {
-        if (internalID < MAXID)
-        {        
-            // number of bits necessary to encode ID
-            long x = internalID;
-            int numInternalIDBits = 0;
-            while (x != 0)
+        ecipher = ThreadLocal.withInitial(() -> {
+            try
             {
-                numInternalIDBits++;
-                x >>>= 1;
+                var cipher = Cipher.getInstance("DES");
+                cipher.init(Cipher.ENCRYPT_MODE, key);
+                return cipher;
             }
-            
-            // use truncated hash of ID as higher part
-            long hashValue = getHashValue(internalID, numInternalIDBits);
-            int hashShift = numInternalIDBits + INTERNAL_ID_SIZE_BITS;
-            
-            return numInternalIDBits | (internalID << INTERNAL_ID_SIZE_BITS) | (hashValue << hashShift);
+            catch (Exception e)
+            {
+                throw new IllegalStateException("Error initializing ID encoder", e);
+            }
+        });
+        
+        dcipher = ThreadLocal.withInitial(() -> {
+            try
+            {
+                var cipher = Cipher.getInstance("DES");
+                cipher.init(Cipher.DECRYPT_MODE, key);
+                return cipher;
+            }
+            catch (Exception e)
+            {
+                throw new IllegalStateException("Error initializing ID decoder", e);
+            }
+        });
+    }
+    
+    
+    /**
+     * Encodes an ID to its string representation
+     * @param internalID
+     * @return The string representation of the ID
+     */
+    public String encodeID(BigId internalID)
+    {
+        if (ecipher != null)
+        {
+            try
+            {
+                // convert BigId to bytes
+                var len = VarInt.varIntSize(internalID.getScope()) + internalID.size();
+                var buf = new byte[len];
+                int off = VarInt.putVarInt(internalID.getScope(), buf, 0);
+                System.arraycopy(internalID.getIdAsBytes(), 0, buf, off, internalID.size());
+                
+                // encrypt
+                var enc = ecipher.get().doFinal(buf);
+                
+                // write as base32
+                var writer = new StringWriter();
+                var os = BASE32_ENCODING.encodingStream(writer);
+                os.write(enc);
+                os.close();
+                
+                return writer.toString();
+            }
+            catch (Exception e)
+            {
+                throw new IllegalArgumentException("Error encoding resource ID", e);
+            }
         }
         else
-            return internalID;
+            return BigId.toString32(internalID);
     }
     
     
-    public long decodeID(long encodedID)
+    /**
+     * Decodes an ID from its String representation
+     * @param encodedID
+     * @return A BigId instance
+     * @throws IllegalArgumentException if the String cannot be decoded to a valid ID
+     */
+    public BigId decodeID(String encodedID)
     {
-        // read number of bytes used for ID part
-        int numInternalIDBits = (int)(encodedID & 0x3F);
-        long internalIDMask = (1L << numInternalIDBits) - 1;
-        
-        // extract ID part
-        long internalID = (encodedID >>> INTERNAL_ID_SIZE_BITS) & internalIDMask;
-        
-        // check hash code
-        long correctHashValue = getHashValue(internalID, numInternalIDBits);
-        int hashShift = numInternalIDBits + INTERNAL_ID_SIZE_BITS;
-        long embeddedHashValue = encodedID >>> hashShift;
-        
-        if (embeddedHashValue != correctHashValue)
-            return encodedID;
+        if (dcipher != null)
+        {
+            try
+            {
+                // decode base32 string
+                var reader = new StringReader(encodedID);
+                var is = BASE32_ENCODING.decodingStream(reader);
+                var enc = is.readAllBytes();
+                
+                // decypher
+                var buf = dcipher.get().doFinal(enc);
+                
+                // read BigId from bytes
+                var scope = VarInt.getVarInt(buf, 0);
+                var off = VarInt.varIntSize(scope);
+                return BigId.fromBytes(scope, buf, off, buf.length-off);
+            }
+            catch (Exception e)
+            {
+                throw new IllegalArgumentException("Error decoding resource ID: " + encodedID, e);
+            }
+        }
         else
-            return internalID;
-    }
-    
-    
-    protected long getHashValue(long internalID, int numInternalIDBits)
-    {
-        HashCode hashcode = hf.hashLong(internalID);
-        int numHashBits = getNumHashBits(numInternalIDBits);
-        return (long)hashcode.asInt() & ((1L << numHashBits) - 1);
-    }
-    
-    
-    protected int getNumHashBits(int numInternalIDBits)
-    {
-        if (numInternalIDBits < (MIN_ENCODED_ID_BITS - MIN_HASH_BITS))
-            return MIN_ENCODED_ID_BITS - numInternalIDBits;
-        else
-            return Math.min(MIN_HASH_BITS, AVAILABLE_BITS - numInternalIDBits);
+            return BigId.fromString32(encodedID);
     }
 }

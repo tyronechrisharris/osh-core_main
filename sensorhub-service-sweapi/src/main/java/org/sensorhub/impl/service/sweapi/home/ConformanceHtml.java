@@ -32,7 +32,7 @@ public class ConformanceHtml extends ResourceBindingHtml<Long, SWEApiServiceConf
     
     public ConformanceHtml(RequestContext ctx, Set<String> confClasses) throws IOException
     {
-        super(ctx, new IdEncoder(0));
+        super(ctx, new IdEncoder());
         this.confClasses = Asserts.checkNotNullOrEmpty(confClasses, "ConformanceClasses");
     }
     

@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.FeatureFilter.Builder;
@@ -39,7 +40,7 @@ public class FeatureHandler extends AbstractFeatureHandler<IFeature, FeatureFilt
     
     public FeatureHandler(IFeatureStore dataStore, ResourcePermissions permissions)
     {
-        super(dataStore, new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(dataStore, new IdEncoder(), permissions);
     }
 
 
@@ -60,7 +61,7 @@ public class FeatureHandler extends AbstractFeatureHandler<IFeature, FeatureFilt
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.contains(internalID);
     }

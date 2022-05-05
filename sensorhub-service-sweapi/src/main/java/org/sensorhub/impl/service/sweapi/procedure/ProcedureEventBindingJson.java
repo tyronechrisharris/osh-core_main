@@ -44,9 +44,9 @@ public class ProcedureEventBindingJson extends ResourceBindingJson<Long, SystemE
 {
     
     
-    ProcedureEventBindingJson(RequestContext ctx) throws IOException
+    ProcedureEventBindingJson(RequestContext ctx, IdEncoder idEncoder) throws IOException
     {
-        super(ctx, new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED), false);
+        super(ctx, idEncoder, false);
     }
 
 
@@ -71,13 +71,10 @@ public class ProcedureEventBindingJson extends ResourceBindingJson<Long, SystemE
         if (eventType == null)
             return;
         
-        // generate public ID
-        var publicSysID = idEncoder.encodeID(res.getSystemID());
-        
         // write event message
         writer.beginObject();
         writer.name("time").value(Instant.ofEpochMilli(res.getTimeStamp()).toString());
-        writer.name("procedure@id").value(Long.toString(publicSysID, 36));
+        writer.name("procedure@id").value(encodeID(res.getSystemID()));
         writer.name("eventType").value(eventType);
         writer.endObject();
         writer.flush();

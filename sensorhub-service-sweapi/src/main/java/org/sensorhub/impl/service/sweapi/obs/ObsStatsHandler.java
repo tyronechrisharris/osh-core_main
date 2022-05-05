@@ -15,10 +15,10 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.SpatialFilter;
@@ -27,13 +27,11 @@ import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
-import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -47,9 +45,7 @@ public class ObsStatsHandler extends BaseHandler
     public static final String[] NAMES = { "stats" };
     
     final IObsSystemDatabase db;
-    final IdConverter idConverter;
-    final IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
-    final IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
+    final IdEncoder idEncoder;
     final ResourcePermissions permissions;
     
     
@@ -65,17 +61,17 @@ public class ObsStatsHandler extends BaseHandler
     public ObsStatsHandler(ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         this.db = db.getReadDb();
+        this.idEncoder = db.getIdEncoder();
         this.permissions = permissions;
-        this.idConverter = db.getIdConverter();
     }
     
     
-    protected ResourceBinding<BigInteger, ObsStats> getBinding(RequestContext ctx) throws IOException
+    protected ResourceBinding<BigId, ObsStats> getBinding(RequestContext ctx) throws IOException
     {
         var format = ctx.getFormat();
         
         if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new ObsStatsBindingJson(ctx);
+            return new ObsStatsBindingJson(ctx, idEncoder);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -154,7 +150,7 @@ public class ObsStatsHandler extends BaseHandler
         var builder = new ObsFilter.Builder();
         
         // filter on parent if needed
-        if (parent.internalID > 0)
+        if (parent.internalID != null)
             builder.withDataStreams(parent.internalID);
         
         // phenomenonTime param
@@ -168,12 +164,12 @@ public class ObsStatsHandler extends BaseHandler
             builder.withResultTime(resultTime);
         
         // foi param
-        var foiIDs = parseResourceIds("foi", queryParams, foiIdEncoder);
+        var foiIDs = parseResourceIds("foi", queryParams, idEncoder);
         if (foiIDs != null && !foiIDs.isEmpty())
             builder.withFois(foiIDs);
         
         // datastream param
-        var dsIDs = parseResourceIds("datastream", queryParams, dsIdEncoder);
+        var dsIDs = parseResourceIds("datastream", queryParams, idEncoder);
         if (dsIDs != null && !dsIDs.isEmpty())
             builder.withDataStreams(dsIDs);
         

@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -23,7 +24,6 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -52,10 +52,10 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     public DataStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
-        super(db.getReadDb().getDataStreamStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getDataStreamStore(), db.getIdEncoder(), permissions);
         this.db = db.getReadDb();
         this.eventBus = eventBus;
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
         this.customFormats = Asserts.checkNotNull(customFormats, "customFormats");
         
         this.eventsHandler = new DataStreamEventsHandler(eventBus, db, permissions);
@@ -70,7 +70,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
         {
-            var title = ctx.getParentID() != 0 ? "Datastreams of {}" : "All Datastreams";
+            var title = ctx.getParentID() != null ? "Datastreams of {}" : "All Datastreams";
             return new DataStreamBindingHtml(ctx, idEncoder, true, title, db, customFormats);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
@@ -99,7 +99,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.containsKey(new DataStreamKey(internalID));
     }
@@ -114,7 +114,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         builder.withCurrentVersion();
         
         // filter on parent if needed
-        if (parent.internalID > 0)
+        if (parent.internalID != null)
         {
             builder.withSystems()
                 .withInternalIDs(parent.internalID)
@@ -149,7 +149,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         var sysHandler = transactionHandler.getSystemHandler(sysID);
         var dsHandler = sysHandler.addOrUpdateDataStream(res);
         
-        return dsHandler.getPublicDataStreamKey();
+        return dsHandler.getDataStreamKey();
     }
     
     
@@ -179,7 +179,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
 
 
     @Override
-    protected DataStreamKey getKey(long publicID)
+    protected DataStreamKey getKey(BigId publicID)
     {
         return new DataStreamKey(publicID);
     }

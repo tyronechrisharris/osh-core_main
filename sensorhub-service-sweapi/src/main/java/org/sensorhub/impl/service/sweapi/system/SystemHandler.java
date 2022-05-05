@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.system;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -23,7 +24,6 @@ import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.system.ISystemWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -41,7 +41,6 @@ import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 
 public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, SystemFilter, SystemFilter.Builder, ISystemDescStore>
 {
-    public static final int EXTERNAL_ID_SEED = 21933547;
     public static final String[] NAMES = { "systems" };
     
     final IEventBus eventBus;
@@ -52,10 +51,10 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     
     public SystemHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getSystemDescStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getSystemDescStore(), db.getIdEncoder(), permissions);
         this.db = db.getReadDb();
         this.eventBus = eventBus;
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
         
         this.eventsHandler = new SystemEventsHandler(eventBus, db, permissions);
         addSubResource(eventsHandler);
@@ -69,7 +68,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
         {
-            var title = ctx.getParentID() != 0 ? "Subsystems of {}" : "All Systems";
+            var title = ctx.getParentID() != null ? "Subsystems of {}" : "All Systems";
             return new SystemBindingHtml(ctx, idEncoder, true, title, db);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
@@ -89,7 +88,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.contains(internalID);
     }
@@ -156,7 +155,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         if (sml != null)
             SystemUtils.addDatastreamsFromOutputs(procHandler, sml.getOutputList());
         
-        return procHandler.getPublicSystemKey();
+        return procHandler.getSystemKey();
     }
     
     

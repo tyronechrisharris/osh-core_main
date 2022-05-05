@@ -32,7 +32,7 @@ public class HomePageJson extends ResourceBindingJson<Long, SWEApiServiceConfig>
     
     public HomePageJson(RequestContext ctx) throws IOException
     {
-        super(ctx, new IdEncoder(0), false);
+        super(ctx, new IdEncoder(), false);
     }
     
     

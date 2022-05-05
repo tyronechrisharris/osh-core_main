@@ -60,7 +60,7 @@ public class SystemMembersHandler extends SystemHandler
         super.buildFilter(parent, queryParams, builder);
         
         // filter on parent if needed
-        if (parent.internalID > 0)
+        if (parent.internalID != null)
         {
             builder.withParents()
                 .withInternalIDs(parent.internalID)
@@ -99,7 +99,7 @@ public class SystemMembersHandler extends SystemHandler
         if (sml != null)
             SystemUtils.addDatastreamsFromOutputs(procHandler, sml.getOutputList());
         
-        return procHandler.getPublicSystemKey();
+        return procHandler.getSystemKey();
     }
     
     

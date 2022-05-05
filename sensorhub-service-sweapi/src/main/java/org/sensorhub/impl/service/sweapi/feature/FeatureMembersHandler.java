@@ -52,7 +52,7 @@ public class FeatureMembersHandler extends FeatureHandler
         super.buildFilter(parent, queryParams, builder);
         
         // filter on parent if needed
-        if (parent.internalID > 0)
+        if (parent.internalID != null)
         {
             builder.withParents()
                 .withInternalIDs(parent.internalID)

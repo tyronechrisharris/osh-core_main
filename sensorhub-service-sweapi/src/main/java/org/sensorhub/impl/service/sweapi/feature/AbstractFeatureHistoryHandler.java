@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.feature;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
@@ -73,8 +74,8 @@ public abstract class AbstractFeatureHistoryHandler<
         ctx.getSecurityHandler().checkPermission(permissions.read);
         
         // internal ID & version number
-        long internalID = ctx.getParentID();
-        long version = getVersionNumber(ctx, id);
+        var internalID = ctx.getParentID();
+        var version = getVersionNumber(ctx, id);
         
         var key = getKey(internalID, version);
         V res = dataStore.get(key);
@@ -98,8 +99,8 @@ public abstract class AbstractFeatureHistoryHandler<
         ctx.getSecurityHandler().checkPermission(permissions.delete);
         
         // internal ID & version number
-        long internalID = ctx.getParentID();
-        long version = getVersionNumber(ctx, id);
+        var internalID = ctx.getParentID();
+        var version = getVersionNumber(ctx, id);
         
         // delete resource
         IFeature res = dataStore.remove(getKey(internalID, version));
@@ -108,11 +109,11 @@ public abstract class AbstractFeatureHistoryHandler<
     }
     
     
-    protected long getVersionNumber(final RequestContext ctx, final String version) throws InvalidRequestException
+    protected int getVersionNumber(final RequestContext ctx, final String version) throws InvalidRequestException
     {
         try
         {
-            long num = Long.parseLong(version);
+            var num = Integer.parseInt(version);
             
             // stop here if version is negative
             if (num <= 0)
@@ -132,8 +133,8 @@ public abstract class AbstractFeatureHistoryHandler<
     {
         IResourceHandler resource = getSubResource(ctx);
         
-        long internalID = ctx.getParentRef().internalID;
-        long version = getVersionNumber(ctx, id);
+        var internalID = ctx.getParentRef().internalID;
+        var version = getVersionNumber(ctx, id);
         ctx.setParent(this, internalID, version);
         
         return resource;
@@ -155,13 +156,13 @@ public abstract class AbstractFeatureHistoryHandler<
 
 
     @Override
-    protected FeatureKey getKey(long internalID)
+    protected FeatureKey getKey(BigId internalID)
     {
         throw new UnsupportedOperationException();
     }
     
     
-    protected FeatureKey getKey(long internalID, long version)
+    protected FeatureKey getKey(BigId internalID, int version)
     {
         //var fk = new FeatureKey(internalID, Instant.ofEpochSecond(version));
         

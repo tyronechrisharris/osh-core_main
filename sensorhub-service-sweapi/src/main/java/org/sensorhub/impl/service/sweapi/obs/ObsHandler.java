@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +25,7 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsEvent;
@@ -37,13 +37,10 @@ import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.impl.service.sweapi.IdConverter;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
-import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.BaseResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -56,7 +53,7 @@ import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
 
 
-public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFilter, IObsStore>
+public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, IObsStore>
 {
     public static final int EXTERNAL_ID_SEED = 71145893;
     public static final String[] NAMES = { "observations" };
@@ -65,44 +62,40 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;
     final ScheduledExecutorService threadPool;
-    final IdConverter idConverter;
-    final IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
-    final IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
     final Map<String, CustomObsFormat> customFormats;
     
     
     public static class ObsHandlerContextData
     {
-        public long dsID;
+        public BigId dsID;
         public IDataStreamInfo dsInfo;
-        public long foiId;
+        public BigId foiId;
         public DataStreamTransactionHandler dsHandler;
     }
     
     
     public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
-        super(db.getReadDb().getObservationStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getObservationStore(), db.getIdEncoder(), permissions);
         
         this.eventBus = eventBus;
         this.db = db.getReadDb();
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
         this.threadPool = threadPool;
-        this.idConverter = db.getIdConverter();
         this.customFormats = Asserts.checkNotNull(customFormats);
     }
     
     
     @Override
-    protected ResourceBinding<BigInteger, IObsData> getBinding(RequestContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<BigId, IObsData> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var contextData = new ObsHandlerContextData();
         ctx.setData(contextData);
         
         // try to fetch datastream since it's needed to configure binding
-        var publicDsID = ctx.getParentID();
-        if (publicDsID > 0)
-            contextData.dsInfo = db.getDataStreamStore().get(new DataStreamKey(publicDsID));
+        var dsID = ctx.getParentID();
+        if (dsID != null)
+            contextData.dsInfo = db.getDataStreamStore().get(new DataStreamKey(dsID));
                 
         if (forReading)
         {
@@ -110,8 +103,8 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             Asserts.checkNotNull(contextData.dsInfo, IDataStreamInfo.class);
             
             // create transaction handler here so it can be reused multiple times
-            contextData.dsID = idConverter.toInternalID(publicDsID);
-            contextData.dsHandler = transactionHandler.getDataStreamHandler(publicDsID);
+            contextData.dsID = dsID;
+            contextData.dsHandler = transactionHandler.getDataStreamHandler(dsID);
             if (contextData.dsHandler == null)
                 throw ServiceErrors.notWritable();
             
@@ -119,10 +112,10 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             String foiArg = ctx.getParameter("foi");
             if (foiArg != null)
             {
-                long publicFoiID = decodeID(ctx, foiArg);
-                if (!db.getFoiStore().contains(publicFoiID))
+                var foiID = decodeID(ctx, foiArg);
+                if (!db.getFoiStore().contains(foiID))
                     throw ServiceErrors.badRequest("Invalid FOI ID");
-                contextData.foiId = idConverter.toInternalID(publicFoiID);
+                contextData.foiId = foiID;
             }
         }
         
@@ -145,7 +138,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     }
     
     
-    protected ResourceBinding<BigInteger, IObsData> getCustomFormatBinding(RequestContext ctx, IDataStreamInfo dsInfo) throws IOException
+    protected ResourceBinding<BigId, IObsData> getCustomFormatBinding(RequestContext ctx, IDataStreamInfo dsInfo) throws IOException
     {
         var format = ctx.getFormat();
         CustomObsFormat obsFormat = null;
@@ -214,7 +207,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         Asserts.checkNotNull(ctx.getStreamHandler(), StreamHandler.class);
         
         var dsID = ctx.getParentID();
-        if (dsID <= 0)
+        if (dsID == null)
             throw ServiceErrors.badRequest("Streaming is only supported on a specific datastream");
         
         var queryParams = ctx.getParameterMap();
@@ -252,7 +245,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     }
     
     
-    protected void startRealTimeStream(final RequestContext ctx, final long dsID, final ObsFilter filter, final ResourceBinding<BigInteger, IObsData> binding)
+    protected void startRealTimeStream(final RequestContext ctx, final BigId dsID, final ObsFilter filter, final ResourceBinding<BigId, IObsData> binding)
     {
         // init event to obs converter
         var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
@@ -316,7 +309,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
     }
     
     
-    protected void startReplayStream(final RequestContext ctx, final long dsID, final ObsFilter filter, final double replaySpeed, final ResourceBinding<BigInteger, IObsData> binding)
+    protected void startReplayStream(final RequestContext ctx, final BigId dsID, final ObsFilter filter, final double replaySpeed, final ResourceBinding<BigId, IObsData> binding)
     {
         var streamHandler = ctx.getStreamHandler();
         var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
@@ -404,28 +397,16 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
 
 
     @Override
-    protected BigInteger getKey(RequestContext ctx, String id) throws InvalidRequestException
+    protected BigId getKey(RequestContext ctx, String id) throws InvalidRequestException
     {
-        try
-        {
-            var internalID = new BigInteger(id, ResourceBinding.ID_RADIX);
-            if (internalID.signum() <= 0)
-                return null;
-            
-            return internalID;
-        }
-        catch (NumberFormatException e)
-        {
-            throw ServiceErrors.notFound();
-        }
+        return decodeID(ctx, id);
     }
     
     
     @Override
-    protected String encodeKey(final RequestContext ctx, BigInteger key)
+    protected String encodeKey(final RequestContext ctx, BigId key)
     {
-        var externalID = key;
-        return externalID.toString(ResourceBinding.ID_RADIX);
+        return idEncoder.encodeID(key);
     }
 
 
@@ -435,7 +416,7 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
         var builder = new ObsFilter.Builder();
         
         // filter on parent if needed
-        if (parent.internalID > 0)
+        if (parent.internalID != null)
             builder.withDataStreams(parent.internalID);
         
         // phenomenonTime param
@@ -449,12 +430,12 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
             builder.withResultTime(resultTime);
         
         // foi param
-        var foiIDs = parseResourceIds("foi", queryParams, foiIdEncoder);
+        var foiIDs = parseResourceIds("foi", queryParams, idEncoder);
         if (foiIDs != null && !foiIDs.isEmpty())
             builder.withFois(foiIDs);
         
         // datastream param
-        var dsIDs = parseResourceIds("datastream", queryParams, dsIdEncoder);
+        var dsIDs = parseResourceIds("datastream", queryParams, idEncoder);
         if (dsIDs != null && !dsIDs.isEmpty())
             builder.withDataStreams(dsIDs);
         
@@ -486,15 +467,15 @@ public class ObsHandler extends BaseResourceHandler<BigInteger, IObsData, ObsFil
 
 
     @Override
-    protected BigInteger addEntry(RequestContext ctx, IObsData res) throws DataStoreException
+    protected BigId addEntry(RequestContext ctx, IObsData res) throws DataStoreException
     {
         var dsHandler = ((ObsHandlerContextData)ctx.getData()).dsHandler;
-        return idConverter.toPublicID(dsHandler.addObs(res));
+        return dsHandler.addObs(res);
     }
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return false;
     }

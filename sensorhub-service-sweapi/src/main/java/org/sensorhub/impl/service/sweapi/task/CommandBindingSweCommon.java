@@ -17,11 +17,11 @@ package org.sensorhub.impl.service.sweapi.task;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
 import java.util.Collection;
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -49,7 +49,7 @@ import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.TextEncoding;
 
 
-public class CommandBindingSweCommon extends ResourceBinding<BigInteger, ICommandData>
+public class CommandBindingSweCommon extends ResourceBinding<BigId, ICommandData>
 {       
     CommandHandlerContextData contextData;
     DataStreamParser resultReader;
@@ -107,7 +107,7 @@ public class CommandBindingSweCommon extends ResourceBinding<BigInteger, IComman
 
 
     @Override
-    public void serialize(BigInteger key, ICommandData cmd, boolean showLinks) throws IOException
+    public void serialize(BigId key, ICommandData cmd, boolean showLinks) throws IOException
     {
         paramsWriter.write(cmd.getParams());
         paramsWriter.flush();

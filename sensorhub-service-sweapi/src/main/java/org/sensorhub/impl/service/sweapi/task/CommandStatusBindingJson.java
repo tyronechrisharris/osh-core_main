@@ -15,20 +15,19 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.task;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.task.CommandStatusHandler.CommandStatusHandlerContextData;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.util.ReaderException;
 import org.vast.util.TimeExtent;
@@ -37,11 +36,10 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
 
-public class CommandStatusBindingJson extends ResourceBindingJson<BigInteger, ICommandStatus>
+public class CommandStatusBindingJson extends ResourceBindingJson<BigId, ICommandStatus>
 {
     CommandStatusHandlerContextData contextData;
     ICommandStatusStore statusStore;
-    IdEncoder cmdIdEncoder = new IdEncoder(CommandHandler.EXTERNAL_ID_SEED);
 
     
     CommandStatusBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, ICommandStatusStore cmdStore) throws IOException
@@ -70,7 +68,7 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigInteger, IC
                 
                 if ("command@id".equals(propName))
                 {
-                    var cmdID = new BigInteger(reader.nextString(), ResourceBinding.ID_RADIX);
+                    var cmdID = decodeID(reader.nextString());
                     status.withCommand(cmdID);
                 }
                 else if ("reportTime".equals(propName))
@@ -118,21 +116,26 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigInteger, IC
 
 
     @Override
-    public void serialize(BigInteger key, ICommandStatus status, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(BigId key, ICommandStatus status, boolean showLinks, JsonWriter writer) throws IOException
     {
         writer.beginObject();
         
         if (key != null)
-            writer.name("id").value(key.toString(ResourceBinding.ID_RADIX));
+            writer.name("id").value(encodeID(key));
         
         var cmdID = status.getCommandID();
-        writer.name("command@id").value(cmdID.toString(ResourceBinding.ID_RADIX));
+        writer.name("command@id").value(encodeID(cmdID));
         
         writer.name("reportTime").value(status.getReportTime().toString());
         writer.name("statusCode").value(status.getStatusCode().toString());
         
         if (status.getExecutionTime() != null)
-            writer.name("executionTime").value(status.getExecutionTime().isoStringUTC(false));
+        {
+            writer.name("executionTime").beginArray()
+                .value(status.getExecutionTime().begin().toString())
+                .value(status.getExecutionTime().end().toString())
+                .endArray();
+        }
         
         if (status.getProgress() >= 0)
             writer.name("progress").value(status.getProgress());

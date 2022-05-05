@@ -16,13 +16,13 @@ package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
@@ -50,7 +50,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     
     public ProcedureDetailsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(((IProcedureDatabase)db.getReadDb()).getProcedureStore(), new IdEncoder(ProcedureHandler.EXTERNAL_ID_SEED), permissions);
+        super(((IProcedureDatabase)db.getReadDb()).getProcedureStore(), db.getIdEncoder(), permissions);
         this.db = (IProcedureDatabase)db.getReadDb();
     }
 
@@ -72,7 +72,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.contains(internalID);
     }
@@ -119,8 +119,8 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         Asserts.checkNotNull(parent, "parent");
         
         // internal ID & version number
-        long internalID = parent.internalID;
-        long version = parent.version;
+        var internalID = parent.internalID;
+        var version = parent.version;
         if (version < 0)
             throw ServiceErrors.badRequest(INVALID_VERSION_ERROR_MSG + version);
         
@@ -131,7 +131,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         
         // generate outputs from datastreams
         // + override ID
-        var idStr = Long.toString(idEncoder.encodeID(internalID), 36);
+        var idStr = idEncoder.encodeID(internalID);
         //sml = SystemUtils.addOutputsFromDatastreams(internalID, sml, db.getDataStreamStore())
         //    .withId(idStr);
         sml = ProcessWrapper.getWrapper(sml).withId(idStr);

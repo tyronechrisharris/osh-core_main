@@ -14,16 +14,15 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
@@ -134,9 +133,9 @@ public abstract class BaseHandler implements IResourceHandler
     }
     
     
-    protected Collection<Long> parseResourceIds(String paramName, final Map<String, String[]> queryParams, IdEncoder idEncoder) throws InvalidRequestException
+    protected Collection<BigId> parseResourceIds(String paramName, final Map<String, String[]> queryParams, IdEncoder idEncoder) throws InvalidRequestException
     {
-        var allValues = new ArrayList<Long>();
+        var allValues = new ArrayList<BigId>();
         
         var paramValues = queryParams.get(paramName);
         if (paramValues != null)
@@ -147,37 +146,8 @@ public abstract class BaseHandler implements IResourceHandler
                 {
                     try
                     {
-                        long externalID = Long.parseLong(id, ResourceBinding.ID_RADIX);
-                        long internalID = idEncoder.decodeID(externalID);
+                        var internalID = idEncoder.decodeID(id);
                         allValues.add(internalID);
-                    }
-                    catch (NumberFormatException e)
-                    {
-                        throw ServiceErrors.badRequest("Invalid resource ID: " + id);
-                    }
-                }
-            }
-        }
-        
-        return allValues;
-    }
-    
-    
-    protected Collection<BigInteger> parseBigResourceIds(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        var allValues = new ArrayList<BigInteger>();
-        
-        var paramValues = queryParams.get(paramName);
-        if (paramValues != null)
-        {
-            for (String val: paramValues)
-            {
-                for (String id: val.split(","))
-                {
-                    try
-                    {
-                        var bigID = new BigInteger(id, ResourceBinding.ID_RADIX);
-                        allValues.add(bigID);
                     }
                     catch (NumberFormatException e)
                     {

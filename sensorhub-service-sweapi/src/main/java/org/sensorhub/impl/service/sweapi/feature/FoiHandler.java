@@ -16,13 +16,13 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
@@ -38,7 +38,6 @@ import org.vast.ogc.gml.IFeature;
 
 public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
 {
-    public static final int EXTERNAL_ID_SEED = 433584715;
     public static final String[] NAMES = { "featuresOfInterest", "fois" };
     
     final IObsSystemDatabase db;
@@ -47,9 +46,9 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     
     public FoiHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getFoiStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getFoiStore(), db.getIdEncoder(), permissions);
         this.db = db.getReadDb();
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
     }
 
 
@@ -68,7 +67,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.contains(internalID);
     }
@@ -90,7 +89,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     {
         super.buildFilter(parent, queryParams, builder);
         
-        if (parent.internalID > 0)
+        if (parent.internalID != null)
         {
             builder.withParents()
                 .withInternalIDs(parent.internalID)
@@ -124,9 +123,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     protected FeatureKey addEntry(final RequestContext ctx, final IFeature foi) throws DataStoreException
     {        
         var procHandler = transactionHandler.getSystemHandler(ctx.getParentID());
-        var fk = procHandler.addOrUpdateFoi(foi);
-        var publicId = transactionHandler.toPublicId(fk.getInternalID());
-        return new FeatureKey(publicId, fk.getValidStartTime());
+        return procHandler.addOrUpdateFoi(foi);
     }
 
 

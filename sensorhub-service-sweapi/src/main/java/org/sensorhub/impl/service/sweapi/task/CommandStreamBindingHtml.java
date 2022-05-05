@@ -21,7 +21,6 @@ import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
 import com.google.common.collect.ImmutableList;
 import static j2html.TagCreator.*;
@@ -46,7 +45,7 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
         super(ctx, idEncoder);
         this.isSummary = isSummary;
         
-        if (ctx.getParentID() != 0L)
+        if (ctx.getParentID() != null)
         {
             // fetch parent system name
             var parentSys = db.getSystemDescStore().getCurrentVersion(ctx.getParentID());
@@ -92,7 +91,7 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
     
     protected void serializeSummary(CommandStreamKey key, ICommandStreamInfo dsInfo) throws IOException
     {
-        var dsId = Long.toString(encodeID(key.getInternalID()), ResourceBinding.ID_RADIX);
+        var dsId = encodeID(key.getInternalID());
         var requestUrl = ctx.getRequestUrl();
         var resourceUrl = isCollection ? requestUrl + "/" + dsId : requestUrl;
         

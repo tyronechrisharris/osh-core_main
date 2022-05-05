@@ -16,13 +16,13 @@ package org.sensorhub.impl.service.sweapi.system;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.system.ISystemWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
@@ -52,7 +52,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
     
     public SystemDetailsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getSystemDescStore(), new IdEncoder(SystemHandler.EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getSystemDescStore(), db.getIdEncoder(), permissions);
         this.db = db.getReadDb();
     }
 
@@ -74,7 +74,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.contains(internalID);
     }
@@ -121,8 +121,8 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         Asserts.checkNotNull(parent, "parent");
         
         // internal ID & version number
-        long internalID = parent.internalID;
-        long version = parent.version;
+        var internalID = parent.internalID;
+        var version = parent.version;
         if (version < 0)
             throw ServiceErrors.badRequest(INVALID_VERSION_ERROR_MSG + version);
         
@@ -133,7 +133,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         
         // generate outputs from datastreams
         // + override ID
-        var idStr = Long.toString(idEncoder.encodeID(internalID), 36);
+        var idStr = idEncoder.encodeID(internalID);
         //sml = SystemUtils.addOutputsFromDatastreams(internalID, sml, db.getDataStreamStore())
         //    .withId(idStr);
         sml = ProcessWrapper.getWrapper(sml).withId(idStr);

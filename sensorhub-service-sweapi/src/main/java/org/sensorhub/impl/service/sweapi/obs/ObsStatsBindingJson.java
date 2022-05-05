@@ -15,30 +15,25 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.Collection;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
-import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.vast.json.JsonInliningWriter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 
 
-public class ObsStatsBindingJson extends ResourceBindingJson<BigInteger, ObsStats>
+public class ObsStatsBindingJson extends ResourceBindingJson<BigId, ObsStats>
 {
-    IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
-    IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
-
     
-    ObsStatsBindingJson(RequestContext ctx) throws IOException
+    ObsStatsBindingJson(RequestContext ctx, IdEncoder idEncoder) throws IOException
     {
-        super(ctx, new IdEncoder(0), false);
+        super(ctx, idEncoder, false);
     }
     
     
@@ -50,17 +45,17 @@ public class ObsStatsBindingJson extends ResourceBindingJson<BigInteger, ObsStat
 
 
     @Override
-    public void serialize(BigInteger key, ObsStats stats, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(BigId key, ObsStats stats, boolean showLinks, JsonWriter writer) throws IOException
     {
         writer.beginObject();
         
-        var externalDsId = dsIdEncoder.encodeID(stats.getDataStreamID());
-        writer.name("datastreamId").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
+        var dsID = stats.getDataStreamID();
+        writer.name("datastreamId").value(encodeID(dsID));
         
         if (stats.getFoiID() != null && stats.getFoiID() != FeatureId.NULL_FEATURE)
         {
-            var externalfoiId = foiIdEncoder.encodeID(stats.getFoiID().getInternalID());
-            writer.name("foiId").value(Long.toString(externalfoiId, ResourceBinding.ID_RADIX));
+            var foiID = stats.getFoiID().getInternalID();
+            writer.name("foiId").value(encodeID(foiID));
         }
         
         if (stats.getPhenomenonTimeRange() != null)

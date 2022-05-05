@@ -21,7 +21,6 @@ import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.xlink.IXlinkReference;
@@ -49,7 +48,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
         super(ctx, idEncoder);
         this.isSummary = isSummary;
         
-        if (ctx.getParentID() != 0L)
+        if (ctx.getParentID() != null)
         {
             if (ctx.getParentRef().type instanceof SystemHandler)
             {
@@ -102,7 +101,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
     
     protected void serializeSummary(FeatureKey key, IFeature f) throws IOException
     {
-        var fid = Long.toString(encodeID(key.getInternalID()), ResourceBinding.ID_RADIX);
+        var fid = encodeID(key.getInternalID());
         var requestUrl = ctx.getRequestUrl();
         var resourceUrl = isCollection ? requestUrl + "/" + fid : requestUrl;
         

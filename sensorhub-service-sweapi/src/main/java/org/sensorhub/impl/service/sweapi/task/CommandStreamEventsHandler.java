@@ -33,7 +33,7 @@ public class CommandStreamEventsHandler extends ResourceEventsHandler<CommandStr
     
     protected CommandStreamEventsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super("control channel", eventBus, permissions);
+        super("control channel", eventBus, db.getIdEncoder(), permissions);
         this.sysStore = db.getReadDb().getSystemDescStore();
     }
     
@@ -45,12 +45,12 @@ public class CommandStreamEventsHandler extends ResourceEventsHandler<CommandStr
         //var filter = getFilter(ctx.getParentRef(), queryParams, 0, Long.MAX_VALUE);
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
-        var serializer = new CommandStreamEventBindingJson(ctx);
+        var serializer = new CommandStreamEventBindingJson(ctx, idEncoder);
         
         // use registry topic if all data stream events are requested
         // otherwise use specific system topic
         String topic = null;
-        if (ctx.getParentID() != 0)
+        if (ctx.getParentID() != null)
         {
             var sysId = ctx.getParentID();
             var sys = sysStore.getCurrentVersion(sysId);

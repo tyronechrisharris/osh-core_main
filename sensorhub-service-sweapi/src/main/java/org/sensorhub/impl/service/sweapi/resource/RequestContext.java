@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -31,6 +30,7 @@ import java.util.Set;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity;
 import org.sensorhub.impl.service.sweapi.SWEApiServlet;
 import org.sensorhub.impl.service.sweapi.stream.StreamHandler;
@@ -68,8 +68,7 @@ public class RequestContext
     {
         @SuppressWarnings("rawtypes")
         public BaseResourceHandler type;
-        public long internalID;
-        public BigInteger bigInternalID;
+        public BigId internalID;
         public long version;
     }
     
@@ -190,7 +189,7 @@ public class RequestContext
     }
     
     
-    public long getParentID()
+    public BigId getParentID()
     {
         return parentResource.internalID;
     }
@@ -202,25 +201,18 @@ public class RequestContext
     }
     
     
-    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, long internalID)
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, BigId internalID)
     {
         parentResource.type = parentHandler;
         parentResource.internalID = internalID;
     }
     
     
-    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, long internalID, long version)
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, BigId internalID, int version)
     {
         parentResource.type = parentHandler;
         parentResource.internalID = internalID;
-        parentResource.version = internalID;
-    }
-    
-    
-    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, BigInteger internalID)
-    {
-        parentResource.type = parentHandler;
-        parentResource.bigInternalID = internalID;
+        parentResource.version = version;
     }
     
     

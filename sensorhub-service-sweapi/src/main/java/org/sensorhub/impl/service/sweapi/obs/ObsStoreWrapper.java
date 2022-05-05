@@ -14,8 +14,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
-import java.math.BigInteger;
 import java.util.stream.Stream;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -25,19 +25,14 @@ import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.impl.service.sweapi.AbstractDataStoreWrapper;
-import org.sensorhub.impl.service.sweapi.IdConverter;
-import org.vast.util.Asserts;
 
 
-public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IObsData, ObsField, ObsFilter, IObsStore> implements IObsStore
+public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigId, IObsData, ObsField, ObsFilter, IObsStore> implements IObsStore
 {
-    final IdConverter idConverter;
     
-    
-    public ObsStoreWrapper(IObsStore readStore, IObsStore writeStore, IdConverter idConverter)
+    public ObsStoreWrapper(IObsStore readStore, IObsStore writeStore)
     {
         super(readStore, writeStore);
-        this.idConverter = Asserts.checkNotNull(idConverter, IdConverter.class);
     }
 
 
@@ -49,7 +44,7 @@ public class ObsStoreWrapper extends AbstractDataStoreWrapper<BigInteger, IObsDa
 
 
     @Override
-    public BigInteger add(IObsData obs)
+    public BigId add(IObsData obs)
     {
         return getWriteStore().add(obs);
     }

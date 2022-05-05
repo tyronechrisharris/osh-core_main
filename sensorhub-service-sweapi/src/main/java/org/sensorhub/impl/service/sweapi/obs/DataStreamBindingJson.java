@@ -46,7 +46,6 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     
     final String rootURL;
     final SWEStaxBindings sweBindings;
-    final IdEncoder sysIdEncoder = new IdEncoder(SystemHandler.EXTERNAL_ID_SEED);
     final Map<String, CustomObsFormat> customFormats;
     SWEJsonStreamReader sweReader;
     SWEJsonStreamWriter sweWriter;
@@ -145,18 +144,18 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var publicDsID = encodeID(key.getInternalID());
-        var publicSysID = sysIdEncoder.encodeID(dsInfo.getSystemID().getInternalID());
+        var dsID = encodeID(key.getInternalID());
+        var sysID = encodeID(dsInfo.getSystemID().getInternalID());
         
         writer.beginObject();
         
-        writer.name("id").value(Long.toString(publicDsID, 36));
+        writer.name("id").value(dsID);
         writer.name("name").value(dsInfo.getName());
         
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("system@id").value(Long.toString(publicSysID, 36));
+        writer.name("system@id").value(sysID);
         writer.name("outputName").value(dsInfo.getOutputName());
         
         writer.name("validTime").beginArray()
@@ -224,7 +223,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 .title("Parent system")
                 .href(rootURL +
                       "/" + SystemHandler.NAMES[0] +
-                      "/" + Long.toString(publicSysID, 36))
+                      "/" + sysID)
                 .build());
             
             links.add(new ResourceLink.Builder()
@@ -232,7 +231,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 .title("Collection of observations")
                 .href(rootURL +
                       "/" + DataStreamHandler.NAMES[0] +
-                      "/" + Long.toString(publicDsID, 36) +
+                      "/" + dsID +
                       "/" + ObsHandler.NAMES[0])
                 .build());
             

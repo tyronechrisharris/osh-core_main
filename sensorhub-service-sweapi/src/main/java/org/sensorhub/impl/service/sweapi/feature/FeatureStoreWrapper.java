@@ -17,16 +17,15 @@ package org.sensorhub.impl.service.sweapi.feature;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
-import org.sensorhub.impl.service.sweapi.IdConverter;
 import org.vast.ogc.gml.IFeature;
 
 
 public class FeatureStoreWrapper extends AbstractFeatureStoreWrapper<IFeature, FeatureField, FeatureFilter, IFeatureStore> implements IFeatureStore
 {
 
-    protected FeatureStoreWrapper(IFeatureStore readStore, IFeatureStore writeStore, IdConverter idConverter)
+    protected FeatureStoreWrapper(IFeatureStore readStore, IFeatureStore writeStore)
     {
-        super(readStore, writeStore, idConverter);
+        super(readStore, writeStore);
     }
     
     

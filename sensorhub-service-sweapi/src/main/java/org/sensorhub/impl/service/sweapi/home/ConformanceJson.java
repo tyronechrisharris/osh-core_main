@@ -34,7 +34,7 @@ public class ConformanceJson extends ResourceBindingJson<Long, SWEApiServiceConf
     
     public ConformanceJson(RequestContext ctx, Set<String> confClasses) throws IOException
     {
-        super(ctx, new IdEncoder(0), false);
+        super(ctx, new IdEncoder(), false);
         this.confClasses = Asserts.checkNotNullOrEmpty(confClasses, "ConformanceClasses");
     }
     

@@ -15,12 +15,12 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsData;
@@ -28,12 +28,10 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
-import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.swe.BinaryDataWriter;
@@ -48,14 +46,12 @@ import net.opengis.swe.v20.BinaryEncoding;
 import static org.sensorhub.impl.service.sweapi.SWECommonUtils.OM_COMPONENTS_FILTER;
 
 
-public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
+public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
 {
     ObsHandlerContextData contextData;
     IObsStore obsStore;
     JsonDataParserGson resultReader;
-    Map<Long, DataStreamWriter> resultWriters;
-    IdEncoder dsIdEncoder = new IdEncoder(DataStreamHandler.EXTERNAL_ID_SEED);
-    IdEncoder foiIdEncoder = new IdEncoder(FoiHandler.EXTERNAL_ID_SEED);
+    Map<BigId, DataStreamWriter> resultWriters;
 
     
     ObsBindingOmJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
@@ -126,7 +122,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
         
-        if (contextData.foiId != 0)
+        if (contextData.foiId != null)
             obs.withFoi(contextData.foiId);
         
         // also set timestamp
@@ -137,21 +133,20 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
 
 
     @Override
-    public void serialize(BigInteger key, IObsData obs, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(BigId key, IObsData obs, boolean showLinks, JsonWriter writer) throws IOException
     {
         writer.beginObject();
         
         if (key != null)
-            writer.name("id").value(key.toString(ResourceBinding.ID_RADIX));
+            writer.name("id").value(encodeID(key));
         
         var dsID = obs.getDataStreamID();
-        var externalDsId = dsIdEncoder.encodeID(dsID);
-        writer.name("datastream@id").value(Long.toString(externalDsId, ResourceBinding.ID_RADIX));
+        writer.name("datastream@id").value(encodeID(dsID));
         
         if (obs.hasFoi())
         {
-            var externalfoiId = foiIdEncoder.encodeID(obs.getFoiID());
-            writer.name("foi@id").value(Long.toString(externalfoiId, ResourceBinding.ID_RADIX));
+            var foiID = obs.getFoiID();
+            writer.name("foi@id").value(encodeID(foiID));
         }
         
         writer.name("phenomenonTime").value(obs.getPhenomenonTime().toString());
@@ -173,7 +168,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigInteger, IObsData>
     }
     
     
-    protected DataStreamWriter getSweCommonWriter(long dsID, JsonWriter writer, PropertyFilter propFilter)
+    protected DataStreamWriter getSweCommonWriter(BigId dsID, JsonWriter writer, PropertyFilter propFilter)
     {
         var dsInfo = obsStore.getDataStreams().get(new DataStreamKey(dsID));
         return getSweCommonWriter(dsInfo, writer, propFilter);

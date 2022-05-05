@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.task;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -26,6 +25,7 @@ import org.sensorhub.api.command.CommandStatusEvent;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
@@ -33,8 +33,6 @@ import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.impl.service.sweapi.IdConverter;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -51,7 +49,7 @@ import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
 
 
-public class CommandStatusHandler extends BaseResourceHandler<BigInteger, ICommandStatus, CommandStatusFilter, ICommandStatusStore>
+public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandStatus, CommandStatusFilter, ICommandStatusStore>
 {
     public static final int EXTERNAL_ID_SEED = 71145893;
     public static final String[] NAMES = { "status" };
@@ -60,32 +58,30 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
     final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;
     final ScheduledExecutorService threadPool;
-    final IdConverter idConverter;
     
     
     static class CommandStatusHandlerContextData
     {
-        long streamID;
+        BigId streamID;
         ICommandStreamInfo dsInfo;
-        long foiId;
+        BigId foiId;
         CommandStreamTransactionHandler dsHandler;
     }
     
     
     public CommandStatusHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getCommandStatusStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
+        super(db.getReadDb().getCommandStatusStore(), db.getIdEncoder(), permissions);
         
         this.eventBus = eventBus;
         this.db = db.getReadDb();
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb(), db.getDatabaseRegistry());
+        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
         this.threadPool = threadPool;
-        this.idConverter = db.getIdConverter();
     }
     
     
     @Override
-    protected ResourceBinding<BigInteger, ICommandStatus> getBinding(RequestContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<BigId, ICommandStatus> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
@@ -93,24 +89,28 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
         ctx.setData(contextData);
         
         // try to fetch command stream since it's needed to configure binding
-        var publicDsID = ctx.getParentID();
-        if (publicDsID > 0)
-            contextData.dsInfo = db.getCommandStreamStore().get(new CommandStreamKey(publicDsID));
-                
+        var dsID = ctx.getParentID();
+        if (dsID != null)
+        {
+            var parentType = ctx.getParentRef().type;
+            if (parentType instanceof CommandStreamHandler)
+                contextData.dsInfo = db.getCommandStreamStore().get(new CommandStreamKey(dsID));
+        }
+        
         if (forReading)
         {
-            // when ingesting status, command stream should be known at this stage
+            // when ingesting status, command stream needs to be known at this stage
             Asserts.checkNotNull(contextData.dsInfo, ICommandStreamInfo.class);
             
             // create transaction handler here so it can be reused multiple times
-            contextData.streamID = idConverter.toInternalID(publicDsID);
+            contextData.streamID = dsID;
             contextData.dsHandler = transactionHandler.getCommandStreamHandler(contextData.streamID);
             if (contextData.dsHandler == null)
                 throw ServiceErrors.notWritable();
         }
         
         // select binding depending on format
-        if (format.isOneOf(ResourceFormat.JSON))
+        if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
             return new CommandStatusBindingJson(ctx, idEncoder, forReading, dataStore);
         else
             throw ServiceErrors.unsupportedFormat(format);
@@ -134,7 +134,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
         Asserts.checkNotNull(ctx.getStreamHandler(), StreamHandler.class);
         
         var dsID = ctx.getParentID();
-        if (dsID <= 0)
+        if (dsID == null)
             throw ServiceErrors.badRequest("Streaming is only supported on a specific command stream");
         
         var queryParams = ctx.getParameterMap();
@@ -159,7 +159,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
     }
     
     
-    protected void startRealTimeStream(final RequestContext ctx, final long dsID, final CommandStatusFilter filter, final ResourceBinding<BigInteger, ICommandStatus> binding)
+    protected void startRealTimeStream(final RequestContext ctx, final BigId dsID, final CommandStatusFilter filter, final ResourceBinding<BigId, ICommandStatus> binding)
     {
         // init event to obs converter
         var dsInfo = ((CommandStatusHandlerContextData)ctx.getData()).dsInfo;
@@ -221,28 +221,16 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
 
 
     @Override
-    protected BigInteger getKey(RequestContext ctx, String id) throws InvalidRequestException
+    protected BigId getKey(RequestContext ctx, String id) throws InvalidRequestException
     {
-        try
-        {
-            var internalID = new BigInteger(id, ResourceBinding.ID_RADIX);
-            if (internalID.signum() <= 0)
-                return null;
-            
-            return internalID;
-        }
-        catch (NumberFormatException e)
-        {
-            throw ServiceErrors.notFound();
-        }
+        return decodeID(ctx, id);
     }
     
     
     @Override
-    protected String encodeKey(final RequestContext ctx, BigInteger key)
+    protected String encodeKey(final RequestContext ctx, BigId key)
     {
-        var externalID = key;
-        return externalID.toString(ResourceBinding.ID_RADIX);
+        return idEncoder.encodeID(key);
     }
 
 
@@ -252,20 +240,23 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
         var builder = new CommandStatusFilter.Builder();
         
         // filter on parent command if needed
-        if (parent.bigInternalID != null)
-            builder.withCommands(parent.bigInternalID);
-        
-        // or filter on parent command stream
-        else if (parent.internalID > 0)
+        if (parent.internalID != null)
         {
-            builder.withCommands()
-                .withCommandStreams(parent.internalID)
-                .done();
+            if (parent.type instanceof CommandHandler)
+                builder.withCommands(parent.internalID);
+        
+            // or filter on parent command stream
+            else if (parent.type instanceof CommandStreamHandler)
+            {
+                builder.withCommands()
+                    .withCommandStreams(parent.internalID)
+                    .done();
+            }
         }
         
         // command IDs
-        var cmdIDs = parseBigResourceIds("commands", queryParams);
-        if (parent.bigInternalID == null && cmdIDs != null && !cmdIDs.isEmpty())
+        var cmdIDs = parseResourceIds("commands", queryParams);
+        if (parent.internalID == null && cmdIDs != null && !cmdIDs.isEmpty())
         {
             builder.withCommands(cmdIDs);
         }
@@ -302,41 +293,19 @@ public class CommandStatusHandler extends BaseResourceHandler<BigInteger, IComma
         
         return builder.build();
     }
-    
-    
-    @Override
-    protected ResourceFormat parseFormat(final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        var format = super.parseFormat(queryParams);
-        
-        if (!format.isOneOf(
-              ResourceFormat.JSON,
-              ResourceFormat.OM_JSON,
-              ResourceFormat.OM_XML,
-              ResourceFormat.SWE_JSON,
-              ResourceFormat.SWE_TEXT,
-              ResourceFormat.SWE_XML,
-              ResourceFormat.SWE_BINARY,
-              ResourceFormat.TEXT_PLAIN,
-              ResourceFormat.TEXT_CSV
-            ))
-            throw ServiceErrors.unsupportedFormat(format);
-        
-        return format;
-    }
 
 
     @Override
-    protected BigInteger addEntry(RequestContext ctx, ICommandStatus status) throws DataStoreException
+    protected BigId addEntry(RequestContext ctx, ICommandStatus status) throws DataStoreException
     {
         var dsHandler = ((CommandStatusHandlerContextData)ctx.getData()).dsHandler;
         var id = dsHandler.sendStatus(ctx.getCorrelationID(), status);
-        return idConverter.toPublicID(id);
+        return id;
     }
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return false;
     }

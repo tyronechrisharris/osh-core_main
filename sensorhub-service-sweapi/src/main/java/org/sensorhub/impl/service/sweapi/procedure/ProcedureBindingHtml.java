@@ -15,13 +15,13 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import j2html.tags.DomContent;
 import static j2html.TagCreator.*;
 
@@ -45,7 +45,7 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
         super(ctx, idEncoder, isSummary);
         this.db = db;
         
-        if (ctx.getParentID() != 0L)
+        if (ctx.getParentID() != null)
         {
             // fetch parent system name
             var parentSys = db.getProcedureStore().getCurrentVersion(ctx.getParentID());
@@ -66,7 +66,7 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     @Override
     protected String getResourceUrl(FeatureKey key)
     {
-        var id = Long.toString(encodeID(key.getInternalID()), ResourceBinding.ID_RADIX);
+        var id = encodeID(key.getInternalID());
         var requestUrl = ctx.getRequestUrl();
         //var resourceUrl = isCollection ? requestUrl + "/" + sysId : requestUrl;
         var resourceUrl = isCollection ? ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + id : requestUrl;
@@ -75,7 +75,7 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     
     
     @Override
-    protected DomContent getLinks(long id, String resourceUrl)
+    protected DomContent getLinks(BigId id, String resourceUrl)
     {
         var hasSubSystems = db.getProcedureStore().countMatchingEntries(new ProcedureFilter.Builder()
             .withParents(id)

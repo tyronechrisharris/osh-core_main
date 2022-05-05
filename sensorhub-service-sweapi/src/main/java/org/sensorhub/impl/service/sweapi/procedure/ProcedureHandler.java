@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -22,8 +23,6 @@ import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.impl.service.sweapi.IdConverter;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -39,23 +38,18 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     public static final int EXTERNAL_ID_SEED = 342178536;
     public static final String[] NAMES = { "procedures" };
     
-    final IProcedureDatabase readDb;
-    final IProcedureDatabase writeDb;
     final IEventBus eventBus;
+    final IProcedureDatabase db;
     final ProcedureEventsHandler eventsHandler;
-    final IdConverter idConverter;
+    
     
     public ProcedureHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(((IProcedureDatabase)db.getReadDb()).getProcedureStore(), new IdEncoder(EXTERNAL_ID_SEED), permissions);
-        this.readDb = (IProcedureDatabase)db.getReadDb();
-        this.writeDb = db.getWriteDb() instanceof IProcedureDatabase ? (IProcedureDatabase)db.getWriteDb() : null;
-        if (writeDb == null)
-            readOnly = true;
-        this.idConverter = db.getIdConverter();
+        super(db.getProcedureStore(), db.getIdEncoder(), permissions);
         this.eventBus = eventBus;
+        this.db = db;
         
-        this.eventsHandler = new ProcedureEventsHandler(eventBus, this.readDb, permissions);
+        this.eventsHandler = new ProcedureEventsHandler(eventBus, db, permissions);
         addSubResource(eventsHandler);
     }
 
@@ -67,8 +61,8 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
         {
-            var title = ctx.getParentID() != 0 ? "Components of {}" : "All Procedures";
-            return new ProcedureBindingHtml(ctx, idEncoder, true, title, readDb);
+            var title = ctx.getParentID() != null ? "Components of {}" : "All Procedures";
+            return new ProcedureBindingHtml(ctx, idEncoder, true, title, db);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new ProcedureBindingGeoJson(ctx, idEncoder, forReading);
@@ -82,25 +76,21 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     @Override
     protected FeatureKey addEntry(RequestContext ctx, IProcedureWithDesc res) throws DataStoreException
     {
-        return writeDb.getProcedureStore().add(res);
+        return db.getProcedureStore().add(res);
     }
 
 
     @Override
     protected boolean updateEntry(RequestContext ctx, FeatureKey key, IProcedureWithDesc res) throws DataStoreException
     {
-        var writeID = idConverter.toInternalID(key.getInternalID());
-        var writeKey = new FeatureKey(writeID, key.getValidStartTime());
-        return writeDb.getProcedureStore().computeIfPresent(writeKey, (k,v) -> res) != null;
+        return db.getProcedureStore().computeIfPresent(key, (k,v) -> res) != null;
     }
 
 
     @Override
     protected boolean deleteEntry(RequestContext ctx, FeatureKey key) throws DataStoreException
     {
-        var writeID = idConverter.toInternalID(key.getInternalID());
-        var writeKey = new FeatureKey(writeID, key.getValidStartTime());
-        return writeDb.getProcedureStore().remove(writeKey) != null;
+        return db.getProcedureStore().remove(key) != null;
     }
     
     
@@ -112,7 +102,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     
     
     @Override
-    protected boolean isValidID(long internalID)
+    protected boolean isValidID(BigId internalID)
     {
         return dataStore.contains(internalID);
     }

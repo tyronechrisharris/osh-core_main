@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.system;
 
 import java.io.IOException;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -25,7 +26,6 @@ import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.procedure.SmlFeatureBindingHtml;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import j2html.tags.DomContent;
 import static j2html.TagCreator.*;
 
@@ -49,7 +49,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
         super(ctx, idEncoder, isSummary);
         this.db = db;
         
-        if (ctx.getParentID() != 0L)
+        if (ctx.getParentID() != null)
         {
             // fetch parent system name
             var parentSys = db.getSystemDescStore().getCurrentVersion(ctx.getParentID());
@@ -70,7 +70,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
     @Override
     protected String getResourceUrl(FeatureKey key)
     {
-        var id = Long.toString(encodeID(key.getInternalID()), ResourceBinding.ID_RADIX);
+        var id = encodeID(key.getInternalID());
         var requestUrl = ctx.getRequestUrl();
         //var resourceUrl = isCollection ? requestUrl + "/" + sysId : requestUrl;
         var resourceUrl = isCollection ? ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + id : requestUrl;
@@ -79,7 +79,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
     
     
     @Override
-    protected DomContent getLinks(long id, String resourceUrl)
+    protected DomContent getLinks(BigId id, String resourceUrl)
     {
         var hasSubSystems = db.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
             .withParents(id)

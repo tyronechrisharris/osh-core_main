@@ -17,9 +17,9 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Map;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
@@ -72,7 +72,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected abstract K getKey(final RequestContext ctx, final String id) throws InvalidRequestException;
     protected abstract String encodeKey(final RequestContext ctx, K key);
     protected abstract F getFilter(final ResourceRef parent, final Map<String, String[]> queryParams, long offset, long limit) throws InvalidRequestException;
-    protected abstract boolean isValidID(long internalID);
+    protected abstract boolean isValidID(BigId internalID);
     protected abstract void validate(V resource) throws ResourceParseException;
         
     
@@ -455,7 +455,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             return null;
         
         // decode internal ID for nested resource
-        long internalID = decodeID(ctx, id);
+        var internalID = decodeID(ctx, id);
         
         // check that resource ID valid
         if (!isValidID(internalID))
@@ -475,46 +475,20 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected long decodeID(final RequestContext ctx, final String id) throws InvalidRequestException
+    protected BigId decodeID(final RequestContext ctx, final String id) throws InvalidRequestException
     {
         try
         {
-            long encodedID = Long.parseLong(id, ResourceBinding.ID_RADIX);
-            long decodedID = idEncoder.decodeID(encodedID);
-            
-            // stop here if hash is invalid
-            if (decodedID <= 0)
-                throw ServiceErrors.notFound(id);
-            
-            return decodedID;
+            return idEncoder.decodeID(id);
         }
-        catch (NumberFormatException e)
+        catch (IllegalArgumentException e)
         {
             throw ServiceErrors.badRequest("Invalid resource ID: " + id);
         }
     }
     
     
-    protected BigInteger decodeBigID(final RequestContext ctx, final String id) throws InvalidRequestException
-    {
-        try
-        {
-            var decodedID = new BigInteger(id, ResourceBinding.ID_RADIX);
-            
-            // stop here if hash is invalid
-            if (decodedID.signum() <= 0)
-                throw ServiceErrors.notFound(id);
-            
-            return decodedID;
-        }
-        catch (NumberFormatException e)
-        {
-            throw ServiceErrors.badRequest("Invalid resource ID: " + id);
-        }
-    }
-    
-    
-    protected Collection<Long> parseResourceIds(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
+    protected Collection<BigId> parseResourceIds(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
     {
         return parseResourceIds(paramName, queryParams, this.idEncoder);
     }

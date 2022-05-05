@@ -26,7 +26,6 @@ import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -128,8 +127,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
         
             public String getId()
             {
-                var externalID = SystemBindingGeoJson.this.encodeID(key.getInternalID());
-                return Long.toString(externalID, ResourceBinding.ID_RADIX);
+                return SystemBindingGeoJson.this.encodeID(key.getInternalID());
             }
         };
     }
