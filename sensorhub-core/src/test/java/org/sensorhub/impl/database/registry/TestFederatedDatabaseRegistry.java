@@ -148,10 +148,12 @@ public class TestFederatedDatabaseRegistry
         FeatureKey fk3 = db2.getSystemDescStore().add(new SystemWrapper(proc3));
         
         FeatureKey id1 = federatedDatabase.getSystemDescStore().getCurrentVersionKey("sensor001");
-        assertTrue(fk1.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db1.getDatabaseNum() == id1.getInternalID());
+        assertEquals(fk1, id1);
+        assertTrue(id1.getInternalID().getScope() == db1.getDatabaseNum());
         
         FeatureKey id3 = federatedDatabase.getSystemDescStore().getCurrentVersionKey("sensor003");
-        assertTrue(fk3.getInternalID()*DefaultDatabaseRegistry.MAX_NUM_DB+db2.getDatabaseNum() == id3.getInternalID());
+        assertEquals(fk3, id3);
+        assertTrue(id3.getInternalID().getScope() == db2.getDatabaseNum());
         
         assertEquals(2, federatedDatabase.getSystemDescStore().keySet().size());
     }

@@ -172,6 +172,12 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         for (int i = 0; i < c2.getComponentCount(); i++)
             assertTrue(c2.getComponent(i).getParent() == c2);
     }
+    
+    
+    protected BigId bigId(long id)
+    {
+        return BigId.fromLong(DATABASE_NUM, id);
+    }
 
 
     protected void checkSelectedEntries(Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream, Map<DataStreamKey, IDataStreamInfo> expectedResults, DataStreamFilter filter)
@@ -209,7 +215,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         int numDs = 50;
         for (int i = 1; i <= numDs; i++)
         {
-            var sysID = BigId.fromLong(0, i);
+            var sysID = bigId(i);
             addSimpleDataStream(sysID, "test1", now);
         }
         
@@ -245,7 +251,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         var now = TimeExtent.beginAt(Instant.now());
         for (int i = 1; i < 5; i++)
         {
-            var sysID = BigId.fromLong(0, i);
+            var sysID = bigId(i);
             var k = addSimpleDataStream(sysID, "test1", now);
             idList.add(k.getInternalID());
         }
@@ -295,7 +301,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         int numDs = 56;
         for (int i = numDs; i < numDs*2; i++)
         {
-            var sysID = BigId.fromLong(0, i);
+            var sysID = bigId(i);
             addSimpleDataStream(sysID, "out" + (int)(Math.random()*10), now);
         }
         
@@ -314,7 +320,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         int numDs = 56;
         for (int i = numDs; i < numDs*2; i++)
         {
-            var sysID = BigId.fromLong(0, i);
+            var sysID = bigId(i);
             addSimpleDataStream(sysID, "out" + (int)(Math.random()*10), now);
         }
         
@@ -347,7 +353,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         int numDs = 45;
         for (int i = 1; i <= numDs; i++)
         {
-            var sysID = BigId.fromLong(0, i);
+            var sysID = bigId(i);
             var key = addSimpleDataStream(sysID, "out"+i, now);
             idList.add(key.getInternalID());
         }
@@ -394,7 +400,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
 
         var now = Instant.now();
-        var sysID = BigId.fromLong(0, 10);
+        var sysID = bigId(10);
         var ds1v0 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
         var ds1v1 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
         var ds1v2 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now));
@@ -430,7 +436,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
 
         var now = Instant.now();
-        var sysID = BigId.fromLong(0, 1);
+        var sysID = bigId(1);
         var ds1v0 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
         var ds1v1 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
         var ds1v2 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now));
@@ -468,8 +474,8 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var sysID1 = BigId.fromLong(0, 1);
-        var sysID3 = BigId.fromLong(0, 3);
+        var sysID1 = bigId(1);
+        var sysID3 = bigId(3);
         var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
         var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
         var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.beginAt(now.minus(520, ChronoUnit.DAYS)));
@@ -531,9 +537,9 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var sysID1 = BigId.fromLong(0, 1);
-        var sysID2 = BigId.fromLong(0, 2);
-        var sysID3 = BigId.fromLong(0, 3);
+        var sysID1 = bigId(1);
+        var sysID2 = bigId(2);
+        var sysID3 = bigId(3);
         var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
         var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
         var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
@@ -565,9 +571,9 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var sysID1 = BigId.fromLong(0, 1);
-        var sysID2 = BigId.fromLong(0, 2);
-        var sysID3 = BigId.fromLong(0, 3);
+        var sysID1 = bigId(1);
+        var sysID2 = bigId(2);
+        var sysID3 = bigId(3);
         var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
         var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
         var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
@@ -600,9 +606,9 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         DataStreamFilter filter;
         
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var sysID1 = BigId.fromLong(0, 1);
-        var sysID2 = BigId.fromLong(0, 2);
-        var sysID3 = BigId.fromLong(0, 3);
+        var sysID1 = bigId(1);
+        var sysID2 = bigId(2);
+        var sysID3 = bigId(3);
         var ds1v0 = addSimpleDataStream(sysID1, "out1", "Stationary weather data", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
         var ds1v1 = addSimpleDataStream(sysID1, "out1", "Stationary weather data", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
         var ds2v0 = addSimpleDataStream(sysID1, "out2", "Traffic video stream", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
@@ -680,7 +686,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     public void testErrorAddWithExistingOutput() throws Exception
     {
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        var sysID1 = BigId.fromLong(0, 1);
+        var sysID1 = bigId(1);
         addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now));
         addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now));
     }

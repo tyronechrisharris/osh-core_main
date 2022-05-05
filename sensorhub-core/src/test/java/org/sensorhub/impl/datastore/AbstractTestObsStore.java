@@ -492,13 +492,14 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
             .build();
         checkSelectedEntries(resultStream, expectedResults, filter);
         
-        // selected IDs
+        // invalid IDs
         var ids = BigId.fromLongs(DATABASE_NUM, new long[] {5, 12, 53, 76});
         filter = new ObsFilter.Builder()
             .withInternalIDs(ids)
             .build();
         resultStream = obsStore.selectEntries(filter);
         expectedResults = ImmutableMap.copyOf(Maps.filterKeys(allObs, k -> ids.contains(k)));
+        assertTrue(expectedResults.isEmpty());
         checkSelectedEntries(resultStream, expectedResults, filter);
     }
 
