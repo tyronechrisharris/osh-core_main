@@ -107,6 +107,6 @@ public class BigIdLong implements BigId
     @Override
     public String toString()
     {
-        return String.format("BigId {scope=%d, id=%dL}", scope, id);
+        return String.format("BigId {scope=%d, id='%s'(%dL)}", scope, BASE32_ENCODING.encode(getIdAsBytes()), id);
     }
 }

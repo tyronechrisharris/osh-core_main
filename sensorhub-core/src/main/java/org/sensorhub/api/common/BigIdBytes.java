@@ -17,7 +17,6 @@ package org.sensorhub.api.common;
 import java.util.Arrays;
 import org.sensorhub.utils.VarInt;
 import org.vast.util.Asserts;
-import com.google.common.io.BaseEncoding;
 
 
 public class BigIdBytes implements BigId
@@ -50,15 +49,9 @@ public class BigIdBytes implements BigId
     @Override
     public long getIdAsLong()
     {
-        if (size() > 8)
+        if (size() > 10)
             throw new IllegalArgumentException(NO_LONG_REPRESENTATION);
         return VarInt.getVarLong(id, 0);
-        
-        /*long val = 0;
-        byte[] bytes = getIdAsBytes();
-        for (int i = bytes.length-1, shift = 0; i >= 0; i--, shift += 8)
-            val |= (bytes[i] & 0xFFL) << shift;
-        return val;*/
     }
 
 
@@ -89,7 +82,6 @@ public class BigIdBytes implements BigId
     @Override
     public String toString()
     {
-        return String.format("BigId {scope=%u, id=%s}", scope,
-               BaseEncoding.base32Hex().lowerCase().encode(id));
+        return String.format("BigId {scope=%u, id='%s'}", scope, BASE32_ENCODING.encode(id));
     }
 }

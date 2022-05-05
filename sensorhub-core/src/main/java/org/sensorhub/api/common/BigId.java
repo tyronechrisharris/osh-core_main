@@ -14,10 +14,16 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.common;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import org.sensorhub.utils.VarInt;
+import org.vast.util.Asserts;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.UnsignedBytes;
 
 
@@ -38,7 +44,10 @@ import com.google.common.primitives.UnsignedBytes;
 public interface BigId extends Comparable<BigId>
 {
     public static final BigId NONE = new BigIdZero();
+    public static final String NO_LONG_REPRESENTATION = "ID cannot be represented as a long";
+    
     static final Comparator<byte[]> BYTES_COMPARATOR = UnsignedBytes.lexicographicalComparator();
+    static final BaseEncoding BASE32_ENCODING = BaseEncoding.base32Hex().lowerCase().omitPadding();
     
     
     /**
@@ -60,15 +69,7 @@ public interface BigId extends Comparable<BigId>
      */
     public default long getIdAsLong()
     {
-        if (size() > 8)
-            throw new IllegalArgumentException("ID cannot be represented as a long");
-        
-        long val = 0;
-        byte[] bytes = getIdAsBytes();
-        for (int i = bytes.length-1, shift = 0; i >= 0; i--, shift += 8)
-            val |= (bytes[i] & 0xFFL) << shift;
-        
-        return val;
+        throw new IllegalArgumentException(NO_LONG_REPRESENTATION);
     }
     
     
@@ -194,5 +195,49 @@ public interface BigId extends Comparable<BigId>
         if (comp == 0)
            comp = Long.compare(a.getIdAsLong(), b.getIdAsLong());
         return comp;
+    }
+    
+    
+    /**
+     * Parse a BigId from a base32 encoded string
+     * @param s
+     * @return A BigId instance
+     */
+    public static BigId fromString32(String s)
+    {
+        Asserts.checkNotNull(s, String.class);
+        
+        try
+        {
+            var reader = new StringReader(s);
+            var is = BASE32_ENCODING.decodingStream(reader);
+            var scope = VarInt.getVarInt(is);
+            var id = is.readAllBytes();
+            return BigId.fromBytes(scope, id);
+        }
+        catch (IOException e)
+        {
+            throw new IllegalStateException("Error decoding BigId", e);
+        }
+    }
+    
+    
+    public static String toString32(BigId id)
+    {
+        Asserts.checkNotNull(id, BigId.class);
+        
+        try
+        {
+            var writer = new StringWriter();
+            var os = BASE32_ENCODING.encodingStream(writer);
+            VarInt.putVarInt(id.getScope(), os);
+            os.write(id.getIdAsBytes());
+            os.close();
+            return writer.toString();
+        }
+        catch (IOException e)
+        {
+            throw new IllegalStateException("Error encoding BigId", e);
+        }
     }
 }
