@@ -49,6 +49,7 @@ public abstract class AbstractTestObsDatabase<DbType extends IObsSystemDatabase>
     public void init() throws Exception
     {
         this.obsDb = initDatabase();
+        AbstractTestDataStreamStore.DATABASE_NUM = obsDb.getDatabaseNum();
         
         this.dataStreamTests = new AbstractTestDataStreamStore<IDataStreamStore>() {
             @Override
