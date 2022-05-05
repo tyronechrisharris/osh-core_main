@@ -35,15 +35,13 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
  */
 public abstract class BackwardCompatFieldSerializer<T> extends FieldSerializer<T>
 {
-    Kryo kryo;
-    CachedField[] compatFields;
+    protected CachedField[] compatFields;
     
     
     @SuppressWarnings("rawtypes")
     public BackwardCompatFieldSerializer(Kryo kryo, Class type)
     {
         super(kryo, type);
-        this.kryo = kryo;
     }
     
     

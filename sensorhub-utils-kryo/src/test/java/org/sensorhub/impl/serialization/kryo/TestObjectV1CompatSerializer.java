@@ -49,7 +49,7 @@ public class TestObjectV1CompatSerializer extends BackwardCompatFieldSerializer<
             @Override
             public void read(Input input, Object object)
             {
-                double[] oldField = (double[])kryo.readObject(input, double[].class);
+                double[] oldField = (double[])getKryo().readObject(input, double[].class);
                 var x = (float)oldField[0];
                 var y = (float)oldField[1];
                 ((TestObjectV2)object).att4_new_type = new Point2D.Float(x, y);

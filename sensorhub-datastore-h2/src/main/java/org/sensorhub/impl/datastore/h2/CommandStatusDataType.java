@@ -15,8 +15,13 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
+import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import org.sensorhub.impl.datastore.h2.kryo.v2.CommandStatusSerializerLongIds;
+import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
+import com.esotericsoftware.kryo.Serializer;
+import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -29,11 +34,18 @@ import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
  */
 class CommandStatusDataType extends KryoDataType
 {
-    CommandStatusDataType(MVMap<String, Integer> kryoClassMap)
+    CommandStatusDataType(MVMap<String, Integer> kryoClassMap, int idScope)
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
             // register custom serializers
+            
+            // configure compatibility serializer
+            kryo.addDefaultSerializer(CommandStatus.class, new VersionedSerializer<CommandStatus>(
+                ImmutableMap.<Integer, Serializer<CommandStatus>>builder()
+                    .put(1, new CommandStatusSerializerLongIds(kryo, idScope))
+                    //.put(2, new CommandStatusSerializer(kryo, idScope))
+                    .build(), 1));
         };
     }
 }

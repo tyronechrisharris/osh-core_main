@@ -15,15 +15,20 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import org.sensorhub.impl.datastore.h2.kryo.v2.FeatureIdSerializerLongIds;
+import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
+import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import com.google.common.collect.ImmutableMap;
 import net.opengis.OgcPropertyList;
 
 
 class CommandStreamInfoDataType extends KryoDataType
 {
-    CommandStreamInfoDataType(MVMap<String, Integer> kryoClassMap)
+    CommandStreamInfoDataType(MVMap<String, Integer> kryoClassMap, int idScope)
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
@@ -31,6 +36,13 @@ class CommandStreamInfoDataType extends KryoDataType
             // avoid using collection serializer on OgcPropertyList because
             // the add method doesn't behave as expected
             kryo.addDefaultSerializer(OgcPropertyList.class, FieldSerializer.class);
+            
+            // configure compatibility serializer
+            kryo.addDefaultSerializer(FeatureId.class, new VersionedSerializer<FeatureId>(
+                ImmutableMap.<Integer, Serializer<FeatureId>>builder()
+                    .put(1, new FeatureIdSerializerLongIds(kryo, idScope))
+                    //.put(2, new FeatureIdSerializer(kryo, idScope))
+                    .build(), 1));
         };
     }
 }

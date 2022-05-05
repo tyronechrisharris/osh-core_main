@@ -137,7 +137,7 @@ public class MVCommandStoreImpl implements ICommandStore
         String mapName = dataStoreInfo.getName() + ":" + CMD_RECORDS_MAP_NAME;
         this.cmdRecordsIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVTimeSeriesRecordKey, ICommandData>()
                 .keyType(new MVTimeSeriesRecordKeyDataType(idScope))
-                .valueType(new CommandDataType(kryoClassMap)));
+                .valueType(new CommandDataType(kryoClassMap, idScope)));
         
         // commands series map
         mapName = dataStoreInfo.getName() + ":" + CMD_SERIES_MAP_NAME;
@@ -274,7 +274,9 @@ public class MVCommandStoreImpl implements ICommandStore
         {
             var cmdStream = filter.getInternalIDs().stream()
                 .map(k -> toInternalKey(k))
-                .map(k -> cmdRecordsIndex.getEntry(k));
+                .filter(Objects::nonNull)
+                .map(k -> cmdRecordsIndex.getEntry(k))
+                .filter(Objects::nonNull);
             
             return getPostFilteredResultStream(cmdStream, filter);
         }

@@ -107,7 +107,7 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
         String mapName = cmdStore.getDatastoreName() + ":" + CMD_RECORDS_MAP_NAME;
         this.statusIndex = mvStore.openMap(mapName, new MVBTreeMap.Builder<MVCommandStatusKey, ICommandStatus>()
                 .keyType(new MVCommandStatusKeyDataType(cmdStore.idScope))
-                .valueType(new CommandStatusDataType(kryoClassMap)));
+                .valueType(new CommandStatusDataType(kryoClassMap, idScope)));
     }
 
 
