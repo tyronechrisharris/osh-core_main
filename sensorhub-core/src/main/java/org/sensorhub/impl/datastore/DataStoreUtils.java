@@ -22,6 +22,7 @@ import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
@@ -42,6 +43,7 @@ import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IProcedure;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
+import com.google.common.hash.Hashing;
 
 
 /**
@@ -385,7 +387,60 @@ public class DataStoreUtils
     
     public static Stream<ICommandStreamInfo> selectCommandStreams(ICommandStreamStore cmdStreamStore, CommandStreamFilter filter)
     {
-        Asserts.checkState(cmdStreamStore != null, "No linked command stream store");            
+        Asserts.checkState(cmdStreamStore != null, "No linked command stream store");
         return cmdStreamStore.select(filter);
+    }
+    
+    
+    public static <T extends IFeature> IdProvider<T> getFeatureHashIdProvider(int seed)
+    {
+        var hashFunc = Hashing.murmur3_128(seed);
+        
+        return f -> {
+            // compute hash
+            var hash = hashFunc.hashUnencodedChars(f.getUniqueIdentifier());
+            
+            // We keep only 42-bits so it can fit on a 8-bytes DES encrypted block,
+            // along with the ID scope and using variable length encoding.
+            return hash.asLong() & 0x3FFFFFFFFFFL;
+        };
+    }
+    
+    
+    public static IdProvider<IDataStreamInfo> getDataStreamHashIdProvider(int seed)
+    {
+        var hashFunc = Hashing.murmur3_128(seed);
+        
+        return dsInfo -> {
+            // compute hash
+            var hash = hashFunc.newHasher()
+                .putUnencodedChars(dsInfo.getSystemID().getUniqueID())
+                .putUnencodedChars(dsInfo.getOutputName())
+                .putInt(dsInfo.getValidTime().hashCode())
+                .hash();
+            
+            // We keep only 42-bits so it can fit on a 8-bytes DES encrypted block,
+            // along with the ID scope and using variable length encoding.
+            return hash.asLong() & 0x3FFFFFFFFFFL;
+        };
+    }
+    
+    
+    public static IdProvider<ICommandStreamInfo> getCommandStreamHashIdProvider(int seed)
+    {
+        var hashFunc = Hashing.murmur3_128(seed);
+        
+        return dsInfo -> {
+            // compute hash
+            var hash = hashFunc.newHasher()
+                .putUnencodedChars(dsInfo.getSystemID().getUniqueID())
+                .putUnencodedChars(dsInfo.getControlInputName())
+                .putInt(dsInfo.getValidTime().hashCode())
+                .hash();
+            
+            // We keep only 42-bits so it can fit on a 8-bytes DES encrypted block,
+            // along with the ID scope and using variable length encoding.
+            return hash.asLong() & 0x3FFFFFFFFFFL;
+        };
     }
 }

@@ -39,7 +39,7 @@ public class InMemoryProcedureStore extends InMemoryBaseFeatureStore<IProcedureW
     
     public InMemoryProcedureStore(int idScope)
     {
-        super(idScope, new HashCodeFeatureIdProvider(471489332));
+        super(idScope, DataStoreUtils.getFeatureHashIdProvider(471489332));
     }
     
     

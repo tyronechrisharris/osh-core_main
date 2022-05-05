@@ -39,7 +39,7 @@ public class InMemoryFeatureStore extends InMemoryBaseFeatureStore<IFeature, Fea
     
     public InMemoryFeatureStore(int idScope)
     {
-        super(idScope, new HashCodeFeatureIdProvider(831496768));
+        super(idScope, DataStoreUtils.getFeatureHashIdProvider(831496768));
     }
     
     

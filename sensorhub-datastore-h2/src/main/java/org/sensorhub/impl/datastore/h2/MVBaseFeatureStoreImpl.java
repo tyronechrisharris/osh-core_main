@@ -49,7 +49,6 @@ import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
-import com.google.common.hash.Hashing;
 
 
 /**
@@ -125,11 +124,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         switch (idProviderType)
         {
             case UID_HASH:
-                var hashFunc = Hashing.murmur3_128(212158449);
-                idProvider = f -> {
-                    var hc = hashFunc.hashUnencodedChars(f.getUniqueIdentifier());
-                    return hc.asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
-                };
+                idProvider = DataStoreUtils.getFeatureHashIdProvider(212158449);
                 
             default:
             case SEQUENTIAL:

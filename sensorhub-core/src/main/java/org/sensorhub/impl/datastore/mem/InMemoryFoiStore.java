@@ -49,7 +49,7 @@ public class InMemoryFoiStore extends InMemoryBaseFeatureStore<IFeature, FoiFiel
     
     public InMemoryFoiStore(int idScope)
     {
-        super(idScope, new HashCodeFeatureIdProvider(806335237));
+        super(idScope, DataStoreUtils.getFeatureHashIdProvider(806335237));
     }
     
     

@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
@@ -56,6 +57,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     final NavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
     final NavigableMap<BigId, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
     final InMemoryObsStore obsStore;
+    final IdProvider<IDataStreamInfo> idProvider;
     ISystemDescStore systemStore;
     
     
@@ -102,6 +104,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     public InMemoryDataStreamStore(InMemoryObsStore obsStore)
     {
         this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);
+        this.idProvider = DataStoreUtils.getDataStreamHashIdProvider(451255888);
     }
     
     
@@ -129,11 +132,8 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         
         // make sure that the same system/output combination always returns the same ID
         // this will keep things more consistent across restart
-        var hash = Objects.hash(
-            dsInfo.getSystemID().getInternalID(),
-            dsInfo.getOutputName(),
-            dsInfo.getValidTime());
-        return new DataStreamKey(obsStore.idScope, hash & 0xFFFFFFFFL);
+        var hash = idProvider.newInternalID(dsInfo);
+        return new DataStreamKey(obsStore.idScope, hash);
     }
 
 

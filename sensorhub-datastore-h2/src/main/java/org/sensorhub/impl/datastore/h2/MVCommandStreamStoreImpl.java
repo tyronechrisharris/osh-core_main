@@ -43,7 +43,6 @@ import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.sensorhub.impl.datastore.h2.index.FullTextIndex;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
-import com.google.common.hash.Hashing;
 
 
 /**
@@ -160,14 +159,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         switch (idProviderType)
         {
             case UID_HASH:
-                var hashFunc = Hashing.murmur3_128(741532149);
-                idProvider = dsInfo -> {
-                    var hasher = hashFunc.newHasher();
-                    hasher.putLong(dsInfo.getSystemID().getInternalID().getIdAsLong());
-                    hasher.putUnencodedChars(dsInfo.getControlInputName());
-                    hasher.putLong(dsInfo.getValidTime().begin().toEpochMilli());
-                    return hasher.hash().asLong() & 0xFFFFFFFFFFFFL; // keep only 48 bits
-                };
+                idProvider = DataStoreUtils.getCommandStreamHashIdProvider(784122258);
                 
             default:
             case SEQUENTIAL:

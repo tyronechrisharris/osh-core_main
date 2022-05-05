@@ -46,7 +46,7 @@ public class InMemorySystemStore extends InMemoryBaseFeatureStore<ISystemWithDes
     
     public InMemorySystemStore(int idScope)
     {
-        super(idScope, new HashCodeFeatureIdProvider(1353704900));
+        super(idScope, DataStoreUtils.getFeatureHashIdProvider(1353704900));
     }
     
     

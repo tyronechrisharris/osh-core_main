@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.IdProvider;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
@@ -56,6 +57,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
     final NavigableMap<CommandStreamKey, ICommandStreamInfo> map = new ConcurrentSkipListMap<>();
     final NavigableMap<BigId, Set<CommandStreamKey>> procIdToCsKeys = new ConcurrentSkipListMap<>();
     final InMemoryCommandStore cmdStore;
+    final IdProvider<ICommandStreamInfo> idProvider;
     ISystemDescStore systemStore;
     
     
@@ -133,6 +135,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
     public InMemoryCommandStreamStore(InMemoryCommandStore cmdStore)
     {
         this.cmdStore = Asserts.checkNotNull(cmdStore, ICommandStore.class);
+        this.idProvider = DataStoreUtils.getCommandStreamHashIdProvider(236214785);
     }
     
     
@@ -160,11 +163,8 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
         
         // make sure that the same system/output combination always returns the same ID
         // this will keep things more consistent across restart
-        var hash = Objects.hash(
-            csInfo.getSystemID().getInternalID(),
-            csInfo.getControlInputName(),
-            csInfo.getValidTime());
-        return new CommandStreamKey(cmdStore.idScope, hash & 0xFFFFFFFFL);
+        var hash = idProvider.newInternalID(csInfo);
+        return new CommandStreamKey(cmdStore.idScope, hash);
     }
 
 
