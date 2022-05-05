@@ -465,6 +465,8 @@ public class MVObsStoreImpl implements IObsStore
                 .flatMap(dsID -> {
                     return getObsSeriesByDataStream(dsID.getIdAsLong(), timeParams.resultTimeRange, timeParams.latestResultOnly)
                         .filter(s -> {
+                            if (s.key.foiID == 0) // skip if no FOI
+                                return false;
                             var timeRange = getObsSeriesPhenomenonTimeRange(s.id);
                             return timeRange != null && timeRange.isConnected(timeParams.phenomenonTimeRange);
                         })
