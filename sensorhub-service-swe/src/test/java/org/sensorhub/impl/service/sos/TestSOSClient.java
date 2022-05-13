@@ -22,12 +22,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.impl.client.sos.SOSClient;
-import org.sensorhub.impl.client.sos.SOSClient.SOSRecordListener;
+import org.sensorhub.impl.client.sos.SOSClient.StreamingListener;
+import org.sensorhub.impl.client.sos.SOSClient.StreamingStopReason;
 import org.vast.ows.sos.GetResultRequest;
 import org.vast.util.TimeExtent;
 
 
-public class TestSOSClient implements SOSRecordListener
+public class TestSOSClient implements StreamingListener
 {
     TestSOSService sosTest;
     int recordCounter = 0;
@@ -90,11 +91,16 @@ public class TestSOSClient implements SOSRecordListener
     
     
     @Override
-    public void newRecord(DataBlock data)
+    public void recordReceived(DataBlock data)
     {
         System.out.println("Record received: " + data);
         recordCounter++;
-    }    
+    }
+    
+    @Override
+    public void stopped(StreamingStopReason reason, Throwable cause) {
+    	System.out.println("SOS Client stopped");
+    }
     
    
     @After

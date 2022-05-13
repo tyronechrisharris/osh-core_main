@@ -22,7 +22,8 @@ import net.opengis.swe.v20.DataEncoding;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.impl.client.sos.SOSClient;
-import org.sensorhub.impl.client.sos.SOSClient.SOSRecordListener;
+import org.sensorhub.impl.client.sos.SOSClient.StreamingListener;
+import org.sensorhub.impl.client.sos.SOSClient.StreamingStopReason;
 import org.sensorhub.impl.sensor.VarRateSensorOutput;
 import org.vast.util.Asserts;
 
@@ -76,12 +77,21 @@ public class SWEVirtualSensorOutput extends VarRateSensorOutput<SWEVirtualSensor
     
     public void start() throws SensorHubException
     {
-        sosClient.startStream(new SOSRecordListener() {
+        sosClient.startStream(new StreamingListener() {
             @Override
-            public void newRecord(DataBlock data)
-            {
+            public void recordReceived(DataBlock data) {
                 publishNewRecord(data);
             }
+
+			@Override
+			public void stopped(StreamingStopReason reason, Throwable cause) {
+				try {
+					log.info("Stopping sensor due to output failure: {}", reason);
+					parentSensor.stop();
+				} catch (Exception e) {
+					log.error("Unable to stop sensor");
+				}
+			}
         });
     }
     
