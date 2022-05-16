@@ -121,9 +121,13 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
         
         // select binding depending on format
         // use a custom format if auto-detected or available for selected mime type
-        var binding = getCustomFormatBinding(ctx, contextData.dsInfo);
-        if (binding != null)
-            return binding;
+        // do this only if data from single datastream is requested
+        if (contextData.dsInfo != null)
+        {
+            var binding = getCustomFormatBinding(ctx, contextData.dsInfo);
+            if (binding != null)
+                return binding;
+        }
         
         // otherwise use standard formats
         // default to OM JSON
