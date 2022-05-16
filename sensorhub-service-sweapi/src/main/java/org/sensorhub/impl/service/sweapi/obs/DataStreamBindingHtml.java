@@ -157,7 +157,8 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
                 iff(isCollection,
                     a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES)
                 ),
-                a("Schema").withHref(resourceUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES)
+                a("Schema").withHref(resourceUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
+                a("Observations").withHref(resourceUrl + "/observations").withClasses(CSS_LINK_BTN_CLASSES)
             ).withClass("mt-4"));
     }
     

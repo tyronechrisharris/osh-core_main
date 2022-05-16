@@ -142,7 +142,9 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
                 iff(isCollection,
                     a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES)
                 ),
-                a("Schema").withHref(resourceUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES)
+                a("Schema").withHref(resourceUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
+                a("Commands").withHref(resourceUrl + "/commands").withClasses(CSS_LINK_BTN_CLASSES),
+                a("Status").withHref(resourceUrl + "/status").withClasses(CSS_LINK_BTN_CLASSES)
             ).withClass("mt-4"));
     }
     
