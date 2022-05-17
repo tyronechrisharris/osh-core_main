@@ -111,14 +111,21 @@ public class SystemTransactionHandler
         checkParent();
         
         var validTime = system.getFullDescription().getValidTime();
-        if (validTime == null || sysKey.getValidStartTime().isBefore(validTime.begin()))
+        if (validTime == null)
         {
-            sysKey = getSystemDescStore().add(system);
-            publishSystemEvent(new SystemChangedEvent(sysUID));
+            if (sysKey.getValidStartTime().equals(FeatureKey.TIMELESS))
+                getSystemDescStore().put(sysKey, system);
+            else
+                throw new DataStoreException("A previous version of this system description had a valid time");
         }
         else if (sysKey.getValidStartTime().equals(validTime.begin()))
         {
             getSystemDescStore().put(sysKey, system);
+        }
+        else if (sysKey.getValidStartTime().isBefore(validTime.begin()))
+        {
+            sysKey = getSystemDescStore().add(system);
+            publishSystemEvent(new SystemChangedEvent(sysUID));
         }
         else
             throw new DataStoreException("A version of the system description with a more recent valid time already exists");
