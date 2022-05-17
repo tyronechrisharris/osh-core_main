@@ -25,6 +25,10 @@ import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.api.system.SystemAddedEvent;
 import org.sensorhub.api.utils.OshAsserts;
+import org.sensorhub.impl.datastore.DataStoreUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -43,6 +47,8 @@ import com.google.common.cache.LoadingCache;
  */
 public class SystemDatabaseTransactionHandler
 {
+    static final Logger log = LoggerFactory.getLogger(SystemDatabaseTransactionHandler.class);
+    
     final protected IEventBus eventBus;
     final protected IObsSystemDatabase db;
     
@@ -71,6 +77,7 @@ public class SystemDatabaseTransactionHandler
         // add system to store
         var systemKey = db.getSystemDescStore().add(system);
         var sysUID = system.getUniqueIdentifier();
+        log.debug("Added System {}", sysUID);
         
         // create new system handler
         var sysHandler = createSystemHandler(systemKey, sysUID);
@@ -94,6 +101,7 @@ public class SystemDatabaseTransactionHandler
         
         var systemHandler = getSystemHandler(system.getUniqueIdentifier());
         systemHandler.update(system);
+        log.debug("Updated System {}", system.getUniqueIdentifier());
         
         return systemHandler;
     }
@@ -120,6 +128,52 @@ public class SystemDatabaseTransactionHandler
         }
         else
             return addSystem(system);
+    }
+    
+    
+    /**
+     * Add or update a feature of interest that is not associated to a particular system
+     * @param parentId Internal ID of parent, or null if no parent. 
+     * @param foi New feature description
+     * @return The key of the newly created feature
+     * @throws DataStoreException
+     */
+    public synchronized FeatureKey addOrUpdateFoi(BigId parentId, IFeature foi) throws DataStoreException
+    {
+        DataStoreUtils.checkFeatureObject(foi);
+        
+        var uid = foi.getUniqueIdentifier();
+        //boolean isNew;
+        
+        FeatureKey fk = db.getFoiStore().getCurrentVersionKey(uid);
+        
+        // store feature description if none was found
+        if (fk == null)
+        {
+            fk = db.getFoiStore().add(parentId, foi);
+            //isNew = true;
+            log.debug("Added FOI {}", foi.getUniqueIdentifier());
+        }
+        
+        // otherwise add it only if its newer than the one already in storage
+        // otherwise update existing one
+        else
+        {
+            if (foi.getValidTime() != null && fk.getValidStartTime().isBefore(foi.getValidTime().begin()))
+            {
+                fk = db.getFoiStore().add(parentId, foi);
+                //isNew = true;
+                log.debug("Added FOI {}", foi.getUniqueIdentifier());
+            }
+            else
+            {
+                db.getFoiStore().put(fk, foi);
+                //isNew = false;
+                log.debug("Updated FOI {}", foi.getUniqueIdentifier());
+            }
+        }
+        
+        return fk;
     }
     
     
