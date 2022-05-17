@@ -132,7 +132,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                     if (featuresIndex.isEmpty())
                         return 1;
                     else
-                        return featuresIndex.lastKey().getInternalID().getIdAsLong()+1;
+                        return idsIndex.lastKey().getInternalID().getIdAsLong()+1;
                 };
         }
         
