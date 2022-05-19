@@ -41,6 +41,7 @@ import net.opengis.swe.v20.Vector;
 
 public class SWECommonUtils
 {
+    public static final String NO_NAME = "noname";
     
     public static final Set<String> OM_COMPONENTS_DEF = ImmutableSet.of(
         SWEConstants.DEF_PHENOMENON_TIME,

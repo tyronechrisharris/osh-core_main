@@ -49,13 +49,22 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     protected ResourceBinding<CommandStreamKey, ICommandStreamInfo> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
+        if (!format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
+            throw ServiceErrors.unsupportedFormat(format);
+        
+        // generate proper schema depending on command format
+        var cmdFormat = parseFormat("commandFormat", ctx.getParameterMap());
+        if (cmdFormat == null)
+            cmdFormat = ResourceFormat.JSON;
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
             return new CommandStreamBindingHtml(ctx, idEncoder);
-        else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
+        else if (cmdFormat.equals(ResourceFormat.JSON))
             return new CommandStreamSchemaBindingJson(ctx, idEncoder, forReading);
+        else if (cmdFormat.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
+            return new CommandStreamSchemaBindingSweCommon(cmdFormat, ctx, idEncoder, forReading);
         else
-            throw ServiceErrors.unsupportedFormat(format);
+            throw ServiceErrors.unsupportedFormat(cmdFormat);
     }
     
     

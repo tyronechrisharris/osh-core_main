@@ -201,7 +201,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
         sweWriter.setDataComponents(dsInfo.getRecordStructure());
         
         // filter out time component since it's already included in O&M
-        sweWriter.setDataComponentFilter(getTimeStampFilter());        
+        sweWriter.setDataComponentFilter(getTimeStampFilter());
         return sweWriter;
     }
     
@@ -230,7 +230,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
                     return false;
                 else
                     return true;
-            }            
+            }
         };
     }
     

@@ -42,8 +42,6 @@ import com.google.gson.stream.JsonWriter;
 
 public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
 {
-    static final String NO_NAME = "noname";
-    
     final String rootURL;
     final SWEStaxBindings sweBindings;
     final Map<String, CustomObsFormat> customFormats;

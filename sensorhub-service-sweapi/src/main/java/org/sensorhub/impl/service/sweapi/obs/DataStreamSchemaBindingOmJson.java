@@ -23,6 +23,7 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
@@ -93,7 +94,7 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
                 {
                     sweReader.nextTag();
                     resultStruct = sweBindings.readDataComponent(sweReader);
-                    resultStruct.setName(DataStreamBindingJson.NO_NAME);
+                    resultStruct.setName(SWECommonUtils.NO_NAME);
                 }
                 else
                     reader.skipValue();
@@ -111,7 +112,7 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
         
         
         var dsInfo = new DataStreamInfo.Builder()
-            .withName(DataStreamBindingJson.NO_NAME) // name will be set later
+            .withName(SWECommonUtils.NO_NAME) // name will be set later
             .withSystem(SystemId.NO_SYSTEM_ID) // System ID will be set later
             .withRecordDescription(resultStruct)
             .withRecordEncoding(new TextEncodingImpl())

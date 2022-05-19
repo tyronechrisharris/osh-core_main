@@ -36,33 +36,36 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataEncoding;
 
 
-public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
+public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
 {
     String rootURL;
+    ResourceFormat cmdFormat;
     SWEStaxBindings sweBindings;
     SWEJsonStreamReader sweReader;
     SWEJsonStreamWriter sweWriter;
     
     
-    CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
     {
         super(ctx, idEncoder, forReading);
-        init(ctx, forReading);
+        init(cmdFormat, ctx, forReading);
     }
     
     
-    CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
+    CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
     {
         super(ctx, idEncoder, reader);
-        init(ctx, true);
+        init(cmdFormat, ctx, true);
     }
     
     
-    void init(RequestContext ctx, boolean forReading)
+    void init(ResourceFormat cmdFormat, RequestContext ctx, boolean forReading)
     {
         this.rootURL = ctx.getApiRootURL();
+        this.cmdFormat = cmdFormat;
         this.sweBindings = new SWEStaxBindings();
         
         if (forReading)
@@ -76,11 +79,12 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     public ICommandStreamInfo deserialize(JsonReader reader) throws IOException
     {
         DataComponent paramStruct = null;
+        DataEncoding paramEncoding = new TextEncodingImpl();
         
         try
         {
             // read BEGIN_OBJECT only if not already read by caller
-            // this happens when reading embedded schema and auto-detecting command format
+            // this happens when reading embedded schema and auto-detecting obs format
             if (reader.peek() == JsonToken.BEGIN_OBJECT)
                 reader.beginObject();
             
@@ -88,11 +92,15 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
             {
                 var prop = reader.nextName();
                 
-                if ("paramSchema".equals(prop))
+                if ("recordSchema".equals(prop))
                 {
                     sweReader.nextTag();
                     paramStruct = sweBindings.readDataComponent(sweReader);
-                    paramStruct.setName(SWECommonUtils.NO_NAME);
+                }
+                else if ("recordEncoding".equals(prop))
+                {
+                    sweReader.nextTag();
+                    paramEncoding = sweBindings.readAbstractEncoding(sweReader);
                 }
                 else
                     reader.skipValue();
@@ -112,7 +120,7 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
             .withName(SWECommonUtils.NO_NAME) // name will be set later
             .withSystem(SystemId.NO_SYSTEM_ID) // System ID will be set later
             .withRecordDescription(paramStruct)
-            .withRecordEncoding(new TextEncodingImpl())
+            .withRecordEncoding(paramEncoding)
             .build();
         
         return csInfo;
@@ -125,18 +133,21 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
         writer.beginObject();
         
         writer.name("control@id").value(encodeID(key.getInternalID()));
-        writer.name("commandFormat").value(ResourceFormat.JSON.toString());
         
         // result structure & encoding
         try
         {
-            writer.name("paramSchema");
+            writer.name("commandSchema");
             sweWriter.resetContext();
             sweBindings.writeDataComponent(sweWriter, dsInfo.getRecordStructure(), false);
+            
+            writer.name("commandEncoding");
+            sweWriter.resetContext();
+            sweBindings.writeAbstractEncoding(sweWriter, dsInfo.getRecordEncoding());
         }
         catch (Exception e)
         {
-            throw new IOException("Error writing command structure", e);
+            throw new IOException("Error writing SWE Common command structure", e);
         }
         
         writer.endObject();

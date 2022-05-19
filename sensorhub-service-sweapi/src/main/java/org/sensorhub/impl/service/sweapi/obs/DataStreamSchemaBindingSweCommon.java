@@ -118,7 +118,7 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
         }
         
         var dsInfo = new DataStreamInfo.Builder()
-            .withName("noname") // name will be set later
+            .withName(SWECommonUtils.NO_NAME) // name will be set later
             .withSystem(SystemId.NO_SYSTEM_ID) // System ID will be set later
             .withRecordDescription(resultStruct)
             .withRecordEncoding(resultEncoding)
