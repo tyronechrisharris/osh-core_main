@@ -52,8 +52,6 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
 
 
 public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, CommandFilter, ICommandStore>
@@ -196,7 +194,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
     
     protected void startRealTimeStream(final RequestContext ctx, final BigId dsID, final CommandFilter filter, final ResourceBinding<BigId, ICommandData> binding)
     {
-        // prepare lazy loaded map of FOI UID to full FeatureId
+        /*// prepare lazy loaded map of FOI UID to full FeatureId
         var foiIdCache = CacheBuilder.newBuilder()
             .maximumSize(100)
             .expireAfterAccess(1, TimeUnit.MINUTES)
@@ -207,7 +205,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
                     var fk = db.getFoiStore().getCurrentVersionKey(uid);
                     return fk.getInternalID();
                 }
-            });
+            });*/
         
         // init event to obs converter
         var dsInfo = ((CommandHandlerContextData)ctx.getData()).dsInfo;
@@ -356,7 +354,15 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
             var dsHandler = ((CommandHandlerContextData)ctx.getData()).dsHandler;
             ICommandStatus status = dsHandler.submitCommand(corrID, cmd)
                 .get(10, TimeUnit.SECONDS);
+            
+            if (status.getStatusCode() == CommandStatusCode.REJECTED)
+                throw new DataStoreException("Command rejected: " + status.getMessage());
+            
             return status.getCommandID();
+        }
+        catch (DataStoreException e)
+        {
+            throw e;
         }
         catch (TimeoutException e)
         {
