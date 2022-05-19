@@ -14,6 +14,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.utils;
 
+import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -52,7 +53,7 @@ public class Lambdas
     
     
     /**
-     * Return a {@link Runnable} that catches all checked exceptions
+     * Returns a {@link Runnable} that catches all checked exceptions
      * and wraps them inside of an unchecked {@link CallbackException}
      * @param r The checked runnable that can throw an exception
      * @return A regular {@link Runnable}
@@ -66,14 +67,14 @@ public class Lambdas
             }
             catch (Exception e)
             {
-                throw new CallbackException(e);
+                throw wrap(e);
             }
         };
     }
     
     
     /**
-     * Return a {@link Consumer} that catches all checked exceptions
+     * Returns a {@link Consumer} that catches all checked exceptions
      * and wraps them inside of an unchecked {@link CallbackException}
      * @param c The checked consumer that can throw an exception
      * @return A regular {@link Consumer}
@@ -87,14 +88,14 @@ public class Lambdas
             }
             catch (Exception e)
             {
-                throw new CallbackException(e);
+                throw wrap(e);
             }
         };
     }
     
     
     /**
-     * Return a {@link Function} that catches all checked exceptions
+     * Returns a {@link Function} that catches all checked exceptions
      * and wraps them inside of an unchecked {@link CallbackException}
      * @param f The checked function that can throw an exception
      * @return A regular {@link Function}
@@ -108,8 +109,51 @@ public class Lambdas
             }
             catch (Exception e)
             {
-                throw new CallbackException(e);
+                throw wrap(e);
             }
         };
+    }
+    
+    
+    /**
+     * Wraps a checked exception with a runtime exception so it can be thrown
+     * inside lambda expressions or other callbacks.
+     * @param e A throwable of any kind
+     * @return The original exception as-is if it was a runtime exception,
+     * or wrapped in a {@link CallbackException} otherwise.
+     */
+    public static RuntimeException wrap(Throwable e)
+    {
+        if (e instanceof RuntimeException)
+            return (RuntimeException)e;
+        else
+            return new CallbackException(e);
+    }
+    
+    
+    /**
+     * Always wraps the provided throwable with a {@link CallbackException}
+     * @param e A throwable of any kind
+     * @return The {@link CallbackException}
+     */
+    public static RuntimeException wrapAll(Throwable e)
+    {
+        return new CallbackException(e);
+    }
+    
+    
+    /**
+     * Converts a {@link CallbackException} or {@link CompletionException}
+     * into the original wrapped exception
+     * @param e A throwable of any kind
+     * @return The wrapped exception if e is either a {@link CallbackException}
+     * or {@link CompletionException}, or return as-is otherwise.
+     */
+    public static Throwable unwrap(Exception e)
+    {
+        if (e instanceof CompletionException || e instanceof CallbackException)
+            return e.getCause();
+        else
+            return e;
     }
 }

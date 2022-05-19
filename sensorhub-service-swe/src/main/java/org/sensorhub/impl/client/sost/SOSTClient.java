@@ -56,7 +56,7 @@ import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.RobustConnection;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.utils.SerialExecutor;
-import org.sensorhub.utils.CallbackException;
+import org.sensorhub.utils.Lambdas;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IObservation;
@@ -357,26 +357,16 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             
             var addedStreams = new ArrayList<StreamInfo>();
             dataBaseView.getDataStreamStore().selectEntries(dsFilter)
-               .forEach(e -> {
+               .forEach(Lambdas.checked(e -> {
                    var dsId = e.getKey().getInternalID();
                    var dsInfo = e.getValue();
-                   try
-                   {
-                       var streamInfo = registerDataStream(dsId, dsInfo);
-                       addedStreams.add(streamInfo);
-                   }
-                   catch (Exception ex)
-                   {
-                       throw new CallbackException(ex);
-                   }
-               });
+                   var streamInfo = registerDataStream(dsId, dsInfo);
+                   addedStreams.add(streamInfo);
+               }));
             
             // start all streams
             for (var streamInfo: addedStreams)
-            {
-                try { startStream(streamInfo); }
-                catch (Exception e) { throw new CallbackException(e); }
-            }
+                startStream(streamInfo);
         }
         catch (ClientException e)
         {
