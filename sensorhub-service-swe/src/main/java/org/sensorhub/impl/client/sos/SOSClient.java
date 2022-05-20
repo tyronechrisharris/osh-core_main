@@ -97,6 +97,8 @@ public class SOSClient
      * The maximum number of times that we should attempt to reconnect to the remote server when streaming observations
      * and the connection fails. If the value is negative, then there is no limit to the number of reconnect attempts.
      * If the value is zero, do not attempt to reconnect at all.
+     * 
+     * Note that authentication/authorization failures result in an immediate stop rather than a retry.
      */
     int maxStreamingRetryAttempts = -1;
     
@@ -116,7 +118,14 @@ public class SOSClient
      * Interface to be implemented by callers that want to receive streaming observation records.
      */
     public interface StreamingListener {
+    	/**
+    	 * Invoked when a new data block has been received from the server. This will be called in a background thread.
+    	 */
         public void recordReceived(DataBlock data);
+        
+        /**
+         * Invoked when streaming has stopped.
+         */
         public void stopped(StreamingStopReason reason, Throwable cause);
     }
     
@@ -367,10 +376,24 @@ public class SOSClient
     		try {
 	            log.debug("Initiating GetRecord request");
 	            grRequest.setConnectTimeOut(60000);
+	            // The next line will block until the first bytes come back from the server, or the timeout expires.
 	            HttpURLConnection conn = sosUtils.sendGetRequest(grRequest);
-	            InputStream is = new BufferedInputStream(conn.getInputStream());
-	            parser.setInput(is);
-	            connectionSucceeded = true;
+	            
+	            // Some types of errors end up falling through the sendGetRequest call above. For example, any
+	            // errors that return HTML, such as 401 and 403 errors. This happens because sendGetRequest calls
+	            // tryParseExceptions, which won't find any error text at the right XPaths. So for any non-200 responses
+	            // that fall through here, we can go ahead and let the user know (so that the SWEVirtualSensor can stop
+	            // itself, for example).
+	            int responseCode = conn.getResponseCode();
+	            if ((responseCode / 100) != 2) {
+	            	// Interrupt ourselves so that the "if (Thread.interrupted())" below will get out.
+	            	listener.stopped(StreamingStopReason.EXCEPTION, new IOException("Server returned " + responseCode + " response code."));
+	            	Thread.currentThread().interrupt();
+	            } else {
+		            InputStream is = new BufferedInputStream(conn.getInputStream());
+		            parser.setInput(is);
+		            connectionSucceeded = true;
+	            }
     		} catch (Exception e) {
     			lastException = e;
     			log.error("Uncaught exception attempting to establish a connection for GetRecord request", e);
