@@ -27,8 +27,11 @@ import java.util.Collection;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.eclipse.jetty.client.util.BasicAuthentication;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.UpgradeException;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -598,7 +601,18 @@ public class SOSClient
         @Override
         public void onWebSocketError(Throwable cause) {
             log.error("Error connecting to websocket", cause);
-            if (streamingStarted) {
+            boolean needRestart = true;
+
+            if (cause instanceof UpgradeException) {
+            	UpgradeException upgradeException = (UpgradeException) cause;
+            	int responseCode = upgradeException.getResponseStatusCode();
+            	if ((responseCode == HttpServletResponse.SC_UNAUTHORIZED) || (responseCode == HttpServletResponse.SC_FORBIDDEN)) {
+            		needRestart = false;
+                	listener.stopped(StreamingStopReason.EXCEPTION, new IOException("Server returned " + responseCode + " response code."));
+            	}
+            }
+            
+            if (streamingStarted && needRestart) {
             	scheduleWebSocketReconnect(parser, listener);
             }
         }            
