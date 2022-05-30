@@ -23,7 +23,7 @@ import net.opengis.gml.v32.AbstractGeometry;
 
 /**
  * <p>
- * Utility class for wrapping a feature and overidding some of its behavior
+ * Utility class for wrapping a feature and overriding some of its behavior
  * </p>
  *
  * @author Alex Robin
@@ -81,5 +81,26 @@ public class FeatureWrapper implements IFeature
     public TimeExtent getValidTime()
     {
         return f.getValidTime();
+    }
+
+
+    @Override
+    public String getType()
+    {
+        return f.getType();
+    }
+
+
+    @Override
+    public boolean hasCustomGeomProperty()
+    {
+        return f.hasCustomGeomProperty();
+    }
+
+
+    @Override
+    public boolean hasCustomTimeProperty()
+    {
+        return f.hasCustomTimeProperty();
     }
 }

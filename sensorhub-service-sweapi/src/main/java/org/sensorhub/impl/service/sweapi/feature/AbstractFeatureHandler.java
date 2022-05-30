@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.feature;
 import java.time.Instant;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
@@ -24,6 +25,7 @@ import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBu
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
+import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.vast.ogc.gml.IFeature;
@@ -89,5 +91,19 @@ public abstract class AbstractFeatureHandler<
                 .build())
             .findFirst()
             .orElse(null);
+    }
+    
+    
+    @Override
+    protected FeatureKey addEntry(final RequestContext ctx, final V f) throws DataStoreException
+    {        
+        return dataStore.add(f);
+    }
+    
+    
+    @Override
+    protected boolean deleteEntry(final RequestContext ctx, final FeatureKey key) throws DataStoreException
+    {
+        return dataStore.remove(key) != null;
     }
 }

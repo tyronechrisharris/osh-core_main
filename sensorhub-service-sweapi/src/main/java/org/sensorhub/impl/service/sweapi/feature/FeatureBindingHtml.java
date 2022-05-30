@@ -22,9 +22,15 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
+import org.vast.ogc.gml.GMLUtils;
+import org.vast.ogc.gml.GenericTemporalFeatureImpl;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.xlink.IXlinkReference;
 import j2html.tags.DomContent;
+import j2html.tags.Tag;
+import j2html.tags.UnescapedText;
+import net.opengis.gml.v32.AbstractGeometry;
+import net.opengis.gml.v32.AbstractTimeGeometricPrimitive;
 import net.opengis.gml.v32.Measure;
 import static j2html.TagCreator.*;
 
@@ -118,7 +124,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
             ).withClass("mt-2"),
             iff(f.getType() != null, div(
                 span("Feature Type: ").withClass(CSS_BOLD),
-                span(getFeatureTypeSuffix(f.getType()))
+                span(getFeatureTypeSuffix(f.getType())).withTitle(f.getType())
             )),
             div(
                 span("Validity Period: ").withClass(CSS_BOLD),
@@ -133,7 +139,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
                 span("Properties: ").withClass(CSS_BOLD),
                 div(
                     each(f.getProperties().entrySet(), prop ->
-                        getPropertyHtml(prop))
+                        getPropertyHtml(f, prop))
                     ).withClass("ps-4")
             ).withClass("mt-2"),
             p(
@@ -165,17 +171,52 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
     }
     
     
-    DomContent getPropertyHtml(Entry<QName, Object> prop)
+    DomContent getPropertyHtml(IFeature f, Entry<QName, Object> prop)
     {
         var propName = prop.getKey().getLocalPart();
-        if ("type".equals(propName) || "shape".equals(propName))
-            return null;
+        var val = prop.getValue();
+        
+        Tag<?> valueTag;
+        if (val instanceof Boolean)
+        {
+            valueTag = span(val.toString());
+        }
+        else if (val instanceof Number)
+        {
+            valueTag = span(val.toString());
+        }
+        else if (val instanceof String && !val.equals(f.getType()))
+        {
+            valueTag = span(val.toString());
+        }
+        else if (val instanceof IXlinkReference)
+        {
+            var ref = (IXlinkReference<?>) val;
+            valueTag = span(ref.getHref() != null ? ref.getHref() : "Unspecified");
+        }
+        else if (val instanceof Measure)
+        {
+            var m = (Measure)val;
+            valueTag = span(m.getValue() + (m.getUom() != null ? " " + m.getUom() : ""));
+        }
+        else if (val instanceof AbstractGeometry && val != f.getGeometry())
+        {
+            valueTag = span(val.toString());
+        }
+        else if (val instanceof AbstractTimeGeometricPrimitive &&
+            !GenericTemporalFeatureImpl.PROP_VALID_TIME.getLocalPart().equals(propName))
+        {
+            var te = GMLUtils.timePrimitiveToTimeExtent((AbstractTimeGeometricPrimitive)val);
+            valueTag = getTimeExtentHtml(te, "NA");
+        }
+        else
+            return new UnescapedText("");
             
         return div(
             span(getPrettyName(propName) + ": ")
                 .attr("title", prop.getKey())
                 .withClass(CSS_BOLD),
-            span(getPropertyValue(prop.getValue()))
+            valueTag
         ).withClass(CSS_CARD_TEXT);
     }
     
@@ -201,22 +242,5 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
         }
         
         return buf.toString();
-    }
-    
-    
-    String getPropertyValue(Object val)
-    {
-        if (val instanceof IXlinkReference)
-        {
-            var ref = (IXlinkReference<?>) val;
-            return ref.getHref() != null ? ref.getHref() : "Unspecified";
-        }
-        else if (val instanceof Measure)
-        {
-            var m = (Measure)val;
-            return m.getValue() + (m.getUom() != null ? " " + m.getUom() : "");
-        }
-        else
-            return val.toString();
     }
 }
