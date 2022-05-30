@@ -15,6 +15,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.obs;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -147,19 +149,30 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
                     ).withClass("ps-4")
                 ).withClass("mb-2")
             ),
-            iff(!isCollection, div(
-                span("Available Observation Formats: ").withClass(CSS_BOLD),
+            iff(!isCollection,
                 div(
-                    each(SWECommonUtils.getAvailableFormats(dsInfo, customFormats), f -> div(f))
-                ).withClass("ps-4")
-            ).withClass("mb-2")),
-            p(
-                iff(isCollection,
-                    a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES)
-                ),
-                a("Schema").withHref(resourceUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
-                a("Observations").withHref(resourceUrl + "/observations").withClasses(CSS_LINK_BTN_CLASSES)
-            ).withClass("mt-4"));
+                    span("Available Observation Formats: ").withClass(CSS_BOLD),
+                    div(
+                        each(SWECommonUtils.getAvailableFormats(dsInfo, customFormats), f -> {
+                            var fUrl = URLEncoder.encode(f, StandardCharsets.UTF_8);
+                            return div(
+                                span(f + ": "),
+                                a("Schema").withHref(resourceUrl + "/schema?obsFormat=" + fUrl).withClass("small"),
+                                span(" - "),
+                                a("Observations").withHref(resourceUrl + "/observations?f=" + fUrl).withClass("small")
+                            );
+                        })
+                    ).withClass("ps-4")
+                ).withClass("mb-2")
+            ),
+            iff(isCollection,
+                p(
+                    a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
+                    a("Schema").withHref(resourceUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
+                    a("Observations").withHref(resourceUrl + "/observations").withClasses(CSS_LINK_BTN_CLASSES)
+                ).withClass("mt-4")
+            )
+         );
     }
     
     

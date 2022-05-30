@@ -75,6 +75,15 @@ public class ObsBindingSweCommon extends ResourceBinding<BigId, IObsData>
         {
             var os = ctx.getOutputStream();
             resultWriter = getSweCommonWriter(dsInfo, os, ctx.getPropertyFilter(), ctx.getFormat());
+            
+            // if request is coming from a browser, use well-known mime type
+            if (ctx.isBrowserHtmlRequest())
+            {
+                if (ctx.getFormat().equals(ResourceFormat.SWE_TEXT))
+                    ctx.setResponseContentType(ResourceFormat.TEXT_PLAIN.getMimeType());
+                else if (ctx.getFormat().equals(ResourceFormat.SWE_XML))
+                    ctx.setResponseContentType(ResourceFormat.APPLI_XML.getMimeType());
+            }
         }
     }
     
