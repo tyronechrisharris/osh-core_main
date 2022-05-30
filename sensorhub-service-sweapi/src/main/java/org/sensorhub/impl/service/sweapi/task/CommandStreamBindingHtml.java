@@ -72,6 +72,15 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
         if (isCollection)
             h3(collectionTitle).render(html);
     }
+    
+    
+    @Override
+    protected String getResourceUrl(CommandStreamKey key)
+    {
+        var dsId = encodeID(key.getInternalID());
+        var requestUrl = ctx.getRequestUrl();
+        return isCollection ? requestUrl + "/" + dsId : requestUrl;
+    }
 
     
     @Override
@@ -91,9 +100,7 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
     
     protected void serializeSummary(CommandStreamKey key, ICommandStreamInfo dsInfo) throws IOException
     {
-        var dsId = encodeID(key.getInternalID());
-        var requestUrl = ctx.getRequestUrl();
-        var resourceUrl = isCollection ? requestUrl + "/" + dsId : requestUrl;
+        var resourceUrl = getResourceUrl(key);
         
         renderCard(
             a(dsInfo.getName())

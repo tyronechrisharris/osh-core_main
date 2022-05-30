@@ -18,7 +18,6 @@ import java.io.IOException;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
-import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
@@ -64,17 +63,6 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
     protected String getCollectionTitle()
     {
         return collectionTitle;
-    }
-    
-    
-    @Override
-    protected String getResourceUrl(FeatureKey key)
-    {
-        var id = encodeID(key.getInternalID());
-        var requestUrl = ctx.getRequestUrl();
-        //var resourceUrl = isCollection ? requestUrl + "/" + sysId : requestUrl;
-        var resourceUrl = isCollection ? ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + id : requestUrl;
-        return resourceUrl;
     }
     
     

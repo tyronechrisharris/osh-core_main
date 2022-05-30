@@ -53,4 +53,11 @@ public class ConformanceHtml extends ResourceBindingHtml<Long, SWEApiServiceConf
         writeFooter();
         writer.flush();
     }
+
+
+    @Override
+    protected String getResourceUrl(Long key)
+    {
+        return ctx.getApiRootURL() + ConformanceHandler.NAMES[0];
+    }
 }

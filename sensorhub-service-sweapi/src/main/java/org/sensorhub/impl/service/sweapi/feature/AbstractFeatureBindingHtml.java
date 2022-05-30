@@ -129,4 +129,13 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature> extends Res
         html.appendEndTag("div");
         super.writeFooter();
     }
+    
+    
+    @Override
+    protected String getResourceUrl(FeatureKey key)
+    {
+        var fid = encodeID(key.getInternalID());
+        var requestUrl = ctx.getRequestUrl();
+        return isCollection ? requestUrl + "/" + fid : requestUrl;
+    }
 }

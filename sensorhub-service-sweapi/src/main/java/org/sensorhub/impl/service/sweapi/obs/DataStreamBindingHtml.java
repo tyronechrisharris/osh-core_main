@@ -100,11 +100,18 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     }
     
     
-    protected void serializeSummary(DataStreamKey key, IDataStreamInfo dsInfo) throws IOException
+    @Override
+    protected String getResourceUrl(DataStreamKey key)
     {
         var dsId = encodeID(key.getInternalID());
         var requestUrl = ctx.getRequestUrl();
-        var resourceUrl = isCollection ? requestUrl + "/" + dsId : requestUrl;
+        return isCollection ? requestUrl + "/" + dsId : requestUrl;
+    }
+    
+    
+    protected void serializeSummary(DataStreamKey key, IDataStreamInfo dsInfo) throws IOException
+    {
+        var resourceUrl = getResourceUrl(key);
         
         renderCard(
             a(dsInfo.getName())

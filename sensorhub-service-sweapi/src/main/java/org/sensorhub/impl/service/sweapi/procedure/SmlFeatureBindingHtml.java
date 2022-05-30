@@ -51,9 +51,6 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc> extend
     }
     
     
-    protected abstract String getResourceUrl(FeatureKey key);
-    
-    
     protected abstract DomContent getLinks(BigId id, String resourceUrl);
     
     

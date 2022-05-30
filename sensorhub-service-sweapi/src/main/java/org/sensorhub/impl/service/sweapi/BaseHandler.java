@@ -300,7 +300,7 @@ public abstract class BaseHandler implements IResourceHandler
     
     protected Collection<ResourceLink> getPagingLinks(final RequestContext ctx, long offset, long limit, boolean hasMore) throws InvalidRequestException
     {
-        var resourcePath = ctx.getRequestUrl();//ctx.getApiRootURL() + "/" + getNames()[0];
+        var resourcePath = ctx.getRequestUrl();
         var queryParams = new HashMap<>(ctx.getParameterMap());
         var links = new ArrayList<ResourceLink>();
         

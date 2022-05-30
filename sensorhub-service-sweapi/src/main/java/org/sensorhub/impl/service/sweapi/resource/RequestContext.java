@@ -19,8 +19,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -45,8 +43,8 @@ public class RequestContext
     private final HttpServletRequest req;
     private final HttpServletResponse resp;
     private final StreamHandler streamHandler;
-    private InputStream inputStream;
-    private final Collection<String> originalPath;
+    private final InputStream inputStream;
+    private final String requestPathInfo;
     private final Deque<String> path;
     private final Map<String, String[]> queryParams;
     private String contentType;
@@ -81,9 +79,10 @@ public class RequestContext
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
         this.resp = Asserts.checkNotNull(resp, HttpServletResponse.class);
+        this.requestPathInfo = req.getPathInfo();
         this.streamHandler = null;
+        this.inputStream = null;
         this.path = splitPath(req.getPathInfo());
-        this.originalPath = new ArrayList<>(this.path);
         this.queryParams = req.getParameterMap();
         this.contentType = req.getContentType();
     }
@@ -97,9 +96,10 @@ public class RequestContext
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
         this.resp = Asserts.checkNotNull(resp, HttpServletResponse.class);
+        this.requestPathInfo = req.getPathInfo();
         this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
+        this.inputStream = null;
         this.path = splitPath(req.getPathInfo());
-        this.originalPath = new ArrayList<>(this.path);
         this.queryParams = req.getParameterMap();
         this.contentType = req.getContentType();
     }
@@ -113,10 +113,10 @@ public class RequestContext
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;
         this.resp = null;
+        this.requestPathInfo = null;
         this.streamHandler = null;
         this.inputStream = Asserts.checkNotNull(is, InputStream.class);
         this.path = splitPath(resourceURI.getPath());
-        this.originalPath = new ArrayList<>(this.path);
         this.queryParams = parseQueryParams(resourceURI.getQuery());
     }
     
@@ -129,9 +129,10 @@ public class RequestContext
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;
         this.resp = null;
+        this.requestPathInfo = null;
         this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
+        this.inputStream = null;
         this.path = splitPath(resourceURI.getPath());
-        this.originalPath = new ArrayList<>(this.path);
         this.queryParams = parseQueryParams(resourceURI.getQuery());
     }
     
@@ -247,15 +248,27 @@ public class RequestContext
     }
     
     
-    public Collection<String> getRequestPath()
+    public String getApiRootURL()
     {
-        return originalPath;
+        return servlet.getApiRootURL(req);
+    }
+    
+    
+    public String getRequestPath()
+    {
+        return requestPathInfo != null ? requestPathInfo : "";
     }
     
     
     public String getRequestUrl()
     {
-        return req != null ? req.getRequestURL().toString() : null;
+        if (req == null)
+            return null;
+        
+        var requestPath = getRequestPath();
+        if (requestPath.startsWith("/"))
+            requestPath = requestPath.substring(1);
+        return getApiRootURL() + requestPath;
     }
     
     
@@ -385,12 +398,6 @@ public class RequestContext
     public void setCorrelationID(long id)
     {
         this.correlationID = id;
-    }
-    
-    
-    public String getApiRootURL()
-    {
-        return servlet.getApiRootURL(req);
     }
     
     

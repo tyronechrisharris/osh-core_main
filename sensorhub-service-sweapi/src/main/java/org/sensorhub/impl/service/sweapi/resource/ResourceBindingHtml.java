@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
@@ -139,7 +140,8 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     
     protected DomContent getBreadCrumbs()
     {
-        return each(ctx.getRequestPath(), item -> {
+        var pathElts = Arrays.asList(ctx.getRequestPath().split("/"));
+        return each(pathElts, item -> {
             return span(item + " / ");
         });
     }
@@ -448,6 +450,9 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             .withClasses("pagination", "my-4")
         ).render(html);
     }
+    
+    
+    protected abstract String getResourceUrl(K key);
     
     
     @Override

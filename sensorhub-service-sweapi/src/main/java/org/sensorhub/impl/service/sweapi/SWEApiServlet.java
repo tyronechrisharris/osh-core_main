@@ -67,7 +67,9 @@ public class SWEApiServlet extends HttpServlet
         this.securityHandler = securityHandler;
         this.rootHandler = rootHandler;
         this.log = logger;
-        this.rootUrl = service.getHttpServer().getPublicEndpointUrl(service.getConfiguration().endPoint);
+        
+        var endPointUrl = service.getHttpServer().getPublicEndpointUrl(service.getConfiguration().endPoint);
+        this.rootUrl = endPointUrl.endsWith("/") ? endPointUrl : endPointUrl + "/";
     }
 
 
