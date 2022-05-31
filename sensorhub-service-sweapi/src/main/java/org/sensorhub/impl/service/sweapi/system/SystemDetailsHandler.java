@@ -45,7 +45,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc, SystemFilter, SystemFilter.Builder, ISystemDescStore>
 {
     static final Logger log = LoggerFactory.getLogger(SystemDetailsHandler.class);
-    public static final String[] NAMES = { "details", "specsheet" }; //"fullDescription"; //"specs"; //"specsheet"; //"metadata";
+    public static final String[] NAMES = { "details", "specsheet" };
     
     final IObsSystemDatabase db;
     
@@ -63,7 +63,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new SystemBindingHtml(ctx, idEncoder, false, "Specsheet of {}", db);
+            return new SystemBindingHtml(ctx, idEncoder, false, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.SML_JSON))
             return new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, idEncoder, forReading);
         else if (format.isOneOf(ResourceFormat.APPLI_XML, ResourceFormat.SML_XML))

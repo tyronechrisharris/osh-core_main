@@ -31,7 +31,6 @@ import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
-import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.vast.ogc.gml.IFeature;
 
@@ -71,17 +70,6 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     {
         return dataStore.contains(internalID);
     }
-    
-    
-    @Override
-    public void doPost(RequestContext ctx) throws IOException
-    {
-        if (ctx.isEndOfPath() &&
-            !(ctx.getParentRef().type instanceof SystemHandler))
-            throw ServiceErrors.unsupportedOperation("Features of interest can only be created within a system's fois sub-collection");
-        
-        super.doPost(ctx);
-    }
 
 
     @Override
@@ -97,7 +85,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
                 .done();
         }
         else
-        {        
+        {
             // parent ID
             var ids = parseResourceIds("parentId", queryParams);
             if (ids != null && !ids.isEmpty())
@@ -121,9 +109,14 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     
     @Override
     protected FeatureKey addEntry(final RequestContext ctx, final IFeature foi) throws DataStoreException
-    {        
-        var procHandler = transactionHandler.getSystemHandler(ctx.getParentID());
-        return procHandler.addOrUpdateFoi(foi);
+    {
+        if (ctx.getParentID() != null)
+        {
+            var procHandler = transactionHandler.getSystemHandler(ctx.getParentID());
+            return procHandler.addOrUpdateFoi(foi);
+        }
+        
+        return super.addEntry(ctx, foi);
     }
 
 

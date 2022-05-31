@@ -19,9 +19,11 @@ import java.util.Map.Entry;
 import javax.xml.namespace.QName;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
+import org.sensorhub.impl.service.sweapi.system.SystemHistoryHandler;
 import org.vast.ogc.gml.GMLUtils;
 import org.vast.ogc.gml.GenericTemporalFeatureImpl;
 import org.vast.ogc.gml.IFeature;
@@ -45,6 +47,7 @@ import static j2html.TagCreator.*;
  */
 public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
 {
+    final IObsSystemDatabase db;
     final boolean isSummary;
     final String collectionTitle;
     
@@ -52,25 +55,31 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
     public FeatureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
         super(ctx, idEncoder);
+        this.db = db;
         this.isSummary = isSummary;
         
+        // set collection title depending on path
         if (ctx.getParentID() != null)
         {
             if (ctx.getParentRef().type instanceof SystemHandler)
             {
                 // fetch parent system name
-                var parentSys = db.getSystemDescStore().getCurrentVersion(ctx.getParentID());
+                var parentSys = FeatureUtils.getClosestToNow(db.getSystemDescStore(), ctx.getParentID());
                 this.collectionTitle = "Sampling Features of " + parentSys.getName();
             }
             else
             {
-             // fetch parent system name
-                var parentFeature = db.getFoiStore().getCurrentVersion(ctx.getParentID());
-                this.collectionTitle = "Members of " + parentFeature.getName();
+                // fetch parent feature name
+                var parentFeature = FeatureUtils.getClosestToNow(db.getFoiStore(), ctx.getParentID());
+                
+                if (ctx.getRequestPath().contains(SystemHistoryHandler.NAMES[0]))
+                    this.collectionTitle = "History of " + parentFeature.getName();
+                else
+                    this.collectionTitle = "Members of " + parentFeature.getName();
             }
         }
         else
-            this.collectionTitle = "Features of Interest";
+            this.collectionTitle = "All Features of Interest";
     }
     
     
@@ -107,9 +116,11 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
     
     protected void serializeSummary(FeatureKey key, IFeature f) throws IOException
     {
-        var fid = encodeID(key.getInternalID());
-        var requestUrl = ctx.getRequestUrl();
-        var resourceUrl = isCollection ? requestUrl + "/" + fid : requestUrl;
+        var resourceUrl = getResourceUrl(key);
+        
+        var hasMembers = db.getFoiStore().countMatchingEntries(new FoiFilter.Builder()
+            .withParents(key.getInternalID())
+            .build()) > 0;
         
         renderCard(
             a(f.getName())
@@ -143,8 +154,9 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
                     ).withClass("ps-4")
             ).withClass("mt-2"),
             p(
-                //a("Members").withHref(collectionUrl + "/" + id + "/members").withClasses(CSS_LINK_BTN_CLASSES),
-                //a("History").withHref(collectionUrl + "/" + id + "/history").withClasses(CSS_LINK_BTN_CLASSES)
+                iff(hasMembers,
+                    a("Members").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES)),
+                a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES)
             ).withClass("mt-4"));
     }
     
@@ -175,6 +187,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
     {
         var propName = prop.getKey().getLocalPart();
         var val = prop.getValue();
+        var featureType = f.getType();
         
         Tag<?> valueTag;
         if (val instanceof Boolean)
@@ -185,14 +198,22 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
         {
             valueTag = span(val.toString());
         }
-        else if (val instanceof String && !val.equals(f.getType()))
+        else if (val instanceof String && !val.equals(featureType))
         {
             valueTag = span(val.toString());
         }
         else if (val instanceof IXlinkReference)
         {
-            var ref = (IXlinkReference<?>) val;
-            valueTag = span(ref.getHref() != null ? ref.getHref() : "Unspecified");
+            String href = ((IXlinkReference<?>) val).getHref();
+            if (href != null)
+            {
+                if (!href.equals(featureType)) 
+                    valueTag = span(href);
+                else
+                    return new UnescapedText("");
+            }
+            else
+                valueTag = span("Unspecified");
         }
         else if (val instanceof Measure)
         {

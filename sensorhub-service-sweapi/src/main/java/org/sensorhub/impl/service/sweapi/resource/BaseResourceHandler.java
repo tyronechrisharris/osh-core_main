@@ -19,6 +19,8 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
@@ -257,7 +259,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         binding.startCollection();
         
         // fetch from DB and temporarily handle paging here
-        try (var results = dataStore.selectEntries(filter))
+        try (var results = postProcessResultList(dataStore.selectEntries(filter), filter))
         {
             var it = results.skip(offset)
                 .limit(limit+1) // get one more so we know when to enable paging
@@ -274,6 +276,12 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             
             binding.endCollection(getPagingLinks(ctx, offset, limit, count > limit));
         }
+    }
+    
+    
+    protected Stream<Entry<K, V>> postProcessResultList(Stream<Entry<K, V>> results, F filter)
+    {
+        return results;
     }
     
     

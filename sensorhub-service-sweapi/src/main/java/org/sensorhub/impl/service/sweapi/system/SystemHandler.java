@@ -67,10 +67,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-        {
-            var title = ctx.getParentID() != null ? "Subsystems of {}" : "All Systems";
-            return new SystemBindingHtml(ctx, idEncoder, true, title, db);
-        }
+            return new SystemBindingHtml(ctx, idEncoder, true, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new SystemBindingGeoJson(ctx, idEncoder, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))

@@ -16,6 +16,8 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
@@ -58,8 +60,8 @@ public abstract class AbstractFeatureHandler<
         var validTime = parseTimeStampArg("validTime", queryParams);
         if (validTime != null)
             builder.withValidTime(validTime);
-        else
-            builder.withCurrentVersion();
+        //else
+        //    builder.withCurrentVersion();
         
         // use opensearch bbox param to filter spatially
         var bbox = parseBboxArg("bbox", queryParams);
@@ -71,12 +73,23 @@ public abstract class AbstractFeatureHandler<
         if (geom != null)
             builder.withLocationIntersecting(geom);
     }
+    
+    
+    @Override
+    protected Stream<Entry<FeatureKey, V>> postProcessResultList(Stream<Entry<FeatureKey, V>> results, F filter)
+    {
+        if (filter.getValidTime() == null)
+            return FeatureUtils.keepOnlyClosestToNow(results);
+        else
+            return results;
+    }
 
 
     @Override
     protected FeatureKey getKey(BigId internalID)
     {
-        return dataStore.getCurrentVersionKey(internalID);
+        //return dataStore.getCurrentVersionKey(internalID);
+        return FeatureUtils.getClosestKeyToNow(dataStore, internalID);
     }
     
     
@@ -104,6 +117,9 @@ public abstract class AbstractFeatureHandler<
     @Override
     protected boolean deleteEntry(final RequestContext ctx, final FeatureKey key) throws DataStoreException
     {
-        return dataStore.remove(key) != null;
+        // remove all versions of feature with given ID
+        return dataStore.removeEntries(dataStore.filterBuilder()
+            .withInternalIDs(key.getInternalID())
+            .build()) > 0;
     }
 }

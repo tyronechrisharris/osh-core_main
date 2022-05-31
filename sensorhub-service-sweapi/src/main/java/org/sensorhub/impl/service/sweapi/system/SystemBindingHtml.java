@@ -23,6 +23,7 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.impl.service.sweapi.feature.FeatureUtils;
 import org.sensorhub.impl.service.sweapi.procedure.SmlFeatureBindingHtml;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import j2html.tags.DomContent;
@@ -43,19 +44,29 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
     final String collectionTitle;
     
     
-    public SystemBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, String collectionTitle, IObsSystemDatabase db) throws IOException
+    public SystemBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
         super(ctx, idEncoder, isSummary);
         this.db = db;
         
+        // set collection title depending on path
         if (ctx.getParentID() != null)
         {
             // fetch parent system name
-            var parentSys = db.getSystemDescStore().getCurrentVersion(ctx.getParentID());
-            this.collectionTitle = collectionTitle.replace("{}", parentSys.getName());
+            var parentSys = FeatureUtils.getClosestToNow(db.getSystemDescStore(), ctx.getParentID());
+            
+            if (isSummary)
+            {
+                if (ctx.getRequestPath().contains(SystemHistoryHandler.NAMES[0]))
+                    this.collectionTitle = "History of " + parentSys.getName();
+                else
+                    this.collectionTitle = "Subsystems of " + parentSys.getName();
+            }
+            else
+                this.collectionTitle = "Specsheet of " + parentSys.getName();
         }
         else
-            this.collectionTitle = collectionTitle;
+            this.collectionTitle = "All Systems";
     }
     
     

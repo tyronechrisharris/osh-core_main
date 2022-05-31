@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.feature.IFoiStore;
@@ -31,10 +32,13 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 
 public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
 {
+    final IObsSystemDatabase db;
+    
     
     public FoiHistoryHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
         super(db.getReadDb().getFoiStore(), db.getIdEncoder(), permissions);
+        this.db = db.getReadDb();
     }
 
 
@@ -43,7 +47,9 @@ public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IFeature, F
     {
         var format = ctx.getFormat();
         
-        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+            return new FeatureBindingHtml(ctx, idEncoder, true, db);
+        else if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
