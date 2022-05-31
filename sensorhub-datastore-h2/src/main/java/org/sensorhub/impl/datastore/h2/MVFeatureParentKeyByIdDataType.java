@@ -30,9 +30,9 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 class MVFeatureParentKeyByIdDataType extends MVFeatureParentKeyDataType implements DataType
 {
     
-    MVFeatureParentKeyByIdDataType()
+    MVFeatureParentKeyByIdDataType(int idScope)
     {
-        super(0, false);
+        super(idScope, false);
     }
     
 

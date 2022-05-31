@@ -161,7 +161,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         mapName = dataStoreInfo.getName() + ":" + FEATURE_IDS_MAP_NAME;
         this.idsIndex = mvStore.openMap(mapName, 
                 new MVBTreeMap.Builder<MVFeatureParentKey, Boolean>()
-                        .keyType(new MVFeatureParentKeyByIdDataType())
+                        .keyType(new MVFeatureParentKeyByIdDataType(idScope))
                         .valueType(new MVVoidDataType()));
         
         // feature unique IDs to main index
