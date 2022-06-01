@@ -150,14 +150,17 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         var systemsHandler = new SystemHandler(eventBus, db, security.system_summary_permissions);
         rootHandler.addSubResource(systemsHandler);
         
+        var sysMembersHandler = new SystemMembersHandler(eventBus, db, security.system_summary_permissions);
+        systemsHandler.addSubResource(sysMembersHandler);
+        sysMembersHandler.addSubResource(sysMembersHandler);
+        
         var sysHistoryHandler = new SystemHistoryHandler(eventBus, db, security.system_summary_permissions);
         systemsHandler.addSubResource(sysHistoryHandler);
+        sysMembersHandler.addSubResource(sysHistoryHandler);
         
         var sysDetailsHandler = new SystemDetailsHandler(eventBus, db, security.system_details_permissions);
         systemsHandler.addSubResource(sysDetailsHandler);
-        
-        var sysMembersHandler = new SystemMembersHandler(eventBus, db, security.system_summary_permissions);
-        systemsHandler.addSubResource(sysMembersHandler);
+        sysMembersHandler.addSubResource(sysDetailsHandler);
         
         // procedures
         if (db.getProcedureStore() != null)
@@ -173,6 +176,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         var foiHandler = new FoiHandler(eventBus, db, security.foi_permissions);
         rootHandler.addSubResource(foiHandler);
         systemsHandler.addSubResource(foiHandler);
+        sysMembersHandler.addSubResource(foiHandler);
         
         var foiHistoryHandler = new FoiHistoryHandler(eventBus, db, security.foi_permissions);
         foiHandler.addSubResource(foiHistoryHandler);
@@ -181,6 +185,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         var dataStreamHandler = new DataStreamHandler(eventBus, db, security.datastream_permissions, customFormats);
         rootHandler.addSubResource(dataStreamHandler);
         systemsHandler.addSubResource(dataStreamHandler);
+        sysMembersHandler.addSubResource(dataStreamHandler);
         var dataSchemaHandler = new DataStreamSchemaHandler(eventBus, db, security.datastream_permissions);
         dataStreamHandler.addSubResource(dataSchemaHandler);
         
@@ -200,6 +205,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         var cmdStreamHandler = new CommandStreamHandler(eventBus, db, security.commandstream_permissions);
         rootHandler.addSubResource(cmdStreamHandler);
         systemsHandler.addSubResource(cmdStreamHandler);
+        sysMembersHandler.addSubResource(cmdStreamHandler);
         var cmdSchemaHandler = new CommandStreamSchemaHandler(eventBus, db, security.commandstream_permissions);
         cmdStreamHandler.addSubResource(cmdSchemaHandler);
         
@@ -211,9 +217,6 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         var statusHandler = new CommandStatusHandler(eventBus, db, threadPool, security.command_permissions);
         cmdStreamHandler.addSubResource(statusHandler);
         cmdHandler.addSubResource(statusHandler);
-        
-        //var cmdSchemaHandler = new CommandStreamSchemaHandler(eventBus, db, security.commands_permissions);
-        //dataStreamHandler.addSubResource(dataSchemaHandler);
         
         // sampled features
         /*var featureStore = new FeatureStoreWrapper(
