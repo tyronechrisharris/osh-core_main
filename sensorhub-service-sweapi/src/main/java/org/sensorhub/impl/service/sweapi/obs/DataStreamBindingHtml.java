@@ -104,8 +104,7 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     protected String getResourceUrl(DataStreamKey key)
     {
         var dsId = encodeID(key.getInternalID());
-        var requestUrl = ctx.getRequestUrl();
-        return isCollection ? requestUrl + "/" + dsId : requestUrl;
+        return ctx.getApiRootURL() + "/" + DataStreamHandler.NAMES[0] + "/" + dsId;
     }
     
     

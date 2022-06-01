@@ -265,10 +265,7 @@ public class RequestContext
         if (req == null)
             return null;
         
-        var requestPath = getRequestPath();
-        if (requestPath.startsWith("/"))
-            requestPath = requestPath.substring(1);
-        return getApiRootURL() + requestPath;
+        return getApiRootURL() + getRequestPath();
     }
     
     

@@ -50,6 +50,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
     final IObsSystemDatabase db;
     final boolean isSummary;
     final String collectionTitle;
+    boolean isHistory;
     
     
     public FeatureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, IObsSystemDatabase db) throws IOException
@@ -73,7 +74,10 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
                 var parentFeature = FeatureUtils.getClosestToNow(db.getFoiStore(), ctx.getParentID());
                 
                 if (ctx.getRequestPath().contains(SystemHistoryHandler.NAMES[0]))
+                {
                     this.collectionTitle = "History of " + parentFeature.getName();
+                    this.isHistory = true;
+                }
                 else
                     this.collectionTitle = "Members of " + parentFeature.getName();
             }
@@ -111,6 +115,14 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
         serializeSummary(key, f);
         writeFooter();
         writer.flush();
+    }
+    
+    
+    @Override
+    protected String getResourceUrl(FeatureKey key)
+    {
+        var foiId = encodeID(key.getInternalID());
+        return ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0] + "/" + foiId;
     }
     
     
@@ -156,7 +168,8 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature>
             p(
                 iff(hasMembers,
                     a("Members").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES)),
-                a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES)
+                iff(isHistory,
+                    a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES))
             ).withClass("mt-4"));
     }
     

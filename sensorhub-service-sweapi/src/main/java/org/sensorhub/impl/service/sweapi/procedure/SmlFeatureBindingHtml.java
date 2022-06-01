@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sweapi.procedure;
 import java.io.IOException;
 import java.util.Optional;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
-import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
@@ -51,7 +50,7 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc> extend
     }
     
     
-    protected abstract DomContent getLinks(BigId id, String resourceUrl);
+    protected abstract DomContent getLinks(FeatureKey key);
     
     
     @Override
@@ -100,7 +99,7 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc> extend
                 span("Validity Period: ").withClass(CSS_BOLD),
                 getTimeExtentHtml(f.getValidTime(), "Always")
             ).withClass("mt-2"),
-            getLinks(key.getInternalID(), resourceUrl));
+            getLinks(key));
     }
     
     

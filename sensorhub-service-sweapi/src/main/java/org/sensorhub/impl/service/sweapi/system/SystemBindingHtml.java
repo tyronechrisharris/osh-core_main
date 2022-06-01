@@ -15,9 +15,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.system;
 
 import java.io.IOException;
-import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
+import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
@@ -42,6 +42,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
 {
     final IObsSystemDatabase db;
     final String collectionTitle;
+    boolean isHistory;
     
     
     public SystemBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, IObsSystemDatabase db) throws IOException
@@ -58,7 +59,10 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
             if (isSummary)
             {
                 if (ctx.getRequestPath().contains(SystemHistoryHandler.NAMES[0]))
+                {
                     this.collectionTitle = "History of " + parentSys.getName();
+                    this.isHistory = true;
+                }
                 else
                     this.collectionTitle = "Subsystems of " + parentSys.getName();
             }
@@ -78,16 +82,26 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
     
     
     @Override
-    protected DomContent getLinks(BigId id, String resourceUrl)
+    protected String getResourceUrl(FeatureKey key)
     {
+        var sysId = encodeID(key.getInternalID());
+        return ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId;
+    }
+    
+    
+    @Override
+    protected DomContent getLinks(FeatureKey key)
+    {
+        var resourceUrl = getResourceUrl(key);
+        
         var hasSubSystems = db.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
-            .withParents(id)
+            .withParents(key.getInternalID())
             .withCurrentVersion()
             .build()) > 0;
             
         var hasFois = db.getFoiStore().countMatchingEntries(new FoiFilter.Builder()
             .withParents()
-                .withInternalIDs(id)
+                .withInternalIDs(key.getInternalID())
                 .includeMembers(true)
                 .done()
             .includeMembers(true)
@@ -96,7 +110,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
             
         var hasDataStreams = db.getDataStreamStore().countMatchingEntries(new DataStreamFilter.Builder()
             .withSystems()
-                .withInternalIDs(id)
+                .withInternalIDs(key.getInternalID())
                 .includeMembers(true)
                 .done()
             .withCurrentVersion()
@@ -104,7 +118,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
             
         var hasControls = db.getCommandStreamStore().countMatchingEntries(new CommandStreamFilter.Builder()
             .withSystems()
-                .withInternalIDs(id)
+                .withInternalIDs(key.getInternalID())
                 .includeMembers(true)
                 .done()
             .withCurrentVersion()
@@ -120,7 +134,8 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
                 a("Datastreams").withHref(resourceUrl + "/datastreams").withClasses(CSS_LINK_BTN_CLASSES)),
             iff(hasControls,
                 a("Control Channels").withHref(resourceUrl + "/controls").withClasses(CSS_LINK_BTN_CLASSES)),
-            a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES)
+            iff(!isHistory,
+                a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES))
         ).withClass("mt-4");
     }
 }

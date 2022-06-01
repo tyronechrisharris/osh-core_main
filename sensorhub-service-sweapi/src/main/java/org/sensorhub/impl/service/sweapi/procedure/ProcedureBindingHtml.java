@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
-import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
@@ -66,19 +65,18 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     @Override
     protected String getResourceUrl(FeatureKey key)
     {
-        var id = encodeID(key.getInternalID());
-        var requestUrl = ctx.getRequestUrl();
-        //var resourceUrl = isCollection ? requestUrl + "/" + sysId : requestUrl;
-        var resourceUrl = isCollection ? ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + id : requestUrl;
-        return resourceUrl;
+        var foiId = encodeID(key.getInternalID());
+        return ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + foiId;
     }
     
     
     @Override
-    protected DomContent getLinks(BigId id, String resourceUrl)
+    protected DomContent getLinks(FeatureKey key)
     {
+        var resourceUrl = getResourceUrl(key);
+        
         var hasSubSystems = db.getProcedureStore().countMatchingEntries(new ProcedureFilter.Builder()
-            .withParents(id)
+            .withParents(key.getInternalID())
             .withCurrentVersion()
             .build()) > 0;
         
