@@ -33,16 +33,14 @@ import static j2html.TagCreator.*;
  * @author Alex Robin
  * @since March 31, 2022
  */
-public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDesc>
+public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDesc, IProcedureDatabase>
 {
-    final IProcedureDatabase db;
     final String collectionTitle;
     
     
     public ProcedureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, String collectionTitle, IProcedureDatabase db) throws IOException
     {
-        super(ctx, idEncoder, isSummary);
-        this.db = db;
+        super(ctx, idEncoder, isSummary, db);
         
         if (ctx.getParentID() != null)
         {
@@ -52,6 +50,13 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
         }
         else
             this.collectionTitle = collectionTitle;
+    }
+    
+    
+    @Override
+    protected String getResourceName()
+    {
+        return "Procedure";
     }
     
     
@@ -71,10 +76,8 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     
     
     @Override
-    protected DomContent getLinks(FeatureKey key)
+    protected DomContent getLinks(String resourceUrl, FeatureKey key)
     {
-        var resourceUrl = getResourceUrl(key);
-        
         var hasSubSystems = db.getProcedureStore().countMatchingEntries(new ProcedureFilter.Builder()
             .withParents(key.getInternalID())
             .withCurrentVersion()

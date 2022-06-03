@@ -120,13 +120,10 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         ResourceRef parent = ctx.getParentRef();
         Asserts.checkNotNull(parent, "parent");
         
-        // internal ID & version number
+        // get parent resource internal ID & valid time
         var internalID = parent.internalID;
-        var version = parent.version;
-        if (version < 0)
-            throw ServiceErrors.badRequest(INVALID_VERSION_ERROR_MSG + version);
-        
-        var key = getKey(internalID, version);
+        var validTime = parent.validTime;
+        var key = getKey(internalID, validTime);
         AbstractProcess sml = dataStore.get(key).getFullDescription();
         if (sml == null)
             throw ServiceErrors.notFound();

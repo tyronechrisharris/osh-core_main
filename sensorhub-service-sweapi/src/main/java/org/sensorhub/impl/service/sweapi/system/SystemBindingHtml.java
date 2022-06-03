@@ -38,17 +38,14 @@ import static j2html.TagCreator.*;
  * @author Alex Robin
  * @since March 31, 2022
  */
-public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
+public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IObsSystemDatabase>
 {
-    final IObsSystemDatabase db;
     final String collectionTitle;
-    boolean isHistory;
     
     
     public SystemBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
-        super(ctx, idEncoder, isSummary);
-        this.db = db;
+        super(ctx, idEncoder, isSummary, db);
         
         // set collection title depending on path
         if (ctx.getParentID() != null)
@@ -58,11 +55,8 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
             
             if (isSummary)
             {
-                if (ctx.getRequestPath().contains(SystemHistoryHandler.NAMES[0]))
-                {
+                if (isHistory)
                     this.collectionTitle = "History of " + parentSys.getName();
-                    this.isHistory = true;
-                }
                 else
                     this.collectionTitle = "Subsystems of " + parentSys.getName();
             }
@@ -71,6 +65,13 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
         }
         else
             this.collectionTitle = "All Systems";
+    }
+    
+    
+    @Override
+    protected String getResourceName()
+    {
+        return "System";
     }
     
     
@@ -85,18 +86,26 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
     protected String getResourceUrl(FeatureKey key)
     {
         var sysId = encodeID(key.getInternalID());
-        return ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId;
+        var sysUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId;
+        if (isHistory)
+            sysUrl += "/history/" + key.getValidStartTime().toString();
+        return sysUrl;
     }
     
     
     @Override
-    protected DomContent getLinks(FeatureKey key)
+    protected DomContent getLinks(String resourceUrl, FeatureKey key)
     {
-        var resourceUrl = getResourceUrl(key);
+        // try to get parent system
+        String parentSysUrl = null;
+        var parentSysId = db.getSystemDescStore().getParent(key.getInternalID());
+        if (parentSysId != null)
+            parentSysUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + encodeID(parentSysId);
         
         var hasSubSystems = db.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
             .withParents(key.getInternalID())
             .withCurrentVersion()
+            .withLimit(1)
             .build()) > 0;
             
         var hasFois = db.getFoiStore().countMatchingEntries(new FoiFilter.Builder()
@@ -105,7 +114,8 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
                 .includeMembers(true)
                 .done()
             .includeMembers(true)
-            .withCurrentVersion()
+            //.withCurrentVersion()
+            .withLimit(1)
             .build()) > 0;
             
         var hasDataStreams = db.getDataStreamStore().countMatchingEntries(new DataStreamFilter.Builder()
@@ -114,6 +124,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
                 .includeMembers(true)
                 .done()
             .withCurrentVersion()
+            .withLimit(1)
             .build()) > 0;
             
         var hasControls = db.getCommandStreamStore().countMatchingEntries(new CommandStreamFilter.Builder()
@@ -122,20 +133,31 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc>
                 .includeMembers(true)
                 .done()
             .withCurrentVersion()
+            .withLimit(1)
             .build()) > 0;
+            
+        var hasHistory = !isHistory && db.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
+            .withInternalIDs(key.getInternalID())
+            .withAllVersions()
+            .withLimit(2)
+            .build()) > 1;
         
         return div(
             a("Spec Sheet").withHref(resourceUrl + "/details").withClasses(CSS_LINK_BTN_CLASSES),
-            iff(hasSubSystems,
-                a("Subsystems").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES)),
-            iff(hasFois,
-                a("Sampling Features").withHref(resourceUrl + "/fois").withClasses(CSS_LINK_BTN_CLASSES)),
-            iff(hasDataStreams,
-                a("Datastreams").withHref(resourceUrl + "/datastreams").withClasses(CSS_LINK_BTN_CLASSES)),
-            iff(hasControls,
-                a("Control Channels").withHref(resourceUrl + "/controls").withClasses(CSS_LINK_BTN_CLASSES)),
-            iff(!isHistory,
-                a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES))
+            !isHistory ? each(
+                iff(parentSysUrl != null,
+                    a("Parent System").withHref(parentSysUrl).withClasses(CSS_LINK_BTN_CLASSES)),
+                iff(hasSubSystems,
+                    a("Subsystems").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES)),
+                iff(hasFois,
+                    a("Sampling Features").withHref(resourceUrl + "/fois").withClasses(CSS_LINK_BTN_CLASSES)),
+                iff(hasDataStreams,
+                    a("Datastreams").withHref(resourceUrl + "/datastreams").withClasses(CSS_LINK_BTN_CLASSES)),
+                iff(hasControls,
+                    a("Control Channels").withHref(resourceUrl + "/controls").withClasses(CSS_LINK_BTN_CLASSES)),
+                iff(hasHistory,
+                    a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES))
+            ) : null
         ).withClass("mt-4");
     }
 }

@@ -60,12 +60,12 @@ public class FeatureUtils
     }
     
     
-    public static <V extends IFeature> Stream<Entry<FeatureKey, V>> keepOnlyClosestToNow(Stream<Entry<FeatureKey, V>> results)
+    public static <V extends IFeature> Stream<Entry<FeatureKey, V>> keepOnlyClosestToNow(Stream<Entry<FeatureKey, V>> resultStream)
     {
         var now = Instant.now();
         var lastIdHolder = new AtomicLong();
         
-        var pit = Iterators.peekingIterator(results.iterator());
+        var pit = Iterators.peekingIterator(resultStream.iterator());
         var it = Iterators.filter(pit, e -> {
             
             var lastId = lastIdHolder.get();

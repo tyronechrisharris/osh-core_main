@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
@@ -67,7 +68,7 @@ public class RequestContext
         @SuppressWarnings("rawtypes")
         public BaseResourceHandler type;
         public BigId internalID;
-        public long version;
+        public Instant validTime;
     }
     
     
@@ -209,11 +210,11 @@ public class RequestContext
     }
     
     
-    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, BigId internalID, int version)
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, BigId internalID, Instant validTime)
     {
         parentResource.type = parentHandler;
         parentResource.internalID = internalID;
-        parentResource.version = version;
+        parentResource.validTime = validTime;
     }
     
     

@@ -15,8 +15,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
-import java.util.Optional;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
+import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.sweapi.IdEncoder;
@@ -34,72 +34,17 @@ import static j2html.TagCreator.*;
  * </p>
  * 
  * @param <V> Type of SML feature resource
+ * @param <DB> Database type
  *
  * @author Alex Robin
  * @since March 31, 2022
  */
-public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc> extends AbstractFeatureBindingHtml<V>
+public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB extends IDatabase> extends AbstractFeatureBindingHtml<V, DB>
 {
-    final boolean isSummary;
     
-    
-    public SmlFeatureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary) throws IOException
+    public SmlFeatureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, DB db) throws IOException
     {
-        super(ctx, idEncoder);
-        this.isSummary = isSummary;
-    }
-    
-    
-    protected abstract DomContent getLinks(FeatureKey key);
-    
-    
-    @Override
-    public void serialize(FeatureKey key, V sys, boolean showLinks) throws IOException
-    {
-        if (isSummary)
-        {
-            if (isCollection)
-                serializeSummary(key, sys);
-            else
-                serializeSingleSummary(key, sys);
-        }
-        else
-            serializeDetails(key, sys);
-    }
-    
-    
-    protected void serializeSingleSummary(FeatureKey key, IProcedureWithDesc sys) throws IOException
-    {
-        writeHeader();
-        serializeSummary(key, sys);
-        writeFooter();
-        writer.flush();
-    }
-    
-    
-    protected void serializeSummary(FeatureKey key, IProcedureWithDesc f) throws IOException
-    {
-        var resourceUrl = getResourceUrl(key);
-        
-        renderCard(
-            a(f.getName())
-                .withHref(resourceUrl)
-                .withClass("text-decoration-none"),
-            iff(Optional.ofNullable(f.getDescription()), desc -> div(desc)
-                .withClasses(CSS_CARD_SUBTITLE)),
-            div(
-                span("UID: ").withClass(CSS_BOLD),
-                span(f.getUniqueIdentifier())
-            ).withClass("mt-2"),
-            iff(Optional.ofNullable(f.getType()), type -> div(
-                span("System Type: ").withClass(CSS_BOLD),
-                span(f.getType().substring(type.lastIndexOf('/')+1))
-            )),
-            div(
-                span("Validity Period: ").withClass(CSS_BOLD),
-                getTimeExtentHtml(f.getValidTime(), "Always")
-            ).withClass("mt-2"),
-            getLinks(key));
+        super(ctx, idEncoder, isSummary, db);
     }
     
     

@@ -347,7 +347,7 @@ public class TestSweApiTransactions
         var jsonResp = sendGetRequest(url);
         //System.out.println(gson.toJson(jsonResp));
         checkId(url, jsonResp);
-        assertDatastreamEquals(json, (JsonObject)jsonResp);
+        assertFoiEquals(json, (JsonObject)jsonResp);
         
         return url;
     }
@@ -368,6 +368,7 @@ public class TestSweApiTransactions
                 .add("uid", String.format("urn:osh:foi:test%03d", procNum))
                 .add("name", "Sampling Feature #" + procNum)
                 .add("description", "Sensor Station #" + procNum)
+                .add("type", "http://www.opengis.net/def/featureType/MyFeature")
             .end();
         
         return json.getJson();

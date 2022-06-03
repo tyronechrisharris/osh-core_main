@@ -22,6 +22,7 @@ import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
+import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import com.google.common.collect.ImmutableList;
 import static j2html.TagCreator.*;
 
@@ -102,6 +103,9 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
     {
         var resourceUrl = getResourceUrl(key);
         
+        var sysId = encodeID(dsInfo.getSystemID().getInternalID());
+        var sysUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId;
+        
         renderCard(
             a(dsInfo.getName())
                 .withHref(resourceUrl)
@@ -111,7 +115,7 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
             ).withClasses(CSS_CARD_SUBTITLE)),
             div(
                 span("Parent System: ").withClass(CSS_BOLD),
-                span(dsInfo.getSystemID().getUniqueID())
+                a(dsInfo.getSystemID().getUniqueID()).withHref(sysUrl)
             ),
             div(
                 span("Control Input: ").withClass(CSS_BOLD),

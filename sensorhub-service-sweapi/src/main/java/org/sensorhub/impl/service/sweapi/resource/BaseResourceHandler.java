@@ -51,7 +51,7 @@ import org.vast.util.Asserts;
 public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extends IDataStore<K, V, ?, F>> extends BaseHandler implements IResourceHandler
 {
     public static final String READ_ONLY_ERROR = "Resource type is read-only";
-    public static final String INVALID_VERSION_ERROR_MSG = "Invalid version number: ";
+    public static final String INVALID_TIMESTAMP_ERROR_MSG = "Invalid time stamp: ";
     public static final String ALREADY_EXISTS_ERROR_MSG = "Resource already exists";
     public static final String STREAMING_UNSUPPORTED_ERROR_MSG = "Streaming not supported on this resource collection";
     public static final String EVENTS_UNSUPPORTED_ERROR_MSG = "Events not supported on this resource collection";

@@ -349,6 +349,17 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         
         if (comp instanceof DataRecord || comp instanceof Vector || comp instanceof DataChoice)
         {
+            if (comp instanceof Vector && ((Vector)comp).getReferenceFrame() != null)
+            {
+                content.with(div(
+                    span("Reference Frame").withClass(CSS_BOLD),
+                    span(": "),
+                    a(((Vector)comp).getReferenceFrame())
+                        .withHref(((Vector)comp).getReferenceFrame())
+                        .withTarget("_blank")
+                ));
+            }
+            
             for (int i = 0; i < comp.getComponentCount(); i++)
             {
                 var child = comp.getComponent(i);

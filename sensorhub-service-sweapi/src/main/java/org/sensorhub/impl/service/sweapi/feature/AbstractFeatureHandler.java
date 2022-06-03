@@ -93,14 +93,14 @@ public abstract class AbstractFeatureHandler<
     }
     
     
-    protected FeatureKey getKey(BigId internalID, long version)
+    protected FeatureKey getKey(BigId internalID, Instant validTime)
     {
-        if (version == 0)
+        if (validTime == null)
             return getKey(internalID);
         
         return dataStore.selectKeys(dataStore.filterBuilder()
                 .withInternalIDs(internalID)
-                .validAtTime(Instant.ofEpochSecond(version))
+                .validAtTime(validTime)
                 .build())
             .findFirst()
             .orElse(null);
@@ -111,6 +111,13 @@ public abstract class AbstractFeatureHandler<
     protected FeatureKey addEntry(final RequestContext ctx, final V f) throws DataStoreException
     {        
         return dataStore.add(f);
+    }
+    
+    
+    @Override
+    protected boolean updateEntry(final RequestContext ctx, final FeatureKey key, final V f) throws DataStoreException
+    {        
+        return dataStore.put(key, f) != null;
     }
     
     

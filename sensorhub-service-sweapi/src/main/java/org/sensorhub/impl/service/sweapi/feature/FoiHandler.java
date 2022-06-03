@@ -112,8 +112,8 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     {
         if (ctx.getParentID() != null)
         {
-            var procHandler = transactionHandler.getSystemHandler(ctx.getParentID());
-            return procHandler.addOrUpdateFoi(foi);
+            var sysHandler = transactionHandler.getSystemHandler(ctx.getParentID());
+            return sysHandler.addFoi(foi);
         }
         
         return super.addEntry(ctx, foi);

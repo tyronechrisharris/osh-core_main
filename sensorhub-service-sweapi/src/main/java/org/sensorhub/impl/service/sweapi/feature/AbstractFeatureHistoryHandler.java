@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
@@ -75,9 +76,9 @@ public abstract class AbstractFeatureHistoryHandler<
         
         // internal ID & version number
         var internalID = ctx.getParentID();
-        var version = getVersionNumber(ctx, id);
+        var validTime = getValidTime(ctx, id);
         
-        var key = getKey(internalID, version);
+        var key = getKey(internalID, validTime);
         V res = dataStore.get(key);
         if (res == null)
             throw ServiceErrors.notFound();
@@ -100,30 +101,24 @@ public abstract class AbstractFeatureHistoryHandler<
         
         // internal ID & version number
         var internalID = ctx.getParentID();
-        var version = getVersionNumber(ctx, id);
+        var validTime = getValidTime(ctx, id);
         
         // delete resource
-        IFeature res = dataStore.remove(getKey(internalID, version));
+        IFeature res = dataStore.remove(getKey(internalID, validTime));
         if (res == null)
             throw ServiceErrors.notFound();
     }
     
     
-    protected int getVersionNumber(final RequestContext ctx, final String version) throws InvalidRequestException
+    protected Instant getValidTime(final RequestContext ctx, final String timeStamp) throws InvalidRequestException
     {
         try
         {
-            var num = Integer.parseInt(version);
-            
-            // stop here if version is negative
-            if (num <= 0)
-                throw new NumberFormatException();
-            
-            return num;
+            return Instant.parse(timeStamp);
         }
-        catch (NumberFormatException e)
+        catch (DateTimeParseException e)
         {
-            throw ServiceErrors.badRequest(INVALID_VERSION_ERROR_MSG + version);
+            throw ServiceErrors.badRequest(INVALID_TIMESTAMP_ERROR_MSG + timeStamp);
         }
     }
     
@@ -134,8 +129,8 @@ public abstract class AbstractFeatureHistoryHandler<
         IResourceHandler resource = getSubResource(ctx);
         
         var internalID = ctx.getParentRef().internalID;
-        var version = getVersionNumber(ctx, id);
-        ctx.setParent(this, internalID, version);
+        var validTime = getValidTime(ctx, id);
+        ctx.setParent(this, internalID, validTime);
         
         return resource;
     }
@@ -162,13 +157,11 @@ public abstract class AbstractFeatureHistoryHandler<
     }
     
     
-    protected FeatureKey getKey(BigId internalID, int version)
+    protected FeatureKey getKey(BigId internalID, Instant validTime)
     {
-        //var fk = new FeatureKey(internalID, Instant.ofEpochSecond(version));
-        
         return dataStore.selectKeys(dataStore.filterBuilder()
                 .withInternalIDs(internalID)
-                .validAtTime(Instant.ofEpochSecond(version))
+                .validAtTime(validTime)
                 .build())
             .findFirst()
             .orElse(null);

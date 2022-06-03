@@ -154,13 +154,14 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         systemsHandler.addSubResource(sysMembersHandler);
         sysMembersHandler.addSubResource(sysMembersHandler);
         
-        var sysHistoryHandler = new SystemHistoryHandler(eventBus, db, security.system_summary_permissions);
-        systemsHandler.addSubResource(sysHistoryHandler);
-        sysMembersHandler.addSubResource(sysHistoryHandler);
-        
         var sysDetailsHandler = new SystemDetailsHandler(eventBus, db, security.system_details_permissions);
         systemsHandler.addSubResource(sysDetailsHandler);
         sysMembersHandler.addSubResource(sysDetailsHandler);
+        
+        var sysHistoryHandler = new SystemHistoryHandler(eventBus, db, security.system_summary_permissions);
+        systemsHandler.addSubResource(sysHistoryHandler);
+        sysMembersHandler.addSubResource(sysHistoryHandler);
+        sysHistoryHandler.addSubResource(sysDetailsHandler);
         
         // procedures
         if (db.getProcedureStore() != null)

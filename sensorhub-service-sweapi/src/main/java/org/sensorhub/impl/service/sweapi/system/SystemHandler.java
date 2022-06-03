@@ -146,21 +146,21 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
                 .defaultToValidFromNow();
         }
         
-        var procHandler = transactionHandler.addSystem(res);
+        var sysHandler = transactionHandler.addSystem(res);
 
         // also add datastreams if outputs were specified in SML description
         if (sml != null)
-            SystemUtils.addDatastreamsFromOutputs(procHandler, sml.getOutputList());
+            SystemUtils.addDatastreamsFromOutputs(sysHandler, sml.getOutputList());
         
-        return procHandler.getSystemKey();
+        return sysHandler.getSystemKey();
     }
     
     
     @Override
     protected boolean updateEntry(final RequestContext ctx, final FeatureKey key, ISystemWithDesc res) throws DataStoreException
     {        
-        var procHandler = transactionHandler.getSystemHandler(key.getInternalID());
-        if (procHandler == null)
+        var sysHandler = transactionHandler.getSystemHandler(key.getInternalID());
+        if (sysHandler == null)
             return false;
         
         // cleanup sml description before storage
@@ -173,17 +173,17 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
                 .defaultToValidFromNow();
         }
         
-        return procHandler.update(res);
+        return sysHandler.update(res);
     }
     
     
     protected boolean deleteEntry(final RequestContext ctx, final FeatureKey key) throws DataStoreException
     {
-        var procHandler = transactionHandler.getSystemHandler(key.getInternalID());
-        if (procHandler == null)
+        var sysHandler = transactionHandler.getSystemHandler(key.getInternalID());
+        if (sysHandler == null)
             return false;
         else
-            return procHandler.delete();
+            return sysHandler.delete();
     }
     
     
