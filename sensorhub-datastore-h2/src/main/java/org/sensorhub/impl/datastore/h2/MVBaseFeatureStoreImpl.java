@@ -234,6 +234,9 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         checkParentFeatureExists(parentID);
         
         var existingKey = uidsIndex.get(feature.getUniqueIdentifier());
+        if (existingKey != null && parentID != null && existingKey.getParentID() != parentID.getIdAsLong())
+            throw new DataStoreException("Feature is already associated to another parent");
+        
         var newKey = generateKey(parentID.getIdAsLong(), existingKey, feature);
         
         // add to store
