@@ -125,6 +125,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         {
             case UID_HASH:
                 idProvider = DataStoreUtils.getFeatureHashIdProvider(212158449);
+                break;
                 
             default:
             case SEQUENTIAL:

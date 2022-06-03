@@ -160,6 +160,7 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
         {
             case UID_HASH:
                 idProvider = DataStoreUtils.getCommandStreamHashIdProvider(784122258);
+                break;
                 
             default:
             case SEQUENTIAL:

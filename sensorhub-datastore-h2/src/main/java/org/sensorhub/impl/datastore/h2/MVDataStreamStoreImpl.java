@@ -160,6 +160,7 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         {
             case UID_HASH:
                 idProvider = DataStoreUtils.getDataStreamHashIdProvider(741532149);
+                break;
                 
             default:
             case SEQUENTIAL:
