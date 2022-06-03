@@ -16,6 +16,7 @@ package org.sensorhub.impl.system;
 
 import java.time.Instant;
 import java.util.Map.Entry;
+import java.util.Objects;
 import org.sensorhub.api.command.CommandStreamAddedEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
@@ -201,7 +202,8 @@ public class SystemTransactionHandler
         var uid = OshAsserts.checkSystemObject(system);
         
         var memberKey = getSystemDescStore().getCurrentVersionKey(uid);
-        if (memberKey != null)
+        if (memberKey != null &&
+           (system.getValidTime() == null || Objects.equals(system.getValidTime().begin(), memberKey.getValidStartTime())))
         {
             var memberHandler = createMemberHandler(memberKey, uid);
             memberHandler.update(system);
@@ -408,51 +410,40 @@ public class SystemTransactionHandler
     }
     
     
-    public synchronized FeatureKey addOrUpdateFoi(IFeature foi) throws DataStoreException
+    public synchronized FeatureKey addFoi(IFeature foi) throws DataStoreException
     {
         DataStoreUtils.checkFeatureObject(foi);
         
+        var fk = getFoiStore().add(sysKey.getInternalID(), foi);
+        log.debug("Added FOI {}", foi.getUniqueIdentifier());
+        
+        publishSystemEvent(new FoiAddedEvent(
+            System.currentTimeMillis(),
+            sysUID,
+            foi.getUniqueIdentifier(),
+            Instant.now()));
+        
+        foiIdMap.put(foi.getUniqueIdentifier(), fk.getInternalID());
+        return fk;
+    }
+    
+    
+    public synchronized FeatureKey addOrUpdateFoi(IFeature foi) throws DataStoreException
+    {
+        DataStoreUtils.checkFeatureObject(foi);
         var uid = foi.getUniqueIdentifier();
-        boolean isNew;
         
+        // add or update if feature with same ID and valid time exists
         FeatureKey fk = rootHandler.db.getFoiStore().getCurrentVersionKey(uid);
-        
-        // store feature description if none was found
-        if (fk == null)
+        if (fk != null &&
+           (foi.getValidTime() == null || Objects.equals(foi.getValidTime().begin(), fk.getValidStartTime())))
         {
-            fk = getFoiStore().add(sysKey.getInternalID(), foi);
-            isNew = true;
-            log.debug("Added FOI {}", foi.getUniqueIdentifier());
+            getFoiStore().put(fk, foi);
+            log.debug("Updated FOI {}", foi.getUniqueIdentifier());
+            foiIdMap.put(uid, fk.getInternalID());
         }
-        
-        // otherwise add it only if its newer than the one already in storage
-        // otherwise update existing one
         else
-        {
-            if (foi.getValidTime() != null && fk.getValidStartTime().isBefore(foi.getValidTime().begin()))
-            {
-                fk = getFoiStore().add(sysKey.getInternalID(), foi);
-                isNew = true;
-                log.debug("Added FOI {}", foi.getUniqueIdentifier());
-            }
-            else
-            {
-                getFoiStore().put(fk, foi);
-                isNew = false;
-                log.debug("Updated FOI {}", foi.getUniqueIdentifier());
-            }
-        }
-        
-        foiIdMap.put(uid, fk.getInternalID());
-        
-        if (isNew)
-        {
-            publishSystemEvent(new FoiAddedEvent(
-                System.currentTimeMillis(),
-                sysUID,
-                foi.getUniqueIdentifier(),
-                Instant.now()));
-        }
+            fk = addFoi(foi);
         
         return fk;
     }
