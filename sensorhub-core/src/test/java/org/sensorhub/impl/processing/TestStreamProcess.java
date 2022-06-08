@@ -24,6 +24,7 @@ import org.sensorhub.api.data.DataEvent;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.module.IModule;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.SensorConfig;
@@ -117,6 +118,7 @@ public class TestStreamProcess implements IEventListener
         for (IStreamingDataInterface output: process.getOutputs().values())
             output.registerListener(this);
         
+        process.waitForState(ModuleState.INITIALIZED, 5000);
         return process;
     }
     

@@ -79,7 +79,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
         if (producerUri != null)
         {
             try {
-                Async.waitForCondition(this::checkForDataSource, 1000, 10000);
+                Async.waitForCondition(this::checkForDataSource, 500, 10000);
             } catch (TimeoutException e) {
                 throw new IllegalStateException("System with URI " + producerUri + " not found", e);
             }
@@ -109,7 +109,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
         do
         {
             numDs = outputData.size();
-            try { Thread.sleep(1000); }
+            try { Thread.sleep(250); }
             catch (InterruptedException e) { }
             
             // add outputs

@@ -69,10 +69,9 @@ public abstract class AbstractProcessModule<T extends ProcessConfig> extends Abs
         super.beforeStart();
         
         // register sensor with registry if attached to a hub and we have no parent
-        // if we have a parent we should have been registered via the parent
         try
         {
-            if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null && parentSystem == null)
+            if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
                 getParentHub().getSystemDriverRegistry().register(this).get(); // for now, block here until init is also async
         }
         catch (ExecutionException | InterruptedException e)
