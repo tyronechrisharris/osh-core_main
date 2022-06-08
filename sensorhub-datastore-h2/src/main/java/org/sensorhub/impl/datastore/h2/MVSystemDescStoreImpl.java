@@ -158,7 +158,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
     {
         // update validTime in the case it ends at now and there is a
         // more recent version of the system description available
-        Stream<Entry<FeatureKey, ISystemWithDesc>> resultStream = super.selectEntries(filter, fields).map(e -> {
+        Stream<Entry<FeatureKey, ISystemWithDesc>> resultStream = super.selectEntriesNoLimit(filter, fields).map(e -> {
             var proc = (ISystemWithDesc)e.getValue();
             var procWrap = new ISystemWithDesc()
             {
@@ -195,6 +195,10 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
         // apply post filter on time now that we computed the correct valid time period
         if (filter.getValidTime() != null)
             resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
+        
+        // apply limit
+        if (filter.getLimit() < Long.MAX_VALUE)
+            resultStream = resultStream.limit(filter.getLimit());
         
         return resultStream;
     }

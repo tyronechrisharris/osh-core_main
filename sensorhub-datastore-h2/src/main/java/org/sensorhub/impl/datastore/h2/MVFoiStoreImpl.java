@@ -143,7 +143,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
     {
         // update validTime in the case it ends at now and there is a
         // more recent version of the feature description available
-        Stream<Entry<FeatureKey, IFeature>> resultStream = super.selectEntries(filter, fields).map(e -> {
+        Stream<Entry<FeatureKey, IFeature>> resultStream = super.selectEntriesNoLimit(filter, fields).map(e -> {
             var f = e.getValue();
             if (f.getValidTime() != null)
             {
@@ -177,6 +177,10 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
         // apply post filter on time now that we computed the correct valid time period
         if (filter.getValidTime() != null)
             resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
+        
+        // apply limit
+        if (filter.getLimit() < Long.MAX_VALUE)
+            resultStream = resultStream.limit(filter.getLimit());
         
         return resultStream;
     }

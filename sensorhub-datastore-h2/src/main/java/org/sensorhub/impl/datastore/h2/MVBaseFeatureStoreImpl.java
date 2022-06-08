@@ -555,6 +555,18 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public Stream<Entry<FeatureKey, V>> selectEntries(F filter, Set<VF> fields)
     {
+        var resultStream = selectEntriesNoLimit(filter, fields);
+        
+        // apply limit
+        if (filter.getLimit() < Long.MAX_VALUE)
+            resultStream = resultStream.limit(filter.getLimit());
+        
+        return resultStream;
+    }
+    
+    
+    public Stream<Entry<FeatureKey, V>> selectEntriesNoLimit(F filter, Set<VF> fields)
+    {
         var resultStream = getIndexedStream(filter);
         
         // if no suitable index was found, just stream all features
@@ -601,10 +613,6 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 });
         }
         
-        // apply limit
-        if (filter.getLimit() < Long.MAX_VALUE)
-            resultStream = resultStream.limit(filter.getLimit());
-        
         // casting is ok since keys are subtypes of FeatureKey
         @SuppressWarnings({ "unchecked", })
         var castedResultStream = (Stream<Entry<FeatureKey, V>>)(Stream<?>)resultStream;
@@ -619,7 +627,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         // i.e. when no predicates are used
         // can make use of H2 index counting feature
         
-        return selectEntries(filter).limit(filter.getLimit()).count();
+        return selectEntries(filter).count();
     }
 
 
