@@ -30,6 +30,7 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventListener;
+import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.api.system.ISystemGroupDriver;
 import org.sensorhub.api.system.SystemChangedEvent;
@@ -98,7 +99,10 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         if (driver instanceof ISystemGroupDriver)
         {
             for (var member: ((ISystemGroupDriver<?>)driver).getMembers().values())
-                doRegisterMember(member, driver.getCurrentDescription().getValidTime());
+            {
+                if (!(member instanceof IModule<?>)) // don't register submodules as they'll register themselves
+                    doRegisterMember(member, driver.getCurrentDescription().getValidTime());
+            }
         }
 
         if (DefaultSystemRegistry.log.isInfoEnabled())

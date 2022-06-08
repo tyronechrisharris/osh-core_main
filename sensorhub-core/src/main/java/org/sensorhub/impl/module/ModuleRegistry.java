@@ -648,7 +648,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 {
                     if (!module.isInitialized())
                     {
-                        module.init();
+                        if (module.getCurrentState() != ModuleState.INITIALIZING)
+                            module.init();
                         module.waitForState(ModuleState.INITIALIZED, DEFAULT_TIMEOUT_MS);
                     }
                 }

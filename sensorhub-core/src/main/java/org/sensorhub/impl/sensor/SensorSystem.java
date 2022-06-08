@@ -14,23 +14,28 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.sensor;
 
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 import net.opengis.sensorml.v20.PhysicalSystem;
-import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleConfig;
-import org.sensorhub.api.processing.IProcessModule;
-import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.sensor.ISensorModule;
+import org.sensorhub.api.module.ModuleEvent;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
+import org.sensorhub.api.data.IDataProducerModule;
+import org.sensorhub.api.event.Event;
+import org.sensorhub.api.system.ISystemGroupDriver;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.sensor.SensorSystemConfig.ProcessMember;
-import org.sensorhub.impl.sensor.SensorSystemConfig.SensorMember;
+import org.sensorhub.impl.processing.AbstractProcessModule;
+import org.sensorhub.impl.sensor.SensorSystemConfig.SystemMember;
 import org.sensorhub.utils.MsgUtils;
+import org.vast.swe.SWEConstants;
+import org.vast.util.Asserts;
+import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -45,14 +50,13 @@ import org.sensorhub.utils.MsgUtils;
  * @author Alex Robin
  * @since Mar 19, 2016
  */
-public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
+public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> implements ISystemGroupDriver<IDataProducerModule<?>>
 {
     public final static String DEFAULT_XMLID_PREFIX = "SYSTEM_";
     public final static String AUTO_ID = "auto";
     private final static String URN_PREFIX = "urn:";
     
-    Map<String, ISensorModule<?>> sensors;
-    Map<String, IProcessModule<?>> processes;
+    Collection<IDataProducerModule<?>> subsystems = new ArrayList<>();
     
     
     @Override
@@ -76,35 +80,62 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
             }
         }
         
-        // load all sensor modules
-        sensors = new LinkedHashMap<String, ISensorModule<?>>();
-        for (SensorMember member: config.sensors)
+        // load and init all subsystem modules
+        subsystems.clear();
+        for (SystemMember member: config.subsystems)
         {
-            ISensorModule<?> sensor = (ISensorModule<?>)loadModule(member.config);
-            if (sensor != null)
-                sensors.put(member.name, sensor);
+            var module = (IDataProducerModule<?>)loadModule(member.config);
+            if (module != null)
+            {
+                try
+                {
+                    subsystems.add(module);
+                    module.init();
+                }
+                catch (Exception e)
+                {
+                    getLogger().error("Cannot initialize system component {}", MsgUtils.moduleString(config), e);
+                }
+            }
+        }
+    }
+    
+    
+    public IModule<?> addSubsystem(SystemMember member) throws SensorHubException
+    {
+        var module = (IDataProducerModule<?>)loadModule(member.config);
+        if (module == null)
+            throw new SensorHubException("Error loading module");
+        
+        config.subsystems.add(member);
+        subsystems.add(module);
+        return module;
+    }
+    
+    
+    public void removeSubSystem(String id) throws SensorHubException
+    {
+        Asserts.checkNotNull(id, "id");
+        
+        // remove from config
+        var it2 = config.subsystems.iterator();
+        while (it2.hasNext())
+        {
+            var memberCfg = it2.next();
+            if (id.equals(memberCfg.config.id))
+                it2.remove();
         }
         
-        // load all processing modules
-        processes = new LinkedHashMap<String, IProcessModule<?>>();
-        for (ProcessMember member: config.processes)
+        // remove and stop module
+        var it = subsystems.iterator();
+        while (it.hasNext())
         {
-            IProcessModule<?> process = (IProcessModule<?>)loadModule(member.config);
-            if (process != null)
-                processes.put(member.name, process);
-        }
-        
-        // aggregate all sensors outputs and control inputs
-        for (ISensorModule<?> sensor: sensors.values())
-        {
-            for (IStreamingDataInterface output: sensor.getObservationOutputs().values())
-                this.addOutput(output, false);
-            
-            for (IStreamingDataInterface output: sensor.getStatusOutputs().values())
-                this.addOutput(output, true);
-            
-            for (IStreamingControlInterface input: sensor.getCommandInputs().values())
-                this.addControlInput(input);
+            var member = it.next();
+            if (id.equals(member.getLocalID()))
+            {
+                it.remove();
+                member.stop();
+            }
         }
     }
     
@@ -118,15 +149,30 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
             
             var module = getParentHub().getModuleRegistry().loadSubModule(config, false);
             module.setParentHub(getParentHub());
-            module.init();
+            
+            if (module instanceof AbstractSensorModule)
+                ((AbstractSensorModule<?>)module).attachToParent(this);
+            
+            if (module instanceof AbstractProcessModule)
+                ((AbstractProcessModule<?>)module).attachToParent(this);
+            
+            // register to receive module events
+            module.registerListener(this::handleEvent);
             
             return module;
         }
         catch (Exception e)
         {
-            getLogger().error("Cannot initialize system component {}", MsgUtils.moduleString(config), e);
+            getLogger().error("Cannot load system component {}", MsgUtils.moduleString(config), e);
             return null;
         }
+    }
+    
+    
+    protected void handleEvent(Event e)
+    {
+        if (e instanceof ModuleEvent)
+            eventHandler.publish(e);
     }
 
 
@@ -137,10 +183,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
         {
             super.updateSensorDescription();
             PhysicalSystem system = (PhysicalSystem)sensorDescription;
-            
-            // include sensor descriptions as components
-            for (Entry<String, ISensorModule<?>> entry: sensors.entrySet())
-                system.addComponent(entry.getKey(), entry.getValue().getCurrentDescription());
+            system.setDefinition(SWEConstants.DEF_SYSTEM);
         }
     }
 
@@ -148,37 +191,19 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
     @Override
     protected void doStart() throws SensorHubException
     {
-        for (ISensorModule<?> sensor: sensors.values())
+        for (var member: subsystems)
         {
             try
             {
-                sensor.start();
-                
-                // add sensor outputs and control inputs now in case they didn't exist in init()
-                for (IStreamingDataInterface output: sensor.getObservationOutputs().values())
-                    this.addOutput(output, false);
-                
-                for (IStreamingDataInterface output: sensor.getStatusOutputs().values())
-                    this.addOutput(output, true);
-                
-                for (IStreamingControlInterface input: sensor.getCommandInputs().values())
-                    this.addControlInput(input);
+                if (member.getConfiguration().autoStart)
+                {
+                    member.waitForState(ModuleState.INITIALIZED, 10000);
+                    member.start();
+                }
             }
             catch (Exception e)
             {
-                getLogger().error("Cannot start system sensor {}", MsgUtils.moduleString(sensor), e);
-            }
-        }
-        
-        for (IProcessModule<?> process: processes.values())
-        {
-            try
-            {
-                process.start();
-            }
-            catch (Exception e)
-            {
-                getLogger().error("Cannot start system process {}", MsgUtils.moduleString(process), e);
+                reportError("Cannot start subsystem " + MsgUtils.moduleString(member), e);
             }
         }
     }
@@ -187,22 +212,25 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
     @Override
     protected void doStop() throws SensorHubException
     {
-        for (ISensorModule<?> sensor: sensors.values())
-            sensor.stop();
-        
-        for (IProcessModule<?> process: processes.values())
-            process.stop();
+        for (var member: subsystems)
+        {
+            try
+            {
+                member.stop();
+            }
+            catch (SensorHubException e)
+            {
+                getLogger().error("Error stopping subsystem {}", MsgUtils.moduleString(member), e);
+            }
+        }
     }
 
 
     @Override
     public void cleanup() throws SensorHubException
     {
-        for (ISensorModule<?> sensor: sensors.values())
-            sensor.cleanup();
-        
-        for (IProcessModule<?> process: processes.values())
-            process.cleanup();
+        for (var member: subsystems)
+            member.cleanup();
         
         super.cleanup();
     }
@@ -211,12 +239,6 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
     @Override
     public boolean isConnected()
     {
-        for (ISensorModule<?> sensor: sensors.values())
-        {
-            if (!sensor.isConnected())
-                return false;
-        }
-        
         return true;
     }
 
@@ -228,18 +250,11 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
         
         // also load sub modules state
         ModuleRegistry reg = getParentHub().getModuleRegistry();
-        for (ISensorModule<?> sensor: sensors.values())
+        for (var member: subsystems)
         {
-            loader = reg.getStateManager(sensor.getLocalID());
+            loader = reg.getStateManager(member.getLocalID());
             if (loader != null)
-                sensor.loadState(loader);
-        }
-        
-        for (IProcessModule<?> process: processes.values())
-        {
-            loader = reg.getStateManager(process.getLocalID());
-            if (loader != null)
-                process.loadState(loader);
+                member.loadState(loader);
         }
     }
 
@@ -251,29 +266,11 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
         
         // also save sub modules state
         ModuleRegistry reg = getParentHub().getModuleRegistry();
-        for (ISensorModule<?> sensor: sensors.values())
+        for (var member: subsystems)
         {
-            saver = reg.getStateManager(sensor.getLocalID());
-            sensor.saveState(saver);
+            saver = reg.getStateManager(member.getLocalID());
+            member.saveState(saver);
         }
-        
-        for (IProcessModule<?> process: processes.values())
-        {
-            saver = reg.getStateManager(process.getLocalID());
-            process.saveState(saver);
-        }
-    }
-
-
-    public Map<String, ISensorModule<?>> getSensors()
-    {
-        return sensors;
-    }
-
-
-    public Map<String, IProcessModule<?>> getProcesses()
-    {
-        return processes;
     }
 
 
@@ -282,6 +279,21 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig>
     {
         super.generateXmlIDFromUUID(uuid);
         this.xmlID.replace(AbstractSensorModule.DEFAULT_XMLID_PREFIX, DEFAULT_XMLID_PREFIX);
+    }
+
+
+    @Override
+    public Map<String, ? extends IDataProducerModule<?>> getMembers()
+    {
+        return subsystems != null ?
+            subsystems.stream().collect(ImmutableMap.toImmutableMap(this::getMemberName, e -> e)) :
+            Collections.emptyMap();
+    }
+    
+    
+    protected String getMemberName(IModule<?> member)
+    {
+        return member.getName().toLowerCase().replaceAll("\\s+", "_");
     }
 
 }

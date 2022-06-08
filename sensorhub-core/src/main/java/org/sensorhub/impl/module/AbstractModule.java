@@ -46,7 +46,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     protected Logger logger;
     protected IEventHandler eventHandler = new BasicEventHandler();
     protected ConfigType config;
-    protected ModuleState state = ModuleState.LOADED;
+    protected volatile ModuleState state = ModuleState.LOADED;
     protected ModuleSecurity securityHandler;
     protected final Object stateLock = new Object();
     protected boolean initAsync, startAsync, stopAsync;

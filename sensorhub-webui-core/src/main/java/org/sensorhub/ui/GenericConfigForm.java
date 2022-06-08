@@ -32,8 +32,7 @@ import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.IModuleProvider;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.module.ModuleRegistry;
-import org.sensorhub.impl.sensor.SensorSystemConfig.ProcessMember;
-import org.sensorhub.impl.sensor.SensorSystemConfig.SensorMember;
+import org.sensorhub.impl.sensor.SensorSystemConfig.SystemMember;
 import org.sensorhub.ui.ModuleInstanceSelectionPopup.ModuleInstanceSelectionCallback;
 import org.sensorhub.ui.ModuleTypeSelectionPopup.ModuleTypeSelectionWithClearCallback;
 import org.sensorhub.ui.NetworkAddressSelectionPopup.AddressSelectionCallback;
@@ -793,7 +792,7 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     {
         // skip SensorSystem members since they are already shown in the tree
         Class<?> eltType = prop.getValue().getBeanType();
-        if (eltType == SensorMember.class || eltType == ProcessMember.class)
+        if (eltType == SystemMember.class)
             return;
         
         // use simple list for string lists

@@ -82,12 +82,13 @@ import com.google.common.collect.ImmutableMap;
  * All of these items can be overriden by derived classes.<br/>
  * It also provides helper methods to implement automatic reconnection.
  * </p>
+ * 
+ * @param <T> Type of sensor module config
  *
  * @author Alex Robin
- * @param <ConfigType>
  * @since Oct 30, 2014
  */
-public abstract class AbstractSensorModule<ConfigType extends SensorConfig> extends AbstractModule<ConfigType> implements ISensorModule<ConfigType>
+public abstract class AbstractSensorModule<T extends SensorConfig> extends AbstractModule<T> implements ISensorModule<T>
 {
     public static final String DEFAULT_XMLID_PREFIX = "SENSOR_";
     protected static final String LOCATION_OUTPUT_ID = "SENSOR_LOCATION";
@@ -101,6 +102,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     private final Map<String, IStreamingDataInterface> statusOutputs = new LinkedHashMap<>();
     private final Map<String, IStreamingControlInterface> controlInputs = new LinkedHashMap<>();
 
+    protected volatile ISystemGroupDriver<?> parentSystem;
     protected volatile DefaultLocationOutput locationOutput;
     protected volatile AbstractProcess sensorDescription = new PhysicalSystemImpl();
     protected volatile long lastUpdatedSensorDescription = Long.MIN_VALUE;
@@ -209,7 +211,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     {
         super.beforeStart();
         
-        // register sensor with registry if attached to a hub
+        // register sensor with registry if attached to a hub and we have no parent
         try
         {
             if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
@@ -378,14 +380,20 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
     @Override
     public String getParentSystemUID()
     {
-        return null;
+        return parentSystem != null ? parentSystem.getUniqueIdentifier() : null;
     }
 
 
     @Override
-    public ISystemGroupDriver<ISystemDriver> getParentSystem()
+    public ISystemGroupDriver<? extends ISystemDriver> getParentSystem()
     {
-        return null;
+        return parentSystem;
+    }
+    
+    
+    public void attachToParent(ISystemGroupDriver<? extends ISystemDriver> parentSystem)
+    {
+        this.parentSystem = parentSystem;
     }
 
 
@@ -649,7 +657,7 @@ public abstract class AbstractSensorModule<ConfigType extends SensorConfig> exte
 
 
     @Override
-    public synchronized void updateConfig(ConfigType config) throws SensorHubException
+    public synchronized void updateConfig(T config) throws SensorHubException
     {
         super.updateConfig(config);
         if (config.sensorML != null)

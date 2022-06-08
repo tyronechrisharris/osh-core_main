@@ -18,8 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.config.DisplayInfo.Required;
-import org.sensorhub.api.processing.ProcessConfig;
-import org.sensorhub.api.sensor.PositionConfig;
+import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.sensor.PositionConfig.CartesianLocation;
 import org.sensorhub.api.sensor.PositionConfig.EulerOrientation;
 import org.sensorhub.api.sensor.PositionConfig.LLALocation;
@@ -37,19 +36,16 @@ import org.sensorhub.api.sensor.SensorConfig;
 public class SensorSystemConfig extends SensorConfig
 {    
    
-    public static class SensorMember
+    public static class SystemMember
     {
-        public String name;
-        public SensorConfig config;
+        @DisplayInfo(label="Subsystem Config", desc="Configuration of the subsystem")
+        public ModuleConfig config;
+        
+        @DisplayInfo(label="Relative Location", desc="Location of this subsystem relative to the main system or platform reference frame")
         public CartesianLocation location;
+        
+        @DisplayInfo(label="Relative Orientation", desc="Orientation of this subsystem relative to the main system or platform reference frame")
         public EulerOrientation orientation;
-    }
-    
-    
-    public static class ProcessMember
-    {
-        public String name;
-        public ProcessConfig config;
     }
     
         
@@ -58,32 +54,28 @@ public class SensorSystemConfig extends SensorConfig
     public String uniqueID;
     
     
-    @DisplayInfo(label="Fixed Position", desc="Fixed system position on earth")
-    public PositionConfig position;
+    @DisplayInfo(label="Fixed Location", desc="Fixed system location in EPSG 4979 (WGS84) coordinate system")
+    public LLALocation location;
     
     
-    @DisplayInfo(label="System Sensors", desc="Configuration of sensor components of this sensor system")
-    public List<SensorMember> sensors = new ArrayList<SensorMember>();    
+    @DisplayInfo(label="Fixed Orientation", desc="Fixed system orientation in the local NED reference frame")
+    public EulerOrientation orientation;
     
     
-    @DisplayInfo(label="System Processes", desc="Configuration of processing components of this sensor system")
-    public List<ProcessMember> processes = new ArrayList<ProcessMember>();
+    @DisplayInfo(label="Subsystems", desc="Configuration of components of this sensor system")
+    public List<SystemMember> subsystems = new ArrayList<SystemMember>();
 
 
     @Override
     public LLALocation getLocation()
     {
-        if (position == null)
-            return null;
-        return position.location;
+        return location;
     }
 
 
     @Override
     public EulerOrientation getOrientation()
     {
-        if (position == null)
-            return null;
-        return position.orientation;
+        return orientation;
     }
 }
