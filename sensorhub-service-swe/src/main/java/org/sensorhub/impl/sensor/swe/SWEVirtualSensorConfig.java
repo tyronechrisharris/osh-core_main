@@ -19,6 +19,7 @@ import java.util.List;
 import org.sensorhub.api.config.DisplayInfo;
 import org.sensorhub.api.sensor.SensorConfig;
 import org.sensorhub.impl.comm.HTTPConfig;
+import org.sensorhub.impl.module.RobustConnectionConfig;
 
 
 /**
@@ -48,11 +49,22 @@ public class SWEVirtualSensorConfig extends SensorConfig
     
     //@DisplayInfo(label="Use WebSockets for SPS", desc="Set if websockets protocol should be used to send commands to SPS")
     //public boolean spsUseWebsockets = false;
-           
+    
+    @DisplayInfo(label="Connection Settings")
+    public RobustConnectionConfig connectionConfig = new RobustConnectionConfig();
     
     public SWEVirtualSensorConfig()
     {
         this.moduleClass = SWEVirtualSensor.class.getCanonicalName();
+        // Set a longer connection timeout than the default offered by RobustConnectionConfig.
+        // This will allow us to wait longer for observations, in cases where observations are
+        // infrequent.
+        connectionConfig.connectTimeout = 30000;
+        // Set a shorter time between reconnection attempts, so that data is less likely to be
+        // lost during the outage.
+        connectionConfig.reconnectPeriod = 1000;
+        // Set the default to allow infinitely many reconnection attempts.
+        connectionConfig.reconnectAttempts = -1;
     }
 
 }

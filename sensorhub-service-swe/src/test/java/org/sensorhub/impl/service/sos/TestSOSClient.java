@@ -32,6 +32,7 @@ public class TestSOSClient implements StreamingListener
 {
     TestSOSService sosTest;
     int recordCounter = 0;
+    int stopCounter = 0;
     
     
     @Before
@@ -53,7 +54,7 @@ public class TestSOSClient implements StreamingListener
         req.setTime(TimeExtent.beginNow(Instant.now().plus(1, ChronoUnit.MINUTES)));
         req.setXmlWrapper(false);
         
-        SOSClient client = new SOSClient(req, false);
+        SOSClient client = new SOSClient(req, false, 1000, 0, 600_000L);
         
         // start service and client
         sosTest.testSetupService();
@@ -77,7 +78,7 @@ public class TestSOSClient implements StreamingListener
         req.setTime(TimeExtent.beginNow(Instant.now().plus(1, ChronoUnit.MINUTES)));
         req.setXmlWrapper(false);
         
-        SOSClient client = new SOSClient(req, true);
+        SOSClient client = new SOSClient(req, true, 1000, 0, 600_000L);
         
         // start service and client
         sosTest.testSetupService();
@@ -89,7 +90,69 @@ public class TestSOSClient implements StreamingListener
         assertTrue(recordCounter > 0);
     }
     
-    
+    /**
+     * Test to make sure that the SOSClient attempts to reconnect.
+     */
+    @Test
+    public void testWebsocketReconnect() throws Exception {
+        GetResultRequest req = new GetResultRequest();
+        req.setGetServer(TestSOSService.HTTP_ENDPOINT);
+        req.setVersion("2.0");
+        req.setOffering(TestSOSService.URI_OFFERING1);
+        req.getObservables().add(TestSOSService.URI_PROP1);
+        req.setTime(TimeExtent.beginNow(Instant.now().plus(1, ChronoUnit.MINUTES)));
+        req.setXmlWrapper(false);
+        
+        SOSClient client = new SOSClient(req, true, 1000, 1, 600_000);
+        
+        // start service and client
+        sosTest.testSetupService();
+        client.retrieveStreamDescription();
+        client.startStream(this);
+
+        // wait until some records have been received
+        Thread.sleep(1000L);
+        
+        // Shut down the server
+        sosTest.hub.stop();
+        Thread.sleep(1000L);
+
+        assertTrue(client.getStreamingRetryAttempts() > 0);
+        client.stopStream();
+    }
+        
+    /**
+     * Test that SOSClient honors the max retry limit and calls stopped(...)
+     */
+    @Test
+    public void testNoReconnect() throws Exception {
+        GetResultRequest req = new GetResultRequest();
+        req.setGetServer(TestSOSService.HTTP_ENDPOINT);
+        req.setVersion("2.0");
+        req.setOffering(TestSOSService.URI_OFFERING1);
+        req.getObservables().add(TestSOSService.URI_PROP1);
+        req.setTime(TimeExtent.beginNow(Instant.now().plus(1, ChronoUnit.MINUTES)));
+        req.setXmlWrapper(false);
+        
+        SOSClient client = new SOSClient(req, true, 1000, 0, 1000);
+        
+        // start service and client
+        sosTest.testSetupService();
+        client.retrieveStreamDescription();
+        client.startStream(this);
+
+        // wait until some records have been received
+        Thread.sleep(1000L);
+        
+        // Shut down the server, causing the websocket closure
+        sosTest.hub.stop();
+        Thread.sleep(1000L);
+
+        // Make sure our listener was called
+        assertTrue(stopCounter > 0);
+        client.stopStream();
+    }
+
     @Override
     public void recordReceived(DataBlock data)
     {
@@ -100,6 +163,7 @@ public class TestSOSClient implements StreamingListener
     @Override
     public void stopped(StreamingStopReason reason, Throwable cause) {
     	System.out.println("SOS Client stopped");
+    	stopCounter++;
     }
     
    

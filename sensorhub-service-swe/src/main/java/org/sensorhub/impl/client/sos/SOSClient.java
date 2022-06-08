@@ -74,6 +74,24 @@ import net.opengis.swe.v20.DataEncoding;
  */
 public class SOSClient
 {
+	/**
+	 * When not specified in the constructor, wait this amount of time (60 seconds) when establishing HTTP connections
+	 * to the remote server.
+	 */
+	public static final long DEFAULT_CONNECT_TIMEOUT = 60_000L;
+	
+	/**
+	 * When not specified in the constructor, limit the maximum number of reconnection attempts to this value. In
+	 * this case, the value is "-1", indicating that there is no limit to the number of attempts.
+	 */
+	public static final int DEFAULT_MAX_RETRY_ATTEMPTS = -1;
+	
+	/**
+	 * When not specified in the constructor, wait this amount of time after a failed connection before attempting to
+	 * reconnect to the remote server. The value here is 1 seconds (1000 milliseconds).
+	 */
+	public static final long DEFAULT_RECONNECT_DELAY = 1_000L;
+	
     protected static final Logger log = LoggerFactory.getLogger(SOSClient.class);
 
     SOSUtils sosUtils = new SOSUtils();
@@ -95,6 +113,11 @@ public class SOSClient
      * reconnect.
      */
     int streamingRetryAttempts;
+    
+    /**
+     * How long should we wait for an initial connection when streaming over plain HTTP, in milliseconds.
+     */
+    long connectTimeout;
 
     /**
      * The maximum number of times that we should attempt to reconnect to the remote server when streaming observations
@@ -103,14 +126,14 @@ public class SOSClient
      * 
      * Note that authentication/authorization failures result in an immediate stop rather than a retry.
      */
-    int maxStreamingRetryAttempts = -1;
+    int maxStreamingRetryAttempts;
     
     /**
      * Delay in milliseconds, after streaming observations have failed, before this class will attempt to reconnect to
      * the remote server. Some delay is necessary to avoid rapid reconnection attempts that might overload network or
      * CPU resources.
      */
-    long delayBetweenStreamingRetryAttempts = 1000;
+    long delayBetweenStreamingRetryAttempts;
     
     /**
      * True if we are streaming observations to a listener right now.
@@ -156,12 +179,45 @@ public class SOSClient
 
     public SOSClient(GetResultRequest request, boolean useWebsockets)
     {
-        this.grRequest = request;
-        this.useWebsockets = useWebsockets;
-        backgroundThreads = createNewExecutor();
+    	this(request, useWebsockets, DEFAULT_CONNECT_TIMEOUT, DEFAULT_MAX_RETRY_ATTEMPTS, DEFAULT_RECONNECT_DELAY);
     }
     
-    /**
+    public SOSClient(GetResultRequest request, boolean useWebsockets, long connectTimeout, int maxStreamingRetryAttempts, long delayBetweenStreamingRetryAttempts)
+    {
+    	Asserts.checkNotNull(request, "GetResultRequest parameter must not be null");
+    	Asserts.checkArgument(connectTimeout > 0, "Connect timeout must be positive");
+    	Asserts.checkArgument(delayBetweenStreamingRetryAttempts > 0, "Reconnect delay must be positive");
+
+    	this.grRequest = request;
+        this.useWebsockets = useWebsockets;
+        this.connectTimeout = connectTimeout;
+        this.maxStreamingRetryAttempts = maxStreamingRetryAttempts;
+        this.delayBetweenStreamingRetryAttempts = delayBetweenStreamingRetryAttempts;
+
+        backgroundThreads = createNewExecutor();
+    }
+
+    public boolean isUseWebsockets() {
+		return useWebsockets;
+	}
+
+	public int getStreamingRetryAttempts() {
+		return streamingRetryAttempts;
+	}
+
+	public int getMaxStreamingRetryAttempts() {
+		return maxStreamingRetryAttempts;
+	}
+
+	public long getDelayBetweenStreamingRetryAttempts() {
+		return delayBetweenStreamingRetryAttempts;
+	}
+
+	public boolean isStreamingStarted() {
+		return streamingStarted;
+	}
+
+	/**
      * Retrieves a description of the sensor from the remote server. Requests the description in the default format
      * (SensorML XML). The connection is performed synchronously.
      *
@@ -303,15 +359,9 @@ public class SOSClient
 	 * @param listener Object whose methods will be called when records are received or the streaming has stopped.
 	 */
     public synchronized void startStream(final StreamingListener listener) {
-    	if (dataEncoding == null) {
-    		throw new IllegalStateException("dataEncoding is null. retrieveStreamDescription must be called before starting streaming.");
-    	}
-    	if (dataDescription == null) {
-    		throw new IllegalStateException("dataDescription is null. retrieveStreamDescription must be called before starting streaming.");
-    	}
-    	if (listener == null) {
-    		throw new IllegalArgumentException("The listener provided to startStream(...) cannot be null");
-    	}
+    	Asserts.checkNotNull(dataEncoding, "dataEncoding is null. retrieveStreamDescription must be called before starting streaming.");
+    	Asserts.checkNotNull(dataDescription, "dataDescription is null. retrieveStreamDescription must be called before starting streaming.");
+    	Asserts.checkNotNull(listener, "The listener provided to startStream(...) cannot be null");
 
     	if (streamingStarted) {
         	log.debug("startStream(...) called, but we're already started. Ignoring.");
@@ -378,7 +428,7 @@ public class SOSClient
     		boolean connectionSucceeded = false;
     		try {
 	            log.debug("Initiating GetRecord request");
-	            grRequest.setConnectTimeOut(60000);
+	            grRequest.setConnectTimeOut((int) connectTimeout);
 	            // The next line will block until the first bytes come back from the server, or the timeout expires.
 	            HttpURLConnection conn = sosUtils.sendGetRequest(grRequest);
 	            
