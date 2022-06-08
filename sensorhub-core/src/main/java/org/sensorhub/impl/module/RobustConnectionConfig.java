@@ -28,14 +28,14 @@ import org.sensorhub.api.config.DisplayInfo;
 public class RobustConnectionConfig
 {
 
-    @DisplayInfo(label="Connection Timeout", desc="For each reconnection attempt, client will wait for the remote side to respond until this timeout expires (in ms)")
+    @DisplayInfo(label="Connection Timeout", desc="For each connection or reconnection attempt, the client will wait for the remote side to respond until this timeout expires (in ms)")
     public int connectTimeout = 3000;
     
     
-    @DisplayInfo(label="Reconnect Period", desc="Period at which client will attempt to reconnect when the connection is not available or lost (in ms)")
+    @DisplayInfo(label="Reconnect Period", desc="How long the client will wait after connection is lost before it will attempt to reconnect (in ms)")
     public int reconnectPeriod = 10000;
     
     
-    @DisplayInfo(label="Max Reconnect Attempts", desc="Maximum number of times the client will attempt to reconnect when the connection is not available or lost")
+    @DisplayInfo(label="Max Reconnect Attempts", desc="Maximum number of times the client will attempt to reconnect when the connection is not available or lost. A negative value means that there is no limit to the number of reconnection attempts. Zero means not to attempt reconnection.")
     public int reconnectAttempts = 0;
 }
