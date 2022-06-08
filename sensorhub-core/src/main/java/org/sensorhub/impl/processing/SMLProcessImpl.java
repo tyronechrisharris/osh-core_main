@@ -17,27 +17,20 @@ package org.sensorhub.impl.processing;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
 import net.opengis.OgcPropertyList;
-import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.swe.v20.AbstractSWEIdentifiable;
 import net.opengis.swe.v20.DataComponent;
 import org.sensorhub.api.ISensorHub;
-import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.processing.IProcessModule;
+import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.processing.ProcessingException;
-import org.sensorhub.api.system.ISystemDriver;
-import org.sensorhub.api.system.ISystemGroupDriver;
 import org.sensorhub.api.utils.OshAsserts;
-import org.sensorhub.impl.module.AbstractModule;
-import org.vast.ogc.gml.IFeature;
+import org.sensorhub.utils.Lambdas;
 import org.vast.process.ProcessException;
 import org.vast.sensorML.AggregateProcessImpl;
 import org.vast.sensorML.SMLException;
@@ -54,23 +47,16 @@ import org.vast.sensorML.SMLUtils;
  * @author Alex Robin
  * @since Feb 22, 2015
  */
-public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements IProcessModule<SMLProcessConfig>
+public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
 {
     public static final String DEFAULT_ID = "PROCESS_DESC";
     protected static final String DATASRC_NAME = "datasource_";
     protected static final String DATASINK_NAME = "datasink_";
     protected static final String PROCESS_NAME = "main_process";
     protected static final int MAX_ERRORS = 10;
-        
-    protected Map<String, DataComponent> inputs = new LinkedHashMap<>();
-    protected Map<String, DataComponent> outputs = new LinkedHashMap<>();
-    protected Map<String, DataComponent> parameters = new LinkedHashMap<>();
-    protected Map<String, IStreamingDataInterface> outputInterfaces = new LinkedHashMap<>();
-    protected Map<String, IStreamingControlInterface> controlInterfaces = new LinkedHashMap<>();
     
     protected SMLUtils smlUtils;
     protected List<StreamDataSource> streamSources;
-    protected AggregateProcessImpl processDescription;
     protected AggregateProcessImpl wrapperProcess;
     protected long lastUpdatedProcess = Long.MIN_VALUE;
     protected boolean paused = false;
@@ -81,6 +67,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     {
         wrapperProcess = new AggregateProcessImpl();
         wrapperProcess.setUniqueIdentifier(UUID.randomUUID().toString());
+        initAsync = true;
     }
     
     
@@ -117,8 +104,11 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
                 throw new ProcessingException(String.format("Cannot read SensorML description from '%s'", smlPath), e);
             }
             
-            if (processDescription != null)
-                initChain();
+            CompletableFuture.runAsync(Lambdas.checked(() -> initChain()))
+                .exceptionally(e -> {
+                    reportError("Error initializing SML process", e);
+                    return null;
+                });
         }
     }
     
@@ -147,6 +137,8 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
         refreshIOList(processDescription.getInputList(), inputs, false);
         refreshIOList(processDescription.getParameterList(), parameters, false);
         refreshIOList(processDescription.getOutputList(), outputs, true);
+        
+        setState(ModuleState.INITIALIZED);
     }
     
     
@@ -192,7 +184,7 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     @Override
     protected void doStart() throws SensorHubException
     {
-        errorCount = 0; 
+        errorCount = 0;
         
         if (wrapperProcess == null)
             throw new ProcessingException("No valid processing chain provided");
@@ -216,124 +208,5 @@ public class SMLProcessImpl extends AbstractModule<SMLProcessConfig> implements 
     {
         if (wrapperProcess != null && wrapperProcess.isExecutable())
             wrapperProcess.stop();
-    }
-    
-    
-    @Override
-    protected void beforeStart() throws SensorHubException
-    {
-        // register process with registry if attached to a hub
-        try
-        {
-            if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
-                getParentHub().getSystemDriverRegistry().register(this).get(); // for now, block here until init is also async
-        }
-        catch (ExecutionException | InterruptedException e)
-        {
-            throw new ProcessingException("Error registering process", e.getCause());
-        }
-    }
-    
-    
-    @Override
-    protected void afterStop() throws SensorHubException
-    {
-        // unregister process if attached to a hub
-        try
-        {
-            if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
-                getParentHub().getSystemDriverRegistry().unregister(this).get();
-        }
-        catch (ExecutionException | InterruptedException e)
-        {
-            throw new ProcessingException("Error unregistering process", e.getCause());
-        }
-        
-        super.afterStop();
-    }
-
-
-    @Override
-    public Map<String, DataComponent> getInputs()
-    {
-        return Collections.unmodifiableMap(inputs);
-    }
-    
-    
-    @Override
-    public Map<String, DataComponent> getParameters()
-    {
-        // for parameters we actually maintain a buffer so they
-        // can be set during process execution
-        return Collections.unmodifiableMap(parameters);
-    }
-    
-    
-    @Override
-    public Map<String, IStreamingDataInterface> getOutputs()
-    {
-        return Collections.unmodifiableMap(outputInterfaces);
-    }
-
-
-    @Override
-    public Map<String, ? extends IStreamingControlInterface> getCommandInputs()
-    {
-        return Collections.unmodifiableMap(controlInterfaces);
-    }
-    
-    
-    @Override
-    public String getUniqueIdentifier()
-    {
-        return processDescription.getUniqueIdentifier();
-    }
-
-
-    @Override
-    public synchronized AbstractProcess getCurrentDescription()
-    {
-        return processDescription;
-    }
-
-
-    @Override
-    public synchronized long getLatestDescriptionUpdate()
-    {
-        return lastUpdatedProcess;
-    }
-
-
-    @Override
-    public String getParentSystemUID()
-    {
-        return null;
-    }
-
-
-    @Override
-    public ISystemGroupDriver<ISystemDriver> getParentSystem()
-    {
-        return null;
-    }
-
-
-    @Override
-    public boolean isEnabled()
-    {
-        return isStarted();
-    }
-
-
-    @Override
-    public void cleanup()
-    {
-    }
-
-
-    @Override
-    public Map<String, ? extends IFeature> getCurrentFeaturesOfInterest()
-    {
-        return Collections.emptyMap();
     }
 }

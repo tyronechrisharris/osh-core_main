@@ -23,6 +23,12 @@ public class Async
     
     public static void waitForCondition(Supplier<Boolean> condition, long timeout) throws TimeoutException
     {
+        waitForCondition(condition, 100L, timeout);
+    }
+    
+    
+    public static void waitForCondition(Supplier<Boolean> condition, long retryInterval, long timeout) throws TimeoutException
+    {
         try
         {
             long t0 = System.currentTimeMillis();
@@ -33,7 +39,7 @@ public class Async
                 {
                     if (System.currentTimeMillis() > t0+timeout)
                         throw new TimeoutException();
-                    condition.wait(100L);
+                    condition.wait(retryInterval);
                 }
             }
         }

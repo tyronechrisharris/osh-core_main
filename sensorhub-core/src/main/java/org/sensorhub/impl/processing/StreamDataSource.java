@@ -18,12 +18,14 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.processing.OSHProcessInfo;
+import org.sensorhub.utils.Async;
 import org.vast.process.ExecutableProcessImpl;
 import org.vast.process.ProcessException;
 import org.vast.process.ProcessInfo;
@@ -76,21 +78,42 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
         
         if (producerUri != null)
         {
-            var db = hub.getDatabaseRegistry().getFederatedDatabase();
-            var procEntry = db.getSystemDescStore().getCurrentVersionEntry(producerUri);
-            if (procEntry == null)
-                throw new IllegalStateException("System with URI " + producerUri + " not found");
-            
-            // set process info
-            ProcessInfo instanceInfo = new ProcessInfo(
-                    processInfo.getUri(),
-                    procEntry.getValue().getName(),
-                    processInfo.getDescription(),
-                    processInfo.getImplementationClass());
-            this.processInfo = instanceInfo;
+            try {
+                Async.waitForCondition(this::checkForDataSource, 1000, 10000);
+            } catch (TimeoutException e) {
+                throw new IllegalStateException("System with URI " + producerUri + " not found", e);
+            }
+        }
+    }
+    
+    
+    protected boolean checkForDataSource()
+    {
+        var db = hub.getDatabaseRegistry().getFederatedDatabase();
+        var procEntry = db.getSystemDescStore().getCurrentVersionEntry(producerUri);
+        if (procEntry == null)
+            return false;
+        
+        // set process info
+        ProcessInfo instanceInfo = new ProcessInfo(
+                processInfo.getUri(),
+                procEntry.getValue().getName(),
+                processInfo.getDescription(),
+                processInfo.getImplementationClass());
+        this.processInfo = instanceInfo;
+        
+        // HACK: loop here to make sure all datastreams have been registered.
+        // needed to handle case where producer is being registered concurrently.
+        // there is probably a better way to do this!
+        int numDs;
+        do
+        {
+            numDs = outputData.size();
+            try { Thread.sleep(1000); }
+            catch (InterruptedException e) { }
             
             // add outputs
-            outputData.clear();            
+            outputData.clear();
             db.getDataStreamStore().select(new DataStreamFilter.Builder()
                     .withSystems(procEntry.getKey().getInternalID())
                     .withCurrentVersion()
@@ -99,6 +122,9 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
                     outputData.add(ds.getOutputName(), ds.getRecordStructure().copy());
                 });
         }
+        while (outputData.size() > numDs);
+        
+        return !outputData.isEmpty();
     }
     
     
@@ -121,54 +147,54 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
                 topics.add(EventUtils.getDataStreamDataTopicID(producerUri, output.getName()));
             
             hub.getEventBus().newSubscription(ObsEvent.class)
-            .withTopicIDs(topics)
-            .subscribe(new Subscriber<ObsEvent>() {
-
-                @Override
-                public void onSubscribe(Subscription subscription)
-                {
-                    sub = subscription;
-                    subscription.request(Long.MAX_VALUE);
-                }
-
-                @Override
-                public void onNext(ObsEvent e)
-                {
-                    if (paused)
-                        return;
-                    
-                    String outputName = e.getOutputName();
-                    var output = outputData.getComponent(outputName);
-                    
-                    // process each data block
-                    for (var obs: e.getObservations())
+                .withTopicIDs(topics)
+                .subscribe(new Subscriber<ObsEvent>() {
+    
+                    @Override
+                    public void onSubscribe(Subscription subscription)
                     {
-                        try
+                        sub = subscription;
+                        subscription.request(Long.MAX_VALUE);
+                    }
+    
+                    @Override
+                    public void onNext(ObsEvent e)
+                    {
+                        if (paused)
+                            return;
+                        
+                        String outputName = e.getOutputName();
+                        var output = outputData.getComponent(outputName);
+                        
+                        // process each data block
+                        for (var obs: e.getObservations())
                         {
-                            output.setData(obs.getResult());
-                            publishData(outputName);
-                        }
-                        catch (InterruptedException ex)
-                        {
-                            Thread.currentThread().interrupt();
+                            try
+                            {
+                                output.setData(obs.getResult());
+                                publishData(outputName);
+                            }
+                            catch (InterruptedException ex)
+                            {
+                                Thread.currentThread().interrupt();
+                            }
                         }
                     }
-                }
-
-                @Override
-                public void onError(Throwable throwable)
-                {
-                    getLogger().error("Error receiving data from event bus", throwable);
-                    
-                    if (onError != null)
-                        onError.accept(throwable);
-                }
-
-                @Override
-                public void onComplete()
-                {
-                }
-            });
+    
+                    @Override
+                    public void onError(Throwable throwable)
+                    {
+                        getLogger().error("Error receiving data from event bus", throwable);
+                        
+                        if (onError != null)
+                            onError.accept(throwable);
+                    }
+    
+                    @Override
+                    public void onComplete()
+                    {
+                    }
+                });
             
             getLogger().debug("Connected to data source '{}'", producerUri);
         }
@@ -217,7 +243,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
     @Override
     public void setParentHub(ISensorHub hub)
     {
-        this.hub = hub;        
+        this.hub = hub;
     }
 
 }
