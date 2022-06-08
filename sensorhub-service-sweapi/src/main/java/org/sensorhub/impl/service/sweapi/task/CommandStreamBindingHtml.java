@@ -114,7 +114,7 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
                 dsInfo.getDescription()
             ).withClasses(CSS_CARD_SUBTITLE)),
             div(
-                span("Parent System: ").withClass(CSS_BOLD),
+                span("Receiving System: ").withClass(CSS_BOLD),
                 a(dsInfo.getSystemID().getUniqueID()).withHref(sysUrl)
             ),
             div(

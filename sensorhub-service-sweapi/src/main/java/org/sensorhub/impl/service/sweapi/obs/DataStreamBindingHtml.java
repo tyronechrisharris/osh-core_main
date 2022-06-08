@@ -29,6 +29,7 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.vast.util.Asserts;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import static j2html.TagCreator.*;
 
 
@@ -124,7 +125,7 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
                 dsInfo.getDescription()
             ).withClasses(CSS_CARD_SUBTITLE)),
             div(
-                span("Parent System: ").withClass(CSS_BOLD),
+                span("Source System: ").withClass(CSS_BOLD),
                 a(dsInfo.getSystemID().getUniqueID()).withHref(sysUrl)
             ),
             div(
@@ -147,8 +148,8 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
                 div(
                     span("Observed Properties: ").withClass(CSS_BOLD),
                     div(
-                        each(ImmutableList.copyOf(SWECommonUtils.getProperties(dsInfo.getRecordStructure())),
-                            comp -> span(getComponentLabel(comp) + ", "))
+                        String.join(", ", Iterables.transform(SWECommonUtils.getProperties(dsInfo.getRecordStructure()),
+                            comp -> getComponentLabel(comp)))
                     ).withClass("ps-4")
                 ).withClass("mb-2"),
                 div(
