@@ -99,7 +99,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
     {
         return config != null && config.id != null ?
             config.id :
-            "NO_ID";
+            ModuleUtils.NO_ID_FLAG;
     }
     
     

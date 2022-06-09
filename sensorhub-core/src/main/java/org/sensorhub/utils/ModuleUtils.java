@@ -42,6 +42,7 @@ public class ModuleUtils
     public static final String MODULE_DEPS = "OSH-Dependencies";
     
     public static final String LOG_MODULE_ID = "MODULE_ID";
+    public static final String NO_ID_FLAG = "NO_ID";
     
     private static Pattern ENV_VAR_REGEX = Pattern.compile("\\$?\\$\\{(.+?)(:(.+?))?\\}");
     
@@ -164,7 +165,8 @@ public class ModuleUtils
 
         // if module config wasn't initialized or logback not available, use class logger
         StaticLoggerBinder binder = StaticLoggerBinder.getSingleton();
-        if (moduleID == null || !binder.getLoggerFactoryClassStr().contains("logback"))
+        if (moduleID == null || NO_ID_FLAG.equals(moduleID) ||
+            !binder.getLoggerFactoryClassStr().contains("logback"))
             return LoggerFactory.getLogger(module.getClass());
         
         // generate instance ID
