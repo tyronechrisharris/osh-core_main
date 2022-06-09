@@ -165,7 +165,10 @@ public class SWEVirtualSensor extends AbstractSensorModule<SWEVirtualSensorConfi
                                 req.setXmlWrapper(false);
                                 
                                 // create client and retrieve result template
-                                SOSClient sos = new SOSClient(req, config.sosUseWebsockets);                                
+                                SOSClient sos = new SOSClient(req, config.sosUseWebsockets,
+                                		config.connectionConfig.connectTimeout,
+                                		config.connectionConfig.reconnectAttempts,
+                                		config.connectionConfig.reconnectPeriod);
                                 
                                 DataComponent recordDef;
                                 try
