@@ -49,12 +49,15 @@ public class HomePageHtml extends ResourceBindingHtml<Long, SWEApiServiceConfig>
         var serviceInfo = config.ogcCapabilitiesInfo;
         var title = config.name;
         var description = config.description;
+        var orgName = "OpenSensorHub";
         if (serviceInfo != null)
         {
             if (!Strings.isNullOrEmpty(serviceInfo.title))
                 title = serviceInfo.title;
             if (!Strings.isNullOrEmpty(serviceInfo.description))
                 description = serviceInfo.description;
+            if (serviceInfo.serviceProvider != null && !Strings.isNullOrEmpty(serviceInfo.serviceProvider.getOrganizationName()))
+                orgName = serviceInfo.serviceProvider.getOrganizationName();
         }
         
         div(
@@ -68,7 +71,7 @@ public class HomePageHtml extends ResourceBindingHtml<Long, SWEApiServiceConfig>
         
         // API info
         renderCard("API Information",
-            p(strong("Service Provider: "), text(serviceInfo.serviceProvider.getOrganizationName())),
+            p(strong("Service Provider: "), text(orgName)),
             p(a("Definition of the API in OpenAPI 3.0").withHref(HomePageHandler.APISPEC_URL)),
             p(a("Interactive Documentation of the API").withHref(HomePageHandler.APITEST_URL)),
             p(a("OGC API conformance classes implemented by this server").withHref(ctx.getApiRootURL() + "/" + ConformanceHandler.NAMES[0]))

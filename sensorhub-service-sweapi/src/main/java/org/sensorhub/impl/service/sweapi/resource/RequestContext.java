@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -420,7 +422,7 @@ public class RequestContext
         {
             buf.append(e.getKey()).append("=");
             for (var s: e.getValue())
-                buf.append(s).append(',');
+                buf.append(URLEncoder.encode(s,  StandardCharsets.UTF_8)).append(',');
             buf.setCharAt(buf.length()-1, '&');
         }
         
