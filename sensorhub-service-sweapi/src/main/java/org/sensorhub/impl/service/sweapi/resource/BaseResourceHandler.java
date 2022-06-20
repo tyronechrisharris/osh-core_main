@@ -251,8 +251,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
         
-        // set content type
-        ctx.setResponseContentType(responseFormat.getMimeType());
+        // set default content type
+        ctx.setResponseContentType(ResourceFormat.JSON.getMimeType());
         
         // stream and serialize all resources to servlet output
         var binding = getBinding(ctx, false);

@@ -23,6 +23,7 @@ import net.opengis.swe.v20.DataEncoding;
 
 public class ResourceFormat
 {
+    public static ResourceFormat HTML = new ResourceFormat("text/html");
     public static ResourceFormat JSON = new ResourceFormat("application/json");
     public static ResourceFormat GEOJSON = new ResourceFormat(GeoJsonBindings.MIME_TYPE);
     

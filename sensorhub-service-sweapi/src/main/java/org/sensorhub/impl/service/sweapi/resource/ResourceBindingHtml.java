@@ -79,6 +79,8 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         super(ctx, idEncoder);
         this.writer = new BufferedWriter(new OutputStreamWriter(ctx.getOutputStream()));
         this.html =  IndentedHtml.into(writer);
+        
+        ctx.setResponseFormat(ResourceFormat.HTML);
     }
     
     

@@ -220,9 +220,16 @@ public class RequestContext
     }
     
     
-    public void setFormatOptions(ResourceFormat format, PropertyFilter propFilter)
+    public void setResponseFormat(ResourceFormat format)
     {
         this.format = Asserts.checkNotNull(format, ResourceFormat.class);
+        this.setResponseContentType(format.getMimeType());
+    }
+    
+    
+    public void setFormatOptions(ResourceFormat format, PropertyFilter propFilter)
+    {
+        setResponseFormat(format);
         this.propFilter = propFilter;
     }
     
