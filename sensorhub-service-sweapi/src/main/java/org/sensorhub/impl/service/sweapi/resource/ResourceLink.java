@@ -19,6 +19,12 @@ import org.vast.util.BaseBuilder;
 
 public class ResourceLink
 {
+    public final static String REL_SELF = "self";
+    public final static String REL_PREV = "prev";
+    public final static String REL_NEXT = "next";
+    public final static String REL_ITEMS = "items";
+    public final static String REL_COLLECTION = "collection";
+    
     String type;
     String rel;
     String title;
@@ -46,6 +52,34 @@ public class ResourceLink
     public String getHref()
     {
         return href;
+    }
+    
+    
+    public ResourceLink withFormat(String formatName, String mimeType)
+    {
+        var newLink = new ResourceLink();
+        newLink.rel = this.rel;
+        newLink.title = this.title + " as " + formatName;
+        newLink.type = mimeType;
+        newLink.href = this.href + (this.href.contains("?") ? "&" : "?") + "f=" + mimeType;
+        return newLink;
+    }
+    
+    
+    public static ResourceLink self(String url, String mimeType)
+    {
+        return new ResourceLink.Builder()
+            .rel(REL_SELF)
+            .type(mimeType)
+            .title("This document")
+            .href(url)
+            .build();
+    }
+    
+    
+    public static Builder builder()
+    {
+        return new Builder();
     }
     
     

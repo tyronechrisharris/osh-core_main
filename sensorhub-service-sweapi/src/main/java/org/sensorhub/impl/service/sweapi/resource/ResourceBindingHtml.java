@@ -447,16 +447,35 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     
     protected void writePagination(Collection<ResourceLink> pagingLinks) throws IOException
     {
+        var prevLink = pagingLinks.stream()
+            .filter(link -> link.rel == ResourceLink.REL_PREV)
+            .findFirst()
+            .orElse(null);
+        
+        var nextLink = pagingLinks.stream()
+            .filter(link -> link.rel == ResourceLink.REL_NEXT)
+            .findFirst()
+            .orElse(null);
+        
         nav(
             ul(
-                each(pagingLinks, link ->
+                prevLink != null ?
                     li(
-                        a().withHref(link.href)
-                           .withText(link.rel)
+                        a().withHref(prevLink.href)
+                           .withRel(prevLink.rel)
+                           .withText("<< Previous")
                            .withClass("page-link")
                     )
-                    .withClasses("page-item")
-                )
+                    .withClasses("page-item"): null,
+                    
+                nextLink != null ? 
+                    li(
+                        a().withHref(nextLink.href)
+                           .withRel(nextLink.rel)
+                           .withText("Next >>")
+                           .withClass("page-link")
+                    )
+                    .withClasses("page-item"): null
             )
             .withClasses("pagination", "my-4")
         ).render(html);
