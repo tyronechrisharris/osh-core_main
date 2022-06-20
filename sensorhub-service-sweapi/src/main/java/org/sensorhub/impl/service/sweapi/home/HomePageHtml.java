@@ -20,7 +20,6 @@ import org.sensorhub.impl.service.sweapi.SWEApiServiceConfig;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler;
-import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
@@ -79,11 +78,11 @@ public class HomePageHtml extends ResourceBindingHtml<Long, SWEApiServiceConfig>
         
         // links
         renderCard("Available Resources",
-            p(a("Observing procedures registered on this server").withHref(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0])),
-            p(a("Observing systems registered on this server").withHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0])),
+            p(a("Data collections available on this server").withHref(ctx.getApiRootURL() + "/" + CollectionHandler.NAMES[0])),
+            p(a("Connected systems registered on this server").withHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0])),
+            p(a("Features of interest observed by systems registered on this server").withHref(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0])),
             p(a("Datastreams available through this server").withHref(ctx.getApiRootURL() + "/" + DataStreamHandler.NAMES[0])),
-            p(a("Observations available through this server").withHref(ctx.getApiRootURL() + "/" + ObsHandler.NAMES[0])),
-            p(a("Features of interest observed by systems registered on this server").withHref(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0]))
+            p(a("Observations available through this server").withHref(ctx.getApiRootURL() + "/" + ObsHandler.NAMES[0]))
         );
         
         writeFooter();

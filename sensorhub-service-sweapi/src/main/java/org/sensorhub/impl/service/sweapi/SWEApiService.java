@@ -29,6 +29,7 @@ import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.service.AbstractHttpServiceModule;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.feature.FoiHistoryHandler;
+import org.sensorhub.impl.service.sweapi.home.CollectionHandler;
 import org.sensorhub.impl.service.sweapi.home.ConformanceHandler;
 import org.sensorhub.impl.service.sweapi.home.HomePageHandler;
 import org.sensorhub.impl.service.sweapi.obs.CustomObsFormat;
@@ -219,12 +220,9 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         cmdStreamHandler.addSubResource(statusHandler);
         cmdHandler.addSubResource(statusHandler);
         
-        // sampled features
-        /*var featureStore = new FeatureStoreWrapper(
-            featureReadDatabase.getFeatureStore(), 
-            featureWriteDatabase != null ? featureWriteDatabase.getFeatureStore() : null);
-        FeatureHandler featureHandler = new FeatureHandler(featureStore);
-        rootHandler.addSubResource(featureHandler);*/
+        // collections
+        var collectionHandler = new CollectionHandler();
+        rootHandler.addSubResource(collectionHandler);
         
         // deploy servlet
         servlet = new SWEApiServlet(this, (SWEApiSecurity)securityHandler, rootHandler, getLogger());

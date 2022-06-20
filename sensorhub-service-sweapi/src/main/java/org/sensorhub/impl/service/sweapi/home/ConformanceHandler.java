@@ -34,7 +34,7 @@ public class ConformanceHandler extends BaseHandler
         "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/html",
         "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/json",
         "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/oas30",
-        //"http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/collections",
+        "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/collections",
         "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/html",
         "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/json",
         
@@ -48,7 +48,7 @@ public class ConformanceHandler extends BaseHandler
         "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+xml",
         "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+binary",
         "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/tasking",
-        "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/members",
+        "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/subsystems",
         "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/history"
     );
     
