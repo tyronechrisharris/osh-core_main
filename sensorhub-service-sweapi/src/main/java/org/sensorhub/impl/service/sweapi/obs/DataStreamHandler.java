@@ -130,6 +130,13 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
                 .withInternalIDs(foiIDs)
                 .done();
         }
+        
+        // observedProperty param
+        var obsProps = parseMultiValuesArg("observedProperty", queryParams);
+        if (obsProps != null && !obsProps.isEmpty())
+        {
+            builder.withObservedProperties(obsProps);
+        }
     }
 
 
