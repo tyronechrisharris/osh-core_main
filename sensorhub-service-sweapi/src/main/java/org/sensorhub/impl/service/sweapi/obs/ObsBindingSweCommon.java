@@ -77,13 +77,18 @@ public class ObsBindingSweCommon extends ResourceBinding<BigId, IObsData>
             resultWriter = getSweCommonWriter(dsInfo, os, ctx.getPropertyFilter(), ctx.getFormat());
             
             // if request is coming from a browser, use well-known mime type
+            // so browser can display the response
             if (ctx.isBrowserHtmlRequest())
             {
                 if (ctx.getFormat().equals(ResourceFormat.SWE_TEXT))
                     ctx.setResponseContentType(ResourceFormat.TEXT_PLAIN.getMimeType());
                 else if (ctx.getFormat().equals(ResourceFormat.SWE_XML))
                     ctx.setResponseContentType(ResourceFormat.APPLI_XML.getMimeType());
+                else
+                    ctx.setResponseContentType(ctx.getFormat().getMimeType());
             }
+            else
+                ctx.setResponseContentType(ctx.getFormat().getMimeType());
         }
     }
     
@@ -101,6 +106,9 @@ public class ObsBindingSweCommon extends ResourceBinding<BigId, IObsData>
             time = timeStampIndexer.getDoubleValue(rec);
         else
             time = System.currentTimeMillis() / 1000.;
+        
+        // TODO read FOI ID from context or dedicated field
+        
         
         // create obs object
         return new ObsData.Builder()
