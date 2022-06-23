@@ -100,8 +100,13 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
                     obs.withPhenomenonTime(OffsetDateTime.parse(reader.nextString()).toInstant());
                 else if ("resultTime".equals(propName))
                     obs.withResultTime(OffsetDateTime.parse(reader.nextString()).toInstant());
-                //else if ("foi".equals(propName))
-                //    obs.withFoi(id)
+                else if ("foi@id".equals(propName))
+                {
+                    var foiID = idEncoder.decodeID(reader.nextString());
+                    //if (!db.getFoiStore().contains(foiID))
+                    //    throw ServiceErrors.badRequest("Invalid FOI ID");
+                    obs.withFoi(foiID);
+                }
                 else if ("result".equals(propName))
                 {
                     var result = resultReader.parseNextBlock();
