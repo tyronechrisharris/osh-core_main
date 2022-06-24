@@ -18,6 +18,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
@@ -77,8 +78,8 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     protected ResourceBindingHtml(RequestContext ctx, IdEncoder idEncoder) throws IOException
     {
         super(ctx, idEncoder);
-        this.writer = new BufferedWriter(new OutputStreamWriter(ctx.getOutputStream()));
-        this.html =  IndentedHtml.into(writer);
+        this.writer = new BufferedWriter(new OutputStreamWriter(ctx.getOutputStream(), StandardCharsets.UTF_8));
+        this.html = IndentedHtml.into(writer);
         
         ctx.setResponseFormat(ResourceFormat.HTML);
     }
