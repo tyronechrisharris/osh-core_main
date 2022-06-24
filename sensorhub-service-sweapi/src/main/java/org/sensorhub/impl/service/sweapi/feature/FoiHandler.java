@@ -59,7 +59,12 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
             return new FeatureBindingHtml(ctx, idEncoder, true, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
+        {
+            if (ctx.getParameterMap().containsKey("snapshot"))
+                return new DynamicFoiBindingGeoJson(ctx, idEncoder, forReading, db);
+            else
+                return new FoiBindingGeoJson(ctx, idEncoder, forReading);
+        }
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
