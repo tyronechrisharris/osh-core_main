@@ -239,7 +239,7 @@ public class MVObsStoreImpl implements IObsStore
             MVTimeSeriesKey key = new MVTimeSeriesKey(Long.MAX_VALUE, foiID, Instant.MAX);
             MVTimeSeriesKey lastKey = obsSeriesByFoiIndex.floorKey(key);
             if (lastKey == null || lastKey.foiID != foiID)
-                return null;
+                return Stream.empty();
             resultTimeRange = Range.singleton(lastKey.resultTime);
         }
        
