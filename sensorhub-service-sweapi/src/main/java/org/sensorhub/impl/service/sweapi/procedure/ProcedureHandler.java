@@ -36,7 +36,7 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
     public static final int EXTERNAL_ID_SEED = 342178536;
-    public static final String[] NAMES = { "procedures" };
+    public static final String[] NAMES = { "systemTypes" };
     
     final IEventBus eventBus;
     final IProcedureDatabase db;
@@ -61,7 +61,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
         {
-            var title = ctx.getParentID() != null ? "Components of {}" : "All Procedures";
+            var title = ctx.getParentID() != null ? "Components of {}" : "All Procedures and System Datasheets";
             return new ProcedureBindingHtml(ctx, idEncoder, true, title, db);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))

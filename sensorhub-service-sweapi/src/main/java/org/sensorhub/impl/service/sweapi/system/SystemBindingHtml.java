@@ -64,7 +64,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
                 this.collectionTitle = "Specsheet of " + parentSys.getName();
         }
         else
-            this.collectionTitle = "All Systems";
+            this.collectionTitle = "All Connected Systems";
     }
     
     

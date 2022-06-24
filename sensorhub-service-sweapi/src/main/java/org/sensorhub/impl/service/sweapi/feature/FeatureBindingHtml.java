@@ -50,7 +50,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IOb
             {
                 // fetch parent system name
                 var parentSys = FeatureUtils.getClosestToNow(db.getSystemDescStore(), ctx.getParentID());
-                this.collectionTitle = "Features of Interest of " + parentSys.getName();
+                this.collectionTitle = "Features observed by " + parentSys.getName();
             }
             else
             {

@@ -24,6 +24,7 @@ import org.sensorhub.impl.service.sweapi.BaseHandler;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
+import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -146,7 +147,7 @@ public class CollectionHandler extends BaseHandler
             dsCol.links.add(ResourceLink.self(
                 ctx.getApiRootURL() + "/" + NAMES[0],
                 ResourceFormat.JSON.getMimeType()));
-            addItemsLink("Access the datastreams", FoiHandler.NAMES[0], ctx, dsCol.links);
+            addItemsLink("Access the datastreams", DataStreamHandler.NAMES[0], ctx, dsCol.links);
             allCollections.put(dsCol.id, dsCol);
             
             // features of interest collection
@@ -162,18 +163,18 @@ public class CollectionHandler extends BaseHandler
             addItemsLink("Access the features of interests", FoiHandler.NAMES[0], ctx, foiCol.links);
             allCollections.put(foiCol.id, foiCol);
             
-            /*// system types collection
+            // system types collection
             var systemTypeCol = new CollectionInfo();
-            systemTypeCol.id = "all_system_types";
-            systemTypeCol.title = "All System Types";
-            systemTypeCol.description = "All types/models of systems registered on this server";
-            systemTypeCol.featureType = "systemType";
+            systemTypeCol.id = "all_procedures";
+            systemTypeCol.title = "All Procedures and System Datasheets";
+            systemTypeCol.description = "All procedures (e.g. system datasheets) implemented by systems registered on this server";
+            systemTypeCol.featureType = "procedure";
             systemTypeCol.crs.add(SWEConstants.REF_FRAME_CRS84h);
             systemTypeCol.links.add(ResourceLink.self(
                 ctx.getApiRootURL() + "/" + NAMES[0],
                 ResourceFormat.JSON.getMimeType()));
-            addItemsLink("Access the system types", ProcedureHandler.NAMES[0], ctx, systemTypeCol.links);
-            allCollections.put(systemTypeCol.id, systemTypeCol);*/
+            addItemsLink("Access the procedures", ProcedureHandler.NAMES[0], ctx, systemTypeCol.links);
+            allCollections.put(systemTypeCol.id, systemTypeCol);
         }
         
         return allCollections;
