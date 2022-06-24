@@ -135,16 +135,60 @@ public class SystemTransactionHandler
     }
     
     
-    public boolean delete() throws DataStoreException
+    /**
+     * Delete the system from persistent storage
+     * @param cascade If true, delete all datastreams, control channels and
+     * features of interest associated to the system
+     * @return True if the system was successfully deleted, false otherwise
+     * @throws DataStoreException
+     */
+    public boolean delete(boolean cascade) throws DataStoreException
     {
         checkParent();
         
-        // error if associated datastreams still exist
-        var dsFilter = new DataStreamFilter.Builder()
-            .withSystems(sysKey.getInternalID())
-            .build();
-        if (getDataStreamStore().countMatchingEntries(dsFilter) > 0)
-            throw new DataStoreException("System cannot be deleted because it is referenced by a datastream");
+        if (!cascade)
+        {
+            // error if associated datastreams still exist
+            var dsFilter = new DataStreamFilter.Builder()
+                .withSystems(sysKey.getInternalID())
+                .build();
+            if (getDataStreamStore().countMatchingEntries(dsFilter) > 0)
+                throw new DataStoreException("System cannot be deleted because it is referenced by a datastream");
+            
+            // error if associated command streams still exist
+            var csFilter = new CommandStreamFilter.Builder()
+                .withSystems(sysKey.getInternalID())
+                .build();
+            if (getCommandStreamStore().countMatchingEntries(csFilter) > 0)
+                throw new DataStoreException("System cannot be deleted because it is referenced by a command stream");
+            
+            // error if associated fois still exist
+            var foiFilter = new FoiFilter.Builder()
+                .withParents(sysKey.getInternalID())
+                .build();
+            if (getFoiStore().countMatchingEntries(foiFilter) > 0)
+                throw new DataStoreException("System cannot be deleted because it has nested features of interest");
+        }
+        else
+        {
+            getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
+                .withSystems(new SystemFilter.Builder()
+                    .withUniqueIDs(sysUID)
+                    .build())
+                .build());
+            
+            getCommandStreamStore().removeEntries(new CommandStreamFilter.Builder()
+                .withSystems(new SystemFilter.Builder()
+                    .withUniqueIDs(sysUID)
+                    .build())
+                .build());
+            
+            getFoiStore().removeEntries(new FoiFilter.Builder()
+                .withParents(new SystemFilter.Builder()
+                    .withUniqueIDs(sysUID)
+                    .build())
+                .build());
+        }
         
         // remove from datastore
         var sysKey = getSystemDescStore().remove(sysUID);

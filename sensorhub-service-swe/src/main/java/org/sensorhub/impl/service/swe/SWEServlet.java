@@ -305,7 +305,7 @@ public abstract class SWEServlet extends OWSServlet
                 // delete complete procedure history + all datastreams and obs from DB
                 try
                 {
-                    transactionHandler.getSystemHandler(sysUID).delete();
+                    transactionHandler.getSystemHandler(sysUID).delete(true);
                     getLogger().info("Deleted procedure {}", sysUID);
                 }
                 catch (Exception e)

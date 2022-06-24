@@ -18,10 +18,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IObsSystemDatabaseModule;
-import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.module.ModuleConfig;
+import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.data.FieldProperty;
 import org.sensorhub.ui.data.MyBeanItem;
@@ -152,21 +152,9 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                                 {
                                     // log action
                                     //logAction(action, selectedModule);
-                                    
-                                    db.getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
-                                        .withSystems(new SystemFilter.Builder()
-                                            .withUniqueIDs(uid)
-                                            .build())
-                                        .build());
-                                    
-                                    db.getCommandStreamStore().removeEntries(new CommandStreamFilter.Builder()
-                                        .withSystems(new SystemFilter.Builder()
-                                            .withUniqueIDs(uid)
-                                            .build())
-                                        .build());
-                                    
-                                    db.getSystemDescStore().remove(uid);
-                                    
+                                    var eventBus = module.getParentHub().getEventBus();
+                                    var txnHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+                                    txnHandler.getSystemHandler(uid).delete(true);
                                     systemTable.updateTable(db, new SystemFilter.Builder().build());
                                 }
                                 catch (Exception e1)

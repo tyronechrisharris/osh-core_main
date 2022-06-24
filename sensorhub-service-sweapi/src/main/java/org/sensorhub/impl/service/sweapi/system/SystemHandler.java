@@ -183,7 +183,11 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         if (sysHandler == null)
             return false;
         else
-            return sysHandler.delete();
+        {
+            var paramStr = ctx.getParameter("cascade");
+            var deleteNested = paramStr != null ? Boolean.parseBoolean(paramStr) : false;
+            return sysHandler.delete(deleteNested);
+        }
     }
     
     
