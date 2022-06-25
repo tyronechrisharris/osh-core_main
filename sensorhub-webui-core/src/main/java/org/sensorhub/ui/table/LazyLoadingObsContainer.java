@@ -79,11 +79,16 @@ public class LazyLoadingObsContainer extends IndexedContainer
                     Item item = addItem(count.getAndIncrement());
                     if (item != null)
                     {
-                        int i = 0;
+                        int i = -1;
                         for (Object colId: getContainerPropertyIds())
                         {
-                            //System.out.println((count.get()-1) + ": " + colId);
-                            String value = indexers.get(i).getStringValue(dataBlk);
+                            String value;
+                            
+                            if (i < 0)
+                                value = BigId.toString32(obs.getFoiID());
+                            else
+                                value = indexers.get(i).getStringValue(dataBlk);
+                            
                             item.getItemProperty(colId).setValue(value);
                             i++;
                         }

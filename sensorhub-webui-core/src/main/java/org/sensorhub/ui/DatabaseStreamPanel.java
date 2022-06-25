@@ -402,21 +402,20 @@ public class DatabaseStreamPanel extends VerticalLayout
             .build());
         
         var stats = results.findFirst();
-        
         if (stats.isPresent())
         {
-            var counts = stats.get().getObsCountsByTime();
+            var totalCounts = stats.get().getObsCountsByTime();
             
             // create series item array
             // set time coordinate as unix timestamp in millis
-            Coordinate[] items = new Coordinate[counts.length+1];
+            Coordinate[] items = new Coordinate[totalCounts.length+1];
             long time = timeRange.begin().toEpochMilli();
-            for (int i = 0; i < counts.length; i++)
+            for (int i = 0; i < totalCounts.length; i++)
             {
-                items[i] = new Coordinate(time, (double)counts[i]);
+                items[i] = new Coordinate(time, (double)totalCounts[i]);
                 time += binSize*1000;
             }
-            items[counts.length] = new Coordinate(time, 0.0);
+            items[totalCounts.length] = new Coordinate(time, 0.0);
             return items;
         }
         
@@ -498,6 +497,12 @@ public class DatabaseStreamPanel extends VerticalLayout
     @SuppressWarnings("serial")
     protected void addColumns(DataComponent recordDef, DataComponent component, Table table, List<ScalarIndexer> indexers)
     {
+        // add FOI column
+        if (component.getParent() == null)
+        {
+            table.addContainerProperty("$foiId", String.class, null, "FOI ID", null, null);
+        }
+        
         if (component instanceof ScalarComponent)
         {
             // add column names
