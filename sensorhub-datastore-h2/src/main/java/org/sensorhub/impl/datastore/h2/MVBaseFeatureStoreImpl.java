@@ -623,9 +623,13 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public long countMatchingEntries(F filter)
     {
-        // TODO implement faster method for some special cases
-        // i.e. when no predicates are used
-        // can make use of H2 index counting feature
+        if (filter.getValuePredicate() == null &&
+            filter.getLocationFilter() == null &&
+            filter.getFullTextFilter() == null &&
+            filter.getValidTime() == null)
+        {
+            return featuresIndex.sizeAsLong();
+        }
         
         return selectEntries(filter).count();
     }

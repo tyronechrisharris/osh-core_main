@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import java.time.Instant;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,7 +48,7 @@ import org.vast.util.TimeExtent;
  */
 public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, FoiFilter> implements IFoiStore
 {
-    ISystemDescStore procStore;
+    ISystemDescStore systemStore;
     IObsStore obsStore;
         
     
@@ -80,8 +81,8 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
     @Override
     protected void checkParentFeatureExists(BigId parentID) throws DataStoreException
     {
-        if (procStore != null)
-            DataStoreUtils.checkParentFeatureExists(parentID, procStore, this);
+        if (systemStore != null)
+            DataStoreUtils.checkParentFeatureExists(parentID, systemStore, this);
         else
             DataStoreUtils.checkParentFeatureExists(parentID, this);
     }
@@ -94,7 +95,7 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
         
         if (filter.getParentFilter() != null)
         {
-            var parentIDStream = DataStoreUtils.selectSystemIDs(procStore, filter.getParentFilter());
+            var parentIDStream = DataStoreUtils.selectSystemIDs(systemStore, filter.getParentFilter());
             
             if (resultStream == null)
             {
@@ -184,12 +185,47 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
         
         return resultStream;
     }
+    
+    
+    @Override
+    public long countMatchingEntries(FoiFilter filter)
+    {
+        if (filter.getValuePredicate() == null &&
+            filter.getLocationFilter() == null &&
+            filter.getFullTextFilter() == null &&
+            filter.getValidTime() == null &&
+            filter.getObservationFilter() == null)
+        {
+            if (filter.getParentFilter() != null)
+            {
+                return DataStoreUtils.selectSystemIDs(systemStore, filter.getParentFilter())
+                    .mapToLong(id -> {
+                        long parentID = id.getIdAsLong();
+                        var k0 = new MVFeatureParentKey(0, parentID, 1, Instant.MIN);
+                        var k1 = new MVFeatureParentKey(0, parentID, Long.MAX_VALUE, Instant.MAX);
+                        var first = idsIndex.ceilingKey(k0);
+                        var last = idsIndex.floorKey(k1);
+                        
+                        if (first == null || last == null ||
+                            first.parentID != parentID || last.parentID != parentID)
+                            return 0;
+                        else
+                            return idsIndex.getKeyIndex(last) - idsIndex.getKeyIndex(first);
+                    })
+                    .reduce(0, Long::sum);
+            }
+            else
+                return featuresIndex.sizeAsLong();
+        }
+        
+        return selectEntries(filter).count();
+    }
 
 
     @Override
-    public void linkTo(ISystemDescStore procStore)
+    public void linkTo(ISystemDescStore systemStore)
     {
-        this.procStore = Asserts.checkNotNull(procStore, ISystemDescStore.class);
+        this.systemStore = Asserts.checkNotNull(systemStore, ISystemDescStore.class);
     }
 
 
