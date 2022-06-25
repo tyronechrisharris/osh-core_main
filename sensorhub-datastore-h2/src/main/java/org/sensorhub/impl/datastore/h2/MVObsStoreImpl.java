@@ -78,7 +78,7 @@ public class MVObsStoreImpl implements IObsStore
     protected int idScope;
     
     protected IFoiStore foiStore;
-    protected int maxSelectedSeriesOnJoin = 10000;
+    protected int maxOrderedSeries = 1000;
     
     
     static class TimeParams
@@ -368,7 +368,7 @@ public class MVObsStoreImpl implements IObsStore
             var dataStreamIDs = DataStoreUtils.selectDataStreamIDs(dataStreamStore, filter.getDataStreamFilter())
                 .peek(s -> {
                     // make sure set size cannot go over a threshold
-                    if (counter.incrementAndGet() >= 100*maxSelectedSeriesOnJoin)
+                    if (counter.incrementAndGet() >= 100*maxOrderedSeries)
                         throw new IllegalStateException("Too many datastreams selected. Please refine your filter");
                 })
                 .map(id -> id.getIdAsLong())
@@ -406,39 +406,59 @@ public class MVObsStoreImpl implements IObsStore
         
         // select obs series matching the filter
         var timeParams = new TimeParams(filter);
-        var obsSeries = selectObsSeries(filter, timeParams);
+        var numSeries = (int)selectObsSeries(filter, timeParams).count();
         
-        // create obs streams for each selected series
-        // and keep all spliterators in array list
-        final var obsStreams = new ArrayList<Stream<Entry<BigId, IObsData>>>(100);
-        obsSeries.peek(s -> {
-                // make sure list size cannot go over a threshold
-                if (obsStreams.size() >= maxSelectedSeriesOnJoin)
-                    throw new IllegalStateException("Too many datastreams or features of interest selected. Please refine your filter");
-            })
-            .forEach(series -> {
-                var obsStream = getObsStream(series, 
-                    timeParams.resultTimeRange,
-                    timeParams.phenomenonTimeRange,
-                    timeParams.currentTimeOnly,
-                    timeParams.latestResultOnly);
-                if (obsStream != null)
+        // if too many series selected, don't try to order by time
+        // just get one record per series alternatively
+        if (numSeries > maxOrderedSeries)
+        {
+            return Stream.iterate(0, i -> i++)
+                .flatMap(i -> {
+                    return selectObsSeries(filter, timeParams)
+                        .flatMap(series -> {
+                            var obsStream = getObsStream(series, 
+                                timeParams.resultTimeRange,
+                                timeParams.phenomenonTimeRange,
+                                timeParams.currentTimeOnly,
+                                timeParams.latestResultOnly);
+                            System.err.println("skip="+i);
+                            return getPostFilteredResultStream(obsStream, filter).skip(i).limit(1);
+                        }); 
+                })
+                .limit(filter.getLimit());
+        }
+        
+        // otherwise order by phenomenon time
+        else
+        {
+            var obsSeries = selectObsSeries(filter, timeParams);
+            final var obsStreams = new ArrayList<Stream<Entry<BigId, IObsData>>>(numSeries);
+            
+            // create obs streams for each selected series
+            // and keep all spliterators in array list
+            obsSeries.forEach(series -> {
+                    var obsStream = getObsStream(series, 
+                        timeParams.resultTimeRange,
+                        timeParams.phenomenonTimeRange,
+                        timeParams.currentTimeOnly,
+                        timeParams.latestResultOnly);
                     obsStreams.add(getPostFilteredResultStream(obsStream, filter));
-            });
-        
-        if (obsStreams.isEmpty())
-            return Stream.empty();
-        
-        // TODO group by result time when series with different result times are selected
-        
-        // stream and merge obs from all selected datastreams and time periods
-        var mergeSortIt = new MergeSortSpliterator<Entry<BigId, IObsData>>(obsStreams,
-                (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));
-        
-        // stream output of merge sort iterator + apply limit
-        return StreamSupport.stream(mergeSortIt, false)
-            .limit(filter.getLimit())
-            .onClose(() -> mergeSortIt.close());
+                });
+            
+            if (obsStreams.isEmpty())
+                return Stream.empty();
+            
+            // TODO group by result time when series with different result times are selected
+            
+            // stream and merge obs from all selected datastreams and time periods
+            var mergeSortIt = new MergeSortSpliterator<Entry<BigId, IObsData>>(obsStreams,
+                    (e1, e2) -> e1.getValue().getPhenomenonTime().compareTo(e2.getValue().getPhenomenonTime()));
+            
+            // stream output of merge sort iterator + apply limit
+            return StreamSupport.stream(mergeSortIt, false)
+                .limit(filter.getLimit())
+                .onClose(() -> mergeSortIt.close());
+        }
     }
     
     
@@ -880,7 +900,7 @@ public class MVObsStoreImpl implements IObsStore
 
     protected void removeAllObsAndSeries(long datastreamID)
     {
-        // remove all series and obs
+        // remove a)ll series and obs
         MVTimeSeriesKey first = new MVTimeSeriesKey(datastreamID, 0, Instant.MIN);
         MVTimeSeriesKey last = new MVTimeSeriesKey(datastreamID, Long.MAX_VALUE, Instant.MAX);
         
