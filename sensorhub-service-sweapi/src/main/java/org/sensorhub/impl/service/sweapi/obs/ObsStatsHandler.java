@@ -210,6 +210,13 @@ public class ObsStatsHandler extends BaseHandler
             }
         }
         
+        // aggregate flag
+        var aggregateFois = getSingleParam("aggregateFois", queryParams);
+        if (aggregateFois != null && Boolean.parseBoolean(aggregateFois))
+            queryBuilder.aggregateFois(true);
+        else
+            queryBuilder.aggregateFois(false);
+        
         // limit
         // need to limit to offset+limit+1 since we rescan from the beginning for now
         queryBuilder.withLimit(offset+limit+1);

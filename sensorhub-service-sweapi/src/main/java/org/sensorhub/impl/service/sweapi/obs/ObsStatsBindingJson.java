@@ -50,12 +50,12 @@ public class ObsStatsBindingJson extends ResourceBindingJson<BigId, ObsStats>
         writer.beginObject();
         
         var dsID = stats.getDataStreamID();
-        writer.name("datastreamId").value(encodeID(dsID));
+        writer.name("datastream@id").value(encodeID(dsID));
         
         if (stats.getFoiID() != null && stats.getFoiID() != FeatureId.NULL_FEATURE)
         {
             var foiID = stats.getFoiID().getInternalID();
-            writer.name("foiId").value(encodeID(foiID));
+            writer.name("foi@id").value(encodeID(foiID));
         }
         
         if (stats.getPhenomenonTimeRange() != null)

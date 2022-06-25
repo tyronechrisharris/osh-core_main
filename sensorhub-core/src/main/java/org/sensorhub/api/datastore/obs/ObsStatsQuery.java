@@ -31,7 +31,7 @@ import org.vast.util.BaseBuilder;
 public class ObsStatsQuery implements IQueryFilter
 {
     protected ObsFilter obsFilter = new ObsFilter.Builder().build();
-    protected boolean aggregateFois = true;
+    protected boolean aggregateFois = false;
     protected Duration histogramBinSize;
     protected long limit = Long.MAX_VALUE;
     
