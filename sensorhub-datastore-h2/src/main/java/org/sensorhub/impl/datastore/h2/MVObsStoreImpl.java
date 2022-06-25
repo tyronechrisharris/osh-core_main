@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -78,7 +79,7 @@ public class MVObsStoreImpl implements IObsStore
     protected int idScope;
     
     protected IFoiStore foiStore;
-    protected int maxOrderedSeries = 1000;
+    protected int maxOrderedSeries = 20000;
     
     
     static class TimeParams
@@ -608,6 +609,30 @@ public class MVObsStoreImpl implements IObsStore
         
         return counts;
     }
+    
+    
+    static class AccumulatedStats
+    {
+        long dsID;
+        Range<Instant> phenTimeRange;
+        Range<Instant> resultTimeRange;
+        long obsCount;
+        int[] obsCountByTime;
+        
+        ObsStats toObsStats(int idScope)
+        {
+            var obsStats = new ObsStats.Builder()
+                .withDataStreamID(BigId.fromLong(idScope, dsID))
+                .withPhenomenonTimeRange(TimeExtent.period(phenTimeRange))
+                .withResultTimeRange(TimeExtent.period(resultTimeRange))
+                .withTotalObsCount(obsCount);
+            
+            if (obsCountByTime != null)
+                obsStats.withObsCountByTime(obsCountByTime);
+            
+            return obsStats.build();
+        }
+    }
 
 
     @Override
@@ -615,34 +640,76 @@ public class MVObsStoreImpl implements IObsStore
     {
         var filter = query.getObsFilter();
         var timeParams = new TimeParams(filter);
+        var accStatsRef = new AtomicReference<AccumulatedStats>();
         
-        /*if (query.isAggregateFois())
-        {
-            return null;
-        }
-        else*/
-        {
-            return selectObsSeries(filter, timeParams)
-                .map(series -> {
-                   var dsID = series.key.dataStreamID;
-                   var foiID = series.key.foiID > 0 ?
-                       new FeatureId(BigId.fromLong(idScope, series.key.foiID), "urn:foi:unknown") :
-                       FeatureId.NULL_FEATURE;
+        var seriesStats = selectObsSeries(filter, timeParams)
+            .map(series -> {
+               var dsID = series.key.dataStreamID;
+               var foiID = series.key.foiID > 0 ?
+                   new FeatureId(BigId.fromLong(idScope, series.key.foiID), "urn:foi:unknown") :
+                   FeatureId.NULL_FEATURE;
+               
+               var seriesTimeRange = getObsSeriesPhenomenonTimeRange(series.id);
+               
+               // skip if requested phenomenon time range doesn't intersect series time range
+               var statsTimeRange = timeParams.phenomenonTimeRange;
+               if (seriesTimeRange == null || !statsTimeRange.isConnected(seriesTimeRange))
+                   return null;
+               
+               statsTimeRange = seriesTimeRange.intersection(statsTimeRange);
+               
+               var resultTimeRange = series.key.resultTime != Instant.MIN ?
+                   Range.singleton(series.key.resultTime) : statsTimeRange;
+               
+               var obsCount = getObsSeriesCount(series.id, statsTimeRange);
+               
+               // compute histogram
+               int[] obsCountByTime = null;
+               if (query.getHistogramBinSize() != null)
+               {
+                   var histogramTimeRange = timeParams.phenomenonTimeRange;
+                   if (histogramTimeRange.lowerEndpoint() == Instant.MIN || histogramTimeRange.upperEndpoint() == Instant.MAX)
+                       histogramTimeRange = seriesTimeRange;
                    
-                   var seriesTimeRange = getObsSeriesPhenomenonTimeRange(series.id);
+                   obsCountByTime = getObsSeriesHistogram(series.id,
+                       histogramTimeRange, query.getHistogramBinSize());
+               }
+               
+               if (query.isAggregateFois())
+               {
+                   var accStats = accStatsRef.get();
+                   var currentStats = accStats;
                    
-                   // skip if requested phenomenon time range doesn't intersect series time range
-                   var statsTimeRange = timeParams.phenomenonTimeRange;
-                   if (seriesTimeRange == null || !statsTimeRange.isConnected(seriesTimeRange))
+                   if (accStats == null || accStats.dsID != dsID)
+                   {
+                       accStats = new AccumulatedStats();
+                       accStats.dsID = dsID;
+                       accStatsRef.set(accStats);
+                   }
+                   
+                   // accumulate stats
+                   accStats.phenTimeRange = accStats.phenTimeRange == null ?
+                       statsTimeRange : accStats.phenTimeRange.span(statsTimeRange);
+                   accStats.resultTimeRange = accStats.resultTimeRange == null ?
+                       statsTimeRange : accStats.resultTimeRange.span(resultTimeRange);
+                   accStats.obsCount += obsCount;
+                   if (obsCountByTime != null)
+                   {
+                       if (accStats.obsCountByTime == null)
+                           accStats.obsCountByTime = obsCountByTime.clone();
+                       else
+                       {
+                           for (int i = 0; i < obsCountByTime.length; i++)
+                               accStats.obsCountByTime[i] += obsCountByTime[i];
+                       }
+                   }
+                   if (currentStats != null && currentStats.dsID != dsID)
+                       return currentStats.toObsStats(idScope);
+                   else
                        return null;
-                   
-                   statsTimeRange = seriesTimeRange.intersection(statsTimeRange);
-                   
-                   var resultTimeRange = series.key.resultTime != Instant.MIN ?
-                       Range.singleton(series.key.resultTime) : statsTimeRange;
-                   
-                   var obsCount = getObsSeriesCount(series.id, statsTimeRange);
-                       
+               }
+               else
+               {
                    var obsStats = new ObsStats.Builder()
                        .withDataStreamID(BigId.fromLong(idScope, dsID))
                        .withFoiID(foiID)
@@ -650,21 +717,25 @@ public class MVObsStoreImpl implements IObsStore
                        .withResultTimeRange(TimeExtent.period(resultTimeRange))
                        .withTotalObsCount(obsCount);
                    
-                   // compute histogram
-                   if (query.getHistogramBinSize() != null)
-                   {
-                       var histogramTimeRange = timeParams.phenomenonTimeRange;
-                       if (histogramTimeRange.lowerEndpoint() == Instant.MIN || histogramTimeRange.upperEndpoint() == Instant.MAX)
-                           histogramTimeRange = seriesTimeRange;
-                       
-                       obsStats.withObsCountByTime(getObsSeriesHistogram(series.id,
-                           histogramTimeRange, query.getHistogramBinSize()));
-                   }
+                   if (obsCountByTime != null)
+                       obsStats.withObsCountByTime(obsCountByTime);
                    
                    return obsStats.build();
-                })
-                .filter(Objects::nonNull);
-        }
+               }
+            })
+            .filter(Objects::nonNull);
+        
+        if (query.isAggregateFois())
+            return Stream.concat(seriesStats,
+                Stream.of(1).flatMap(k -> {
+                    var lastStats = accStatsRef.get();
+                    if (lastStats != null)
+                        return Stream.of(lastStats.toObsStats(idScope));
+                    else
+                        return Stream.empty();
+                }));
+        else
+            return seriesStats;
     }
 
 
