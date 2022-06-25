@@ -22,12 +22,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.feature.FeatureWrapper;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.utils.Lambdas;
 import org.vast.ogc.gml.GeoJsonBindings;
@@ -50,9 +50,9 @@ public class DynamicFoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFea
     final IObsSystemDatabase db;
     
     
-    public DynamicFoiBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsSystemDatabase db) throws IOException
+    public DynamicFoiBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsSystemDatabase db) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         this.db = db;
     }
     
@@ -79,7 +79,7 @@ public class DynamicFoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFea
                 // try to load associated observations
                 var obsStream = db.getObservationStore().select(new ObsFilter.Builder()
                     .withLatestResult()
-                    .withFois(decodeID(bean.getId()))
+                    .withFois(idEncoders.getFoiIdEncoder().decodeID(bean.getId()))
                     .build());
                 
                 obsStream.findFirst().ifPresent(Lambdas.checked(obs -> {
@@ -149,7 +149,7 @@ public class DynamicFoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFea
             @Override
             public String getId()
             {
-                return encodeID(key.getInternalID());
+                return idEncoders.getFoiIdEncoder().encodeID(key.getInternalID());
             }
         };
     }

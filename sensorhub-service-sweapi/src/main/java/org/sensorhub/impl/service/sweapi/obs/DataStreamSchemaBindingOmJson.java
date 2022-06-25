@@ -17,11 +17,11 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.io.IOException;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.system.SystemId;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -48,16 +48,16 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
     SWEJsonStreamWriter sweWriter;
     
     
-    DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         init(ctx, forReading);
     }
     
     
-    DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
+    DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
-        super(ctx, idEncoder, reader);
+        super(ctx, idEncoders, reader);
         init(ctx, true);
     }
     
@@ -125,9 +125,10 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        writer.beginObject();
+        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID());
         
-        writer.name("datastream@id").value(encodeID(key.getInternalID()));
+        writer.beginObject();
+        writer.name("datastream@id").value(dsId);
         writer.name("obsFormat").value(ResourceFormat.OM_JSON.toString());
         
         // result structure 

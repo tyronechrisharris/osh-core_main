@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
 import java.util.Map;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
@@ -30,9 +31,9 @@ public class FeatureMembersHandler extends FeatureHandler
     public static final String[] NAMES = { "members" };
     
     
-    public FeatureMembersHandler(IFeatureStore dataStore, ResourcePermissions permissions)
+    public FeatureMembersHandler(IFeatureStore dataStore, IdEncoders idEncoders, ResourcePermissions permissions)
     {
-        super(dataStore, permissions);
+        super(dataStore, idEncoders, permissions);
     }
     
     

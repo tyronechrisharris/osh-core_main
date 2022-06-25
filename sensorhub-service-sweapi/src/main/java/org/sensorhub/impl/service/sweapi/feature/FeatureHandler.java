@@ -17,11 +17,11 @@ package org.sensorhub.impl.service.sweapi.feature;
 import java.io.IOException;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.FeatureFilter.Builder;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -38,9 +38,9 @@ public class FeatureHandler extends AbstractFeatureHandler<IFeature, FeatureFilt
     public static final String[] NAMES = { "features" };
     
     
-    public FeatureHandler(IFeatureStore dataStore, ResourcePermissions permissions)
+    public FeatureHandler(IFeatureStore dataStore, IdEncoders idEncoders, ResourcePermissions permissions)
     {
-        super(dataStore, new IdEncoder(), permissions);
+        super(dataStore, idEncoders.getFeatureIdEncoder(), idEncoders, permissions);
     }
 
 
@@ -54,7 +54,7 @@ public class FeatureHandler extends AbstractFeatureHandler<IFeature, FeatureFilt
             format = ResourceFormat.GEOJSON;
         
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
+            return new FeatureBindingGeoJson(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

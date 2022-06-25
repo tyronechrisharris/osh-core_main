@@ -18,10 +18,10 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
@@ -49,9 +49,10 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     final String collectionTitle;
     
     
-    public DataStreamBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, String collectionTitle, IObsSystemDatabase db, Map<String, CustomObsFormat> customFormats) throws IOException
+    public DataStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, String collectionTitle, IObsSystemDatabase db, Map<String, CustomObsFormat> customFormats) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
+        
         this.customFormats = Asserts.checkNotNull(customFormats);
         this.obsFormat = null;
         this.isSummary = isSummary;
@@ -67,9 +68,9 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     }
     
     
-    public DataStreamBindingHtml(RequestContext ctx, IdEncoder idEncoder, ResourceFormat obsFormat) throws IOException
+    public DataStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders, ResourceFormat obsFormat) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         this.obsFormat = obsFormat;
         this.customFormats = null;
         this.isSummary = false;
@@ -102,24 +103,17 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     }
     
     
-    @Override
-    protected String getResourceUrl(DataStreamKey key)
-    {
-        var dsId = encodeID(key.getInternalID());
-        return ctx.getApiRootURL() + "/" + DataStreamHandler.NAMES[0] + "/" + dsId;
-    }
-    
-    
     protected void serializeSummary(DataStreamKey key, IDataStreamInfo dsInfo) throws IOException
     {
-        var resourceUrl = getResourceUrl(key);
+        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID());
+        var dsUrl = ctx.getApiRootURL() + "/" + DataStreamHandler.NAMES[0] + "/" + dsId;
         
-        var sysId = encodeID(dsInfo.getSystemID().getInternalID());
+        var sysId = idEncoders.getSystemIdEncoder().encodeID(dsInfo.getSystemID().getInternalID());
         var sysUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId;
         
         renderCard(
             a(dsInfo.getName())
-                .withHref(resourceUrl)
+                .withHref(dsUrl)
                 .withClass("text-decoration-none"),
             iff(dsInfo.getDescription() != null, div(
                 dsInfo.getDescription()
@@ -168,9 +162,9 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
                             var fUrl = URLEncoder.encode(f, StandardCharsets.UTF_8);
                             return div(
                                 span(f + ": "),
-                                a("Schema").withHref(resourceUrl + "/schema?obsFormat=" + fUrl).withClass("small"),
+                                a("Schema").withHref(dsUrl + "/schema?obsFormat=" + fUrl).withClass("small"),
                                 span(" - "),
-                                a("Observations").withHref(resourceUrl + "/observations?f=" + fUrl).withClass("small")
+                                a("Observations").withHref(dsUrl + "/observations?f=" + fUrl).withClass("small")
                             );
                         })
                     ).withClass("ps-4")
@@ -178,9 +172,9 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
             ),
             iff(isCollection,
                 p(
-                    a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
-                    a("Schema").withHref(resourceUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
-                    a("Observations").withHref(resourceUrl + "/observations").withClasses(CSS_LINK_BTN_CLASSES)
+                    a("Details").withHref(dsUrl).withClasses(CSS_LINK_BTN_CLASSES),
+                    a("Schema").withHref(dsUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
+                    a("Observations").withHref(dsUrl + "/observations").withClasses(CSS_LINK_BTN_CLASSES)
                 ).withClass("mt-4")
             )
          );

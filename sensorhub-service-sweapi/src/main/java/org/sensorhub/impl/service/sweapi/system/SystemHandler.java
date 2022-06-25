@@ -51,7 +51,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     
     public SystemHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getSystemDescStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getSystemDescStore(), db.getSystemIdEncoder(), db.getIdEncoders(), permissions);
         this.db = db.getReadDb();
         this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
@@ -67,11 +67,11 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new SystemBindingHtml(ctx, idEncoder, true, db);
+            return new SystemBindingHtml(ctx, idEncoders, true, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new SystemBindingGeoJson(ctx, idEncoder, forReading);
+            return new SystemBindingGeoJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -101,7 +101,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         boolean parentSelected = false;
         
         // parent ID
-        var ids = parseResourceIds("parentId", queryParams);
+        var ids = parseResourceIds("parentId", queryParams, idEncoders.getSystemIdEncoder());
         if (ids != null && !ids.isEmpty())
         {
             parentSelected = true;

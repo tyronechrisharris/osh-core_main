@@ -16,8 +16,7 @@ package org.sensorhub.impl.service.sweapi.resource;
 
 import java.io.IOException;
 import java.util.Collection;
-import org.sensorhub.api.common.BigId;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.vast.util.Asserts;
 
 
@@ -38,13 +37,13 @@ public abstract class ResourceBinding<K, V>
     
     
     protected final RequestContext ctx;
-    protected final IdEncoder idEncoder; // encoder/decoder to obfuscate ids provided by service
+    protected final IdEncoders idEncoders;
     
     
-    protected ResourceBinding(RequestContext ctx, IdEncoder idEncoder)
+    protected ResourceBinding(RequestContext ctx, IdEncoders idEncoders)
     {
         this.ctx = Asserts.checkNotNull(ctx, RequestContext.class);
-        this.idEncoder = Asserts.checkNotNull(idEncoder, IdEncoder.class);
+        this.idEncoders = idEncoders;
     }
     
     
@@ -52,16 +51,4 @@ public abstract class ResourceBinding<K, V>
     public abstract void serialize(K key, V res, boolean showLinks) throws IOException;
     public abstract void startCollection() throws IOException;
     public abstract void endCollection(Collection<ResourceLink> links) throws IOException;
-    
-    
-    public BigId decodeID(String encodedID)
-    {
-        return idEncoder.decodeID(encodedID);
-    }
-    
-    
-    public String encodeID(BigId decodedID)
-    {
-        return idEncoder.encodeID(decodedID);
-    }
 }

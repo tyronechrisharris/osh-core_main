@@ -24,10 +24,10 @@ import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.command.CommandStatusFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -58,9 +58,9 @@ public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
     String userID;
 
     
-    CommandBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, ICommandStore cmdStore) throws IOException
+    CommandBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStore cmdStore) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         this.contextData = (CommandHandlerContextData)ctx.getData();
         this.cmdStore = cmdStore;
         
@@ -139,18 +139,20 @@ public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
     @Override
     public void serialize(BigId key, ICommandData cmd, boolean showLinks, JsonWriter writer) throws IOException
     {
+        var cmdId = idEncoders.getCommandIdEncoder().encodeID(key);
+        var controlId = idEncoders.getCommandStreamIdEncoder().encodeID(cmd.getCommandStreamID());
+            
         writer.beginObject();
         
         if (key != null)
-            writer.name("id").value(encodeID(key));
+            writer.name("id").value(cmdId);
         
-        var dsID = cmd.getCommandStreamID();
-        writer.name("control@id").value(encodeID(dsID));
+        writer.name("control@id").value(controlId);
         
         if (cmd.hasFoi())
         {
-            var foiID = cmd.getFoiID();
-            writer.name("foi").value(encodeID(foiID));
+            var foiId = idEncoders.getFoiIdEncoder().encodeID(cmd.getFoiID());
+            writer.name("foi@id").value(foiId);
         }
         
         writer.name("issueTime").value(cmd.getIssueTime().toString());
@@ -170,7 +172,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
         
         // create or reuse existing params writer and write param data
         writer.name("params");
-        var paramWriter = paramsWriters.computeIfAbsent(dsID,
+        var paramWriter = paramsWriters.computeIfAbsent(cmd.getCommandStreamID(),
             k -> getSweCommonWriter(k, writer, ctx.getPropertyFilter()) );
         
         // write if JSON is supported, otherwise print warning message

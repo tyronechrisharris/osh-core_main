@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.system;
 
 import java.io.IOException;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -22,7 +23,6 @@ import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.system.ISystemWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.feature.FeatureUtils;
 import org.sensorhub.impl.service.sweapi.procedure.SmlFeatureBindingHtml;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -43,9 +43,9 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
     final String collectionTitle;
     
     
-    public SystemBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, IObsSystemDatabase db) throws IOException
+    public SystemBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
-        super(ctx, idEncoder, isSummary, db);
+        super(ctx, idEncoders, isSummary, db);
         
         // set collection title depending on path
         if (ctx.getParentID() != null)
@@ -85,7 +85,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
     @Override
     protected String getResourceUrl(FeatureKey key)
     {
-        var sysId = encodeID(key.getInternalID());
+        var sysId = idEncoders.getSystemIdEncoder().encodeID(key.getInternalID());
         var sysUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId;
         if (isHistory)
             sysUrl += "/history/" + key.getValidStartTime().toString();
@@ -100,7 +100,10 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
         String parentSysUrl = null;
         var parentSysId = db.getSystemDescStore().getParent(key.getInternalID());
         if (parentSysId != null)
-            parentSysUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + encodeID(parentSysId);
+        {
+            var sysId = idEncoders.getSystemIdEncoder().encodeID(parentSysId);
+            parentSysUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId;
+        }
         
         var hasSubSystems = db.getSystemDescStore().countMatchingEntries(new SystemFilter.Builder()
             .withParents(key.getInternalID())

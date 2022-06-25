@@ -45,7 +45,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     
     public ProcedureHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getProcedureStore(), db.getIdEncoder(), permissions);
+        super(db.getProcedureStore(), db.getProcedureIdEncoder(), db.getIdEncoders(), permissions);
         this.eventBus = eventBus;
         this.db = db;
         
@@ -62,12 +62,12 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
         {
             var title = ctx.getParentID() != null ? "Components of {}" : "All Procedures and System Datasheets";
-            return new ProcedureBindingHtml(ctx, idEncoder, true, title, db);
+            return new ProcedureBindingHtml(ctx, idEncoders, true, title, db);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new ProcedureBindingGeoJson(ctx, idEncoder, forReading);
+            return new ProcedureBindingGeoJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<IProcedureWithDesc>(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlJson<IProcedureWithDesc>(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

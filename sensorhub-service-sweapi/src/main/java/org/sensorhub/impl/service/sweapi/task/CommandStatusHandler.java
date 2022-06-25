@@ -71,7 +71,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
     
     public CommandStatusHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getCommandStatusStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getCommandStatusStore(), db.getCommandIdEncoder(), db.getIdEncoders(), permissions);
         
         this.eventBus = eventBus;
         this.db = db.getReadDb();
@@ -111,7 +111,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
         
         // select binding depending on format
         if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new CommandStatusBindingJson(ctx, idEncoder, forReading, dataStore);
+            return new CommandStatusBindingJson(ctx, idEncoders, forReading, dataStore);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -255,11 +255,9 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
         }
         
         // command IDs
-        var cmdIDs = parseResourceIds("commands", queryParams);
+        var cmdIDs = parseResourceIds("commands", queryParams, idEncoders.getCommandIdEncoder());
         if (parent.internalID == null && cmdIDs != null && !cmdIDs.isEmpty())
-        {
             builder.withCommands(cmdIDs);
-        }
         
         // reportTime param
         var issueTime = parseTimeStampArg("reportTime", queryParams);

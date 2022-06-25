@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.sweapi.home;
 
 import java.io.IOException;
 import java.util.Optional;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.home.CollectionHandler.CollectionInfo;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
@@ -29,7 +28,7 @@ public class CollectionHtml extends ResourceBindingHtml<String, CollectionInfo>
     
     public CollectionHtml(RequestContext ctx) throws IOException
     {
-        super(ctx, new IdEncoder());
+        super(ctx, null);
     }
     
     
@@ -98,12 +97,5 @@ public class CollectionHtml extends ResourceBindingHtml<String, CollectionInfo>
         );
         
         writer.flush();
-    }
-
-
-    @Override
-    protected String getResourceUrl(String key)
-    {
-        return ctx.getApiRootURL() + ConformanceHandler.NAMES[0];
     }
 }

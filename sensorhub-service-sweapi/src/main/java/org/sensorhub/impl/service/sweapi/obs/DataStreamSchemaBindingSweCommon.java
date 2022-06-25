@@ -17,11 +17,11 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.io.IOException;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.system.SystemId;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -49,16 +49,16 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
     SWEJsonStreamWriter sweWriter;
     
     
-    DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         init(obsFormat, ctx, forReading);
     }
     
     
-    DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
+    DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
-        super(ctx, idEncoder, reader);
+        super(ctx, idEncoders, reader);
         init(obsFormat, ctx, true);
     }
     
@@ -131,11 +131,11 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
+        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID());
         var sweEncoding = SWECommonUtils.getEncoding(dsInfo, obsFormat);
         
         writer.beginObject();
-        
-        writer.name("datastream@id").value(encodeID(key.getInternalID()));
+        writer.name("datastream@id").value(dsId);
         writer.name("obsFormat").value(obsFormat.toString());
         
         // result structure & encoding

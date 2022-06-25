@@ -18,13 +18,13 @@ import static org.sensorhub.impl.service.sweapi.event.ResourceEventsHandler.*;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collection;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.system.SystemAddedEvent;
 import org.sensorhub.api.system.SystemChangedEvent;
 import org.sensorhub.api.system.SystemDisabledEvent;
 import org.sensorhub.api.system.SystemEnabledEvent;
 import org.sensorhub.api.system.SystemEvent;
 import org.sensorhub.api.system.SystemRemovedEvent;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
@@ -44,9 +44,9 @@ public class SystemEventBindingJson extends ResourceBindingJson<Long, SystemEven
 {
     
     
-    SystemEventBindingJson(RequestContext ctx, IdEncoder idEncoder) throws IOException
+    SystemEventBindingJson(RequestContext ctx, IdEncoders idEncoders) throws IOException
     {
-        super(ctx, idEncoder, false);
+        super(ctx, idEncoders, false);
     }
 
 
@@ -72,9 +72,10 @@ public class SystemEventBindingJson extends ResourceBindingJson<Long, SystemEven
             return;
         
         // write event message
+        var sysId = idEncoders.getSystemIdEncoder().encodeID(res.getSystemID());
         writer.beginObject();
         writer.name("time").value(Instant.ofEpochMilli(res.getTimeStamp()).toString());
-        writer.name("system@id").value(encodeID(res.getSystemID()));
+        writer.name("system@id").value(sysId);
         writer.name("eventType").value(eventType);
         writer.endObject();
         writer.flush();

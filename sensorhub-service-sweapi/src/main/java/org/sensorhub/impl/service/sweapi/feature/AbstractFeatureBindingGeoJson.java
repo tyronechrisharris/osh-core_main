@@ -20,8 +20,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
@@ -48,9 +48,9 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
     protected AtomicBoolean showLinks = new AtomicBoolean();
     
     
-    public AbstractFeatureBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public AbstractFeatureBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         this.geoJsonBindings = getJsonBindings();
     }
     

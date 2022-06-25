@@ -38,7 +38,7 @@ public class SystemHistoryHandler extends AbstractFeatureHistoryHandler<ISystemW
     
     public SystemHistoryHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getSystemDescStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getSystemDescStore(), db.getSystemIdEncoder(), db.getIdEncoders(), permissions);
         this.db = db.getReadDb();
     }
 
@@ -49,9 +49,9 @@ public class SystemHistoryHandler extends AbstractFeatureHistoryHandler<ISystemW
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new SystemBindingHtml(ctx, idEncoder, true, db);
+            return new SystemBindingHtml(ctx, idEncoders, true, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new SystemBindingGeoJson(ctx, idEncoder, forReading);
+            return new SystemBindingGeoJson(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

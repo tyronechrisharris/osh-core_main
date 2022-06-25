@@ -41,7 +41,7 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     
     public CommandStreamSchemaHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getCommandStreamStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getCommandStreamStore(), db.getCommandStreamIdEncoder(), db.getIdEncoders(), permissions);
     }
     
     
@@ -58,11 +58,11 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
             cmdFormat = ResourceFormat.JSON;
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new CommandStreamBindingHtml(ctx, idEncoder);
+            return new CommandStreamBindingHtml(ctx, idEncoders);
         else if (cmdFormat.equals(ResourceFormat.JSON))
-            return new CommandStreamSchemaBindingJson(ctx, idEncoder, forReading);
+            return new CommandStreamSchemaBindingJson(ctx, idEncoders, forReading);
         else if (cmdFormat.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
-            return new CommandStreamSchemaBindingSweCommon(cmdFormat, ctx, idEncoder, forReading);
+            return new CommandStreamSchemaBindingSweCommon(cmdFormat, ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(cmdFormat);
     }

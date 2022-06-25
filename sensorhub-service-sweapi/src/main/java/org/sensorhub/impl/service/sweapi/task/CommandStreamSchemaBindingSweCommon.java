@@ -19,9 +19,9 @@ import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.system.SystemId;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -48,16 +48,16 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
     SWEJsonStreamWriter sweWriter;
     
     
-    CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         init(cmdFormat, ctx, forReading);
     }
     
     
-    CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
+    CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
-        super(ctx, idEncoder, reader);
+        super(ctx, idEncoders, reader);
         init(cmdFormat, ctx, true);
     }
     
@@ -130,9 +130,10 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
     @Override
     public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        writer.beginObject();
+        var dsId = idEncoders.getCommandStreamIdEncoder().encodeID(key.getInternalID());
         
-        writer.name("control@id").value(encodeID(key.getInternalID()));
+        writer.beginObject();
+        writer.name("control@id").value(dsId);
         
         // result structure & encoding
         try

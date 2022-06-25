@@ -29,7 +29,7 @@ public class ProcedureEventsHandler extends ResourceEventsHandler<SystemEvent>
     
     protected ProcedureEventsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super("procedure", eventBus, db.getIdEncoder(), permissions);
+        super("procedure", eventBus, db.getIdEncoders(), permissions);
     }
     
 

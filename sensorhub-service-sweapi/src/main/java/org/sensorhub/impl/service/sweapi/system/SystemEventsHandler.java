@@ -34,7 +34,7 @@ public class SystemEventsHandler extends ResourceEventsHandler<SystemEvent>
     
     protected SystemEventsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super("system", eventBus, db.getIdEncoder(), permissions);
+        super("system", eventBus, db.getIdEncoders(), permissions);
         this.db = Asserts.checkNotNull(db, ObsSystemDbWrapper.class);
     }
     
@@ -46,7 +46,7 @@ public class SystemEventsHandler extends ResourceEventsHandler<SystemEvent>
         //var filter = getFilter(ctx.getParentRef(), queryParams, 0, Long.MAX_VALUE);
         var responseFormat = parseFormat(queryParams);
         ctx.setFormatOptions(responseFormat, parseSelectArg(queryParams));
-        var serializer = new SystemEventBindingJson(ctx, idEncoder);
+        var serializer = new SystemEventBindingJson(ctx, idEncoders);
         
         // use registry topic if all system events are requested
         // otherwise use specific system topic

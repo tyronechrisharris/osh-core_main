@@ -17,16 +17,16 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -62,8 +62,9 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected boolean readOnly = false;
     
     
-    public BaseResourceHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
+    public BaseResourceHandler(S dataStore, IdEncoder idEncoder, IdEncoders allIdEncoders, ResourcePermissions permissions)
     {
+        super(allIdEncoders);
         this.dataStore = Asserts.checkNotNull(dataStore, IDataStore.class);
         this.idEncoder = Asserts.checkNotNull(idEncoder, IdEncoder.class);
         this.permissions = Asserts.checkNotNull(permissions, ResourcePermissions.class);
@@ -497,11 +498,5 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             throw ServiceErrors.badRequest("Invalid resource ID: " + id);
         }
-    }
-    
-    
-    protected Collection<BigId> parseResourceIds(String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
-    {
-        return parseResourceIds(paramName, queryParams, this.idEncoder);
     }
 }

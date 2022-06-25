@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.vast.xml.XMLImplFinder;
 
 
@@ -44,9 +44,9 @@ public abstract class ResourceBindingXml<K, V> extends ResourceBinding<K, V>
     protected final XMLStreamWriter xmlWriter;
     
     
-    protected ResourceBindingXml(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    protected ResourceBindingXml(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         
         try
         {

@@ -15,10 +15,10 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.obs;
 
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
 
@@ -28,8 +28,8 @@ public interface CustomObsFormat
     boolean isCompatible(IDataStreamInfo dsInfo);
     
     
-    ResourceBinding<DataStreamKey, IDataStreamInfo> getSchemaBinding(RequestContext ctx, IdEncoder idEncoder, IDataStreamInfo dsInfo);
+    ResourceBinding<DataStreamKey, IDataStreamInfo> getSchemaBinding(RequestContext ctx, IdEncoders idEncoders, IDataStreamInfo dsInfo);
     
     
-    ResourceBinding<BigId, IObsData> getObsBinding(RequestContext ctx, IdEncoder idEncoder, IDataStreamInfo dsInfo);
+    ResourceBinding<BigId, IObsData> getObsBinding(RequestContext ctx, IdEncoders idEncoders, IDataStreamInfo dsInfo);
 }

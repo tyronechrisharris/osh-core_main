@@ -22,8 +22,8 @@ import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.command.ICommandStatusStore;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
@@ -42,9 +42,9 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
     ICommandStatusStore statusStore;
 
     
-    CommandStatusBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, ICommandStatusStore cmdStore) throws IOException
+    CommandStatusBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStatusStore cmdStore) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         this.contextData = (CommandStatusHandlerContextData)ctx.getData();
         this.statusStore = cmdStore;
     }
@@ -68,8 +68,8 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
                 
                 if ("command@id".equals(propName))
                 {
-                    var cmdID = decodeID(reader.nextString());
-                    status.withCommand(cmdID);
+                    var cmdId = idEncoders.getCommandIdEncoder().decodeID(reader.nextString());
+                    status.withCommand(cmdId);
                 }
                 else if ("reportTime".equals(propName))
                 {
@@ -118,14 +118,15 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
     @Override
     public void serialize(BigId key, ICommandStatus status, boolean showLinks, JsonWriter writer) throws IOException
     {
+        var statusId = idEncoders.getCommandIdEncoder().encodeID(key);
+        var cmdId = idEncoders.getCommandIdEncoder().encodeID(status.getCommandID());
+        
         writer.beginObject();
         
         if (key != null)
-            writer.name("id").value(encodeID(key));
+            writer.name("id").value(statusId);
         
-        var cmdID = status.getCommandID();
-        writer.name("command@id").value(encodeID(cmdID));
-        
+        writer.name("command@id").value(cmdId);
         writer.name("reportTime").value(status.getReportTime().toString());
         writer.name("statusCode").value(status.getStatusCode().toString());
         

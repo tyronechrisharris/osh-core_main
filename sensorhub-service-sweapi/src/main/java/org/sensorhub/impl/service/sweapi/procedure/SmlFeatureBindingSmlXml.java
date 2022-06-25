@@ -17,9 +17,9 @@ package org.sensorhub.impl.service.sweapi.procedure;
 import java.io.IOException;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingXml;
@@ -43,9 +43,9 @@ public class SmlFeatureBindingSmlXml<V extends IProcedureWithDesc> extends Resou
     SMLStaxBindings smlBindings;
     
     
-    public SmlFeatureBindingSmlXml(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public SmlFeatureBindingSmlXml(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         
         try
         {

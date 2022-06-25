@@ -52,6 +52,7 @@ import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
+import com.vaadin.ui.UI;
 import com.vaadin.v7.ui.Table;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Button.ClickEvent;
@@ -474,7 +475,8 @@ public class DatabaseStreamPanel extends VerticalLayout
         
         // add custom container for lazy loading from DB
         List<ScalarIndexer> indexers = new ArrayList<>();
-        obsDataContainer = new LazyLoadingObsContainer(db, dataStreamID, indexers);
+        var foiIdEncoder = ((AdminUI)UI.getCurrent()).getParentHub().getIdEncoders().getFoiIdEncoder();
+        obsDataContainer = new LazyLoadingObsContainer(db, foiIdEncoder, dataStreamID, indexers);
         obsDataContainer.updateTimeRange(zoomTimeRange);
         table.setContainerDataSource(obsDataContainer);
         table.addListener(new PageChangeListener() {

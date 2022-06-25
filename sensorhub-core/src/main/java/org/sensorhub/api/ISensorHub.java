@@ -16,6 +16,7 @@ package org.sensorhub.api;
 
 import org.osgi.framework.BundleContext;
 import org.sensorhub.api.comm.INetworkManager;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.IDatabaseRegistry;
 import org.sensorhub.api.event.IEventBus;
@@ -61,6 +62,9 @@ public interface ISensorHub
 
 
     public IProcessingManager getProcessingManager();
+    
+    
+    public IdEncoders getIdEncoders();
     
     
     public void start() throws SensorHubException;

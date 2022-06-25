@@ -20,6 +20,7 @@ import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
+import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.vast.ogc.gml.IFeature;
 import j2html.tags.DomContent;
 import static j2html.TagCreator.*;
@@ -27,34 +28,43 @@ import static j2html.TagCreator.*;
 
 /**
  * <p>
- * HTML formatter for feature resources
+ * HTML formatter for feature of interest resources
  * </p>
  *
  * @author Alex Robin
  * @since March 31, 2022
  */
-public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IObsSystemDatabase>
+public class FoiBindingHtml extends AbstractFeatureBindingHtml<IFeature, IObsSystemDatabase>
 {
     final String collectionTitle;
     
     
-    public FeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
+    public FoiBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
         super(ctx, idEncoders, isSummary, db);
         
         // set collection title depending on path
         if (ctx.getParentID() != null)
         {
-            // fetch parent feature name
-            var parentFeature = FeatureUtils.getClosestToNow(db.getFoiStore(), ctx.getParentID());
-            
-            if (isHistory)
-                this.collectionTitle = "History of " + parentFeature.getName();
+            if (ctx.getParentRef().type instanceof SystemHandler)
+            {
+                // fetch parent system name
+                var parentSys = FeatureUtils.getClosestToNow(db.getSystemDescStore(), ctx.getParentID());
+                this.collectionTitle = "Features observed by " + parentSys.getName();
+            }
             else
-                this.collectionTitle = "Members of " + parentFeature.getName();
+            {
+                // fetch parent feature name
+                var parentFeature = FeatureUtils.getClosestToNow(db.getFoiStore(), ctx.getParentID());
+                
+                if (isHistory)
+                    this.collectionTitle = "History of " + parentFeature.getName();
+                else
+                    this.collectionTitle = "Members of " + parentFeature.getName();
+            }
         }
         else
-            this.collectionTitle = "All Domain Features";
+            this.collectionTitle = "All Features of Interest";
     }
     
     
@@ -75,8 +85,8 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IOb
     @Override
     protected String getResourceUrl(FeatureKey key)
     {
-        var featureId = idEncoders.getFeatureIdEncoder().encodeID(key.getInternalID());
-        var featureUrl = ctx.getApiRootURL() + "/" + FeatureHandler.NAMES[0] + "/" + featureId;
+        var featureId = idEncoders.getFoiIdEncoder().encodeID(key.getInternalID());
+        var featureUrl = ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0] + "/" + featureId;
         if (isHistory)
             featureUrl += "/history/" + key.getValidStartTime().toString();
         return featureUrl;

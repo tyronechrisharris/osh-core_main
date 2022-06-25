@@ -19,12 +19,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -40,9 +41,9 @@ public abstract class AbstractFeatureHandler<
     S extends IFeatureStoreBase<V,?,F>> extends ResourceHandler<FeatureKey, V, F, B, S>
 {
     
-    protected AbstractFeatureHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
+    protected AbstractFeatureHandler(S dataStore, IdEncoder idEncoder, IdEncoders allIdEncoders, ResourcePermissions permissions)
     {
-        super(dataStore, idEncoder, permissions);
+        super(dataStore, idEncoder, allIdEncoders, permissions);
     }
 
 

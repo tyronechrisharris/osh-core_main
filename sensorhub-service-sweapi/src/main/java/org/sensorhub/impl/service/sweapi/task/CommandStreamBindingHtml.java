@@ -16,9 +16,9 @@ package org.sensorhub.impl.service.sweapi.task;
 
 import java.io.IOException;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
@@ -41,9 +41,9 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
     final String collectionTitle;
     
     
-    public CommandStreamBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, String collectionTitle, IObsSystemDatabase db) throws IOException
+    public CommandStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, String collectionTitle, IObsSystemDatabase db) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         this.isSummary = isSummary;
         
         if (ctx.getParentID() != null)
@@ -57,9 +57,9 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
     }
     
     
-    public CommandStreamBindingHtml(RequestContext ctx, IdEncoder idEncoder) throws IOException
+    public CommandStreamBindingHtml(RequestContext ctx, IdEncoders idEncoders) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         this.isSummary = false;
         this.collectionTitle = null;
     }
@@ -72,15 +72,6 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
         
         if (isCollection)
             h3(collectionTitle).render(html);
-    }
-    
-    
-    @Override
-    protected String getResourceUrl(CommandStreamKey key)
-    {
-        var dsId = encodeID(key.getInternalID());
-        var requestUrl = ctx.getRequestUrl();
-        return isCollection ? requestUrl + "/" + dsId : requestUrl;
     }
 
     
@@ -101,14 +92,15 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
     
     protected void serializeSummary(CommandStreamKey key, ICommandStreamInfo dsInfo) throws IOException
     {
-        var resourceUrl = getResourceUrl(key);
+        var dsId = idEncoders.getCommandStreamIdEncoder().encodeID(key.getInternalID());
+        var dsUrl = ctx.getApiRootURL() + "/" + CommandStreamHandler.NAMES[0] + "/" + dsId;
         
-        var sysId = encodeID(dsInfo.getSystemID().getInternalID());
+        var sysId = idEncoders.getSystemIdEncoder().encodeID(dsInfo.getSystemID().getInternalID());
         var sysUrl = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + sysId;
         
         renderCard(
             a(dsInfo.getName())
-                .withHref(resourceUrl)
+                .withHref(dsUrl)
                 .withClass("text-decoration-none"),
             iff(dsInfo.getDescription() != null, div(
                 dsInfo.getDescription()
@@ -151,11 +143,11 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
             ),
             p(
                 iff(isCollection,
-                    a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES)
+                    a("Details").withHref(dsUrl).withClasses(CSS_LINK_BTN_CLASSES)
                 ),
-                a("Schema").withHref(resourceUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
-                a("Commands").withHref(resourceUrl + "/commands").withClasses(CSS_LINK_BTN_CLASSES),
-                a("Status").withHref(resourceUrl + "/status").withClasses(CSS_LINK_BTN_CLASSES)
+                a("Schema").withHref(dsUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
+                a("Commands").withHref(dsUrl + "/commands").withClasses(CSS_LINK_BTN_CLASSES),
+                a("Status").withHref(dsUrl + "/status").withClasses(CSS_LINK_BTN_CLASSES)
             ).withClass("mt-4"));
     }
     

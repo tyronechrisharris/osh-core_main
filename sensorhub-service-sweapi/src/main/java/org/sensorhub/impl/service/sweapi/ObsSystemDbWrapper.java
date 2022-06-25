@@ -14,10 +14,9 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
-import java.util.Random;
 import java.util.concurrent.Callable;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.DESKeySpec;
+import org.sensorhub.api.common.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.command.ICommandStore;
@@ -50,10 +49,10 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     IObsStore obsStore;
     ICommandStreamStore commandStreamStore;
     ICommandStore commandStore;
-    IdEncoder idEncoder;
+    IdEncoders idEncoders;
     
     
-    public ObsSystemDbWrapper(IObsSystemDatabase readDb, IObsSystemDatabase writeDb)
+    public ObsSystemDbWrapper(IObsSystemDatabase readDb, IObsSystemDatabase writeDb, IdEncoders idEncoders)
     {
         Asserts.checkNotNull(readDb);
         this.readDb = readDb;
@@ -91,24 +90,7 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
                     ((IProcedureDatabase)writeDb).getProcedureStore() : null);
         }
         
-        // create ID encoder
-        // using encryption if requested
-        try
-        {
-            // generate 56 bytes key from seed
-            var prg = new Random(10L);
-            var keyBytes = new byte[56];
-            prg.nextBytes(keyBytes);
-            DESKeySpec dks = new DESKeySpec(keyBytes);
-            var skf = SecretKeyFactory.getInstance("DES");
-            var key = skf.generateSecret(dks);
-            this.idEncoder = new IdEncoder(key);
-            //this.idEncoder = new IdEncoder();
-        }
-        catch (Exception e)
-        {
-            throw new IllegalStateException("Error generating ID encoder key", e);
-        }
+        this.idEncoders = Asserts.checkNotNull(idEncoders);
     }
 
 
@@ -163,6 +145,13 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
 
 
     @Override
+    public IProcedureStore getProcedureStore()
+    {
+        return procedureStore;
+    }
+
+
+    @Override
     public ISystemDescStore getSystemDescStore()
     {
         return systemStore;
@@ -202,18 +191,53 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     {
         return commandStore;
     }
-
-
-    @Override
-    public IProcedureStore getProcedureStore()
+    
+    
+    public IdEncoders getIdEncoders()
     {
-        return procedureStore;
+        return idEncoders;
     }
     
     
-    public IdEncoder getIdEncoder()
+    public IdEncoder getProcedureIdEncoder()
     {
-        return idEncoder;
+        return idEncoders.getProcedureIdEncoder();
+    }
+    
+    
+    public IdEncoder getSystemIdEncoder()
+    {
+        return idEncoders.getSystemIdEncoder();
+    }
+    
+    
+    public IdEncoder getFoiIdEncoder()
+    {
+        return idEncoders.getFoiIdEncoder();
+    }
+    
+    
+    public IdEncoder getDataStreamIdEncoder()
+    {
+        return idEncoders.getDataStreamIdEncoder();
+    }
+    
+    
+    public IdEncoder getObsIdEncoder()
+    {
+        return idEncoders.getObsIdEncoder();
+    }
+    
+    
+    public IdEncoder getCommandStreamIdEncoder()
+    {
+        return idEncoders.getCommandStreamIdEncoder();
+    }
+    
+    
+    public IdEncoder getCommandIdEncoder()
+    {
+        return idEncoders.getCommandIdEncoder();
     }
 
 }

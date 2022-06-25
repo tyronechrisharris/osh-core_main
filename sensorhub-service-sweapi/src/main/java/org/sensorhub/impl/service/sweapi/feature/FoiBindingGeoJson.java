@@ -17,9 +17,9 @@ package org.sensorhub.impl.service.sweapi.feature;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.FeatureWrapper;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
@@ -38,9 +38,9 @@ import com.google.gson.stream.JsonWriter;
 public class FoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
 {
     
-    public FoiBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public FoiBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
     }
     
     
@@ -65,7 +65,7 @@ public class FoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
             @Override
             public String getId()
             {
-                return encodeID(key.getInternalID());
+                return idEncoders.getFoiIdEncoder().encodeID(key.getInternalID());
             }
         };
     }

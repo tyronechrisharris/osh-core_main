@@ -19,11 +19,12 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -48,9 +49,9 @@ public abstract class AbstractFeatureHistoryHandler<
     public static final String[] NAMES = { "history" };
     
     
-    public AbstractFeatureHistoryHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
+    public AbstractFeatureHistoryHandler(S dataStore, IdEncoder idEncoder, IdEncoders allIdEncoders, ResourcePermissions permissions)
     {
-        super(dataStore, idEncoder, permissions);
+        super(dataStore, idEncoder, allIdEncoders, permissions);
     }
     
     

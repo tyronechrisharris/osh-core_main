@@ -20,9 +20,9 @@ import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.system.SystemId;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -49,9 +49,9 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
     SWEJsonStreamWriter sweWriter;
     
     
-    CommandStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    CommandStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
@@ -133,18 +133,18 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
     @Override
     public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var dsID = encodeID(key.getInternalID());
-        var sysID = encodeID(dsInfo.getSystemID().getInternalID());
+        var dsId = idEncoders.getCommandStreamIdEncoder().encodeID(key.getInternalID());
+        var sysId = idEncoders.getSystemIdEncoder().encodeID(dsInfo.getSystemID().getInternalID());
         
         writer.beginObject();
         
-        writer.name("id").value(dsID);
+        writer.name("id").value(dsId);
         writer.name("name").value(dsInfo.getName());
         
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("system@id").value(sysID);
+        writer.name("system@id").value(sysId);
         writer.name("inputName").value(dsInfo.getControlInputName());
         
         writer.name("validTime").beginArray()
@@ -204,7 +204,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                 .title("Parent system")
                 .href(rootURL +
                       "/" + SystemHandler.NAMES[0] +
-                      "/" + sysID)
+                      "/" + sysId)
                 .build());
             
             links.add(new ResourceLink.Builder()
@@ -212,7 +212,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                 .title("Collection of commands")
                 .href(rootURL +
                       "/" + CommandStreamHandler.NAMES[0] +
-                      "/" + dsID +
+                      "/" + dsId +
                       "/" + CommandHandler.NAMES[0])
                 .build());
             

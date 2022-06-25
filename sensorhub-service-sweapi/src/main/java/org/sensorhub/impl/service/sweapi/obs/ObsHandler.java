@@ -76,7 +76,7 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
     
     public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
-        super(db.getReadDb().getObservationStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getObservationStore(), db.getObsIdEncoder(), db.getIdEncoders(), permissions);
         
         this.eventBus = eventBus;
         this.db = db.getReadDb();
@@ -136,9 +136,9 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
             format = ResourceFormat.OM_JSON;
         
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.OM_JSON))
-            return new ObsBindingOmJson(ctx, idEncoder, forReading, dataStore);
+            return new ObsBindingOmJson(ctx, idEncoders, forReading, dataStore);
         else
-            return new ObsBindingSweCommon(ctx, idEncoder, forReading, dataStore);
+            return new ObsBindingSweCommon(ctx, idEncoders, forReading, dataStore);
     }
     
     
@@ -168,7 +168,7 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
         if (obsFormat == null)
             obsFormat = customFormats.get(format.getMimeType());
         
-        return obsFormat != null ? obsFormat.getObsBinding(ctx, idEncoder, dsInfo) : null;
+        return obsFormat != null ? obsFormat.getObsBinding(ctx, idEncoders, dsInfo) : null;
     }
     
     
@@ -434,12 +434,12 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
             builder.withResultTime(resultTime);
         
         // foi param
-        var foiIDs = parseResourceIds("foi", queryParams, idEncoder);
+        var foiIDs = parseResourceIds("foi", queryParams, idEncoders.getFoiIdEncoder());
         if (foiIDs != null && !foiIDs.isEmpty())
             builder.withFois(foiIDs);
         
         // datastream param
-        var dsIDs = parseResourceIds("datastream", queryParams, idEncoder);
+        var dsIDs = parseResourceIds("datastream", queryParams, idEncoders.getDataStreamIdEncoder());
         if (dsIDs != null && !dsIDs.isEmpty())
             builder.withDataStreams(dsIDs);
         

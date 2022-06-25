@@ -23,7 +23,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.vast.unit.UnitParserUCUM;
 import org.vast.util.TimeExtent;
@@ -75,9 +75,9 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     protected UnitParserUCUM uomParser;
     
     
-    protected ResourceBindingHtml(RequestContext ctx, IdEncoder idEncoder) throws IOException
+    protected ResourceBindingHtml(RequestContext ctx, IdEncoders idEncoders) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         this.writer = new BufferedWriter(new OutputStreamWriter(ctx.getOutputStream(), StandardCharsets.UTF_8));
         this.html = IndentedHtml.into(writer);
         
@@ -483,9 +483,6 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             .withClasses("pagination", "my-4")
         ).render(html);
     }
-    
-    
-    protected abstract String getResourceUrl(K key);
     
     
     @Override

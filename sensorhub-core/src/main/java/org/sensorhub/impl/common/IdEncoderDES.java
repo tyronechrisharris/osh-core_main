@@ -12,13 +12,14 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi;
+package org.sensorhub.impl.common;
 
 import java.io.StringReader;
 import java.io.StringWriter;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoder;
 import org.sensorhub.utils.VarInt;
 import com.google.common.io.BaseEncoding;
 
@@ -41,21 +42,21 @@ import com.google.common.io.BaseEncoding;
  * @author Alex Robin
  * @date Nov 5, 2018
  */
-public class IdEncoder
+public class IdEncoderDES implements IdEncoder
 {
     static final BaseEncoding BASE32_ENCODING = BaseEncoding.base32Hex().lowerCase().omitPadding();
     final ThreadLocal<Cipher> ecipher;
     final ThreadLocal<Cipher> dcipher;
     
     
-    public IdEncoder()
+    public IdEncoderDES()
     {
         this.ecipher = null;
         this.dcipher = null;
     }
     
     
-    public IdEncoder(SecretKey key)
+    public IdEncoderDES(SecretKey key)
     {
         ecipher = ThreadLocal.withInitial(() -> {
             try

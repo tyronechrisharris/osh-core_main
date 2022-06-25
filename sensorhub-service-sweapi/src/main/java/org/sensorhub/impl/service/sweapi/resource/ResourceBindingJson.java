@@ -22,7 +22,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.json.FilteredJsonWriter;
 import org.vast.json.JsonInliningWriter;
@@ -50,9 +50,9 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     protected final JsonWriter writer;
     
     
-    protected ResourceBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    protected ResourceBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         
         if (forReading)
         {
@@ -69,9 +69,9 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     
     
     /* constructor used when reading a nested resource */
-    protected ResourceBindingJson(RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
+    protected ResourceBindingJson(RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         this.reader = reader;
         this.writer = null;
     }

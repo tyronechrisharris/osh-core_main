@@ -18,9 +18,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import javax.xml.namespace.QName;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.system.ISystemWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
@@ -46,9 +46,9 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemWithDesc>
 {
     
-    public SystemBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    public SystemBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
     }
     
     
@@ -127,7 +127,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
         
             public String getId()
             {
-                return SystemBindingGeoJson.this.encodeID(key.getInternalID());
+                return idEncoders.getSystemIdEncoder().encodeID(key.getInternalID());
             }
         };
     }

@@ -76,7 +76,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
     
     public CommandHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getCommandStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getCommandStore(), db.getCommandIdEncoder(), db.getIdEncoders(), permissions);
         
         this.eventBus = eventBus;
         this.db = db.getReadDb();
@@ -144,9 +144,9 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
         
         // select binding depending on format
         if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new CommandBindingJson(ctx, idEncoder, forReading, dataStore);
+            return new CommandBindingJson(ctx, idEncoders, forReading, dataStore);
         else
-            return new CommandBindingSweCommon(ctx, idEncoder, forReading, dataStore);
+            return new CommandBindingSweCommon(ctx, idEncoders, forReading, dataStore);
     }
     
     

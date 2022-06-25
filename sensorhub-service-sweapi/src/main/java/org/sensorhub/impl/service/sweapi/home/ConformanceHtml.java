@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sweapi.home;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.SWEApiServiceConfig;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
@@ -32,7 +31,7 @@ public class ConformanceHtml extends ResourceBindingHtml<Long, SWEApiServiceConf
     
     public ConformanceHtml(RequestContext ctx, Set<String> confClasses) throws IOException
     {
-        super(ctx, new IdEncoder());
+        super(ctx, null);
         this.confClasses = Asserts.checkNotNullOrEmpty(confClasses, "ConformanceClasses");
     }
     
@@ -52,12 +51,5 @@ public class ConformanceHtml extends ResourceBindingHtml<Long, SWEApiServiceConf
         
         writeFooter();
         writer.flush();
-    }
-
-
-    @Override
-    protected String getResourceUrl(Long key)
-    {
-        return ctx.getApiRootURL() + ConformanceHandler.NAMES[0];
     }
 }

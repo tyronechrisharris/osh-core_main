@@ -19,9 +19,9 @@ import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.system.SystemId;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -46,16 +46,16 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     SWEJsonStreamWriter sweWriter;
     
     
-    CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         init(ctx, forReading);
     }
     
     
-    CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoder idEncoder, JsonReader reader) throws IOException
+    CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
-        super(ctx, idEncoder, reader);
+        super(ctx, idEncoders, reader);
         init(ctx, true);
     }
     
@@ -122,9 +122,10 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     @Override
     public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        writer.beginObject();
+        var dsId = idEncoders.getCommandStreamIdEncoder().encodeID(key.getInternalID());
         
-        writer.name("control@id").value(encodeID(key.getInternalID()));
+        writer.beginObject();
+        writer.name("control@id").value(dsId);
         writer.name("commandFormat").value(ResourceFormat.JSON.toString());
         
         // result structure & encoding

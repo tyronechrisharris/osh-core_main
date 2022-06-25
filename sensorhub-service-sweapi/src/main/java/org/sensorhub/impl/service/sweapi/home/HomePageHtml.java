@@ -15,7 +15,6 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.home;
 
 import java.io.IOException;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.SWEApiServiceConfig;
 import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
@@ -35,7 +34,7 @@ public class HomePageHtml extends ResourceBindingHtml<Long, SWEApiServiceConfig>
     
     public HomePageHtml(RequestContext ctx) throws IOException
     {
-        super(ctx, new IdEncoder());
+        super(ctx, null);
     }
     
     
@@ -103,12 +102,5 @@ public class HomePageHtml extends ResourceBindingHtml<Long, SWEApiServiceConfig>
                     each(content)
                  )
             );
-    }
-
-
-    @Override
-    protected String getResourceUrl(Long key)
-    {
-        return ctx.getApiRootURL();
     }
 }

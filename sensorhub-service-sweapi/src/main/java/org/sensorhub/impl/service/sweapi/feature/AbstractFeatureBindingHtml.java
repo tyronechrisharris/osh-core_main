@@ -21,9 +21,9 @@ import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.xml.namespace.QName;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -59,9 +59,9 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
     protected final boolean isHistory;
     
     
-    public AbstractFeatureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, DB db) throws IOException
+    public AbstractFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, DB db) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         this.db = db;
         this.isSummary = isSummary;
         this.isHistory = ctx.getRequestPath().contains(AbstractFeatureHistoryHandler.NAMES[0]);
@@ -70,6 +70,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
     
     protected abstract String getResourceName();
     protected abstract String getCollectionTitle();
+    protected abstract String getResourceUrl(FeatureKey key);
     protected abstract DomContent getLinks(String resourceUrl, FeatureKey key);
     protected abstract void serializeDetails(FeatureKey key, V res) throws IOException;
     
@@ -172,17 +173,6 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
         serializeSummary(key, f);
         writeFooter();
         writer.flush();
-    }
-    
-    
-    @Override
-    protected String getResourceUrl(FeatureKey key)
-    {
-        var foiId = encodeID(key.getInternalID());
-        var foiUrl = ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0] + "/" + foiId;
-        if (isHistory)
-            foiUrl += "/history/" + key.getValidStartTime().toString();
-        return foiUrl;
     }
     
     

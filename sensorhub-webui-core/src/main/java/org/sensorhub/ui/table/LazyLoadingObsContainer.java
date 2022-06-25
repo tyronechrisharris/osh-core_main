@@ -17,6 +17,7 @@ package org.sensorhub.ui.table;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoder;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.vast.swe.ScalarIndexer;
@@ -27,17 +28,19 @@ import com.vaadin.v7.data.util.IndexedContainer;
 
 public class LazyLoadingObsContainer extends IndexedContainer
 {
-    IObsSystemDatabase db;
-    BigId dataStreamID;
-    List<ScalarIndexer> indexers;
+    final IObsSystemDatabase db;
+    final IdEncoder foiIdEncoder;
+    final BigId dataStreamID;
+    final List<ScalarIndexer> indexers;
     int startIndexCache = -1;
     int size = -1;
     TimeExtent timeRange;
     
     
-    public LazyLoadingObsContainer(IObsSystemDatabase db, BigId dataStreamID, List<ScalarIndexer> indexers)
+    public LazyLoadingObsContainer(IObsSystemDatabase db, IdEncoder foiIdEncoder, BigId dataStreamID, List<ScalarIndexer> indexers)
     {
         this.db = db;
+        this.foiIdEncoder = foiIdEncoder;
         this.dataStreamID = dataStreamID;
         this.indexers = indexers;
     }
@@ -45,7 +48,7 @@ public class LazyLoadingObsContainer extends IndexedContainer
     
     public void updateTimeRange(TimeExtent timeRange)
     {
-        this.size = -1;        
+        this.size = -1;
         this.timeRange = timeRange;
         onPageChanged();
     }
@@ -54,7 +57,7 @@ public class LazyLoadingObsContainer extends IndexedContainer
     public void onPageChanged()
     {
         this.startIndexCache = -1;
-        removeAllItems();        
+        removeAllItems();
     }
     
         
@@ -85,7 +88,7 @@ public class LazyLoadingObsContainer extends IndexedContainer
                             String value;
                             
                             if (i < 0)
-                                value = BigId.toString32(obs.getFoiID());
+                                value = foiIdEncoder.encodeID(obs.getFoiID());
                             else
                                 value = indexers.get(i).getStringValue(dataBlk);
                             

@@ -18,13 +18,13 @@ import static org.sensorhub.impl.service.sweapi.event.ResourceEventsHandler.*;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collection;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamAddedEvent;
 import org.sensorhub.api.data.DataStreamChangedEvent;
 import org.sensorhub.api.data.DataStreamDisabledEvent;
 import org.sensorhub.api.data.DataStreamEnabledEvent;
 import org.sensorhub.api.data.DataStreamEvent;
 import org.sensorhub.api.data.DataStreamRemovedEvent;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
@@ -43,9 +43,9 @@ import com.google.gson.stream.JsonWriter;
 public class DataStreamEventBindingJson extends ResourceBindingJson<Long, DataStreamEvent>
 {
     
-    DataStreamEventBindingJson(RequestContext ctx, IdEncoder idEncoder) throws IOException
+    DataStreamEventBindingJson(RequestContext ctx, IdEncoders idEncoders) throws IOException
     {
-        super(ctx, idEncoder, false);
+        super(ctx, idEncoders, false);
     }
 
 
@@ -71,10 +71,12 @@ public class DataStreamEventBindingJson extends ResourceBindingJson<Long, DataSt
             return;
         
         // write event message
+        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(res.getDataStreamID());
+        var sysId = idEncoders.getSystemIdEncoder().encodeID(res.getSystemID());
         writer.beginObject();
         writer.name("time").value(Instant.ofEpochMilli(res.getTimeStamp()).toString());
-        writer.name("datastream@id").value(encodeID(res.getDataStreamID()));
-        writer.name("system@id").value(encodeID(res.getSystemID()));
+        writer.name("datastream@id").value(dsId);
+        writer.name("system@id").value(sysId);
         writer.name("eventType").value(eventType);
         writer.endObject();
         writer.flush();

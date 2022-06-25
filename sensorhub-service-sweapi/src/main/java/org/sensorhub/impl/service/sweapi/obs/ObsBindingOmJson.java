@@ -21,12 +21,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsData;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
@@ -54,9 +54,9 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
     Map<BigId, DataStreamWriter> resultWriters;
 
     
-    ObsBindingOmJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
+    ObsBindingOmJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsStore obsStore) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         this.contextData = (ObsHandlerContextData)ctx.getData();
         this.obsStore = obsStore;
         
@@ -102,7 +102,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
                     obs.withResultTime(OffsetDateTime.parse(reader.nextString()).toInstant());
                 else if ("foi@id".equals(propName))
                 {
-                    var foiID = idEncoder.decodeID(reader.nextString());
+                    var foiID = idEncoders.getFoiIdEncoder().decodeID(reader.nextString());
                     //if (!db.getFoiStore().contains(foiID))
                     //    throw ServiceErrors.badRequest("Invalid FOI ID");
                     obs.withFoi(foiID);
@@ -140,18 +140,20 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
     @Override
     public void serialize(BigId key, IObsData obs, boolean showLinks, JsonWriter writer) throws IOException
     {
+        var obsId = idEncoders.getObsIdEncoder().encodeID(key);
+        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(obs.getDataStreamID());
+        
         writer.beginObject();
         
         if (key != null)
-            writer.name("id").value(encodeID(key));
+            writer.name("id").value(obsId);
         
-        var dsID = obs.getDataStreamID();
-        writer.name("datastream@id").value(encodeID(dsID));
+        writer.name("datastream@id").value(dsId);
         
         if (obs.hasFoi())
         {
-            var foiID = obs.getFoiID();
-            writer.name("foi@id").value(encodeID(foiID));
+            var foiId = idEncoders.getFoiIdEncoder().encodeID(obs.getFoiID());
+            writer.name("foi@id").value(foiId);
         }
         
         writer.name("phenomenonTime").value(obs.getPhenomenonTime().toString());
@@ -159,7 +161,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
         
         // create or reuse existing result writer and write result data
         writer.name("result");
-        var resultWriter = resultWriters.computeIfAbsent(dsID,
+        var resultWriter = resultWriters.computeIfAbsent(obs.getDataStreamID(),
             k -> getSweCommonWriter(k, writer, ctx.getPropertyFilter()) );
         
         // write if JSON is supported, otherwise print warning message

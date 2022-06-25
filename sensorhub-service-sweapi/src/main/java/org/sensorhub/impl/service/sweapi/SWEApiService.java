@@ -137,7 +137,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         }
         
         // create obs db read/write wrapper
-        var db = new ObsSystemDbWrapper(readDb, writeDb);
+        var db = new ObsSystemDbWrapper(readDb, writeDb, getParentHub().getIdEncoders());
         var eventBus = getParentHub().getEventBus();
         var security = (SWEApiSecurity)this.securityHandler;
         var readOnly = writeDb == null || writeDb.isReadOnly();

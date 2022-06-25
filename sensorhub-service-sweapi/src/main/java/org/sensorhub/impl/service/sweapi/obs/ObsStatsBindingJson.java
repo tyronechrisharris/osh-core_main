@@ -17,9 +17,9 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.io.IOException;
 import java.util.Collection;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.vast.json.JsonInliningWriter;
@@ -31,9 +31,9 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 public class ObsStatsBindingJson extends ResourceBindingJson<BigId, ObsStats>
 {
     
-    ObsStatsBindingJson(RequestContext ctx, IdEncoder idEncoder) throws IOException
+    ObsStatsBindingJson(RequestContext ctx, IdEncoders idEncoders) throws IOException
     {
-        super(ctx, idEncoder, false);
+        super(ctx, idEncoders, false);
     }
     
     
@@ -47,15 +47,15 @@ public class ObsStatsBindingJson extends ResourceBindingJson<BigId, ObsStats>
     @Override
     public void serialize(BigId key, ObsStats stats, boolean showLinks, JsonWriter writer) throws IOException
     {
-        writer.beginObject();
+        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(stats.getDataStreamID());
         
-        var dsID = stats.getDataStreamID();
-        writer.name("datastream@id").value(encodeID(dsID));
+        writer.beginObject();
+        writer.name("datastream@id").value(dsId);
         
         if (stats.getFoiID() != null && stats.getFoiID() != FeatureId.NULL_FEATURE)
         {
-            var foiID = stats.getFoiID().getInternalID();
-            writer.name("foi@id").value(encodeID(foiID));
+            var foiId = idEncoders.getFoiIdEncoder().encodeID(stats.getFoiID().getInternalID());
+            writer.name("foi@id").value(foiId);
         }
         
         if (stats.getPhenomenonTimeRange() != null)

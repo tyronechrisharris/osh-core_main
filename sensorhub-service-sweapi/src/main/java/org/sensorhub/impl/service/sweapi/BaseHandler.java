@@ -20,12 +20,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
+import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
 import com.vividsolutions.jts.geom.Geometry;
@@ -38,11 +41,18 @@ public abstract class BaseHandler implements IResourceHandler
     public static final String INVALID_URI_ERROR_MSG = "Invalid resource URI";
     
     final Map<String, IResourceHandler> subResources = new HashMap<>();
+    protected final IdEncoders idEncoders;
 
     
     public BaseHandler()
     {
-        super();
+        this.idEncoders = null;
+    }
+    
+    
+    public BaseHandler(IdEncoders idEncoders)
+    {
+        this.idEncoders = Asserts.checkNotNull(idEncoders, IdEncoders.class);
     }
     
 

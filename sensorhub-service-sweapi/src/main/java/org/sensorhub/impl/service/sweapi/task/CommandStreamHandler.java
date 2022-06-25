@@ -50,7 +50,7 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     
     public CommandStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getCommandStreamStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getCommandStreamStore(), db.getCommandStreamIdEncoder(), db.getIdEncoders(), permissions);
         this.db = db.getReadDb();
         this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
@@ -68,10 +68,10 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
         {
             var title = ctx.getParentID() != null ? "Control channels of {}" : "All Controls";
-            return new CommandStreamBindingHtml(ctx, idEncoder, true, title, db);
+            return new CommandStreamBindingHtml(ctx, idEncoders, true, title, db);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new CommandStreamBindingJson(ctx, idEncoder, forReading);
+            return new CommandStreamBindingJson(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

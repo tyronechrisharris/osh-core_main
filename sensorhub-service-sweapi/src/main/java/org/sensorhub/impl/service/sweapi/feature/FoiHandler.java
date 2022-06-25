@@ -45,7 +45,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
     
     public FoiHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getFoiStore(), db.getIdEncoder(), permissions);
+        super(db.getFoiStore(), db.getFoiIdEncoder(), db.getIdEncoders(), permissions);
         this.db = db.getReadDb();
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
     }
@@ -57,13 +57,13 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new FeatureBindingHtml(ctx, idEncoder, true, db);
+            return new FoiBindingHtml(ctx, idEncoders, true, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
         {
             if (ctx.getParameterMap().containsKey("snapshot"))
-                return new DynamicFoiBindingGeoJson(ctx, idEncoder, forReading, db);
+                return new DynamicFoiBindingGeoJson(ctx, idEncoders, forReading, db);
             else
-                return new FoiBindingGeoJson(ctx, idEncoder, forReading);
+                return new FoiBindingGeoJson(ctx, idEncoders, forReading);
         }
         else
             throw ServiceErrors.unsupportedFormat(format);
@@ -92,7 +92,7 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
         else
         {
             // parent ID
-            var ids = parseResourceIds("parentId", queryParams);
+            var ids = parseResourceIds("parentId", queryParams, idEncoders.getFoiIdEncoder());
             if (ids != null && !ids.isEmpty())
                 builder.withParents().withInternalIDs(ids).done();
             

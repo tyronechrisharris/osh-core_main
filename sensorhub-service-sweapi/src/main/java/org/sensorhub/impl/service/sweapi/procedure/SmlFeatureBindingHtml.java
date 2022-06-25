@@ -16,10 +16,10 @@ package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureBindingHtml;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import j2html.tags.DomContent;
@@ -42,9 +42,9 @@ import static j2html.TagCreator.*;
 public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB extends IDatabase> extends AbstractFeatureBindingHtml<V, DB>
 {
     
-    public SmlFeatureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, DB db) throws IOException
+    public SmlFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, DB db) throws IOException
     {
-        super(ctx, idEncoder, isSummary, db);
+        super(ctx, idEncoders, isSummary, db);
     }
     
     

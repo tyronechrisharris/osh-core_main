@@ -27,7 +27,6 @@ import org.sensorhub.api.datastore.obs.ObsStats;
 import org.sensorhub.api.datastore.obs.ObsStatsQuery;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -45,7 +44,6 @@ public class ObsStatsHandler extends BaseHandler
     public static final String[] NAMES = { "stats" };
     
     final IObsSystemDatabase db;
-    final IdEncoder idEncoder;
     final ResourcePermissions permissions;
     
     
@@ -60,8 +58,8 @@ public class ObsStatsHandler extends BaseHandler
     
     public ObsStatsHandler(ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
+        super(db.getIdEncoders());
         this.db = db.getReadDb();
-        this.idEncoder = db.getIdEncoder();
         this.permissions = permissions;
     }
     
@@ -71,7 +69,7 @@ public class ObsStatsHandler extends BaseHandler
         var format = ctx.getFormat();
         
         if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new ObsStatsBindingJson(ctx, idEncoder);
+            return new ObsStatsBindingJson(ctx, idEncoders);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -164,12 +162,12 @@ public class ObsStatsHandler extends BaseHandler
             builder.withResultTime(resultTime);
         
         // foi param
-        var foiIDs = parseResourceIds("foi", queryParams, idEncoder);
+        var foiIDs = parseResourceIds("foi", queryParams, idEncoders.getFoiIdEncoder());
         if (foiIDs != null && !foiIDs.isEmpty())
             builder.withFois(foiIDs);
         
         // datastream param
-        var dsIDs = parseResourceIds("datastream", queryParams, idEncoder);
+        var dsIDs = parseResourceIds("datastream", queryParams, idEncoders.getDataStreamIdEncoder());
         if (dsIDs != null && !dsIDs.isEmpty())
             builder.withDataStreams(dsIDs);
         

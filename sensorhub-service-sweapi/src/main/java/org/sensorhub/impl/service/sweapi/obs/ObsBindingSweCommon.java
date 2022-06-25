@@ -19,11 +19,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collection;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsData;
 import org.sensorhub.api.datastore.obs.IObsStore;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
@@ -59,9 +59,9 @@ public class ObsBindingSweCommon extends ResourceBinding<BigId, IObsData>
     ScalarIndexer timeStampIndexer;
 
     
-    ObsBindingSweCommon(RequestContext ctx, IdEncoder idEncoder, boolean forReading, IObsStore obsStore) throws IOException
+    ObsBindingSweCommon(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsStore obsStore) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         this.contextData = (ObsHandlerContextData)ctx.getData();
                 
         var dsInfo = contextData.dsInfo;

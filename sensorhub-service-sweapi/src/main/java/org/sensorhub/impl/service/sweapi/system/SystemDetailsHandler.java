@@ -52,7 +52,7 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
     
     public SystemDetailsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getSystemDescStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getSystemDescStore(), db.getSystemIdEncoder(), db.getIdEncoders(), permissions);
         this.db = db.getReadDb();
     }
 
@@ -63,11 +63,11 @@ public class SystemDetailsHandler extends AbstractFeatureHandler<ISystemWithDesc
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new SystemBindingHtml(ctx, idEncoder, false, db);
+            return new SystemBindingHtml(ctx, idEncoders, false, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, idEncoders, forReading);
         else if (format.isOneOf(ResourceFormat.APPLI_XML, ResourceFormat.SML_XML))
-            return new SmlFeatureBindingSmlXml<ISystemWithDesc>(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlXml<ISystemWithDesc>(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

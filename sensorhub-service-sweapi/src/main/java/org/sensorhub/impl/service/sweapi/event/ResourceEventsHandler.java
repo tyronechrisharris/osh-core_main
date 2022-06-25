@@ -17,11 +17,11 @@ package org.sensorhub.impl.service.sweapi.event;
 import java.io.IOException;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.api.event.ISubscriptionBuilder;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException.ErrorCode;
@@ -44,15 +44,15 @@ public abstract class ResourceEventsHandler<T extends Event> extends BaseHandler
     
     protected final String resourceType;
     protected final IEventBus eventBus;
-    protected final IdEncoder idEncoder;
+    protected final IdEncoders idEncoders;
     protected final ResourcePermissions permissions;
     
     
-    protected ResourceEventsHandler(String resourceType, IEventBus eventBus, IdEncoder idEncoder, ResourcePermissions permissions)
+    protected ResourceEventsHandler(String resourceType, IEventBus eventBus, IdEncoders idEncoders, ResourcePermissions permissions)
     {
         this.resourceType = resourceType;
         this.eventBus = eventBus;
-        this.idEncoder = idEncoder;
+        this.idEncoders = idEncoders;
         this.permissions = permissions;
     }
     

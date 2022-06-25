@@ -18,8 +18,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import javax.xml.namespace.QName;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.vast.ogc.gml.GenericFeature;
 import org.vast.ogc.gml.GenericFeatureImpl;
@@ -38,9 +38,9 @@ public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJs
     public static final int EXTERNAL_ID_SEED = 7352181;
     
     
-    FeatureCollectionBindingGeoJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading) throws IOException
+    FeatureCollectionBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
     }
     
     
@@ -110,7 +110,7 @@ public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJs
             @Override
             public String getId()
             {
-                return FeatureCollectionBindingGeoJson.this.encodeID(key.getInternalID());
+                return idEncoders.getFeatureIdEncoder().encodeID(key.getInternalID());
             }
 
             @Override

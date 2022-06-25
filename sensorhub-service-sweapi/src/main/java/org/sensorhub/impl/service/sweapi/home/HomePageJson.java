@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.sweapi.home;
 
 import java.io.IOException;
 import java.util.Collection;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.SWEApiServiceConfig;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
@@ -32,7 +31,7 @@ public class HomePageJson extends ResourceBindingJson<Long, SWEApiServiceConfig>
     
     public HomePageJson(RequestContext ctx) throws IOException
     {
-        super(ctx, new IdEncoder(), false);
+        super(ctx, null, false);
     }
     
     

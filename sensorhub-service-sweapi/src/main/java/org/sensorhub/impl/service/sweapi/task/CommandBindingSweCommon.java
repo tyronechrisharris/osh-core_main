@@ -22,8 +22,8 @@ import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.command.ICommandStore;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -58,9 +58,9 @@ public class CommandBindingSweCommon extends ResourceBinding<BigId, ICommandData
     String userID;
 
     
-    CommandBindingSweCommon(RequestContext ctx, IdEncoder idEncoder, boolean forReading, ICommandStore obsStore) throws IOException
+    CommandBindingSweCommon(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStore obsStore) throws IOException
     {
-        super(ctx, idEncoder);
+        super(ctx, idEncoders);
         this.contextData = (CommandHandlerContextData)ctx.getData();
         
         var dsInfo = contextData.dsInfo;

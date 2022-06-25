@@ -52,7 +52,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     public DataStreamHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
-        super(db.getReadDb().getDataStreamStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getDataStreamStore(), db.getDataStreamIdEncoder(), db.getIdEncoders(), permissions);
         this.db = db.getReadDb();
         this.eventBus = eventBus;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
@@ -71,10 +71,10 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
         {
             var title = ctx.getParentID() != null ? "Datastreams of {}" : "All Datastreams";
-            return new DataStreamBindingHtml(ctx, idEncoder, true, title, db, customFormats);
+            return new DataStreamBindingHtml(ctx, idEncoders, true, title, db, customFormats);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            return new DataStreamBindingJson(ctx, idEncoder, forReading, customFormats);
+            return new DataStreamBindingJson(ctx, idEncoders, forReading, customFormats);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -123,7 +123,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         }
         
         // foi param
-        var foiIDs = parseResourceIds("foi", queryParams);
+        var foiIDs = parseResourceIds("foi", queryParams, idEncoders.getFoiIdEncoder());
         if (foiIDs != null && !foiIDs.isEmpty())
         {
             builder.withFois()

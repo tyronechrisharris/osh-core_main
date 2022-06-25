@@ -18,10 +18,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
@@ -49,9 +49,9 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     SWEJsonStreamWriter sweWriter;
     
     
-    DataStreamBindingJson(RequestContext ctx, IdEncoder idEncoder, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
+    DataStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
     {
-        super(ctx, idEncoder, forReading);
+        super(ctx, idEncoders, forReading);
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
@@ -99,7 +99,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                     
                     ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding = null;
                     if (ResourceFormat.OM_JSON.getMimeType().equals(obsFormat))
-                        schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoder, reader);
+                        schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoders, reader);
                     
                     if (schemaBinding == null)
                         throw ServiceErrors.unsupportedFormat(obsFormat);
@@ -142,18 +142,18 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var dsID = encodeID(key.getInternalID());
-        var sysID = encodeID(dsInfo.getSystemID().getInternalID());
+        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID());
+        var sysId = idEncoders.getSystemIdEncoder().encodeID(dsInfo.getSystemID().getInternalID());
         
         writer.beginObject();
         
-        writer.name("id").value(dsID);
+        writer.name("id").value(dsId);
         writer.name("name").value(dsInfo.getName());
         
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("system@id").value(sysID);
+        writer.name("system@id").value(sysId);
         writer.name("outputName").value(dsInfo.getOutputName());
         
         writer.name("validTime").beginArray()
@@ -221,7 +221,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 .title("Parent system")
                 .href(rootURL +
                       "/" + SystemHandler.NAMES[0] +
-                      "/" + sysID)
+                      "/" + sysId)
                 .build());
             
             links.add(new ResourceLink.Builder()
@@ -229,7 +229,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 .title("Collection of observations")
                 .href(rootURL +
                       "/" + DataStreamHandler.NAMES[0] +
-                      "/" + dsID +
+                      "/" + dsId +
                       "/" + ObsHandler.NAMES[0])
                 .build());
             

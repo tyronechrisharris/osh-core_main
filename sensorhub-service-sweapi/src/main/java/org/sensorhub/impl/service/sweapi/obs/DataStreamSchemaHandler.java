@@ -41,7 +41,7 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
     
     public DataStreamSchemaHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getDataStreamStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getDataStreamStore(), db.getDataStreamIdEncoder(), db.getIdEncoders(), permissions);
     }
     
     
@@ -58,11 +58,11 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
             obsFormat = ResourceFormat.OM_JSON;
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new DataStreamBindingHtml(ctx, idEncoder, obsFormat);
+            return new DataStreamBindingHtml(ctx, idEncoders, obsFormat);
         else if (obsFormat.equals(ResourceFormat.OM_JSON))
-            return new DataStreamSchemaBindingOmJson(ctx, idEncoder, forReading);
+            return new DataStreamSchemaBindingOmJson(ctx, idEncoders, forReading);
         else if (obsFormat.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
-            return new DataStreamSchemaBindingSweCommon(obsFormat, ctx, idEncoder, forReading);
+            return new DataStreamSchemaBindingSweCommon(obsFormat, ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(obsFormat);
     }

@@ -50,7 +50,7 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     
     public ProcedureDetailsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(((IProcedureDatabase)db.getReadDb()).getProcedureStore(), db.getIdEncoder(), permissions);
+        super(((IProcedureDatabase)db.getReadDb()).getProcedureStore(), db.getProcedureIdEncoder(), db.getIdEncoders(), permissions);
         this.db = (IProcedureDatabase)db.getReadDb();
     }
 
@@ -61,11 +61,11 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new ProcedureBindingHtml(ctx, idEncoder, false, "Specsheet of {}", db);
+            return new ProcedureBindingHtml(ctx, idEncoders, false, "Specsheet of {}", db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<IProcedureWithDesc>(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlJson<IProcedureWithDesc>(ctx, idEncoders, forReading);
         else if (format.isOneOf(ResourceFormat.APPLI_XML, ResourceFormat.SML_XML))
-            return new SmlFeatureBindingSmlXml<IProcedureWithDesc>(ctx, idEncoder, forReading);
+            return new SmlFeatureBindingSmlXml<IProcedureWithDesc>(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -126,11 +126,8 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         if (sml == null)
             throw ServiceErrors.notFound();
         
-        // generate outputs from datastreams
-        // + override ID
-        var idStr = idEncoder.encodeID(internalID);
-        //sml = SystemUtils.addOutputsFromDatastreams(internalID, sml, db.getDataStreamStore())
-        //    .withId(idStr);
+        // override ID
+        var idStr = idEncoders.getProcedureIdEncoder().encodeID(internalID);
         sml = ProcessWrapper.getWrapper(sml).withId(idStr);
         
         var queryParams = ctx.getParameterMap();

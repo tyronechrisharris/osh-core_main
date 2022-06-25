@@ -37,7 +37,7 @@ public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IFeature, F
     
     public FoiHistoryHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getReadDb().getFoiStore(), db.getIdEncoder(), permissions);
+        super(db.getReadDb().getFoiStore(), db.getFoiIdEncoder(), db.getIdEncoders(), permissions);
         this.db = db.getReadDb();
     }
 
@@ -48,9 +48,9 @@ public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IFeature, F
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new FeatureBindingHtml(ctx, idEncoder, true, db);
+            return new FeatureBindingHtml(ctx, idEncoders, true, db);
         else if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new FeatureBindingGeoJson(ctx, idEncoder, forReading);
+            return new FeatureBindingGeoJson(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

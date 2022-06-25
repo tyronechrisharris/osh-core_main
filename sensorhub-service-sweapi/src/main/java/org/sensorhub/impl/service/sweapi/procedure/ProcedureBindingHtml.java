@@ -1,4 +1,4 @@
-/***************************** BEGIN LICENSE BLOCK ***************************
+ /***************************** BEGIN LICENSE BLOCK ***************************
 
 The contents of this file are subject to the Mozilla Public License, v. 2.0.
 If a copy of the MPL was not distributed with this file, You can obtain one
@@ -15,11 +15,11 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.procedure;
 
 import java.io.IOException;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import j2html.tags.DomContent;
 import static j2html.TagCreator.*;
@@ -38,9 +38,9 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     final String collectionTitle;
     
     
-    public ProcedureBindingHtml(RequestContext ctx, IdEncoder idEncoder, boolean isSummary, String collectionTitle, IProcedureDatabase db) throws IOException
+    public ProcedureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, String collectionTitle, IProcedureDatabase db) throws IOException
     {
-        super(ctx, idEncoder, isSummary, db);
+        super(ctx, idEncoders, isSummary, db);
         
         if (ctx.getParentID() != null)
         {
@@ -70,8 +70,8 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     @Override
     protected String getResourceUrl(FeatureKey key)
     {
-        var foiId = encodeID(key.getInternalID());
-        return ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + foiId;
+        var procId = idEncoders.getProcedureIdEncoder().encodeID(key.getInternalID());
+        return ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + procId;
     }
     
     

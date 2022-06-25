@@ -16,10 +16,11 @@ package org.sensorhub.impl.service.sweapi.resource;
 
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoder;
+import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
-import org.sensorhub.impl.service.sweapi.IdEncoder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
@@ -50,9 +51,9 @@ public abstract class ResourceHandler<
     public static final int NO_PARENT = 0;
     
     
-    protected ResourceHandler(S dataStore, IdEncoder idEncoder, ResourcePermissions permissions)
+    protected ResourceHandler(S dataStore, IdEncoder idEncoder, IdEncoders allIdEncoders, ResourcePermissions permissions)
     {
-        super(dataStore, idEncoder, permissions);
+        super(dataStore, idEncoder, allIdEncoders, permissions);
     }
     
     
