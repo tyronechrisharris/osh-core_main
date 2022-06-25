@@ -215,6 +215,31 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
     
     
     @Override
+    @SuppressWarnings("unchecked")
+    public long countMatchingEntries(F filter)
+    {
+        // if any kind of internal IDs are used, we need to dispatch the correct filter
+        // to the corresponding DB so we create this map
+        var filterDispatchMap = getFilterDispatchMap(filter);
+        
+        if (filterDispatchMap != null)
+        {
+            return filterDispatchMap.values().stream()
+                .mapToLong(v -> getFeatureStore(v.db).countMatchingEntries((F)v.filter))
+                .reduce(0, Long::sum);
+        }
+        
+        // otherwise scan all DBs
+        else
+        {
+            return getAllDatabases().stream()
+                .mapToLong(db -> getFeatureStore(db).countMatchingEntries(filter))
+                .reduce(0, Long::sum);
+        }
+    }
+    
+    
+    @Override
     public FeatureKey add(T feature)
     {
         throw new UnsupportedOperationException(READ_ONLY_ERROR_MSG);
