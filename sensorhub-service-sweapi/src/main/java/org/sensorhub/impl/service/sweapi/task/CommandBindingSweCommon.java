@@ -77,15 +77,20 @@ public class CommandBindingSweCommon extends ResourceBinding<BigId, ICommandData
         {
             var os = ctx.getOutputStream();
             paramsWriter = getSweCommonWriter(dsInfo, os, ctx.getPropertyFilter(), ctx.getFormat());
-
+            
             // if request is coming from a browser, use well-known mime type
+            // so browser can display the response
             if (ctx.isBrowserHtmlRequest())
             {
                 if (ctx.getFormat().equals(ResourceFormat.SWE_TEXT))
                     ctx.setResponseContentType(ResourceFormat.TEXT_PLAIN.getMimeType());
                 else if (ctx.getFormat().equals(ResourceFormat.SWE_XML))
                     ctx.setResponseContentType(ResourceFormat.APPLI_XML.getMimeType());
+                else
+                    ctx.setResponseContentType(ctx.getFormat().getMimeType());
             }
+            else
+                ctx.setResponseContentType(ctx.getFormat().getMimeType());
         }
     }
     

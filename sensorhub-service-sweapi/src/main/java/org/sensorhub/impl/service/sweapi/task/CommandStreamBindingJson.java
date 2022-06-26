@@ -185,7 +185,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         
         // available formats
         writer.name("formats").beginArray();
-        writer.value(ResourceFormat.OM_JSON.getMimeType());
+        writer.value(ResourceFormat.JSON.getMimeType());
         if (ResourceFormat.allowNonBinaryFormat(dsInfo.getRecordEncoding()))
         {
             writer.value(ResourceFormat.SWE_JSON.getMimeType());
