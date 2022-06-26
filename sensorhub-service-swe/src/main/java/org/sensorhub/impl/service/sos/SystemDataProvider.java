@@ -173,9 +173,9 @@ public abstract class SystemDataProvider implements ISOSAsyncDataProvider
                 if (requested.compareAndSet(n, n-s))
                 {
                     //servlet.getLogger().debug("Before send: req={}, queue={}, canceled={}",
-                    //    n, itemQueue.size(), canceled);                
+                    //    n, itemQueue.size(), canceled);
                     
-                    while (s > 0 && !canceled)
+                    while (s > 0 && !itemQueue.isEmpty() && !canceled)
                     {
                         subscriber.onNext(itemQueue.poll());
                         s--;

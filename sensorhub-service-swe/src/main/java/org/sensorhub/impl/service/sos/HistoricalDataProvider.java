@@ -96,7 +96,7 @@ public class HistoricalDataProvider extends SystemDataProvider
                 if (complete || canceled)
                     return;
                 
-                while (requested.get() > 0 && !itemQueue.isEmpty() && requested.compareAndSet(n, n-1) && !canceled &&  !complete)
+                while (requested.get() > 0 && !itemQueue.isEmpty() /*&& requested.compareAndSet(n, n-1)*/ && !canceled &&  !complete)
                 {
                     // slow down item dispatch at required replay speed
                     var nextItem = itemQueue.peek();
@@ -107,12 +107,10 @@ public class HistoricalDataProvider extends SystemDataProvider
                     
                     // skip if it's not time to send this record yet
                     if (deltaObsTime > deltaClockTime)
-                    {
-                        requested.incrementAndGet();
                         return;
-                    }
                     
                     subscriber.onNext(itemQueue.poll());
+                    requested.decrementAndGet();
                     n--;
                     
                     if (streamDone && itemQueue.isEmpty() && !canceled)
@@ -215,7 +213,8 @@ public class HistoricalDataProvider extends SystemDataProvider
             @Override
             public void onNext(IObsData item)
             {
-                consumer.onNext(toObsEvent(item));
+                if (item != null)
+                    consumer.onNext(toObsEvent(item));
             }
         };
         
@@ -225,7 +224,7 @@ public class HistoricalDataProvider extends SystemDataProvider
         if (!Double.isNaN(replaySpeedFactor) && req.getTime() != null && req.getTime().hasBegin())
         {
             obsConsumer.onSubscribe(
-                new StreamReplaySubscription(obsConsumer, 100, req.getTime().begin(), replaySpeedFactor,
+                new StreamReplaySubscription(obsConsumer, 1000, req.getTime().begin(), replaySpeedFactor,
                     database.getObservationStore().select(obsFilter)) );
         }
         
