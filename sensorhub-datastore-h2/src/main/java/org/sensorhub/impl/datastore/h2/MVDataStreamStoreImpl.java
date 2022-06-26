@@ -34,7 +34,6 @@ import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
-import org.sensorhub.api.datastore.obs.IObsStore.ObsField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.H2Utils.Holder;
@@ -350,8 +349,8 @@ public class MVDataStreamStoreImpl implements IDataStreamStore
         else if (filter.getObservationFilter() != null)
         {
             // get all data stream IDs referenced by observations matching the filter
-            idStream = obsStore.select(filter.getObservationFilter(), ObsField.DATASTREAM_ID)
-                .map(obs -> obs.getDataStreamID().getIdAsLong());
+            idStream = obsStore.selectObsSeries(filter.getObservationFilter())
+                .map(s -> s.key.dataStreamID);
         }
         
         // if full-text filter is used, use full-text index as primary

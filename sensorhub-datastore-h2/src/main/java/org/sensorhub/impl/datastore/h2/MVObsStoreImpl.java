@@ -331,6 +331,13 @@ public class MVObsStoreImpl implements IObsStore
     }
     
     
+    public Stream<MVTimeSeriesInfo> selectObsSeries(ObsFilter filter)
+    {
+        var timeParams = new TimeParams(filter);
+        return selectObsSeries(filter, timeParams);
+    }
+    
+    
     /*
      * Select all obs series matching the filter
      */
