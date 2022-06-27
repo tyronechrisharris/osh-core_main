@@ -140,13 +140,15 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
     @Override
     public void serialize(BigId key, IObsData obs, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var obsId = idEncoders.getObsIdEncoder().encodeID(key);
         var dsId = idEncoders.getDataStreamIdEncoder().encodeID(obs.getDataStreamID());
         
         writer.beginObject();
         
         if (key != null)
+        {
+            var obsId = idEncoders.getObsIdEncoder().encodeID(key);
             writer.name("id").value(obsId);
+        }
         
         writer.name("datastream@id").value(dsId);
         

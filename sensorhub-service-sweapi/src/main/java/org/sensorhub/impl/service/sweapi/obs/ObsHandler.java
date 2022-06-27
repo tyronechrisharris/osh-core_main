@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.obs;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CompletionException;
@@ -319,8 +320,8 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
         var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
         
         int batchSize = 100;
-        var itemQueue = new ConcurrentLinkedQueue<IObsData>();
-        var obsIterator = dataStore.select(filter).iterator();
+        var itemQueue = new ConcurrentLinkedQueue<Entry<BigId, IObsData>>();
+        var obsIterator = dataStore.selectEntries(filter).iterator();
         if (!obsIterator.hasNext())
         {
             streamHandler.close();
@@ -367,10 +368,12 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
                 while (!itemQueue.isEmpty())
                 {
                     var nextItem = itemQueue.peek();
+                    var nextId = nextItem.getKey();
+                    var nextObs = nextItem.getValue();
                     
                     // slow down item dispatch at required replay speed
                     var deltaClockTime = (System.currentTimeMillis() - requestSystemTime) * replaySpeed;
-                    var deltaObsTime = nextItem.getPhenomenonTime().toEpochMilli() - requestStartTime;
+                    var deltaObsTime = nextObs.getPhenomenonTime().toEpochMilli() - requestStartTime;
                     //ctx.getLogger().debug("delta clock time = {}ms", deltaClockTime);
                     //ctx.getLogger().debug("delta obs time = {}ms", deltaObsTime);
                     
@@ -379,7 +382,8 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
                         break;
                 
                     //ctx.getLogger().debug("sending obs at {}", nextItem.getPhenomenonTime());
-                    binding.serialize(null, itemQueue.poll(), false);
+                    itemQueue.poll();
+                    binding.serialize(nextId, nextObs, false);
                     streamHandler.sendPacket();
                 }
                 
