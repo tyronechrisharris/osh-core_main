@@ -376,10 +376,10 @@ public class ModuleUtils
 	    		try {
 	    			return getFileContents(file);
 	    		} catch (IOException ioe) {
-	    			log.warn("Failed to read file for string substitution: {}{}", prefix, name);
+	    			log.warn("Failed to read file for string substitution: {}{}", prefix, name, ioe);
 	    		}
     		}
-    		// If we can't read the file or there's an I/O exception, we'll return null.
+    		// If we can't read the file or there's an I/O exception, we'll return the default value.
     		return defaultValue;
     	} else {
     		// Unrecognized prefix provided.
