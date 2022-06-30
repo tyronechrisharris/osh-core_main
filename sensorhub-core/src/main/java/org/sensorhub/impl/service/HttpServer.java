@@ -473,7 +473,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
   		}
   		Asserts.checkNotNullOrEmpty(keyStorePassword, "Key store password must be supplied.");
   		
-  		String keyAlias = config.keyAlias;
+  		String keyAlias = ModuleUtils.expand(config.keyAlias);
   		Asserts.checkNotNullOrEmpty(keyAlias, "Key alias must be supplied");
   		
   		return new KeyStoreInfo(keyStorePath, keyStorePassword, keyAlias);
