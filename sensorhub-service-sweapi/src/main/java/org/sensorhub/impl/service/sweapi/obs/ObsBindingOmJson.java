@@ -28,6 +28,7 @@ import org.sensorhub.api.data.ObsData;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -102,10 +103,15 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
                     obs.withResultTime(OffsetDateTime.parse(reader.nextString()).toInstant());
                 else if ("foi@id".equals(propName))
                 {
-                    var foiID = idEncoders.getFoiIdEncoder().decodeID(reader.nextString());
-                    //if (!db.getFoiStore().contains(foiID))
-                    //    throw ServiceErrors.badRequest("Invalid FOI ID");
-                    obs.withFoi(foiID);
+                    try
+                    {
+                        var foiID = idEncoders.getFoiIdEncoder().decodeID(reader.nextString());
+                        obs.withFoi(foiID);
+                    }
+                    catch (IllegalArgumentException e)
+                    {
+                        throw ServiceErrors.badRequest("Invalid FOI ID");
+                    }
                 }
                 else if ("result".equals(propName))
                 {

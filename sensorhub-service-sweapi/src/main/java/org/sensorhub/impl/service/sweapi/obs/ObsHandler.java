@@ -477,8 +477,15 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
     @Override
     protected BigId addEntry(RequestContext ctx, IObsData res) throws DataStoreException
     {
-        var dsHandler = ((ObsHandlerContextData)ctx.getData()).dsHandler;
-        return dsHandler.addObs(res);
+        try
+        {
+            var dsHandler = ((ObsHandlerContextData)ctx.getData()).dsHandler;
+            return dsHandler.addObs(res);
+        }
+        catch (IllegalStateException e)
+        {
+            throw new DataStoreException("Invalid FOI ID");
+        }
     }
     
     
