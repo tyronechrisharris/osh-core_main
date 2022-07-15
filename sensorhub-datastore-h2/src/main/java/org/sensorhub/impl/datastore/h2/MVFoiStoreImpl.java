@@ -203,13 +203,13 @@ public class MVFoiStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FoiField, F
                         long parentID = id.getIdAsLong();
                         var k0 = new MVFeatureParentKey(0, parentID, 1, Instant.MIN);
                         var k1 = new MVFeatureParentKey(0, parentID, Long.MAX_VALUE, Instant.MAX);
-                        var first = idsIndex.ceilingKey(k0);
-                        var last = idsIndex.ceilingKey(k1);
+                        var first = featuresIndex.ceilingKey(k0);
+                        var last = featuresIndex.floorKey(k1);
                         
                         if (first == null || last == null || first.parentID != parentID)
                             return 0;
                         else
-                            return idsIndex.getKeyIndex(last) - idsIndex.getKeyIndex(first);
+                            return featuresIndex.getKeyIndex(last) - featuresIndex.getKeyIndex(first) + 1;
                     })
                     .reduce(0, Long::sum);
             }
