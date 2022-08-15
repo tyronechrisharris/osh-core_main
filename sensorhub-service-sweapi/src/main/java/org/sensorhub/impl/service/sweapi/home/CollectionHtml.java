@@ -33,11 +33,9 @@ public class CollectionHtml extends ResourceBindingHtml<String, CollectionInfo>
     
     
     @Override
-    protected void writeHeader() throws IOException
+    protected String getCollectionTitle()
     {
-        super.writeHeader();
-        if (isCollection)
-            h3("Collections").render(html);
+        return "Available Collections";
     }
     
     
