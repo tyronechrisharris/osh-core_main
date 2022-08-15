@@ -53,6 +53,10 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
     @Override
     public ICommandStatus deserialize(JsonReader reader) throws IOException
     {
+        // if array, prepare to parse first element
+        if (reader.peek() == JsonToken.BEGIN_ARRAY)
+            reader.beginArray();
+        
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
         
