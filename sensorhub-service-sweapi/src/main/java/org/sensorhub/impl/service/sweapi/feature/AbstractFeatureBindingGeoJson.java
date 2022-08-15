@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
@@ -30,6 +31,7 @@ import org.vast.ogc.gml.IFeature;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import com.google.gson.stream.MalformedJsonException;
 
 
 /**
@@ -68,7 +70,14 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
         
-        return (V)geoJsonBindings.readFeature(reader);
+        try
+        {
+            return (V)geoJsonBindings.readFeature(reader);
+        }
+        catch(MalformedJsonException | IllegalStateException e)
+        {
+            throw new ResourceParseException(e.getMessage());
+        }
     }
 
 

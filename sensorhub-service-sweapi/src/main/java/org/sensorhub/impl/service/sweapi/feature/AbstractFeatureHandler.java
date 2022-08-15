@@ -27,11 +27,13 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
+import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext.ResourceRef;
 import org.vast.ogc.gml.IFeature;
+import com.google.common.base.Strings;
 
 
 public abstract class AbstractFeatureHandler<
@@ -40,6 +42,9 @@ public abstract class AbstractFeatureHandler<
     B extends FeatureFilterBaseBuilder<B,? super V,F>,
     S extends IFeatureStoreBase<V,?,F>> extends ResourceHandler<FeatureKey, V, F, B, S>
 {
+    static final int MIN_UID_CHARS = 12;
+    static final int MIN_NAME_CHARS = 4;
+    
     
     protected AbstractFeatureHandler(S dataStore, IdEncoder idEncoder, IdEncoders allIdEncoders, ResourcePermissions permissions)
     {
@@ -73,6 +78,25 @@ public abstract class AbstractFeatureHandler<
         var geom = parseGeomArg("geom", queryParams);
         if (geom != null)
             builder.withLocationIntersecting(geom);
+    }
+
+
+    @Override
+    protected void validate(IFeature resource) throws ResourceParseException
+    {
+        // check UID
+        var uid = resource.getUniqueIdentifier();
+        if (Strings.isNullOrEmpty(uid))
+            throw new ResourceParseException("Missing feature UID");
+        if (uid.length() < MIN_UID_CHARS)
+            throw new ResourceParseException("Feature UID should be at least " + MIN_UID_CHARS + " characters");
+        
+        // check name
+        var name = resource.getName();
+        if (Strings.isNullOrEmpty(name))
+            throw new ResourceParseException("Missing feature name");
+        if (name.length() < MIN_NAME_CHARS)
+            throw new ResourceParseException("Feature name should be at least " + MIN_NAME_CHARS + " characters");
     }
     
     

@@ -25,6 +25,7 @@ import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.event.IEventBus;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
+import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWEApiSecurity.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -105,10 +106,9 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
 
 
     @Override
-    protected void validate(IFeature resource)
+    protected void validate(IFeature resource) throws ResourceParseException
     {
-        // TODO Auto-generated method stub
-        
+        super.validate(resource);
     }
     
     

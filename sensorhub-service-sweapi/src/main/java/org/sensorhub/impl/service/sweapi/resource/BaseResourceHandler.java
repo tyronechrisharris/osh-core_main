@@ -341,7 +341,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (ResourceParseException e)
         {
-            throw ServiceErrors.invalidPayload(e.getMessage());
+            var msg = "Invalid payload";
+            throw ServiceErrors.invalidPayload(msg + ": " + e.getMessage());
         }
     }
     
@@ -385,7 +386,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (ResourceParseException e)
         {
-            throw ServiceErrors.invalidPayload(e.getMessage());
+            var msg = "Invalid payload";
+            throw ServiceErrors.invalidPayload(msg + ": " + e.getMessage());
         }
         
         // update in datastore
