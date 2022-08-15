@@ -79,14 +79,11 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     
     
     @Override
-    protected void writeHeader() throws IOException
+    protected String getCollectionTitle()
     {
-        super.writeHeader();
-        
-        if (isCollection)
-            h3(collectionTitle).render(html);
+        return collectionTitle;
     }
-
+    
     
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks) throws IOException

@@ -138,6 +138,16 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         html.appendStartTag(div().getTagName())
             .appendAttribute("class", "container py-4")
             .completeTag();
+        
+        if (isCollection && getCollectionTitle() != null)
+            h3(getCollectionTitle()).withStyle("margin-bottom: 60px").render(html);
+    }
+    
+    
+    protected String getCollectionTitle()
+    {
+        // to be overriden by sub classes
+        return null;
     }
     
     
@@ -185,7 +195,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     protected ContainerTag<?> getCard(Tag<?> title, DomContent... content)
     {
         return div()
-            .withClass("card mt-4")
+            .withClass("card mb-4")
             .with(
                 div()
                 .withClass("card-body")
@@ -453,35 +463,36 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         var prevLink = pagingLinks.stream()
             .filter(link -> link.rel == ResourceLink.REL_PREV)
             .findFirst()
-            .orElse(null);
+            .orElse(new ResourceLink());
         
         var nextLink = pagingLinks.stream()
             .filter(link -> link.rel == ResourceLink.REL_NEXT)
             .findFirst()
-            .orElse(null);
+            .orElse(new ResourceLink());
         
         nav(
             ul(
-                prevLink != null ?
-                    li(
-                        a().withHref(prevLink.href)
-                           .withRel(prevLink.rel)
-                           .withText("<< Previous")
-                           .withClass("page-link")
-                    )
-                    .withClasses("page-item"): null,
+                li(
+                    a().withHref(prevLink.href)
+                       .withRel(prevLink.rel)
+                       .withText("<< Previous")
+                       .withClasses("page-link")
+                )
+                .withClasses("page-item", prevLink.href == null ? "disabled" : null),
                     
-                nextLink != null ? 
-                    li(
-                        a().withHref(nextLink.href)
-                           .withRel(nextLink.rel)
-                           .withText("Next >>")
-                           .withClass("page-link")
-                    )
-                    .withClasses("page-item"): null
+                li(
+                    
+                    a().withHref(nextLink.href)
+                       .withRel(nextLink.rel)
+                       .withText("Next >>")
+                       .withClasses("page-link")
+                )
+                .withClasses("page-item", nextLink.href == null ? "disabled" : null)
             )
-            .withClasses("pagination", "my-4")
-        ).render(html);
+            .withClasses("pagination", "pagination-sm", "my-4")
+        )
+        .attr("style", "position:absolute; top: 85px;")
+        .render(html);
     }
     
     

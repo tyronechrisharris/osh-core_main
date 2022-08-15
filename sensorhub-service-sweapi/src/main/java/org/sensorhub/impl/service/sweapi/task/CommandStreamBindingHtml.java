@@ -66,14 +66,11 @@ public class CommandStreamBindingHtml extends ResourceBindingHtml<CommandStreamK
     
     
     @Override
-    protected void writeHeader() throws IOException
+    protected String getCollectionTitle()
     {
-        super.writeHeader();
-        
-        if (isCollection)
-            h3(collectionTitle).render(html);
+        return collectionTitle;
     }
-
+    
     
     @Override
     public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks) throws IOException

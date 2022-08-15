@@ -110,8 +110,13 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     {
         super.buildFilter(parent, queryParams, builder);
         
-        // only fetch datastreams valid at current time by default
-        builder.withCurrentVersion();
+        // valid time param
+        // if absent, only fetch datastreams valid at current time by default
+        var validTime = parseTimeStampArg("validTime", queryParams);
+        if (validTime != null)
+            builder.withValidTime(validTime);
+        else
+            builder.withCurrentVersion();
         
         // filter on parent if needed
         if (parent.internalID != null)

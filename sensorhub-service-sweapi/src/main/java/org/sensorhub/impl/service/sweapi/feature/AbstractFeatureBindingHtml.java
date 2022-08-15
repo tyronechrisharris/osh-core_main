@@ -69,7 +69,6 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
     
     
     protected abstract String getResourceName();
-    protected abstract String getCollectionTitle();
     protected abstract String getResourceUrl(FeatureKey key);
     protected abstract DomContent getLinks(String resourceUrl, FeatureKey key);
     protected abstract void serializeDetails(FeatureKey key, V res) throws IOException;
@@ -101,9 +100,6 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
         jsonQueryParams.remove("format"); // remove format in case it's set
         jsonQueryParams.put("f", new String[] {ResourceFormat.JSON.getMimeType()});
         String geojsonUrl = ctx.getRequestUrlWithQuery(jsonQueryParams);
-        
-        if (isCollection)
-            h3(getCollectionTitle()).render(html);
         
         // start 2-columns
         html.appendStartTag("div").appendAttribute("class", "row").completeTag();
