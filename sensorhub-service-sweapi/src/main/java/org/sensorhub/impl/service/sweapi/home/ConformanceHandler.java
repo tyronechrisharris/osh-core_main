@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.util.Set;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
-import org.sensorhub.impl.service.sweapi.SWEApiServiceConfig;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -28,13 +27,11 @@ public class ConformanceHandler extends BaseHandler
 {
     public static final String[] NAMES = { "conformance" };
     
-    final SWEApiServiceConfig serviceConfig;
     final Set<String> confClasses;
     
     
-    public ConformanceHandler(SWEApiServiceConfig serviceConfig, Set<String> confClasses)
+    public ConformanceHandler(Set<String> confClasses)
     {
-        this.serviceConfig = serviceConfig;
         this.confClasses = confClasses;
     }
     
@@ -55,9 +52,9 @@ public class ConformanceHandler extends BaseHandler
         ctx.setResponseContentType(format.getMimeType());
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            new ConformanceHtml(ctx, confClasses).serialize(0L, serviceConfig, true);
+            new ConformanceHtml(ctx).serialize(0L, confClasses, true);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            new ConformanceJson(ctx, confClasses).serialize(0L, serviceConfig, true);
+            new ConformanceJson(ctx).serialize(0L, confClasses, true);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

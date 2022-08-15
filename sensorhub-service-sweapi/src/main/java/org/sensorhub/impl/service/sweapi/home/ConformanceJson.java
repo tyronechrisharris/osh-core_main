@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.sweapi.home;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
-import org.sensorhub.impl.service.sweapi.SWEApiServiceConfig;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
@@ -26,21 +25,20 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 
-public class ConformanceJson extends ResourceBindingJson<Long, SWEApiServiceConfig>
+public class ConformanceJson extends ResourceBindingJson<Long, Set<String>>
 {
-    Collection<String> confClasses;
     
-    
-    public ConformanceJson(RequestContext ctx, Set<String> confClasses) throws IOException
+    public ConformanceJson(RequestContext ctx) throws IOException
     {
         super(ctx, null, false);
-        this.confClasses = Asserts.checkNotNullOrEmpty(confClasses, "ConformanceClasses");
     }
     
     
     @Override
-    public void serialize(Long key, SWEApiServiceConfig config, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(Long key, Set<String> confClasses, boolean showLinks, JsonWriter writer) throws IOException
     {
+        Asserts.checkNotNullOrEmpty(confClasses, "ConformanceClasses");
+        
         writer.beginObject();
         writer.name("conformsTo").beginArray();
         for (var uri: confClasses)
@@ -52,7 +50,7 @@ public class ConformanceJson extends ResourceBindingJson<Long, SWEApiServiceConf
 
 
     @Override
-    public SWEApiServiceConfig deserialize(JsonReader reader) throws IOException
+    public Set<String> deserialize(JsonReader reader) throws IOException
     {
         // this should never be called since home page is read-only
         throw new UnsupportedOperationException();

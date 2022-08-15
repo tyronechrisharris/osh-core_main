@@ -21,7 +21,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.websocket.api.WebSocketBehavior;
@@ -43,7 +42,7 @@ import static javax.servlet.http.HttpServletResponse.*;
 
 
 @SuppressWarnings("serial")
-public class SWEApiServlet extends HttpServlet
+public class SWEApiServlet extends RestApiServlet
 {
     static final String LOG_REQUEST_MSG = "{} {}{} (from ip={}, user={})";
     static final String INTERNAL_ERROR_MSG = "Internal server error";

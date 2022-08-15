@@ -32,8 +32,8 @@ import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.sensorhub.api.common.BigId;
-import org.sensorhub.impl.service.sweapi.SWEApiSecurity;
-import org.sensorhub.impl.service.sweapi.SWEApiServlet;
+import org.sensorhub.impl.module.ModuleSecurity;
+import org.sensorhub.impl.service.sweapi.RestApiServlet;
 import org.sensorhub.impl.service.sweapi.stream.StreamHandler;
 import org.slf4j.Logger;
 import org.vast.util.Asserts;
@@ -42,7 +42,7 @@ import com.google.common.base.Strings;
 
 public class RequestContext
 {
-    private final SWEApiServlet servlet;
+    private final RestApiServlet servlet;
     private final HttpServletRequest req;
     private final HttpServletResponse resp;
     private final StreamHandler streamHandler;
@@ -77,7 +77,7 @@ public class RequestContext
     /*
      * Constructor for classic HTTP requests
      */
-    public RequestContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp)
+    public RequestContext(RestApiServlet servlet, HttpServletRequest req, HttpServletResponse resp)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
@@ -94,7 +94,7 @@ public class RequestContext
     /*
      * Constructor for streaming websocket requests
      */
-    public RequestContext(SWEApiServlet servlet, HttpServletRequest req, HttpServletResponse resp, StreamHandler streamHandler)
+    public RequestContext(RestApiServlet servlet, HttpServletRequest req, HttpServletResponse resp, StreamHandler streamHandler)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = Asserts.checkNotNull(req, HttpServletRequest.class);
@@ -111,7 +111,7 @@ public class RequestContext
     /*
      * Constructor for other protocols providing their own path/params and input stream (e.g. MQTT publish)
      */
-    public RequestContext(SWEApiServlet servlet, URI resourceURI, InputStream is)
+    public RequestContext(RestApiServlet servlet, URI resourceURI, InputStream is)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;
@@ -127,7 +127,7 @@ public class RequestContext
     /*
      * Constructor for other protocols providing their own path/params and stream handler (e.g. MQTT subscribe)
      */
-    public RequestContext(SWEApiServlet servlet, URI resourceURI, StreamHandler streamHandler)
+    public RequestContext(RestApiServlet servlet, URI resourceURI, StreamHandler streamHandler)
     {
         this.servlet = Asserts.checkNotNull(servlet, Servlet.class);
         this.req = null;
@@ -414,7 +414,7 @@ public class RequestContext
     }
     
     
-    public SWEApiSecurity getSecurityHandler()
+    public ModuleSecurity getSecurityHandler()
     {
         return servlet.getSecurityHandler();
     }

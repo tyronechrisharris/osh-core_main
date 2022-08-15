@@ -22,6 +22,7 @@ import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.ModuleSecurity;
 import org.sensorhub.impl.security.ItemPermission;
 import org.sensorhub.impl.security.ModulePermissions;
+import org.sensorhub.impl.service.sweapi.RestApiServlet.ResourcePermissions;
 
 
 public class SWEApiSecurity extends ModuleSecurity
@@ -45,18 +46,6 @@ public class SWEApiSecurity extends ModuleSecurity
     private static final String LABEL_OBS = "Observations";
     private static final String LABEL_CONTROLS = "Control Channels Info";
     private static final String LABEL_COMMANDS = "Commands";
-    
-    
-    public static class ResourcePermissions
-    {
-        public IPermission read;
-        public IPermission create;
-        public IPermission update;
-        public IPermission delete;
-        public IPermission stream;
-        
-        protected ResourcePermissions() {}
-    }
     
     public final IPermission api_read;
     public final IPermission api_create;

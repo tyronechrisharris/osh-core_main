@@ -170,7 +170,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         // create resource handlers hierarchy
         var homePage = new HomePageHandler(config);
         var rootHandler = new RootHandler(homePage, readOnly);
-        rootHandler.addSubResource(new ConformanceHandler(config, CONF_CLASSES));
+        rootHandler.addSubResource(new ConformanceHandler(CONF_CLASSES));
         
         // systems and sub-resources
         var systemsHandler = new SystemHandler(eventBus, db, security.system_summary_permissions);

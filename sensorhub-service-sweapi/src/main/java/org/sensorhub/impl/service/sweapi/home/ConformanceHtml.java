@@ -15,7 +15,6 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.home;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Set;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
@@ -23,21 +22,19 @@ import org.vast.util.Asserts;
 import static j2html.TagCreator.*;
 
 
-public class ConformanceHtml extends ResourceBindingHtml<Long, Object>
+public class ConformanceHtml extends ResourceBindingHtml<Long, Set<String>>
 {
-    Collection<String> confClasses;
     
-    
-    public ConformanceHtml(RequestContext ctx, Set<String> confClasses) throws IOException
+    public ConformanceHtml(RequestContext ctx) throws IOException
     {
         super(ctx, null);
-        this.confClasses = Asserts.checkNotNullOrEmpty(confClasses, "ConformanceClasses");
     }
     
     
     @Override
-    public void serialize(Long key, Object res, boolean showLinks) throws IOException
+    public void serialize(Long key, Set<String> confClasses, boolean showLinks) throws IOException
     {
+        Asserts.checkNotNullOrEmpty(confClasses, "ConformanceClasses");
         writeHeader();
         
         div(

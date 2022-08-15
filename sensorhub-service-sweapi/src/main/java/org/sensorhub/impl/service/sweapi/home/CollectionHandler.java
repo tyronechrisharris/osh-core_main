@@ -39,20 +39,20 @@ public class CollectionHandler extends BaseHandler
 {
     public static final String[] NAMES = { "collections" };
     
-    Map<String, CollectionInfo> allCollections = new LinkedHashMap<>();
+    protected Map<String, CollectionInfo> allCollections = new LinkedHashMap<>();
     
     
-    static class CollectionInfo
+    public static class CollectionInfo
     {
-        String id;
-        String title;
-        String description;
-        String attribution;
-        String itemType = "feature";
-        String featureType;
-        Set<String> keywords = new LinkedHashSet<>();
-        Set<String> crs = new LinkedHashSet<>();
-        Set<ResourceLink> links = new LinkedHashSet<>();
+        public String id;
+        public String title;
+        public String description;
+        public String attribution;
+        public String itemType = "feature";
+        public String featureType;
+        public Set<String> keywords = new LinkedHashSet<>();
+        public Set<String> crs = new LinkedHashSet<>();
+        public Set<ResourceLink> links = new LinkedHashSet<>();
     }
     
     
