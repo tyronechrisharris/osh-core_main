@@ -82,7 +82,7 @@ public abstract class AbstractFeatureHandler<
 
 
     @Override
-    protected void validate(IFeature resource) throws ResourceParseException
+    protected void validate(V resource) throws ResourceParseException
     {
         // check UID
         var uid = resource.getUniqueIdentifier();
