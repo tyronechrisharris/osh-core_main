@@ -92,7 +92,7 @@ public interface IObsStore extends IDataStore<BigId, IObsData, ObsField, ObsFilt
     public default Stream<BigId> selectObservedFois(ObsFilter filter)
     {
         return select(filter, Sets.newHashSet(ObsField.FOI_ID))
-            .filter(o -> o.getFoiID() != IObsData.NO_FOI)
+            .filter(o -> o.hasFoi())
             .map(o -> o.getFoiID())
             .distinct();
     }
