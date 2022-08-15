@@ -22,42 +22,20 @@ import org.sensorhub.impl.service.sweapi.SWEApiServiceConfig;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
-import com.google.common.collect.ImmutableSet;
 
 
 public class ConformanceHandler extends BaseHandler
 {
     public static final String[] NAMES = { "conformance" };
     
-    static final Set<String> CONF_CLASSES = ImmutableSet.of(
-        "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core",
-        "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/html",
-        "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/json",
-        "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/oas30",
-        "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/collections",
-        "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/html",
-        "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/json",
-        
-        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/core",
-        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/obs",
-        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/html",
-        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/json",
-        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/om+json",
-        "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+json",
-        "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+csv",
-        "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+xml",
-        "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+binary",
-        "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/tasking",
-        "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/subsystems",
-        "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/history"
-    );
-    
-    SWEApiServiceConfig serviceConfig;
+    final SWEApiServiceConfig serviceConfig;
+    final Set<String> confClasses;
     
     
-    public ConformanceHandler(SWEApiServiceConfig serviceConfig)
+    public ConformanceHandler(SWEApiServiceConfig serviceConfig, Set<String> confClasses)
     {
         this.serviceConfig = serviceConfig;
+        this.confClasses = confClasses;
     }
     
     
@@ -77,9 +55,9 @@ public class ConformanceHandler extends BaseHandler
         ctx.setResponseContentType(format.getMimeType());
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            new ConformanceHtml(ctx, CONF_CLASSES).serialize(0L, serviceConfig, true);
+            new ConformanceHtml(ctx, confClasses).serialize(0L, serviceConfig, true);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON))
-            new ConformanceJson(ctx, CONF_CLASSES).serialize(0L, serviceConfig, true);
+            new ConformanceJson(ctx, confClasses).serialize(0L, serviceConfig, true);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

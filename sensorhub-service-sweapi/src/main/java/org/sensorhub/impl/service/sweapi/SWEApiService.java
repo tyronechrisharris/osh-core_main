@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -49,6 +50,7 @@ import org.sensorhub.impl.service.sweapi.task.CommandStreamHandler;
 import org.sensorhub.impl.service.sweapi.task.CommandStreamSchemaHandler;
 import org.sensorhub.utils.NamedThreadFactory;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableSet;
 
 
 /**
@@ -65,6 +67,29 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
 {
     protected SWEApiServlet servlet;
     ScheduledExecutorService threadPool;
+    
+    static final Set<String> CONF_CLASSES = ImmutableSet.of(
+        "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core",
+        "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/html",
+        "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/json",
+        "http://www.opengis.net/spec/ogcapi-common-1/1.0/conf/oas30",
+        "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/collections",
+        "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/html",
+        "http://www.opengis.net/spec/ogcapi-common-2/0.0/conf/json",
+        
+        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/core",
+        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/obs",
+        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/html",
+        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/json",
+        "http://www.opengis.net/spec/sweapi-common-1/0.0/conf/om+json",
+        "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+json",
+        "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+csv",
+        "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+xml",
+        "http://www.opengis.net/spec/sweapi-common-2/0.0/conf/swe+binary",
+        "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/tasking",
+        "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/subsystems",
+        "http://www.opengis.net/spec/sweapi-common-3/0.0/conf/history"
+    );
 
 
     @Override
@@ -145,7 +170,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         // create resource handlers hierarchy
         var homePage = new HomePageHandler(config);
         var rootHandler = new RootHandler(homePage, readOnly);
-        rootHandler.addSubResource(new ConformanceHandler(config));
+        rootHandler.addSubResource(new ConformanceHandler(config, CONF_CLASSES));
         
         // systems and sub-resources
         var systemsHandler = new SystemHandler(eventBus, db, security.system_summary_permissions);

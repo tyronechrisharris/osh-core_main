@@ -17,14 +17,13 @@ package org.sensorhub.impl.service.sweapi.home;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
-import org.sensorhub.impl.service.sweapi.SWEApiServiceConfig;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingHtml;
 import org.vast.util.Asserts;
 import static j2html.TagCreator.*;
 
 
-public class ConformanceHtml extends ResourceBindingHtml<Long, SWEApiServiceConfig>
+public class ConformanceHtml extends ResourceBindingHtml<Long, Object>
 {
     Collection<String> confClasses;
     
@@ -37,7 +36,7 @@ public class ConformanceHtml extends ResourceBindingHtml<Long, SWEApiServiceConf
     
     
     @Override
-    public void serialize(Long key, SWEApiServiceConfig config, boolean showLinks) throws IOException
+    public void serialize(Long key, Object res, boolean showLinks) throws IOException
     {
         writeHeader();
         
