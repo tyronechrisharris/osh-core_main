@@ -128,7 +128,7 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     protected void startJsonCollection(JsonWriter writer) throws IOException
     {
         writer.beginObject();
-        writer.name("items");
+        writer.name(getItemsPropertyName());
         writer.beginArray();
     }
     
@@ -160,5 +160,11 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
             }        
             writer.endArray();
         }
+    }
+    
+    
+    protected String getItemsPropertyName()
+    {
+        return "items";
     }
 }
