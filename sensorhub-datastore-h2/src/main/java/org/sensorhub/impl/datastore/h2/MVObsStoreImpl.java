@@ -890,7 +890,7 @@ public class MVObsStoreImpl implements IObsStore
             throw new IllegalStateException("Unknown datastream" + obs.getDataStreamID());
         
         // check that FOI exists
-        if (obs.hasFoi() && !foiStore.contains(obs.getFoiID()))
+        if (obs.hasFoi() && foiStore != null && !foiStore.contains(obs.getFoiID()))
             throw new IllegalStateException("Unknown FOI: " + obs.getFoiID());
             
         // synchronize on MVStore to avoid autocommit in the middle of things
