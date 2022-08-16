@@ -43,7 +43,6 @@ public abstract class AbstractFeatureHandler<
     S extends IFeatureStoreBase<V,?,F>> extends ResourceHandler<FeatureKey, V, F, B, S>
 {
     static final int MIN_UID_CHARS = 12;
-    static final int MIN_NAME_CHARS = 4;
     
     
     protected AbstractFeatureHandler(S dataStore, IdEncoder idEncoder, IdEncoders allIdEncoders, ResourcePermissions permissions)
@@ -95,8 +94,6 @@ public abstract class AbstractFeatureHandler<
         var name = resource.getName();
         if (Strings.isNullOrEmpty(name))
             throw new ResourceParseException("Missing feature name");
-        if (name.length() < MIN_NAME_CHARS)
-            throw new ResourceParseException("Feature name should be at least " + MIN_NAME_CHARS + " characters");
     }
     
     
