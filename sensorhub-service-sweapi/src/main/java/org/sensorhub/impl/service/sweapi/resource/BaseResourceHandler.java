@@ -449,7 +449,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected void getElementCount(final RequestContext ctx) throws InvalidRequestException, IOException
     {
-        F filter = getFilter(ctx.getParentRef(), ctx.getParameterMap(), 0, Long.MAX_VALUE);
+        F filter = getFilter(ctx.getParentRef(), ctx.getParameterMap(), 0, Long.MAX_VALUE-1);
         
         // get count from datastore
         long count = dataStore.countMatchingEntries(filter);
