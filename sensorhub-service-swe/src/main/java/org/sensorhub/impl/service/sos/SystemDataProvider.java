@@ -48,7 +48,7 @@ import org.vast.ows.sos.GetResultTemplateRequest;
 import org.vast.ows.sos.SOSException;
 import org.vast.ows.swe.DescribeSensorRequest;
 import org.vast.util.Asserts;
-import com.vividsolutions.jts.geom.Point;
+import org.locationtech.jts.geom.Point;
 import net.opengis.fes.v20.BBOX;
 import net.opengis.fes.v20.BinarySpatialOp;
 import net.opengis.fes.v20.DWithin;

@@ -18,7 +18,7 @@ import java.time.Instant;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 import net.opengis.swe.v20.DataBlock;
 
 

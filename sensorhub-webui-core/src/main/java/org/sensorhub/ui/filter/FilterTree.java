@@ -37,9 +37,9 @@ import com.google.common.collect.Lists;
 import com.vaadin.event.Action;
 import com.vaadin.v7.data.Item;
 import com.vaadin.v7.ui.TreeTable;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.io.WKTWriter;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.WKTWriter;
 
 
 @SuppressWarnings({"deprecation"})

@@ -38,8 +38,8 @@ import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.index.quadtree.Quadtree;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.index.quadtree.Quadtree;
 
 
 /**
