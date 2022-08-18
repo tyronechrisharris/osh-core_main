@@ -106,7 +106,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
         
         // add leaflet map
         div()
-        .withClasses("col", "order-2", "pt-4")
+        .withClasses("col", "order-2")
         .with(
             div()
                 .withId("map")
