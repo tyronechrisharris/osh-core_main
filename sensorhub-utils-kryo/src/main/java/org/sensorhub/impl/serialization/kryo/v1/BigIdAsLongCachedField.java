@@ -12,12 +12,10 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2.kryo.v2;
+package org.sensorhub.impl.serialization.kryo.v1;
 
 import java.lang.reflect.Field;
-import java.math.BigInteger;
 import org.sensorhub.api.common.BigId;
-import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
@@ -32,16 +30,14 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedField;
  * @author Alex Robin
  * @since May 3, 2022
  */
-public class BigIdAsBigIntCachedField extends CachedField
+public class BigIdAsLongCachedField extends CachedField
 {
-    Kryo kryo;
     int idScope;
     
     
-    public BigIdAsBigIntCachedField(Field field, Kryo kryo, int idScope)
+    public BigIdAsLongCachedField(Field field, int idScope)
     {
         super(field);
-        this.kryo = kryo;
         this.idScope = idScope;
     }
     
@@ -51,7 +47,7 @@ public class BigIdAsBigIntCachedField extends CachedField
     {
         try {
             var id = (BigId)getField().get(object);
-            kryo.writeClassAndObject(output, id != null ? new BigInteger(id.getIdAsBytes()) : null);
+            output.writeVarLong(id.getIdAsLong(), false);
         }
         catch (Throwable t) {
             KryoException ex = new KryoException(t);
@@ -65,9 +61,8 @@ public class BigIdAsBigIntCachedField extends CachedField
     public void read(Input input, Object object)
     {
         try {
-            var id = (BigInteger)kryo.readClassAndObject(input);
-            if (id != null)
-                getField().set(object, id == BigInteger.ZERO ? BigId.NONE : BigId.fromBytes(idScope, id.toByteArray()));
+            var id = input.readVarLong(false);
+            getField().set(object, id <= 0 ? BigId.NONE : BigId.fromLong(idScope, id));
         }
         catch (Throwable t) {
             KryoException ex = new KryoException(t);

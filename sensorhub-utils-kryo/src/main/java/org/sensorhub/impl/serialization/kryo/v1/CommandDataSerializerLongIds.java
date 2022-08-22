@@ -12,33 +12,30 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2.kryo.v2;
+package org.sensorhub.impl.serialization.kryo.v1;
 
-import static com.esotericsoftware.minlog.Log.TRACE;
-import org.sensorhub.api.data.ObsData;
+import org.sensorhub.api.command.CommandData;
 import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.io.Output;
 
 
 /**
  * <p>
  * Custom serializer for backward compatibility with v1 format where
- * dataStreamID and foiID were serialized as longs
+ * id was serialized as BigInt and commandStreamID/foiID as longs
  * </p>
  *
  * @author Alex Robin
  * @since May 3, 2022
  */
-public class ObsDataSerializerLongIds extends BackwardCompatFieldSerializer<ObsData>
+public class CommandDataSerializerLongIds extends BackwardCompatFieldSerializer<CommandData>
 {
     int idScope;
     
     
-    public ObsDataSerializerLongIds(Kryo kryo, int idScope)
+    public CommandDataSerializerLongIds(Kryo kryo, int idScope)
     {
-        super(kryo, ObsData.class);
+        super(kryo, CommandData.class);
         this.idScope = idScope;
         customizeCacheFields();
     }
@@ -56,7 +53,7 @@ public class ObsDataSerializerLongIds extends BackwardCompatFieldSerializer<ObsD
             var name = f.getName();
             CachedField newField = f;
             
-            if ("dataStreamID".equals(name))
+            if ("commandStreamID".equals(name))
             {
                 // use transforming field to convert between BigId and long
                 newField = new BigIdAsLongCachedField(f.getField(), idScope);
@@ -68,27 +65,14 @@ public class ObsDataSerializerLongIds extends BackwardCompatFieldSerializer<ObsD
                 newField = new BigIdAsLongCachedField(f.getField(), idScope);
             }
             
+            else if ("id".equals(name))
+            {
+                // use transforming field to convert between BigId and BigInteger
+                newField = new BigIdAsBigIntCachedField(f.getField(), getKryo(), idScope);
+            }
+            
             compatFields[i++] = newField;
         }
-    }
-    
-    
-    public void write (Kryo kryo, Output output, ObsData object) {
-        int pop = pushTypeVariables();
-
-        CachedField[] fields = compatFields;
-        for (int i = 0, n = fields.length; i < n; i++) {
-            if (TRACE) log("Write", fields[i], output.position());
-            try {
-                fields[i].write(output, object);
-            } catch (KryoException e) {
-                throw e;
-            } catch (OutOfMemoryError | Exception e) {
-                throw new KryoException("Error writing " + fields[i] + " at position " + output.position(), e);
-            }
-        }
-
-        popTypeVariables(pop);
     }
 
 }

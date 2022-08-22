@@ -18,8 +18,8 @@ import org.h2.mvstore.MVMap;
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
-import org.sensorhub.impl.datastore.h2.kryo.v2.CommandDataSerializerLongIds;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
+import org.sensorhub.impl.serialization.kryo.v1.CommandDataSerializerLongIds;
 import com.esotericsoftware.kryo.Serializer;
 import com.google.common.collect.ImmutableMap;
 

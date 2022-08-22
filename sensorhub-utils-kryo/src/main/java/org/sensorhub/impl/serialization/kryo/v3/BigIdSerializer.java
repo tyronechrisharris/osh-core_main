@@ -12,35 +12,38 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2.kryo.v2;
+package org.sensorhub.impl.serialization.kryo.v3;
 
-import org.locationtech.jts.geom.PrecisionModel;
+import org.sensorhub.api.common.BigId;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 
 
-/**
- * <p>
- * Custom serializer for backward compatibility with JTS < 1.19
- * PrecisionModel class that didn't have the 'gridSize' field.
- * </p>
- *
- * @author Alex Robin
- * @since Aug 20, 2022
- */
-public class PrecisionModelSerializer extends FieldSerializer<PrecisionModel>
+public class BigIdSerializer extends Serializer<BigId>
 {
+    int idScope;
     
-    public PrecisionModelSerializer(Kryo kryo)
+    
+    public BigIdSerializer(int idScope)
     {
-        super(kryo, PrecisionModel.class);
+        this.idScope = idScope;
     }
     
     
-    protected void initializeCachedFields ()
+    @Override
+    public void write(Kryo kryo, Output output, BigId id)
     {
-        // skip fields that were added in JTS 1.19
-        this.removeField("gridSize");
+        output.writeVarLong(id.getIdAsLong(), true);
+    }
+
+
+    @Override
+    public BigId read(Kryo kryo, Input input, Class<? extends BigId> type)
+    {
+        var id = input.readVarLong(true);
+        return BigId.fromLong(idScope, id);
     }
 
 }

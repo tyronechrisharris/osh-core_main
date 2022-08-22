@@ -12,7 +12,7 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2.kryo.v2;
+package org.sensorhub.impl.serialization.kryo.v1;
 
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
