@@ -12,10 +12,10 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2.kryo.v2;
+package org.sensorhub.impl.serialization.kryo.v1;
 
 import static com.esotericsoftware.minlog.Log.TRACE;
-import org.sensorhub.api.command.CommandStatus;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoException;
@@ -25,20 +25,20 @@ import com.esotericsoftware.kryo.io.Output;
 /**
  * <p>
  * Custom serializer for backward compatibility with v1 format where
- * command ID was serialized as BigInteger
+ * id was serialized as BigInt and commandStreamID/foiID as longs
  * </p>
  *
  * @author Alex Robin
  * @since May 3, 2022
  */
-public class CommandStatusSerializerLongIds extends BackwardCompatFieldSerializer<CommandStatus>
+public class FeatureIdSerializerLongIds extends BackwardCompatFieldSerializer<FeatureId>
 {
     int idScope;
     
     
-    public CommandStatusSerializerLongIds(Kryo kryo, int idScope)
+    public FeatureIdSerializerLongIds(Kryo kryo, int idScope)
     {
-        super(kryo, CommandStatus.class);
+        super(kryo, FeatureId.class);
         this.idScope = idScope;
         customizeCacheFields();
     }
@@ -56,10 +56,10 @@ public class CommandStatusSerializerLongIds extends BackwardCompatFieldSerialize
             var name = f.getName();
             CachedField newField = f;
             
-            if ("commandID".equals(name))
+            if ("internalID".equals(name))
             {
-                // use transforming field to convert between BigId and BigInteger
-                newField = new BigIdAsBigIntCachedField(f.getField(), getKryo(), idScope);
+                // use transforming field to convert between BigId and long
+                newField = new BigIdAsLongCachedField(f.getField(), idScope);
             }
             
             compatFields[i++] = newField;
@@ -67,7 +67,7 @@ public class CommandStatusSerializerLongIds extends BackwardCompatFieldSerialize
     }
     
     
-    public void write (Kryo kryo, Output output, CommandStatus object) {
+    public void write (Kryo kryo, Output output, FeatureId object) {
         int pop = pushTypeVariables();
 
         CachedField[] fields = compatFields;

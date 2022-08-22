@@ -22,7 +22,7 @@ import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.utils.ObjectUtils;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 import net.opengis.swe.v20.DataBlock;
 
 

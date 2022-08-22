@@ -15,13 +15,17 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.sensorhub.impl.datastore.h2.kryo.FeatureClassResolver;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
+import org.sensorhub.impl.serialization.kryo.v2.PrecisionModelSerializer;
 import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.ProcedureRef;
 import org.vast.ogc.om.SamplingFeature;
+import com.esotericsoftware.kryo.SerializerFactory;
+import com.esotericsoftware.kryo.SerializerFactory.SingletonSerializerFactory;
 import com.google.common.collect.ImmutableMap;
 
 
@@ -43,13 +47,19 @@ class FeatureDataType extends KryoDataType
             
             // setup generic feature serializer
             kryo.addDefaultSerializer(IFeature.class, VersionedSerializer.<IFeature>factory(ImmutableMap.of(
-                MVObsSystemDatabase.CURRENT_VERSION, new org.sensorhub.impl.serialization.kryo.v1.FeatureSerializer()),
-                MVObsSystemDatabase.CURRENT_VERSION));
+                H2Utils.CURRENT_VERSION, new org.sensorhub.impl.serialization.kryo.v1.FeatureSerializer()),
+                H2Utils.CURRENT_VERSION));
             
             // but use default serializer for the following well-known feature types
             kryo.addDefaultSerializer(FeatureRef.class, defaultObjectSerializer);
             kryo.addDefaultSerializer(ProcedureRef.class, defaultObjectSerializer);
             kryo.addDefaultSerializer(SamplingFeature.class, defaultObjectSerializer);
+            
+            // register serializer backward compatible with JTS < 1.19 classes
+            kryo.addDefaultSerializer(PrecisionModel.class, VersionedSerializer.<PrecisionModel>factory2(ImmutableMap.of(
+                H2Utils.CURRENT_VERSION, new SerializerFactory.FieldSerializerFactory(),
+                1, new SingletonSerializerFactory<>(new PrecisionModelSerializer(kryo))),
+                H2Utils.CURRENT_VERSION));
         };
     }
 }

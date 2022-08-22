@@ -90,6 +90,7 @@ public class PersistentClassResolver implements ClassResolver
                 var classId = entry.getValue();
                 if (!idToRegistration.containsKey(classId))
                 {
+                    className = mapClassName(className);
                     register(Class.forName(className, true, classLoader), classId);
                     log.trace("Loading class mapping: {} -> {}", className, classId);
                 }
@@ -101,6 +102,18 @@ public class PersistentClassResolver implements ClassResolver
         }
         
         //mappingsLoaded = true;
+    }
+    
+    
+    /*
+     * Handle classes that have been renamed or moved to a different package
+     */
+    protected String mapClassName(String className)
+    {
+        if (className.startsWith("com.vividsolutions"))
+            return className.replace("com.vividsolutions", "org.locationtech");
+        
+        return className;
     }
     
     

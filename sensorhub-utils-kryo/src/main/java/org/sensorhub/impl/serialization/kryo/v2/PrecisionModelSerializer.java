@@ -12,28 +12,35 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2.kryo.v2;
+package org.sensorhub.impl.serialization.kryo.v2;
 
-import org.sensorhub.api.command.CommandData;
-import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
+import org.locationtech.jts.geom.PrecisionModel;
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
 
 
 /**
  * <p>
- * Custom serializer to avoid serializing redundant ID data, backward
- * compatible with previous class format
+ * Custom serializer for backward compatibility with JTS < 1.19
+ * PrecisionModel class that didn't have the 'gridSize' field.
  * </p>
  *
  * @author Alex Robin
- * @since May 3, 2022
+ * @since Aug 20, 2022
  */
-public class CommandDataSerializer extends BackwardCompatFieldSerializer<CommandData>
+public class PrecisionModelSerializer extends FieldSerializer<PrecisionModel>
 {
-
-    public CommandDataSerializer(Kryo kryo, int idScope)
+    
+    public PrecisionModelSerializer(Kryo kryo)
     {
-        super(kryo, CommandData.class);
+        super(kryo, PrecisionModel.class);
+    }
+    
+    
+    protected void initializeCachedFields ()
+    {
+        // skip fields that were added in JTS 1.19
+        this.removeField("gridSize");
     }
 
 }

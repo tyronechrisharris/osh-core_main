@@ -51,10 +51,10 @@ import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.prep.PreparedGeometryFactory;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.prep.PreparedGeometryFactory;
 
 
 /**
@@ -783,7 +783,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         });
         timeRange = Range.closed(Instant.MIN, Instant.MAX);
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withLocationIntersecting((org.locationtech.jts.geom.Polygon)roi)
             .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
             .build());
         checkSelectedEntries(resultStream, roi, timeRange);
@@ -792,7 +792,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         forceReadBackFromStorage();
         timeRange = Range.closed(Instant.parse("2000-02-28T09:59:59Z"), Instant.parse("2000-04-08T10:00:00Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withLocationIntersecting((org.locationtech.jts.geom.Polygon)roi)
             .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
             .build());
         checkSelectedEntries(resultStream, roi, timeRange);
@@ -807,7 +807,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         });
         timeRange = Range.closed(Instant.MIN, Instant.MAX);        
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withLocationIntersecting((org.locationtech.jts.geom.Polygon)roi)
             .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
             .build());
         checkSelectedEntries(resultStream, roi, timeRange);
@@ -815,7 +815,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         // smaller polygon and time range
         timeRange = Range.closed(Instant.parse("2000-02-28T09:59:59Z"), Instant.parse("2000-04-08T10:00:00Z"));
         resultStream = featureStore.selectEntries(new FeatureFilter.Builder()
-            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withLocationIntersecting((org.locationtech.jts.geom.Polygon)roi)
             .withValidTimeDuring(timeRange.lowerEndpoint(), timeRange.upperEndpoint())
             .build());
         checkSelectedEntries(resultStream, roi, timeRange);
@@ -862,7 +862,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         });
         
         long count = featureStore.removeEntries(new FeatureFilter.Builder()
-            .withLocationIntersecting((com.vividsolutions.jts.geom.Polygon)roi)
+            .withLocationIntersecting((org.locationtech.jts.geom.Polygon)roi)
             .build());
         System.out.println(count + " features removed");
         forceReadBackFromStorage();

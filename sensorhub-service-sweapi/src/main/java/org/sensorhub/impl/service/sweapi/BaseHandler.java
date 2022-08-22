@@ -31,9 +31,9 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
 import org.vast.util.TimeExtent;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
 
 
 public abstract class BaseHandler implements IResourceHandler

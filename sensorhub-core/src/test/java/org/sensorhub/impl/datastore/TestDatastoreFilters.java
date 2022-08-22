@@ -23,9 +23,9 @@ import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.vast.ogc.om.IProcedure;
 import org.vast.sensorML.SMLHelper;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 
 
 public class TestDatastoreFilters

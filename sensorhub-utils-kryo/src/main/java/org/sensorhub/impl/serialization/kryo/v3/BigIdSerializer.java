@@ -12,7 +12,7 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.datastore.h2.kryo;
+package org.sensorhub.impl.serialization.kryo.v3;
 
 import org.sensorhub.api.common.BigId;
 import com.esotericsoftware.kryo.Kryo;
