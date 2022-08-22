@@ -18,6 +18,7 @@ import static com.esotericsoftware.minlog.Log.TRACE;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 
 
@@ -66,5 +67,24 @@ public abstract class BackwardCompatFieldSerializer<T> extends FieldSerializer<T
 
         popTypeVariables(pop);
         return object;
+    }
+    
+    
+    public void write (Kryo kryo, Output output, T object) {
+        int pop = pushTypeVariables();
+
+        CachedField[] fields = compatFields;
+        for (int i = 0, n = fields.length; i < n; i++) {
+            if (TRACE) log("Write", fields[i], output.position());
+            try {
+                fields[i].write(output, object);
+            } catch (KryoException e) {
+                throw e;
+            } catch (OutOfMemoryError | Exception e) {
+                throw new KryoException("Error writing " + fields[i] + " at position " + output.position(), e);
+            }
+        }
+
+        popTypeVariables(pop);
     }
 }
