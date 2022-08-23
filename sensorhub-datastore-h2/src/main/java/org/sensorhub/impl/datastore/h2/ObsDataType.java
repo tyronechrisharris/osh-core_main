@@ -38,14 +38,11 @@ class ObsDataType extends KryoDataType
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
-            // register custom serializers
-            
-            // configure compatibility serializer
+            // register custom serializer w/ backward compatibility
             kryo.addDefaultSerializer(ObsData.class, new VersionedSerializer<ObsData>(
                 ImmutableMap.<Integer, Serializer<ObsData>>builder()
-                    .put(1, new ObsDataSerializerLongIds(kryo, idScope))
-                    //.put(2, new ObsDataSerializer(kryo, idScope))
-                    .build(), 1));
+                    .put(H2Utils.CURRENT_VERSION, new ObsDataSerializerLongIds(kryo, idScope))
+                    .build(), H2Utils.CURRENT_VERSION));
         };
     }
 }

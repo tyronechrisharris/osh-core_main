@@ -37,12 +37,11 @@ class CommandStreamInfoDataType extends KryoDataType
             // the add method doesn't behave as expected
             kryo.addDefaultSerializer(OgcPropertyList.class, FieldSerializer.class);
             
-            // configure compatibility serializer
+            // register custom serializer w/ backward compatibility
             kryo.addDefaultSerializer(FeatureId.class, new VersionedSerializer<FeatureId>(
                 ImmutableMap.<Integer, Serializer<FeatureId>>builder()
-                    .put(1, new FeatureIdSerializerLongIds(kryo, idScope))
-                    //.put(2, new FeatureIdSerializer(kryo, idScope))
-                    .build(), 1));
+                    .put(H2Utils.CURRENT_VERSION, new FeatureIdSerializerLongIds(kryo, idScope))
+                    .build(), H2Utils.CURRENT_VERSION));
         };
     }
 }

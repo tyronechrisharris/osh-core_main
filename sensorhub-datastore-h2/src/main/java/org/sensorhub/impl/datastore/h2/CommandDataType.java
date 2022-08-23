@@ -20,6 +20,7 @@ import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.sensorhub.impl.serialization.kryo.v1.CommandDataSerializerLongIds;
+import org.sensorhub.impl.serialization.kryo.v2.CommandDataSerializerBigIds;
 import com.esotericsoftware.kryo.Serializer;
 import com.google.common.collect.ImmutableMap;
 
@@ -38,14 +39,12 @@ class CommandDataType extends KryoDataType
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
-            // register custom serializers
-            
-            // configure compatibility serializer
+            // register custom serializers w/ backward compatibility
             kryo.addDefaultSerializer(CommandData.class, new VersionedSerializer<CommandData>(
                 ImmutableMap.<Integer, Serializer<CommandData>>builder()
+                    .put(H2Utils.CURRENT_VERSION, new CommandDataSerializerBigIds(kryo, idScope))
                     .put(1, new CommandDataSerializerLongIds(kryo, idScope))
-                    //.put(2, new CommandDataSerializer(kryo, idScope))
-                    .build(), 1));
+                    .build(), H2Utils.CURRENT_VERSION));
         };
     }
 }
