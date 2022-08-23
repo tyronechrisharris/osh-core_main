@@ -128,8 +128,8 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                 + "            return layer.feature.properties.name;\n"
                 + "        })\n"
                 + "        .addTo(map);\n\n"
-                + "        map.fitBounds(fl.getBounds(), { maxZoom:14 } );\n"
                 + "        map.invalidateSize();\n"
+                + "        map.fitBounds(fl.getBounds().pad(0.01), { maxZoom:14 } );\n"
                 + "    });\n\n"
             )
         ).render(html);
