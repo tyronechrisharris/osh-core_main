@@ -14,12 +14,9 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.serialization.kryo.v1;
 
-import static com.esotericsoftware.minlog.Log.TRACE;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.io.Output;
 
 
 /**
@@ -66,23 +63,4 @@ public class FeatureIdSerializerLongIds extends BackwardCompatFieldSerializer<Fe
         }
     }
     
-    
-    public void write (Kryo kryo, Output output, FeatureId object) {
-        int pop = pushTypeVariables();
-
-        CachedField[] fields = compatFields;
-        for (int i = 0, n = fields.length; i < n; i++) {
-            if (TRACE) log("Write", fields[i], output.position());
-            try {
-                fields[i].write(output, object);
-            } catch (KryoException e) {
-                throw e;
-            } catch (OutOfMemoryError | Exception e) {
-                throw new KryoException("Error writing " + fields[i] + " at position " + output.position(), e);
-            }
-        }
-
-        popTypeVariables(pop);
-    }
-
 }
