@@ -266,7 +266,7 @@ public class SensorHub implements ISensorHub
             
             // print usage
             System.out.println("SensorHub " + version + " (build " + buildNumber + ")");
-            System.out.println("Command syntax: sensorhub [module_config_path]");
+            System.out.println("Command syntax: sensorhub <module_config_path> [module_data_path]");
             System.exit(1);
         }
         
@@ -274,7 +274,10 @@ public class SensorHub implements ISensorHub
         ISensorHub instance = null;
         try
         {
-            SensorHubConfig config = new SensorHubConfig(args[0], null);
+            var moduleConfigPath = args[0];
+            var moduleDataPath = args.length > 1 ? args[1] : null;
+            
+            SensorHubConfig config = new SensorHubConfig(moduleConfigPath, moduleDataPath);
             instance = new SensorHub(config);
             
             // register shutdown hook for a clean stop 

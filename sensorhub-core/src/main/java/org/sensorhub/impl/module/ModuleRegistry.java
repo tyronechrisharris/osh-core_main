@@ -1195,7 +1195,11 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
         if (moduleDataRoot == null)
             return null;
         
-        return new File(moduleDataRoot, FileUtils.safeFileName(moduleID));
+        var folder = new File(moduleDataRoot, FileUtils.safeFileName(moduleID));
+        if (!folder.exists())
+            folder.mkdirs();
+        
+        return folder;
     }
 
 
