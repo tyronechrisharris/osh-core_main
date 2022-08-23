@@ -39,7 +39,7 @@ public class DefaultAuthorizerImpl implements IAuthorizer
         // check all roles
         for (String roleName: user.getRoles())
         {
-            IUserPermissions role = roles.getRoleInfo(roleName);
+            IUserPermissions role = roles.get(roleName);
             
             // skip if role doesn't exist
             if (role == null)

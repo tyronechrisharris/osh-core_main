@@ -14,6 +14,7 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.security;
 
+import org.vast.util.IResource;
 
 /**
  * <p>
@@ -24,11 +25,7 @@ package org.sensorhub.api.security;
  * @author Alex Robin
  * @since Aug 22, 2016
  */
-public interface IUserRole extends IUserPermissions
+public interface IUserRole extends IResource, IUserPermissions
 {    
     public String getId();
-    
-    public String getName();
-    
-    public String getDescription();
 }

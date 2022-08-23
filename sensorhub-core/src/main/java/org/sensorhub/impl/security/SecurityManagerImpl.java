@@ -129,10 +129,17 @@ public class SecurityManagerImpl implements ISecurityManager
     
     
     @Override
-    public IUserInfo getUserInfo(String userID)
+    public IUserRegistry getUserRegistry()
     {
         Asserts.checkState(userDB.get() != null, "No IUserRegistry implementation registered");
-        return userDB.get().getUserInfo(userID);
+        return userDB.get();
+    }
+    
+    
+    @Override
+    public IUserInfo getUserInfo(String userID)
+    {
+        return getUserRegistry().get(userID);
     }
     
     

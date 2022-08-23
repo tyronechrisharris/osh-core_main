@@ -15,6 +15,7 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.security;
 
 import org.sensorhub.api.security.IPermission;
+import org.sensorhub.api.security.IPermissionPath;
 import org.sensorhub.impl.module.ModuleRegistry;
 
 
@@ -41,10 +42,20 @@ public class PermissionFactory
         }
         
         // remove trailing wildcards
-        while (permSetting.size() > 1 && permSetting.getLast() instanceof WildcardPermission)
-            permSetting.removeLast();
+        //while (permSetting.size() > 1 && permSetting.getLast() instanceof WildcardPermission)
+        //    permSetting.removeLast();
         
         return permSetting;
+    }
+    
+    
+    public static String getPermissionString(IPermissionPath path)
+    {
+        var sb = new StringBuilder();
+        for (var p: path)
+            sb.append(p.getName()).append('/');
+        sb.setLength(sb.length()-1);
+        return sb.toString();
     }
     
     

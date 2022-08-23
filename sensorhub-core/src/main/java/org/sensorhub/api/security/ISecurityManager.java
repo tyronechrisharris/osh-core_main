@@ -26,7 +26,7 @@ import org.eclipse.jetty.security.Authenticator;
  * @author Alex Robin
  * @since Jul 15, 2016
  */
-public interface ISecurityManager extends IUserRegistry, IAuthorizer
+public interface ISecurityManager extends IAuthorizer
 {
     public final static String ANONYMOUS_USER = "anonymous";
     
@@ -44,6 +44,12 @@ public interface ISecurityManager extends IUserRegistry, IAuthorizer
     
     
     public void unregisterUserRegistry(IUserRegistry userRegistry);
+    
+    
+    public IUserRegistry getUserRegistry();
+    
+    
+    public IUserInfo getUserInfo(String userID);
     
     
     public void registerAuthorizer(IAuthorizer authorizer);

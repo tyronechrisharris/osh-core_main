@@ -19,10 +19,15 @@ import java.util.Collection;
 
 public interface IUserPermissions
 {
-
+    /**
+     * @return Read-only list of 'allow' permissions attached to the user or role 
+     */
     public abstract Collection<IPermissionPath> getAllowList();
 
 
+    /**
+     * @return Read-only list of 'deny' permissions attached to the user or role 
+     */
     public abstract Collection<IPermissionPath> getDenyList();
 
 }

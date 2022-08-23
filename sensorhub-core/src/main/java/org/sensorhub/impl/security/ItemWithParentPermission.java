@@ -14,36 +14,23 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.security;
 
-import java.util.ArrayDeque;
 import org.sensorhub.api.security.IPermission;
-import org.sensorhub.api.security.IPermissionPath;
 
 
-public class PermissionRequest extends ArrayDeque<IPermission> implements IPermissionPath
+/**
+ * <p>
+ * Hierarchical permission ending with a selector/condition 
+ * </p>
+ *
+ * @author Alex Robin
+ * @since Aug 23, 2022
+ */
+public class ItemWithParentPermission extends ItemPermission
 {
-    private static final long serialVersionUID = 7266587754134674522L;
 
-
-    public PermissionRequest(IPermission perm)
+    public ItemWithParentPermission(IPermission parent, String parentId)
     {
-        super(10);
-        
-        // add all ancestor permissions to list
-        do { addFirst(perm); }
-        while ((perm = perm.getParent()) != null);
+        super(parent.getParent(), parent.getName() + "[parent=" + parentId + "]", null, null);
     }
     
-    
-    @Override
-    public boolean implies(IPermissionPath permList)
-    {
-        return false;
-    }
-    
-    
-    @Override
-    public String toString()
-    {
-        return PermissionFactory.getPermissionString(this);
-    }
 }

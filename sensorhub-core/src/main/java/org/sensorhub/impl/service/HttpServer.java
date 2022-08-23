@@ -198,7 +198,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                     
                     // load user list
                     ISecurityManager securityManager = getParentHub().getSecurityManager();
-                    OshLoginService loginService = new OshLoginService(securityManager);
+                    OshLoginService loginService = new OshLoginService(securityManager.getUserRegistry());
                     
                     if (config.authMethod == AuthMethod.BASIC)
                         jettySecurityHandler.setAuthenticator(new HttpLogoutWrapper(new BasicAuthenticator(), getLogger()));

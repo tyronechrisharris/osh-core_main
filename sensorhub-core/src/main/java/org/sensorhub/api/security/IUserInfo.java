@@ -16,6 +16,7 @@ package org.sensorhub.api.security;
 
 import java.util.Collection;
 import java.util.Map;
+import org.vast.util.IResource;
 
 
 /**
@@ -26,11 +27,9 @@ import java.util.Map;
  * @author Alex Robin
  * @since Feb 23, 2016
  */
-public interface IUserInfo
+public interface IUserInfo extends IResource, IUserPermissions 
 {
     public String getId();
-    
-    public String getName();
     
     public String getPassword();
     

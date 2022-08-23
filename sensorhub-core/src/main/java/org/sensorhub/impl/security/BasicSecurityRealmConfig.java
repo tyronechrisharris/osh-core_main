@@ -40,8 +40,43 @@ public class BasicSecurityRealmConfig extends SecurityModuleConfig
     public List<RoleConfig> roles = new ArrayList<>();
     
     
+    public static class PermissionsConfig implements IUserPermissions
+    {
+        public List<String> allow = new ArrayList<>();
+        public List<String> deny = new ArrayList<>();
+        transient Collection<IPermissionPath> allowList = new ArrayList<>();
+        transient Collection<IPermissionPath> denyList = new ArrayList<>();
+        
+        @Override
+        public Collection<IPermissionPath> getAllowList()
+        {
+            return Collections.unmodifiableCollection(allowList);
+        }
+        
+        @Override
+        public Collection<IPermissionPath> getDenyList()
+        {
+            return Collections.unmodifiableCollection(denyList);
+        }
+        
+        public void refreshPermissionLists(ModuleRegistry moduleRegistry)
+        {
+            var newAllowList = new ArrayList<IPermissionPath>();
+            for (String path: allow)
+                newAllowList.add(PermissionFactory.newPermissionSetting(moduleRegistry, path));
+            
+            var newDenyList = new ArrayList<IPermissionPath>();
+            for (String path: deny)
+                newDenyList.add(PermissionFactory.newPermissionSetting(moduleRegistry, path));
+            
+            this.allowList = newAllowList;
+            this.denyList = newDenyList;
+        }
+    }
+    
+    
     @IdField("userID")
-    public static class UserConfig implements IUserInfo, IUserPermissions
+    public static class UserConfig extends PermissionsConfig implements IUserInfo
     {
         @SerializedName("id")
         @DisplayInfo(label="User ID")
@@ -65,6 +100,12 @@ public class BasicSecurityRealmConfig extends SecurityModuleConfig
         }
         
         @Override
+        public String getDescription()
+        {
+            return null;
+        }
+        
+        @Override
         public String getPassword()
         {
             return password;
@@ -81,34 +122,17 @@ public class BasicSecurityRealmConfig extends SecurityModuleConfig
         {
             return Collections.emptyMap();
         }
-        
-        @Override
-        public Collection<IPermissionPath> getAllowList()
-        {
-            return Collections.emptyList();
-        }
-        
-        @Override
-        public Collection<IPermissionPath> getDenyList()
-        {
-            return Collections.emptyList();
-        }
     }
     
     
     @IdField("roleID")
-    public static class RoleConfig implements IUserRole
+    public static class RoleConfig extends PermissionsConfig implements IUserRole
     {
         @SerializedName("id")
         @DisplayInfo(label="Role ID")
         public String roleID;
         public String name;
         public String description;
-        public List<String> allow = new ArrayList<>();
-        public List<String> deny = new ArrayList<>();
-        
-        transient Collection<IPermissionPath> allowList = new ArrayList<>();
-        transient Collection<IPermissionPath> denyList = new ArrayList<>();
 
         @Override
         public String getId()
@@ -120,35 +144,12 @@ public class BasicSecurityRealmConfig extends SecurityModuleConfig
         public String getName()
         {
             return name;
-        }        
+        }
 
         @Override
         public String getDescription()
         {
             return description;
-        }
-        
-        @Override
-        public Collection<IPermissionPath> getAllowList()
-        {
-            return allowList;
-        }
-        
-        @Override
-        public Collection<IPermissionPath> getDenyList()
-        {
-            return denyList;
-        }
-        
-        public void refreshPermissionLists(ModuleRegistry moduleRegistry)
-        {
-            allowList.clear();         
-            for (String path: allow)
-                allowList.add(PermissionFactory.newPermissionSetting(moduleRegistry, path));
-            
-            denyList.clear();         
-            for (String path: deny)
-                denyList.add(PermissionFactory.newPermissionSetting(moduleRegistry, path));
         }
     }
     

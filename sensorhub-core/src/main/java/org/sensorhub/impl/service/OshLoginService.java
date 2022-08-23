@@ -106,14 +106,14 @@ public class OshLoginService implements LoginService
             isCert = true;
         }
         
-        IUserInfo user = users.getUserInfo(username);
+        IUserInfo user = users.get(username);
         if (user == null)
             return null;
         
-        UserIdentity identity = null;        
+        UserIdentity identity = null;
         if (!isCert)
         {
-            Credential storedCredential = Credential.getCredential(user.getPassword());                
+            Credential storedCredential = Credential.getCredential(user.getPassword());
             if (storedCredential.check(credentials))
                 identity = createUserIdentity(user, credentials);
         }
@@ -129,7 +129,7 @@ public class OshLoginService implements LoginService
         Principal principal = new UserPrincipal(user);
         Subject subject = new Subject();
         subject.getPrincipals().add(principal);
-        subject.getPrivateCredentials().add(credential);            
+        subject.getPrivateCredentials().add(credential);
         subject.setReadOnly();
         
         String[] roles = user.getRoles().toArray(new String[0]);
@@ -140,7 +140,7 @@ public class OshLoginService implements LoginService
 
     @Override
     public void logout(UserIdentity user)
-    {        
+    {
     }
 
 

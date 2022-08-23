@@ -57,5 +57,12 @@ public class PermissionSetting extends ArrayDeque<IPermission> implements IPermi
         
         return true;
     }
+    
+    
+    @Override
+    public String toString()
+    {
+        return PermissionFactory.getPermissionString(this);
+    }
 
 }

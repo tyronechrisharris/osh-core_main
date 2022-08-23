@@ -17,6 +17,7 @@ package org.sensorhub.impl.security;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.sensorhub.api.security.IPermission;
+import org.vast.util.Asserts;
 
 
 /**
@@ -51,7 +52,7 @@ public abstract class AbstractPermission implements IPermission
         this.parent = parent;
         if (parent != null)
             parent.getChildren().put(name, this);
-        this.name = name;
+        this.name = Asserts.checkNotNullOrBlank(name, "name");
         this.label = label;
         this.description = description;
     }
@@ -92,7 +93,7 @@ public abstract class AbstractPermission implements IPermission
     public Map<String, IPermission> getChildren()
     {
         if (children == null)
-            children = new LinkedHashMap<String, IPermission>();
+            children = new LinkedHashMap<>();
         
         return children;
     }
@@ -146,5 +147,22 @@ public abstract class AbstractPermission implements IPermission
             return false;
         
         return true;
+    }
+
+
+    @Override
+    public int hashCode()
+    {
+        return name.hashCode();
+    }
+
+
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (!(obj instanceof AbstractPermission))
+            return false;
+        
+        return name.equals(((AbstractPermission)obj).name);
     }
 }

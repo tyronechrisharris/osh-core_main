@@ -14,8 +14,10 @@ Copyright (C) 2012-2016 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.security;
 
+import java.util.Map;
 
-public interface IRoleRegistry
+
+public interface IRoleRegistry extends Map<String, IUserRole>, IPermissionUpdates
 {
-    public IUserRole getRoleInfo(String roleID);
+    
 }

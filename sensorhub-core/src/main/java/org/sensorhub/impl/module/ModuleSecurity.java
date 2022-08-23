@@ -17,6 +17,7 @@ package org.sensorhub.impl.module;
 import java.security.AccessControlException;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.security.IPermission;
+import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.security.IUserInfo;
 import org.sensorhub.impl.security.ModulePermissions;
 import org.sensorhub.impl.security.PermissionRequest;
@@ -136,5 +137,11 @@ public class ModuleSecurity
     public void unregister()
     {
         module.getParentHub().getSecurityManager().unregisterModulePermissions(rootPerm);
+    }
+    
+    
+    public ISecurityManager getSecurityManager()
+    {
+        return module.getParentHub().getSecurityManager();
     }
 }
