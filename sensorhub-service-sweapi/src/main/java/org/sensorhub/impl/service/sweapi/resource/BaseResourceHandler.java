@@ -26,6 +26,7 @@ import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
+import org.sensorhub.impl.security.ItemPermission;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
@@ -418,7 +419,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
         
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.delete);
+        var perm = new ItemPermission(permissions.delete, id);
+        ctx.getSecurityHandler().checkPermission(perm);
         
         // get resource key
         var key = getKey(ctx, id);
@@ -498,7 +500,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (IllegalArgumentException e)
         {
-            throw ServiceErrors.badRequest("Invalid resource ID: " + id);
+            throw ServiceErrors.notFound(id);
         }
     }
 }
