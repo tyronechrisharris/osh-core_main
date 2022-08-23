@@ -173,18 +173,18 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         rootHandler.addSubResource(new ConformanceHandler(CONF_CLASSES));
         
         // systems and sub-resources
-        var systemsHandler = new SystemHandler(eventBus, db, security.system_summary_permissions);
+        var systemsHandler = new SystemHandler(eventBus, db, security.system_permissions);
         rootHandler.addSubResource(systemsHandler);
         
-        var sysMembersHandler = new SystemMembersHandler(eventBus, db, security.system_summary_permissions);
+        var sysMembersHandler = new SystemMembersHandler(eventBus, db, security.system_permissions);
         systemsHandler.addSubResource(sysMembersHandler);
         sysMembersHandler.addSubResource(sysMembersHandler);
         
-        var sysDetailsHandler = new SystemDetailsHandler(eventBus, db, security.system_details_permissions);
+        var sysDetailsHandler = new SystemDetailsHandler(eventBus, db, security.system_permissions);
         systemsHandler.addSubResource(sysDetailsHandler);
         sysMembersHandler.addSubResource(sysDetailsHandler);
         
-        var sysHistoryHandler = new SystemHistoryHandler(eventBus, db, security.system_summary_permissions);
+        var sysHistoryHandler = new SystemHistoryHandler(eventBus, db, security.system_permissions);
         systemsHandler.addSubResource(sysHistoryHandler);
         sysMembersHandler.addSubResource(sysHistoryHandler);
         sysHistoryHandler.addSubResource(sysDetailsHandler);
@@ -192,10 +192,10 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         // procedures
         if (db.getProcedureStore() != null)
         {
-            var procHandler = new ProcedureHandler(eventBus, db, security.proc_summary_permissions);
+            var procHandler = new ProcedureHandler(eventBus, db, security.procedure_permissions);
             rootHandler.addSubResource(procHandler);
                 
-            var procDetailsHandler = new ProcedureDetailsHandler(eventBus, db, security.proc_details_permissions);
+            var procDetailsHandler = new ProcedureDetailsHandler(eventBus, db, security.procedure_permissions);
             procHandler.addSubResource(procDetailsHandler);
         }
         

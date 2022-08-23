@@ -24,6 +24,8 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.api.security.IPermission;
+import org.sensorhub.impl.security.ItemWithParentPermission;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -194,6 +196,17 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     protected DataStreamKey getKey(BigId publicID)
     {
         return new DataStreamKey(publicID);
+    }
+    
+    
+    @Override
+    protected IPermission[] getSubResourceCreatePermissions(String parentId)
+    {
+        var obsHandler = (ObsHandler)subResources.get(ObsHandler.NAMES[0]);
+        
+        return new IPermission[] {
+            new ItemWithParentPermission(obsHandler.getPermissions().create, parentId),
+        };
     }
     
     

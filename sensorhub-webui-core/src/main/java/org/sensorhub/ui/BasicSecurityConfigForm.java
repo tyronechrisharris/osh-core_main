@@ -22,6 +22,7 @@ import java.util.Locale;
 import org.sensorhub.api.security.IPermission;
 import org.sensorhub.api.security.IPermissionPath;
 import org.sensorhub.impl.security.BasicSecurityRealmConfig;
+import org.sensorhub.impl.security.BasicSecurityRealmConfig.PermissionsConfig;
 import org.sensorhub.impl.security.BasicSecurityRealmConfig.RoleConfig;
 import org.sensorhub.impl.security.PermissionSetting;
 import org.sensorhub.ui.ValueEntryPopup.ValueCallback;
@@ -59,15 +60,15 @@ public class BasicSecurityConfigForm extends GenericConfigForm
     protected static final String PROP_STATE = "state";
     
     private enum PermState {ALLOW, DENY, INHERIT_ALLOW, INHERIT_DENY, UNSET}
-    private transient RoleConfig roleConfig;
+    private transient PermissionsConfig permConfig;
     private transient TreeTable permissionTable;
     
     
     @Override
     public void build(String title, String popupText, MyBeanItem<Object> beanItem, boolean includeSubForms)
     {
-        if (beanItem.getBean() instanceof RoleConfig)
-            this.roleConfig = (RoleConfig)beanItem.getBean();
+        if (beanItem.getBean() instanceof PermissionsConfig)
+            this.permConfig = (PermissionsConfig)beanItem.getBean();
         
         super.build(title, popupText, beanItem, includeSubForms);
     }
@@ -283,21 +284,21 @@ public class BasicSecurityConfigForm extends GenericConfigForm
                     
                     if (action == ALLOW_ACTION)
                     {                            
-                        roleConfig.allow.add(permPath);
-                        roleConfig.deny.remove(permPath);
+                        permConfig.allow.add(permPath);
+                        permConfig.deny.remove(permPath);
                     }
                     else if (action == DENY_ACTION)
                     {                            
-                        roleConfig.deny.add(permPath);
-                        roleConfig.allow.remove(permPath);
+                        permConfig.deny.add(permPath);
+                        permConfig.allow.remove(permPath);
                     }
                     else if (action == CLEAR_ACTION)
                     {
-                        roleConfig.allow.remove(permPath);
-                        roleConfig.deny.remove(permPath);
+                        permConfig.allow.remove(permPath);
+                        permConfig.deny.remove(permPath);
                     }
                     
-                    roleConfig.refreshPermissionLists(getParentHub().getModuleRegistry());
+                    permConfig.refreshPermissionLists(getParentHub().getModuleRegistry());
                     refreshPermissions(table);
                 }
             }
@@ -306,8 +307,8 @@ public class BasicSecurityConfigForm extends GenericConfigForm
         // detect all modules for which permissions are set
         // and add all root permissions to tree
         HashSet<String> moduleIdStrings = new HashSet<>();
-        addTopLevelPermissions(moduleIdStrings, roleConfig.allow);
-        addTopLevelPermissions(moduleIdStrings, roleConfig.deny);
+        addTopLevelPermissions(moduleIdStrings, permConfig.allow);
+        addTopLevelPermissions(moduleIdStrings, permConfig.deny);
         for (String moduleIdString: moduleIdStrings)
         {
             IPermission perm = getParentHub().getSecurityManager().getModulePermissions(moduleIdString);
@@ -382,8 +383,8 @@ public class BasicSecurityConfigForm extends GenericConfigForm
         
         // remove permission from config
         String permPath = getPermissionPath(itemId);
-        roleConfig.allow.remove(permPath);
-        roleConfig.deny.remove(permPath);
+        permConfig.allow.remove(permPath);
+        permConfig.deny.remove(permPath);
         
         // also remove it from table
         permissionTable.removeItem(itemId);
@@ -454,7 +455,7 @@ public class BasicSecurityConfigForm extends GenericConfigForm
         PermState permState = PermState.UNSET;
         
         // check allow list        
-        for (IPermissionPath fromConfig: roleConfig.getAllowList())
+        for (IPermissionPath fromConfig: permConfig.getAllowList())
         {
             int configPermPathLength = fromConfig.size();
             
@@ -471,7 +472,7 @@ public class BasicSecurityConfigForm extends GenericConfigForm
         }
         
         // check deny list
-        for (IPermissionPath fromConfig: roleConfig.getDenyList())
+        for (IPermissionPath fromConfig: permConfig.getDenyList())
         {
             int configPermPathLength = fromConfig.size();
             

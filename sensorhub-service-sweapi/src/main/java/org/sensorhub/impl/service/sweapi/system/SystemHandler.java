@@ -23,13 +23,17 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.api.security.IPermission;
 import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.impl.security.ItemWithParentPermission;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.RestApiServlet.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
+import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
+import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.procedure.SmlFeatureBindingSmlJson;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -188,6 +192,20 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
             var deleteNested = paramStr != null ? Boolean.parseBoolean(paramStr) : false;
             return sysHandler.delete(deleteNested);
         }
+    }
+    
+    
+    @Override
+    protected IPermission[] getSubResourceCreatePermissions(String parentId)
+    {
+        var dsHandler = (DataStreamHandler)subResources.get(DataStreamHandler.NAMES[0]);
+        var foiHandler = (FoiHandler)subResources.get(FoiHandler.NAMES[0]);
+        
+        return new IPermission[] {
+            new ItemWithParentPermission(permissions.create, parentId),
+            new ItemWithParentPermission(dsHandler.getPermissions().create, parentId),
+            new ItemWithParentPermission(foiHandler.getPermissions().create, parentId)
+        };
     }
     
     

@@ -40,7 +40,7 @@ public abstract class BaseHandler implements IResourceHandler
 {
     public static final String INVALID_URI_ERROR_MSG = "Invalid resource URI";
     
-    final Map<String, IResourceHandler> subResources = new HashMap<>();
+    protected final Map<String, IResourceHandler> subResources = new HashMap<>();
     protected final IdEncoders idEncoders;
 
     

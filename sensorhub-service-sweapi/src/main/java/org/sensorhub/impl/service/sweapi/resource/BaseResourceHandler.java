@@ -17,6 +17,7 @@ package org.sensorhub.impl.service.sweapi.resource;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
@@ -26,7 +27,11 @@ import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
+import org.sensorhub.api.security.IPermission;
+import org.sensorhub.api.security.IPermissionPath;
 import org.sensorhub.impl.security.ItemPermission;
+import org.sensorhub.impl.security.ItemWithParentPermission;
+import org.sensorhub.impl.security.PermissionSetting;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
@@ -199,7 +204,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.read);
+        var perm = new ItemPermission(permissions.read, id);
+        ctx.getSecurityHandler().checkPermission(perm);
                 
         // get resource key
         var key = getKey(ctx, id);
@@ -293,7 +299,16 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
         
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.create);
+        boolean addToParentAllowed = false;
+        if (ctx.getParentID() != null)
+        {
+            var parentIdStr = ctx.getParentRef().type.idEncoder.encodeID(ctx.getParentID());
+            var perm = new ItemWithParentPermission(permissions.create, parentIdStr);
+            addToParentAllowed = ctx.getSecurityHandler().hasPermission(perm);
+        }
+        
+        if (!addToParentAllowed)
+            ctx.getSecurityHandler().checkPermission(permissions.create);
         
         // read and ingest one or more resources
         int count = 0;
@@ -325,6 +340,15 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                         String id = encodeKey(ctx, k);
                         url = getCanonicalResourceUrl(id);
                         ctx.getLogger().debug("Added resource {}", url);
+                        
+                        // add permission
+                        addPermissionsToCurrentUser(ctx,
+                            new ItemPermission(permissions.read, id),
+                            new ItemPermission(permissions.stream, id),
+                            new ItemPermission(permissions.delete, id),
+                            new ItemPermission(permissions.update, id));
+                        
+                        addPermissionsToCurrentUser(ctx, getSubResourceCreatePermissions(id));
                     }
                     
                     if (url != null)
@@ -360,7 +384,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
         
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.update);
+        var perm = new ItemPermission(permissions.update, id);
+        ctx.getSecurityHandler().checkPermission(perm);
                 
         // get resource key
         var key = getKey(ctx, id);
@@ -502,5 +527,35 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             throw ServiceErrors.notFound(id);
         }
+    }
+    
+    
+    protected void addPermissionsToCurrentUser(final RequestContext ctx, final IPermission... permissions)
+    {
+        var sec = ctx.getSecurityHandler();
+        var user = sec.getCurrentUser();
+        var userDB = sec.getSecurityManager().getUserRegistry();
+        
+        var permList = new ArrayList<IPermissionPath>();
+        for (var p: permissions)
+        {
+            if (!sec.hasPermission(p))
+                permList.add(new PermissionSetting(p));
+        }
+        
+        if (!permList.isEmpty())
+            userDB.addAllowPermissions(user.getId(), permList);
+    }
+    
+    
+    protected IPermission[] getSubResourceCreatePermissions(String parentId)
+    {
+        return new IPermission[0];
+    }
+
+
+    public ResourcePermissions getPermissions()
+    {
+        return permissions;
     }
 }

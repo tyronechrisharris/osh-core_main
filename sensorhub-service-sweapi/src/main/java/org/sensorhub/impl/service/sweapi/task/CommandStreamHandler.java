@@ -24,6 +24,8 @@ import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.api.security.IPermission;
+import org.sensorhub.impl.security.ItemWithParentPermission;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
@@ -179,6 +181,19 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     protected CommandStreamKey getKey(BigId internalID)
     {
         return new CommandStreamKey(internalID);
+    }
+    
+    
+    @Override
+    protected IPermission[] getSubResourceCreatePermissions(String parentId)
+    {
+        var cmdHandler = (CommandHandler)subResources.get(CommandHandler.NAMES[0]);
+        var cmdStatusHandler = (CommandStatusHandler)subResources.get(CommandStatusHandler.NAMES[0]);
+        
+        return new IPermission[] {
+            new ItemWithParentPermission(cmdHandler.getPermissions().create, parentId),
+            new ItemWithParentPermission(cmdStatusHandler.getPermissions().create, parentId)
+        };
     }
     
     
