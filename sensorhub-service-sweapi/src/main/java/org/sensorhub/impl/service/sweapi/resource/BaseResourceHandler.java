@@ -533,8 +533,11 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected void addPermissionsToCurrentUser(final RequestContext ctx, final IPermission... permissions)
     {
         var sec = ctx.getSecurityHandler();
-        var user = sec.getCurrentUser();
+        if (!sec.getSecurityManager().isAccessControlEnabled())
+            return;
+        
         var userDB = sec.getSecurityManager().getUserRegistry();
+        var user = sec.getCurrentUser();
         
         var permList = new ArrayList<IPermissionPath>();
         for (var p: permissions)
