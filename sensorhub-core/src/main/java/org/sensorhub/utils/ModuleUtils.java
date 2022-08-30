@@ -98,6 +98,7 @@ public class ModuleUtils
     static final int PREFIX_GROUP = 1;
     static final int NAME_GROUP = 2;
     static final int DEFAULT_VALUE_GROUP = 4;
+    
    
     public static Manifest getManifest(Class<?> clazz)
     {
@@ -223,7 +224,7 @@ public class ModuleUtils
         
         // generate instance ID
         String instanceID = Integer.toHexString(moduleID.hashCode());
-        instanceID.replaceAll("-", ""); // remove minus sign if any
+        instanceID = instanceID.replace("-", ""); // remove minus sign if any
         
         // create logger in new context
         try
@@ -244,6 +245,8 @@ public class ModuleUtils
      * Performs variable expansion in strings of the form "${name}". This just calls {@link #expand(String, boolean)},
      * passing <code>false</code> for the second parameter, meaning that "$$" prefixed strings will be expanded. See
      * the docs on {@link #expand(String, boolean)} for more details.
+     * @param str The input string, optionally containing variables to be expanded
+     * @return The expanded string
      */
     public static String expand(String str)
     {
@@ -281,6 +284,9 @@ public class ModuleUtils
      *     Windows.
      *   </li>
      * </ul>
+     * @param inputString The input string, optionally containing variables to be expanded
+     * @param honorLazyFlag Set to false to always fully expand, even if $$ prefix is used
+     * @return The fully expanded string unless lazy expansion was requested
      */
     public static String expand(String inputString, boolean honorLazyFlag)
     {
@@ -393,10 +399,13 @@ public class ModuleUtils
      * <p>
      * This routine assumes that the string is small, and will fit easily in memory. Do not use this for large strings
      * (i.e. anything more than a couple kilobytes).
+     * @param file The file containing the string data
+     * @return The file content as a String
+     * @throws IOException if an error occurs while reading the file
      */
     public static String getFileContents(File file) throws IOException {
 		int fileSize = (int) file.length();
-		byte[] fileBytes = new byte[(int) fileSize];
+		byte[] fileBytes = new byte[fileSize];
 		try (FileInputStream fileIn = new FileInputStream(file)) {
 			fileIn.read(fileBytes);
 		}
