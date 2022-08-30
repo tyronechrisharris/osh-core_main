@@ -18,6 +18,7 @@ import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.logging.Logger;
 import com.vaadin.annotations.JavaScript;
 import com.vaadin.ui.AbstractJavaScriptComponent;
 import com.vaadin.ui.JavaScriptFunction;
@@ -52,7 +53,7 @@ public class PlotlyChart extends AbstractJavaScriptComponent
                 String minVal = args.getString(0);
                 String maxVal = args.getString(1);
                 if (minVal == null || maxVal == null)
-                    return;                
+                    return;
                 
                 try
                 {
@@ -66,7 +67,7 @@ public class PlotlyChart extends AbstractJavaScriptComponent
                 }
                 catch (ParseException e)
                 {
-                    e.printStackTrace();
+                    Logger.getAnonymousLogger().severe(e.getMessage());
                 }
             }
         });

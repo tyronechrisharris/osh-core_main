@@ -157,9 +157,9 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                                     txnHandler.getSystemHandler(uid).delete(true);
                                     systemTable.updateTable(db, new SystemFilter.Builder().build());
                                 }
-                                catch (Exception e1)
+                                catch (Exception ex)
                                 {
-                                    e1.printStackTrace();
+                                    getLogger().error("Error deleting system", ex);
                                 }
                             }
                         }

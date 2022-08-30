@@ -330,7 +330,7 @@ public class DatabaseStreamPanel extends VerticalLayout
         }
         catch (IOException e)
         {
-            e.printStackTrace();
+            ((AdminUI)UI.getCurrent()).getLogger().error("Error generating histogram", e);
         }
         
         return layout;
