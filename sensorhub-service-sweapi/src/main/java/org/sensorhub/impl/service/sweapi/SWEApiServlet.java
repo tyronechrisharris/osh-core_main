@@ -133,12 +133,12 @@ public class SWEApiServlet extends RestApiServlet
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
-        resp.setContentType(JSON_CONTENT_TYPE);
-        var ctx = createContext(req, resp);
-        
         // handle request asynchronously
         try
         {
+            resp.setContentType(JSON_CONTENT_TYPE);
+            var ctx = createContext(req, resp);
+            
             final AsyncContext aCtx = req.startAsync(req, resp);
             CompletableFuture.runAsync(() -> {
                 try
@@ -177,12 +177,12 @@ public class SWEApiServlet extends RestApiServlet
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
-        resp.setContentType(JSON_CONTENT_TYPE);
-        var ctx = createContext(req, resp);
-        
         // handle request asynchronously
         try
         {
+            resp.setContentType(JSON_CONTENT_TYPE);
+            var ctx = createContext(req, resp);
+            
             final AsyncContext aCtx = req.startAsync(req, resp);
             CompletableFuture.runAsync(() -> {
                 try
@@ -238,12 +238,12 @@ public class SWEApiServlet extends RestApiServlet
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
-        resp.setContentType(JSON_CONTENT_TYPE);
-        var ctx = createContext(req, resp);
-        
         // handle request asynchronously
         try
         {
+            resp.setContentType(JSON_CONTENT_TYPE);
+            var ctx = createContext(req, resp);
+            
             final AsyncContext aCtx = req.startAsync(req, resp);
             CompletableFuture.runAsync(() -> {
                 try
@@ -283,12 +283,12 @@ public class SWEApiServlet extends RestApiServlet
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
     {
-        resp.setContentType(JSON_CONTENT_TYPE);
-        var ctx = createContext(req, resp);
-        
         // handle request asynchronously
         try
         {
+            resp.setContentType(JSON_CONTENT_TYPE);
+            var ctx = createContext(req, resp);
+            
             final AsyncContext aCtx = req.startAsync(req, resp);
             CompletableFuture.runAsync(() -> {
                 try
