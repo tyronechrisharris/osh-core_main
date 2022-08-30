@@ -26,10 +26,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +45,11 @@ import org.slf4j.LoggerFactory;
  */
 public class NativeClassLoader extends URLClassLoader
 {
+    static final String NATIVES_CACHE_FOLDER = "osh_natives";
+    
     private Logger log; // cannot be a static logger in case it is used as system classloader
     private Map<String, String> loadedLibraries = new HashMap<>();
-    private List<File> tmpFolders = new ArrayList<>();
+    private File tmpDir;
     
 
     public NativeClassLoader()
@@ -62,8 +61,8 @@ public class NativeClassLoader extends URLClassLoader
     public NativeClassLoader(ClassLoader parent)
     {
         super("NativeClassLoader", new URL[0], parent);
+        createTempDir();
         parseClasspath();
-        setupShutdownHook();
     }
     
     
@@ -92,27 +91,34 @@ public class NativeClassLoader extends URLClassLoader
     }
     
     
-    protected void setupShutdownHook()
+    protected void createTempDir()
     {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run()
-            {
-                // remove temp folders
-                for (File f: tmpFolders)
+        try
+        {
+            this.tmpDir = FileUtils.createTempDirectory(NATIVES_CACHE_FOLDER);
+            
+            Runtime.getRuntime().addShutdownHook(new Thread() {
+                @Override
+                public void run()
                 {
+                    // remove temp folder
                     try
                     {
-                        FileUtils.deleteRecursively(f);
+                        if (tmpDir != null)
+                            FileUtils.deleteRecursively(tmpDir);
                     }
                     catch (IOException e)
                     {
                         if (log != null)
-                            log.error("Cannot delete folder " + f, e);
+                            log.error("Cannot delete folder " + tmpDir, e);
                     }
                 }
-            }
-        });
+            });
+        }
+        catch (IOException e)
+        {
+            throw new IllegalStateException("Cannot create temporary native lib filder", e);
+        }
     }
 
 
@@ -204,13 +210,13 @@ public class NativeClassLoader extends URLClassLoader
                 File libFile = extractResource(jarItemConn);
                 
                 // use path to temp file
-                libPath = libFile.getPath();
+                libPath = libFile.getAbsolutePath();
             }
             else
             {
                 // if not in JAR, use filesystem path directly
                 libPath = url.getFile();
-            }            
+            }
             
             loadedLibraries.put(libName, libPath);
             log.debug("Using native library from: {}", libPath);
@@ -228,9 +234,8 @@ public class NativeClassLoader extends URLClassLoader
     {
         // prepare temp location
         File jarFile = new File(jarItemConn.getJarFile().getName());
-        File tmpDir = Files.createTempDirectory(jarFile.getName()).toFile();
-        tmpFolders.add(tmpDir);
-        File outFile = new File(tmpDir, jarItemConn.getJarEntry().getName());
+        File jarTmpDir = new File(tmpDir, jarFile.getName());
+        File outFile = new File(jarTmpDir, jarItemConn.getJarEntry().getName());
         outFile.getParentFile().mkdirs();
         
         // extract to temp location

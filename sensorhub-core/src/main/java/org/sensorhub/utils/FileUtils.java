@@ -14,13 +14,17 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.utils;
 
+import static java.nio.file.attribute.PosixFilePermission.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.EnumSet;
 import java.util.regex.Pattern;
 
 
@@ -119,6 +123,33 @@ public class FileUtils
             }
             
         });
+    }
+    
+    
+    public static File createTempDirectory(String prefix) throws IOException
+    {
+        boolean isPosix = FileSystems.getDefault().supportedFileAttributeViews().contains("posix");
+        File tmpDir;
+        
+        // ensure temp directory is only accessible to user running osh
+        if (isPosix) 
+        {
+            var attr = PosixFilePermissions.asFileAttribute(
+                EnumSet.of(OWNER_READ, OWNER_WRITE, OWNER_EXECUTE));
+            tmpDir = Files.createTempDirectory(prefix, attr).toFile();
+        }
+        else
+        {
+            tmpDir = Files.createTempDirectory(prefix).toFile();
+            tmpDir.setReadable(false); // deny for all
+            tmpDir.setWritable(false);
+            tmpDir.setExecutable(false);
+            tmpDir.setReadable(true, true); // allow for owner
+            tmpDir.setWritable(true, true);
+            tmpDir.setWritable(true, true);
+        }
+        
+        return tmpDir;
     }
 
 }
