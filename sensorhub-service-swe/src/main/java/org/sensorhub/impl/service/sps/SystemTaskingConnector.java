@@ -14,6 +14,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sps;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +57,7 @@ public class SystemTaskingConnector implements ISPSConnector
     final String sysUID;
     Map<String, CommandStreamTransactionHandler> txnHandlers = new HashMap<>();
     List<String> possibleCommandNames;
-    Random random = new Random();
+    Random random = new SecureRandom();
     
     
     public SystemTaskingConnector(final SPSService service, final SystemTaskingConnectorConfig config)
@@ -170,7 +171,7 @@ public class SystemTaskingConnector implements ISPSConnector
         if (waitForStatus)
         {
             return txnHandler.submitCommand(
-                (long)(random.nextInt()&0xFFFFFFFF), cmd, DEFAULT_SUBMIT_TIMEOUT, TimeUnit.MILLISECONDS);
+                random.nextLong(), cmd, DEFAULT_SUBMIT_TIMEOUT, TimeUnit.MILLISECONDS);
         }
         else
         {

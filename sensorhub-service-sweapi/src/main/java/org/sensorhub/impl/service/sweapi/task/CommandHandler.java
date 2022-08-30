@@ -15,7 +15,9 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.task;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -63,6 +65,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
     final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;
     final ScheduledExecutorService threadPool;
+    final Random random = new SecureRandom();
     
     
     static class CommandHandlerContextData
@@ -349,7 +352,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
         {
             var corrID = ctx.getCorrelationID();
             if (corrID == 0)
-                corrID = (int)(Math.random()*1e9);
+                corrID = random.nextLong();
             
             var dsHandler = ((CommandHandlerContextData)ctx.getData()).dsHandler;
             ICommandStatus status = dsHandler.submitCommand(corrID, cmd)

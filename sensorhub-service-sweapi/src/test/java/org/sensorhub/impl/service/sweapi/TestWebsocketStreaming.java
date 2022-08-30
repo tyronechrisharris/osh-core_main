@@ -157,7 +157,7 @@ public class TestWebsocketStreaming
                 ws.request(Long.MAX_VALUE);
             });
         
-        obsCounter.await(100, TimeUnit.SECONDS);
+        obsCounter.await(10, TimeUnit.SECONDS);
         assertEquals("Some obs are left", 0L, obsCounter.getCount());
     }
     

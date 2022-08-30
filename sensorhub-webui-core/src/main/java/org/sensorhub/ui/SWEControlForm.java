@@ -14,6 +14,8 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
+import java.security.SecureRandom;
+import java.util.Random;
 import org.sensorhub.api.command.CommandData;
 import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.impl.system.CommandStreamTransactionHandler;
@@ -33,6 +35,7 @@ public class SWEControlForm extends SWEEditForm
     transient DataComponent controlSink;
     transient CommandStreamTransactionHandler commandTxn;
     transient String userID;
+    transient Random random = new SecureRandom();
     
     
     public SWEControlForm(final IStreamingControlInterface controlInput)
@@ -102,7 +105,7 @@ public class SWEControlForm extends SWEEditForm
                             .withCommandStream(commandTxn.getCommandStreamKey().getInternalID())
                             .withParams(cmdData)
                             .build();
-                        commandTxn.submitCommand((int)(Math.random()*1e9), cmd, null);
+                        commandTxn.submitCommand(random.nextLong(), cmd, null);
                     }
                     else
                         controlSink.setData(cmdData);
