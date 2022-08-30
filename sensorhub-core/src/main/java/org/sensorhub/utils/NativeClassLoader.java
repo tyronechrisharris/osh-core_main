@@ -87,8 +87,7 @@ public class NativeClassLoader extends URLClassLoader
         }
         catch (Exception e)
         {
-            log.error("Cannot parse classpath:\n{}", classPath);
-            e.printStackTrace();
+            log.error("Cannot parse classpath:\n{}", classPath, e);
         }
     }
     
@@ -112,7 +111,7 @@ public class NativeClassLoader extends URLClassLoader
                             log.error("Cannot delete folder " + f, e);
                     }
                 }
-            }            
+            }
         });
     }
 
@@ -214,7 +213,7 @@ public class NativeClassLoader extends URLClassLoader
             }            
             
             loadedLibraries.put(libName, libPath);
-            log.debug("Using native library from: " + libPath);
+            log.debug("Using native library from: {}", libPath);
             return libPath;
         }
         catch (Exception e)
@@ -294,8 +293,8 @@ public class NativeClassLoader extends URLClassLoader
         }
         catch (MalformedURLException e)
         {
-            System.err.println("Error adding instrumentation to classpath");
-            e.printStackTrace();
+            if (log != null)
+                log.error("Error adding instrumentation to classpath", e);
         }
     }
 }
