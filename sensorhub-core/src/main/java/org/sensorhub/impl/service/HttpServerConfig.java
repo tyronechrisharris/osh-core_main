@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service;
 
 import org.sensorhub.api.config.DisplayInfo;
+import org.sensorhub.api.config.DisplayInfo.FieldType.Type;
 import org.sensorhub.api.module.ModuleConfig;
 
 
@@ -62,16 +63,37 @@ public class HttpServerConfig extends ModuleConfig
     public AuthMethod authMethod = AuthMethod.NONE;
     
     
-    @DisplayInfo(desc="Path to SSL key store")
-    public String keyStorePath = ".keystore/ssl_keys";
+    @DisplayInfo(desc="Path to a key store containing the certificate and keypair that this server will present to clients when accessed over HTTPS. " +
+    		"If this value is blank, will default to using the value of the \"javax.net.ssl.keyStore\" system property. " +
+    		"This value can use variable expansion expressions of the form \"$${name}\" (for environment variables and system properties) or \"$${file;/path/to/file}\" (for secret file contents).")
+    public String keyStorePath;
     
     
-    @DisplayInfo(desc="Path to SSL trust store")
-    public String trustStorePath = ".keystore/ssl_trust";
-    
-    
-    @DisplayInfo(desc="Password to use for key and trust stores")
+    @DisplayInfo(desc="Password for the key store (and for the keypair within the keystore). " +
+    		"If this value is blank, will default to using the value of the \"javax.net.ssl.keyStorePassword\" system property. " +
+    		"This value can use variable expansion expressions of the form \"$${name}\" (for environment variables and system properties) or \"$${file;/path/to/file}\" (for secret file contents).")
+    @DisplayInfo.FieldType(Type.PASSWORD)
     public String keyStorePassword;
+    
+    
+    @DisplayInfo(desc="Alias for the public/private keypair within the key store that will be used to identify this server.")
+    public String keyAlias = "jetty";
+
+    
+    @DisplayInfo(desc="Path to the TLS trust store that is used when client authentication is required. " +
+    		"Ignored if client certificate authentication is not used. " +
+    		"Certificates in this file designate the signing authorities for client certificates that will be trusted. " +
+    		"If this value is blank, will default to using the value of the \"javax.net.ssl.trustStore\" system property. " +
+			"This value can use variable expansion expressions of the form \"$${name}\" (for environment variables and system properties) or \"$${file;/path/to/file}\" (for secret file contents).")
+    public String trustStorePath;
+    
+    
+    @DisplayInfo(desc="Password for the trust store. " +
+    		"Ignored if client certificate authentication is not used. " +
+    		"If this value is blank, will default to using the value of the \"javax.net.ssl.trustStorePassword\" system property. " +
+    		"This value can use variable expansion expressions of the form \"$${name}\" (for environment variables and system properties) or \"$${file;/path/to/file}\" (for secret file contents).")
+    @DisplayInfo.FieldType(Type.PASSWORD)
+    public String trustStorePassword;
     
     
     @DisplayInfo(desc="Path to external config file (in Jetty IOC XML format)")

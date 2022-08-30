@@ -20,11 +20,13 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+
 import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.security.Authenticator;
 import org.eclipse.jetty.security.ConstraintMapping;
@@ -32,7 +34,6 @@ import org.eclipse.jetty.security.ConstraintSecurityHandler;
 import org.eclipse.jetty.security.authentication.BasicAuthenticator;
 import org.eclipse.jetty.security.authentication.ClientCertAuthenticator;
 import org.eclipse.jetty.security.authentication.DigestAuthenticator;
-import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.SecureRequestCustomizer;
@@ -48,6 +49,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlet.ServletMapping;
+import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.security.Constraint;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -58,7 +60,9 @@ import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.service.IHttpServer;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.service.HttpServerConfig.AuthMethod;
+import org.sensorhub.utils.ModuleUtils;
 import org.vast.util.Asserts;
+
 import com.google.common.base.Strings;
 
 
@@ -82,7 +86,6 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
     private static final String CORS_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS";
     private static final String CORS_ALLOWED_HEADERS = "origin, content-type, accept, authorization";
     
-    private static final String CERT_ALIAS = "jetty";
     public static final String TEST_MSG = "SensorHub web server is up";
         
     Server server;
@@ -136,19 +139,18 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
             // HTTPS connector
             if (config.httpsPort > 0)
             {
-                Asserts.checkNotNull(config.keyStorePath, "The keystore path must be set when HTTPS is used");
-                Asserts.checkNotNull(config.trustStorePath, "The trust store path must be set when HTTPS is used");
-                Asserts.checkNotNull(config.keyStorePassword, "The keystore password must be set when HTTPS is used");
+                KeyStoreInfo keyStoreInfo = getKeyStoreInfo(config);
                 
                 SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
-                sslContextFactory.setKeyStorePath(new File(config.keyStorePath).getAbsolutePath());
-                sslContextFactory.setKeyStorePassword(config.keyStorePassword);
-                sslContextFactory.setKeyManagerPassword(config.keyStorePassword);
-                sslContextFactory.setCertAlias(CERT_ALIAS);
+                sslContextFactory.setKeyStorePath(new File(keyStoreInfo.getKeyStorePath()).getAbsolutePath());
+                sslContextFactory.setKeyStorePassword(keyStoreInfo.getKeyStorePassword());
+                sslContextFactory.setKeyManagerPassword(keyStoreInfo.getKeyStorePassword());
+                sslContextFactory.setCertAlias(keyStoreInfo.getKeyAlias());
                 if (config.authMethod == AuthMethod.CERT)
                 {
-                    sslContextFactory.setTrustStorePath(new File(config.trustStorePath).getAbsolutePath());
-                    sslContextFactory.setTrustStorePassword(config.keyStorePassword);
+                    TrustStoreInfo trustStoreInfo = getTrustStoreInfo(config);
+                    sslContextFactory.setTrustStorePath(new File(trustStoreInfo.getTrustStorePath()).getAbsolutePath());
+                    sslContextFactory.setTrustStorePassword(trustStoreInfo.getTrustStorePassword());
                     sslContextFactory.setWantClientAuth(true);
                 }
                 HttpConfiguration httpsConfig = new HttpConfiguration(httpConfig);
@@ -456,5 +458,75 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
     public Server getJettyServer()
     {
         return server;
+    }
+    
+    private static KeyStoreInfo getKeyStoreInfo(HttpServerConfig config) {
+    	String keyStorePath = ModuleUtils.expand(config.keyStorePath);
+    	if ((keyStorePath == null) || (keyStorePath.length() == 0) || (keyStorePath.trim().length() == 0)) {
+    		keyStorePath = System.getProperty("javax.net.ssl.keyStore");
+    	}
+  		Asserts.checkNotNullOrBlank(keyStorePath, "Either the key store path or the \"javax.net.ssl.keyStore\" system property must be specified.");
+  		
+  		String keyStorePassword = ModuleUtils.expand(config.keyStorePassword);
+  		if ((keyStorePassword == null) || (keyStorePassword.length() == 0)) {
+  			keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
+  		}
+  		Asserts.checkNotNullOrEmpty(keyStorePassword, "Key store password must be supplied.");
+  		
+  		String keyAlias = ModuleUtils.expand(config.keyAlias);
+  		Asserts.checkNotNullOrEmpty(keyAlias, "Key alias must be supplied");
+  		
+  		return new KeyStoreInfo(keyStorePath, keyStorePassword, keyAlias);
+    }
+    
+    private static TrustStoreInfo getTrustStoreInfo(HttpServerConfig config) {
+    	String trustStorePath = ModuleUtils.expand(config.trustStorePath);
+    	if ((trustStorePath == null) || (trustStorePath.length() == 0) || (trustStorePath.trim().length() == 0)) {
+    		trustStorePath = System.getProperty("javax.net.ssl.trustStore");
+    	}
+  		Asserts.checkNotNullOrBlank(trustStorePath, "Either the trust store path or the \"javax.net.ssl.trustStore\" system property must be specified.");
+  		
+  		String trustStorePassword = ModuleUtils.expand(config.trustStorePassword);
+  		if ((trustStorePassword == null) || (trustStorePassword.length() == 0)) {
+  			trustStorePassword = System.getProperty("javax.net.ssl.trustStorePassword");
+  		}
+  		Asserts.checkNotNullOrEmpty(trustStorePassword, "Trust store password must be supplied.");
+  		
+  		return new TrustStoreInfo(trustStorePath, trustStorePassword);
+    }
+    
+    private static class KeyStoreInfo {
+    	private final String keyStorePath;
+    	private final String keyStorePassword;
+    	private final String keyAlias;
+		public KeyStoreInfo(String keyStorePath, String keyStorePassword, String keyAlias) {
+			this.keyStorePath = keyStorePath;
+			this.keyStorePassword = keyStorePassword;
+			this.keyAlias = keyAlias;
+		}
+		public String getKeyStorePath() {
+			return keyStorePath;
+		}
+		public String getKeyStorePassword() {
+			return keyStorePassword;
+		}
+		public String getKeyAlias() {
+			return keyAlias;
+		}
+    }
+
+    private static class TrustStoreInfo {
+    	private final String trustStorePath;
+    	private final String trustStorePassword;
+		public TrustStoreInfo(String trustStorePath, String trustStorePassword) {
+			this.trustStorePath = trustStorePath;
+			this.trustStorePassword = trustStorePassword;
+		}
+		public String getTrustStorePath() {
+			return trustStorePath;
+		}
+		public String getTrustStorePassword() {
+			return trustStorePassword;
+		}
     }
 }
