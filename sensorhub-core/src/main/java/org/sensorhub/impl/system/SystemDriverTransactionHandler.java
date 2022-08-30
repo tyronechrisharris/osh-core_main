@@ -386,9 +386,9 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
             }
 
             @Override
-            public void onError(Throwable throwable)
+            public void onError(Throwable e)
             {
-                throwable.printStackTrace();
+                DefaultSystemRegistry.log.error("Error dispatching commands to {} / {}", driver.getName(), controlInput.getName(), e);
             }
 
             @Override
