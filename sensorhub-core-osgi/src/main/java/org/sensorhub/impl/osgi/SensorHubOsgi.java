@@ -21,6 +21,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
 import java.util.HashMap;
 import java.util.ServiceLoader;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleException;
 import org.osgi.framework.Constants;
@@ -29,6 +31,7 @@ import org.osgi.framework.launch.FrameworkFactory;
 
 public class SensorHubOsgi
 {
+    static final Logger LOGGER = Logger.getLogger(SensorHubOsgi.class.getName());
     static final String DEFAULT_AUTODEPLOY_DIR = "bundles";
     static final String DEFAULT_BUNDLECACHE_DIR = ".bundle-cache";
     static final String REF_PREFIX = "reference:file:";
@@ -102,7 +105,7 @@ public class SensorHubOsgi
                 }
                 catch (Exception e)
                 {
-                    System.err.println("Error while shutting down OSGi framework");
+                    LOGGER.log(Level.SEVERE, "Error while shutting down OSGi framework", e);
                 }
             }
         });
@@ -119,7 +122,7 @@ public class SensorHubOsgi
             }
         });
         for (var f: bundleJarFiles) {
-            System.out.println("Installing bundle " + f);
+            LOGGER.info("Installing bundle " + f);
             var bundle = systemCtx.installBundle(REF_PREFIX + f.toPath().toString());
             bundle.start();
         }
@@ -140,14 +143,14 @@ public class SensorHubOsgi
                 }
                 catch (BundleException e)
                 {
-                    e.printStackTrace();
+                    LOGGER.log(Level.SEVERE, "Error installing bundle", e);
                 }
             });
             watcherThread.start();
         }
         catch (IOException e)
         {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error creating watcher on bundle folder", e);
         }
     }
 }

@@ -24,6 +24,7 @@ import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 
 /**
@@ -35,34 +36,34 @@ import java.util.function.Consumer;
  */
 public class DirectoryWatcher implements Runnable
 {
-	List<Consumer<Path>> listeners = new ArrayList<>();
-	WatchService watcher;
-	Path path;
+    List<Consumer<Path>> listeners = new ArrayList<>();
+    WatchService watcher;
+    Path path;
 
-	public DirectoryWatcher(Path path, Kind<?> ... eventKinds) throws IOException {
-		watcher = path.getFileSystem().newWatchService();
-		path.register(watcher, eventKinds);
-		this.path = path;
-	}
+    public DirectoryWatcher(Path path, Kind<?> ... eventKinds) throws IOException {
+        watcher = path.getFileSystem().newWatchService();
+        path.register(watcher, eventKinds);
+        this.path = path;
+    }
 
-	public boolean addListener(Consumer<Path> f) {
-		return listeners.add(f);
-	}
+    public boolean addListener(Consumer<Path> f) {
+        return listeners.add(f);
+    }
 
-	public boolean removeListener(Consumer<Path> f) {
-		return listeners.remove(f);
-	}
+    public boolean removeListener(Consumer<Path> f) {
+        return listeners.remove(f);
+    }
 
-	@Override
-	public void run()  {
-	    Thread.currentThread().setName("DirWatcher");
-	    WatchKey watchKey = null;
-	    
-		while (!Thread.currentThread().isInterrupted()) {
-			try
+    @Override
+    public void run()  {
+        Thread.currentThread().setName("DirWatcher");
+        WatchKey watchKey = null;
+        
+        while (!Thread.currentThread().isInterrupted()) {
+            try
             {
                 try {
-                	watchKey = watcher.take();
+                    watchKey = watcher.take();
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     continue;
@@ -70,33 +71,32 @@ public class DirectoryWatcher implements Runnable
                 
                 List<WatchEvent<?>> events = watchKey.pollEvents();
                 for (WatchEvent<?> event : events) {
-//				    System.out.println(event.kind() + " : " + event.context());
-                	WatchEvent.Kind<?> kind = event.kind();
+//                    System.out.println(event.kind() + " : " + event.context());
+                    WatchEvent.Kind<?> kind = event.kind();
 
-                	@SuppressWarnings("unchecked")
-                	WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                	Path filename = ev.context();
+                    @SuppressWarnings("unchecked")
+                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    Path filename = ev.context();
 
-//                	System.out.println(kind.name() + ": " + filename);
+//                    System.out.println(kind.name() + ": " + filename);
 
-//				    if (kind == StandardWatchEventKinds.ENTRY_CREATE ) {
-                		for(var l: listeners) {
-                			l.accept(Paths.get(path.toString(), filename.toString()));                			
-                		}
-//				    }			
+//                    if (kind == StandardWatchEventKinds.ENTRY_CREATE ) {
+                        for(var l: listeners) {
+                            l.accept(Paths.get(path.toString(), filename.toString()));
+                        }
+//                    }
                 } 
             }
             catch (Throwable e)
             {
-                System.err.println("Error while processing watch events");
-                e.printStackTrace();                
+                SensorHubOsgi.LOGGER.log(Level.SEVERE, "Error while processing watch events", e);
             }
-			finally
-			{
+            finally
+            {
                 if (watchKey != null)
                     watchKey.reset();
-			}
-		}
-	}
+            }
+        }
+    }
 
 }
