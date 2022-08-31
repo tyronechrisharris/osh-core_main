@@ -50,7 +50,7 @@ public class SPSConfigForm extends GenericConfigForm
             }
             catch (ClassNotFoundException e)
             {
-                getLogger().error("Cannot find SPS provider class", e);
+                getOshLogger().error("Cannot find SPS provider class", e);
             }
             return classList;
         }

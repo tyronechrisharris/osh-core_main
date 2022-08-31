@@ -28,8 +28,6 @@ import org.sensorhub.ui.data.MyBeanItem;
 import com.vaadin.shared.ui.ContentMode;
 import org.slf4j.Logger;
 import com.vaadin.ui.Button;
-import com.vaadin.ui.Button.ClickEvent;
-import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TabSheet;
@@ -72,7 +70,6 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
         header = new HorizontalLayout();
         header.setSpacing(true);
         String moduleName = module.getName();
-        //String className = beanItem.getBean().getClass().getSimpleName();
         Label title = new Label(moduleName);
         title.setDescription(module.getDescription());
         title.addStyleName(STYLE_H2);
@@ -103,34 +100,30 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
             addComponent(tabbedConfigForm);
             
             // apply button action
-            applyButton.addClickListener(new Button.ClickListener() {
-                @Override
-                public void buttonClick(ClickEvent event)
+            applyButton.addClickListener(event -> {
+                AdminUI ui = (AdminUI)UI.getCurrent();
+                ui.logAction("Update Config", module);
+                
+                // security check
+                if (!ui.securityHandler.hasPermission(ui.securityHandler.module_update))
                 {
-                    AdminUI ui = (AdminUI)UI.getCurrent();
-                    ui.logAction("Update Config", module);
-                    
-                    // security check
-                    if (!ui.securityHandler.hasPermission(ui.securityHandler.module_update))
+                    DisplayUtils.showUnauthorizedAccess(ui.securityHandler.module_update.getErrorMessage());
+                    return;
+                }
+                
+                try
+                {
+                    form.commit();
+                    if (module != null)
                     {
-                        DisplayUtils.showUnauthorizedAccess(ui.securityHandler.module_update.getErrorMessage());
-                        return;
+                        beforeUpdateConfig();
+                        getParentHub().getModuleRegistry().updateModuleConfigAsync(module, beanItem.getBean());
+                        DisplayUtils.showOperationSuccessful("Module Configuration Updated");
                     }
-                    
-                    try
-                    {
-                        form.commit();
-                        if (module != null)
-                        {
-                            beforeUpdateConfig();
-                            getParentHub().getModuleRegistry().updateModuleConfigAsync(module, beanItem.getBean());
-                            DisplayUtils.showOperationSuccessful("Module Configuration Updated");
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        DisplayUtils.showErrorPopup(IModule.CANNOT_UPDATE_MSG, e);
-                    }
+                }
+                catch (Exception e)
+                {
+                    DisplayUtils.showErrorPopup(IModule.CANNOT_UPDATE_MSG, e);
                 }
             });
         }
@@ -139,7 +132,7 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     
     protected void beforeUpdateConfig() throws SensorHubException
     {
-        
+        // to be overridden by derived classes
     }
     
     
@@ -214,12 +207,8 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
             errorBtn.setCaption(errorMsg.toString());
             
             // show error details on button click
-            errorBtn.addClickListener(new ClickListener() {
-                @Override
-                public void buttonClick(ClickEvent event)
-                {
-                    DisplayUtils.showErrorDetails(module, errorObj);
-                }
+            errorBtn.addClickListener(event -> {
+                DisplayUtils.showErrorDetails(module, errorObj);
             });
             
             if (oldBtn == null)
@@ -281,60 +270,45 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
             switch (((ModuleEvent)e).getType())
             {
                 case STATUS:
-                    getUI().access(new Runnable() {
-                        @Override
-                        public void run()
-                        {
-                            refreshStatusMessage();
-                            if (isAttached())
-                                getUI().push();
-                        }
-                    });                    
+                    getUI().access(() -> {
+                        refreshStatusMessage();
+                        if (isAttached())
+                            getUI().push();
+                    });
                     break;
                     
                 case ERROR:
-                    getUI().access(new Runnable() {
-                        @Override
-                        public void run()
-                        {
-                            refreshErrorMessage();
-                            if (isAttached())
-                                getUI().push();
-                        }
-                    });                    
+                    getUI().access(() -> {
+                        refreshErrorMessage();
+                        if (isAttached())
+                            getUI().push();
+                    });
                     break;
                     
                 case STATE_CHANGED:
-                    getUI().access(new Runnable() {
-                        @Override
-                        public void run()
-                        {
-                            refreshState();
-                            refreshStatusMessage();
-                            refreshErrorMessage();
-                            refreshContent();                            
-                            if (isAttached())
-                                getUI().push();
-                        }
+                    getUI().access(() -> {
+                        refreshState();
+                        refreshStatusMessage();
+                        refreshErrorMessage();
+                        refreshContent();
+                        if (isAttached())
+                            getUI().push();
                     });  
                     break;
                     
                 case CONFIG_CHANGED:
-                    getUI().access(new Runnable() {
-                        public void run()
-                        {
-                            DefaultModulePanel.this.removeAllComponents();
-                            DefaultModulePanel.this.build(new MyBeanItem<ModuleConfig>(module.getConfiguration()), module);
-                            if (isAttached())
-                                getUI().push();
-                        }
+                    getUI().access(() -> {
+                        DefaultModulePanel.this.removeAllComponents();
+                        DefaultModulePanel.this.build(new MyBeanItem<>(module.getConfiguration()), module);
+                        if (isAttached())
+                            getUI().push();
                     });  
                     break;
                     
                 default:
                     return;
             }
-        }        
+        }
     }
 
     
@@ -350,9 +324,9 @@ public class DefaultModulePanel<ModuleType extends IModule<? extends ModuleConfi
     }
     
     
-    protected Logger getLogger()
+    protected Logger getOshLogger()
     {
-        return ((AdminUI)UI.getCurrent()).getLogger();
+        return ((AdminUI)UI.getCurrent()).getOshLogger();
     }
 
 }

@@ -1299,7 +1299,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
     }
     
     
-    public Logger getLogger()
+    public Logger getOshLogger()
     {
         return adminModule.getLogger();
     }

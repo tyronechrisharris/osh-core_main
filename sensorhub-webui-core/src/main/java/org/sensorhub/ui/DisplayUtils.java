@@ -82,7 +82,7 @@ public class DisplayUtils
     {
         if (e != null)
         {
-            ((AdminUI)UI.getCurrent()).getLogger().error(msg, e);
+            ((AdminUI)UI.getCurrent()).getOshLogger().error(msg, e);
             msg += "<br/>" + e.getMessage();
         }
         
@@ -96,6 +96,9 @@ public class DisplayUtils
     
     public static void showErrorDetails(IModule<?> module, Throwable e)
     {
+        if (e == null)
+            return;
+        
         StringWriter writer = new StringWriter();
         
         // scan causes for NoClassDefFoundErrors

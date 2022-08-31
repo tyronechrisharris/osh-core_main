@@ -209,12 +209,12 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
                     }
                     catch (SourceException e)
                     {
-                        getLogger().trace(FIELD_GEN_ERROR + propId, e);
+                        getOshLogger().trace(FIELD_GEN_ERROR + propId, e);
                         continue;
                     }
                     catch (Exception e)
                     {
-                        getLogger().error(FIELD_GEN_ERROR + propId, e);
+                        getOshLogger().error(FIELD_GEN_ERROR + propId, e);
                         continue;
                     }
                     
@@ -1339,8 +1339,8 @@ public class GenericConfigForm extends VerticalLayout implements IModuleConfigFo
     }
     
     
-    protected Logger getLogger()
+    protected Logger getOshLogger()
     {
-        return ((AdminUI)UI.getCurrent()).getLogger();
+        return ((AdminUI)UI.getCurrent()).getOshLogger();
     }
 }

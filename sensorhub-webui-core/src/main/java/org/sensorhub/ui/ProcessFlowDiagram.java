@@ -330,7 +330,7 @@ public class ProcessFlowDiagram extends AbstractJavaScriptComponent
         }
         catch (Exception e)
         {
-            ((AdminUI)UI.getCurrent()).getLogger().error("Cannot add data source to diagram", e);
+            ((AdminUI)UI.getCurrent()).getOshLogger().error("Cannot add data source to diagram", e);
         }
     }
     
@@ -389,7 +389,7 @@ public class ProcessFlowDiagram extends AbstractJavaScriptComponent
         }
         catch (Exception e)
         {
-            ((AdminUI)UI.getCurrent()).getLogger().error("Cannot add process to diagram", e);
+            ((AdminUI)UI.getCurrent()).getOshLogger().error("Cannot add process to diagram", e);
         }
     }
     

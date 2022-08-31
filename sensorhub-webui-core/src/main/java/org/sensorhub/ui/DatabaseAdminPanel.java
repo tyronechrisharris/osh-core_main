@@ -32,15 +32,11 @@ import com.vaadin.server.Page;
 import com.vaadin.server.ThemeResource;
 import com.vaadin.shared.MouseEventDetails.MouseButton;
 import com.vaadin.ui.Alignment;
-import com.vaadin.v7.event.ItemClickEvent;
-import com.vaadin.v7.event.ItemClickEvent.ItemClickListener;
 import com.vaadin.v7.ui.TreeTable;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.Window.CloseEvent;
-import com.vaadin.ui.Window.CloseListener;
 
 
 /**
@@ -105,23 +101,19 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
             titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
             layout.addComponent(titleBar);
             
-            systemTable = new SystemSearchList(db, new ItemClickListener() {
-                @Override
-                public void itemClick(ItemClickEvent event)
+            systemTable = new SystemSearchList(db, event -> {
+                if (event.getButton() == MouseButton.LEFT)
                 {
-                    if (event.getButton() == MouseButton.LEFT)
-                    {                        
-                        try
-                        {
-                            // select and open module configuration
-                            String sysUID = (String)event.getItem().getItemProperty(SystemSearchList.PROP_SYSTEM_UID).getValue();
-                            if (sysUID != null)
-                                showSystemData(db, sysUID);
-                        }
-                        catch (Exception e)
-                        {
-                            DisplayUtils.showErrorPopup("Unexpected error when selecting system", e);
-                        }
+                    try
+                    {
+                        // select and open module configuration
+                        String sysUID = (String)event.getItem().getItemProperty(SystemSearchList.PROP_SYSTEM_UID).getValue();
+                        if (sysUID != null)
+                            showSystemData(db, sysUID);
+                    }
+                    catch (Exception e)
+                    {
+                        DisplayUtils.showErrorPopup("Unexpected error when selecting system", e);
                     }
                 }
             });
@@ -142,25 +134,20 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                     String uid = (String)((TreeTable)sender).getValue();
                     
                     final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all data associated with system:<br/><b>" + uid + "</b>");
-                    popup.addCloseListener(new CloseListener() {
-                        @Override
-                        public void windowClose(CloseEvent e)
+                    popup.addCloseListener(event -> {
+                        if (popup.isConfirmed())
                         {
-                            if (popup.isConfirmed())
+                            try
                             {
-                                try
-                                {
-                                    // log action
-                                    //logAction(action, selectedModule);
-                                    var eventBus = module.getParentHub().getEventBus();
-                                    var txnHandler = new SystemDatabaseTransactionHandler(eventBus, db);
-                                    txnHandler.getSystemHandler(uid).delete(true);
-                                    systemTable.updateTable(db, new SystemFilter.Builder().build());
-                                }
-                                catch (Exception ex)
-                                {
-                                    getLogger().error("Error deleting system", ex);
-                                }
+                                // log action
+                                var eventBus = module.getParentHub().getEventBus();
+                                var txnHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+                                txnHandler.getSystemHandler(uid).delete(true);
+                                systemTable.updateTable(db, new SystemFilter.Builder().build());
+                            }
+                            catch (Exception ex)
+                            {
+                                getOshLogger().error("Error deleting system", ex);
                             }
                         }
                     });

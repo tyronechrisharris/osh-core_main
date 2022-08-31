@@ -48,11 +48,10 @@ public class SOSConfigForm extends GenericConfigForm
             {
                 classList.put("Streaming Data Source", Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
                 classList.put("Historical Data Source", Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
-                //classList.put("On-demand Data Source", Class.forName(SOS_PACKAGE + "SystemDataProviderConfig"));
             }
             catch (ClassNotFoundException e)
             {
-                getLogger().error("Cannot find SOS provider class", e);
+                getOshLogger().error("Cannot find SOS provider class", e);
             }
             return classList;
         }

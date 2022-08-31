@@ -146,7 +146,7 @@ public class DownloadModulesPopup extends Window
                         }
                         catch (Exception e)
                         {
-                            ((AdminUI)UI.getCurrent()).getLogger().error("Cannot load package info for " + pkgName, e);
+                            ((AdminUI)UI.getCurrent()).getOshLogger().error("Cannot load package info for " + pkgName, e);
                         }
                     }
                     
@@ -313,7 +313,7 @@ public class DownloadModulesPopup extends Window
         }
         catch (Exception e)
         {
-            ((AdminUI)UI.getCurrent()).getLogger().error("Cannot read POM at " + url, e);
+            ((AdminUI)UI.getCurrent()).getOshLogger().error("Cannot read POM at " + url, e);
         }
     }
     
