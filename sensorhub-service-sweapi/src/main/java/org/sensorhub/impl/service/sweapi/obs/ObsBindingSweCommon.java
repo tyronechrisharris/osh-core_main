@@ -213,6 +213,8 @@ public class ObsBindingSweCommon extends ResourceBinding<BigId, IObsData>
         {
             dataWriter = SWEHelper.createDataWriter(sweEncoding);
         }
+        else
+            throw new IllegalStateException("Unsupported encoding: " + sweEncoding.getClass().getSimpleName());
         
         dataWriter.setOutput(os);
         dataWriter.setDataComponents(dsInfo.getRecordStructure());

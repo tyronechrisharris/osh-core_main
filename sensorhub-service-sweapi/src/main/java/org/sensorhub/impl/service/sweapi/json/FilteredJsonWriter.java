@@ -35,7 +35,7 @@ import com.google.gson.stream.JsonWriter;
  */
 public class FilteredJsonWriter extends JsonInliningWriter
 {
-    private final static String ARRAY_MARKER = "{array}";
+    private static final String ARRAY_MARKER = "{array}";
     
     Set<String> excludedProps;
     Set<String> includedProps;
@@ -80,7 +80,7 @@ public class FilteredJsonWriter extends JsonInliningWriter
     
     protected void popAndCheckSkipEnded()
     {
-        if (!currentPath.isEmpty() && !(currentPath.peek() == ARRAY_MARKER))
+        if (!currentPath.isEmpty() && currentPath.peek() != ARRAY_MARKER)
         {
             var name = currentPath.pop();
             if (skippedName == name)
@@ -111,7 +111,7 @@ public class FilteredJsonWriter extends JsonInliningWriter
         if (!currentPath.isEmpty())
             currentPath.pop(); // pop array marker
         
-        popAndCheckSkipEnded();        
+        popAndCheckSkipEnded();
         return this;
     }
 
@@ -149,7 +149,7 @@ public class FilteredJsonWriter extends JsonInliningWriter
     public JsonWriter jsonValue(String value) throws IOException
     {
         if (!isSkipped())
-            super.value(value);
+            super.jsonValue(value);
         popAndCheckSkipEnded();
         return this;
     }

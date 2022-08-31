@@ -92,6 +92,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
     
     
     /* need to override this method since we use BigInteger ids for commands */
+    @Override
     protected IResourceHandler getSubResource(RequestContext ctx, String id) throws InvalidRequestException
     {
         IResourceHandler resource = getSubResource(ctx);
@@ -164,6 +165,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
     }
     
     
+    @Override
     protected void subscribe(final RequestContext ctx) throws InvalidRequestException, IOException
     {
         ctx.getSecurityHandler().checkPermission(permissions.stream);
@@ -369,7 +371,12 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
         }
         catch (TimeoutException e)
         {
-            throw new DataStoreException("Timeout before command was acknowledged by receiving system", e);
+            throw new DataStoreException("Timeout before command was acknowledged by receiving system");
+        }
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for command ACK", e);
         }
         catch (Exception e)
         {

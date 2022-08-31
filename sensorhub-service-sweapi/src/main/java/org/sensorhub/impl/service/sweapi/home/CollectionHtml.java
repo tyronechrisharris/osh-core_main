@@ -88,9 +88,9 @@ public class CollectionHtml extends ResourceBindingHtml<String, CollectionInfo>
                 span(col.featureType)
             ).withClass("mt-2"),
             div(
-                a(itemsLink.getTitle())
+                itemsLink != null ? a(itemsLink.getTitle())
                     .withRel(itemsLink.getRel())
-                    .withHref(itemsLink.getHref())
+                    .withHref(itemsLink.getHref()) : null
             ).withClass("mt-2")
         );
         

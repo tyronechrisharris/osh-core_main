@@ -30,8 +30,6 @@ import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
-import org.sensorhub.api.datastore.feature.IFeatureStore;
-import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.impl.service.sweapi.resource.IResourceHandler;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -51,13 +49,11 @@ public class SWEApiServlet extends RestApiServlet
     static final String JSON_CONTENT_TYPE = "application/json";
 
     protected final SWEApiSecurity securityHandler;
-    protected ISystemDescStore systems;
-    protected IFeatureStore features;
-    protected IResourceHandler rootHandler;
-    protected ScheduledExecutorService threadPool;
+    protected final IResourceHandler rootHandler;
+    protected final ScheduledExecutorService threadPool;
+    protected final Logger log;
+    protected final String rootUrl;
     protected WebSocketServletFactory wsFactory;
-    protected Logger log;
-    protected String rootUrl;
     
 
     public SWEApiServlet(SWEApiService service, SWEApiSecurity securityHandler, RootHandler rootHandler, Logger logger)
@@ -154,7 +150,7 @@ public class SWEApiServlet extends RestApiServlet
                 {
                     handleAuthException(req, resp, e);
                 }
-                catch (Throwable e)
+                catch (Exception e)
                 {
                     logError(req, e);
                     sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
@@ -215,7 +211,7 @@ public class SWEApiServlet extends RestApiServlet
                 {
                     handleAuthException(req, resp, e);
                 }
-                catch (Throwable e)
+                catch (Exception e)
                 {
                     logError(req, e);
                     sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
@@ -260,7 +256,7 @@ public class SWEApiServlet extends RestApiServlet
                 {
                     handleAuthException(req, resp, e);
                 }
-                catch (Throwable e)
+                catch (Exception e)
                 {
                     logError(req, e);
                     sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
@@ -305,7 +301,7 @@ public class SWEApiServlet extends RestApiServlet
                 {
                     handleAuthException(req, resp, e);
                 }
-                catch (Throwable e)
+                catch (Exception e)
                 {
                     logError(req, e);
                     sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);

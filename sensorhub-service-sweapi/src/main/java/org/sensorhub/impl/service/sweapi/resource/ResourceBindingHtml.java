@@ -228,12 +228,12 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         
         if (comp instanceof ScalarComponent)
         {
-            value = span(((DataComponent)comp).getData().getStringValue());
+            value = span(comp.getData().getStringValue());
         }
         else if (comp instanceof RangeComponent)
         {
-            value = span(((DataComponent)comp).getData().getStringValue(0) + " - " + 
-                         ((DataComponent)comp).getData().getStringValue(1));
+            value = span(comp.getData().getStringValue(0) + " - " + 
+                         comp.getData().getStringValue(1));
         }
         else
             return null;
@@ -461,12 +461,12 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     protected void writePagination(Collection<ResourceLink> pagingLinks) throws IOException
     {
         var prevLink = pagingLinks.stream()
-            .filter(link -> link.rel == ResourceLink.REL_PREV)
+            .filter(link -> ResourceLink.REL_PREV.equals(link.rel))
             .findFirst()
             .orElse(new ResourceLink());
         
         var nextLink = pagingLinks.stream()
-            .filter(link -> link.rel == ResourceLink.REL_NEXT)
+            .filter(link -> ResourceLink.REL_NEXT.equals(link.rel))
             .findFirst()
             .orElse(new ResourceLink());
         
