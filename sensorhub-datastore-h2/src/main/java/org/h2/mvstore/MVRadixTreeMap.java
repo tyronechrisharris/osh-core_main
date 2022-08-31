@@ -617,7 +617,7 @@ public class MVRadixTreeMap<K, V> extends MVMap<K, V>
     
     
     @Override
-    public boolean remove(final Object key, final Object value)
+    public synchronized boolean remove(final Object key, final Object value)
     {
         return (remove(key, value, false) != null);
     }
@@ -645,7 +645,7 @@ public class MVRadixTreeMap<K, V> extends MVMap<K, V>
                 
                 // remove only value if specified
                 if (value != null && hasValues(p))
-                {                    
+                {
                     newPage = p.copy(v);
                     Page newValuePage = getValuePage(newPage).copy(v);
                     oldValue = super.remove(newValuePage, v, getValueKey(value));

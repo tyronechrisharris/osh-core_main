@@ -120,12 +120,14 @@ public class DataStoreUtils
     
     public static void checkParentFeatureExists(IFeatureStoreBase<?,?,?> dataStore, BigId parentID) throws DataStoreException
     {
+        OshAsserts.checkValidInternalID(parentID);
         if (parentID != null && parentID != BigId.NONE && !dataStore.contains(parentID))
             throw new DataStoreException(DataStoreUtils.ERROR_UNKNOWN_PARENT_FEATURE + parentID);
     }
     
     public static void checkParentFeatureExists(BigId parentID, IFeatureStoreBase<?,?,?>... dataStores) throws DataStoreException
     {
+        OshAsserts.checkValidInternalID(parentID);
         if (parentID != null && parentID != BigId.NONE)
         {
             for (var dataStore: dataStores)

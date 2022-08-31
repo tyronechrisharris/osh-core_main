@@ -15,6 +15,7 @@ package org.h2.mvstore;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import org.h2.mvstore.rtree.SpatialKey;
 
 
@@ -69,7 +70,7 @@ public class RTreeEntryCursor<V> implements Iterator<Entry<SpatialKey, V>> {
     @Override
     public Entry<SpatialKey, V> next() {
         if (!hasNext()) {
-            return null;
+            throw new NoSuchElementException();
         }
         lastKey = currentKey;
         lastVal = currentVal;
@@ -86,6 +87,7 @@ public class RTreeEntryCursor<V> implements Iterator<Entry<SpatialKey, V>> {
     /**
      * Fetch the next entry if there is one.
      */
+    @SuppressWarnings("unchecked")
     protected void fetchNext() {
         while (pos != null) {
             Page p = pos.page;
