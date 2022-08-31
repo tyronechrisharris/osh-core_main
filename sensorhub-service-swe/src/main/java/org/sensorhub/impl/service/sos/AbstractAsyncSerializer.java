@@ -55,9 +55,9 @@ public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implement
     volatile boolean writing = false;
 
     // atomic synchronization flags
-    final static int READY = 0;
-    final static int WRITING = 1;
-    final static int MORE_TO_WRITE = 2;
+    static final int READY = 0;
+    static final int WRITING = 1;
+    static final int MORE_TO_WRITE = 2;
     AtomicInteger cas = new AtomicInteger(READY);
     
 
@@ -125,7 +125,8 @@ public abstract class AbstractAsyncSerializer<R extends OWSRequest, T> implement
                 while (!recordQueue.isEmpty() && asyncOs.isReady())
                 {
                     writeRecord(recordQueue.remove());
-                    subscription.request(1);
+                    if (subscription != null)
+                        subscription.request(1);
                 }
 
                 if (recordQueue.isEmpty() && onCompleteCalled)

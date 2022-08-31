@@ -82,7 +82,7 @@ public class CapabilitiesUpdater
     
     protected String replaceVariables(String textField, ISystemWithDesc proc, SPSConnectorConfig config)
     {
-        textField.replace(PROC_UID_PLACEHOLDER, proc.getUniqueIdentifier());
+        textField = textField.replace(PROC_UID_PLACEHOLDER, proc.getUniqueIdentifier());
         
         if (config.name != null)
             textField = textField.replace(OFFERING_NAME_PLACEHOLDER, config.name);

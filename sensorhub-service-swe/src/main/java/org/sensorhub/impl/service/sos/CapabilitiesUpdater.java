@@ -135,7 +135,7 @@ public class CapabilitiesUpdater
                 
                 // set end to 'now' if timeout not reached yet
                 var timeOut = servlet.config.defaultLiveTimeout;
-                if (customConfig != null && customConfig instanceof SystemDataProviderConfig)
+                if (customConfig instanceof SystemDataProviderConfig)
                     timeOut = ((SystemDataProviderConfig)customConfig).liveDataTimeout;
                 
                 if (phenTimeRange != null &&
@@ -163,7 +163,7 @@ public class CapabilitiesUpdater
     
     protected String replaceVariables(String textField, ISystemWithDesc proc, SOSProviderConfig config)
     {
-        textField.replace(PROC_UID_PLACEHOLDER, proc.getUniqueIdentifier());
+        textField = textField.replace(PROC_UID_PLACEHOLDER, proc.getUniqueIdentifier());
         
         if (config.name != null)
             textField = textField.replace(OFFERING_NAME_PLACEHOLDER, config.name);

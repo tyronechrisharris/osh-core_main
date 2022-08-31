@@ -500,6 +500,7 @@ public class SOSClient
     				} catch (InterruptedException ie) {
     					log.info("Interrupted while waiting to retry. Quitting.");
     					listener.stopped(StreamingStopReason.REQUESTED, null);
+    					Thread.currentThread().interrupt();
     					break;
     				}
     			} else {

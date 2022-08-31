@@ -791,14 +791,15 @@ public class SPSServlet extends SWEServlet
     //////////////////////////////
     // Transactional Operations //
     //////////////////////////////
-
-    protected void handleRequest(InsertSensorRequest request) throws IOException, OWSException
+    @Override
+    protected void handleRequest(org.vast.ows.swe.InsertSensorRequest request) throws IOException, OWSException
     {
         securityHandler.checkPermission(securityHandler.sps_insert_sensor);
         super.handleRequest(request);
     }
 
 
+    @Override
     protected void handleRequest(UpdateSensorRequest request) throws IOException, OWSException
     {
         securityHandler.checkPermission(securityHandler.sps_update_sensor);
@@ -806,6 +807,7 @@ public class SPSServlet extends SWEServlet
     }
 
 
+    @Override
     protected void handleRequest(DeleteSensorRequest request) throws IOException, OWSException
     {
         securityHandler.checkPermission(securityHandler.sps_delete_sensor);
@@ -905,7 +907,7 @@ public class SPSServlet extends SWEServlet
         
         for (var param: paramList)
         {
-            var recordStruct = param.getValue().getRecordStructure();            
+            var recordStruct = param.getValue().getRecordStructure();
             var oldHc = DataComponentChecks.getStructEqualsHashCode(recordStruct);
             if (newHc.equals(oldHc))
                 return param;

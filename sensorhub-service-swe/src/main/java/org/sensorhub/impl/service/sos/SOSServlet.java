@@ -368,13 +368,18 @@ public class SOSServlet extends SWEServlet
                 format, INVALID_RESPONSE_FORMAT + format));
         report.process();
         
-        // create data provider
-        var dataProvider = getDataProvider(procUID, request);
-
-        // start async response
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-        serializer.init(this, asyncCtx, request);
-        dataProvider.getProcedureDescriptions(request, serializer);
+        // serializer should never be null here because report.process()
+        // should throw an exception but just in case
+        if (serializer != null)
+        {
+            // create data provider
+            var dataProvider = getDataProvider(procUID, request);
+    
+            // start async response
+            AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+            serializer.init(this, asyncCtx, request);
+            dataProvider.getProcedureDescriptions(request, serializer);
+        }
     }
 
 
@@ -405,17 +410,22 @@ public class SOSServlet extends SWEServlet
             report.add(new SOSException(SOSException.invalid_param_code, "responseFormat",
                 format, INVALID_RESPONSE_FORMAT + format));
         report.process();
-                
-        // get all selected providers
-        var dataProviders = getDataProviders(selectedProcedures, request);
         
-        // start async response
-        final AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-                
-        // retrieve and serialize obs collection from each provider in sequence
-        serializer.init(this, asyncCtx, request);
-        request.getProcedures().addAll(selectedProcedures);
-        new GetObsMultiProviderSubscriber(dataProviders, request, serializer).start();
+        // serializer should never be null here because report.process()
+        // should throw an exception but just in case
+        if (serializer != null)
+        {
+            // get all selected providers
+            var dataProviders = getDataProviders(selectedProcedures, request);
+            
+            // start async response
+            final AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+                    
+            // retrieve and serialize obs collection from each provider in sequence
+            serializer.init(this, asyncCtx, request);
+            request.getProcedures().addAll(selectedProcedures);
+            new GetObsMultiProviderSubscriber(dataProviders, request, serializer).start();
+        }
     }
 
 
@@ -444,49 +454,54 @@ public class SOSServlet extends SWEServlet
         }
         report.process(); // will throw exception it report contains one
         
-        // get data provider
-        var procUID = getProcedureUID(request.getOffering());
-        ISOSAsyncDataProvider dataProvider = getDataProvider(procUID, request);
-        
-        // start async response
-        final AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-        
-        // fetch result template
-        serializer.init(this, asyncCtx, request);
-        dataProvider.getResultTemplate(request).thenAccept(resultTemplate -> {
-            try
-            {
-                // create simple subscription
-                serializer.onSubscribe(new Subscription() {
-                    boolean done = false;
-                    public void request(long n)
-                    {
-                        if (!done)
+        // serializer should never be null here because report.process()
+        // should throw an exception but just in case
+        if (serializer != null)
+        {
+            // get data provider
+            var procUID = getProcedureUID(request.getOffering());
+            ISOSAsyncDataProvider dataProvider = getDataProvider(procUID, request);
+            
+            // start async response
+            final AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+            
+            // fetch result template
+            serializer.init(this, asyncCtx, request);
+            dataProvider.getResultTemplate(request).thenAccept(resultTemplate -> {
+                try
+                {
+                    // create simple subscription
+                    serializer.onSubscribe(new Subscription() {
+                        boolean done = false;
+                        public void request(long n)
                         {
-                            // send back result template synchronously
-                            done = true;
-                            serializer.onNext(resultTemplate);
-                            serializer.onComplete();                            
+                            if (!done)
+                            {
+                                // send back result template synchronously
+                                done = true;
+                                serializer.onNext(resultTemplate);
+                                serializer.onComplete();
+                            }
                         }
-                    }
-
-                    @Override
-                    public void cancel()
-                    {                        
-                    }
-                });
-            }
-            catch (Exception e)
-            {
-                throw new CompletionException(e);
-            }
-        }).exceptionally(ex -> {
-            handleError(
-                (HttpServletRequest)asyncCtx.getRequest(),
-                (HttpServletResponse)asyncCtx.getResponse(),
-                request, ex);
-            return null;
-        });
+    
+                        @Override
+                        public void cancel()
+                        {
+                        }
+                    });
+                }
+                catch (Exception e)
+                {
+                    throw new CompletionException(e);
+                }
+            }).exceptionally(ex -> {
+                handleError(
+                    (HttpServletRequest)asyncCtx.getRequest(),
+                    (HttpServletResponse)asyncCtx.getResponse(),
+                    request, ex);
+                return null;
+            });
+        }
     }
 
 
@@ -585,23 +600,30 @@ public class SOSServlet extends SWEServlet
                 format, INVALID_RESPONSE_FORMAT + format));
         report.process();
         
-        // create data provider
-        ISOSAsyncDataProvider dataProvider = getDefaultDataProvider(request);
-        
-        // start async response
-        AsyncContext asyncCtx = request.getHttpRequest().startAsync();
-        serializer.init(this, asyncCtx, request);
-        dataProvider.getFeaturesOfInterest(request, serializer);
+        // serializer should never be null here because report.process()
+        // should throw an exception but just in case
+        if (serializer != null)
+        {
+            // create data provider
+            ISOSAsyncDataProvider dataProvider = getDefaultDataProvider(request);
+            
+            // start async response
+            AsyncContext asyncCtx = request.getHttpRequest().startAsync();
+            serializer.init(this, asyncCtx, request);
+            dataProvider.getFeaturesOfInterest(request, serializer);
+        }
     }
 
 
-    protected void handleRequest(InsertSensorRequest request) throws IOException, OWSException
+    @Override
+    protected void handleRequest(org.vast.ows.swe.InsertSensorRequest request) throws IOException, OWSException
     {
         securityHandler.checkPermission(securityHandler.sos_insert_sensor);
         super.handleRequest(request);
     }
 
 
+    @Override
     protected void handleRequest(UpdateSensorRequest request) throws IOException, OWSException
     {
         securityHandler.checkPermission(securityHandler.sos_update_sensor);
@@ -609,6 +631,7 @@ public class SOSServlet extends SWEServlet
     }
 
 
+    @Override
     protected void handleRequest(DeleteSensorRequest request) throws IOException, OWSException
     {
         securityHandler.checkPermission(securityHandler.sos_delete_sensor);
@@ -716,9 +739,7 @@ public class SOSServlet extends SWEServlet
         
         // retrieve datastream info
         var templateID = request.getTemplateId();
-        OWSExceptionReport report = new OWSExceptionReport();
-        var dataStreamHandler = getDataStreamFromTemplateID(templateID, report);
-        report.process();
+        var dataStreamHandler = getDataStreamFromTemplateID(templateID);
         
         var dsInfo = dataStreamHandler.getDataStreamInfo();
         var dataStruct = dsInfo.getRecordStructure();
@@ -836,7 +857,7 @@ public class SOSServlet extends SWEServlet
     }
     
     
-    protected final DataStreamTransactionHandler getDataStreamFromTemplateID(String templateID, OWSExceptionReport report)
+    protected final DataStreamTransactionHandler getDataStreamFromTemplateID(String templateID) throws SOSException
     {
         try
         {
@@ -855,8 +876,7 @@ public class SOSServlet extends SWEServlet
         }
         catch (SOSException e)
         {
-            report.add(new SOSException(SOSException.invalid_param_code, "template", templateID, "Unknown template ID: " + templateID));
-            return null;
+            throw new SOSException(SOSException.invalid_param_code, "template", templateID, "Unknown template ID: " + templateID);
         }
     }
     
