@@ -158,7 +158,7 @@ public abstract class FeatureFilterBase<T extends IFeature> extends ResourceFilt
     
     protected <B extends FeatureFilterBaseBuilder<?,T,?>> B intersect(FeatureFilterBase<T> otherFilter, B builder) throws EmptyFilterIntersection
     {
-        super.and(otherFilter, builder);
+        super.intersect(otherFilter, builder);
         
         var uniqueIDs = FilterUtils.intersectWithWildcards(this.uniqueIDs, otherFilter.uniqueIDs);
         if (uniqueIDs != null)

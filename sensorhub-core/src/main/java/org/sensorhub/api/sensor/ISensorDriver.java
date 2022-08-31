@@ -34,14 +34,14 @@ public interface ISensorDriver extends ISystemDriver, IDataProducer, ICommandRec
 
     /**
      * Retrieves the list of interface to sensor status outputs
-     * @return map of output names to data interface objects
+     * @return Read-only map of output names to data interface objects
      */
     public Map<String, ? extends IStreamingDataInterface> getStatusOutputs();
 
 
     /**
      * Retrieves the list of interface to sensor observation outputs
-     * @return map of output names to data interface objects
+     * @return Read-only map of output names to data interface objects
      */
     public Map<String, ? extends IStreamingDataInterface> getObservationOutputs();
 

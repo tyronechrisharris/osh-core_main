@@ -103,6 +103,11 @@ public class SensorHubOsgi
                     framework.stop();
                     framework.waitForStop(20000);
                 }
+                catch (InterruptedException e)
+                {
+                    LOGGER.log(Level.SEVERE, "Thread was interrupted during OSGi shutdown");
+                    Thread.currentThread().interrupt();
+                }
                 catch (Exception e)
                 {
                     LOGGER.log(Level.SEVERE, "Error while shutting down OSGi framework", e);

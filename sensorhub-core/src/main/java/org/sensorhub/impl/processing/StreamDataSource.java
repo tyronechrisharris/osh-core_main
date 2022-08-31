@@ -79,9 +79,14 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
         if (producerUri != null)
         {
             try {
+                // wait here to make sure datasource and its datastreams have been registered.
+                // needed to handle case where datasource is being registered concurrently.
                 Async.waitForCondition(this::checkForDataSource, 500, 10000);
             } catch (TimeoutException e) {
-                throw new IllegalStateException("System with URI " + producerUri + " not found", e);
+                if (processInfo == null)
+                    throw new IllegalStateException("System with URI " + producerUri + " not found", e);
+                else
+                    throw new IllegalStateException("System with URI " + producerUri + " has no datastreams", e);
             }
         }
     }
@@ -102,41 +107,31 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
                 processInfo.getImplementationClass());
         this.processInfo = instanceInfo;
         
-        // HACK: loop here to make sure all datastreams have been registered.
-        // needed to handle case where producer is being registered concurrently.
-        // there is probably a better way to do this!
-        int numDs;
-        do
-        {
-            numDs = outputData.size();
-            try { Thread.sleep(250); }
-            catch (InterruptedException e) { }
-            
-            // add outputs
-            outputData.clear();
-            db.getDataStreamStore().select(new DataStreamFilter.Builder()
-                    .withSystems(procEntry.getKey().getInternalID())
-                    .withCurrentVersion()
-                    .build())
-                .forEach(ds -> {
-                    outputData.add(ds.getOutputName(), ds.getRecordStructure().copy());
-                });
-        }
-        while (outputData.size() > numDs);
+        // fetch all datastreams and check that no more have been added since last call
+        // HACK: there is probably a better way to do this!
+        int numDsBefore = outputData.size();
+        outputData.clear();
+        db.getDataStreamStore().select(new DataStreamFilter.Builder()
+                .withSystems(procEntry.getKey().getInternalID())
+                .withCurrentVersion()
+                .build())
+            .forEach(ds -> {
+                outputData.add(ds.getOutputName(), ds.getRecordStructure().copy());
+            });
         
-        return !outputData.isEmpty();
+        return !outputData.isEmpty() && outputData.size() == numDsBefore;
     }
     
     
     @Override
-    public synchronized void start(Consumer<Throwable> onError) throws ProcessException
+    public void start(Consumer<Throwable> onError) throws ProcessException
     {
         start(null, onError);
     }
     
     
     @Override
-    public void start(ExecutorService threadPool, Consumer<Throwable> onError) throws ProcessException
+    public synchronized void start(ExecutorService threadPool, Consumer<Throwable> onError) throws ProcessException
     {
         if (!started)
         {
@@ -193,6 +188,7 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
                     @Override
                     public void onComplete()
                     {
+                        getLogger().info("No more data expected from data source");
                     }
                 });
             

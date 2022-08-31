@@ -198,7 +198,7 @@ public class TemporalFilter extends RangeFilter<Instant>
     }
     
     
-    protected <F extends TemporalFilter, B extends TimeFilterBuilder<B, F>> B intersect(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends TimeFilterBuilder<B, TemporalFilter>> B intersect(TemporalFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         // handle latest time special case
         if (otherFilter.isLatestTime() && isLatestTime())

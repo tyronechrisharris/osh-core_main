@@ -52,9 +52,9 @@ import com.google.common.collect.ImmutableMap;
  */
 public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> implements ISystemGroupDriver<IDataProducerModule<?>>
 {
-    public final static String DEFAULT_XMLID_PREFIX = "SYSTEM_";
-    public final static String AUTO_ID = "auto";
-    private final static String URN_PREFIX = "urn:";
+    public static final String DEFAULT_XMLID_PREFIX = "SYSTEM_";
+    public static final String AUTO_ID = "auto";
+    private static final String URN_PREFIX = "urn:";
     
     Collection<IDataProducerModule<?>> subsystems = new ArrayList<>();
     
@@ -244,7 +244,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
 
 
     @Override
-    public void loadState(IModuleStateManager loader) throws SensorHubException
+    public synchronized void loadState(IModuleStateManager loader) throws SensorHubException
     {
         super.loadState(loader);
         
@@ -260,7 +260,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
 
 
     @Override
-    public void saveState(IModuleStateManager saver) throws SensorHubException
+    public synchronized void saveState(IModuleStateManager saver) throws SensorHubException
     {
         super.saveState(saver);
         
@@ -278,7 +278,7 @@ public class SensorSystem extends AbstractSensorModule<SensorSystemConfig> imple
     protected void generateXmlIDFromUUID(String uuid)
     {
         super.generateXmlIDFromUUID(uuid);
-        this.xmlID.replace(AbstractSensorModule.DEFAULT_XMLID_PREFIX, DEFAULT_XMLID_PREFIX);
+        this.xmlID = this.xmlID.replace(AbstractSensorModule.DEFAULT_XMLID_PREFIX, DEFAULT_XMLID_PREFIX);
     }
 
 

@@ -168,7 +168,7 @@ public class DataStreamFilter extends ResourceFilter<IDataStreamInfo>
     
     protected <B extends DataStreamFilterBuilder<B, DataStreamFilter>> B intersect(DataStreamFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
-        super.and(otherFilter, builder);
+        super.intersect(otherFilter, builder);
         
         var procFilter = this.systemFilter != null ? this.systemFilter.intersect(otherFilter.systemFilter) : otherFilter.systemFilter;
         if (procFilter != null)

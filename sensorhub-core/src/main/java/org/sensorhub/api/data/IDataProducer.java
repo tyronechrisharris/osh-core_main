@@ -32,7 +32,7 @@ public interface IDataProducer extends ISystemDriver
     
     /**
      * Retrieves the list of all outputs
-     * @return read-only map of output names to data interface objects
+     * @return Read-only map of output names to data interface objects
      */
     public Map<String, ? extends IStreamingDataInterface> getOutputs();
     

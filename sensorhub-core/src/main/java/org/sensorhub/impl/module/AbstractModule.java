@@ -244,6 +244,7 @@ public abstract class AbstractModule<ConfigType extends ModuleConfig> implements
             }
             catch (InterruptedException e)
             {
+                Thread.currentThread().interrupt();
                 return false;
             }
             

@@ -102,7 +102,7 @@ public class RangeFilter<T extends Comparable<T>> implements Predicate<T>
     }
     
     
-    protected <F extends RangeFilter<T>, B extends RangeFilterBuilder<B, F, T>> B intersect(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends RangeFilterBuilder<B, RangeFilter<T>, T>> B intersect(RangeFilter<T> otherFilter, B builder) throws EmptyFilterIntersection
     {
         if (!range.isConnected(otherFilter.range))
             throw new EmptyFilterIntersection();

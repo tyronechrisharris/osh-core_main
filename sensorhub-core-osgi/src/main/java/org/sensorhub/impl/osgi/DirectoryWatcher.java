@@ -60,15 +60,15 @@ public class DirectoryWatcher implements Runnable
         WatchKey watchKey = null;
         
         while (!Thread.currentThread().isInterrupted()) {
+            try {
+                watchKey = watcher.take();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                continue;
+            }
+            
             try
             {
-                try {
-                    watchKey = watcher.take();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    continue;
-                }
-                
                 List<WatchEvent<?>> events = watchKey.pollEvents();
                 for (WatchEvent<?> event : events) {
 //                    System.out.println(event.kind() + " : " + event.context());
@@ -87,7 +87,7 @@ public class DirectoryWatcher implements Runnable
 //                    }
                 } 
             }
-            catch (Throwable e)
+            catch (Exception e)
             {
                 SensorHubOsgi.LOGGER.log(Level.SEVERE, "Error while processing watch events", e);
             }

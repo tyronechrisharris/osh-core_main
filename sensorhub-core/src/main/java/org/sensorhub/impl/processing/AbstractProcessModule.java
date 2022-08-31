@@ -51,14 +51,14 @@ public abstract class AbstractProcessModule<T extends ProcessConfig> extends Abs
     protected Map<String, IStreamingDataInterface> outputInterfaces = new LinkedHashMap<>();
     protected Map<String, IStreamingControlInterface> controlInterfaces = new LinkedHashMap<>();
 
-    protected volatile ISystemGroupDriver<?> parentSystem;
+    protected ISystemGroupDriver<?> parentSystem;
     protected AggregateProcessImpl processDescription;
     protected long lastUpdatedProcess = Long.MIN_VALUE;
     protected boolean paused = false;
     protected int errorCount = 0;
     
     
-    public AbstractProcessModule()
+    protected AbstractProcessModule()
     {
     }
     
@@ -74,7 +74,12 @@ public abstract class AbstractProcessModule<T extends ProcessConfig> extends Abs
             if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
                 getParentHub().getSystemDriverRegistry().register(this).get(); // for now, block here until init is also async
         }
-        catch (ExecutionException | InterruptedException e)
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+            throw new ProcessingException("Interrupted while registering process", e);
+        }
+        catch (ExecutionException e)
         {
             throw new ProcessingException("Error registering process", e.getCause());
         }
@@ -90,7 +95,12 @@ public abstract class AbstractProcessModule<T extends ProcessConfig> extends Abs
             if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null && parentSystem == null)
                 getParentHub().getSystemDriverRegistry().unregister(this).get();
         }
-        catch (ExecutionException | InterruptedException e)
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+            throw new ProcessingException("Interrupted while unregistering process", e);
+        }
+        catch (ExecutionException e)
         {
             throw new ProcessingException("Error unregistering process", e.getCause());
         }

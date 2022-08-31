@@ -135,6 +135,7 @@ public abstract class RobustConnection
             catch (InterruptedException e)
             {
                 connected = false;
+                Thread.currentThread().interrupt();
                 throw new SensorHubException("Automatic reconnection loop interrupted");
             }
             finally

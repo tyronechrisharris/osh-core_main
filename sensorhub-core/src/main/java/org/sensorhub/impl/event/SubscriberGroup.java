@@ -54,7 +54,7 @@ public class SubscriberGroup<T> implements Subscriber<T>
         @Override
         public void request(long n)
         {
-            requested.addAndGet(n);            
+            requested.addAndGet(n);
             mainSubscription.request(n);
         }
 
@@ -71,36 +71,30 @@ public class SubscriberGroup<T> implements Subscriber<T>
         public int compareTo(SubscriberGroup<T>.SharedSubscription other)
         {
             return Long.compare(this.requested.get(), other.requested.get());
-        }        
-    }
-    
-    
-    public void addConsumer(Subscriber<T> subscriber)
-    {
-        // sync in case onSubscribe is called concurrently
-        synchronized (mainSubscription)
-        {
-            var sharedSub = new SharedSubscription(subscriber);
-            subscriptions.add(sharedSub);
-                
-            // in case group member is added after we're already subscribed
-            if (mainSubscription != null)
-                subscriber.onSubscribe(sharedSub);
         }
     }
     
     
+    public synchronized void addConsumer(Subscriber<T> subscriber)
+    {
+        // sync in case onSubscribe is called concurrently
+        var sharedSub = new SharedSubscription(subscriber);
+        subscriptions.add(sharedSub);
+            
+        // in case group member is added after we're already subscribed
+        if (mainSubscription != null)
+            subscriber.onSubscribe(sharedSub);
+    }
+    
+    
     @Override
-    public void onSubscribe(Subscription subscription)
+    public synchronized void onSubscribe(Subscription subscription)
     {
         // sync in case addConsumer is called concurrently
-        synchronized (mainSubscription)
-        {
-            this.mainSubscription = subscription;
+        this.mainSubscription = subscription;
         
-            for (var sub: subscriptions)
-                sub.subscriber.onSubscribe(sub);
-        }        
+        for (var sub: subscriptions)
+            sub.subscriber.onSubscribe(sub);
     }
     
 

@@ -117,7 +117,7 @@ public abstract class ResourceFilter<T extends IResource> implements IQueryFilte
     public abstract ResourceFilter<T> intersect(ResourceFilter<T> filter) throws EmptyFilterIntersection;
     
     
-    protected <B extends ResourceFilterBuilder<?,T,?>> B and(ResourceFilter<T> otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends ResourceFilterBuilder<?,T,?>> B intersect(ResourceFilter<T> otherFilter, B builder) throws EmptyFilterIntersection
     {
         var internalIDs = FilterUtils.intersect(this.internalIDs, otherFilter.internalIDs);
         if (internalIDs != null)

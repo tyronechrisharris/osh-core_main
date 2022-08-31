@@ -30,6 +30,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.ISensorHubConfig;
@@ -50,6 +51,7 @@ import org.sensorhub.api.module.ModuleEvent;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.module.ModuleEvent.Type;
 import org.sensorhub.api.system.ISystemDriver;
+import org.sensorhub.utils.Async;
 import org.sensorhub.utils.FileUtils;
 import org.sensorhub.utils.MsgUtils;
 import org.sensorhub.utils.NamedThreadFactory;
@@ -176,6 +178,11 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             CompletableFuture.allOf(
                 waitFutures.toArray(new CompletableFuture[numStartedDatabases]))
                 .get(DEFAULT_TIMEOUT_MS*4, TimeUnit.MILLISECONDS);
+        }
+        catch (InterruptedException e)
+        {
+            log.error("Interrupted while starting datastores", e);
+            Thread.currentThread().interrupt();
         }
         catch (Exception e)
         {
@@ -1099,8 +1106,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     
     private void stopModules(Collection<IModule<?>> moduleList, boolean saveConfig, boolean saveState)
     {
-        long timeOutTime = System.currentTimeMillis() + SHUTDOWN_TIMEOUT_MS;
-        
         // call stop on all modules
         for (IModule<?> module: moduleList)
         {
@@ -1132,15 +1137,13 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
             {
                 log.error("Error during shutdown", e);
             }
-        }        
+        }
         
-        // wait for all modules to be stopped
+        // wait for all modules to actually stop
         try
         {
-            boolean allStopped = false;
-            while (!allStopped)
-            {
-                allStopped = true;
+            Async.waitForCondition(() -> {
+                boolean allStopped = true;
                 for (IModule<?> module: moduleList)
                 {
                     ModuleState state = module.getCurrentState();
@@ -1150,17 +1153,12 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                         break;
                     }
                 }
-                
-                // stop if time out reached
-                if (System.currentTimeMillis() > timeOutTime)
-                    break;
-                
-                wait(100);
-            }
+                return allStopped;
+            }, SHUTDOWN_TIMEOUT_MS);
         }
-        catch (InterruptedException e1)
+        catch (TimeoutException e)
         {
-            Thread.currentThread().interrupt();
+            log.error("Could not stop all modules before timeout");
         }
     }
     
@@ -1230,8 +1228,6 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                             
                         case STARTED:
                             log.info("Module {} started", moduleString);
-                            // notify that a new module started
-                            synchronized (loadedModules) { loadedModules.notify(); }
                             break;
                             
                         case STOPPING:

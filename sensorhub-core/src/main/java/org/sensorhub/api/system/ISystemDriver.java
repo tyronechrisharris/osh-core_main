@@ -73,7 +73,8 @@ public interface ISystemDriver extends IEventProducer
      * All implementations must return an instance of AbstractProcess with
      * a valid unique identifier.<br/>
      * In the case of a module generating data from multiple subsystems (e.g.
-     * sensor network), this returns the description of the group as a whole.
+     * sensor network), this returns the description of the group as a whole.<br/>
+     * The returned object is mutable but must NOT be mutated by the caller.
      * @return The SensorML description of the system or null if none
      * is available at the time of the call
      */

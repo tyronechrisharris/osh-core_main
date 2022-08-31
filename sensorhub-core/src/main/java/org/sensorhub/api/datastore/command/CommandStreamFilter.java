@@ -149,7 +149,7 @@ public class CommandStreamFilter extends ResourceFilter<ICommandStreamInfo>
     
     protected <B extends CommandStreamFilterBuilder<B, CommandStreamFilter>> B intersect(CommandStreamFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
-        super.and(otherFilter, builder);
+        super.intersect(otherFilter, builder);
         
         var procFilter = this.systemFilter != null ? this.systemFilter.intersect(otherFilter.systemFilter) : otherFilter.systemFilter;
         if (procFilter != null)

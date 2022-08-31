@@ -1067,8 +1067,8 @@ public class SubmissionPublisherRetroflow<T> implements Publisher<T> {
 
         volatile int waiting;              // nonzero if producer blocked
 
-        volatile Object pad2f, pad30, pad31, pad32, pad33, pad34, pad35, pad36;
-        volatile Object pad37, pad38, pad39, pad3a, pad3b, pad3c, pad3d, pad3e;
+        volatile long pad2f, pad30, pad31, pad32, pad33, pad34, pad35, pad36;
+        volatile long pad37, pad38, pad39, pad3a, pad3b, pad3c, pad3d, pad3e;
 
         // ctl bit values
         static final int CLOSED   = 0x01;  // if set, other bits ignored

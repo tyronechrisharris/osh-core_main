@@ -17,6 +17,7 @@ package org.sensorhub.impl.sensor;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.impl.GMLFactory;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -35,7 +36,6 @@ import org.vast.ogc.om.SamplingPoint;
 import org.vast.sensorML.PhysicalSystemImpl;
 import org.vast.swe.SWEConstants;
 import org.vast.util.Asserts;
-import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -66,18 +66,17 @@ public abstract class AbstractSensorDriver implements ISensorDriver
     private final Map<String, IStreamingDataInterface> obsOutputs = new LinkedHashMap<>();
     private final Map<String, IStreamingDataInterface> statusOutputs = new LinkedHashMap<>();
     private final Map<String, IStreamingControlInterface> controlInputs = new LinkedHashMap<>();
+    private final Map<String, IFeature> foiMap = new TreeMap<>();
 
     protected final String uniqueID;
     protected final String shortID;
     protected final ISystemGroupDriver<? extends ISystemDriver> parentSystem;
     protected final IEventHandler eventHandler;
         
-    protected volatile DefaultLocationOutput locationOutput;
-    protected volatile AbstractProcess smlDescription = new PhysicalSystemImpl();
+    protected DefaultLocationOutput locationOutput;
+    protected AbstractProcess smlDescription = new PhysicalSystemImpl();
     protected volatile long lastUpdatedSensorDescription = Long.MIN_VALUE;
-
     protected volatile boolean enabled;
-    protected volatile Map<String, IFeature> foiMap;
 
     
     protected AbstractSensorDriver(String uid, String shortID)
@@ -92,7 +91,6 @@ public abstract class AbstractSensorDriver implements ISensorDriver
         this.shortID = Asserts.checkNotNullOrEmpty(shortID, "shortID");
         this.parentSystem = parentSystem;
         this.eventHandler = new BasicEventHandler();
-        this.foiMap = Collections.emptyMap();
     }
 
 
@@ -112,26 +110,6 @@ public abstract class AbstractSensorDriver implements ISensorDriver
             else
                 obsOutputs.put(dataInterface.getName(), dataInterface);
         }
-    }
-
-
-    /**
-     * Sets the foi to be a sampling point at lat/lon/alt location (EPSG 4979).
-     */
-    protected void setSamplingPointFoi(double lat, double lon, double alt)
-    {
-        SamplingPoint sf = new SamplingPoint();
-        sf.setId("FOI_" + getShortID());
-        sf.setUniqueIdentifier(getUniqueIdentifier() + ":foi");
-        sf.setName(getName());
-        sf.setDescription("Sampling point for " + getName());
-        sf.setHostedProcedureUID(getUniqueIdentifier());
-        Point point = new GMLFactory(true).newPoint();
-        point.setSrsName(SWEConstants.REF_FRAME_4979);
-        point.setSrsDimension(3);
-        point.setPos(new double[] {lat, lon, alt});
-        sf.setShape(point);
-        foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
     }
     
     
@@ -185,6 +163,45 @@ public abstract class AbstractSensorDriver implements ISensorDriver
         synchronized(controlInputs)
         {
             controlInputs.clear();
+        }
+    }
+    
+    
+    /**
+     * Adds a new FOI attached to this system driver
+     * @param foi
+     */
+    protected void addFoi(IFeature foi)
+    {
+        Asserts.checkNotNull(foi, IFeature.class);
+        OshAsserts.checkValidUID(foi.getUniqueIdentifier());
+        
+        synchronized(foiMap)
+        {
+            foiMap.put(foi.getUniqueIdentifier(), foi);
+        }
+    }
+
+
+    /**
+     * Add a sampling point foi at lat/lon/alt location (EPSG 4979).
+     */
+    protected void addSamplingPointFoi(double lat, double lon, double alt)
+    {
+        synchronized (foiMap)
+        {
+            SamplingPoint sf = new SamplingPoint();
+            sf.setId("FOI_" + getShortID());
+            sf.setUniqueIdentifier(getUniqueIdentifier() + ":foi");
+            sf.setName(getName());
+            sf.setDescription("Sampling point for " + getName());
+            sf.setHostedProcedureUID(getUniqueIdentifier());
+            Point point = new GMLFactory(true).newPoint();
+            point.setSrsName(SWEConstants.REF_FRAME_4979);
+            point.setSrsDimension(3);
+            point.setPos(new double[] {lat, lon, alt});
+            sf.setShape(point);
+            addFoi(sf);
         }
     }
     
@@ -262,8 +279,17 @@ public abstract class AbstractSensorDriver implements ISensorDriver
     public Map<String, ? extends IStreamingDataInterface> getOutputs()
     {
         Map<String, IStreamingDataInterface> allOutputs = new LinkedHashMap<>();
-        allOutputs.putAll(obsOutputs);
-        allOutputs.putAll(statusOutputs);
+        
+        synchronized(obsOutputs)
+        {
+            allOutputs.putAll(obsOutputs);
+        }
+        
+        synchronized(statusOutputs)
+        {
+            allOutputs.putAll(statusOutputs);
+        }
+        
         return Collections.unmodifiableMap(allOutputs);
     }
 
@@ -271,28 +297,40 @@ public abstract class AbstractSensorDriver implements ISensorDriver
     @Override
     public Map<String, ? extends IStreamingDataInterface> getStatusOutputs()
     {
-        return Collections.unmodifiableMap(statusOutputs);
+        synchronized(statusOutputs)
+        {
+            return Collections.unmodifiableMap(statusOutputs);
+        }
     }
 
 
     @Override
     public Map<String, ? extends IStreamingDataInterface> getObservationOutputs()
     {
-        return Collections.unmodifiableMap(obsOutputs);
+        synchronized(obsOutputs)
+        {
+            return Collections.unmodifiableMap(obsOutputs);
+        }
     }
 
 
     @Override
     public Map<String, IStreamingControlInterface> getCommandInputs()
     {
-        return Collections.unmodifiableMap(controlInputs);
+        synchronized(controlInputs)
+        {
+            return Collections.unmodifiableMap(controlInputs);
+        }
     }
 
 
     @Override
     public Map<String, ? extends IFeature> getCurrentFeaturesOfInterest()
     {
-        return Collections.unmodifiableMap(foiMap);
+        synchronized(foiMap)
+        {
+            return Collections.unmodifiableMap(foiMap);
+        }
     }
 
 

@@ -73,9 +73,11 @@ public class HttpLogoutWrapper implements Authenticator
                 request.logout();
                 var session = request.getSession(false);
                 if (session != null)
+                {
                     session.invalidate();
+                    log.debug("Logging out {}", session.getId());
+                }
                 
-                log.debug("Logging out " + session.getId());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 var adminUrl = request.getRequestURL().toString().replace("logout", "admin");
                 var redirectResp = "<html><script>window.location.href=\"" + adminUrl + "\";</script></html>";

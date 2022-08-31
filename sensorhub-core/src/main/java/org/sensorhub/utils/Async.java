@@ -15,37 +15,52 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.utils;
 
 import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
+import java.util.function.BooleanSupplier;
 
 
 public class Async
 {
+    private Async() {}
     
-    public static void waitForCondition(Supplier<Boolean> condition, long timeout) throws TimeoutException
+    
+    
+    /**
+     * Calls {@link #waitForCondition(BooleanSupplier, long, long)} with retryInterval=100 ms
+     * @see #waitForCondition(BooleanSupplier, long, long)
+     */
+    @SuppressWarnings("javadoc")
+    public static void waitForCondition(BooleanSupplier condition, long timeout) throws TimeoutException
     {
         waitForCondition(condition, 100L, timeout);
     }
     
     
-    public static void waitForCondition(Supplier<Boolean> condition, long retryInterval, long timeout) throws TimeoutException
+    /**
+     * Helper method to block until a condition is true.<br/>
+     * Always prefer inter-thread communication with wait()/notify() to this method when possible.
+     * This is to be used solely when inter-thread communication is difficult to implement.
+     * @param condition
+     * @param retryInterval
+     * @param timeout
+     * @throws TimeoutException
+     */
+    public static void waitForCondition(BooleanSupplier condition, long retryInterval, long timeout) throws TimeoutException
     {
         try
         {
             long t0 = System.currentTimeMillis();
             
-            synchronized(condition)
+            while (!condition.getAsBoolean())
             {
-                while (!condition.get())
-                {
-                    if (System.currentTimeMillis() > t0+timeout)
-                        throw new TimeoutException();
-                    condition.wait(retryInterval);
-                }
+                if (System.currentTimeMillis() > t0+timeout)
+                    throw new TimeoutException();
+                Thread.sleep(retryInterval);
             }
         }
         catch (InterruptedException e)
         {
             Thread.currentThread().interrupt();
+            throw new TimeoutException("Waiting thread interrupted");
         }
     }
     

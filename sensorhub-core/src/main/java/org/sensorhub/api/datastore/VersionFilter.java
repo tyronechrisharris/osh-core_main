@@ -90,7 +90,7 @@ public class VersionFilter extends RangeFilter<Integer>
     }
     
     
-    protected <F extends VersionFilter, B extends VersionFilterBuilder<B, F>> B intersect(F otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends VersionFilterBuilder<B, VersionFilter>> B intersect(VersionFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         // handle latest time special case
         if ((otherFilter.isCurrentVersion() && isCurrentVersion()) ||

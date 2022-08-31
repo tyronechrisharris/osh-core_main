@@ -39,6 +39,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.module.IModuleStateManager;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
+import org.sensorhub.api.processing.ProcessingException;
 import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.api.sensor.PositionConfig.LLALocation;
 import org.sensorhub.api.system.ISystemDriver;
@@ -60,7 +61,6 @@ import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
 import org.vast.util.Asserts;
-import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -79,7 +79,7 @@ import com.google.common.collect.ImmutableMap;
  * </ul>
  * </p>
  * <p>
- * All of these items can be overriden by derived classes.<br/>
+ * All of these items can be overridden by derived classes.<br/>
  * It also provides helper methods to implement automatic reconnection.
  * </p>
  * 
@@ -101,19 +101,19 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
     private final Map<String, IStreamingDataInterface> obsOutputs = new LinkedHashMap<>();
     private final Map<String, IStreamingDataInterface> statusOutputs = new LinkedHashMap<>();
     private final Map<String, IStreamingControlInterface> controlInputs = new LinkedHashMap<>();
-
-    protected volatile ISystemGroupDriver<?> parentSystem;
-    protected volatile DefaultLocationOutput locationOutput;
-    protected volatile AbstractProcess sensorDescription = new PhysicalSystemImpl();
+    protected final Map<String, IFeature> foiMap = new TreeMap<>();
+    
+    protected ISystemGroupDriver<?> parentSystem;
+    protected DefaultLocationOutput locationOutput;
+    protected AbstractProcess sensorDescription = new PhysicalSystemImpl();
     protected volatile long lastUpdatedSensorDescription = Long.MIN_VALUE;
     protected final Object sensorDescLock = new Object();
 
     protected boolean randomUniqueID;
     protected volatile String xmlID;
     protected volatile String uniqueID;
-    protected volatile Map<String, IFeature> foiMap;
-
-
+    
+    
     @Override
     protected void beforeInit() throws SensorHubException
     {
@@ -122,7 +122,6 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
         // reset internal state
         this.uniqueID = null;
         this.xmlID = null;
-        this.foiMap = new TreeMap<>();
         this.locationOutput = null;
         this.sensorDescription = new PhysicalSystemImpl();
         removeAllOutputs();
@@ -173,7 +172,7 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
             if (locationOutput == null)
                 addLocationOutput(Double.NaN);
         
-            if (foiMap == null || foiMap.isEmpty())
+            if (foiMap.isEmpty())
             {
                 // add 
                 SamplingPoint sf = new SamplingPoint();
@@ -188,7 +187,7 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
                 point.setSrsDimension(3);
                 point.setPos(new double[] {loc.lat, loc.lon, loc.alt});
                 sf.setShape(point);
-                foiMap = ImmutableMap.of(sf.getUniqueIdentifier(), sf);
+                foiMap.put(sf.getUniqueIdentifier(), sf);
             }
         }
         
@@ -217,7 +216,12 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
             if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
                 getParentHub().getSystemDriverRegistry().register(this).get(); // for now, block here until init is also async
         }
-        catch (ExecutionException | InterruptedException e)
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+            throw new ProcessingException("Interrupted while registering driver", e);
+        }
+        catch (ExecutionException e)
         {
             throw new SensorException("Error registering driver", e.getCause());
         }
@@ -238,7 +242,12 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
             if (hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
                 getParentHub().getSystemDriverRegistry().unregister(this).get();
         }
-        catch (ExecutionException | InterruptedException e)
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+            throw new ProcessingException("Interrupted while unregistering driver", e);
+        }
+        catch (ExecutionException e)
         {
             throw new SensorException("Error unregistering driver", e.getCause());
         }
@@ -269,7 +278,12 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
                 if (isStarted() && hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
                     getParentHub().getSystemDriverRegistry().register(dataInterface).get();
             }
-            catch (ExecutionException | InterruptedException e)
+            catch (InterruptedException e)
+            {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while registering sensor output", e);
+            }
+            catch (ExecutionException e)
             {
                 throw new IllegalStateException("Error registering sensor output", e.getCause());
             }
@@ -291,29 +305,6 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
                 // TODO deal with other CRS than 4979
                 locationOutput = new DefaultLocationOutputLLA(this, getLocalFrameID(), updatePeriod);
                 addOutput(locationOutput, true);
-            }
-        }
-    }
-    
-    
-    protected void addFoi(IFeature foi)
-    {
-        Asserts.checkNotNull(foi, IFeature.class);
-        OshAsserts.checkValidUID(foi.getUniqueIdentifier());
-        
-        // add to driver map
-        foiMap.put(foi.getUniqueIdentifier(), foi);
-        
-        // also register it if driver is already started
-        if (isStarted())
-        {
-            try
-            {
-                getParentHub().getSystemDriverRegistry().register(this, foi).get();
-            }
-            catch (InterruptedException | ExecutionException e)
-            {
-                throw new IllegalStateException("Error registering new FOI", e);
             }
         }
     }
@@ -350,7 +341,12 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
                 if (isStarted() && hasParentHub() && getParentHub().getSystemDriverRegistry() != null)
                     getParentHub().getSystemDriverRegistry().register(controlInterface).get();
             }
-            catch (ExecutionException | InterruptedException e)
+            catch (InterruptedException e)
+            {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while registering command input", e);
+            }
+            catch (ExecutionException e)
             {
                 throw new IllegalStateException("Error registering command input", e.getCause());
             }
@@ -368,6 +364,41 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
             controlInputs.clear();
         }
     }
+    
+    
+    /**
+     * Adds a new FOI attached to this system driver
+     * @param foi
+     */
+    protected void addFoi(IFeature foi)
+    {
+        Asserts.checkNotNull(foi, IFeature.class);
+        OshAsserts.checkValidUID(foi.getUniqueIdentifier());
+        
+        synchronized(foiMap)
+        {
+            // add to driver map
+            foiMap.put(foi.getUniqueIdentifier(), foi);
+            
+            // also register it if driver is already started
+            if (isStarted())
+            {
+                try
+                {
+                    getParentHub().getSystemDriverRegistry().register(this, foi).get();
+                }
+                catch (InterruptedException e)
+                {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while registering FOI", e);
+                }
+                catch (ExecutionException e)
+                {
+                    throw new IllegalStateException("Error registering new FOI", e.getCause());
+                }
+            }
+        }
+    }
 
 
     @Override
@@ -380,20 +411,29 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
     @Override
     public String getParentSystemUID()
     {
-        return parentSystem != null ? parentSystem.getUniqueIdentifier() : null;
+        synchronized (sensorDescLock)
+        {
+            return parentSystem != null ? parentSystem.getUniqueIdentifier() : null;
+        }
     }
 
 
     @Override
     public ISystemGroupDriver<? extends ISystemDriver> getParentSystem()
     {
-        return parentSystem;
+        synchronized (sensorDescLock)
+        {
+            return parentSystem;
+        }
     }
     
     
     public void attachToParent(ISystemGroupDriver<? extends ISystemDriver> parentSystem)
     {
-        this.parentSystem = parentSystem;
+        synchronized (sensorDescLock)
+        {
+            this.parentSystem = parentSystem;
+        }
     }
 
 
@@ -437,7 +477,7 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
                 {
                     SMLUtils utils = new SMLUtils(SMLUtils.V2_0);
                     InputStream is = new URL(smlUrl).openStream();
-                    sensorDescription = (AbstractPhysicalProcess)utils.readProcess(is);
+                    sensorDescription = utils.readProcess(is);
                 }
                 catch (IOException e)
                 {
@@ -622,8 +662,17 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
     public Map<String, ? extends IStreamingDataInterface> getOutputs()
     {
         Map<String, IStreamingDataInterface> allOutputs = new LinkedHashMap<>();
-        allOutputs.putAll(obsOutputs);
-        allOutputs.putAll(statusOutputs);
+        
+        synchronized (obsOutputs)
+        {
+            allOutputs.putAll(obsOutputs);
+        }
+        
+        synchronized (statusOutputs)
+        {
+            allOutputs.putAll(statusOutputs);
+        }
+    
         return Collections.unmodifiableMap(allOutputs);
     }
 
@@ -631,28 +680,40 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
     @Override
     public Map<String, ? extends IStreamingDataInterface> getStatusOutputs()
     {
-        return Collections.unmodifiableMap(statusOutputs);
+        synchronized (statusOutputs)
+        {
+            return Collections.unmodifiableMap(statusOutputs);
+        }
     }
 
 
     @Override
     public Map<String, ? extends IStreamingDataInterface> getObservationOutputs()
     {
-        return Collections.unmodifiableMap(obsOutputs);
+        synchronized (obsOutputs)
+        {
+            return Collections.unmodifiableMap(obsOutputs);
+        }
     }
 
 
     @Override
     public Map<String, IStreamingControlInterface> getCommandInputs()
     {
-        return Collections.unmodifiableMap(controlInputs);
+        synchronized (controlInputs)
+        {
+            return Collections.unmodifiableMap(controlInputs);
+        }
     }
 
 
     @Override
     public Map<String, ? extends IFeature> getCurrentFeaturesOfInterest()
     {
-        return Collections.unmodifiableMap(foiMap);
+        synchronized (foiMap)
+        {
+            return Collections.unmodifiableMap(foiMap);
+        }
     }
 
 
@@ -688,11 +749,11 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
         super.loadState(loader);
 
         // set unique ID to the one previously saved
-        String uniqueID = loader.getAsString(STATE_UNIQUE_ID);
-        if (uniqueID != null && randomUniqueID)
+        String savedUniqueID = loader.getAsString(STATE_UNIQUE_ID);
+        if (savedUniqueID != null && randomUniqueID)
         {
-            this.uniqueID = uniqueID;
-            this.generateXmlIDFromUUID(uniqueID);
+            this.uniqueID = savedUniqueID;
+            this.generateXmlIDFromUUID(savedUniqueID);
         }
 
         //Long lastUpdateTime = loader.getAsLong(STATE_LAST_SML_UPDATE);
@@ -727,7 +788,7 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
         String localID = getLocalID();
         int endIndex = Math.min(localID.length(), 8);
         String idSuffix = localID.substring(0, endIndex);
-        return idSuffix.replaceAll(" ", "");
+        return idSuffix.replaceAll("\\s+", "");
     }
 
 
@@ -743,7 +804,7 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
         if (suffix == null)
             suffix = getDefaultIdSuffix();
         else
-            suffix.replaceAll(" ", ""); // remove spaces
+            suffix = suffix.replaceAll("\\s+", ""); // remove white spaces
 
         this.uniqueID = prefix + suffix;
     }
@@ -761,7 +822,7 @@ public abstract class AbstractSensorModule<T extends SensorConfig> extends Abstr
         if (suffix == null)
             suffix = getDefaultIdSuffix();
 
-        suffix.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+        suffix = suffix.replaceAll("[^a-zA-Z0-9_\\-]", "_");
         this.xmlID = prefix + suffix.toUpperCase();
     }
 

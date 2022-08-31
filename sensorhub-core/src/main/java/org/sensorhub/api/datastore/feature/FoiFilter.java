@@ -75,11 +75,11 @@ public class FoiFilter extends FeatureFilterBase<IFeature>
         if (filter == null)
             return this;
         
-        return and((FoiFilter)filter, new Builder()).build();
+        return intersect((FoiFilter)filter, new Builder()).build();
     }
     
     
-    protected <B extends FoiFilterBuilder<B, FoiFilter>> B and(FoiFilter otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends FoiFilterBuilder<B, FoiFilter>> B intersect(FoiFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.intersect(otherFilter, builder);
         
