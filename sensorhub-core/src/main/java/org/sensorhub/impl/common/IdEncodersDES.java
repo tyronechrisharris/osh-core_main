@@ -14,14 +14,21 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.common;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Properties;
 import java.util.Random;
-import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.IdEncoder;
 import org.sensorhub.api.common.IdEncoders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -35,6 +42,18 @@ import org.sensorhub.api.common.IdEncoders;
  */
 public class IdEncodersDES implements IdEncoders
 {
+    static final Logger log = LoggerFactory.getLogger(IdEncodersDES.class);
+    static final String ID_KEYS_FILE = "idKeys.txt";
+    
+    static final String FEATURE_ID_KEY = "featIdKey";
+    static final String PROC_ID_KEY = "procIdKey";
+    static final String SYS_ID_KEY = "sysIdKey";
+    static final String FOI_ID_KEY = "foiIdKey";
+    static final String DS_ID_KEY = "dsIdKey";
+    static final String OBS_ID_KEY = "obsIdKey";
+    static final String CS_ID_KEY = "csIdKey";
+    static final String CMD_ID_KEY = "cmdIdKey";
+    
     final IdEncoder featureIdEncoder;
     final IdEncoder procIdEncoder;
     final IdEncoder sysIdEncoder;
@@ -47,38 +66,73 @@ public class IdEncodersDES implements IdEncoders
     
     public IdEncodersDES(ISensorHub hub)
     {
-        // TODO load seed from file
+        var sm = hub.getModuleRegistry().getCoreStateManager();
+        var idKeysFile = sm != null ? sm.getDataFile(ID_KEYS_FILE) : null;
+        var idKeysProps = new Properties();
+        
+        // load existing keys if any
+        if (idKeysFile != null && idKeysFile.exists())
+        {
+            try (var is = new FileInputStream(idKeysFile))
+            {
+                idKeysProps.load(is);
+            }
+            catch (IOException e)
+            {
+                log.error("Could not read ID keys file", e);
+            }
+        }
         
         // create ID encoders
+        int numSavedKeys = idKeysProps.size();
         try
         {
-            
-            var prg = new Random(10L);
-            this.featureIdEncoder = new IdEncoderDES(generateKey(prg));
-            this.procIdEncoder = new IdEncoderDES(generateKey(prg));
-            this.sysIdEncoder = new IdEncoderDES(generateKey(prg));
-            this.foiIdEncoder = new IdEncoderDES(generateKey(prg));
-            this.dsIdEncoder = new IdEncoderDES(generateKey(prg));
-            this.obsIdEncoder = new IdEncoderDES(generateKey(prg));
-            this.csIdEncoder = new IdEncoderDES(generateKey(prg));
-            this.cmdIdEncoder = new IdEncoderDES(generateKey(prg));
+            var prng = new SecureRandom();
+            this.featureIdEncoder = createEncoder(FEATURE_ID_KEY, idKeysProps, prng);
+            this.procIdEncoder = createEncoder(PROC_ID_KEY, idKeysProps, prng);
+            this.sysIdEncoder = createEncoder(SYS_ID_KEY, idKeysProps, prng);
+            this.foiIdEncoder = createEncoder(FOI_ID_KEY, idKeysProps, prng);
+            this.dsIdEncoder = createEncoder(DS_ID_KEY, idKeysProps, prng);
+            this.obsIdEncoder = createEncoder(OBS_ID_KEY, idKeysProps, prng);
+            this.csIdEncoder = createEncoder(CS_ID_KEY, idKeysProps, prng);
+            this.cmdIdEncoder = createEncoder(CMD_ID_KEY, idKeysProps, prng);
         }
         catch (GeneralSecurityException e)
         {
             throw new IllegalStateException("Error generating ID encoder keys", e);
         }
         
+        // save generated keys (if any)
+        var needSave = idKeysProps.size() != numSavedKeys;
+        if (idKeysFile != null && needSave)
+        {
+            try (var os = new FileOutputStream(idKeysFile))
+            {
+                idKeysProps.store(os, null);
+            }
+            catch (IOException e)
+            {
+                log.error("Could not save ID keys file", e);
+            }
+        }
     }
     
     
-    SecretKey generateKey(Random prg) throws GeneralSecurityException
+    IdEncoderDES createEncoder(String keyName, Properties idKeysProps, Random prng) throws GeneralSecurityException
     {
-        // generate 56 bytes keys from seed
-        var keyBytes = new byte[56];
-        prg.nextBytes(keyBytes);
+        // get key or generate new one
+        var key = (String)idKeysProps.computeIfAbsent(keyName, k -> {
+            // generate random 56 bytes key
+            var keyBytes = new byte[56];
+            prng.nextBytes(keyBytes);
+            return Base64.getEncoder().encodeToString(keyBytes);
+        });
+        
+        // create DESKey and ID encoder from key bytes
+        var keyBytes = Base64.getDecoder().decode(key);
         DESKeySpec dks = new DESKeySpec(keyBytes);
         var skf = SecretKeyFactory.getInstance("DES");
-        return skf.generateSecret(dks);
+        return new IdEncoderDES(skf.generateSecret(dks));
     }
     
     
