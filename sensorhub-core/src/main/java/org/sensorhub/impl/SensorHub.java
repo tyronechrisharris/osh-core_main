@@ -28,6 +28,7 @@ import org.sensorhub.api.processing.IProcessingManager;
 import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.system.ISystemDriverRegistry;
 import org.sensorhub.impl.comm.NetworkManagerImpl;
+import org.sensorhub.impl.common.IdEncodersDES;
 import org.sensorhub.impl.database.registry.DefaultDatabaseRegistry;
 import org.sensorhub.impl.datastore.mem.InMemorySystemStateDbConfig;
 import org.sensorhub.impl.event.EventBus;
@@ -135,7 +136,7 @@ public class SensorHub implements ISensorHub
             this.securityManager = new SecurityManagerImpl(this);
             this.networkManager = new NetworkManagerImpl(this);
             this.processingManager = new ProcessingManagerImpl(this);
-            this.idEncoders = new IdEncoders(this);
+            this.idEncoders = new IdEncodersDES(this);
             
             // prepare client authenticator (e.g. for HTTP connections, etc...)
             ClientAuth.createInstance("keystore");
