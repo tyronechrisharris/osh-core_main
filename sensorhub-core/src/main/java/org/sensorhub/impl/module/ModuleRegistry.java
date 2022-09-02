@@ -1179,6 +1179,15 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
     
     
     /**
+     * @return the state manager for the 'core' module
+     */
+    public IModuleStateManager getCoreStateManager()
+    {
+        return getStateManager("00_core");
+    }
+    
+    
+    /**
      * Retrieves the folder where the module data should be stored 
      * @param moduleID Local ID of module
      * @return File object representing the folder or null if none was specified

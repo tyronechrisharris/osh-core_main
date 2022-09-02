@@ -44,13 +44,13 @@ public class DefaultModuleStateManager implements IModuleStateManager
 {
     private static final Logger log = LoggerFactory.getLogger(DefaultModuleStateManager.class);
     private static final String STATE_FILE_NAME = "state.txt";
-    File folder;
+    File moduleDataDir;
     Properties stateProps;
     
     
     public DefaultModuleStateManager(String moduleDataPath, String localID)
     {
-        folder = new File(moduleDataPath, FileUtils.safeFileName(localID));
+        moduleDataDir = new File(moduleDataPath, FileUtils.safeFileName(localID));
         stateProps = new Properties();
         
         File stateFile = getStateFile();
@@ -116,28 +116,6 @@ public class DefaultModuleStateManager implements IModuleStateManager
 
 
     @Override
-    public InputStream getAsInputStream(String key)
-    {
-        File dataFile = getDataFile(key);
-        FileInputStream is = null;
-        
-        try
-        {
-            if (!dataFile.exists())
-                return null;
-            
-            is = new FileInputStream(dataFile);
-        }
-        catch (Exception e)
-        {
-            throw new IllegalStateException("Cannot open data file for reading", e);
-        }
-        
-        return new BufferedInputStream(is); 
-    }
-
-
-    @Override
     public void put(String key, float value)
     {
         stateProps.setProperty(key, Float.toString(value));
@@ -168,27 +146,7 @@ public class DefaultModuleStateManager implements IModuleStateManager
     @Override
     public void put(String key, String value)
     {
-        stateProps.setProperty(key, value);        
-    }
-    
-
-    @Override
-    public OutputStream getOutputStream(String key)
-    {
-        ensureFolder();
-        FileOutputStream os = null;
-        
-        try
-        {
-            File dataFile = getDataFile(key);
-            os = new FileOutputStream(dataFile);
-        }
-        catch (Exception e)
-        {
-            throw new IllegalStateException("Cannot open data file for writing", e);
-        }
-        
-        return new BufferedOutputStream(os);
+        stateProps.setProperty(key, value);
     }
     
     
@@ -204,49 +162,98 @@ public class DefaultModuleStateManager implements IModuleStateManager
         catch (Exception e)
         {
             throw new IllegalStateException("Cannot save module state information", e);
-        }        
-    }
-    
-    
-    @Override
-    public String getFolder()
-    {
-        ensureFolder();
-        return folder.getAbsolutePath();
-    }
-
-
-    @Override
-    public void cleanup()
-    {
-        try
-        {
-            if (folder.exists())
-                FileUtils.deleteRecursively(folder);
         }
-        catch (IOException e)
-        {
-            log.error("Cannot delete module state information: " + folder, e);
-        }
-    }
-    
-    
-    protected void ensureFolder()
-    {
-        if (!folder.exists())
-            folder.mkdirs();
-    }
-    
-    
-    protected File getDataFile(String key)
-    {
-        String fileName = key.toLowerCase() + ".dat";
-        return new File(folder, FileUtils.safeFileName(fileName));
     }
     
     
     protected File getStateFile()
     {
-        return new File(folder, STATE_FILE_NAME);
+        return new File(moduleDataDir, STATE_FILE_NAME);
+    }
+    
+    
+    @Override
+    public File getDataDirectory()
+    {
+        ensureFolder();
+        return moduleDataDir;
+    }
+    
+    
+    protected void ensureFolder()
+    {
+        if (!moduleDataDir.exists())
+            moduleDataDir.mkdirs();
+    }
+    
+    
+    public File getDataFile(String key)
+    {
+        return getDataFile(key, false);
+    }
+    
+    
+    protected File getDataFile(String key, boolean addExt)
+    {
+        String fileName = FileUtils.safeFileName(key.toLowerCase());
+        if (addExt && fileName.lastIndexOf('.') < 0)
+            fileName += ".dat";
+        return new File(getDataDirectory(), fileName);
+    }
+    
+    
+    @Override
+    public InputStream getAsInputStream(String key)
+    {
+        File dataFile = getDataFile(key, true);
+        FileInputStream is = null;
+        
+        try
+        {
+            if (!dataFile.exists())
+                return null;
+            
+            is = new FileInputStream(dataFile);
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException("Cannot open data file for reading", e);
+        }
+        
+        return new BufferedInputStream(is); 
+    }
+    
+    
+    @Override
+    public OutputStream getOutputStream(String key)
+    {
+        FileOutputStream os = null;
+        
+        try
+        {
+            File dataFile = getDataFile(key, true);
+            os = new FileOutputStream(dataFile);
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException("Cannot open data file for writing", e);
+        }
+        
+        return new BufferedOutputStream(os);
+    }
+    
+    
+    @Override
+    public void cleanup()
+    {
+        try
+        {
+            if (moduleDataDir.exists())
+                FileUtils.deleteRecursively(moduleDataDir);
+        }
+        catch (IOException e)
+        {
+            log.error("Cannot delete module state information: " + moduleDataDir, e);
+        }
     }
 }

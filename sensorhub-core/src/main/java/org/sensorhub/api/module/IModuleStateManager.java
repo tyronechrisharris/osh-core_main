@@ -14,6 +14,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.module;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -30,10 +31,6 @@ public interface IModuleStateManager
 
     public Long getAsLong(String key);
     
-    public InputStream getAsInputStream(String key);
-    
-    public String getFolder();
-    
     public void put(String key, float value);
     
     public void put(String key, double value);
@@ -44,9 +41,15 @@ public interface IModuleStateManager
     
     public void put(String key, String value);
     
+    public void flush();
+    
+    public File getDataDirectory();
+    
+    public File getDataFile(String key);
+    
     public OutputStream getOutputStream(String key);
     
-    public void flush();
+    public InputStream getAsInputStream(String key);
     
     public void cleanup();
 }
