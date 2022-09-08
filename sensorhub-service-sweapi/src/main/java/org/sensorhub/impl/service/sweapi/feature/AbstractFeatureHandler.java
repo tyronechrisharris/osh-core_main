@@ -17,7 +17,10 @@ package org.sensorhub.impl.service.sweapi.feature;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import javax.xml.namespace.QName;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.IdEncoder;
 import org.sensorhub.api.common.IdEncoders;
@@ -77,6 +80,65 @@ public abstract class AbstractFeatureHandler<
         var geom = parseGeomArg("geom", queryParams);
         if (geom != null)
             builder.withLocationIntersecting(geom);
+        
+        // featureType
+        var fType = getSingleParam("featureType", queryParams);
+        if (!Strings.isNullOrEmpty(fType))
+            builder.withValuePredicate(f -> f.getType() != null && f.getType().equals(fType));
+        
+        buildPredicate(queryParams, builder);
+    }
+    
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    protected void buildPredicate(final Map<String, String[]> queryParams, final B builder) throws InvalidRequestException
+    {
+        // property values
+        Predicate<V> predicate = null;
+        for (var e: queryParams.entrySet())
+        {
+            if (e.getKey().startsWith("p:"))
+                predicate = addPredicate(e, predicate);
+        }
+        if (predicate != null)
+            builder.withValuePredicate((Predicate)predicate);
+    }
+    
+    
+    Predicate<V> addPredicate(final Map.Entry<String, String[]> param, Predicate<V> prevPredicate)
+    {
+        if (param.getValue().length == 1)
+        {
+            var propName = param.getKey().substring(param.getKey().indexOf(':')+1);
+            var valueStr = param.getValue()[0];
+            var pattern =  Pattern.compile(valueStr.replace("*", ".*").replace("?", "."));
+            Predicate<V> p;
+            
+            if ("name".equals(propName))
+            {
+                p = f -> f.getName() != null && pattern.matcher(f.getName()).matches();
+            }
+            else if ("description".equals(propName))
+            {
+                p = f -> f.getDescription() != null && pattern.matcher(f.getDescription()).matches();
+            }
+            else
+            {
+                var propQname = new QName(propName);
+                p = f -> {
+                    var val = f.getProperties().get(propQname);
+                    if (val instanceof String)
+                        return pattern.matcher((String)val).matches();
+                    else if (val instanceof Number)
+                        return ((Number)val).equals(Double.parseDouble(valueStr));
+                    return false;
+                };
+            }
+            
+            return prevPredicate != null ? prevPredicate.and(p) : p;
+        }
+        
+        return null;
     }
 
 
