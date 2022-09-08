@@ -126,7 +126,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
                 .withInternalIDs(key.getInternalID())
                 .includeMembers(true)
                 .done()
-            .withCurrentVersion()
+            //.withCurrentVersion()
             .withLimit(1)
             .build()) > 0;
             

@@ -117,8 +117,8 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
         var validTime = parseTimeStampArg("validTime", queryParams);
         if (validTime != null)
             builder.withValidTime(validTime);
-        else
-            builder.withCurrentVersion();
+        //else
+        //    builder.withCurrentVersion();
         
         // filter on parent if needed
         if (parent.internalID != null)
