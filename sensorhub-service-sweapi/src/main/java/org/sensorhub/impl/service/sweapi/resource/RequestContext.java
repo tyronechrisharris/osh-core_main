@@ -71,6 +71,7 @@ public class RequestContext
         public BaseResourceHandler type;
         public BigId internalID;
         public Instant validTime;
+        public String id;
     }
     
     
@@ -202,6 +203,13 @@ public class RequestContext
     public ResourceRef getParentRef()
     {
         return parentResource;
+    }
+    
+    
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, String id)
+    {
+        parentResource.type = parentHandler;
+        parentResource.id = id;
     }
     
     

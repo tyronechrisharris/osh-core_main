@@ -96,7 +96,10 @@ public class CollectionHandler extends BaseHandler
         // next should be nested resource
         IResourceHandler resource = getSubResource(ctx);
         if (resource != null)
+        {
+            ctx.setParent(null, id);
             resource.doGet(ctx);
+        }
         else
             throw ServiceErrors.badRequest(INVALID_URI_ERROR_MSG);
     }
@@ -134,7 +137,7 @@ public class CollectionHandler extends BaseHandler
             systemCol.links.add(ResourceLink.self(
                 ctx.getApiRootURL() + "/" + NAMES[0],
                 ResourceFormat.JSON.getMimeType()));
-            addItemsLink("Access the system instances", SystemHandler.NAMES[0], ctx, systemCol.links);
+            addItemsLink("Access the system instances", SystemHandler.NAMES[0], systemCol.links);
             allCollections.put(systemCol.id, systemCol);
             
             // datastreams collection
@@ -147,7 +150,7 @@ public class CollectionHandler extends BaseHandler
             dsCol.links.add(ResourceLink.self(
                 ctx.getApiRootURL() + "/" + NAMES[0],
                 ResourceFormat.JSON.getMimeType()));
-            addItemsLink("Access the datastreams", DataStreamHandler.NAMES[0], ctx, dsCol.links);
+            addItemsLink("Access the datastreams", DataStreamHandler.NAMES[0], dsCol.links);
             allCollections.put(dsCol.id, dsCol);
             
             // features of interest collection
@@ -160,7 +163,7 @@ public class CollectionHandler extends BaseHandler
             foiCol.links.add(ResourceLink.self(
                 ctx.getApiRootURL() + "/" + NAMES[0],
                 ResourceFormat.JSON.getMimeType()));
-            addItemsLink("Access the features of interests", FoiHandler.NAMES[0], ctx, foiCol.links);
+            addItemsLink("Access the features of interests", FoiHandler.NAMES[0], foiCol.links);
             allCollections.put(foiCol.id, foiCol);
             
             // system types collection
@@ -173,7 +176,7 @@ public class CollectionHandler extends BaseHandler
             systemTypeCol.links.add(ResourceLink.self(
                 ctx.getApiRootURL() + "/" + NAMES[0],
                 ResourceFormat.JSON.getMimeType()));
-            addItemsLink("Access the procedures", ProcedureHandler.NAMES[0], ctx, systemTypeCol.links);
+            addItemsLink("Access the procedures", ProcedureHandler.NAMES[0], systemTypeCol.links);
             allCollections.put(systemTypeCol.id, systemTypeCol);
         }
         
@@ -181,13 +184,13 @@ public class CollectionHandler extends BaseHandler
     }
     
     
-    protected void addItemsLink(String title, String path, RequestContext ctx, Set<ResourceLink> links)
+    protected void addItemsLink(String title, String path, Set<ResourceLink> links)
     {
         links.add(ResourceLink.builder()
             .rel(ResourceLink.REL_ITEMS)
             .title(title + " in this collection")
             .type(ResourceFormat.JSON.getMimeType())
-            .href(ctx.getApiRootURL() + "/" + path)
+            .href(path)
             .build());
     }
     
