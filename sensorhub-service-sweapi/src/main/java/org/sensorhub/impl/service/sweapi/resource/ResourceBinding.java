@@ -51,4 +51,10 @@ public abstract class ResourceBinding<K, V>
     public abstract void serialize(K key, V res, boolean showLinks) throws IOException;
     public abstract void startCollection() throws IOException;
     public abstract void endCollection(Collection<ResourceLink> links) throws IOException;
+    
+    
+    protected String getAbsoluteHref(String href)
+    {
+        return href.startsWith("/") ? ctx.getApiRootURL() + href : href;
+    }
 }

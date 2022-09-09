@@ -153,9 +153,10 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
                 writer.name("rel").value(l.getRel());
                 if (l.getTitle() != null)
                     writer.name("title").value(l.getTitle());
-                writer.name("href").value(l.getHref());
+                writer.name("href").value(getAbsoluteHref(l.getHref()));
                 if (l.getType() != null)
                     writer.name("type").value(l.getType());
+                
                 writer.endObject();
             }        
             writer.endArray();

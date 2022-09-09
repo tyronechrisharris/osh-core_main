@@ -90,7 +90,7 @@ public class CollectionHtml extends ResourceBindingHtml<String, CollectionInfo>
             div(
                 itemsLink != null ? a(itemsLink.getTitle())
                     .withRel(itemsLink.getRel())
-                    .withHref(itemsLink.getHref()) : null
+                    .withHref(getAbsoluteHref(itemsLink.getHref())) : null
             ).withClass("mt-2")
         );
         
