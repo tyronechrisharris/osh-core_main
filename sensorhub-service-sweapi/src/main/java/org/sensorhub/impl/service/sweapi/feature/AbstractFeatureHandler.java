@@ -15,6 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.feature;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
@@ -81,39 +82,76 @@ public abstract class AbstractFeatureHandler<
         if (geom != null)
             builder.withLocationIntersecting(geom);
         
-        // featureType
-        var fType = getSingleParam("featureType", queryParams);
-        if (!Strings.isNullOrEmpty(fType))
-            builder.withValuePredicate(f -> f.getType() != null && f.getType().equals(fType));
-        
-        buildPredicate(queryParams, builder);
+        // predicate
+        var predicate = getPredicate(queryParams);
+        if (predicate != null)
+            builder.withValuePredicate(predicate);
     }
     
     
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    protected void buildPredicate(final Map<String, String[]> queryParams, final B builder) throws InvalidRequestException
+    
+    protected Predicate<V> getPredicate(final Map<String, String[]> queryParams) throws InvalidRequestException
     {
+        Predicate<V> fullPredicate = null;
+        
+        // featureType
+        fullPredicate = getFeatureTypePredicate(queryParams);
+        
         // property values
-        Predicate<V> predicate = null;
         for (var e: queryParams.entrySet())
         {
-            if (e.getKey().startsWith("p:"))
-                predicate = addPredicate(e, predicate);
+            // process all params with "p:" prefix, but only once
+            var processedParams = new HashSet<>();
+            if (e.getKey().startsWith("p:") && !processedParams.contains(e.getKey()))
+            {
+                fullPredicate = setOrAndPredicate(fullPredicate,
+                    getPropertyPredicate(e.getKey(), queryParams));
+                processedParams.add(e.getKey());
+            }
         }
-        if (predicate != null)
-            builder.withValuePredicate((Predicate)predicate);
+        
+        return fullPredicate;
     }
     
     
-    Predicate<V> addPredicate(final Map.Entry<String, String[]> param, Predicate<V> prevPredicate)
+    Predicate<V> setOrAndPredicate(Predicate<V> prevPredicate, Predicate<V> newPredicate)
     {
-        if (param.getValue().length == 1)
+        return prevPredicate != null ? prevPredicate.and(newPredicate) : newPredicate;
+    }
+    
+    
+    Predicate<V> getFeatureTypePredicate(final Map<String, String[]> queryParams) throws InvalidRequestException
+    {
+        var fTypes = parseMultiValuesArg("featureType", queryParams);
+        Predicate<V> argPredicate = null;
+        
+        for (var fType: fTypes)
         {
-            var propName = param.getKey().substring(param.getKey().indexOf(':')+1);
-            var valueStr = param.getValue()[0];
-            var pattern =  Pattern.compile(valueStr.replace("*", ".*").replace("?", "."));
+            if (!Strings.isNullOrEmpty(fType))
+            {
+                Predicate<V> p = f -> f.getType() != null && f.getType().equals(fType);
+                argPredicate = argPredicate != null ? argPredicate.or(p) : p;
+            }
+        }
+        
+        return argPredicate;
+    }
+    
+    
+    Predicate<V> getPropertyPredicate(final String paramName, final Map<String, String[]> queryParams) throws InvalidRequestException
+    {
+        var propName = paramName.substring(paramName.indexOf(':')+1);
+        var propValues = parseMultiValuesArg(paramName, queryParams);
+        Predicate<V> argPredicate = null;
+        
+        for (var valueStr: propValues)
+        {
+            // sanitize and convert input pattern to regex
+            var pattern =  Pattern.compile("\\Q" + valueStr
+                .replace("*", "\\E.*\\Q")
+                .replace("?", "\\E.\\Q") + "\\E");
+
             Predicate<V> p;
-            
             if ("name".equals(propName))
             {
                 p = f -> f.getName() != null && pattern.matcher(f.getName()).matches();
@@ -130,15 +168,21 @@ public abstract class AbstractFeatureHandler<
                     if (val instanceof String)
                         return pattern.matcher((String)val).matches();
                     else if (val instanceof Number)
-                        return ((Number)val).equals(Double.parseDouble(valueStr));
+                    {
+                        try {
+                            return "*".equals(valueStr) || ((Number)val).equals(Double.parseDouble(valueStr));
+                        } catch (NumberFormatException e) {
+                            return false;
+                        }
+                    }
                     return false;
                 };
             }
             
-            return prevPredicate != null ? prevPredicate.and(p) : p;
+            argPredicate = argPredicate != null ? argPredicate.or(p) : p;
         }
         
-        return null;
+        return argPredicate;
     }
 
 
