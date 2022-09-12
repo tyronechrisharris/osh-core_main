@@ -21,7 +21,8 @@ import java.util.function.Predicate;
 import org.junit.Test;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.system.SystemFilter;
-import org.vast.ogc.om.IProcedure;
+import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.vast.sensorML.SMLHelper;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -56,7 +57,7 @@ public class TestDatastoreFilters
             assertTrue(filter.getFullTextFilter().getKeywords().contains(w));
         
         // predicate
-        Predicate<IProcedure> predicate = (f -> f.getName().equals("test"));
+        Predicate<ISystemWithDesc> predicate = (f -> f.getName().equals("test"));
         filter = new SystemFilter.Builder()
             .withValuePredicate(predicate)
             .build();
@@ -98,12 +99,12 @@ public class TestDatastoreFilters
     @Test
     public void testSystemFilterAsPredicate()
     {
-        var proc = new SMLHelper().createPhysicalComponent()
+        var proc = new SystemWrapper(new SMLHelper().createPhysicalComponent()
             .name("Thermometer")
             .description("A thermometer measuring outdoor air temperature on my window")
             .uniqueID("urn:osh:sensor:001")
             .validFrom(OffsetDateTime.parse("2001-05-26T13:45:00Z"))
-            .build();
+            .build());
         
         assertTrue(new SystemFilter.Builder().build()
             .test(proc));

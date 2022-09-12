@@ -41,8 +41,8 @@ import com.google.common.base.Strings;
 
 public abstract class AbstractFeatureHandler<
     V extends IFeature,
-    F extends FeatureFilterBase<? super V>,
-    B extends FeatureFilterBaseBuilder<B,? super V,F>,
+    F extends FeatureFilterBase<V>,
+    B extends FeatureFilterBaseBuilder<B,V,F>,
     S extends IFeatureStoreBase<V,?,F>> extends ResourceHandler<FeatureKey, V, F, B, S>
 {
     static final int MIN_UID_CHARS = 12;

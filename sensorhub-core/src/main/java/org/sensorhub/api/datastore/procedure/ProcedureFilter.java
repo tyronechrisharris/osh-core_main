@@ -18,8 +18,8 @@ import java.util.Collection;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.resource.ResourceFilter;
-import org.vast.ogc.om.IProcedure;
 
 
 /**
@@ -31,7 +31,7 @@ import org.vast.ogc.om.IProcedure;
  * @author Alex Robin
  * @date Oct 4, 2021
  */
-public class ProcedureFilter extends FeatureFilterBase<IProcedure>
+public class ProcedureFilter extends FeatureFilterBase<IProcedureWithDesc>
 {
     protected ProcedureFilter parentFilter;
 
@@ -55,7 +55,7 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
     @Override
-    public ProcedureFilter intersect(ResourceFilter<IProcedure> filter) throws EmptyFilterIntersection
+    public ProcedureFilter intersect(ResourceFilter<IProcedureWithDesc> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
@@ -110,11 +110,11 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     /*
      * Nested builder for use within another builder
      */
-    public static abstract class NestedBuilder<B> extends ProcedureFilterBuilder<NestedBuilder<B>, ProcedureFilter>
+    public abstract static class NestedBuilder<B> extends ProcedureFilterBuilder<NestedBuilder<B>, ProcedureFilter>
     {
         B parent;
         
-        public NestedBuilder(B parent)
+        protected NestedBuilder(B parent)
         {
             super(new ProcedureFilter());
             this.parent = parent;
@@ -125,10 +125,10 @@ public class ProcedureFilter extends FeatureFilterBase<IProcedure>
     
     
     @SuppressWarnings("unchecked")
-    public static abstract class ProcedureFilterBuilder<
+    public abstract static class ProcedureFilterBuilder<
             B extends ProcedureFilterBuilder<B, F>,
             F extends ProcedureFilter>
-        extends FeatureFilterBaseBuilder<B, IProcedure, F>
+        extends FeatureFilterBaseBuilder<B, IProcedureWithDesc, F>
     {
         
         protected ProcedureFilterBuilder(F instance)

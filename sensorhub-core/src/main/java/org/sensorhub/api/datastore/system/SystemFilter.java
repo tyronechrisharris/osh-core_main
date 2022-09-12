@@ -22,7 +22,7 @@ import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.resource.ResourceFilter;
-import org.vast.ogc.om.IProcedure;
+import org.sensorhub.api.system.ISystemWithDesc;
 
 
 /**
@@ -34,7 +34,7 @@ import org.vast.ogc.om.IProcedure;
  * @author Alex Robin
  * @date Apr 2, 2018
  */
-public class SystemFilter extends FeatureFilterBase<IProcedure>
+public class SystemFilter extends FeatureFilterBase<ISystemWithDesc>
 {
     protected SystemFilter parentFilter;
     protected DataStreamFilter dataStreamFilter;
@@ -72,7 +72,7 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
     @Override
-    public SystemFilter intersect(ResourceFilter<IProcedure> filter) throws EmptyFilterIntersection
+    public SystemFilter intersect(ResourceFilter<ISystemWithDesc> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
@@ -135,11 +135,11 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
     /*
      * Nested builder for use within another builder
      */
-    public static abstract class NestedBuilder<B> extends SystemFilterBuilder<NestedBuilder<B>, SystemFilter>
+    public abstract static class NestedBuilder<B> extends SystemFilterBuilder<NestedBuilder<B>, SystemFilter>
     {
         B parent;
         
-        public NestedBuilder(B parent)
+        protected NestedBuilder(B parent)
         {
             super(new SystemFilter());
             this.parent = parent;
@@ -150,10 +150,10 @@ public class SystemFilter extends FeatureFilterBase<IProcedure>
     
     
     @SuppressWarnings("unchecked")
-    public static abstract class SystemFilterBuilder<
+    public abstract static class SystemFilterBuilder<
             B extends SystemFilterBuilder<B, F>,
             F extends SystemFilter>
-        extends FeatureFilterBaseBuilder<B, IProcedure, F>
+        extends FeatureFilterBaseBuilder<B, ISystemWithDesc, F>
     {        
         
         protected SystemFilterBuilder(F instance)

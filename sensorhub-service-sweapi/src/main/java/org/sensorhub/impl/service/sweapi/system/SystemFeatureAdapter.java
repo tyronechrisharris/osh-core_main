@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.sweapi.system;
 
 import java.util.Map;
 import javax.xml.namespace.QName;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.TimeExtent;
@@ -30,7 +31,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @since Jan 7, 2021
  */
-public class SystemFeatureAdapter implements ISystemWithDesc
+public class SystemFeatureAdapter implements ISystemWithDesc, IProcedureWithDesc
 {
     IFeature delegate;
     
