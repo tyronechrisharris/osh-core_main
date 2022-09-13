@@ -15,20 +15,12 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import java.util.concurrent.CompletableFuture;
-import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.CommandException;
-import org.sensorhub.api.command.ICommandStatus;
+import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandReceiver;
-import org.sensorhub.api.command.IStreamingControlInterface;
-import org.sensorhub.api.event.IEventHandler;
-import org.sensorhub.api.event.IEventListener;
-import org.sensorhub.api.sensor.SensorException;
-import org.sensorhub.impl.event.BasicEventHandler;
-import org.sensorhub.impl.module.AbstractModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.vast.util.Asserts;
+import org.sensorhub.api.command.ICommandStatus;
+import org.sensorhub.impl.command.AbstractControlInterface;
 import net.opengis.swe.v20.DataBlock;
 
 
@@ -43,68 +35,25 @@ import net.opengis.swe.v20.DataBlock;
  * @param <T> Type of parent system
  * @since Nov 22, 2014
  */
-public abstract class AbstractSensorControl<T extends ICommandReceiver> implements IStreamingControlInterface
+public abstract class AbstractSensorControl<T extends ICommandReceiver> extends AbstractControlInterface<T>
 {
-    protected final T parentSensor;
-    protected final IEventHandler eventHandler;
-    protected final String name;
-    protected final Logger log;
+    protected final T parentSensor; // for backward compatibility
     
     
-    public AbstractSensorControl(String name, T parentSensor)
+    protected AbstractSensorControl(String name, T parentSensor)
     {
-        this(name, (T)parentSensor, null);
-    }
-    
-    
-    /**
-     * Constructs a new control input with the given name and attached to the
-     * provided parent sensor.<br/>
-     * @param name
-     * @param parentSensor
-     * @param eventSrcInfo
-     * @param log
-     */
-    public AbstractSensorControl(String name, T parentSensor, Logger log)
-    {
-        this.name = Asserts.checkNotNull(name, "name");
-        this.parentSensor = Asserts.checkNotNull(parentSensor, "parentSensor");
-        this.eventHandler = new BasicEventHandler();
+        super(name, parentSensor);
+        this.parentSensor = parent;
         
-        // setup logger
-        if (log == null)
-        {
-            if (log == null && parentSensor instanceof AbstractModule)
-                this.log = ((AbstractModule<?>)parentSensor).getLogger();
-            else
-                this.log = LoggerFactory.getLogger(getClass().getCanonicalName());
-        }
-        else
-            this.log = log;
     }
     
-    
-    @Override
-    public T getParentProducer()
+
+    protected boolean execCommand(DataBlock cmdData) throws CommandException
     {
-        return parentSensor;
+        throw new UnsupportedOperationException();
     }
     
     
-    @Override
-    public String getName()
-    {
-        return name;
-    }
-
-
-    @Override
-    public boolean isEnabled()
-    {
-        return true;
-    }
-
-
     @Override
     public CompletableFuture<ICommandStatus> submitCommand(ICommandData command)
     {
@@ -124,45 +73,4 @@ public abstract class AbstractSensorControl<T extends ICommandReceiver> implemen
             return status;
         });
     }
-
-
-    @Override
-    public void validateCommand(ICommandData command) throws CommandException
-    {        
-    }
-    
-        
-    /**
-     * Helper method to implement simple synchronous command logic, backward compatible
-     * with existing driver implementations (1.x). For more advanced implementations,
-     * override {@link #submitCommand(ICommandData)} directly.
-     * @param cmdData
-     * @return
-     * @throws SensorException
-     */
-    protected boolean execCommand(DataBlock cmdData) throws CommandException
-    {
-        throw new UnsupportedOperationException();
-    }
-    
-    
-    @Override
-    public void registerListener(IEventListener listener)
-    {
-        eventHandler.registerListener(listener);
-    }
-
-
-    @Override
-    public void unregisterListener(IEventListener listener)
-    {
-        eventHandler.unregisterListener(listener);
-    }
-    
-    
-    protected Logger getLogger()
-    {
-        return log; 
-    }
-    
 }

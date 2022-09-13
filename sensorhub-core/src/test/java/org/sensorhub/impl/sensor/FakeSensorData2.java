@@ -28,7 +28,6 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataType;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.data.DataEvent;
 import org.vast.data.BinaryComponentImpl;
 import org.vast.data.DataBlockByte;
@@ -62,19 +61,13 @@ public class FakeSensorData2 extends AbstractSensorOutput<IDataProducer> impleme
     
     public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount)
     {
-        this(sensor, name, samplingPeriod, maxSampleCount, null);   
+        this(sensor, name, samplingPeriod, maxSampleCount, null);
     }
     
     
     public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, NavigableMap<Integer, Integer> obsFoiMap)
     {
-        this(sensor, name, samplingPeriod, maxSampleCount, obsFoiMap, null);
-    }
-    
-    
-    public FakeSensorData2(IDataProducer sensor, String name, double samplingPeriod, int maxSampleCount, NavigableMap<Integer, Integer> obsFoiMap, IEventSourceInfo eventSrcInfo)
-    {
-        super(name, sensor, eventSrcInfo);
+        super(name, sensor);
         this.samplingPeriod = samplingPeriod;
         this.maxSampleCount = maxSampleCount;
         this.obsFoiMap = obsFoiMap;

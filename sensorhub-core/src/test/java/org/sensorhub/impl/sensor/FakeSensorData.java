@@ -22,7 +22,6 @@ import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataBlock;
 import org.sensorhub.api.data.IDataProducer;
-import org.sensorhub.api.event.IEventSourceInfo;
 import org.sensorhub.api.data.DataEvent;
 import org.vast.data.DataBlockDouble;
 import org.vast.data.TextEncodingImpl;
@@ -62,13 +61,7 @@ public class FakeSensorData extends AbstractSensorOutput<IDataProducer> implemen
     
     public FakeSensorData(IDataProducer sensor, final String name, final double samplingPeriod, final int maxSampleCount)
     {
-        this(sensor,name, samplingPeriod, maxSampleCount, null);
-    }
-    
-    
-    public FakeSensorData(IDataProducer sensor, final String name, final double samplingPeriod, final int maxSampleCount, IEventSourceInfo eventSrcInfo)
-    {
-        super(name, sensor, eventSrcInfo);
+        super(name, sensor);
         this.samplingPeriod = samplingPeriod;
         this.maxSampleCount = maxSampleCount;
         init();
