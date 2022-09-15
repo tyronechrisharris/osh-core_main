@@ -379,13 +379,8 @@ public class CommandStreamTransactionHandler implements IEventListener
     {
         log.debug("Sending status {}: {}", correlationID, status);
         
-        // convert command ID to public ID
-        var publicStatus = CommandStatus.Builder.from(status)
-            .withCommand(status.getCommandID())
-            .build();
-        
         // forward to event bus
-        publishStatusEvent(correlationID, publicStatus);
+        publishStatusEvent(correlationID, status);
         
         // store command status in DB
         return rootHandler.db.getCommandStatusStore().add(status);
