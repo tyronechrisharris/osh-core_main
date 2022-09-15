@@ -215,7 +215,8 @@ public class MVCommandStatusStoreImpl implements ICommandStatusStore
                 var maxKey = new MVCommandStatusKey(cmdID, Instant.MAX);
                 var lastKey = statusIndex.floorKey(maxKey);
                 
-                if (firstKey.cmdID == cmdID && lastKey.cmdID == cmdID)
+                if (firstKey != null && firstKey.cmdID == cmdID &&
+                    lastKey != null && lastKey.cmdID == cmdID)
                 {
                     if (timeRange[0].isAfter(firstKey.reportTime))
                         timeRange[0] = firstKey.reportTime;
