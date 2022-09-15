@@ -25,11 +25,13 @@ import net.opengis.swe.v20.DataComponent;
  * Interface for data processing components run by OSH.<br/>
  * Depending on the type of data sources, the process can be a streaming
  * process (i.e. always running to process incoming data streams) or an
- * on-demand process that is triggered externally.<br/> The process becomes
- * an on-demand process if one or more inputs are exposed through the
- * {@link org.sensorhub.api.command.ICommandReceiver} interface.<br/>
- * In both cases, data is produced on output interface(s) and can be either
- * polled or pushed to registered listeners.
+ * on-demand process that is triggered externally.<br/>
+ * The {@link #getInputDescriptors()}, {@link #getOutputDescriptors()} and
+ * {@link #getParameterDescriptors()} methods only provide descriptors, not
+ * streaming interfaces. For on-demand processes, outputs may have
+ * descriptors but no associated streaming interfaces (in this case
+ * output data is provided inline in the command result, and not evented
+ * into a datastream).
  * </p>
  *
  * @author Alex Robin
@@ -45,7 +47,17 @@ public interface IDataProcess extends IDataProducer, ICommandReceiver
      * available for external trigger via the command interface
      * @return Read-only map of input name to input descriptor
      */
-    public Map<String, DataComponent> getInputs();
+    public Map<String, DataComponent> getInputDescriptors();
+    
+    
+    /**
+     * Gets the list of all input descriptors.
+     * <br/><br/>
+     * Note that only inputs that are not connected to data sources will be
+     * available for external trigger via the command interface
+     * @return Read-only map of input name to input descriptor
+     */
+    public Map<String, DataComponent> getOutputDescriptors();
     
     
     /**
@@ -60,6 +72,6 @@ public interface IDataProcess extends IDataProducer, ICommandReceiver
      * (even when they are marked as 'updatable') has no effect.
      * @return Read-only map of parameter name to parameter descriptor
      */
-    public Map<String, DataComponent> getParameters();
+    public Map<String, DataComponent> getParameterDescriptors();
     
 }

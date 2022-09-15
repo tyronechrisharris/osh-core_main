@@ -28,9 +28,9 @@ import org.sensorhub.api.processing.ProcessConfig;
 import org.sensorhub.api.processing.ProcessingException;
 import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.api.system.ISystemGroupDriver;
+import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.module.AbstractModule;
 import org.vast.ogc.gml.IFeature;
-import org.vast.sensorML.AggregateProcessImpl;
 
 
 /**
@@ -52,7 +52,7 @@ public abstract class AbstractProcessModule<T extends ProcessConfig> extends Abs
     protected Map<String, IStreamingControlInterface> controlInterfaces = new LinkedHashMap<>();
 
     protected ISystemGroupDriver<?> parentSystem;
-    protected AggregateProcessImpl processDescription;
+    protected AbstractProcess processDescription;
     protected long lastUpdatedProcess = Long.MIN_VALUE;
     protected boolean paused = false;
     protected int errorCount = 0;
@@ -60,6 +60,54 @@ public abstract class AbstractProcessModule<T extends ProcessConfig> extends Abs
     
     protected AbstractProcessModule()
     {
+    }
+    
+    
+    /**
+     * Helper method to make sure derived classes add outputs consistently in the different maps
+     * @param outputInterface
+     */
+    protected void addOutput(IStreamingDataInterface outputInterface)
+    {
+        String outputName = outputInterface.getName();
+        outputs.put(outputName, outputInterface.getRecordDescription());
+        outputInterfaces.put(outputName, outputInterface);
+    }
+    
+    
+    /**
+     * Helper method to make sure derived classes add inputs consistently in the different maps
+     * @param controlInterface
+     */
+    protected void addInput(IStreamingControlInterface controlInterface)
+    {
+        String inputName = controlInterface.getName();
+        inputs.put(inputName, controlInterface.getCommandDescription());
+        controlInterfaces.put(inputName, controlInterface);
+    }
+    
+    
+    /**
+     * Helper method to make sure derived classes add parameters consistently in the different maps
+     * @param controlInterface
+     */
+    protected void addParams(IStreamingControlInterface controlInterface)
+    {
+        String paramName = controlInterface.getName();
+        parameters.put(paramName, controlInterface.getCommandDescription());
+        controlInterfaces.put(paramName, controlInterface);
+    }
+    
+    
+    @Override
+    protected void afterInit() throws SensorHubException
+    {
+        if (processDescription == null)
+            throw new IllegalStateException("No process description created during init");
+        OshAsserts.checkValidUID(processDescription.getUniqueIdentifier());
+        
+        if (inputs.isEmpty() && outputs.isEmpty())
+            throw new IllegalStateException("At least one input or output must be created during init");
     }
     
     
@@ -110,14 +158,21 @@ public abstract class AbstractProcessModule<T extends ProcessConfig> extends Abs
 
 
     @Override
-    public Map<String, DataComponent> getInputs()
+    public Map<String, DataComponent> getInputDescriptors()
     {
         return Collections.unmodifiableMap(inputs);
+    }
+
+
+    @Override
+    public Map<String, DataComponent> getOutputDescriptors()
+    {
+        return Collections.unmodifiableMap(outputs);
     }
     
     
     @Override
-    public Map<String, DataComponent> getParameters()
+    public Map<String, DataComponent> getParameterDescriptors()
     {
         // for parameters we actually maintain a buffer so they
         // can be set during process execution

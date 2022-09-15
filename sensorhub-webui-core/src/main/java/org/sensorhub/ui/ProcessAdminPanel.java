@@ -14,25 +14,20 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.ui;
 
-import net.opengis.gml.v32.impl.ReferenceImpl;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.AggregateProcess;
 import net.opengis.sensorml.v20.Link;
 import net.opengis.sensorml.v20.Settings;
 import net.opengis.sensorml.v20.SimpleProcess;
-import net.opengis.swe.v20.DataBlock;
 import net.opengis.swe.v20.DataComponent;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
-import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.api.processing.IProcessModule;
 import org.sensorhub.api.processing.ProcessingException;
-import org.sensorhub.api.data.IStreamingDataInterface;
-import org.sensorhub.api.sensor.ISensorModule;
 import org.sensorhub.impl.processing.SMLProcessConfig;
 import org.sensorhub.impl.processing.SMLProcessImpl;
 import org.sensorhub.impl.processing.StreamDataSource;
@@ -41,12 +36,10 @@ import org.sensorhub.ui.ProcessFlowDiagram.Connection;
 import org.sensorhub.ui.ProcessFlowDiagram.ProcessBlock;
 import org.sensorhub.ui.ProcessFlowDiagram.ProcessFlowState;
 import org.sensorhub.ui.ProcessSelectionPopup.ProcessSelectionCallback;
-import org.sensorhub.ui.api.IModuleAdminPanel;
 import org.sensorhub.ui.data.MyBeanItem;
 import org.sensorhub.utils.FileUtils;
 import org.vast.data.DataRecordImpl;
 import org.vast.process.ProcessInfo;
-import org.vast.sensorML.AggregateProcessImpl;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLUtils;
 import org.vast.swe.SWEHelper;
@@ -59,7 +52,6 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Layout;
 import com.vaadin.ui.Panel;
-import com.vaadin.ui.VerticalLayout;
 
 
 /**
@@ -86,7 +78,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
         super.build(beanItem, module);
         
         // control params section
-        if (!module.getParameters().isEmpty())
+        if (!module.getParameterDescriptors().isEmpty())
         {
             // title
             addComponent(new Spacing());
@@ -126,7 +118,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             // wrap all parameters into a single datarecord so we can submit them together
             DataRecordImpl params = new DataRecordImpl();
             params.setName("Parameters");
-            for (DataComponent param: module.getParameters().values())
+            for (DataComponent param: module.getParameterDescriptors().values())
                 params.addComponent(param.getName(), param);
             params.combineDataBlocks();
 

@@ -20,17 +20,14 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import net.opengis.OgcPropertyList;
 import net.opengis.swe.v20.AbstractSWEIdentifiable;
 import net.opengis.swe.v20.DataComponent;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
 import org.sensorhub.api.processing.ProcessingException;
 import org.sensorhub.api.utils.OshAsserts;
-import org.sensorhub.utils.Lambdas;
 import org.vast.process.ProcessException;
 import org.vast.sensorML.AggregateProcessImpl;
 import org.vast.sensorML.SMLException;
@@ -98,17 +95,19 @@ public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
                 // set default name if none set in SensorML file
                 if (processDescription.getName() == null)
                     processDescription.setName(this.getName());
+                
+                initChain();
             }
             catch (Exception e)
             {
                 throw new ProcessingException(String.format("Cannot read SensorML description from '%s'", smlPath), e);
             }
             
-            CompletableFuture.runAsync(Lambdas.checked(() -> initChain()))
+            /*CompletableFuture.runAsync(Lambdas.checked(() -> initChain()))
                 .exceptionally(e -> {
                     reportError("Error initializing SML process", e);
                     return null;
-                });
+                });*/
         }
     }
     
@@ -119,7 +118,7 @@ public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
         try
         {
             //smlUtils.makeProcessExecutable(wrapperProcess, true);
-            wrapperProcess = (AggregateProcessImpl)smlUtils.getExecutableInstance(processDescription, true);
+            wrapperProcess = (AggregateProcessImpl)smlUtils.getExecutableInstance((AggregateProcessImpl)processDescription, true);
             wrapperProcess.setInstanceName("chain");
             wrapperProcess.setParentLogger(getLogger());
             wrapperProcess.init();
@@ -166,18 +165,6 @@ public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
             if (isOutput)
                 outputInterfaces.put(ioName, new SMLOutputInterface(this, ioDesc));
         }
-    }
-    
-    
-    /**
-     * Helper method to make sure derived classes add outputs consistently in the different maps
-     * @param outputInterface
-     */
-    protected void addOutput(IStreamingDataInterface outputInterface)
-    {
-        String outputName = outputInterface.getName();
-        outputs.put(outputName, outputInterface.getRecordDescription());
-        outputInterfaces.put(outputName, outputInterface);
     }
     
     
