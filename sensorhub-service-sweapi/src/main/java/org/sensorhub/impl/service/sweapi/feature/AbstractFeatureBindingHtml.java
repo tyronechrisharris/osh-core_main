@@ -192,7 +192,8 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
             ).withClass("mt-2"),
             iff(Optional.ofNullable(f.getType()), type -> div(
                 span(getResourceName() + " Type: ").withClass(CSS_BOLD),
-                span(getFeatureTypeSuffix(f.getType())).withTitle(type)
+                span(getFeatureTypeSuffix(f.getType())).withTitle(type),
+                a().withClasses("bi", "bi-link").withHref(f.getType())
             )),
             div(
                 span("Validity Period: ").withClass(CSS_BOLD),

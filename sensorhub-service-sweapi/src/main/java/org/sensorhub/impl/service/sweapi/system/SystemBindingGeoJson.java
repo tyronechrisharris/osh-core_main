@@ -64,8 +64,6 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
             
             protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
             {
-                if (bean.getType() != null)
-                    writer.name("definition").value(bean.getType());
                 super.writeCommonFeatureProperties(writer, bean);
             }
             

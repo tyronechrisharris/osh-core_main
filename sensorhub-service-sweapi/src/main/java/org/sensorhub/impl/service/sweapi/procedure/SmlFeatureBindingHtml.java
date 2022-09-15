@@ -64,8 +64,8 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB ext
         if (sys.getType() != null)
         {
             h6(
-                span("System Type: ").withClass(CSS_BOLD),
-                span(sys.getType().substring(sys.getType().lastIndexOf('/')+1))
+                span("Type: ").withClass(CSS_BOLD),
+                span(sys.getType())
             ).render(html);
         }
         
