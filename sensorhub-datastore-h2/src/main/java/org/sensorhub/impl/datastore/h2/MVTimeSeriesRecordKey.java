@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.util.Objects;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.utils.AtomicInitializer;
-import org.sensorhub.utils.ObjectUtils;
 
 
 /**
@@ -112,6 +111,7 @@ class MVTimeSeriesRecordKey implements BigId
     @Override
     public String toString()
     {
-        return ObjectUtils.toString(this, true);
+        return String.format("BigId {scope=%d, id='%s'}", scope, BASE32_ENCODING.encode(getIdAsBytes()));
+        //return ObjectUtils.toString(this, true);
     }
 }
