@@ -31,6 +31,7 @@ import org.vast.swe.SWEHelper;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import net.opengis.swe.v20.BinaryBlock;
 import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
@@ -176,6 +177,22 @@ public class SWECommonUtils
             
             return true;
         });
+    }
+    
+    
+    public static boolean allowNonBinaryFormat(IDataStreamInfo dsInfo)
+    {
+        if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+        {
+            var enc = (BinaryEncoding)dsInfo.getRecordEncoding();
+            for (var member: enc.getMemberList())
+            {
+                if (member instanceof BinaryBlock)
+                    return false;
+            }
+        }
+        
+        return true;
     }
 
 }

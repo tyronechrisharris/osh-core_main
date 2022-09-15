@@ -28,6 +28,7 @@ import org.sensorhub.api.data.ObsData;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
+import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
@@ -42,8 +43,6 @@ import org.vast.util.ReaderException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import net.opengis.swe.v20.BinaryBlock;
-import net.opengis.swe.v20.BinaryEncoding;
 import static org.sensorhub.impl.service.sweapi.SWECommonUtils.OM_COMPONENTS_FILTER;
 
 
@@ -196,7 +195,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
     
     protected DataStreamWriter getSweCommonWriter(IDataStreamInfo dsInfo, JsonWriter writer, PropertyFilter propFilter)
     {        
-        if (!allowNonBinaryFormat(dsInfo))
+        if (!SWECommonUtils.allowNonBinaryFormat(dsInfo))
             return new BinaryDataWriter();
         
         // create JSON SWE writer
@@ -218,22 +217,6 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
         // filter out components that are already included in O&M
         sweParser.setDataComponentFilter(OM_COMPONENTS_FILTER);
         return sweParser;
-    }
-    
-    
-    protected boolean allowNonBinaryFormat(IDataStreamInfo dsInfo)
-    {
-        if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
-        {
-            var enc = (BinaryEncoding)dsInfo.getRecordEncoding();
-            for (var member: enc.getMemberList())
-            {
-                if (member instanceof BinaryBlock)
-                    return false;
-            }
-        }
-        
-        return true;
     }
 
 
