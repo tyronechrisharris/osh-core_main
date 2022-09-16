@@ -43,7 +43,7 @@ public class CommandStatus implements ICommandStatus
     
     protected CommandStatus()
     {
-        // can only instantiate with builder
+        // can only instantiate with builder or static methods
     }
     
     
@@ -105,8 +105,7 @@ public class CommandStatus implements ICommandStatus
      */
     public static ICommandStatus pending(BigId commandID)
     {
-        var status = new CommandStatus(commandID, CommandStatusCode.PENDING, null);
-        return status;
+        return new CommandStatus(commandID, CommandStatusCode.PENDING, null);
     }
     
     
@@ -118,8 +117,7 @@ public class CommandStatus implements ICommandStatus
      */
     public static ICommandStatus accepted(BigId commandID)
     {
-        var status = new CommandStatus(commandID, CommandStatusCode.ACCEPTED, null);
-        return status;
+        return new CommandStatus(commandID, CommandStatusCode.ACCEPTED, null);
     }
     
     
@@ -133,14 +131,12 @@ public class CommandStatus implements ICommandStatus
      */
     public static ICommandStatus scheduled(BigId commandID, TimeExtent execTime)
     {
-        var status = new CommandStatus(commandID, CommandStatusCode.SCHEDULED, execTime);
-        return status;
+        return new CommandStatus(commandID, CommandStatusCode.SCHEDULED, execTime);
     }
     
     
     /**
-     * Generate a status report for a command that was asynchronously executed
-     * and completed successfully
+     * Generate a status report for a command that is in-progress
      * @param commandID The ID of the command triggering the report
      * @param progress The estimated progress expressed in percent
      * @param message A message describing the current progress (can be null)
@@ -166,6 +162,20 @@ public class CommandStatus implements ICommandStatus
     public static ICommandStatus completed(BigId commandID, TimeExtent execTime)
     {
         return new CommandStatus(commandID, CommandStatusCode.COMPLETED, execTime);
+    }
+    
+    
+    /**
+     * Generate a status report for a command that was asynchronously executed
+     * and completed successfully with a result
+     * @param commandID The ID of the command triggering the report
+     * @param execTime The actual time (or time period) the command was executed
+     * @param result The result (observations) produced during execution of the command
+     * @return The status report
+     */
+    public static ICommandStatus completed(BigId commandID, TimeExtent execTime, ICommandResult result)
+    {
+        return new CommandStatusWithResult(commandID, CommandStatusCode.COMPLETED, execTime, result);
     }
 
 
@@ -307,5 +317,12 @@ public class CommandStatus implements ICommandStatus
                 instance.reportTime = Instant.now();
             return super.build();
         }
+    }
+
+
+    @Override
+    public ICommandResult getResult()
+    {
+        return null;
     }
 }

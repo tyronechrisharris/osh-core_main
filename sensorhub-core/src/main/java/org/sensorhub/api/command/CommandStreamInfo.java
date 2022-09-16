@@ -90,6 +90,41 @@ public class CommandStreamInfo implements ICommandStreamInfo
     }
 
 
+    @Override
+    public TimeExtent getExecutionTimeRange()
+    {
+        return null;
+    }
+
+
+    @Override
+    public TimeExtent getIssueTimeRange()
+    {
+        return null;
+    }
+
+
+    @Override
+    public boolean hasResult()
+    {
+        return false;
+    }
+
+
+    @Override
+    public DataComponent getResultStructure()
+    {
+        return null;
+    }
+
+
+    @Override
+    public DataEncoding getResultEncoding()
+    {
+        return null;
+    }
+
+
     /*
      * Builder
      */
@@ -108,7 +143,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
 
 
     @SuppressWarnings("unchecked")
-    public static abstract class CommandStreamInfoBuilder<B extends CommandStreamInfoBuilder<B, T>, T extends CommandStreamInfo>
+    public abstract static class CommandStreamInfoBuilder<B extends CommandStreamInfoBuilder<B, T>, T extends CommandStreamInfo>
         extends BaseBuilder<T>
     {
         protected CommandStreamInfoBuilder()
@@ -180,19 +215,5 @@ public class CommandStreamInfo implements ICommandStreamInfo
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");
             return super.build();
         }
-    }
-
-
-    @Override
-    public TimeExtent getExecutionTimeRange()
-    {
-        return null;
-    }
-
-
-    @Override
-    public TimeExtent getIssueTimeRange()
-    {
-        return null;
     }
 }

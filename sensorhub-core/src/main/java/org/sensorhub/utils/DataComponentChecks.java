@@ -52,7 +52,18 @@ public class DataComponentChecks
     {
         Asserts.checkNotNull(rec1, DataComponent.class);
         Asserts.checkNotNull(rec2, DataComponent.class);
+        return checkStructCompatibleNullAllowed(rec1, rec2);
+    }
+    
+    
+    public static boolean checkStructCompatibleNullAllowed(DataComponent rec1, DataComponent rec2)
+    {
+        if (rec1 == null && rec2 == null)
+            return true;
         
+        if ((rec1 == null && rec2 != null) || rec1 != null && rec2 == null)
+            return false;
+            
         var hc1 = getStructCompatibilityHashCode(rec1);
         var hc2 = getStructCompatibilityHashCode(rec2);
         return hc1.equals(hc2);
@@ -68,7 +79,7 @@ public class DataComponentChecks
         {
             DataComponent c = it.next();
             if (c != root)
-                hasher.putUnencodedChars(c.getName());
+                hasher.putUnencodedChars(c.getName() != null ? c.getName() : "");
             hasher.putUnencodedChars(getComponentType(c.getClass()));
             if (c instanceof BlockComponent)
                 hasher.putInt(c.getComponentCount());
@@ -90,6 +101,17 @@ public class DataComponentChecks
     {
         Asserts.checkNotNull(rec1, DataComponent.class);
         Asserts.checkNotNull(rec2, DataComponent.class);
+        return checkStructEqualsNullAllowed(rec1, rec2);
+    }
+    
+    
+    public static boolean checkStructEqualsNullAllowed(DataComponent rec1, DataComponent rec2)
+    {
+        if (rec1 == null && rec2 == null)
+            return true;
+        
+        if ((rec1 == null && rec2 != null) || rec1 != null && rec2 == null)
+            return false;
         
         var hc1 = getStructEqualsHashCode(rec1);
         var hc2 = getStructEqualsHashCode(rec2);
@@ -116,6 +138,17 @@ public class DataComponentChecks
     {
         Asserts.checkNotNull(enc1, DataEncoding.class);
         Asserts.checkNotNull(enc2, DataEncoding.class);
+        return checkEncodingEqualsNullAllowed(enc1, enc2);
+    }
+    
+    
+    public static boolean checkEncodingEqualsNullAllowed(DataEncoding enc1, DataEncoding enc2)
+    {
+        if (enc1 == null && enc2 == null)
+            return true;
+        
+        if ((enc1 == null && enc2 != null) || enc1 != null && enc2 == null)
+            return false;
         
         var hc1 = getEncodingEqualsHashCode(enc1);
         var hc2 = getEncodingEqualsHashCode(enc2);

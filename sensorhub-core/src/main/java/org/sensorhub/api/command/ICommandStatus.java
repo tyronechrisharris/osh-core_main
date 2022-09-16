@@ -181,6 +181,12 @@ public interface ICommandStatus
     String getMessage();
     
     
+    /**
+     * @return The result of the command (either inline of by reference)
+     */
+    ICommandResult getResult();
+    
+    
     default boolean isFinal()
     {
         var statusCode = getStatusCode();

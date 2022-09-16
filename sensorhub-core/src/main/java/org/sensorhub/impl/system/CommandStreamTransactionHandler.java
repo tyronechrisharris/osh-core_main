@@ -27,8 +27,8 @@ import org.sensorhub.api.command.CommandStreamChangedEvent;
 import org.sensorhub.api.command.CommandStreamDisabledEvent;
 import org.sensorhub.api.command.CommandStreamEnabledEvent;
 import org.sensorhub.api.command.CommandStreamEvent;
-import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.CommandStreamRemovedEvent;
+import org.sensorhub.api.command.CommandStreamWithResultInfo;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
@@ -93,16 +93,20 @@ public class CommandStreamTransactionHandler implements IEventListener
         var hasCmd = oldCsInfo.getIssueTimeRange() != null;
         if (hasCmd &&
             (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
-             !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding())))
-            throw new DataStoreException("Cannot update the record structure or encoding of a command interface if it already has received commands");
+             !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding()) ||
+             !DataComponentChecks.checkStructCompatibleNullAllowed(oldCsInfo.getResultStructure(), csInfo.getResultStructure()) ||
+             !DataComponentChecks.checkEncodingEqualsNullAllowed(oldCsInfo.getResultEncoding(), csInfo.getResultEncoding())))
+            throw new DataStoreException("Cannot update the structure or encoding of a command interface if it already has received commands");
         
-        // update datastream info
-        var newCsInfo = new CommandStreamInfo.Builder()
+        // update command stream info
+        var newCsInfo = new CommandStreamWithResultInfo.Builder()
             .withName(csInfo.getName())
             .withDescription(csInfo.getDescription())
             .withSystem(oldCsInfo.getSystemID())
             .withRecordDescription(csInfo.getRecordStructure())
             .withRecordEncoding(csInfo.getRecordEncoding())
+            .withResultDescription(csInfo.getResultStructure())
+            .withResultEncoding(csInfo.getResultEncoding())
             .withValidTime(oldCsInfo.getValidTime())
             .build();
         getCommandStreamStore().replace(csKey, newCsInfo);

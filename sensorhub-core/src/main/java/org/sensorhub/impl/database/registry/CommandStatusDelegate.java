@@ -15,6 +15,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.database.registry;
 
 import java.time.Instant;
+import org.sensorhub.api.command.ICommandResult;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.common.BigId;
 import org.vast.util.Asserts;
@@ -80,6 +81,13 @@ public class CommandStatusDelegate implements ICommandStatus
     public String getMessage()
     {
         return delegate.getMessage();
+    }
+
+
+    @Override
+    public ICommandResult getResult()
+    {
+        return delegate.getResult();
     }
     
 }

@@ -18,7 +18,9 @@ import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.command.ICommandStatus.CommandStatusCode;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.event.IEventProducer;
+import org.vast.data.TextEncodingImpl;
 import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataEncoding;
 
 
 /**
@@ -68,6 +70,15 @@ public interface IStreamingControlInterface extends IEventProducer
      * @return Data component containing message structure
      */
     public DataComponent getCommandDescription();
+    
+    
+    /**
+     * @return The recommended encoding for the command parameters
+     */
+    public default DataEncoding getCommandEncoding()
+    {
+        return new TextEncodingImpl();
+    }
     
     
     /**

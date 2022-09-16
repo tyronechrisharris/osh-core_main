@@ -24,6 +24,7 @@ import java.util.concurrent.Flow.Subscription;
 import org.sensorhub.api.command.CommandEvent;
 import org.sensorhub.api.command.ICommandReceiver;
 import org.sensorhub.api.command.IStreamingControlInterface;
+import org.sensorhub.api.command.IStreamingControlInterfaceWithResult;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.datastore.DataStoreException;
@@ -38,7 +39,6 @@ import org.sensorhub.api.system.SystemEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.sensorhub.utils.SerialExecutor;
-import org.vast.data.TextEncodingImpl;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
@@ -334,10 +334,23 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         boolean isNew = true;
         
         // add or update existing command stream entry
-        var newCsHandler = addOrUpdateCommandStream(
-            controlInput.getName(),
-            controlInput.getCommandDescription(),
-            new TextEncodingImpl());
+        CommandStreamTransactionHandler newCsHandler;
+        if (controlInput instanceof IStreamingControlInterfaceWithResult)
+        {
+            newCsHandler = addOrUpdateCommandStream(
+                controlInput.getName(),
+                controlInput.getCommandDescription(),
+                controlInput.getCommandEncoding(),
+                ((IStreamingControlInterfaceWithResult) controlInput).getResultDescription(),
+                ((IStreamingControlInterfaceWithResult) controlInput).getResultEncoding());
+        }
+        else
+        {
+            newCsHandler = addOrUpdateCommandStream(
+                controlInput.getName(),
+                controlInput.getCommandDescription(),
+                controlInput.getCommandEncoding());
+        }
             
         // replace and cleanup old handler and subscription
         commandStreamHandlers.put(controlInput.getName(), newCsHandler);

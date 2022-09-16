@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import org.sensorhub.api.command.CommandStreamAddedEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
+import org.sensorhub.api.command.CommandStreamWithResultInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamAddedEvent;
@@ -361,6 +362,12 @@ public class SystemTransactionHandler
     
     public CommandStreamTransactionHandler addOrUpdateCommandStream(String commandName, DataComponent dataStruct, DataEncoding dataEncoding) throws DataStoreException
     {
+        return addOrUpdateCommandStream(commandName, dataStruct, dataEncoding, null, null);
+    }
+    
+    
+    public CommandStreamTransactionHandler addOrUpdateCommandStream(String commandName, DataComponent dataStruct, DataEncoding dataEncoding, DataComponent resultStruct, DataEncoding resultEncoding) throws DataStoreException
+    {
         Asserts.checkNotNullOrEmpty(commandName, "commandName");
         Asserts.checkNotNull(dataStruct, DataComponent.class);
         Asserts.checkNotNull(dataEncoding, DataEncoding.class);
@@ -368,15 +375,32 @@ public class SystemTransactionHandler
         // retrieve parent system name
         var sysName = getSystemDescStore().get(sysKey).getName();
         var csName = Strings.isNullOrEmpty(dataStruct.getLabel()) ? commandName : dataStruct.getLabel();
+        var fullName = sysName + " - " + csName;
+        dataStruct.setName(commandName);
         
         // create command stream info
-        dataStruct.setName(commandName);
-        var csInfo = new CommandStreamInfo.Builder()
-            .withName(sysName + " - " + csName)
-            .withSystem(SystemId.NO_SYSTEM_ID)
-            .withRecordDescription(dataStruct)
-            .withRecordEncoding(dataEncoding)
-            .build();
+        // with or without command result
+        ICommandStreamInfo csInfo;
+        if (resultStruct != null && resultEncoding != null)
+        {
+            csInfo = new CommandStreamWithResultInfo.Builder()
+                .withName(fullName)
+                .withSystem(SystemId.NO_SYSTEM_ID)
+                .withRecordDescription(dataStruct)
+                .withRecordEncoding(dataEncoding)
+                .withResultDescription(resultStruct)
+                .withResultEncoding(resultEncoding)
+                .build();
+        }
+        else
+        {
+            csInfo = new CommandStreamInfo.Builder()
+                .withName(fullName)
+                .withSystem(SystemId.NO_SYSTEM_ID)
+                .withRecordDescription(dataStruct)
+                .withRecordEncoding(dataEncoding)
+                .build();
+        }
         
         return addOrUpdateCommandStream(csInfo);
     }
@@ -392,9 +416,18 @@ public class SystemTransactionHandler
             throw new IllegalStateException("Inconsistent command name");
         
         // add system ID
-        csInfo = CommandStreamInfo.Builder.from(csInfo)
-            .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
-            .build();
+        if (csInfo.getResultStructure() != null)
+        {
+            csInfo = CommandStreamWithResultInfo.Builder.from(csInfo)
+                .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
+                .build();
+        }
+        else
+        {
+            csInfo = CommandStreamInfo.Builder.from(csInfo)
+                .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
+                .build();
+        }
         
         // try to retrieve existing command stream
         ICommandStreamStore commandStreamStore = getCommandStreamStore();
@@ -421,10 +454,12 @@ public class SystemTransactionHandler
             var hasCommands = oldCsInfo.getIssueTimeRange() != null;
             
             // 3 cases
-            // if commands were already recorded and structure has changed, create a new command stream
+            // if commands were already recorded and either param or result structure has changed, create a new command stream
             if (hasCommands &&
                (!DataComponentChecks.checkStructCompatible(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
-                !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding())))
+                !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding()) ||
+                !DataComponentChecks.checkStructCompatibleNullAllowed(oldCsInfo.getResultStructure(), csInfo.getResultStructure()) ||
+                !DataComponentChecks.checkEncodingEqualsNullAllowed(oldCsInfo.getResultEncoding(), csInfo.getResultEncoding())))
             {
                 csKey = commandStreamStore.add(csInfo);
                 addedEvent = new CommandStreamAddedEvent(sysUID, commandName);
@@ -433,7 +468,9 @@ public class SystemTransactionHandler
             
             // if something else has changed, update existing command stream
             else if (!DataComponentChecks.checkStructEquals(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
-                     !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding()))
+                     !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding()) ||
+                     !DataComponentChecks.checkStructEqualsNullAllowed(oldCsInfo.getResultStructure(), csInfo.getResultStructure()) ||
+                     !DataComponentChecks.checkEncodingEqualsNullAllowed(oldCsInfo.getResultEncoding(), csInfo.getResultEncoding()))
             {
                 var csHandler = new CommandStreamTransactionHandler(csKey, oldCsInfo, rootHandler);
                 csHandler.update(csInfo);

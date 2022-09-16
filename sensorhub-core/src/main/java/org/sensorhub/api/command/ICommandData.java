@@ -21,7 +21,8 @@ import net.opengis.swe.v20.DataBlock;
 
 /**
  * <p>
- * Represents command data sent to a control interface
+ * Represents command data sent to a control interface or to the input of
+ * an on-demand process.
  * </p>
  *
  * @author Alex Robin

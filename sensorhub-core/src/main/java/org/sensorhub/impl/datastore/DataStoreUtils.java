@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore;
 import java.time.Instant;
 import java.util.stream.Stream;
 import org.sensorhub.api.command.CommandStreamInfo;
+import org.sensorhub.api.command.CommandStreamWithResultInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamInfo;
@@ -244,9 +245,18 @@ public class DataStoreUtils
                 validTime = TimeExtent.endNow(Instant.now());
             
             // create new datastream obj with proper valid time
-            return CommandStreamInfo.Builder.from(csInfo)
-                .withValidTime(validTime)
-                .build();
+            if (csInfo.getResultStructure() != null)
+            {
+                return CommandStreamWithResultInfo.Builder.from(csInfo)
+                    .withValidTime(validTime)
+                    .build();
+            }
+            else
+            {
+                return CommandStreamInfo.Builder.from(csInfo)
+                    .withValidTime(validTime)
+                    .build();
+            }
         }
         
         return csInfo;

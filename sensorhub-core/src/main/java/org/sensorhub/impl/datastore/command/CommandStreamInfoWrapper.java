@@ -102,4 +102,25 @@ public abstract class CommandStreamInfoWrapper implements ICommandStreamInfo
     {
         return delegate.getExecutionTimeRange();
     }
+
+
+    @Override
+    public boolean hasResult()
+    {
+        return delegate.hasResult();
+    }
+
+
+    @Override
+    public DataComponent getResultStructure()
+    {
+        return delegate.getResultStructure();
+    }
+
+
+    @Override
+    public DataEncoding getResultEncoding()
+    {
+        return delegate.getResultEncoding();
+    }
 }
