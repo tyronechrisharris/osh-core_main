@@ -63,6 +63,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
         if (forReading)
         {
             resultReader = getSweCommonParser(contextData.dsInfo, reader);
+            resultReader.setRenewDataBlock(true);
         }
         else
         {
