@@ -37,7 +37,8 @@ public class PrecisionModelSerializer extends FieldSerializer<PrecisionModel>
     }
     
     
-    protected void initializeCachedFields ()
+    @Override
+    protected void initializeCachedFields()
     {
         // skip fields that were added in JTS 1.19
         this.removeField("gridSize");

@@ -21,8 +21,6 @@ import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.sensorhub.impl.serialization.kryo.v1.CommandStatusSerializerLongIds;
 import org.sensorhub.impl.serialization.kryo.v2.CommandStatusSerializerBigIds;
-import com.esotericsoftware.kryo.Serializer;
-import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -40,11 +38,10 @@ class CommandStatusDataType extends KryoDataType
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
             // register custom serializers w/ backward compatibility
-            kryo.addDefaultSerializer(CommandStatus.class, new VersionedSerializer<CommandStatus>(
-                ImmutableMap.<Integer, Serializer<CommandStatus>>builder()
-                    .put(H2Utils.CURRENT_VERSION, new CommandStatusSerializerBigIds(kryo, idScope))
-                    .put(1, new CommandStatusSerializerLongIds(kryo, idScope))
-                    .build(), H2Utils.CURRENT_VERSION));
+            kryo.addDefaultSerializer(CommandStatus.class, VersionedSerializer.<CommandStatus>factory(H2Utils.CURRENT_VERSION)
+                .put(H2Utils.CURRENT_VERSION, CommandStatusSerializerBigIds.factory(idScope))
+                .put(1, new CommandStatusSerializerLongIds(kryo, idScope))
+                .build());
         };
     }
 }

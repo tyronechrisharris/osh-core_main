@@ -15,9 +15,11 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.serialization.kryo;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.vast.util.BaseBuilder;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.SerializerFactory;
@@ -146,6 +148,66 @@ public class VersionedSerializer<T> extends Serializer<T>
                 return new VersionedSerializer<T>(serializers, currentVersion);
             }
         };
+    }
+    
+    
+    public static <T> VersionedSerializerFactoryBuilder<T> factory(int currentVersion)
+    {
+        return new VersionedSerializerFactoryBuilder<>(currentVersion);
+    }
+    
+    
+    public static class VersionedSerializerFactoryBuilder<T> extends BaseBuilder<SerializerFactory<VersionedSerializer<T>>>
+    {
+        Map<Integer, SerializerFactory<? extends Serializer<T>>> factories = new HashMap<>();
+        int currentVersion;
+        
+        VersionedSerializerFactoryBuilder(int currentVersion)
+        {
+            this.currentVersion = currentVersion;
+        }
+        
+        public VersionedSerializerFactoryBuilder<T> put(int version, SerializerFactory<? extends Serializer<T>> fac)
+        {
+            factories.put(version, fac);
+            return this;
+        }
+        
+        public VersionedSerializerFactoryBuilder<T> put(int version, Serializer<T> ser)
+        {
+            factories.put(version, new SingletonSerializerFactory<>(ser));
+            return this;
+        }
+        
+        @Override
+        public SerializerFactory<VersionedSerializer<T>> build()
+        {
+            this.instance = new BaseSerializerFactory<>() {
+                @SuppressWarnings("rawtypes")
+                public VersionedSerializer<T> newSerializer(Kryo kryo, Class type)
+                {
+                    // create serializer map
+                    var mapBuilder = ImmutableMap.<Integer, Serializer<T>>builder();
+                    factories.forEach((version, fac) -> {
+                        var serializer = fac.newSerializer(kryo, type);
+                        mapBuilder.put(version, serializer);
+                    });
+                    var serializers = mapBuilder.build();
+                    
+                    if (log.isTraceEnabled())
+                    {
+                        var buf = new StringBuilder();
+                        for (var s: serializers.entrySet())
+                            buf.append("Version " + s.getKey() + " -> " + s.getValue().getClass());
+                        log.trace("Serializers for " + type + ": " + buf.toString());
+                    }
+                    
+                    return new VersionedSerializer<>(serializers, currentVersion);
+                }
+            };
+            
+            return super.build();
+        }
     }
 
 }

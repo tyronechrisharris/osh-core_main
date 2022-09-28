@@ -17,6 +17,8 @@ package org.sensorhub.impl.serialization.kryo.v2;
 import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.SerializerFactory;
+import com.esotericsoftware.kryo.SerializerFactory.BaseSerializerFactory;
 
 
 /**
@@ -35,6 +37,14 @@ public class CommandStatusSerializerBigIds extends BackwardCompatFieldSerializer
     public CommandStatusSerializerBigIds(Kryo kryo, int idScope)
     {
         super(kryo, CommandStatus.class);
+        this.idScope = idScope;
+        customizeCacheFields();
+    }
+    
+    
+    public CommandStatusSerializerBigIds(Kryo kryo, int idScope, Class<? extends CommandStatus> clazz)
+    {
+        super(kryo, clazz);
         this.idScope = idScope;
         customizeCacheFields();
     }
@@ -60,6 +70,18 @@ public class CommandStatusSerializerBigIds extends BackwardCompatFieldSerializer
             
             compatFields[i++] = newField;
         }
+    }
+    
+    
+    public static SerializerFactory<CommandStatusSerializerBigIds> factory(int idScope)
+    {
+        return new BaseSerializerFactory<>() {
+            @SuppressWarnings({ "rawtypes", "unchecked" })
+            public CommandStatusSerializerBigIds newSerializer(Kryo kryo, Class type)
+            {
+                return new CommandStatusSerializerBigIds(kryo, idScope, type);
+            }
+        };
     }
 
 }
