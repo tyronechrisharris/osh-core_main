@@ -128,16 +128,31 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
         writer.name("control@id").value(dsId);
         writer.name("commandFormat").value(ResourceFormat.JSON.toString());
         
-        // result structure & encoding
+        // param structure & encoding
         try
         {
-            writer.name("paramSchema");
+            writer.name("paramsSchema");
             sweWriter.resetContext();
             sweBindings.writeDataComponent(sweWriter, dsInfo.getRecordStructure(), false);
         }
         catch (Exception e)
         {
             throw new IOException("Error writing command structure", e);
+        }
+        
+        // result structure & encoding
+        if (dsInfo.hasInlineResult())
+        {
+            try
+            {
+                writer.name("resultSchema");
+                sweWriter.resetContext();
+                sweBindings.writeDataComponent(sweWriter, dsInfo.getResultStructure(), false);
+            }
+            catch (Exception e)
+            {
+                throw new IOException("Error writing command structure", e);
+            }
         }
         
         writer.endObject();

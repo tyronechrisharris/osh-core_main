@@ -122,13 +122,15 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
     @Override
     public void serialize(BigId key, ICommandStatus status, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var statusId = idEncoders.getCommandIdEncoder().encodeID(key);
         var cmdId = idEncoders.getCommandIdEncoder().encodeID(status.getCommandID());
         
         writer.beginObject();
         
         if (key != null)
+        {
+            var statusId = idEncoders.getCommandIdEncoder().encodeID(key);
             writer.name("id").value(statusId);
+        }
         
         writer.name("command@id").value(cmdId);
         writer.name("reportTime").value(status.getReportTime().toString());
@@ -144,6 +146,37 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
         
         if (status.getProgress() >= 0)
             writer.name("progress").value(status.getProgress());
+        
+        if (status.getResult() != null)
+        {
+            var result = status.getResult();
+            writer.name("result").beginObject();
+            
+            // whole datastream
+            if (result.getDataStreamID() != null)
+            {
+                var dsId = idEncoders.getDataStreamIdEncoder().encodeID(result.getDataStreamID());
+                writer.name("datastream@id").value(dsId);
+            }
+            
+            // obs references
+            else if (result.getObservationRefs() != null)
+            {
+                writer.name("obsRefs").beginArray();
+                for (var bigId: result.getObservationRefs())
+                {
+                    var obsId = idEncoders.getObsIdEncoder().encodeID(bigId);
+                    writer.value(obsId);
+                }
+                writer.endArray();
+            }
+            
+            // inline obs
+            else if (status.getResult().getObservations() != null)
+                writer.name("inline").value(true);
+            
+            writer.endObject();
+        }
         
         if (status.getMessage() != null)
             writer.name("message").value(status.getMessage());

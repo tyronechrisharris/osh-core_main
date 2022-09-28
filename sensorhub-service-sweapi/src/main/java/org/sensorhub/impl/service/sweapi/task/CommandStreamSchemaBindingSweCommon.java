@@ -37,6 +37,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
+import net.opengis.swe.v20.JSONEncoding;
 
 
 public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
@@ -128,27 +129,54 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
 
 
     @Override
-    public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(CommandStreamKey key, ICommandStreamInfo csInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
         var dsId = idEncoders.getCommandStreamIdEncoder().encodeID(key.getInternalID());
         
         writer.beginObject();
         writer.name("control@id").value(dsId);
         
-        // result structure & encoding
+        // param structure & encoding
         try
         {
-            writer.name("commandSchema");
+            writer.name("paramsSchema");
             sweWriter.resetContext();
-            sweBindings.writeDataComponent(sweWriter, dsInfo.getRecordStructure(), false);
+            sweBindings.writeDataComponent(sweWriter, csInfo.getRecordStructure(), false);
             
-            writer.name("commandEncoding");
-            sweWriter.resetContext();
-            sweBindings.writeAbstractEncoding(sweWriter, dsInfo.getRecordEncoding());
+            var sweEncoding = SWECommonUtils.getEncoding(csInfo.getRecordStructure(), csInfo.getRecordEncoding(), cmdFormat);
+            if (!(sweEncoding instanceof JSONEncoding))
+            {
+                writer.name("paramsEncoding");
+                sweWriter.resetContext();
+                sweBindings.writeAbstractEncoding(sweWriter, sweEncoding);
+            }
         }
         catch (Exception e)
         {
             throw new IOException("Error writing SWE Common command structure", e);
+        }
+        
+        // result structure & encoding
+        if (csInfo.hasInlineResult())
+        {
+            try
+            {
+                writer.name("resultSchema");
+                sweWriter.resetContext();
+                sweBindings.writeDataComponent(sweWriter, csInfo.getResultStructure(), false);
+                
+                var sweEncoding = SWECommonUtils.getEncoding(csInfo.getResultStructure(), csInfo.getResultEncoding(), cmdFormat);
+                if (!(sweEncoding instanceof JSONEncoding))
+                {
+                    writer.name("resultEncoding");
+                    sweWriter.resetContext();
+                    sweBindings.writeAbstractEncoding(sweWriter, csInfo.getRecordEncoding());
+                }
+            }
+            catch (Exception e)
+            {
+                throw new IOException("Error writing SWE Common result structure", e);
+            }
         }
         
         writer.endObject();

@@ -363,6 +363,25 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
             if (status.getStatusCode() == CommandStatusCode.REJECTED)
                 throw new DataStoreException("Command rejected: " + status.getMessage());
             
+            // serialize status info we received in response
+            if (status.getResult() != null)
+            {
+                // if there is a result, just write the result
+                var resultHandler = (CommandResultHandler)subResources.get(CommandResultHandler.NAMES[0]);
+                var resultBinding = resultHandler.getBinding(ctx, false);
+                resultBinding.startCollection();
+                resultBinding.serialize(null, status, false);
+                resultBinding.endCollection(null);
+            }
+            else
+            {
+                // else write the complete status report
+                var statusHandler = (CommandStatusHandler)subResources.get(CommandStatusHandler.NAMES[0]);
+                ctx.setResponseFormat(ResourceFormat.JSON);
+                var statusBinding = statusHandler.getBinding(ctx, false);
+                statusBinding.serialize(null, status, false);
+            }
+            
             return status.getCommandID();
         }
         catch (DataStoreException e)

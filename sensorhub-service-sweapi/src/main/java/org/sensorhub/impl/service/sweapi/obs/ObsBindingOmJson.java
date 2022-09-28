@@ -196,7 +196,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
     
     protected DataStreamWriter getSweCommonWriter(IDataStreamInfo dsInfo, JsonWriter writer, PropertyFilter propFilter)
     {        
-        if (!SWECommonUtils.allowNonBinaryFormat(dsInfo))
+        if (!SWECommonUtils.allowNonBinaryFormat(dsInfo.getRecordStructure(), dsInfo.getRecordEncoding()))
             return new BinaryDataWriter();
         
         // create JSON SWE writer

@@ -45,6 +45,7 @@ import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.system.SystemHistoryHandler;
 import org.sensorhub.impl.service.sweapi.system.SystemMembersHandler;
 import org.sensorhub.impl.service.sweapi.task.CommandHandler;
+import org.sensorhub.impl.service.sweapi.task.CommandResultHandler;
 import org.sensorhub.impl.service.sweapi.task.CommandStatusHandler;
 import org.sensorhub.impl.service.sweapi.task.CommandStreamHandler;
 import org.sensorhub.impl.service.sweapi.task.CommandStreamSchemaHandler;
@@ -242,8 +243,12 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         
         // command status
         var statusHandler = new CommandStatusHandler(eventBus, db, threadPool, security.command_permissions);
-        cmdStreamHandler.addSubResource(statusHandler);
         cmdHandler.addSubResource(statusHandler);
+        cmdStreamHandler.addSubResource(statusHandler);
+        
+        // command result
+        var resultHandler = new CommandResultHandler(eventBus, db, threadPool, security.command_permissions);
+        cmdHandler.addSubResource(resultHandler);
         
         // collections
         var collectionHandler = new CollectionHandler();

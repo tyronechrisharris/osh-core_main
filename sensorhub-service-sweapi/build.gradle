@@ -4,7 +4,7 @@ ext.details = 'Implementation of OGC SensorWeb API'
 
 dependencies {
   implementation project(':sensorhub-core')
-  implementation 'com.j2html:j2html:1.5.0'
+  embeddedImpl 'com.j2html:j2html:1.5.0'
   
   testImplementation project(path: ':sensorhub-core', configuration: 'testArtifacts')
   testImplementation project(':sensorhub-datastore-h2')

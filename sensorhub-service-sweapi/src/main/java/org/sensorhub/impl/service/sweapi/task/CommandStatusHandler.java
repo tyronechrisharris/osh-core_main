@@ -63,9 +63,9 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
     static class CommandStatusHandlerContextData
     {
         BigId streamID;
-        ICommandStreamInfo dsInfo;
+        ICommandStreamInfo csInfo;
         BigId foiId;
-        CommandStreamTransactionHandler dsHandler;
+        CommandStreamTransactionHandler csHandler;
     }
     
     
@@ -94,18 +94,18 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
         {
             var parentType = ctx.getParentRef().type;
             if (parentType instanceof CommandStreamHandler)
-                contextData.dsInfo = db.getCommandStreamStore().get(new CommandStreamKey(dsID));
+                contextData.csInfo = db.getCommandStreamStore().get(new CommandStreamKey(dsID));
         }
         
         if (forReading)
         {
             // when ingesting status, command stream needs to be known at this stage
-            Asserts.checkNotNull(contextData.dsInfo, ICommandStreamInfo.class);
+            Asserts.checkNotNull(contextData.csInfo, ICommandStreamInfo.class);
             
             // create transaction handler here so it can be reused multiple times
             contextData.streamID = dsID;
-            contextData.dsHandler = transactionHandler.getCommandStreamHandler(contextData.streamID);
-            if (contextData.dsHandler == null)
+            contextData.csHandler = transactionHandler.getCommandStreamHandler(contextData.streamID);
+            if (contextData.csHandler == null)
                 throw ServiceErrors.notWritable();
         }
         
@@ -162,7 +162,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
     protected void startRealTimeStream(final RequestContext ctx, final BigId dsID, final CommandStatusFilter filter, final ResourceBinding<BigId, ICommandStatus> binding)
     {
         // init event to obs converter
-        var dsInfo = ((CommandStatusHandlerContextData)ctx.getData()).dsInfo;
+        var csInfo = ((CommandStatusHandlerContextData)ctx.getData()).csInfo;
         var streamHandler = ctx.getStreamHandler();
         
         // create subscriber
@@ -212,7 +212,7 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
             }
         };
         
-        var topic = EventUtils.getCommandStatusTopicID(dsInfo);
+        var topic = EventUtils.getCommandStatusTopicID(csInfo);
         eventBus.newSubscription(CommandStatusEvent.class)
             .withTopicID(topic)
             .withEventType(CommandStatusEvent.class)
@@ -296,9 +296,8 @@ public class CommandStatusHandler extends BaseResourceHandler<BigId, ICommandSta
     @Override
     protected BigId addEntry(RequestContext ctx, ICommandStatus status) throws DataStoreException
     {
-        var dsHandler = ((CommandStatusHandlerContextData)ctx.getData()).dsHandler;
-        var id = dsHandler.sendStatus(ctx.getCorrelationID(), status);
-        return id;
+        var dsHandler = ((CommandStatusHandlerContextData)ctx.getData()).csHandler;
+        return dsHandler.sendStatus(ctx.getCorrelationID(), status);
     }
     
     

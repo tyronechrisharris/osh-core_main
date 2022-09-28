@@ -21,6 +21,8 @@ import java.util.Set;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.impl.service.sweapi.obs.CustomObsFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.vast.cdm.common.DataStreamParser;
+import org.vast.cdm.common.DataStreamWriter;
 import org.vast.data.DataIterator;
 import org.vast.data.JSONEncodingImpl;
 import org.vast.data.TextEncodingImpl;
@@ -28,6 +30,12 @@ import org.vast.data.XMLEncodingImpl;
 import org.vast.swe.IComponentFilter;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
+import org.vast.swe.XmlDataParser;
+import org.vast.swe.fast.JsonDataParserGson;
+import org.vast.swe.fast.JsonDataWriter;
+import org.vast.swe.fast.TextDataParser;
+import org.vast.swe.fast.TextDataWriter;
+import org.vast.swe.fast.XmlDataWriter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -36,8 +44,10 @@ import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.DataRecord;
+import net.opengis.swe.v20.JSONEncoding;
 import net.opengis.swe.v20.TextEncoding;
 import net.opengis.swe.v20.Vector;
+import net.opengis.swe.v20.XMLEncoding;
 
 
 public class SWECommonUtils
@@ -72,37 +82,18 @@ public class SWECommonUtils
      * Choose proper encoding for the selected SWE Common sub format
      * @throws InvalidRequestException if sub format is not supported
      */
-    public static DataEncoding getEncoding(IDataStreamInfo dsInfo, ResourceFormat format) throws InvalidRequestException
+    public static DataEncoding getEncoding(DataComponent dataStruct, DataEncoding defaultEncoding, ResourceFormat format) throws InvalidRequestException
     {
-        // init SWE datastream writer depending on desired format and native encoding
-        if (dsInfo.getRecordEncoding() instanceof TextEncoding)
-        {
-            if (format.equals(ResourceFormat.SWE_JSON))
-            {
-                return new JSONEncodingImpl();
-            }
-            else if (format.equals(ResourceFormat.SWE_TEXT))
-            {
-                return dsInfo.getRecordEncoding();
-            } 
-            else if (format.equals(ResourceFormat.SWE_XML))
-            {
-                return new XMLEncodingImpl();
-            }
-            else if (format.equals(ResourceFormat.SWE_BINARY))
-            {
-                return SWEHelper.getDefaultBinaryEncoding(dsInfo.getRecordStructure());
-            }
-        }
-        else if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+        // find correct encoding depending on desired format and native encoding
+        if (defaultEncoding instanceof BinaryEncoding)
         {
             if (format.equals(ResourceFormat.SWE_BINARY))
             {
-                return dsInfo.getRecordEncoding();
+                return defaultEncoding;
             }
-            else if (ResourceFormat.allowNonBinaryFormat(dsInfo.getRecordEncoding()))
+            else if (ResourceFormat.allowNonBinaryFormat(defaultEncoding))
             {
-                if (format.equals(ResourceFormat.SWE_JSON))
+                if (format.isOneOf(ResourceFormat.SWE_JSON, ResourceFormat.JSON))
                 {
                     return new JSONEncodingImpl();
                 }
@@ -116,8 +107,98 @@ public class SWECommonUtils
                 }
             }
         }
+        else
+        {
+            if (format.isOneOf(ResourceFormat.SWE_JSON, ResourceFormat.JSON))
+            {
+                return new JSONEncodingImpl();
+            }
+            else if (format.isOneOf(ResourceFormat.SWE_TEXT, ResourceFormat.TEXT_PLAIN, ResourceFormat.TEXT_CSV))
+            {
+                return defaultEncoding instanceof TextEncoding ? defaultEncoding : new TextEncodingImpl();
+            } 
+            else if (format.isOneOf(ResourceFormat.SWE_XML, ResourceFormat.TEXT_XML))
+            {
+                return new XMLEncodingImpl();
+            }
+            else if (format.equals(ResourceFormat.SWE_BINARY))
+            {
+                return SWEHelper.getDefaultBinaryEncoding(dataStruct);
+            }
+        }
         
         throw ServiceErrors.unsupportedFormat(format);
+    }
+    
+    
+    /*
+     * Create proper stream writer for the selected SWE Common sub format
+     * @throws InvalidRequestException if sub format is not supported
+     */
+    public static DataStreamWriter getWriter(DataComponent dataStruct, DataEncoding defaultEncoding, ResourceFormat format) throws InvalidRequestException
+    {
+        DataStreamWriter dataWriter = null;
+        var sweEncoding = getEncoding(dataStruct, defaultEncoding, format);
+        
+        if (sweEncoding instanceof JSONEncoding)
+        {
+            //dataWriter = new JsonDataWriterGson();
+            dataWriter = new JsonDataWriter();
+        }
+        else if (sweEncoding instanceof TextEncoding)
+        {
+            dataWriter = new TextDataWriter();
+            dataWriter.setDataEncoding(sweEncoding);
+        } 
+        else if (sweEncoding instanceof XMLEncoding)
+        {
+            dataWriter = new XmlDataWriter();
+            dataWriter.setDataEncoding(sweEncoding);
+        }
+        else if (sweEncoding instanceof BinaryEncoding)
+        {
+            dataWriter = SWEHelper.createDataWriter(sweEncoding);
+        }
+        else
+            throw ServiceErrors.unsupportedFormat(format);
+        
+        dataWriter.setDataComponents(dataStruct);
+        return dataWriter;
+    }
+    
+    
+    /*
+     * Create proper stream parser for the selected SWE Common sub format
+     * @throws InvalidRequestException if sub format is not supported
+     */
+    public static DataStreamParser getParser(DataComponent dataStruct, DataEncoding defaultEncoding, ResourceFormat format) throws InvalidRequestException
+    {
+        DataStreamParser dataParser = null;
+        var sweEncoding = getEncoding(dataStruct, defaultEncoding, format);
+        
+        if (sweEncoding instanceof JSONEncoding)
+        {
+            dataParser = new JsonDataParserGson();
+        }
+        else if (sweEncoding instanceof TextEncoding)
+        {
+            dataParser = new TextDataParser();
+            dataParser.setDataEncoding(sweEncoding);
+        } 
+        else if (sweEncoding instanceof XMLEncoding)
+        {
+            dataParser = new XmlDataParser();
+            dataParser.setDataEncoding(sweEncoding);
+        }
+        else if (sweEncoding instanceof BinaryEncoding)
+        {
+            dataParser = SWEHelper.createDataParser(sweEncoding);
+        }
+        else
+            throw ServiceErrors.unsupportedFormat(format);
+        
+        dataParser.setDataComponents(dataStruct);
+        return dataParser;
     }
     
     
@@ -156,7 +237,7 @@ public class SWECommonUtils
             var def = comp.getDefinition();
             
             // skip vector coordinates
-            if (comp.getParent() != null && comp.getParent() instanceof Vector)
+            if (comp.getParent() instanceof Vector)
                 return false;
             
             // skip data records
@@ -180,11 +261,11 @@ public class SWECommonUtils
     }
     
     
-    public static boolean allowNonBinaryFormat(IDataStreamInfo dsInfo)
+    public static boolean allowNonBinaryFormat(DataComponent dataStruct, DataEncoding encoding)
     {
-        if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+        if (encoding instanceof BinaryEncoding)
         {
-            var enc = (BinaryEncoding)dsInfo.getRecordEncoding();
+            var enc = (BinaryEncoding)encoding;
             for (var member: enc.getMemberList())
             {
                 if (member instanceof BinaryBlock)
