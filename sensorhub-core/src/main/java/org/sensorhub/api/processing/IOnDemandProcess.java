@@ -20,6 +20,7 @@ import java.util.Collection;
 
 public interface IOnDemandProcess extends IDataProcess
 {
+    public static final String ON_DEMAND_PROCESS_DEF = "http://sensorml.com/ont/swe/system/OnDemandProcess";
     
     /**
      * Executes the process using the current input and parameter data
