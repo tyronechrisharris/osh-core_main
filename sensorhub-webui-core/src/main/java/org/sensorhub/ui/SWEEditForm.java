@@ -15,6 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.ui;
 
 import net.opengis.swe.v20.Category;
+import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataChoice;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.SimpleComponent;
@@ -142,6 +143,12 @@ public abstract class SWEEditForm extends SWECommonForm
                 });
             }
             
+            return layout;
+        }
+        else if (component instanceof DataArray)
+        {
+            HorizontalLayout layout = getCaptionLayout(component);
+            layout.addComponent(new Label("Array component not supported"));
             return layout;
         }
         else
