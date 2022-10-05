@@ -14,6 +14,7 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi.obs;
 
+import java.io.IOException;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.IDataStreamInfo;
@@ -28,8 +29,8 @@ public interface CustomObsFormat
     boolean isCompatible(IDataStreamInfo dsInfo);
     
     
-    ResourceBinding<DataStreamKey, IDataStreamInfo> getSchemaBinding(RequestContext ctx, IdEncoders idEncoders, IDataStreamInfo dsInfo);
+    ResourceBinding<DataStreamKey, IDataStreamInfo> getSchemaBinding(RequestContext ctx, IdEncoders idEncoders, IDataStreamInfo dsInfo) throws IOException;
     
     
-    ResourceBinding<BigId, IObsData> getObsBinding(RequestContext ctx, IdEncoders idEncoders, IDataStreamInfo dsInfo);
+    ResourceBinding<BigId, IObsData> getObsBinding(RequestContext ctx, IdEncoders idEncoders, IDataStreamInfo dsInfo) throws IOException;
 }
