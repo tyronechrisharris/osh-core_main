@@ -35,9 +35,11 @@ public class CommandStreamInfo implements ICommandStreamInfo
     protected String name;
     protected String description;
     protected SystemId systemID;
+    protected TimeExtent validTime;
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
-    protected TimeExtent validTime;
+    protected DataComponent resultStruct;
+    protected DataEncoding resultEncoding;
     
     
     @Override
@@ -105,23 +107,23 @@ public class CommandStreamInfo implements ICommandStreamInfo
 
 
     @Override
-    public boolean hasResult()
-    {
-        return false;
-    }
-
-
-    @Override
     public DataComponent getResultStructure()
     {
-        return null;
+        return resultStruct;
     }
 
 
     @Override
     public DataEncoding getResultEncoding()
     {
-        return null;
+        return resultEncoding;
+    }
+
+
+    @Override
+    public boolean hasResult()
+    {
+        return resultStruct != null;
     }
 
 
@@ -156,9 +158,11 @@ public class CommandStreamInfo implements ICommandStreamInfo
             instance.name = base.getName();
             instance.description = base.getDescription();
             instance.systemID = base.getSystemID();
+            instance.validTime = base.getValidTime();
             instance.recordStruct = base.getRecordStructure();
             instance.recordEncoding = base.getRecordEncoding();
-            instance.validTime = base.getValidTime();
+            instance.resultStruct = base.getResultStructure();
+            instance.resultEncoding = base.getResultEncoding();
             return (B)this;
         }
         
@@ -194,6 +198,20 @@ public class CommandStreamInfo implements ICommandStreamInfo
         public B withRecordEncoding(DataEncoding recordEncoding)
         {
             instance.recordEncoding = recordEncoding;
+            return (B)this;
+        }
+
+
+        public B withResultDescription(DataComponent resultStruct)
+        {
+            instance.resultStruct = resultStruct;
+            return (B)this;
+        }
+
+
+        public B withResultEncoding(DataEncoding resultEncoding)
+        {
+            instance.resultEncoding = resultEncoding;
             return (B)this;
         }
 

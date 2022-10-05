@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.serialization.kryo.v1;
+package org.sensorhub.impl.serialization.kryo.compat.v1;
 
 import javax.xml.namespace.QName;
 import org.vast.ogc.gml.GMLStaxBindings;
@@ -36,7 +36,7 @@ import net.opengis.gml.v32.impl.GMLFactory;
  * @author Alex Robin
  * @date Dec 2, 2020
  */
-public class FeatureSerializer extends Serializer<IFeature>
+public class FeatureSerializerV1 extends Serializer<IFeature>
 {
     static final int VERSION = 1;
     static final QName DEFAULT_QNAME = new QName(GMLStaxBindings.NS_URI, "Feature");
@@ -44,7 +44,7 @@ public class FeatureSerializer extends Serializer<IFeature>
     GMLFactory gmlFactory = new GMLFactory(true);
     
     
-    public FeatureSerializer()
+    public FeatureSerializerV1()
     {
     }
     

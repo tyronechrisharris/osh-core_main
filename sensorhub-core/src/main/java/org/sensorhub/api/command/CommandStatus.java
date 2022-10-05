@@ -39,6 +39,7 @@ public class CommandStatus implements ICommandStatus
     protected CommandStatusCode statusCode;
     protected int progress = -1;
     protected String message;
+    protected ICommandResult result;
     
     
     protected CommandStatus()
@@ -175,7 +176,9 @@ public class CommandStatus implements ICommandStatus
      */
     public static ICommandStatus completed(BigId commandID, TimeExtent execTime, ICommandResult result)
     {
-        return new CommandStatusWithResult(commandID, CommandStatusCode.COMPLETED, execTime, result);
+        var status = new CommandStatus(commandID, CommandStatusCode.COMPLETED, execTime);
+        status.result = Asserts.checkNotNull(result, ICommandResult.class);
+        return status;
     }
 
 
@@ -222,6 +225,13 @@ public class CommandStatus implements ICommandStatus
 
 
     @Override
+    public ICommandResult getResult()
+    {
+        return result;
+    }
+
+
+    @Override
     public String toString()
     {
         return ObjectUtils.toString(this, true);
@@ -246,7 +256,7 @@ public class CommandStatus implements ICommandStatus
     
     
     @SuppressWarnings("unchecked")
-    public static abstract class CommandStatusBuilder<
+    public abstract static class CommandStatusBuilder<
             B extends CommandStatusBuilder<B, T>,
             T extends CommandStatus>
         extends BaseBuilder<T>
@@ -264,6 +274,7 @@ public class CommandStatus implements ICommandStatus
             instance.statusCode = base.getStatusCode();
             instance.progress = base.getProgress();
             instance.message = base.getMessage();
+            instance.result = base.getResult();
             return (B)this;
         }
 
@@ -308,8 +319,16 @@ public class CommandStatus implements ICommandStatus
             instance.message = message;
             return (B)this;
         }
+
+
+        public B withResult(ICommandResult result)
+        {
+            instance.result = result;
+            return (B)this;
+        }
         
         
+        @Override
         public T build()
         {
             OshAsserts.checkValidInternalID(instance.commandID, "commandID");
@@ -317,12 +336,5 @@ public class CommandStatus implements ICommandStatus
                 instance.reportTime = Instant.now();
             return super.build();
         }
-    }
-
-
-    @Override
-    public ICommandResult getResult()
-    {
-        return null;
     }
 }

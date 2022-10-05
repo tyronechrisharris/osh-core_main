@@ -12,30 +12,30 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.serialization.kryo.v1;
+package org.sensorhub.impl.serialization.kryo.compat.v1;
 
-import org.sensorhub.api.command.CommandData;
-import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
+import org.sensorhub.api.feature.FeatureId;
+import org.sensorhub.impl.serialization.kryo.compat.BackwardCompatFieldSerializer;
 import com.esotericsoftware.kryo.Kryo;
 
 
 /**
  * <p>
  * Custom serializer for backward compatibility with v1 format where
- * id was serialized as BigInt and commandStreamID/foiID as longs
+ * internalID was serialized as a long
  * </p>
  *
  * @author Alex Robin
  * @since May 3, 2022
  */
-public class CommandDataSerializerLongIds extends BackwardCompatFieldSerializer<CommandData>
+public class FeatureIdSerializerV1 extends BackwardCompatFieldSerializer<FeatureId>
 {
     int idScope;
     
     
-    public CommandDataSerializerLongIds(Kryo kryo, int idScope)
+    public FeatureIdSerializerV1(Kryo kryo, int idScope)
     {
-        super(kryo, CommandData.class);
+        super(kryo, FeatureId.class);
         this.idScope = idScope;
         customizeCacheFields();
     }
@@ -53,26 +53,14 @@ public class CommandDataSerializerLongIds extends BackwardCompatFieldSerializer<
             var name = f.getName();
             CachedField newField = f;
             
-            if ("commandStreamID".equals(name))
+            if ("internalID".equals(name))
             {
                 // use transforming field to convert between BigId and long
                 newField = new BigIdAsLongCachedField(f.getField(), idScope);
-            }
-            
-            else if ("foiID".equals(name))
-            {
-                // use transforming field to convert between BigId and long
-                newField = new BigIdAsLongCachedField(f.getField(), idScope);
-            }
-            
-            else if ("id".equals(name))
-            {
-                // use transforming field to convert between BigId and BigInteger
-                newField = new BigIdAsBigIntCachedField(f.getField(), getKryo(), idScope);
             }
             
             compatFields[i++] = newField;
         }
     }
-
+    
 }

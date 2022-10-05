@@ -17,6 +17,7 @@ package org.sensorhub.api.command;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsData;
@@ -95,7 +96,7 @@ public class CommandResult implements ICommandResult
     public static ICommandResult withSingleObs(IObsData obs)
     {
         var res = new CommandResult();
-        res.obsList = java.util.Set.of(Asserts.checkNotNull(obs, IObsData.class));
+        res.obsList = Set.of(Asserts.checkNotNull(obs, IObsData.class));
         return res;
     }
     
@@ -112,7 +113,7 @@ public class CommandResult implements ICommandResult
             .withPhenomenonTime(Instant.now())
             .withResult(data)
             .build();
-        res.obsList = java.util.Set.of(Asserts.checkNotNull(obs, IObsData.class));
+        res.obsList = Set.of(Asserts.checkNotNull(obs, IObsData.class));
         return res;
     }
 

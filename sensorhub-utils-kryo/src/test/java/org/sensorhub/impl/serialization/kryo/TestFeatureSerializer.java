@@ -18,7 +18,7 @@ import static org.junit.Assert.*;
 import javax.xml.namespace.QName;
 import org.junit.Test;
 import org.objenesis.strategy.StdInstantiatorStrategy;
-import org.sensorhub.impl.serialization.kryo.v1.FeatureSerializer;
+import org.sensorhub.impl.serialization.kryo.compat.v1.FeatureSerializerV1;
 import org.vast.ogc.gml.GenericFeatureImpl;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.MovingFeature;
@@ -47,7 +47,7 @@ public class TestFeatureSerializer
     void writeReadAndCompare(IFeature f1)
     {
         var kryo = getKryo();
-        var ser = new FeatureSerializer();
+        var ser = new FeatureSerializerV1();
         
         // write
         var output = new Output(1024, 1024*1024);

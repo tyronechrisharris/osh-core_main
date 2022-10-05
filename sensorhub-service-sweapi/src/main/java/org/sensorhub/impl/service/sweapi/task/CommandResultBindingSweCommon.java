@@ -18,14 +18,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collection;
-import org.sensorhub.api.command.CommandResult;
-import org.sensorhub.api.command.CommandStatusWithResult;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
+import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBinding;
@@ -79,13 +78,7 @@ public class CommandResultBindingSweCommon extends ResourceBinding<BigId, IComma
     @Override
     public ICommandStatus deserialize() throws IOException
     {
-        var rec = resultReader.parseNextBlock();
-        if (rec == null)
-            return null;
-        
-        return new CommandStatusWithResult.Builder()
-            .withResult(CommandResult.withData(rec))
-            .build();
+        throw ServiceErrors.notWritable();
     }
 
 

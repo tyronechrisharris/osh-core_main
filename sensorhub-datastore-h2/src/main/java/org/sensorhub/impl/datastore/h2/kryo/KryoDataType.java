@@ -64,7 +64,7 @@ public class KryoDataType implements DataType
             
             // set default object serializer
             kryo.setDefaultSerializer(defaultObjectSerializer);
-            
+                
             // configure kryo instance
             if (configurator != null)
                 configurator.accept(kryo);

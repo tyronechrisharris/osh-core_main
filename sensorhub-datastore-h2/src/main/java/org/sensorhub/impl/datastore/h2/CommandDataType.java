@@ -16,13 +16,13 @@ package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
 import org.sensorhub.api.command.CommandData;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import org.sensorhub.impl.serialization.kryo.BigIdSerializers;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
-import org.sensorhub.impl.serialization.kryo.v1.CommandDataSerializerLongIds;
-import org.sensorhub.impl.serialization.kryo.v2.CommandDataSerializerBigIds;
-import com.esotericsoftware.kryo.Serializer;
-import com.google.common.collect.ImmutableMap;
+import org.sensorhub.impl.serialization.kryo.compat.v1.CommandDataSerializerV1;
+import org.sensorhub.impl.serialization.kryo.compat.v2.CommandDataSerializerV2;
 
 
 /**
@@ -39,12 +39,15 @@ class CommandDataType extends KryoDataType
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
+
             // register custom serializers w/ backward compatibility
-            kryo.addDefaultSerializer(CommandData.class, new VersionedSerializer<CommandData>(
-                ImmutableMap.<Integer, Serializer<CommandData>>builder()
-                    .put(H2Utils.CURRENT_VERSION, new CommandDataSerializerBigIds(kryo, idScope))
-                    .put(1, new CommandDataSerializerLongIds(kryo, idScope))
-                    .build(), H2Utils.CURRENT_VERSION));
+            kryo.addDefaultSerializer(CommandData.class,
+                VersionedSerializer.<CommandData>factory(H2Utils.CURRENT_VERSION)
+                    .put(2, new CommandDataSerializerV2(kryo, idScope))
+                    .put(1, new CommandDataSerializerV1(kryo, idScope))
+                    .build());
+            
+            kryo.addDefaultSerializer(BigId.class, BigIdSerializers.factory(idScope));
         };
     }
 }

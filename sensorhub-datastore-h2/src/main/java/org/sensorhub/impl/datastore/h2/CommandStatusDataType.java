@@ -16,11 +16,13 @@ package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
 import org.sensorhub.api.command.CommandStatus;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import org.sensorhub.impl.serialization.kryo.BigIdSerializers;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
-import org.sensorhub.impl.serialization.kryo.v1.CommandStatusSerializerLongIds;
-import org.sensorhub.impl.serialization.kryo.v2.CommandStatusSerializerBigIds;
+import org.sensorhub.impl.serialization.kryo.compat.v1.CommandStatusSerializerV1;
+import org.sensorhub.impl.serialization.kryo.compat.v2.CommandStatusSerializerV2;
 
 
 /**
@@ -37,11 +39,15 @@ class CommandStatusDataType extends KryoDataType
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
+            
             // register custom serializers w/ backward compatibility
-            kryo.addDefaultSerializer(CommandStatus.class, VersionedSerializer.<CommandStatus>factory(H2Utils.CURRENT_VERSION)
-                .put(H2Utils.CURRENT_VERSION, CommandStatusSerializerBigIds.factory(idScope))
-                .put(1, new CommandStatusSerializerLongIds(kryo, idScope))
-                .build());
+            kryo.addDefaultSerializer(CommandStatus.class,
+                VersionedSerializer.<CommandStatus>factory(H2Utils.CURRENT_VERSION)
+                    .put(2, new CommandStatusSerializerV2(kryo, idScope))
+                    .put(1, new CommandStatusSerializerV1(kryo, idScope))
+                    .build());
+            
+            kryo.addDefaultSerializer(BigId.class, BigIdSerializers.factory(idScope));
         };
     }
 }

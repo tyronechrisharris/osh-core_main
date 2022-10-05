@@ -12,36 +12,34 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.serialization.kryo.v1;
+package org.sensorhub.impl.serialization.kryo.compat.v2;
 
 import java.lang.reflect.Field;
-import java.math.BigInteger;
 import org.sensorhub.api.common.BigId;
-import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.DefaultArraySerializers.ByteArraySerializer;
 import com.esotericsoftware.kryo.serializers.FieldSerializer.CachedField;
 
 
 /**
  * <p>
- * Internal class used to configure Kryo to serialize BigId fields as longs
+ * Internal class used to configure Kryo to serialize BigId fields as byte[]
  * </p>
  *
  * @author Alex Robin
- * @since May 3, 2022
+ * @since Aug 23, 2022
  */
-public class BigIdAsBigIntCachedField extends CachedField
+public class BigIdAsBytesCachedField extends CachedField
 {
-    Kryo kryo;
     int idScope;
+    ByteArraySerializer byteArraySerializer = new ByteArraySerializer();
     
     
-    public BigIdAsBigIntCachedField(Field field, Kryo kryo, int idScope)
+    public BigIdAsBytesCachedField(Field field, int idScope)
     {
         super(field);
-        this.kryo = kryo;
         this.idScope = idScope;
     }
     
@@ -51,7 +49,7 @@ public class BigIdAsBigIntCachedField extends CachedField
     {
         try {
             var id = (BigId)getField().get(object);
-            kryo.writeClassAndObject(output, id != null ? new BigInteger(id.getIdAsBytes()) : null);
+            byteArraySerializer.write(null, output, id != null ? id.getIdAsBytes() : null);
         }
         catch (Throwable t) {
             KryoException ex = new KryoException(t);
@@ -65,9 +63,9 @@ public class BigIdAsBigIntCachedField extends CachedField
     public void read(Input input, Object object)
     {
         try {
-            var id = (BigInteger)kryo.readClassAndObject(input);
-            if (id != null)
-                getField().set(object, id == BigInteger.ZERO ? BigId.NONE : BigId.fromBytes(idScope, id.toByteArray()));
+            var bytes = byteArraySerializer.read(null, input, null);
+            if (bytes != null)
+                getField().set(object, BigId.fromBytes(idScope, bytes));
         }
         catch (Throwable t) {
             KryoException ex = new KryoException(t);

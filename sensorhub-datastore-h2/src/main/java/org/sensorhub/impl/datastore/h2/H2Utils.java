@@ -36,7 +36,7 @@ import net.opengis.gml.v32.Polygon;
 
 public class H2Utils
 {
-    public final static int CURRENT_VERSION = 2;
+    public static final int CURRENT_VERSION = 3;
     
     static final String DATASTORES_MAP_NAME = "@datastores";
     static final String GEOM_DIM_ERROR = "Only 2D and 3D geometries are supported";

@@ -12,7 +12,7 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.serialization.kryo.v2;
+package org.sensorhub.impl.serialization.kryo.compat.v1;
 
 import org.locationtech.jts.geom.PrecisionModel;
 import com.esotericsoftware.kryo.Kryo;
@@ -28,10 +28,10 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
  * @author Alex Robin
  * @since Aug 20, 2022
  */
-public class PrecisionModelSerializer extends FieldSerializer<PrecisionModel>
+public class PrecisionModelSerializerV1 extends FieldSerializer<PrecisionModel>
 {
     
-    public PrecisionModelSerializer(Kryo kryo)
+    public PrecisionModelSerializerV1(Kryo kryo)
     {
         super(kryo, PrecisionModel.class);
     }

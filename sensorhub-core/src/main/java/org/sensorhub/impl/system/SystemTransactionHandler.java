@@ -19,7 +19,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import org.sensorhub.api.command.CommandStreamAddedEvent;
 import org.sensorhub.api.command.CommandStreamInfo;
-import org.sensorhub.api.command.CommandStreamWithResultInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.DataStreamAddedEvent;
@@ -380,27 +379,14 @@ public class SystemTransactionHandler
         
         // create command stream info
         // with or without command result
-        ICommandStreamInfo csInfo;
-        if (resultStruct != null && resultEncoding != null)
-        {
-            csInfo = new CommandStreamWithResultInfo.Builder()
-                .withName(fullName)
-                .withSystem(SystemId.NO_SYSTEM_ID)
-                .withRecordDescription(dataStruct)
-                .withRecordEncoding(dataEncoding)
-                .withResultDescription(resultStruct)
-                .withResultEncoding(resultEncoding)
-                .build();
-        }
-        else
-        {
-            csInfo = new CommandStreamInfo.Builder()
-                .withName(fullName)
-                .withSystem(SystemId.NO_SYSTEM_ID)
-                .withRecordDescription(dataStruct)
-                .withRecordEncoding(dataEncoding)
-                .build();
-        }
+        ICommandStreamInfo csInfo = new CommandStreamInfo.Builder()
+            .withName(fullName)
+            .withSystem(SystemId.NO_SYSTEM_ID)
+            .withRecordDescription(dataStruct)
+            .withRecordEncoding(dataEncoding)
+            .withResultDescription(resultStruct)
+            .withResultEncoding(resultEncoding)
+            .build();
         
         return addOrUpdateCommandStream(csInfo);
     }
@@ -416,18 +402,9 @@ public class SystemTransactionHandler
             throw new IllegalStateException("Inconsistent command name");
         
         // add system ID
-        if (csInfo.getResultStructure() != null)
-        {
-            csInfo = CommandStreamWithResultInfo.Builder.from(csInfo)
-                .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
-                .build();
-        }
-        else
-        {
-            csInfo = CommandStreamInfo.Builder.from(csInfo)
-                .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
-                .build();
-        }
+        csInfo = CommandStreamInfo.Builder.from(csInfo)
+            .withSystem(new SystemId(sysKey.getInternalID(), sysUID))
+            .build();
         
         // try to retrieve existing command stream
         ICommandStreamStore commandStreamStore = getCommandStreamStore();

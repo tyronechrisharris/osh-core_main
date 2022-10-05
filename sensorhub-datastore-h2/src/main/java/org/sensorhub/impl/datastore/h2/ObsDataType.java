@@ -15,13 +15,13 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.ObsData;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import org.sensorhub.impl.serialization.kryo.BigIdSerializers;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
-import org.sensorhub.impl.serialization.kryo.v1.ObsDataSerializerLongIds;
-import com.esotericsoftware.kryo.Serializer;
-import com.google.common.collect.ImmutableMap;
+import org.sensorhub.impl.serialization.kryo.compat.v1.ObsDataSerializerV1;
 
 
 /**
@@ -38,11 +38,14 @@ class ObsDataType extends KryoDataType
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
-            // register custom serializer w/ backward compatibility
-            kryo.addDefaultSerializer(ObsData.class, new VersionedSerializer<ObsData>(
-                ImmutableMap.<Integer, Serializer<ObsData>>builder()
-                    .put(H2Utils.CURRENT_VERSION, new ObsDataSerializerLongIds(kryo, idScope))
-                    .build(), H2Utils.CURRENT_VERSION));
+            
+            // register custom serializers w/ backward compatibility
+            kryo.addDefaultSerializer(ObsData.class,
+                VersionedSerializer.<ObsData>factory(H2Utils.CURRENT_VERSION)
+                    .put(2, new ObsDataSerializerV1(kryo, idScope))
+                    .build());
+            
+            kryo.addDefaultSerializer(BigId.class, BigIdSerializers.factory(idScope));
         };
     }
 }

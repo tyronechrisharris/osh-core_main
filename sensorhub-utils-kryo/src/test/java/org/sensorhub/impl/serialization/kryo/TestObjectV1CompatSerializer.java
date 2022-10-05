@@ -15,6 +15,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.serialization.kryo;
 
 import java.awt.geom.Point2D;
+import org.sensorhub.impl.serialization.kryo.compat.BackwardCompatFieldSerializer;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;

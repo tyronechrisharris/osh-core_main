@@ -12,7 +12,7 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.serialization.kryo.v1;
+package org.sensorhub.impl.serialization.kryo.compat.v1;
 
 import java.lang.reflect.Field;
 import org.sensorhub.api.common.BigId;

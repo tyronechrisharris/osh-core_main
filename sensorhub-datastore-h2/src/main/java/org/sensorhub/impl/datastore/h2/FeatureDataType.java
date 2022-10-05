@@ -19,14 +19,12 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.sensorhub.impl.datastore.h2.kryo.FeatureClassResolver;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
-import org.sensorhub.impl.serialization.kryo.v2.PrecisionModelSerializer;
+import org.sensorhub.impl.serialization.kryo.compat.v1.FeatureSerializerV1;
+import org.sensorhub.impl.serialization.kryo.compat.v1.PrecisionModelSerializerV1;
 import org.vast.ogc.gml.FeatureRef;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.ProcedureRef;
 import org.vast.ogc.om.SamplingFeature;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -46,9 +44,10 @@ class FeatureDataType extends KryoDataType
         this.configurator = kryo -> {
             
             // register custom serializer w/ backward compatibility
-            kryo.addDefaultSerializer(IFeature.class, VersionedSerializer.<IFeature>factory(ImmutableMap.of(
-                H2Utils.CURRENT_VERSION, new org.sensorhub.impl.serialization.kryo.v1.FeatureSerializer()),
-                H2Utils.CURRENT_VERSION));
+            kryo.addDefaultSerializer(IFeature.class,
+                VersionedSerializer.<IFeature>factory(H2Utils.CURRENT_VERSION)
+                    .put(H2Utils.CURRENT_VERSION, new FeatureSerializerV1())
+                    .build());
             
             // but use default serializer for the following well-known feature types
             kryo.addDefaultSerializer(FeatureRef.class, defaultObjectSerializer);
@@ -56,11 +55,10 @@ class FeatureDataType extends KryoDataType
             kryo.addDefaultSerializer(SamplingFeature.class, defaultObjectSerializer);
             
             // register backward compatible serializer for JTS < 1.19 classes
-            kryo.addDefaultSerializer(PrecisionModel.class, new VersionedSerializer<PrecisionModel>(
-                ImmutableMap.<Integer, Serializer<PrecisionModel>>builder()
-                    .put(H2Utils.CURRENT_VERSION, new FieldSerializer<>(kryo, PrecisionModel.class))
-                    .put(1, new PrecisionModelSerializer(kryo))
-                    .build(), H2Utils.CURRENT_VERSION));
+            kryo.addDefaultSerializer(PrecisionModel.class,
+                VersionedSerializer.<PrecisionModel>factory(H2Utils.CURRENT_VERSION)
+                    .put(1, new PrecisionModelSerializerV1(kryo))
+                    .build());
         };
     }
 }

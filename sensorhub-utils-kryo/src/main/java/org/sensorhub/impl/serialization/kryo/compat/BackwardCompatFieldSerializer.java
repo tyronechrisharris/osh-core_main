@@ -12,7 +12,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.serialization.kryo;
+package org.sensorhub.impl.serialization.kryo.compat;
 
 import static com.esotericsoftware.minlog.Log.TRACE;
 import com.esotericsoftware.kryo.Kryo;

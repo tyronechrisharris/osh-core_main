@@ -27,8 +27,8 @@ import org.sensorhub.api.command.CommandStreamChangedEvent;
 import org.sensorhub.api.command.CommandStreamDisabledEvent;
 import org.sensorhub.api.command.CommandStreamEnabledEvent;
 import org.sensorhub.api.command.CommandStreamEvent;
+import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.CommandStreamRemovedEvent;
-import org.sensorhub.api.command.CommandStreamWithResultInfo;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandData;
 import org.sensorhub.api.command.ICommandStreamInfo;
@@ -99,7 +99,7 @@ public class CommandStreamTransactionHandler implements IEventListener
             throw new DataStoreException("Cannot update the structure or encoding of a command interface if it already has received commands");
         
         // update command stream info
-        var newCsInfo = new CommandStreamWithResultInfo.Builder()
+        var newCsInfo = new CommandStreamInfo.Builder()
             .withName(csInfo.getName())
             .withDescription(csInfo.getDescription())
             .withSystem(oldCsInfo.getSystemID())

@@ -105,7 +105,7 @@ public class VersionedSerializer<T> extends Serializer<T>
             {
                 var prevEntry = serializers[i];
                 if (prevEntry.version >= readVersion)
-                    reader = (Serializer<T>)prevEntry.serializer;
+                    reader = prevEntry.serializer;
                 if (prevEntry.version <= readVersion)
                     break;
             }
@@ -134,7 +134,7 @@ public class VersionedSerializer<T> extends Serializer<T>
                 factories.forEach((version, fac) -> {
                     var serializer = fac.newSerializer(kryo, type);
                     mapBuilder.put(version, serializer);
-                });                
+                });
                 var serializers = mapBuilder.build();
                 
                 if (log.isTraceEnabled())
@@ -159,7 +159,8 @@ public class VersionedSerializer<T> extends Serializer<T>
     
     public static class VersionedSerializerFactoryBuilder<T> extends BaseBuilder<SerializerFactory<VersionedSerializer<T>>>
     {
-        Map<Integer, SerializerFactory<? extends Serializer<T>>> factories = new HashMap<>();
+        @SuppressWarnings("rawtypes")
+        Map<Integer, SerializerFactory> factories = new HashMap<>();
         int currentVersion;
         
         VersionedSerializerFactoryBuilder(int currentVersion)
@@ -183,9 +184,12 @@ public class VersionedSerializer<T> extends Serializer<T>
         public SerializerFactory<VersionedSerializer<T>> build()
         {
             this.instance = new BaseSerializerFactory<>() {
-                @SuppressWarnings("rawtypes")
+                @SuppressWarnings({ "rawtypes", "unchecked" })
                 public VersionedSerializer<T> newSerializer(Kryo kryo, Class type)
                 {
+                    // add default serializer if none was set for current version
+                    factories.putIfAbsent(currentVersion, new FieldSerializerFactory());
+                    
                     // create serializer map
                     var mapBuilder = ImmutableMap.<Integer, Serializer<T>>builder();
                     factories.forEach((version, fac) -> {

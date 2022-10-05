@@ -15,14 +15,16 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
+import org.sensorhub.api.command.CommandStreamInfo;
+import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import org.sensorhub.impl.serialization.kryo.BigIdSerializers;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
-import org.sensorhub.impl.serialization.kryo.v1.FeatureIdSerializerLongIds;
-import com.esotericsoftware.kryo.Serializer;
+import org.sensorhub.impl.serialization.kryo.compat.v1.FeatureIdSerializerV1;
+import org.sensorhub.impl.serialization.kryo.compat.v2.CommandStreamInfoSerializerV2;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import com.google.common.collect.ImmutableMap;
 import net.opengis.OgcPropertyList;
 
 
@@ -37,11 +39,18 @@ class CommandStreamInfoDataType extends KryoDataType
             // the add method doesn't behave as expected
             kryo.addDefaultSerializer(OgcPropertyList.class, FieldSerializer.class);
             
-            // register custom serializer w/ backward compatibility
-            kryo.addDefaultSerializer(FeatureId.class, new VersionedSerializer<FeatureId>(
-                ImmutableMap.<Integer, Serializer<FeatureId>>builder()
-                    .put(H2Utils.CURRENT_VERSION, new FeatureIdSerializerLongIds(kryo, idScope))
-                    .build(), H2Utils.CURRENT_VERSION));
+            // register custom serializers w/ backward compatibility
+            kryo.addDefaultSerializer(CommandStreamInfo.class,
+                VersionedSerializer.<CommandStreamInfo>factory(H2Utils.CURRENT_VERSION)
+                    .put(2, new CommandStreamInfoSerializerV2(kryo))
+                    .build());
+            
+            kryo.addDefaultSerializer(FeatureId.class,
+                VersionedSerializer.<FeatureId>factory(H2Utils.CURRENT_VERSION)
+                    .put(2, new FeatureIdSerializerV1(kryo, idScope))
+                    .build());
+            
+            kryo.addDefaultSerializer(BigId.class, BigIdSerializers.factory(idScope));
         };
     }
 }

@@ -12,30 +12,37 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.serialization.kryo.v1;
+package org.sensorhub.impl.serialization.kryo.compat.v2;
 
-import org.sensorhub.api.data.ObsData;
-import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
+import org.sensorhub.api.command.CommandStatus;
+import org.sensorhub.impl.serialization.kryo.compat.BackwardCompatFieldSerializer;
 import com.esotericsoftware.kryo.Kryo;
 
 
 /**
  * <p>
- * Custom serializer for backward compatibility with v1 format where
- * dataStreamID and foiID were serialized as longs
+ * Custom serializer to write commandID as byte[]
  * </p>
  *
  * @author Alex Robin
- * @since May 3, 2022
+ * @since Aug 23, 2022
  */
-public class ObsDataSerializerLongIds extends BackwardCompatFieldSerializer<ObsData>
+public class CommandStatusSerializerV2 extends BackwardCompatFieldSerializer<CommandStatus>
 {
     int idScope;
     
     
-    public ObsDataSerializerLongIds(Kryo kryo, int idScope)
+    public CommandStatusSerializerV2(Kryo kryo, int idScope)
     {
-        super(kryo, ObsData.class);
+        super(kryo, CommandStatus.class);
+        this.idScope = idScope;
+        customizeCacheFields();
+    }
+    
+    
+    public CommandStatusSerializerV2(Kryo kryo, int idScope, Class<? extends CommandStatus> clazz)
+    {
+        super(kryo, clazz);
         this.idScope = idScope;
         customizeCacheFields();
     }
@@ -53,20 +60,22 @@ public class ObsDataSerializerLongIds extends BackwardCompatFieldSerializer<ObsD
             var name = f.getName();
             CachedField newField = f;
             
-            if ("dataStreamID".equals(name))
+            if ("commandID".equals(name))
             {
-                // use transforming field to convert between BigId and long
-                newField = new BigIdAsLongCachedField(f.getField(), idScope);
-            }
-            
-            else if ("foiID".equals(name))
-            {
-                // use transforming field to convert between BigId and long
-                newField = new BigIdAsLongCachedField(f.getField(), idScope);
+                // use transforming field to convert between BigId and BigInteger
+                newField = new BigIdAsBytesCachedField(f.getField(), idScope);
             }
             
             compatFields[i++] = newField;
         }
+    }
+    
+    
+    @Override
+    protected void initializeCachedFields()
+    {
+        // skip fields that were added in v3
+        this.removeField("result");
     }
 
 }

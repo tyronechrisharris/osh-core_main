@@ -12,30 +12,30 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.serialization.kryo.v1;
+package org.sensorhub.impl.serialization.kryo.compat.v1;
 
-import org.sensorhub.api.feature.FeatureId;
-import org.sensorhub.impl.serialization.kryo.BackwardCompatFieldSerializer;
+import org.sensorhub.api.command.CommandStatus;
+import org.sensorhub.impl.serialization.kryo.compat.BackwardCompatFieldSerializer;
 import com.esotericsoftware.kryo.Kryo;
 
 
 /**
  * <p>
  * Custom serializer for backward compatibility with v1 format where
- * internalID was serialized as a long
+ * command ID was serialized as BigInteger
  * </p>
  *
  * @author Alex Robin
  * @since May 3, 2022
  */
-public class FeatureIdSerializerLongIds extends BackwardCompatFieldSerializer<FeatureId>
+public class CommandStatusSerializerV1 extends BackwardCompatFieldSerializer<CommandStatus>
 {
     int idScope;
     
     
-    public FeatureIdSerializerLongIds(Kryo kryo, int idScope)
+    public CommandStatusSerializerV1(Kryo kryo, int idScope)
     {
-        super(kryo, FeatureId.class);
+        super(kryo, CommandStatus.class);
         this.idScope = idScope;
         customizeCacheFields();
     }
@@ -53,14 +53,14 @@ public class FeatureIdSerializerLongIds extends BackwardCompatFieldSerializer<Fe
             var name = f.getName();
             CachedField newField = f;
             
-            if ("internalID".equals(name))
+            if ("commandID".equals(name))
             {
-                // use transforming field to convert between BigId and long
-                newField = new BigIdAsLongCachedField(f.getField(), idScope);
+                // use transforming field to convert between BigId and BigInteger
+                newField = new BigIdAsBigIntCachedField(f.getField(), getKryo(), idScope);
             }
             
             compatFields[i++] = newField;
         }
     }
-    
+
 }
