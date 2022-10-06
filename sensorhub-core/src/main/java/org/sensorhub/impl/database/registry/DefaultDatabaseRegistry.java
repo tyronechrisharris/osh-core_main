@@ -126,7 +126,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         if (db instanceof IObsSystemDatabase)
             return (IObsSystemDatabase)db;
         else
-            throw new IllegalArgumentException("Cannot find obs system database with num " + dbNum);
+            return null;
     }
     
     
