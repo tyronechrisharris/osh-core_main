@@ -31,7 +31,10 @@ import com.google.common.collect.Iterators;
 
 public class FeatureUtils
 {
-
+    
+    private FeatureUtils() {}
+    
+    
     public static <V extends IFeature, F extends FeatureFilterBase<? super V>, S extends IFeatureStoreBase<V,?,F>> FeatureKey getClosestKeyToNow(S dataStore, BigId id)
     {
         var s = dataStore.selectEntries(dataStore.filterBuilder()
@@ -40,7 +43,7 @@ public class FeatureUtils
                 .build());
         
         return keepOnlyClosestToNow(s)
-            .map(e -> e.getKey())
+            .map(Entry::getKey)
             .findFirst()
             .orElse(null);
     }
@@ -54,7 +57,7 @@ public class FeatureUtils
                 .build());
         
         return keepOnlyClosestToNow(s)
-            .map(e -> e.getValue())
+            .map(Entry::getValue)
             .findFirst()
             .orElse(null);
     }
@@ -80,7 +83,7 @@ public class FeatureUtils
             var next = pit.peek();
             var nextId = next.getKey().getInternalID().getIdAsLong();
             var nextValidTime = next.getKey().getValidStartTime();
-            if (thisId == nextId && nextValidTime.toEpochMilli() <= now.toEpochMilli())
+            if (thisId == nextId && nextValidTime.compareTo(now) <= 0)
                 return false;
             
             lastIdHolder.set(thisId);
