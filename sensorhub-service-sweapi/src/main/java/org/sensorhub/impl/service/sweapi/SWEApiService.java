@@ -64,7 +64,7 @@ import com.google.common.collect.ImmutableSet;
  * @author Alex Robin
  * @since Oct 12, 2020
  */
-public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig> implements IServiceModule<SWEApiServiceConfig>, IEventListener
+public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig> implements RestApiService, IServiceModule<SWEApiServiceConfig>, IEventListener
 {
     protected SWEApiServlet servlet;
     ScheduledExecutorService threadPool;
@@ -321,6 +321,12 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
     public SWEApiServlet getServlet()
     {
         return servlet;
+    }
+    
+    
+    public String getPublicEndpointUrl()
+    {
+        return getHttpServer().getPublicEndpointUrl(config.endPoint);
     }
 
 

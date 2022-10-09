@@ -14,29 +14,14 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
-import java.io.IOException;
-import org.sensorhub.api.security.IPermission;
-import org.sensorhub.api.security.IUserInfo;
+import java.util.concurrent.ScheduledExecutorService;
 
 
-public interface RestApiSecurity
+public interface RestApiService
 {
-    
-    public void setCurrentUser(String userID);
-    
-    
-    public void clearCurrentUser();
+
+    public String getPublicEndpointUrl();
     
     
-    public IUserInfo getCurrentUser();
-    
-    
-    public void checkPermission(IPermission perm);
-    
-    
-    public void checkResourcePermission(IPermission perm, String id) throws IOException;
-    
-    
-    public void checkParentPermission(IPermission perm, String parentId) throws IOException;
-    
+    public ScheduledExecutorService getThreadPool();
 }
