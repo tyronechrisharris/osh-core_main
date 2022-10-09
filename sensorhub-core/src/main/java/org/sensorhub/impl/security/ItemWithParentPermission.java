@@ -27,10 +27,26 @@ import org.sensorhub.api.security.IPermission;
  */
 public class ItemWithParentPermission extends ItemPermission
 {
-
+    String resourceType;
+    String parentId;
+    
+    
     public ItemWithParentPermission(IPermission parent, String parentId)
     {
         super(parent.getParent(), parent.getName() + "[parent=" + parentId + "]", null, null);
+        this.resourceType = parent.getName();
+        this.parentId = parentId;
     }
-    
+
+
+    public String getParentId()
+    {
+        return parentId;
+    }
+
+
+    public String getResourceType()
+    {
+        return resourceType;
+    }
 }

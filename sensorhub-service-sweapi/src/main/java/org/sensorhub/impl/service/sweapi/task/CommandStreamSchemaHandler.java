@@ -105,10 +105,11 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
     
     
     @Override
-    protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final RequestContext ctx, final String id) throws IOException
     {
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.read);
+        var parentId = ctx.getParentRef().id;
+        ctx.getSecurityHandler().checkParentPermission(permissions.get, parentId);
         
         ResourceRef parent = ctx.getParentRef();
         Asserts.checkNotNull(parent, "parent");

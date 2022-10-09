@@ -106,7 +106,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
         if (!db.getCommandStore().containsKey(internalID))
             throw ServiceErrors.notFound(id);
                 
-        ctx.setParent(this, internalID);
+        ctx.setParent(this, id, internalID);
         return resource;
     }
     

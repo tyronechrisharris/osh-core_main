@@ -79,7 +79,8 @@ public class ObsStatsHandler extends BaseHandler
     public void doGet(final RequestContext ctx) throws IOException
     {
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.read);
+        var parentId = ctx.getParentRef().id;
+        ctx.getSecurityHandler().checkParentPermission(permissions.get, parentId);
         
         // parse offset & limit
         var queryParams = ctx.getParameterMap();

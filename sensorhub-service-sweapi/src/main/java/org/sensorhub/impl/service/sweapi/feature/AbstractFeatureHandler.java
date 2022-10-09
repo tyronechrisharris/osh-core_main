@@ -30,6 +30,7 @@ import org.sensorhub.api.datastore.feature.FeatureFilterBase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
+import org.sensorhub.impl.security.ItemWithIdPermission;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.RestApiServlet.ResourcePermissions;
@@ -256,5 +257,14 @@ public abstract class AbstractFeatureHandler<
         return dataStore.removeEntries(dataStore.filterBuilder()
             .withInternalIDs(key.getInternalID())
             .build()) > 0;
+    }
+    
+    
+    @Override
+    protected void addOwnerPermissions(RequestContext ctx, String id)
+    {
+        addPermissionsToCurrentUser(ctx,
+            new ItemWithIdPermission(permissions.allOps, id)
+        );
     }
 }

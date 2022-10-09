@@ -23,17 +23,16 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.security.IPermission;
 import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.impl.security.ItemWithIdPermission;
 import org.sensorhub.impl.security.ItemWithParentPermission;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.RestApiServlet.ResourcePermissions;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity;
 import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureHandler;
-import org.sensorhub.impl.service.sweapi.feature.FoiHandler;
-import org.sensorhub.impl.service.sweapi.obs.DataStreamHandler;
 import org.sensorhub.impl.service.sweapi.procedure.SmlFeatureBindingSmlJson;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
@@ -76,7 +75,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new SystemBindingGeoJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, idEncoders, forReading);
+            return new SmlFeatureBindingSmlJson<>(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -181,6 +180,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     }
     
     
+    @Override
     protected boolean deleteEntry(final RequestContext ctx, final FeatureKey key) throws DataStoreException
     {
         var sysHandler = transactionHandler.getSystemHandler(key.getInternalID());
@@ -196,16 +196,17 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
     
     
     @Override
-    protected IPermission[] getSubResourceCreatePermissions(String parentId)
+    protected void addOwnerPermissions(RequestContext ctx, String id)
     {
-        var dsHandler = (DataStreamHandler)subResources.get(DataStreamHandler.NAMES[0]);
-        var foiHandler = (FoiHandler)subResources.get(FoiHandler.NAMES[0]);
+        var sec = (SWEApiSecurity)ctx.getSecurityHandler();
         
-        return new IPermission[] {
-            new ItemWithParentPermission(permissions.create, parentId),
-            new ItemWithParentPermission(dsHandler.getPermissions().create, parentId),
-            new ItemWithParentPermission(foiHandler.getPermissions().create, parentId)
-        };
+        addPermissionsToCurrentUser(ctx,
+            new ItemWithIdPermission(permissions.allOps, id),
+            new ItemWithParentPermission(sec.system_permissions.allOps, id),
+            new ItemWithParentPermission(sec.foi_permissions.allOps, id),
+            new ItemWithParentPermission(sec.datastream_permissions.allOps, id),
+            new ItemWithParentPermission(sec.commandstream_permissions.allOps, id)
+        );
     }
     
     

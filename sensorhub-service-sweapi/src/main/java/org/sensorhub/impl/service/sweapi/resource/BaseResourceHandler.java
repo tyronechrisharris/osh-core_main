@@ -29,8 +29,7 @@ import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.security.IPermission;
 import org.sensorhub.api.security.IPermissionPath;
-import org.sensorhub.impl.security.ItemPermission;
-import org.sensorhub.impl.security.ItemWithParentPermission;
+import org.sensorhub.impl.module.ModuleSecurity;
 import org.sensorhub.impl.security.PermissionSetting;
 import org.sensorhub.impl.service.sweapi.BaseHandler;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
@@ -68,7 +67,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     protected boolean readOnly = false;
     
     
-    public BaseResourceHandler(S dataStore, IdEncoder idEncoder, IdEncoders allIdEncoders, ResourcePermissions permissions)
+    protected BaseResourceHandler(S dataStore, IdEncoder idEncoder, IdEncoders allIdEncoders, ResourcePermissions permissions)
     {
         super(allIdEncoders);
         this.dataStore = Asserts.checkNotNull(dataStore, IDataStore.class);
@@ -188,25 +187,24 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void subscribe(final RequestContext ctx) throws InvalidRequestException, IOException
+    protected void subscribe(final RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation(STREAMING_UNSUPPORTED_ERROR_MSG);
     }
     
     
 
-    protected void subscribeToEvents(final RequestContext ctx) throws InvalidRequestException, IOException
+    protected void subscribeToEvents(final RequestContext ctx) throws IOException
     {
         throw ServiceErrors.unsupportedOperation(EVENTS_UNSUPPORTED_ERROR_MSG);
     }
     
     
-    protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final RequestContext ctx, final String id) throws IOException
     {
         // check permissions
-        var perm = new ItemPermission(permissions.read, id);
-        ctx.getSecurityHandler().checkPermission(perm);
-                
+        ctx.getSecurityHandler().checkResourcePermission(permissions.get, id);
+        
         // get resource key
         var key = getKey(ctx, id);
         if (key == null)
@@ -216,7 +214,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void getByKey(final RequestContext ctx, K key) throws InvalidRequestException, IOException
+    protected void getByKey(final RequestContext ctx, K key) throws IOException
     {
         // fetch from data store
         final V res = dataStore.get(key);
@@ -238,10 +236,11 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void list(final RequestContext ctx) throws InvalidRequestException, IOException
+    protected void list(final RequestContext ctx) throws IOException
     {
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.read);
+        var parentId = ctx.getParentRef().id;
+        ctx.getSecurityHandler().checkParentPermission(permissions.list, parentId);
         
         // parse offset & limit
         var queryParams = ctx.getParameterMap();
@@ -299,16 +298,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
         
         // check permissions
-        boolean addToParentAllowed = false;
-        if (ctx.getParentID() != null)
-        {
-            var parentIdStr = ctx.getParentRef().type.idEncoder.encodeID(ctx.getParentID());
-            var perm = new ItemWithParentPermission(permissions.create, parentIdStr);
-            addToParentAllowed = ctx.getSecurityHandler().hasPermission(perm);
-        }
-        
-        if (!addToParentAllowed)
-            ctx.getSecurityHandler().checkPermission(permissions.create);
+        var parentId = ctx.getParentRef().id;
+        ctx.getSecurityHandler().checkParentPermission(permissions.create, parentId);
         
         // read and ingest one or more resources
         int count = 0;
@@ -341,14 +332,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                         url = getCanonicalResourceUrl(id);
                         ctx.getLogger().debug("Added resource {}", url);
                         
-                        // add permission
-                        addPermissionsToCurrentUser(ctx,
-                            new ItemPermission(permissions.read, id),
-                            new ItemPermission(permissions.stream, id),
-                            new ItemPermission(permissions.delete, id),
-                            new ItemPermission(permissions.update, id));
-                        
-                        addPermissionsToCurrentUser(ctx, getSubResourceCreatePermissions(id));
+                        // add default owner permissions
+                        addOwnerPermissions(ctx, id);
                     }
                     
                     if (url != null)
@@ -384,9 +369,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
         
         // check permissions
-        var perm = new ItemPermission(permissions.update, id);
-        ctx.getSecurityHandler().checkPermission(perm);
-                
+        ctx.getSecurityHandler().checkResourcePermission(permissions.update, id);
+        
         // get resource key
         var key = getKey(ctx, id);
         if (key == null)
@@ -444,8 +428,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             throw ServiceErrors.unsupportedOperation(READ_ONLY_ERROR);
         
         // check permissions
-        var perm = new ItemPermission(permissions.delete, id);
-        ctx.getSecurityHandler().checkPermission(perm);
+        ctx.getSecurityHandler().checkResourcePermission(permissions.delete, id);
         
         // get resource key
         var key = getKey(ctx, id);
@@ -474,7 +457,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
-    protected void getElementCount(final RequestContext ctx) throws InvalidRequestException, IOException
+    protected void getElementCount(final RequestContext ctx) throws IOException
     {
         F filter = getFilter(ctx.getParentRef(), ctx.getParameterMap(), 0, Long.MAX_VALUE-1);
         
@@ -503,7 +486,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         if (!isValidID(internalID))
             throw ServiceErrors.notFound(id);
                 
-        ctx.setParent(this, internalID);
+        ctx.setParent(this, id, internalID);
         return resource;
     }
     
@@ -530,9 +513,14 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     }
     
     
+    protected void addOwnerPermissions(final RequestContext ctx, final String id)
+    {
+    }
+    
+    
     protected void addPermissionsToCurrentUser(final RequestContext ctx, final IPermission... permissions)
     {
-        var sec = ctx.getSecurityHandler();
+        var sec = (ModuleSecurity)ctx.getSecurityHandler();
         if (!sec.getSecurityManager().isAccessControlEnabled())
             return;
         
@@ -548,12 +536,6 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         
         if (!permList.isEmpty())
             userDB.addAllowPermissions(user.getId(), permList);
-    }
-    
-    
-    protected IPermission[] getSubResourceCreatePermissions(String parentId)
-    {
-        return new IPermission[0];
     }
 
 

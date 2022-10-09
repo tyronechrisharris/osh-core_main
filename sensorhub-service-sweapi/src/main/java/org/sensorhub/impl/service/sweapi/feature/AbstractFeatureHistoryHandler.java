@@ -70,10 +70,11 @@ public abstract class AbstractFeatureHistoryHandler<
     
     
     @Override
-    protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
+    protected void getById(final RequestContext ctx, final String id) throws IOException
     {
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.read);
+        var parentId = ctx.getParentRef().id;
+        ctx.getSecurityHandler().checkParentPermission(permissions.get, parentId);
         
         // internal ID & version number
         var internalID = ctx.getParentID();
@@ -98,7 +99,7 @@ public abstract class AbstractFeatureHistoryHandler<
     protected void delete(final RequestContext ctx, final String id) throws IOException
     {
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.delete);
+        ctx.getSecurityHandler().checkResourcePermission(permissions.delete, id);
         
         // internal ID & version number
         var internalID = ctx.getParentID();
@@ -131,7 +132,7 @@ public abstract class AbstractFeatureHistoryHandler<
         
         var internalID = ctx.getParentRef().internalID;
         var validTime = getValidTime(ctx, id);
-        ctx.setParent(this, internalID, validTime);
+        ctx.setParent(this, id, internalID, validTime);
         
         return resource;
     }

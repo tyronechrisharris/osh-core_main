@@ -63,9 +63,9 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
             return new ProcedureBindingHtml(ctx, idEncoders, false, "Specsheet of {}", db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<IProcedureWithDesc>(ctx, idEncoders, forReading);
+            return new SmlFeatureBindingSmlJson<>(ctx, idEncoders, forReading);
         else if (format.isOneOf(ResourceFormat.APPLI_XML, ResourceFormat.SML_XML))
-            return new SmlFeatureBindingSmlXml<IProcedureWithDesc>(ctx, idEncoders, forReading);
+            return new SmlFeatureBindingSmlXml<>(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -113,8 +113,9 @@ public class ProcedureDetailsHandler extends AbstractFeatureHandler<IProcedureWi
     protected void getById(final RequestContext ctx, final String id) throws InvalidRequestException, IOException
     {
         // check permissions
-        ctx.getSecurityHandler().checkPermission(permissions.read);
-                
+        var parentId = ctx.getParentRef().id;
+        ctx.getSecurityHandler().checkResourcePermission(permissions.get, parentId);
+        
         ResourceRef parent = ctx.getParentRef();
         Asserts.checkNotNull(parent, "parent");
         

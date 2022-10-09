@@ -32,7 +32,7 @@ import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.sensorhub.api.common.BigId;
-import org.sensorhub.impl.module.ModuleSecurity;
+import org.sensorhub.impl.service.sweapi.RestApiSecurity;
 import org.sensorhub.impl.service.sweapi.RestApiServlet;
 import org.sensorhub.impl.service.sweapi.stream.StreamHandler;
 import org.slf4j.Logger;
@@ -213,16 +213,18 @@ public class RequestContext
     }
     
     
-    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, BigId internalID)
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, String id, BigId internalID)
     {
         parentResource.type = parentHandler;
+        parentResource.id = id;
         parentResource.internalID = internalID;
     }
     
     
-    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, BigId internalID, Instant validTime)
+    public void setParent(@SuppressWarnings("rawtypes") BaseResourceHandler parentHandler, String id, BigId internalID, Instant validTime)
     {
         parentResource.type = parentHandler;
+        parentResource.id = id;
         parentResource.internalID = internalID;
         parentResource.validTime = validTime;
     }
@@ -422,7 +424,7 @@ public class RequestContext
     }
     
     
-    public ModuleSecurity getSecurityHandler()
+    public RestApiSecurity getSecurityHandler()
     {
         return servlet.getSecurityHandler();
     }

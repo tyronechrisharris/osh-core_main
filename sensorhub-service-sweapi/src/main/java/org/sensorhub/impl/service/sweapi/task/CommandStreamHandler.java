@@ -24,10 +24,11 @@ import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.security.IPermission;
+import org.sensorhub.impl.security.ItemWithIdPermission;
 import org.sensorhub.impl.security.ItemWithParentPermission;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.RestApiServlet.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -185,15 +186,14 @@ public class CommandStreamHandler extends ResourceHandler<CommandStreamKey, ICom
     
     
     @Override
-    protected IPermission[] getSubResourceCreatePermissions(String parentId)
+    protected void addOwnerPermissions(RequestContext ctx, String id)
     {
-        var cmdHandler = (CommandHandler)subResources.get(CommandHandler.NAMES[0]);
-        var cmdStatusHandler = (CommandStatusHandler)subResources.get(CommandStatusHandler.NAMES[0]);
+        var sec = (SWEApiSecurity)ctx.getSecurityHandler();
         
-        return new IPermission[] {
-            new ItemWithParentPermission(cmdHandler.getPermissions().create, parentId),
-            new ItemWithParentPermission(cmdStatusHandler.getPermissions().create, parentId)
-        };
+        addPermissionsToCurrentUser(ctx,
+            new ItemWithIdPermission(permissions.allOps, id),
+            new ItemWithParentPermission(sec.command_permissions.allOps, id)
+        );
     }
     
     

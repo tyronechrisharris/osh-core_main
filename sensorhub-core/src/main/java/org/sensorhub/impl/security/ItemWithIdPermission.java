@@ -19,43 +19,34 @@ import org.sensorhub.api.security.IPermission;
 
 /**
  * <p>
- * Wildcard permission used for "Allow All" and "Deny All" patterns
+ * Hierarchical permission ending with an ID
  * </p>
  *
  * @author Alex Robin
- * @since Aug 23, 2016
+ * @since Aug 23, 2022
  */
-public class WildcardPermission extends AbstractPermission
+public class ItemWithIdPermission extends ItemPermission
 {
+    String resourceType;
+    String id;
     
-    public WildcardPermission()
+    
+    public ItemWithIdPermission(IPermission parent, String id)
     {
-        super(null, WILDCARD);
-    }
-    
-    
-    public WildcardPermission(String label)
-    {
-        super(null, WILDCARD, label, null);
-    }
-    
-    
-    public WildcardPermission(IPermission parent)
-    {
-        super(parent, WILDCARD);
-    }
-    
-    
-    public WildcardPermission(IPermission parent, String label)
-    {
-        super(parent, WILDCARD, label, null);
+        super(parent, id, null, null);
+        this.resourceType = parent.getName();
+        this.id = id;
     }
 
 
-    @Override
-    public boolean implies(IPermission perm)
+    public String getId()
     {
-        return true;
+        return id;
     }
 
+
+    public String getResourceType()
+    {
+        return resourceType;
+    }
 }

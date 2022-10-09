@@ -24,10 +24,11 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.security.IPermission;
+import org.sensorhub.impl.security.ItemWithIdPermission;
 import org.sensorhub.impl.security.ItemWithParentPermission;
 import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ObsSystemDbWrapper;
+import org.sensorhub.impl.service.sweapi.SWEApiSecurity;
 import org.sensorhub.impl.service.sweapi.ServiceErrors;
 import org.sensorhub.impl.service.sweapi.RestApiServlet.ResourcePermissions;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -180,6 +181,7 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     }
     
     
+    @Override
     protected boolean deleteEntry(final RequestContext ctx, final DataStreamKey key) throws DataStoreException
     {
         var dsID = key.getInternalID();
@@ -200,13 +202,14 @@ public class DataStreamHandler extends ResourceHandler<DataStreamKey, IDataStrea
     
     
     @Override
-    protected IPermission[] getSubResourceCreatePermissions(String parentId)
+    protected void addOwnerPermissions(RequestContext ctx, String id)
     {
-        var obsHandler = (ObsHandler)subResources.get(ObsHandler.NAMES[0]);
+        var sec = (SWEApiSecurity)ctx.getSecurityHandler();
         
-        return new IPermission[] {
-            new ItemWithParentPermission(obsHandler.getPermissions().create, parentId),
-        };
+        addPermissionsToCurrentUser(ctx,
+            new ItemWithIdPermission(permissions.allOps, id),
+            new ItemWithParentPermission(sec.obs_permissions.allOps, id)
+        );
     }
     
     

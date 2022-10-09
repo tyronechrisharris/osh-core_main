@@ -97,7 +97,6 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
     public void setConfiguration(SWEApiServiceConfig config)
     {
         super.setConfiguration(config);
-        this.securityHandler = new SWEApiSecurity(this, config.security.enableAccessControl);
     }
 
 
@@ -135,6 +134,9 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         else
             readDb = getParentHub().getDatabaseRegistry().getFederatedDatabase();
 
+        // init security
+        this.securityHandler = new SWEApiSecurity(this, readDb, config.security.enableAccessControl);
+        
         // init thread pool
         threadPool = Executors.newScheduledThreadPool(
             Runtime.getRuntime().availableProcessors(),
@@ -144,7 +146,7 @@ public class SWEApiService extends AbstractHttpServiceModule<SWEApiServiceConfig
         //timeOutMonitor = new TimeOutMonitor();
         
         // load custom formats
-        Map<String, CustomObsFormat> customFormats = new HashMap<String, CustomObsFormat>();
+        Map<String, CustomObsFormat> customFormats = new HashMap<>();
         for (var formatConfig: config.customFormats)
         {
             try

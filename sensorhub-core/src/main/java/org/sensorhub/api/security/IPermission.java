@@ -19,7 +19,7 @@ import java.util.Map;
 
 public interface IPermission
 {
-    public final static String WILDCARD = "*";
+    public static final String WILDCARD = "*";
     
     
     public String getName();

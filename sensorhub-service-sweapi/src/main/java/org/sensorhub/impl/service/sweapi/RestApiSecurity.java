@@ -14,34 +14,26 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.sweapi;
 
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import org.sensorhub.api.security.IPermission;
-import org.slf4j.Logger;
+import org.sensorhub.api.security.IUserInfo;
 
 
-@SuppressWarnings("serial")
-public abstract class RestApiServlet extends HttpServlet
+public interface RestApiSecurity
 {
     
-    public static class ResourcePermissions
-    {
-        public IPermission get;
-        public IPermission list;
-        public IPermission stream;
-        public IPermission create;
-        public IPermission update;
-        public IPermission delete;
-        public IPermission allOps;
-        
-        public ResourcePermissions() {}
-    }
+    public void setCurrentUser(String userID);
     
     
-    public abstract String getApiRootURL(HttpServletRequest req);
+    public IUserInfo getCurrentUser();
     
-    public abstract Logger getLogger();
     
-    public abstract RestApiSecurity getSecurityHandler();
+    public void checkPermission(IPermission perm);
+    
+    
+    public void checkResourcePermission(IPermission perm, String id) throws IOException;
+    
+    
+    public void checkParentPermission(IPermission perm, String parentId) throws IOException;
     
 }
