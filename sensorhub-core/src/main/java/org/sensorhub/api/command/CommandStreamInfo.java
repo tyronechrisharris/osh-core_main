@@ -59,8 +59,7 @@ public class CommandStreamInfo implements ICommandStreamInfo
     @Override
     public String getName()
     {
-        return recordStruct.getLabel() != null ?
-            recordStruct.getLabel() : getControlInputName();
+        return name;
     }
     
     
