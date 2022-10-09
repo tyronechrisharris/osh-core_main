@@ -100,6 +100,11 @@ public abstract class ResourceHandler<
     
     protected void buildFilter(final ResourceRef parent, final Map<String, String[]> queryParams, final B builder) throws InvalidRequestException
     {
+        // id param
+        var resourceIds = parseResourceIds("id", queryParams, idEncoder);
+        if (resourceIds != null && !resourceIds.isEmpty())
+            builder.withInternalIDs(resourceIds);
+        
         // keyword search
         var keywords = parseMultiValuesArg("q", queryParams);
         if (keywords != null && !keywords.isEmpty())
