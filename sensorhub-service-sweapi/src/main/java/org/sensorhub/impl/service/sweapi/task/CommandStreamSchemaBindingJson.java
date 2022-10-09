@@ -36,6 +36,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataEncoding;
 
 
 public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
@@ -75,7 +76,10 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     @Override
     public ICommandStreamInfo deserialize(JsonReader reader) throws IOException
     {
-        DataComponent paramStruct = null;
+        DataComponent commandStruct = null;
+        DataComponent resultStruct = null;
+        DataEncoding commandEncoding = new TextEncodingImpl();
+        DataEncoding resultEncoding = new TextEncodingImpl();
         
         try
         {
@@ -88,34 +92,46 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
             {
                 var prop = reader.nextName();
                 
-                if ("paramSchema".equals(prop))
+                if ("commandSchema".equals(prop))
                 {
                     sweReader.nextTag();
-                    paramStruct = sweBindings.readDataComponent(sweReader);
-                    paramStruct.setName(SWECommonUtils.NO_NAME);
+                    commandStruct = sweBindings.readDataComponent(sweReader);
+                    commandStruct.setName(SWECommonUtils.NO_NAME);
+                }
+                else if ("commandEncoding".equals(prop))
+                {
+                    sweReader.nextTag();
+                    commandEncoding = sweBindings.readAbstractEncoding(sweReader);
+                }
+                else if ("resultSchema".equals(prop))
+                {
+                    sweReader.nextTag();
+                    resultStruct = sweBindings.readDataComponent(sweReader);
+                    resultStruct.setName(SWECommonUtils.NO_NAME);
+                }
+                else if ("resultEncoding".equals(prop))
+                {
+                    sweReader.nextTag();
+                    resultEncoding = sweBindings.readAbstractEncoding(sweReader);
                 }
                 else
                     reader.skipValue();
             }
             reader.endObject();
         }
-        catch (XMLStreamException e)
-        {
-            throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
-        }
-        catch (IllegalStateException e)
+        catch (XMLStreamException | IllegalStateException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
         
-        var csInfo = new CommandStreamInfo.Builder()
+        return new CommandStreamInfo.Builder()
             .withName(SWECommonUtils.NO_NAME) // name will be set later
             .withSystem(SystemId.NO_SYSTEM_ID) // System ID will be set later
-            .withRecordDescription(paramStruct)
-            .withRecordEncoding(new TextEncodingImpl())
+            .withRecordDescription(commandStruct)
+            .withRecordEncoding(commandEncoding)
+            .withResultDescription(resultStruct)
+            .withResultEncoding(resultEncoding)
             .build();
-        
-        return csInfo;
     }
 
 

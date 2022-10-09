@@ -17,12 +17,11 @@ package org.sensorhub.impl.service.sweapi.task;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.command.CommandStreamKey;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.impl.service.sweapi.InvalidRequestException;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.SWECommonUtils;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
@@ -30,15 +29,12 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
-import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import net.opengis.swe.v20.DataComponent;
-import net.opengis.swe.v20.DataEncoding;
 
 
 public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
@@ -75,8 +71,8 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                 
         String name = null;
         String description = null;
-        DataComponent resultStruct = null;
-        DataEncoding resultEncoding = new TextEncodingImpl();
+        String inputName = null;
+        ICommandStreamInfo csInfo = null;
         
         try
         {
@@ -89,92 +85,98 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                     name = reader.nextString();
                 else if ("description".equals(prop))
                     description = reader.nextString();
-                else if ("commandSchema".equals(prop))
+                else if ("inputName".equals(prop))
+                    inputName = reader.nextString();
+                else if ("schema".equals(prop))
                 {
-                    sweReader.nextTag();
-                    resultStruct = sweBindings.readDataComponent(sweReader);
-                }
-                else if ("commandEncoding".equals(prop))
-                {
-                    sweReader.nextTag();
-                    resultEncoding = sweBindings.readAbstractEncoding(sweReader);
+                    reader.beginObject();
+                    
+                    /*// obsFormat must come first!
+                    if (!reader.nextName().equals("commandFormat"))
+                        throw new ResourceParseException(MISSING_PROP_ERROR_MSG + "schema/obsFormat");
+                    var obsFormat = reader.nextString();
+                    
+                    ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding = null;
+                    if (ResourceFormat.JSON.getMimeType().equals(obsFormat))
+                        schemaBinding = new CommandStreamSchemaBindingJson(ctx, idEncoders, reader);
+                    
+                    if (schemaBinding == null)
+                        throw ServiceErrors.unsupportedFormat(obsFormat);*/
+                    var schemaBinding = new CommandStreamSchemaBindingJson(ctx, idEncoders, reader);
+                    csInfo = schemaBinding.deserialize(reader);
                 }
                 else
                     reader.skipValue();
             }
             reader.endObject();
         }
-        catch (XMLStreamException e)
+        catch (InvalidRequestException | ResourceParseException e)
+        {
+            throw e;
+        }
+        catch (IOException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
-        catch (IllegalStateException e)
-        {
-            throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
-        }
         
-        if (resultStruct == null)
-            throw new ResourceParseException("Missing resultSchema");
+        // check that mandatory properties have been parsed
+        if (inputName == null)
+            throw new ResourceParseException(MISSING_PROP_ERROR_MSG + "inputName");
+        if (csInfo == null)
+            throw new ResourceParseException(MISSING_PROP_ERROR_MSG + "schema");
         
-        // set name and description inside data component
-        if (name != null)
-            resultStruct.setName(name);
-        if (description != null)
-            resultStruct.setDescription(description);
+        // assign outputName to data component
+        csInfo.getRecordStructure().setName(inputName);
         
-        var csInfo = new CommandStreamInfo.Builder()
+        // create datastream info object
+        return CommandStreamInfo.Builder.from(csInfo)
             .withName(name)
             .withDescription(description)
-            .withSystem(SystemId.NO_SYSTEM_ID) // dummy UID since it will be replaced later
-            .withRecordDescription(resultStruct)
-            .withRecordEncoding(resultEncoding)
             .build();
-        
-        return csInfo;
     }
 
 
     @Override
-    public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(CommandStreamKey key, ICommandStreamInfo csInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
         var dsId = idEncoders.getCommandStreamIdEncoder().encodeID(key.getInternalID());
-        var sysId = idEncoders.getSystemIdEncoder().encodeID(dsInfo.getSystemID().getInternalID());
+        var sysId = idEncoders.getSystemIdEncoder().encodeID(csInfo.getSystemID().getInternalID());
         
         writer.beginObject();
         
         writer.name("id").value(dsId);
-        writer.name("name").value(dsInfo.getName());
+        writer.name("name").value(csInfo.getName());
         
-        if (dsInfo.getDescription() != null)
-            writer.name("description").value(dsInfo.getDescription());
+        if (csInfo.getDescription() != null)
+            writer.name("description").value(csInfo.getDescription());
         
         writer.name("system@id").value(sysId);
-        writer.name("inputName").value(dsInfo.getControlInputName());
+        writer.name("inputName").value(csInfo.getControlInputName());
         
         writer.name("validTime").beginArray()
-            .value(dsInfo.getValidTime().begin().toString())
-            .value(dsInfo.getValidTime().end().toString())
+            .value(csInfo.getValidTime().begin().toString())
+            .value(csInfo.getValidTime().end().toString())
             .endArray();
 
-        if (dsInfo.getExecutionTimeRange() != null)
+        if (csInfo.getExecutionTimeRange() != null)
         {
             writer.name("actuationTime").beginArray()
-                .value(dsInfo.getExecutionTimeRange().begin().toString())
-                .value(dsInfo.getExecutionTimeRange().end().toString())
+                .value(csInfo.getExecutionTimeRange().begin().toString())
+                .value(csInfo.getExecutionTimeRange().end().toString())
                 .endArray();
         }
 
-        if (dsInfo.getIssueTimeRange() != null)
+        if (csInfo.getIssueTimeRange() != null)
         {
             writer.name("issueTime").beginArray()
-                .value(dsInfo.getIssueTimeRange().begin().toString())
-                .value(dsInfo.getIssueTimeRange().end().toString())
+                .value(csInfo.getIssueTimeRange().begin().toString())
+                .value(csInfo.getIssueTimeRange().end().toString())
                 .endArray();
         }
         
         // observed properties
         writer.name("actuableProperties").beginArray();
-        for (var prop: SWECommonUtils.getProperties(dsInfo.getRecordStructure()))
+        for (var prop: SWECommonUtils.getProperties(csInfo.getRecordStructure()))
         {
             writer.beginObject();
             if (prop.getDefinition() != null)
@@ -190,7 +192,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         // available formats
         writer.name("formats").beginArray();
         writer.value(ResourceFormat.JSON.getMimeType());
-        if (ResourceFormat.allowNonBinaryFormat(dsInfo.getRecordEncoding()))
+        if (ResourceFormat.allowNonBinaryFormat(csInfo.getRecordEncoding()))
         {
             writer.value(ResourceFormat.SWE_JSON.getMimeType());
             writer.value(ResourceFormat.SWE_TEXT.getMimeType());
