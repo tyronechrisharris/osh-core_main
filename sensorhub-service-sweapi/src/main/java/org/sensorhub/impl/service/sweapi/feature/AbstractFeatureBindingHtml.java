@@ -190,11 +190,11 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                 span("UID: ").withClass(CSS_BOLD),
                 span(f.getUniqueIdentifier())
             ).withClass("mt-2"),
-            iff(Optional.ofNullable(f.getType()), type -> div(
+            (f.getType() != null && !"Feature".equals(f.getType()) ? div(
                 span(getResourceName() + " Type: ").withClass(CSS_BOLD),
-                span(getFeatureTypeSuffix(f.getType())).withTitle(type),
+                span(getFeatureTypeSuffix(f.getType())).withTitle(f.getType()),
                 a().withClasses("bi", "bi-link").withHref(f.getType())
-            )),
+            ) : null),
             div(
                 span("Validity Period: ").withClass(CSS_BOLD),
                 getTimeExtentHtml(f.getValidTime(), "Always")
