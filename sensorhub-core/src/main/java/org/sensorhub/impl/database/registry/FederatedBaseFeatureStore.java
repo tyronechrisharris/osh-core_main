@@ -190,6 +190,18 @@ public abstract class FederatedBaseFeatureStore<T extends IFeature, VF extends F
 
 
     @Override
+    public Entry<FeatureKey, T> getCurrentVersionEntry(BigId internalID)
+    {
+        // delegate to database identified by id scope
+        var db = getDatabase(internalID);
+        if (db != null)
+            return getFeatureStore(db).getCurrentVersionEntry(internalID);
+        else
+            return null;
+    }
+
+
+    @Override
     @SuppressWarnings("unchecked")
     public Stream<Entry<FeatureKey, T>> selectEntries(F filter, Set<VF> fields)
     {

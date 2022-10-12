@@ -14,6 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.feature;
 
+import java.time.Instant;
+import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.TemporalFilter;
@@ -136,12 +138,16 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      */
     public default Entry<FeatureKey, V> getCurrentVersionEntry(String uid)
     {
-        return selectEntries(filterBuilder()
+        /*return selectEntries(filterBuilder()
                 .withUniqueIDs(uid)
                 .withCurrentVersion()
                 .build())
             .findFirst()
-            .orElse(null);            
+            .orElse(null);*/
+        
+        return getLatestEntry(selectEntries(filterBuilder()
+            .withUniqueIDs(uid)
+            .build()));
     }
     
     
@@ -153,12 +159,34 @@ public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, 
      */
     public default Entry<FeatureKey, V> getCurrentVersionEntry(BigId internalID)
     {
-        return selectEntries(filterBuilder()
+        /*return selectEntries(filterBuilder()
                 .withInternalIDs(internalID)
                 .withCurrentVersion()
                 .build())
             .findFirst()
-            .orElse(null);
+            .orElse(null);*/
+        
+        return getLatestEntry(selectEntries(filterBuilder()
+            .withInternalIDs(internalID)
+            .build()));
+    }
+    
+    
+    public default Entry<FeatureKey, V> getLatestEntry(Stream<Entry<FeatureKey, V>> featureVersions)
+    {
+        var now = Instant.now();
+        var it = featureVersions.iterator();
+        
+        Entry<FeatureKey, V> latestEntry = null;
+        while (it.hasNext())
+        {
+            latestEntry = it.next();
+            var validStart = latestEntry.getKey().getValidStartTime();
+            if (validStart.isAfter(now))
+                break;
+        }
+        
+        return latestEntry;
     }
     
     
