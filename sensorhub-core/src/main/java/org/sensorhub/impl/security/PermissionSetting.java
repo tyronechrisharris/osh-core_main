@@ -48,7 +48,7 @@ public class PermissionSetting extends ArrayDeque<IPermission> implements IPermi
         for (IPermission perm: this)
         {
             if (!otherIt.hasNext())
-                return false;
+                return (perm == getLast() && perm instanceof WildcardPermission);
             
             IPermission requested = otherIt.next();
             if (!perm.implies(requested))
