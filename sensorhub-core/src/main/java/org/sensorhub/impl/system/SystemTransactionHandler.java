@@ -49,6 +49,7 @@ import org.sensorhub.api.system.SystemEvent;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.DataComponentChecks;
+import org.sensorhub.utils.Lambdas;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IFeature;
@@ -72,6 +73,7 @@ import net.opengis.swe.v20.DataEncoding;
 public class SystemTransactionHandler
 {
     static final Logger log = LoggerFactory.getLogger(SystemTransactionHandler.class);
+    static final String DELETE_NESTED_ERROR_FORMAT = "System cannot be deleted because it still has %s (use cascade to force delete)";
     
     protected final SystemDatabaseTransactionHandler rootHandler;
     protected final String sysUID;
@@ -151,51 +153,75 @@ public class SystemTransactionHandler
         
         if (!cascade)
         {
+            // error if subsystems still exist
+            var sysFilter = new SystemFilter.Builder()
+                .withParents(sysKey.getInternalID())
+                .withLimit(1)
+                .build();
+            if (getSystemDescStore().countMatchingEntries(sysFilter) > 0)
+                throw new DataStoreException(String.format(DELETE_NESTED_ERROR_FORMAT, "subsystems"));
+            
             // error if associated datastreams still exist
             var dsFilter = new DataStreamFilter.Builder()
                 .withSystems(sysKey.getInternalID())
+                .withLimit(1)
                 .build();
             if (getDataStreamStore().countMatchingEntries(dsFilter) > 0)
-                throw new DataStoreException("System cannot be deleted because it is referenced by a datastream");
+                throw new DataStoreException(String.format(DELETE_NESTED_ERROR_FORMAT, "datastreams"));
             
             // error if associated command streams still exist
             var csFilter = new CommandStreamFilter.Builder()
                 .withSystems(sysKey.getInternalID())
+                .withLimit(1)
                 .build();
             if (getCommandStreamStore().countMatchingEntries(csFilter) > 0)
-                throw new DataStoreException("System cannot be deleted because it is referenced by a command stream");
+                throw new DataStoreException(String.format(DELETE_NESTED_ERROR_FORMAT, "control channels"));
             
             // error if associated fois still exist
             var foiFilter = new FoiFilter.Builder()
                 .withParents(sysKey.getInternalID())
+                .withLimit(1)
                 .build();
             if (getFoiStore().countMatchingEntries(foiFilter) > 0)
-                throw new DataStoreException("System cannot be deleted because it has nested features of interest");
+                throw new DataStoreException(String.format(DELETE_NESTED_ERROR_FORMAT, "features of interest"));
         }
         else
         {
+            // delete all subsystems, recursively
+            try
+            {
+                getSystemDescStore().selectKeys(new SystemFilter.Builder()
+                        .withParents(sysKey.getInternalID())
+                        .build())
+                    .forEach(Lambdas.<FeatureKey>checked(k -> {
+                        var nestedSysHandler = rootHandler.getSystemHandler(k.getInternalID());
+                        nestedSysHandler.delete(true);
+                    }));
+            }
+            catch (Exception e)
+            {
+                throw (DataStoreException)Lambdas.unwrap(e);
+            }
+            
+            // delete all datastreams
             getDataStreamStore().removeEntries(new DataStreamFilter.Builder()
-                .withSystems(new SystemFilter.Builder()
-                    .withUniqueIDs(sysUID)
-                    .build())
+                .withSystems(sysKey.getInternalID())
                 .build());
             
+            // delete all command streams
             getCommandStreamStore().removeEntries(new CommandStreamFilter.Builder()
-                .withSystems(new SystemFilter.Builder()
-                    .withUniqueIDs(sysUID)
-                    .build())
+                .withSystems(sysKey.getInternalID())
                 .build());
             
+            // delete all fois
             getFoiStore().removeEntries(new FoiFilter.Builder()
-                .withParents(new SystemFilter.Builder()
-                    .withUniqueIDs(sysUID)
-                    .build())
+                .withParents(sysKey.getInternalID())
                 .build());
         }
         
         // remove from datastore
-        var sysKey = getSystemDescStore().remove(sysUID);
-        if (sysKey != null)
+        var deletedSysKey = getSystemDescStore().remove(sysUID);
+        if (deletedSysKey != null)
         {
             // send deleted event
             publishSystemEvent(new SystemRemovedEvent(sysUID, parentGroupUID));
