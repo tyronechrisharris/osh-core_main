@@ -110,11 +110,11 @@ public class SystemTransactionHandler
         OshAsserts.checkSystemObject(system);
         
         if (!getSystemDescStore().contains(system.getUniqueIdentifier()))
-            return false;
+            throw new DataStoreException("The system's UID cannot be changed");
         
         checkParent();
         
-        var validTime = system.getFullDescription().getValidTime();
+        var validTime = system.getValidTime();
         if (validTime == null)
         {
             if (sysKey.getValidStartTime().equals(FeatureKey.TIMELESS))
