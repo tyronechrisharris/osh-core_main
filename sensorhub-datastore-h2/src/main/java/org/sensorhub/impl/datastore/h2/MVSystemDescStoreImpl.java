@@ -106,7 +106,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
                     .collect(Collectors.toSet());
                 
                 resultStream = resultStream.filter(
-                    e -> parentIDs.contains(((MVFeatureParentKey)e.getKey()).getParentID()));
+                    e -> parentIDs.contains(e.getKey().getParentID()));
                 
                 // post filter using keys valid time if needed
                 if (filter.getValidTime() != null)
@@ -159,7 +159,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
         // update validTime in the case it ends at now and there is a
         // more recent version of the system description available
         Stream<Entry<FeatureKey, ISystemWithDesc>> resultStream = super.selectEntriesNoLimit(filter, fields).map(e -> {
-            var proc = (ISystemWithDesc)e.getValue();
+            var proc = e.getValue();
             var procWrap = new ISystemWithDesc()
             {
                 TimeExtent validTime;
@@ -189,7 +189,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
                 }
             };
             
-            return new DataUtils.MapEntry<FeatureKey, ISystemWithDesc>(e.getKey(), procWrap);
+            return new DataUtils.MapEntry<>(e.getKey(), procWrap);
         });
         
         // apply post filter on time now that we computed the correct valid time period
@@ -201,6 +201,24 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
             resultStream = resultStream.limit(filter.getLimit());
         
         return resultStream;
+    }
+
+
+    @Override
+    public long countMatchingEntries(SystemFilter filter)
+    {
+        if (filter.getValuePredicate() == null &&
+            filter.getLocationFilter() == null &&
+            filter.getFullTextFilter() == null &&
+            filter.getValidTime() == null &&
+            filter.getParentFilter() == null &&
+            filter.getDataStreamFilter() == null &&
+            filter.getProcedureFilter() == null)
+        {
+            return featuresIndex.sizeAsLong();
+        }
+        
+        return selectEntries(filter).count();
     }
 
 
