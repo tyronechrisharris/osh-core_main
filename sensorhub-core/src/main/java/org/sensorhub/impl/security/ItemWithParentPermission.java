@@ -31,10 +31,10 @@ public class ItemWithParentPermission extends ItemPermission
     String parentId;
     
     
-    public ItemWithParentPermission(IPermission parent, String parentId)
+    public ItemWithParentPermission(IPermission itemPerm, String parentId)
     {
-        super(parent.getParent(), parent.getName() + "[parent=" + parentId + "]", null, null);
-        this.resourceType = parent.getName();
+        super(itemPerm.getParent(), itemPerm.getName() + "[parent=" + parentId + "]", null, null);
+        this.resourceType = itemPerm.getName();
         this.parentId = parentId;
     }
 

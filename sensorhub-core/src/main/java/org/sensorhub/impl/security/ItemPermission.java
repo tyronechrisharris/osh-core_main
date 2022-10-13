@@ -19,7 +19,10 @@ import org.sensorhub.api.security.IPermission;
 
 /**
  * <p>
- * Basic named permission used to build hierarchical permission sets 
+ * Basic named permission used to build hierarchical permission sets.
+ * <br/>
+ * This type of permission can also have a trailing qualifier of the form:
+ * <pre>item_name[prop=value]</pre>
  * </p>
  *
  * @author Alex Robin
@@ -43,6 +46,20 @@ public class ItemPermission extends AbstractPermission
     public ItemPermission(IPermission parent, String name, String label, String description)
     {
         super(parent, name, label, description);
+    }
+
+
+    @Override
+    public boolean implies(IPermission perm)
+    {
+        var otherName = perm.getName();
+        
+        // remove the qualifier of permission we're checking
+        // if this permission doesn't have one
+        if (name.indexOf('[') < 0)
+            otherName = otherName.replaceAll("\\[.*\\]", "");
+        
+        return name.equals(otherName);
     }
     
 }

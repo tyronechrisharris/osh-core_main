@@ -143,10 +143,7 @@ public abstract class AbstractPermission implements IPermission
     @Override
     public boolean implies(IPermission perm)
     {
-        if (!name.equals(perm.getName()))
-            return false;
-        
-        return true;
+        return name.equals(perm.getName());
     }
 
 
