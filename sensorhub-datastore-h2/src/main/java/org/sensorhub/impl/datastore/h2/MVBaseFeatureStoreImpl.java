@@ -790,8 +790,14 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 
                 // check if we're allowed to replace existing entry
                 boolean isNewEntry = (oldValue == null);
-                if (!isNewEntry && !replaceVersion)
-                    throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);
+                if (!isNewEntry)
+                {
+                    if (!replaceVersion)
+                        throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_FEATURE_VERSION);
+                    
+                    if (!oldValue.getUniqueIdentifier().equals(f.getUniqueIdentifier()))
+                        throw new DataStoreException(DataStoreUtils.ERROR_CHANGED_FEATURE_UID);
+                }
                 
                 // update ID and UID indexes
                 if (isNewFeature)

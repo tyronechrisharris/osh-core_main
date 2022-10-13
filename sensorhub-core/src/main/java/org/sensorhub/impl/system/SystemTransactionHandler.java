@@ -110,31 +110,34 @@ public class SystemTransactionHandler
     public synchronized boolean update(ISystemWithDesc system) throws DataStoreException
     {
         OshAsserts.checkSystemObject(system);
-        
-        if (!getSystemDescStore().contains(system.getUniqueIdentifier()))
-            throw new DataStoreException("The system's UID cannot be changed");
-        
         checkParent();
         
-        var validTime = system.getValidTime();
-        if (validTime == null)
+        try
         {
-            if (sysKey.getValidStartTime().equals(FeatureKey.TIMELESS))
+            var validTime = system.getValidTime();
+            if (validTime == null)
+            {
+                if (sysKey.getValidStartTime().equals(FeatureKey.TIMELESS))
+                    getSystemDescStore().put(sysKey, system);
+                else
+                    throw new DataStoreException("A previous version of this system description had a valid time");
+            }
+            else if (sysKey.getValidStartTime().equals(validTime.begin()))
+            {
                 getSystemDescStore().put(sysKey, system);
+            }
+            else if (sysKey.getValidStartTime().isBefore(validTime.begin()))
+            {
+                sysKey = getSystemDescStore().add(system);
+                publishSystemEvent(new SystemChangedEvent(sysUID));
+            }
             else
-                throw new DataStoreException("A previous version of this system description had a valid time");
+                throw new DataStoreException("A version of the system description with a more recent valid time already exists");
         }
-        else if (sysKey.getValidStartTime().equals(validTime.begin()))
+        catch (IllegalArgumentException e)
         {
-            getSystemDescStore().put(sysKey, system);
+            throw new DataStoreException(e.getMessage());
         }
-        else if (sysKey.getValidStartTime().isBefore(validTime.begin()))
-        {
-            sysKey = getSystemDescStore().add(system);
-            publishSystemEvent(new SystemChangedEvent(sysUID));
-        }
-        else
-            throw new DataStoreException("A version of the system description with a more recent valid time already exists");
         
         return true;
     }
@@ -518,16 +521,14 @@ public class SystemTransactionHandler
     public synchronized FeatureKey addOrUpdateFoi(IFeature foi) throws DataStoreException
     {
         DataStoreUtils.checkFeatureObject(foi);
-        var uid = foi.getUniqueIdentifier();
         
         // add or update if feature with same ID and valid time exists
-        FeatureKey fk = rootHandler.db.getFoiStore().getCurrentVersionKey(uid);
+        FeatureKey fk = rootHandler.db.getFoiStore().getCurrentVersionKey(foi.getUniqueIdentifier());
         if (fk != null &&
            (foi.getValidTime() == null || Objects.equals(foi.getValidTime().begin(), fk.getValidStartTime())))
         {
             getFoiStore().put(fk, foi);
             log.debug("Updated FOI {}", foi.getUniqueIdentifier());
-            foiIdMap.put(uid, fk.getInternalID());
         }
         else
             fk = addFoi(foi);

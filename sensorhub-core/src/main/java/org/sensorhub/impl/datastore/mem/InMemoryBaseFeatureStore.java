@@ -455,8 +455,13 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         T old;
         if (existingKey != null)
         {
+            old = map.get(fk);
+            if (!old.getUniqueIdentifier().equals(feature.getUniqueIdentifier()))
+                throw new IllegalArgumentException(DataStoreUtils.ERROR_CHANGED_FEATURE_UID);
+            
+            // make sure key valid time is updated
             Instant newValidStartTime = fk.getValidStartTime();
-            old = map.compute(existingKey, (k, v) -> {
+            map.compute(existingKey, (k, v) -> {
                 ((MutableFeatureKey)k).updateValidTime(newValidStartTime);
                 return feature;
             });

@@ -121,7 +121,15 @@ public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiF
             return sysHandler.addFoi(foi);
         }
         
-        return super.addEntry(ctx, foi);
+        return transactionHandler.addFoi(BigId.NONE, foi);
+    }
+    
+    
+    @Override
+    protected boolean updateEntry(final RequestContext ctx, final FeatureKey key, final IFeature f) throws DataStoreException
+    {        
+        //return dataStore.put(key, f) != null;
+        return transactionHandler.updateFoi(key.getInternalID(), f);
     }
 
 

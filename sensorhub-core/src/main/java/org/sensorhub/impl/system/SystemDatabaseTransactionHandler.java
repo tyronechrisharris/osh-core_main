@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.system;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -90,24 +91,6 @@ public class SystemDatabaseTransactionHandler
     
     
     /**
-     * Update the description of an existing system
-     * @param system
-     * @return The transaction handler linked to the system
-     * @throws DataStoreException if the system doesn't exist or cannot be updated
-     */
-    public SystemTransactionHandler updateSystem(ISystemWithDesc system) throws DataStoreException
-    {
-        OshAsserts.checkSystemObject(system);
-        
-        var systemHandler = getSystemHandler(system.getUniqueIdentifier());
-        systemHandler.update(system);
-        log.debug("Updated System {}", system.getUniqueIdentifier());
-        
-        return systemHandler;
-    }
-    
-    
-    /**
      * Add or update a system.
      * If no system with the same UID already exists, a new one will be created,
      * otherwise the existing one will be updated or versioned depending if the the validity
@@ -135,45 +118,70 @@ public class SystemDatabaseTransactionHandler
      * Add or update a feature of interest that is not associated to a particular system
      * @param parentId Internal ID of parent, or null if no parent. 
      * @param foi New feature description
-     * @return The key of the newly created feature
+     * @return The key of the newly created or updated feature
      * @throws DataStoreException
      */
     public synchronized FeatureKey addOrUpdateFoi(BigId parentId, IFeature foi) throws DataStoreException
     {
         DataStoreUtils.checkFeatureObject(foi);
         
-        var uid = foi.getUniqueIdentifier();
-        //boolean isNew;
-        
-        FeatureKey fk = db.getFoiStore().getCurrentVersionKey(uid);
-        
-        // store feature description if none was found
-        if (fk == null)
+        // add or update if feature with same ID and valid time exists
+        FeatureKey fk = db.getFoiStore().getCurrentVersionKey(foi.getUniqueIdentifier());
+        if (fk != null &&
+           (foi.getValidTime() == null || Objects.equals(foi.getValidTime().begin(), fk.getValidStartTime())))
         {
-            fk = db.getFoiStore().add(parentId, foi);
-            //isNew = true;
-            log.debug("Added FOI {}", foi.getUniqueIdentifier());
+            db.getFoiStore().put(fk, foi);
+            log.debug("Updated FOI {}", foi.getUniqueIdentifier());
         }
-        
-        // otherwise add it only if its newer than the one already in storage
-        // otherwise update existing one
         else
-        {
-            if (foi.getValidTime() != null && fk.getValidStartTime().isBefore(foi.getValidTime().begin()))
-            {
-                fk = db.getFoiStore().add(parentId, foi);
-                //isNew = true;
-                log.debug("Added FOI {}", foi.getUniqueIdentifier());
-            }
-            else
-            {
-                db.getFoiStore().put(fk, foi);
-                //isNew = false;
-                log.debug("Updated FOI {}", foi.getUniqueIdentifier());
-            }
-        }
+            fk = addFoi(parentId, foi);
         
         return fk;
+    }
+    
+    
+    /**
+     * Add a new feature of interest that is not associated to a particular system
+     * @param parentId Internal ID of parent, or null if no parent.
+     * @param foi New feature description
+     * @return The key of the newly created feature
+     * @throws DataStoreException
+     */
+    public synchronized FeatureKey addFoi(BigId parentId, IFeature foi) throws DataStoreException
+    {
+        DataStoreUtils.checkFeatureObject(foi);
+        
+        var fk = db.getFoiStore().add(parentId, foi);
+        log.debug("Added FOI {}", foi.getUniqueIdentifier());
+        return fk;
+    }
+    
+    
+    /**
+     * Update the feature of interest with the specified internal ID
+     * @param internalId
+     * @param foi
+     * @return True if the feature was updated, false otherwise
+     * @throws DataStoreException
+     */
+    public synchronized boolean updateFoi(BigId internalId, IFeature foi) throws DataStoreException
+    {
+        OshAsserts.checkValidInternalID(internalId);
+        DataStoreUtils.checkFeatureObject(foi);
+        
+        var fk = db.getFoiStore().getCurrentVersionKey(internalId);
+        if (fk == null)
+            return false;
+        
+        try
+        {
+            db.getFoiStore().put(fk, foi);
+            return true;
+        }
+        catch (IllegalArgumentException e)
+        {
+            throw new DataStoreException(e.getMessage());
+        }
     }
     
     
