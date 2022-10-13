@@ -380,9 +380,12 @@ public class RequestContext
     
     public OutputStream getOutputStream() throws IOException
     {
-        return streamHandler != null ?
-            streamHandler.getOutputStream() :
-            resp.getOutputStream();
+        if (streamHandler != null)
+            return streamHandler.getOutputStream();
+        else if (resp != null)
+            return resp.getOutputStream();
+        else
+            return null;
     }
     
     

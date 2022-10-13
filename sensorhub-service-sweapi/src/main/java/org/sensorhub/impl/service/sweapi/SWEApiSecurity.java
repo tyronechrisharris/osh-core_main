@@ -53,9 +53,9 @@ public class SWEApiSecurity extends ModuleSecurity implements RestApiSecurity
     private static final String LABEL_PROCEDURE = "Procedures";
     private static final String LABEL_SYSTEM = "Systems";
     private static final String LABEL_FOI = "Features of Interest";
-    private static final String LABEL_DATASTREAM = "Datastreams Info";
+    private static final String LABEL_DATASTREAM = "Datastreams";
     private static final String LABEL_OBS = "Observations";
-    private static final String LABEL_CONTROLS = "Control Channels Info";
+    private static final String LABEL_CONTROLS = "Control Channels";
     private static final String LABEL_COMMANDS = "Commands";
     
     public final IPermission api_get;
