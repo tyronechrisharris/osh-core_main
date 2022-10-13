@@ -460,6 +460,7 @@ public abstract class RestApiServlet extends HttpServlet
                 
             case BAD_REQUEST:
             case BAD_PAYLOAD:
+            case REQUEST_REJECTED:
                 sendError(SC_BAD_REQUEST, e.getMessage(), resp);
                 break;
                 

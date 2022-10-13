@@ -27,6 +27,7 @@ public class InvalidRequestException extends IOException
         BAD_REQUEST,
         NOT_FOUND,
         BAD_PAYLOAD,
+        REQUEST_REJECTED,
         FORBIDDEN,
         INTERNAL_ERROR
     }

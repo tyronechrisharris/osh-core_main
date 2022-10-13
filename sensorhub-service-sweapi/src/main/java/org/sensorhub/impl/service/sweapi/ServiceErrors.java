@@ -46,6 +46,12 @@ public class ServiceErrors
     }
     
     
+    public static InvalidRequestException requestRejected(String msg)
+    {
+        return new InvalidRequestException(ErrorCode.REQUEST_REJECTED, msg);
+    }
+    
+    
     public static InvalidRequestException unsupportedFormat(ResourceFormat format)
     {
         return new InvalidRequestException(ErrorCode.BAD_REQUEST, UNSUPPORTED_FORMAT_ERROR_MSG + format);

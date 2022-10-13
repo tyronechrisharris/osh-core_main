@@ -341,18 +341,16 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                 }
                 catch (DataStoreException e)
                 {
-                    var msg = "Error creating resource";
-                    throw ServiceErrors.badRequest(msg + ": " + e.getMessage());
+                    throw ServiceErrors.requestRejected("Ingest Error: " + e.getMessage());
                 }
             }
             
             if (count == 0)
-                throw ServiceErrors.badRequest("No data provided");
+                throw ServiceErrors.invalidPayload("No data provided");
         }
         catch (ResourceParseException e)
         {
-            var msg = "Invalid payload";
-            throw ServiceErrors.invalidPayload(msg + ": " + e.getMessage());
+            throw ServiceErrors.invalidPayload("Invalid payload: " + e.getMessage());
         }
     }
     
@@ -390,14 +388,13 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             var binding = getBinding(ctx, true);
             res = binding.deserialize();
             if (res == null)
-                throw ServiceErrors.badRequest("No data provided");
+                throw ServiceErrors.invalidPayload("No data provided");
             
             validate(res);
         }
         catch (ResourceParseException e)
         {
-            var msg = "Invalid payload";
-            throw ServiceErrors.invalidPayload(msg + ": " + e.getMessage());
+            throw ServiceErrors.invalidPayload("Invalid payload: " + e.getMessage());
         }
         
         // update in datastore
@@ -410,8 +407,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (DataStoreException e)
         {
-            var msg = "Error updating resource '" + id + "'";
-            throw ServiceErrors.badRequest(msg + ": " + e.getMessage());
+            var msg = "Cannot update '" + id + "': ";
+            throw ServiceErrors.requestRejected(msg + e.getMessage());
         }
     }
     
@@ -445,8 +442,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         }
         catch (DataStoreException e)
         {
-            var msg = "Error deleting resource '" + id + "'";
-            throw ServiceErrors.badRequest(msg + ": " + e.getMessage());
+            var msg = "Cannot delete '" + id + "': ";
+            throw ServiceErrors.requestRejected(msg + e.getMessage());
         }
     }
     
