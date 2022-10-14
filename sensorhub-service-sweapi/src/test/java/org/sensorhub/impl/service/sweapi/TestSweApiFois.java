@@ -438,7 +438,7 @@ public class TestSweApiFois extends TestSweApiBase
     
     
     @Test
-    public void testUpdateFoiUidChanged() throws Exception
+    public void testUpdateFoiBadUid() throws Exception
     {
         var url1 = addFoi(null, 1, true, ImmutableMap.<String, Object>builder()
             .put("description", "This is an FOI")

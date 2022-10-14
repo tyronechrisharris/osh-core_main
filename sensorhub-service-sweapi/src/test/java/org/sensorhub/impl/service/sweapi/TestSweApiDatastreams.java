@@ -17,8 +17,11 @@ package org.sensorhub.impl.service.sweapi;
 import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.http.HttpResponse;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Set;
+import org.jglue.fluentjson.JsonBuilderFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
@@ -26,8 +29,10 @@ import org.sensorhub.impl.service.sweapi.TestSweApiSystems.SystemInfo;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.util.TimeExtent;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.internal.bind.JsonTreeWriter;
 import com.google.gson.stream.JsonWriter;
 import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
@@ -40,6 +45,7 @@ public class TestSweApiDatastreams extends TestSweApiBase
     static final String URI_TEXT_PROP = SWEHelper.getDBpediaUri("Vehicle_registration_plate");
     
     TestSweApiSystems systemTests = new TestSweApiSystems();
+    TestSweApiObs obsTests;
     
     
     @Before
@@ -47,6 +53,9 @@ public class TestSweApiDatastreams extends TestSweApiBase
     {
         super.setup();
         systemTests.swaRootUrl = swaRootUrl;
+        
+        obsTests = new TestSweApiObs();
+        obsTests.swaRootUrl = swaRootUrl;
     }
     
     
@@ -112,10 +121,12 @@ public class TestSweApiDatastreams extends TestSweApiBase
         // add system
         var sysUrl = systemTests.addSystem(1, false);
         
+        // add datastreams
         var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data", 1);
         var url2 = addDatastreamOmJson(sysUrl, 2, "Motion Data", 2);
         var url3 = addDatastreamOmJson(sysUrl, 3, "Traffic Data", 4);
         
+        // get back with filter
         var items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?observedProperty=" + URI_DECIMAL_PROP, 1);
         checkId(url1, items.get(0));
         checkJsonProp("name", "Temp Data", items.get(0));
@@ -128,7 +139,95 @@ public class TestSweApiDatastreams extends TestSweApiBase
         checkId(url3, items.get(0));
         checkJsonProp("name", "Traffic Data", items.get(0));
         
+        // check we get nothing with bad prop
         items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?observedProperty=http://blabla/nothing", 0);
+    }
+    
+    
+    @Test
+    public void testAddDatastreamWithValidTimes() throws Exception
+    {
+        // add system
+        var sysUrl = systemTests.addSystem(1, false);
+        
+        // add datastreams
+        var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data - Campaign 2021", TimeExtent.parse("2021-01-01Z/2021-12-31Z"), 1);
+        var url2 = addDatastreamOmJson(sysUrl, 1, "Temp Data - Campaign 2022", TimeExtent.parse("2022-01-01Z/2022-12-31Z"), 1);
+        var url3 = addDatastreamOmJson(sysUrl, 1, "Temp Data - Campaign 2023", TimeExtent.parse("2023-01-01Z/2023-12-31Z"), 1);
+        
+        // check we now have 3 different datastreams
+        sendGetRequestAndGetItems(concat(sysUrl, DATASTREAM_COLLECTION), 3);
+        sendGetRequestAndGetItems(DATASTREAM_COLLECTION, 3);
+        
+        // get each one by its valid time
+        var items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?validTime=2021-12-30T23:59:59.999Z", 1);
+        checkId(url1, items.get(0));
+        items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?validTime=2022-01-01Z", 1);
+        checkId(url2, items.get(0));
+        items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?validTime=2023-07-01Z", 1);
+        checkId(url3, items.get(0));
+        
+        // get some by time period
+        items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?validTime=2022-07-01Z/2023-03-15Z", 2);
+        checkCollectionItemIds(Set.of(url2, url3), items);
+    }
+    
+    
+    @Test
+    public void testUpdateDatastreamAndGetById() throws Exception
+    {
+        // add system
+        var sysUrl = systemTests.addSystem(1, false);
+        
+        // add datastreams
+        var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data", 1);
+        var url2 = addDatastreamOmJson(sysUrl, 2, "Motion Data", 2);
+        var url3 = addDatastreamOmJson(sysUrl, 3, "Traffic Data", 4);
+        
+        // change name only
+        updateDatastreamOmJson(url1, 1, "Room Temperature", 1, true);
+        updateDatastreamOmJson(url2, 2, "Motion Detections", 2, true);
+        
+        // change name & structure
+        updateDatastreamOmJson(url1, 1, "Room Temperature", 2, true);
+        
+        // check we still have 3 items
+        var items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION, 3);
+        checkCollectionItemIds(Set.of(url1, url2, url3), items);
+    }
+    
+    
+    @Test
+    public void testUpdateDatastreamBadOutputName() throws Exception
+    {
+        // add system
+        var sysUrl = systemTests.addSystem(1, false);
+        
+        // add datastream
+        var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data", 1);
+        
+        // check we cannot change the output name
+        var resp = updateDatastreamOmJson(url1, 2, "Room Temperature", 1, false);
+        assertEquals(400, resp.statusCode());
+    }
+    
+    
+    @Test
+    public void testUpdateDatastreamChangeStructWithObs() throws Exception
+    {
+        // add system
+        var sysUrl = systemTests.addSystem(1, false);
+        
+        // add datastream with 1 obs
+        var url1 = addDatastreamOmJson(sysUrl, 1);
+        obsTests.addObservation(url1, Instant.now(), 1);
+        
+        // check we cannot update structure anymore
+        var resp = updateDatastreamOmJson(url1, 1, "Room Temperature", 2, false);
+        assertEquals(400, resp.statusCode());
+        
+        // but we should still be able to update the name
+        updateDatastreamOmJson(url1, 1, "All Variables", 1|2|4, true);
     }
     
     
@@ -172,6 +271,8 @@ public class TestSweApiDatastreams extends TestSweApiBase
     }
     
     
+    // Non-Test helper methods
+    
     protected void addDataStreamToSubSystems(SystemInfo sys, int level, int[] numDsPerLevel) throws Exception
     {
         for (int i = 0; i < numDsPerLevel[level]; i++)
@@ -189,23 +290,69 @@ public class TestSweApiDatastreams extends TestSweApiBase
     }
     
     
-    protected String addDatastreamOmJson(String sysUrl, int num) throws Exception
+    protected String addDatastreamOmJson(String sysUrl, int outputNum) throws Exception
     {
-        return addDatastreamOmJson(sysUrl, num, null, 1|2|4);
+        return addDatastreamOmJson(sysUrl, outputNum, null, 1|2|4);
     }
     
     
-    protected String addDatastreamOmJson(String sysUrl, int num, String name) throws Exception
+    protected String addDatastreamOmJson(String sysUrl, int outputNum, String name) throws Exception
     {
-        return addDatastreamOmJson(sysUrl, num, name, 1|2|4);
+        return addDatastreamOmJson(sysUrl, outputNum, name, 1|2|4);
     }
     
     
-    protected String addDatastreamOmJson(String sysUrl, int num, String name, int propSet) throws Exception
+    protected String addDatastreamOmJson(String sysUrl, int outputNum, String name, int propSet) throws Exception
+    {
+        return addDatastreamOmJson(sysUrl, outputNum, name, null, propSet);
+    }
+    
+    
+    protected String addDatastreamOmJson(String sysUrl, int outputNum, String name, TimeExtent validTime, int propSet) throws Exception
+    {
+        // add datastream
+        var json = createDatastreamOmJson(name, outputNum, validTime, propSet);
+        var httpResp = sendPostRequest(concat(sysUrl, DATASTREAM_COLLECTION), json);
+        var url = getLocation(httpResp);
+        
+        // get it back by id
+        var jsonResp = sendGetRequestAndParseJson(url);
+        checkId(url, jsonResp);
+        assertDatastreamEquals(json, (JsonObject)jsonResp);
+        
+        return url;
+    }
+    
+    
+    protected HttpResponse<String> updateDatastreamOmJson(String path, int outputNum, String name, int propSet, boolean checkSuccess) throws Exception
+    {
+        var json = createDatastreamOmJson(name, outputNum, propSet);
+        
+        var resp = sendPutRequest(path, json);
+        
+        if (checkSuccess)
+        {
+            assertEquals(204, resp.statusCode());
+            var jsonResp = sendGetRequestAndParseJson(path);
+            checkId(path, jsonResp);
+            assertDatastreamEquals(json, (JsonObject)jsonResp);
+        }
+        
+        return resp;
+    }
+    
+    
+    protected JsonObject createDatastreamOmJson(String name, int outputNum, int propSet) throws Exception
+    {
+        return createDatastreamOmJson(name, outputNum, null, propSet);
+    }
+    
+    
+    protected JsonObject createDatastreamOmJson(String name, int outputNum, TimeExtent validTime, int propSet) throws Exception
     {
         var swe = new SWEHelper();
         var rec = swe.createRecord()
-            .name(String.format("output%03d", num))
+            .name(String.format("output%03d", outputNum))
             .addSamplingTimeIsoUTC("time");
         
         if ((propSet & 1) != 0)
@@ -231,50 +378,47 @@ public class TestSweApiDatastreams extends TestSweApiBase
                 .pattern("[0-9A-Z]{6-10}"));
         }
         
-        // add datastream
-        var json = createDatastreamOmJson(rec.build(), name);
-        var httpResp = sendPostRequest(concat(sysUrl, DATASTREAM_COLLECTION), json);
-        var url = getLocation(httpResp);
-        
-        // get it back by id
-        var jsonResp = sendGetRequestAndParseJson(url);
-        checkId(url, jsonResp);
-        
-        return url;
+        return createDatastreamOmJson(name, validTime, rec.build());
     }
     
     
-    protected JsonObject createDatastreamOmJson(DataComponent resultStruct, String name) throws Exception
+    protected JsonObject createDatastreamOmJson(String name, TimeExtent validTime, DataComponent resultStruct) throws Exception
     {
-        var buffer = new StringWriter();
-        var writer = new JsonWriter(buffer);
+        var json = JsonBuilderFactory.buildObject()
+            .add("name", name != null ? name : "Datastream " + resultStruct.getName())
+            .add("outputName", resultStruct.getName());
         
-        writer.beginObject();
-        writer.name("name").value(name != null ? name : "Datastream " + resultStruct.getName());
-        writer.name("outputName").value(resultStruct.getName());
+        if (validTime != null)
+        {
+            json.addArray("validTime")
+                .add(validTime.begin().toString())
+                .add(validTime.endsNow() ? "now" : validTime.end().toString())
+            .end();
+        }
         
         // result schema & encoding
         try
         {
-            SWEJsonStreamWriter sweWriter = new SWEJsonStreamWriter(writer);
+            var schema = JsonBuilderFactory.buildObject()
+                .add("obsFormat", "application/om+json")
+                .getJson();
+            
+            // use existing streaming writer
+            var jsonWriter = new JsonTreeWriter();
+            SWEJsonStreamWriter sweWriter = new SWEJsonStreamWriter(jsonWriter);
             SWEStaxBindings sweBindings = new SWEStaxBindings();
-            
-            writer.name("schema").beginObject();
-            
-            writer.name("obsFormat").value("application/om+json");
-            writer.name("resultSchema");
             sweBindings.writeDataComponent(sweWriter, resultStruct, false);
+            var resultSchema = jsonWriter.get();
+            schema.add("resultSchema", resultSchema);
             
-            writer.endObject();
+            var jsonObj = json.getJson();
+            jsonObj.add("schema", schema);
+            return jsonObj;
         }
         catch (Exception e)
         {
             throw new IOException("Error writing SWE Common result structure", e);
         }
-        
-        writer.endObject();
-        
-        return (JsonObject)JsonParser.parseString(buffer.getBuffer().toString());
     }
     
     

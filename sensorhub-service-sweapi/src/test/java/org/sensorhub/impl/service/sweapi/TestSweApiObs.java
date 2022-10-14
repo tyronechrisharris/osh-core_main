@@ -19,9 +19,11 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
@@ -46,10 +48,10 @@ public class TestSweApiObs extends TestSweApiBase
     public void testAddDatastreamAndObservations() throws Exception
     {
         // add system
-        var procUrl = systemTests.addSystem(33);
+        var sysUrl = systemTests.addSystem(33);
         
         // add datastream
-        var dsUrl = datastreamTests.addDatastreamOmJson(procUrl, 115);
+        var dsUrl = datastreamTests.addDatastreamOmJson(sysUrl, 115);
         
         // add observations
         var now = Instant.now();
@@ -58,8 +60,7 @@ public class TestSweApiObs extends TestSweApiBase
         for (int i = 0; i < numObs; i++)
         {
             var url = addObservation(dsUrl, now, i);
-            var id = url.substring(url.lastIndexOf('/')+1);
-            ids.add(id);
+            ids.add(getResourceId(url));
         }
         
         // get list of obs
@@ -67,6 +68,80 @@ public class TestSweApiObs extends TestSweApiBase
         checkCollectionItemIds(ids, jsonResp);
     }
     
+    
+    @Test
+    public void testAddDatastreamAndObsBatch() throws Exception
+    {
+        // add system
+        var sysUrl = systemTests.addSystem(6);
+        
+        // add datastream
+        var dsUrl = datastreamTests.addDatastreamOmJson(sysUrl, 115);
+        
+        // add observations in batch
+        var urls = addObservationBatch(dsUrl, Instant.now(), 100, 50, true);
+        
+        // get list of obs
+        var jsonResp = sendGetRequestAndParseJson(concat(dsUrl, OBS_COLLECTION));
+        checkCollectionItemIds(urls, jsonResp);
+    }
+    
+    
+    @Test
+    public void testAddAndDeleteObs() throws Exception
+    {
+        // add system
+        var sysUrl = systemTests.addSystem(6);
+        
+        // add datastream
+        var dsUrl = datastreamTests.addDatastreamOmJson(sysUrl, 115);
+        
+        // add observations in batch
+        var urls = addObservationBatch(dsUrl, Instant.now(), 100, 10, true);
+        
+        // delete one obs
+        sendGetRequestAndCheckStatus(urls.get(0), 200);
+        sendDeleteRequestAndCheckStatus(urls.get(0), 204);
+        sendGetRequestAndCheckStatus(urls.get(0), 404);
+        sendDeleteRequestAndCheckStatus(urls.get(0), 404);
+        urls.remove(0);
+        sendGetRequestAndGetItems(OBS_COLLECTION, urls.size());
+        
+        // delete all remaining obs
+        for (var url: urls)
+            sendDeleteRequestAndCheckStatus(url, 204);
+        sendGetRequestAndGetItems(OBS_COLLECTION, 0);
+    }
+    
+    
+    @Test
+    public void testAddObsAndDeleteDatastream() throws Exception
+    {
+        // add system
+        var sysUrl = systemTests.addSystem(6);
+        
+        // add datastream
+        var dsUrl1 = datastreamTests.addDatastreamOmJson(sysUrl, 2);
+        var dsUrl2 = datastreamTests.addDatastreamOmJson(sysUrl, 3);
+        
+        // add observations in batch
+        var urlsDs1 = addObservationBatch(dsUrl1, Instant.now(), 100, 10, true);
+        var urlsDs2 = addObservationBatch(dsUrl2, Instant.now(), 1000, 5, true);
+        sendGetRequestAndGetItems(OBS_COLLECTION, urlsDs1.size() + urlsDs2.size());
+        
+        // delete entire datastream 1
+        sendDeleteRequestAndCheckStatus(dsUrl1, 204);
+        sendGetRequestAndCheckStatus(dsUrl1, 404);
+        sendGetRequestAndGetItems(OBS_COLLECTION, urlsDs2.size());
+        
+        // delete entire datastream 2
+        sendDeleteRequestAndCheckStatus(dsUrl2, 204);
+        sendGetRequestAndCheckStatus(dsUrl2, 404);
+        sendGetRequestAndGetItems(OBS_COLLECTION, 0);
+    }
+    
+    
+    // Non-Test helper methods
     
     protected String addObservation(String dsUrl, Instant startTime, int num) throws Exception
     {
@@ -84,10 +159,38 @@ public class TestSweApiObs extends TestSweApiBase
         // get it back by id
         var jsonResp = sendGetRequestAndParseJson(url);
         checkId(url, jsonResp);
-        assertObservationsEquals(json, (JsonObject)jsonResp);
+        assertObsEquals(json, (JsonObject)jsonResp);
         
         // return datastream ID
         return url;
+    }
+    
+    
+    protected List<String> addObservationBatch(String dsUrl, Instant startTime, long timeStepMillis, int numObs, boolean checkGet) throws Exception
+    {
+        var array = new JsonArray();
+        for (int i = 0; i < numObs; i++)
+        {
+            var obj = createObservationNoFoi(startTime, timeStepMillis, i);
+            array.add(obj);
+        }
+        
+        var urlList = sendPostRequestAndParseUrlList(concat(dsUrl, OBS_COLLECTION), array);
+        assertEquals("Wrong number of resources created", array.size(), urlList.size());
+        
+        if (checkGet)
+        {
+            for (int i = 0; i < array.size(); i++)
+            {
+                var url = urlList.get(i);
+                var json = array.get(i);
+                var jsonResp = sendGetRequestAndParseJson(url);
+                checkId(url, jsonResp);
+                assertObsEquals((JsonObject)json, (JsonObject)jsonResp);
+            }
+        }
+        
+        return urlList;
     }
     
     
@@ -120,7 +223,7 @@ public class TestSweApiObs extends TestSweApiBase
     }
     
     
-    protected void assertObservationsEquals(JsonObject expected, JsonObject actual)
+    protected void assertObsEquals(JsonObject expected, JsonObject actual)
     {
         // remove some fields not present in POST request before comparison
         actual.remove("id");

@@ -343,7 +343,7 @@ public class TestSweApiSystems extends TestSweApiBase
     
     
     @Test
-    public void testUpdateSystemCustomPropsAndGetById() throws Exception
+    public void testUpdateSystemAndGetById() throws Exception
     {
         var url1 = addSystem(5, true, ImmutableMap.<String, Object>builder()
             .put("description", "This is my first system")
@@ -394,7 +394,7 @@ public class TestSweApiSystems extends TestSweApiBase
     
     
     @Test
-    public void testUpdateSystemUidChanged() throws Exception
+    public void testUpdateSystemBadUid() throws Exception
     {
         var url1 = addSystem(55, true, ImmutableMap.<String, Object>builder()
             .put("description", "This is my first system")
