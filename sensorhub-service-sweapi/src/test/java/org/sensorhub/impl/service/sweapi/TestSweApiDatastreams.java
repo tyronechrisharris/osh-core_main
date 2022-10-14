@@ -18,6 +18,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
@@ -71,7 +72,7 @@ public class TestSweApiDatastreams extends TestSweApiBase
     
     
     @Test
-    public void testAddDatastreamAndGetByKeyworkd() throws Exception
+    public void testAddDatastreamAndGetByKeywords() throws Exception
     {
         // add system
         var sysUrl = systemTests.addSystem(1, false);
@@ -96,7 +97,10 @@ public class TestSweApiDatastreams extends TestSweApiBase
         assertDatastreamEquals(expectedObj, items.get(0));
         
         items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?q=data", 2);
-        checkHasIds(items, url1, url2);
+        checkCollectionItemIds(Set.of(url1, url2), items);
+        
+        items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?q=water,traffic", 2);
+        checkCollectionItemIds(Set.of(url2, url3), items);
         
         items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION + "?q=nothing", 0);
     }
@@ -137,11 +141,11 @@ public class TestSweApiDatastreams extends TestSweApiBase
         var url2 = addDatastreamOmJson(sysUrl, 2, "Motion Data", 2);
         
         var items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION, 2);
-        checkHasIds(items, url1, url2);
+        checkCollectionItemIds(Set.of(url1, url2), items);
         
         sendDeleteRequestAndCheckStatus(url1, 204);
         items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION, 1);
-        checkHasIds(items, url2);
+        checkCollectionItemIds(Set.of(url2), items);
         
         sendDeleteRequestAndCheckStatus(url2, 204);
         items = sendGetRequestAndGetItems(DATASTREAM_COLLECTION, 0);

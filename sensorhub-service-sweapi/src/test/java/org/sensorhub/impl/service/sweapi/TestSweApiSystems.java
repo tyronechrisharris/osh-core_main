@@ -22,9 +22,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.jglue.fluentjson.JsonBuilderFactory;
 import org.junit.Test;
 import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
+import org.vast.util.TimeExtent;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -36,7 +38,7 @@ import com.google.gson.JsonParser;
 
 public class TestSweApiSystems extends TestSweApiBase
 {
-    public static final String UID_FORMAT = "urn:osh:proc:test%03d";
+    public static final String UID_FORMAT = "urn:osh:sys:test%03d";
     
     
     public static class SystemInfo
@@ -65,7 +67,7 @@ public class TestSweApiSystems extends TestSweApiBase
     
     
     @Test
-    public void testAddSystemBatchAndGet() throws Exception
+    public void testAddSystemBatchAndGetById() throws Exception
     {
         addSystemBatch(1, 20, true);
     }
@@ -78,12 +80,10 @@ public class TestSweApiSystems extends TestSweApiBase
         var idList = Lists.transform(urlList, TestSweApiBase::getResourceId);
         
         // get request with full id list
-        setDebug(true);
         var jsonResp = sendGetRequestAndParseJson(SYSTEM_COLLECTION + "?id=" + String.join(",", idList));
         checkCollectionItemIds(idList, jsonResp);
         
         // get request with subset of id list
-        setDebug(true);
         var subList = idList.subList(3, 9);
         jsonResp = sendGetRequestAndParseJson(SYSTEM_COLLECTION + "?id=" + String.join(",", subList));
         checkCollectionItemIds(subList, jsonResp);
@@ -112,11 +112,14 @@ public class TestSweApiSystems extends TestSweApiBase
     }
     
     
+    @Test
     public void testAddDuplicateSystem() throws Exception
     {
         var json = createSystemGeoJson(1);
+        
         var resp = sendPostRequest(SYSTEM_COLLECTION, json);
         assertEquals(201, resp.statusCode());
+        
         resp = sendPostRequest(SYSTEM_COLLECTION, json);
         assertEquals(400, resp.statusCode());
     }
@@ -197,15 +200,15 @@ public class TestSweApiSystems extends TestSweApiBase
 
         // match several
         items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?p:prop2=pressure", 2);
-        checkHasIds(items, url2, url3);
+        checkCollectionItemIds(Set.of(url2, url3), items);
         
         // match several with OR
         items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?p:prop2=pressure,temp", 3);
-        checkHasIds(items, url1, url2, url3);
+        checkCollectionItemIds(Set.of(url1, url2, url3), items);
         
         // match several with wildcard
         items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?p:prop2=press*", 2);
-        checkHasIds(items, url2, url3);
+        checkCollectionItemIds(Set.of(url2, url3), items);
         
         // match none
         sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?p:prop2=nothing", 0);
@@ -236,10 +239,106 @@ public class TestSweApiSystems extends TestSweApiBase
         
         // match several with OR
         items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?q=thermo,baro", 2);
-        checkHasIds(items, url1, url2);
+        checkCollectionItemIds(Set.of(url1, url2), items);
         
         // match none
         items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?q=borehole", 0);
+    }
+    
+    
+    @Test
+    public void testAddSystemsAndGetByTime() throws Exception
+    {
+        var url1 = addSystem(1, true, TimeExtent.parse("2000-03-16T23:45:12Z/2001-07-22T11:38:56Z"), Collections.emptyMap());
+        var url2 = addSystem(2, true, TimeExtent.parse("2010-01-21T13:15:37Z/2020-07-01T08:24:46Z"), Collections.emptyMap());
+        
+        // get one
+        var items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2001-01-01Z", 1);
+        checkCollectionItemIds(Set.of(url1), items);
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2013-01-01Z", 1);
+        checkCollectionItemIds(Set.of(url2), items);
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2013-01-01Z/now", 1);
+        checkCollectionItemIds(Set.of(url2), items);
+        
+        // get both
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=../..", 2);
+        checkCollectionItemIds(Set.of(url1, url2), items);
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2001-01-01Z/2012-01-01Z", 2);
+        checkCollectionItemIds(Set.of(url1, url2), items);
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2001-01-01Z/now", 2);
+        checkCollectionItemIds(Set.of(url1, url2), items);
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=1900-01-01Z/2050-01-01Z", 2);
+        checkCollectionItemIds(Set.of(url1, url2), items);
+    }
+    
+    
+    @Test
+    public void testAddSystemVersionsAndGetByTime() throws Exception
+    {
+        var url1 = addSystem(1, true, TimeExtent.parse("2000-03-16T23:45:12Z/2001-07-22T11:38:56Z"), Collections.emptyMap());
+        
+        // get current
+        var items = sendGetRequestAndGetItems(SYSTEM_COLLECTION, 1);
+        checkFeatureValidTime("2000-03-16T23:45:12Z", "2001-07-22T11:38:56Z", items.get(0));
+        
+        // add more
+        addSystem(1, false, TimeExtent.parse("1990-01-21T13:15:37Z/2000-01-01T08:24:46Z"), Collections.emptyMap());
+        addSystem(1, true, TimeExtent.parse("2010-01-21T13:15:37Z/2014-07-01T08:24:46Z"), Collections.emptyMap());
+        
+        // get current
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION, 1);
+        checkFeatureValidTime("2010-01-21T13:15:37Z", "2014-07-01T08:24:46Z", items.get(0));
+        
+        // add more
+        addSystem(1, false, TimeExtent.parse("2015-01-21T13:15:37Z/now"), Collections.emptyMap());
+        addSystem(1, false, TimeExtent.parse("2017-09-30T13:15:37Z/now"), Collections.emptyMap());
+        
+        // get current
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION, 1);
+        checkFeatureValidTime("2017-09-30T13:15:37Z", "now", items.get(0));
+
+        // add more
+        addSystem(1, false, TimeExtent.parse("2020-04-18T00:00:00Z/now"), Collections.emptyMap());
+        
+        // get current
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION, 1);
+        checkFeatureValidTime("2020-04-18T00:00:00Z", "now", items.get(0));
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2021-01-01Z/now", 1);
+        checkFeatureValidTime("2020-04-18T00:00:00Z", "now", items.get(0));
+        
+        var json = sendGetRequestAndParseJson(url1);
+        checkFeatureValidTime("2020-04-18T00:00:00Z", "now", json);
+        
+        // get all versions
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=../..", 6);
+        
+        // get specific version
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=1991-05-08Z", 1);
+        checkFeatureValidTime("1990-01-21T13:15:37Z", "2000-01-01T08:24:46Z", items.get(0));
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2010-01-21T13:15:37Z", 1);
+        checkFeatureValidTime("2010-01-21T13:15:37Z", "2014-07-01T08:24:46Z", items.get(0));
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2014-01-01Z", 1);
+        checkFeatureValidTime("2010-01-21T13:15:37Z", "2014-07-01T08:24:46Z", items.get(0));
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2020-04-17T23:59:59Z", 1);
+        checkFeatureValidTime("2017-09-30T13:15:37Z", "2020-04-18T00:00:00Z", items.get(0));
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2021-01-01Z", 1);
+        checkFeatureValidTime("2020-04-18T00:00:00Z", "now", items.get(0));
+        
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=now", 1);
+        checkFeatureValidTime("2020-04-18T00:00:00Z", "now", items.get(0));
+        
+        // select none
+        items = sendGetRequestAndGetItems(SYSTEM_COLLECTION + "?validTime=2010-01-21T13:15:36Z", 0);
     }
     
     
@@ -319,11 +418,11 @@ public class TestSweApiSystems extends TestSweApiBase
         var url2 = addSystem(10, false);
         
         var items = sendGetRequestAndGetItems(SYSTEM_COLLECTION, 2);
-        checkHasIds(items, url1, url2);
+        checkCollectionItemIds(Set.of(url1, url2), items);
         
         sendDeleteRequestAndCheckStatus(url1, 204);
         items = sendGetRequestAndGetItems(SYSTEM_COLLECTION, 1);
-        checkHasIds(items, url2);
+        checkId(url2, items.get(0));
         
         sendDeleteRequestAndCheckStatus(url2, 204);
         items = sendGetRequestAndGetItems(SYSTEM_COLLECTION, 0);
@@ -444,6 +543,7 @@ public class TestSweApiSystems extends TestSweApiBase
     }
     
     
+    // Non-Test helper methods
     
     protected JsonObject createSystemGeoJson(int procNum) throws Exception
     {
@@ -453,11 +553,25 @@ public class TestSweApiSystems extends TestSweApiBase
     
     protected JsonObject createSystemGeoJson(int procNum, Map<String, Object> props) throws Exception
     {
+        return createSystemGeoJson(procNum, null, props);
+    }
+    
+    
+    protected JsonObject createSystemGeoJson(int procNum, TimeExtent validTime, Map<String, Object> props) throws Exception
+    {
         var json = JsonBuilderFactory.buildObject()
             .add("type", "Feature")
             .addObject("properties")
               .add("uid", String.format(UID_FORMAT, procNum))
               .add("name", "Test Sensor #" + procNum);
+        
+        if (validTime != null)
+        {
+            json.addArray("validTime")
+                .add(validTime.begin().toString())
+                .add(validTime.endsNow() ? "now" : validTime.end().toString())
+            .end();
+        }
         
         // add all other properties
         for (var prop: props.entrySet())
@@ -489,7 +603,13 @@ public class TestSweApiSystems extends TestSweApiBase
     
     protected String addSystem(int num, boolean checkGet, Map<String, Object> props) throws Exception
     {
-        var json = createSystemGeoJson(num, props);
+        return addSystem(num, checkGet, null, props);
+    }
+    
+    
+    protected String addSystem(int num, boolean checkGet, TimeExtent validTime, Map<String, Object> props) throws Exception
+    {
+        var json = createSystemGeoJson(num, validTime, props);
         
         var httpResp = sendPostRequest(SYSTEM_COLLECTION, json);
         var url = getLocation(httpResp);
@@ -639,10 +759,6 @@ public class TestSweApiSystems extends TestSweApiBase
         assertEquals(expected, actual);
     }
     
-    
-    /*----------------*/
-    /* Nested Systems */
-    /*----------------*/
     
     protected SystemInfo addSystemAndSubsystems(int num, int[] levelSizes, int maxLevelSize) throws Exception
     {

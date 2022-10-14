@@ -139,32 +139,19 @@ public abstract class TestSweApiBase
     }
     
     
+    protected void checkJsonProp(String propName, String expectedValue, JsonElement actual)
+    {
+        assertTrue(actual instanceof JsonObject);
+        var val = ((JsonObject)actual).get(propName).getAsString();
+        assertEquals(expectedValue, val);
+    }
+    
+    
     protected String checkId(String url, JsonElement actual)
     {
-        assertTrue(actual instanceof JsonObject);
-        var id = ((JsonObject)actual).get("id").getAsString();
-        assertEquals(getResourceId(url), id);
+        var id = getResourceId(url);
+        checkJsonProp("id", getResourceId(url), actual);
         return id;
-    }
-    
-    
-    protected void checkHasIds(Collection<JsonObject> items, String... urls)
-    {
-        for (var url: urls)
-        {
-            var id = getResourceId(url);
-            assertTrue("Could not find " + id, items.stream().anyMatch(item -> 
-                id.equals(item.get("id").getAsString())
-            ));
-        }
-    }
-    
-    
-    protected void checkFeatureName(String expectedName, JsonElement actual)
-    {
-        assertTrue(actual instanceof JsonObject);
-        var name = ((JsonObject)actual).getAsJsonObject("properties").get("name").getAsString();
-        assertEquals(expectedName, name);
     }
     
     
@@ -184,29 +171,48 @@ public abstract class TestSweApiBase
     }
     
     
-    protected void checkJsonProp(String propName, String expectedValue, JsonElement actual)
+    protected void checkFeatureName(String expectedName, JsonElement actual)
+    {
+        checkFeatureProp("name", expectedName, actual);
+    }
+    
+    
+    protected void checkFeatureValidTime(String expectedBegin, String expectedEnd, JsonElement actual)
     {
         assertTrue(actual instanceof JsonObject);
-        var val = ((JsonObject)actual).get(propName).getAsString();
-        assertEquals(expectedValue, val);
+        var validTime = (JsonArray)((JsonObject)actual).getAsJsonObject("properties").get("validTime");
+        
+        assertEquals(expectedBegin, validTime.get(0).getAsString());
+        assertEquals(expectedEnd, validTime.get(1).getAsString());
     }
     
     
     protected void checkCollectionItemIds(Collection<String> expectedIds, JsonElement collection)
     {
-        var collectionItems = ((JsonObject)collection).get("items").getAsJsonArray();
-        var collectionSize = collectionItems.size();
-        assertEquals(expectedIds.size(), collectionSize);
+        var items = ((JsonObject)collection).get("items").getAsJsonArray();
+        var itemList = Lists.newArrayList(Iterables.transform(items, elt -> (JsonObject)elt));
+        checkCollectionItemIds(expectedIds, itemList);
+    }
+    
+    
+    protected void checkCollectionItemIds(Collection<String> expectedIds, List<JsonObject> items)
+    {
+        var numItems = items.size();
+        assertEquals(expectedIds.size(), numItems);
         
         var collectionsIds = new HashSet<>();
-        for (int i = 0; i < collectionSize; i++)
+        for (int i = 0; i < numItems; i++)
         {
-            var member = (JsonObject)collectionItems.get(i);
+            var member = (JsonObject)items.get(i);
             collectionsIds.add(member.get("id").getAsString());
         }
         
         for (var id: expectedIds)
+        {
+            if (id.contains("/")) // make it work with both id and urls
+                id = getResourceId(id);
             assertTrue("Resource with id " + id + " missing from collection", collectionsIds.contains(id));
+        }
     }
     
     
