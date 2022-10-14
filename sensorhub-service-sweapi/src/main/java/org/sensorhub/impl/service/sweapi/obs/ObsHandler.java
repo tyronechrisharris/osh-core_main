@@ -77,7 +77,7 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
     
     public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
-        super(db.getReadDb().getObservationStore(), db.getObsIdEncoder(), db.getIdEncoders(), permissions);
+        super(db.getWriteDb().getObservationStore(), db.getObsIdEncoder(), db.getIdEncoders(), permissions);
         
         this.eventBus = eventBus;
         this.db = db.getReadDb();
@@ -486,6 +486,13 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
         {
             throw new DataStoreException("Invalid FOI ID");
         }
+    }
+    
+    
+    @Override
+    protected boolean deleteEntry(final RequestContext ctx, final BigId key) throws DataStoreException
+    {
+        return dataStore.remove(key) != null;
     }
     
     

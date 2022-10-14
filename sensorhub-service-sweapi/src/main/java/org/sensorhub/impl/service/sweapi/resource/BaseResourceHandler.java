@@ -56,6 +56,7 @@ import org.vast.util.Asserts;
 public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extends IDataStore<K, V, ?, F>> extends BaseHandler implements IResourceHandler
 {
     public static final String READ_ONLY_ERROR = "Resource type is read-only";
+    public static final String NOT_IMPLEMENTED_ERROR = "Not implemented";
     public static final String INVALID_TIMESTAMP_ERROR_MSG = "Invalid time stamp: ";
     public static final String ALREADY_EXISTS_ERROR_MSG = "Resource already exists";
     public static final String STREAMING_UNSUPPORTED_ERROR_MSG = "Streaming not supported on this resource collection";
@@ -357,7 +358,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected K addEntry(final RequestContext ctx, final V res) throws DataStoreException
     {
-        throw new DataStoreException("Creating resource not supported");
+        throw new DataStoreException(NOT_IMPLEMENTED_ERROR);
     }
     
     
@@ -415,7 +416,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected boolean updateEntry(final RequestContext ctx, final K key, final V res) throws DataStoreException
     {
-        throw new DataStoreException("Updating resource not supported");
+        throw new DataStoreException(NOT_IMPLEMENTED_ERROR);
     }
     
     
@@ -450,7 +451,7 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
     
     protected boolean deleteEntry(final RequestContext ctx, final K key) throws DataStoreException
     {
-        throw new DataStoreException("Deleting resource not supported");
+        throw new DataStoreException(NOT_IMPLEMENTED_ERROR);
     }
     
     
