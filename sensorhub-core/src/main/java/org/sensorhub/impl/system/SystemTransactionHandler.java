@@ -350,8 +350,17 @@ public class SystemTransactionHandler
             
             // check if datastream already has observations
             var hasObs = oldDsInfo.getResultTimeRange() != null;
+            var validTime = dsInfo.getValidTime();
+            var oldValidTime = dsEntry.getValue().getValidTime();
             
-            // 3 cases
+            // if datastream created with an explicit validTime
+            if (validTime != null && !validTime.begin().equals(oldValidTime.begin()))
+            {
+                dsKey = dataStreamStore.add(dsInfo);
+                addedEvent = new DataStreamAddedEvent(sysUID, outputName);
+                log.debug("Added datastream {}#{} with valid time {}", sysUID, outputName, validTime);
+            }
+            
             // if observations were already recorded and structure has changed, create a new datastream
             if (hasObs &&
                (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
@@ -359,7 +368,7 @@ public class SystemTransactionHandler
             {
                 dsKey = dataStreamStore.add(dsInfo);
                 addedEvent = new DataStreamAddedEvent(sysUID, outputName);
-                log.debug("Created new version of datastream {}#{}", sysUID, outputName);
+                log.debug("Added datastream {}#{} with new data structure", sysUID, outputName);
             }
             
             // if something else has changed, update existing datastream

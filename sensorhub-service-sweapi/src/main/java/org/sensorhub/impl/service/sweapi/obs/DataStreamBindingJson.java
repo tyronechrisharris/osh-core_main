@@ -31,10 +31,12 @@ import org.sensorhub.impl.service.sweapi.resource.ResourceFormat;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.service.sweapi.system.SystemHandler;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
+import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -44,6 +46,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
 {
     final String rootURL;
     final SWEStaxBindings sweBindings;
+    final GeoJsonBindings geojsonBindings;
     final Map<String, CustomObsFormat> customFormats;
     SWEJsonStreamReader sweReader;
     SWEJsonStreamWriter sweWriter;
@@ -55,6 +58,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
+        this.geojsonBindings = new GeoJsonBindings();
         this.customFormats = Asserts.checkNotNull(customFormats);
         
         if (forReading)
@@ -77,6 +81,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         String name = null;
         String description = null;
         String outputName = null;
+        TimeExtent validTime = null;
         IDataStreamInfo dsInfo = null;
         
         try
@@ -92,6 +97,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                     description = reader.nextString();
                 else if ("outputName".equals(prop))
                     outputName = reader.nextString();
+                else if ("validTime".equals(prop))
+                    validTime = geojsonBindings.readTimeExtent(reader);
                 else if ("schema".equals(prop))
                 {
                     reader.beginObject();
@@ -137,6 +144,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         dsInfo = DataStreamInfo.Builder.from(dsInfo)
             .withName(name)
             .withDescription(description)
+            .withValidTime(validTime)
             .build();
         
         return dsInfo;
@@ -160,27 +168,21 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         writer.name("system@id").value(sysId);
         writer.name("outputName").value(dsInfo.getOutputName());
         
-        writer.name("validTime").beginArray()
-            .value(dsInfo.getValidTime().begin().toString())
-            .value(dsInfo.getValidTime().end().toString())
-            .endArray();
+        writer.name("validTime");
+        geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
 
         if (dsInfo.getPhenomenonTimeRange() != null)
         {
-            writer.name("phenomenonTime").beginArray()
-                .value(dsInfo.getPhenomenonTimeRange().begin().toString())
-                .value(dsInfo.getPhenomenonTimeRange().end().toString())
-                .endArray();
+            writer.name("phenomenonTime");
+            geojsonBindings.writeTimeExtent(writer, dsInfo.getPhenomenonTimeRange());
         }
 
         if (dsInfo.getResultTimeRange() != null)
         {
-            writer.name("resultTime").beginArray()
-                .value(dsInfo.getResultTimeRange().begin().toString())
-                .value(dsInfo.getResultTimeRange().end().toString())
-                .endArray();
-        }        
-                
+            writer.name("resultTime");
+            geojsonBindings.writeTimeExtent(writer, dsInfo.getResultTimeRange());
+        }
+        
         if (dsInfo.hasDiscreteResultTimes())
         {
             writer.name("runTimes").beginArray();

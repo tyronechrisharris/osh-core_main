@@ -96,12 +96,17 @@ public class DataStreamTransactionHandler implements IEventListener
         if (!dsInfo.getOutputName().equals(oldDsInfo.getOutputName()))
             throw new DataStoreException("The system output (outputName) associated to a datastream cannot be changed");
         
-        // check if datastream already has observations
+        // check structure hasn't changed if we already have observations
         var hasObs = oldDsInfo.getResultTimeRange() != null;
         if (hasObs &&
             (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
              !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding())))
             throw new DataStoreException("Cannot update the record structure or encoding of a datastream if it already has observations");
+        
+        // check validTime hasn't changed if we already have observations
+        var validTime = dsInfo.getValidTime();
+        if (hasObs && validTime != null && !oldDsInfo.getValidTime().equals(validTime))
+            throw new DataStoreException("Cannot update the datastream validTime if it already has observations");
         
         // update datastream info
         var newDsInfo = new DataStreamInfo.Builder()
@@ -110,7 +115,7 @@ public class DataStreamTransactionHandler implements IEventListener
             .withSystem(oldDsInfo.getSystemID())
             .withRecordDescription(dsInfo.getRecordStructure())
             .withRecordEncoding(dsInfo.getRecordEncoding())
-            .withValidTime(oldDsInfo.getValidTime())
+            .withValidTime(validTime != null ? validTime : oldDsInfo.getValidTime())
             .build();
         getDataStreamStore().replace(dsKey, newDsInfo);
         this.dsInfo = newDsInfo;
