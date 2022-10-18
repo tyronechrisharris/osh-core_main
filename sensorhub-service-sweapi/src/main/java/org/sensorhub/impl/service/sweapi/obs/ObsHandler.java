@@ -30,7 +30,6 @@ import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsEvent;
-import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.SpatialFilter;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
@@ -60,7 +59,7 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
     public static final String[] NAMES = { "observations" };
     
     final IEventBus eventBus;
-    final IObsSystemDatabase db;
+    final ObsSystemDbWrapper db;
     final SystemDatabaseTransactionHandler transactionHandler;
     final ScheduledExecutorService threadPool;
     final Map<String, CustomObsFormat> customFormats;
@@ -77,10 +76,10 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
     
     public ObsHandler(IEventBus eventBus, ObsSystemDbWrapper db, ScheduledExecutorService threadPool, ResourcePermissions permissions, Map<String, CustomObsFormat> customFormats)
     {
-        super(db.getWriteDb().getObservationStore(), db.getObsIdEncoder(), db.getIdEncoders(), permissions);
+        super(db.getReadDb().getObservationStore(), db.getObsIdEncoder(), db.getIdEncoders(), permissions);
         
         this.eventBus = eventBus;
-        this.db = db.getReadDb();
+        this.db = db;
         this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
         this.threadPool = threadPool;
         this.customFormats = Asserts.checkNotNull(customFormats);
@@ -492,7 +491,7 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
     @Override
     protected boolean deleteEntry(final RequestContext ctx, final BigId key) throws DataStoreException
     {
-        return dataStore.remove(key) != null;
+        return db.getObservationStore().remove(key) != null;
     }
     
     
