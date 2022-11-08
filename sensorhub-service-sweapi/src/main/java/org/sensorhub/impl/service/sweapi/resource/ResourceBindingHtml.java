@@ -246,7 +246,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                     .withClass(CSS_BOLD),
                 span(": "),
                 value,
-                iff(comp instanceof HasUom, span(getUomString((HasUom)comp))),
+                iff(comp instanceof HasUom, getUomText((HasUom)comp)),
                 sup(a(" ")
                     .withClass("text-decoration-none bi-link")
                     .withHref(comp.getDefinition())
@@ -299,7 +299,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             var code = ((HasUom)comp).getUom().getCode();
             if (code != null)
             {
-                uom = span(getUomString((HasUom)comp));
+                uom = getUomText((HasUom)comp);
             }
             else
             {
@@ -390,20 +390,23 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     }
     
     
-    protected String getUomString(HasUom comp)
+    protected DomContent getUomText(HasUom comp)
     {
         var code = comp.getUom().getCode();
         if (code == null)
-            return "";
+            return span();
         
         if (uomParser == null)
             uomParser = new UnitParserUCUM();
+        
+        if (!UnitParserUCUM.isValidUnit(code))
+            return span(code).attr("style", "color: red");
         
         var symbol = uomParser
             .findUnit(code)
             .getPrintSymbol();
         
-        return symbol == null || code.equals(symbol) ? code : symbol + " (" + code + ")";
+        return span(symbol == null || code.equals(symbol) ? code : symbol + " (" + code + ")");
     }
     
     
