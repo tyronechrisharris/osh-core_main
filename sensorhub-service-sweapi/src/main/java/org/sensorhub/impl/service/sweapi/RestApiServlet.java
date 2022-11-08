@@ -174,7 +174,7 @@ public abstract class RestApiServlet extends HttpServlet
                 catch (Exception e)
                 {
                     logError(req, e);
-                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
                 }
                 finally
                 {
@@ -186,7 +186,7 @@ public abstract class RestApiServlet extends HttpServlet
         catch (Exception e)
         {
             logError(req, e);
-            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
         }
     }
 
@@ -237,7 +237,7 @@ public abstract class RestApiServlet extends HttpServlet
                 catch (Exception e)
                 {
                     logError(req, e);
-                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
                 }
                 finally
                 {
@@ -249,7 +249,7 @@ public abstract class RestApiServlet extends HttpServlet
         catch (Exception e)
         {
             logError(req, e);
-            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
         }
     }
 
@@ -282,7 +282,7 @@ public abstract class RestApiServlet extends HttpServlet
                 catch (Exception e)
                 {
                     logError(req, e);
-                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
                 }
                 finally
                 {
@@ -294,7 +294,7 @@ public abstract class RestApiServlet extends HttpServlet
         catch (Exception e)
         {
             logError(req, e);
-            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
         }
     }
 
@@ -327,7 +327,7 @@ public abstract class RestApiServlet extends HttpServlet
                 catch (Exception e)
                 {
                     logError(req, e);
-                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
                 }
                 finally
                 {
@@ -339,7 +339,7 @@ public abstract class RestApiServlet extends HttpServlet
         catch (Exception e)
         {
             logError(req, e);
-            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+            sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
         }
     }
     
@@ -422,24 +422,33 @@ public abstract class RestApiServlet extends HttpServlet
     }
     
     
-    public void sendError(int code, HttpServletResponse resp)
+    /*public void sendError(int code, String mimeType, HttpServletResponse resp)
     {
-        sendError(code, null, resp);
-    }
+        sendError(code, null, mimeType, resp);
+    }*/
     
     
-    public void sendError(int code, String msg, HttpServletResponse resp)
+    public void sendError(int code, String msg, HttpServletRequest req, HttpServletResponse resp)
     {
         try
         {
-            resp.sendError(code, msg);
-            /*resp.setStatus(code);
+            var accept = req.getHeader("Accept");
             
-            if (msg != null)
+            if (accept == null || accept.contains("json"))
             {
-                msg = "{ \"error\": \"" + msg + "\" }";
-                resp.getOutputStream().write(msg.getBytes());
-            }*/
+                resp.setStatus(code);
+                if (msg != null)
+                {
+                    var json =
+                        "{\n" +
+                        "  \"error\": " + code + ",\n" +
+                        "  \"message\": \"" + msg.replace("\"", "\\\"") + "\"\n" +
+                        "}";
+                    resp.getOutputStream().write(json.getBytes());
+                }
+            }
+            else
+                resp.sendError(code, msg);
         }
         catch (IOException e)
         {
@@ -455,25 +464,25 @@ public abstract class RestApiServlet extends HttpServlet
         switch (e.getErrorCode())
         {
             case UNSUPPORTED_OPERATION:
-                sendError(SC_METHOD_NOT_ALLOWED, e.getMessage(), resp);
+                sendError(SC_METHOD_NOT_ALLOWED, e.getMessage(), req, resp);
                 break;
                 
             case BAD_REQUEST:
             case BAD_PAYLOAD:
             case REQUEST_REJECTED:
-                sendError(SC_BAD_REQUEST, e.getMessage(), resp);
+                sendError(SC_BAD_REQUEST, e.getMessage(), req, resp);
                 break;
                 
             case NOT_FOUND:
-                sendError(SC_NOT_FOUND, e.getMessage(), resp);
+                sendError(SC_NOT_FOUND, e.getMessage(), req, resp);
                 break;
                 
             case FORBIDDEN:
-                sendError(SC_FORBIDDEN, e.getMessage(), resp);
+                sendError(SC_FORBIDDEN, e.getMessage(), req, resp);
                 break;
                 
             default:
-                sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, resp);
+                sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
         }
     }
     
@@ -489,7 +498,7 @@ public abstract class RestApiServlet extends HttpServlet
                 if (req.getRemoteUser() == null)
                     req.authenticate(resp);
                 else
-                    sendError(SC_FORBIDDEN, ACCESS_DENIED_ERROR_MSG, resp);
+                    sendError(SC_FORBIDDEN, ACCESS_DENIED_ERROR_MSG, req, resp);
             }
         }
         catch (Exception e1)
