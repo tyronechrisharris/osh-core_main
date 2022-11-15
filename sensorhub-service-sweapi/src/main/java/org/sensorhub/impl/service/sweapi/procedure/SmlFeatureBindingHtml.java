@@ -52,22 +52,27 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB ext
     {
         writeHeader();
         
-        h3(sys.getName()).render(html);
+        h3(sys.getName())
+            .render(html);
         
-        // UID
-        h6(
-            span("UID: ").withClass(CSS_BOLD),
-            span(sys.getUniqueIdentifier())
-        ).render(html);
-        
-        // system type def
-        if (sys.getType() != null)
-        {
+        div(
+            // UID
             h6(
-                span("Type: ").withClass(CSS_BOLD),
-                span(sys.getType())
-            ).render(html);
-        }
+                span("UID: ").withClass(CSS_BOLD),
+                span(sys.getUniqueIdentifier())
+            ),
+        
+            // system type def
+            sys.getType() != null ?
+                h6(
+                    span("Type: ").withClass(CSS_BOLD),
+                    a(sys.getType())
+                        .withHref(sys.getType())
+                        .withTarget(DICTIONARY_TAB_NAME)
+                ) : null
+        )
+        .withClass("mt-4 mb-4")
+        .render(html);
         
         var sml = sys.getFullDescription();
         
@@ -141,7 +146,7 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB ext
                 .withClass("text-decoration-none bi-link")
                 .withHref(term.getDefinition())
                 .withTitle(term.getDefinition())
-                .withTarget("_blank"))
+                .withTarget(DICTIONARY_TAB_NAME))
         ).withClass(CSS_CARD_TEXT);
     }
     

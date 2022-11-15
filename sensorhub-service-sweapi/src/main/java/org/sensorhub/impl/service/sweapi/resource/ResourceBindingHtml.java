@@ -62,7 +62,7 @@ import static j2html.TagCreator.*;
 public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
 {
     protected static final DomContent NBSP = new UnescapedText("&nbsp;");
-    
+    protected static final String DICTIONARY_TAB_NAME = "osh_semantics";
     protected static final String[] CSS_CARD_TITLE = {"card-title", "text-primary"};
     protected static final String[] CSS_CARD_SUBTITLE = {"card-subtitle", "text-muted", "mb-2"};
     protected static final String[] CSS_LINK_BTN_CLASSES = {"me-2", "mb-2", "btn", "btn-sm", "btn-outline-primary"};
@@ -216,7 +216,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 a("(" + comp.getDefinition() + ")")
                     .withClass("small")
                     .withHref(comp.getDefinition())
-                    .withTarget("_blank")
+                    .withTarget(DICTIONARY_TAB_NAME)
             )
         ).withClass("card-text");
     }
@@ -251,7 +251,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                     .withClass("text-decoration-none bi-link")
                     .withHref(comp.getDefinition())
                     .withTitle(comp.getDefinition())
-                    .withTarget("_blank"))
+                    .withTarget(DICTIONARY_TAB_NAME))
             );
     }
     
@@ -289,7 +289,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 span(": "),
                 a(comp.getDefinition())
                     .withHref(comp.getDefinition())
-                    .withTarget("_blank")
+                    .withTarget(DICTIONARY_TAB_NAME)
             ));
         }
         
@@ -306,7 +306,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 var href = ((HasUom)comp).getUom().getHref();
                 uom = a(href)
                     .withHref(href)
-                    .withTarget("_blank");
+                    .withTarget(DICTIONARY_TAB_NAME);
             }
             
             content.with(div(
@@ -369,7 +369,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                     span(": "),
                     a(((Vector)comp).getReferenceFrame())
                         .withHref(((Vector)comp).getReferenceFrame())
-                        .withTarget("_blank")
+                        .withTarget(DICTIONARY_TAB_NAME)
                 ));
             }
             
@@ -406,7 +406,12 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             .findUnit(code)
             .getPrintSymbol();
         
-        return span(symbol == null || code.equals(symbol) ? code : symbol + " (" + code + ")");
+        //return span(symbol == null || code.equals(symbol) ? code : symbol + " (" + code + ")");
+        var text = span(symbol == null ? code : symbol);
+        if (symbol != null)
+            text.withTitle(code);
+        
+        return text;
     }
     
     
