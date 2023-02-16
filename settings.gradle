@@ -13,6 +13,7 @@ include 'sensorhub-utils-kryo'
 include 'sensorhub-datastore-h2'
 include 'sensorhub-service-swe'
 include 'sensorhub-service-sweapi'
+include 'sensorhub-service-consys'
 include 'sensorhub-webui-core'
 include 'sensorhub-webui-widgetset'
 
