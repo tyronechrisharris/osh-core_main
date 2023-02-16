@@ -34,9 +34,11 @@ import org.sensorhub.impl.service.sweapi.obs.ObsHandler.ObsHandlerContextData;
 import org.sensorhub.impl.service.sweapi.resource.PropertyFilter;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
+import org.sensorhub.utils.SWEDataUtils;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.swe.BinaryDataWriter;
+import org.vast.swe.ScalarIndexer;
 import org.vast.swe.fast.JsonDataParserGson;
 import org.vast.swe.fast.JsonDataWriterGson;
 import org.vast.util.ReaderException;
@@ -52,6 +54,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
     IObsStore obsStore;
     JsonDataParserGson resultReader;
     Map<BigId, DataStreamWriter> resultWriters;
+    ScalarIndexer timeStampIndexer;
 
     
     ObsBindingOmJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsStore obsStore) throws IOException
@@ -64,6 +67,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
         {
             resultReader = getSweCommonParser(contextData.dsInfo, reader);
             resultReader.setRenewDataBlock(true);
+            timeStampIndexer = SWEDataUtils.getTimeStampIndexer(contextData.dsInfo.getRecordStructure());
         }
         else
         {
@@ -140,9 +144,15 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
         if (contextData.foiId != null)
             obs.withFoi(contextData.foiId);
         
-        // also set timestamp
         var newObs = obs.build();
-        newObs.getResult().setDoubleValue(0, newObs.getPhenomenonTime().toEpochMilli() / 1000.0);
+        
+        // set timestamp in result data if present in schema
+        if (timeStampIndexer != null)
+        {
+            var phenomenonTimeIdx = timeStampIndexer.getDataIndex(newObs.getResult());
+            newObs.getResult().setDoubleValue(phenomenonTimeIdx, newObs.getPhenomenonTime().toEpochMilli() / 1000.0);
+        }
+        
         return newObs;
     }
 
