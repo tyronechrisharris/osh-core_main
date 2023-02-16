@@ -24,6 +24,7 @@ import org.sensorhub.impl.service.sweapi.feature.AbstractFeatureBindingHtml;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import j2html.tags.DomContent;
 import net.opengis.sensorml.v20.AbstractMetadataList;
+import net.opengis.sensorml.v20.ObservableProperty;
 import net.opengis.sensorml.v20.Term;
 import static j2html.TagCreator.*;
 
@@ -96,6 +97,25 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB ext
                 ));
         }
         
+        // observables
+        if (sml.getNumInputs() > 0)
+        {
+            renderCard(
+                "Observed Properties", 
+                each(sml.getInputList(), input -> {
+                    if (input instanceof ObservableProperty)
+                    {
+                        var def = ((ObservableProperty)input).getDefinition();
+                        return div(
+                            span(input.getLabel()).withClass(CSS_BOLD),
+                            getLinkIcon(def, def)
+                        );
+                    }
+                    else
+                        return null;
+                }));
+        }
+        
         // characteristics
         if (sml.getNumCharacteristics() > 0)
         {
@@ -140,13 +160,9 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB ext
             span(term.getLabel())
                 .withTitle(term.getDefinition())
                 .withClass("position-relative fw-bold"),
+            getLinkIcon(term.getDefinition(), term.getDefinition()),
             span(": "),
-            span(term.getValue()),
-            sup(a(" ")
-                .withClass("text-decoration-none bi-link")
-                .withHref(term.getDefinition())
-                .withTitle(term.getDefinition())
-                .withTarget(DICTIONARY_TAB_NAME))
+            span(term.getValue())
         ).withClass(CSS_CARD_TEXT);
     }
     

@@ -244,14 +244,10 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 span(getComponentLabel(comp))
                     .withTitle(comp.getDescription())
                     .withClass(CSS_BOLD),
+                getLinkIcon(comp.getDefinition(), comp.getDefinition()),
                 span(": "),
                 value,
-                iff(comp instanceof HasUom, getUomText((HasUom)comp)),
-                sup(a(" ")
-                    .withClass("text-decoration-none bi-link")
-                    .withHref(comp.getDefinition())
-                    .withTitle(comp.getDefinition())
-                    .withTarget(DICTIONARY_TAB_NAME))
+                iff(comp instanceof HasUom, getUomText((HasUom)comp))
             );
     }
     
@@ -463,6 +459,16 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             span(te.begin().truncatedTo(ChronoUnit.SECONDS).toString()), br(),
             span(te.end().truncatedTo(ChronoUnit.SECONDS).toString() + (te.endsNow() ? " (Now)" : ""))
         ).withClass("ps-4");
+    }
+    
+    
+    protected DomContent getLinkIcon(String href, String title)
+    {
+        return sup(a(" ")
+            .withClass("text-decoration-none bi-box-arrow-up-right small")
+            .withHref(href)
+            .withTitle(title)
+            .withTarget(DICTIONARY_TAB_NAME));
     }
     
     
