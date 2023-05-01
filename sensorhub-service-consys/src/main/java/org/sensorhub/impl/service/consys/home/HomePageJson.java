@@ -17,9 +17,15 @@ package org.sensorhub.impl.service.consys.home;
 import java.io.IOException;
 import java.util.Collection;
 import org.sensorhub.impl.service.consys.ConSysApiServiceConfig;
+import org.sensorhub.impl.service.consys.deployment.DeploymentHandler;
+import org.sensorhub.impl.service.consys.feature.FoiHandler;
+import org.sensorhub.impl.service.consys.obs.DataStreamHandler;
+import org.sensorhub.impl.service.consys.obs.ObsHandler;
+import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
+import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.util.ResponsibleParty;
 import com.google.common.base.Strings;
 import com.google.gson.stream.JsonReader;
@@ -64,44 +70,72 @@ public class HomePageJson extends ResourceBindingJson<Long, ConSysApiServiceConf
         
         writer.beginObject();
         writer.name("rel").value("service-desc");
-        writer.name("type").value("application/vnd.oai.openapi;version=3.0");
-        writer.name("title").value("Definition of the API in OpenAPI 3.0");
-        writer.name("href").value(HomePageHandler.APISPEC_URL);
+        writer.name("title").value("Definition of the API Part 1 in OpenAPI 3.1");
+        writer.name("href").value(HomePageHandler.APISPEC_URL1);
+        writer.name("type").value("application/vnd.oai.openapi;version=3.1");
+        writer.endObject();
+        
+        writer.beginObject();
+        writer.name("rel").value("service-desc");
+        writer.name("title").value("Definition of the API Part 2 in OpenAPI 3.1");
+        writer.name("href").value(HomePageHandler.APISPEC_URL2);
+        writer.name("type").value("application/vnd.oai.openapi;version=3.1");
         writer.endObject();
         
         writer.beginObject();
         writer.name("rel").value("conformance");
-        writer.name("type").value("application/json");
         writer.name("title").value("OGC API conformance classes implemented by this server");
-        writer.name("href").value(ctx.getApiRootURL() + "/conformance");
+        writer.name("href").value(ctx.getApiRootURL() + "/" + ConformanceHandler.NAMES[0]);
+        writer.name("type").value("application/json");
+        writer.endObject();
+        
+        writer.beginObject();
+        writer.name("rel").value("collections");
+        writer.name("title").value("Collections available on this server");
+        writer.name("href").value(ctx.getApiRootURL() + "/" + CollectionHandler.NAMES[0]);
+        writer.name("type").value("application/json");
         writer.endObject();
         
         writer.beginObject();
         writer.name("rel").value("systems");
+        writer.name("title").value("System instances registered on this server");
+        writer.name("href").value(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0]);
         writer.name("type").value("application/json");
-        writer.name("title").value("Observing systems registered on this server");
-        writer.name("href").value(ctx.getApiRootURL() + "/systems");
+        writer.endObject();
+        
+        writer.beginObject();
+        writer.name("rel").value("deployments");
+        writer.name("title").value("System deployments registered on this server");
+        writer.name("href").value(ctx.getApiRootURL() + "/" + DeploymentHandler.NAMES[0]);
+        writer.name("type").value("application/json");
+        writer.endObject();
+        
+        writer.beginObject();
+        writer.name("rel").value("procedures");
+        writer.name("title").value("System datasheets and procedures registered on this server");
+        writer.name("href").value(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0]);
+        writer.name("type").value("application/json");
+        writer.endObject();
+        
+        writer.beginObject();
+        writer.name("rel").value("samplingFeatures");
+        writer.name("title").value("Sampling features linked to systems registered on this server");
+        writer.name("href").value(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0]);
+        writer.name("type").value("application/json");
         writer.endObject();
         
         writer.beginObject();
         writer.name("rel").value("datastreams");
-        writer.name("type").value("application/json");
         writer.name("title").value("Datastreams available through this server");
-        writer.name("href").value(ctx.getApiRootURL() + "/datastreams");
+        writer.name("href").value(ctx.getApiRootURL() + "/" + DataStreamHandler.NAMES[0]);
+        writer.name("type").value("application/json");
         writer.endObject();
         
         writer.beginObject();
         writer.name("rel").value("observations");
-        writer.name("type").value("application/json");
         writer.name("title").value("Observations available through this server");
-        writer.name("href").value(ctx.getApiRootURL() + "/observations");
-        writer.endObject();
-        
-        writer.beginObject();
-        writer.name("rel").value("featuresOfInterest");
+        writer.name("href").value(ctx.getApiRootURL() + "/" + ObsHandler.NAMES[0]);
         writer.name("type").value("application/json");
-        writer.name("title").value("Features of interest observed by systems registered on this server");
-        writer.name("href").value(ctx.getApiRootURL() + "/featuresOfInterest");
         writer.endObject();
         
         writer.endArray();

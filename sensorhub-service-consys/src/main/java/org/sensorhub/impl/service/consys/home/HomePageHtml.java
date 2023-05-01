@@ -16,9 +16,11 @@ package org.sensorhub.impl.service.consys.home;
 
 import java.io.IOException;
 import org.sensorhub.impl.service.consys.ConSysApiServiceConfig;
+import org.sensorhub.impl.service.consys.deployment.DeploymentHandler;
 import org.sensorhub.impl.service.consys.feature.FoiHandler;
 import org.sensorhub.impl.service.consys.obs.DataStreamHandler;
 import org.sensorhub.impl.service.consys.obs.ObsHandler;
+import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingHtml;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
@@ -70,7 +72,8 @@ public class HomePageHtml extends ResourceBindingHtml<Long, ConSysApiServiceConf
         // API info
         renderCard("API Information",
             p(strong("Service Provider: "), text(orgName)),
-            p(a("Definition of the API in OpenAPI 3.0").withHref(HomePageHandler.APISPEC_URL)),
+            p(a("Definition of the API Part 1 in OpenAPI 3.1").withHref(HomePageHandler.APISPEC_URL1)),
+            p(a("Definition of the API Part 2 in OpenAPI 3.1").withHref(HomePageHandler.APISPEC_URL2)),
             p(a("Interactive Documentation of the API").withHref(HomePageHandler.APITEST_URL)),
             p(a("OGC API conformance classes implemented by this server").withHref(ctx.getApiRootURL() + "/" + ConformanceHandler.NAMES[0]))
         );
@@ -78,8 +81,10 @@ public class HomePageHtml extends ResourceBindingHtml<Long, ConSysApiServiceConf
         // links
         renderCard("Available Resources",
             p(a("Data collections available on this server").withHref(ctx.getApiRootURL() + "/" + CollectionHandler.NAMES[0])),
-            p(a("Connected systems registered on this server").withHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0])),
-            p(a("Features of interest observed by systems registered on this server").withHref(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0])),
+            p(a("System instances registered on this server").withHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0])),
+            p(a("System deployments registered on this server").withHref(ctx.getApiRootURL() + "/" + DeploymentHandler.NAMES[0])),
+            p(a("System datasheets and procedures registered on this server").withHref(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0])),
+            p(a("Sampling features linked to systems registered on this server").withHref(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0])),
             p(a("Datastreams available through this server").withHref(ctx.getApiRootURL() + "/" + DataStreamHandler.NAMES[0])),
             p(a("Observations available through this server").withHref(ctx.getApiRootURL() + "/" + ObsHandler.NAMES[0]))
         );
