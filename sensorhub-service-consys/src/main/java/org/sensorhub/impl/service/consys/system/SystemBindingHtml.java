@@ -24,8 +24,8 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.feature.FeatureUtils;
-import org.sensorhub.impl.service.consys.procedure.SmlFeatureBindingHtml;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
+import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
 import j2html.tags.DomContent;
 import static j2html.TagCreator.*;
 

@@ -32,6 +32,8 @@ import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBinding;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.RequestContext.ResourceRef;
+import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingSmlJson;
+import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingSmlXml;
 import org.sensorhub.impl.system.wrapper.ProcessWrapper;
 import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 import org.slf4j.Logger;

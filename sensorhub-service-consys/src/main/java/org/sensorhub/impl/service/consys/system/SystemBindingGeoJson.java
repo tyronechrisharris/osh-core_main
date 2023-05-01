@@ -25,7 +25,10 @@ import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.consys.feature.FoiHandler;
 import org.sensorhub.impl.service.consys.obs.DataStreamHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
+import org.sensorhub.impl.service.consys.sensorml.SmlFeatureAdapter;
+import org.sensorhub.impl.service.consys.task.CommandStreamHandler;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -59,7 +62,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
             public IFeature readFeature(JsonReader reader) throws IOException
             {
                 var f = super.readFeature(reader);
-                return new SystemFeatureAdapter(f);
+                return new SmlFeatureAdapter(f);
             }
             
             protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
@@ -74,10 +77,16 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                     var links = new ArrayList<ResourceLink>();
                     
                     links.add(new ResourceLink.Builder()
-                        .rel("details")
-                        .title("Detailed system specsheet in SensorML format")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + SystemDetailsHandler.NAMES[0])
+                        .rel("canonical")
+                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId())
+                        .type(ResourceFormat.JSON.getMimeType())
+                        .build());
+                    
+                    links.add(new ResourceLink.Builder()
+                        .rel("alternate")
+                        .title("Detailed description of system in SensorML format")
+                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId())
+                        .type(ResourceFormat.SML_JSON.getMimeType())
                         .build());
                     
                     links.add(new ResourceLink.Builder()
@@ -85,6 +94,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .title("List of subsystems")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
                             bean.getId() + "/" + SystemMembersHandler.NAMES[0])
+                        .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
                     links.add(new ResourceLink.Builder()
@@ -92,13 +102,23 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .title("List of system datastreams")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
                             bean.getId() + "/" + DataStreamHandler.NAMES[0])
+                        .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
                     links.add(new ResourceLink.Builder()
-                        .rel("fois")
+                        .rel("controls")
+                        .title("List of system control channels")
+                        .href("/" + SystemHandler.NAMES[0] + "/" +
+                            bean.getId() + "/" + CommandStreamHandler.NAMES[0])
+                        .type(ResourceFormat.JSON.getMimeType())
+                        .build());
+                    
+                    links.add(new ResourceLink.Builder()
+                        .rel("samplingFeatures")
                         .title("List of system features of interest")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
                             bean.getId() + "/" + FoiHandler.NAMES[0])
+                        .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
                     writeLinksAsJson(writer, links);

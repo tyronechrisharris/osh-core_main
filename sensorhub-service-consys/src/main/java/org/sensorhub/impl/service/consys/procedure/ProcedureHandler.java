@@ -32,12 +32,13 @@ import org.sensorhub.impl.service.consys.feature.AbstractFeatureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBinding;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
+import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingSmlJson;
 
 
 public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
 {
     public static final int EXTERNAL_ID_SEED = 342178536;
-    public static final String[] NAMES = { "systemTypes" };
+    public static final String[] NAMES = { "procedures" };
     
     final IEventBus eventBus;
     final IProcedureDatabase db;
@@ -62,7 +63,7 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
         {
-            var title = ctx.getParentID() != null ? "Components of {}" : "All Procedures and System Datasheets";
+            var title = ctx.getParentID() != null ? "Datasheet of {}" : "All System Datasheets and Procedures";
             return new ProcedureBindingHtml(ctx, idEncoders, true, title, db);
         }
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))

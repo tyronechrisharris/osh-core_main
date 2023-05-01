@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.consys.procedure;
+package org.sensorhub.impl.service.consys.sensorml;
 
 import java.io.IOException;
 import java.util.Collection;

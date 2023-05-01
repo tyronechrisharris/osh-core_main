@@ -23,8 +23,9 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
-import org.sensorhub.impl.service.consys.system.SystemFeatureAdapter;
+import org.sensorhub.impl.service.consys.sensorml.SmlFeatureAdapter;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -58,7 +59,7 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
             public IFeature readFeature(JsonReader reader) throws IOException
             {
                 var f = super.readFeature(reader);
-                return new SystemFeatureAdapter(f);
+                return new SmlFeatureAdapter(f);
             }
             
             protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
@@ -75,18 +76,17 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
                     var links = new ArrayList<ResourceLink>();
                     
                     links.add(new ResourceLink.Builder()
-                        .rel("details")
-                        .title("Detailed system specsheet in SensorML format")
-                        .href("/" + ProcedureHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + ProcedureDetailsHandler.NAMES[0])
+                        .rel("canonical")
+                        .href("/" + ProcedureHandler.NAMES[0] + "/" + bean.getId())
+                        .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
-                    /*links.add(new ResourceLink.Builder()
-                        .rel("members")
-                        .title("List of subsystems")
-                        .href("/" + ProcedureHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + ProcedureMembersHandler.NAMES[0])
-                        .build());*/
+                    links.add(new ResourceLink.Builder()
+                        .rel("alternate")
+                        .title("Detailed description of datasheet or procedure in SensorML format")
+                        .href("/" + ProcedureHandler.NAMES[0] + "/" + bean.getId())
+                        .type(ResourceFormat.SML_JSON.getMimeType())
+                        .build());
                     
                     writeLinksAsJson(writer, links);
                 }

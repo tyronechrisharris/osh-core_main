@@ -21,6 +21,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
+import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
 import j2html.tags.DomContent;
 import static j2html.TagCreator.*;
 

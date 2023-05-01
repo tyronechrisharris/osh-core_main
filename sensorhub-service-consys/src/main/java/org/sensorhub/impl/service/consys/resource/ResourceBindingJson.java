@@ -26,6 +26,7 @@ import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.impl.service.consys.ServiceErrors;
 import org.sensorhub.impl.service.consys.json.FilteredJsonWriter;
 import org.vast.json.JsonInliningWriter;
+import org.vast.util.Asserts;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -161,6 +162,34 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
             }        
             writer.endArray();
         }
+    }
+    
+    
+    protected void writeLink(JsonWriter writer, String href, String uid, ResourceFormat format) throws IOException
+    {
+        writeLink(writer, href, uid, null, format);
+    }
+    
+    
+    protected void writeLink(JsonWriter writer, String href, String uid, String title, ResourceFormat format) throws IOException
+    {
+        Asserts.checkNotNullOrBlank(href, "href");
+        
+        writer.beginObject();
+        writeLinkProperties(writer, href, uid, title, format);
+        writer.endObject();
+    }
+    
+    
+    protected void writeLinkProperties(JsonWriter writer, String href, String uid, String title, ResourceFormat format) throws IOException
+    {
+        writer.name("href").value(getAbsoluteHref(href));
+        if (uid != null)
+            writer.name("uid").value(uid);
+        if (title != null)
+            writer.name("title").value(title);
+        if (format != null)
+            writer.name("type").value(format.getMimeType());
     }
     
     

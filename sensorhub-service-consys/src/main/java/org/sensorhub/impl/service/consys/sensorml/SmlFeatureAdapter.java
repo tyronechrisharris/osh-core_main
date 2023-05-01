@@ -12,7 +12,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.consys.system;
+package org.sensorhub.impl.service.consys.sensorml;
 
 import java.util.Map;
 import javax.xml.namespace.QName;
@@ -31,12 +31,12 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @since Jan 7, 2021
  */
-public class SystemFeatureAdapter implements ISystemWithDesc, IProcedureWithDesc
+public class SmlFeatureAdapter implements ISystemWithDesc, IProcedureWithDesc
 {
     IFeature delegate;
     
 
-    public SystemFeatureAdapter(IFeature f)
+    public SmlFeatureAdapter(IFeature f)
     {
         this.delegate = f;
     }
