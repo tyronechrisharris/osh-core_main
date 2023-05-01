@@ -31,6 +31,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
+import org.vast.data.DataIterator;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
@@ -40,6 +41,10 @@ import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.swe.v20.DataArray;
+import net.opengis.swe.v20.DataComponent;
+import net.opengis.swe.v20.DataRecord;
+import net.opengis.swe.v20.Vector;
 
 
 public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
@@ -50,6 +55,17 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     final Map<String, CustomObsFormat> customFormats;
     SWEJsonStreamReader sweReader;
     SWEJsonStreamWriter sweWriter;
+    
+    
+    enum ResultType {
+        measure,
+        vector,
+        record,
+        coverage1D,
+        coverage2D,
+        coverage3D,
+        coverage
+    }
     
     
     DataStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
@@ -166,7 +182,12 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             writer.name("description").value(dsInfo.getDescription());
         
         writer.name("system@id").value(sysId);
-        writer.name("outputName").value(dsInfo.getOutputName());
+        writer.name("system@link");
+        writeLink(writer,
+            "/" + SystemHandler.NAMES[0] + "/" + sysId,
+            dsInfo.getSystemID().getUniqueID(),
+            ResourceFormat.GEOJSON,
+            dsInfo.getOutputName());
         
         writer.name("validTime");
         geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
@@ -191,6 +212,9 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             writer.endArray();
         }
         
+        // result type
+        writer.name("resultType").value(getResultType(dsInfo.getRecordStructure()).toString());
+        
         // observed properties
         writer.name("observedProperties").beginArray();
         for (var prop: SWECommonUtils.getProperties(dsInfo.getRecordStructure()))
@@ -204,11 +228,6 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                 writer.name("description").value(prop.getDescription());
             writer.endObject();
         }
-        /*for (var obsProp: getObservables(dsInfo))
-        {
-            if (obsProp.getDefinition() != null)
-                writer.value(obsProp.getDefinition());
-        }*/
         writer.endArray();
         
         // available formats
@@ -221,14 +240,23 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         if (showLinks)
         {
             var links = new ArrayList<ResourceLink>();
-                        
+            
+            links.add(new ResourceLink.Builder()
+                .rel("canonical")
+                .href(rootURL +
+                      "/" + DataStreamHandler.NAMES[0] +
+                      "/" + dsId)
+                .type(ResourceFormat.JSON.getMimeType())
+                .build());
+            
             links.add(new ResourceLink.Builder()
                 .rel("system")
                 .title("Parent system")
                 .href(rootURL +
                       "/" + SystemHandler.NAMES[0] +
                       "/" + sysId)
-                .build());
+                .build()
+                .withFormat("GeoJSON", ResourceFormat.GEOJSON.getMimeType()));
             
             links.add(new ResourceLink.Builder()
                 .rel("observations")
@@ -247,6 +275,33 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     }
     
     
+    protected ResultType getResultType(DataComponent recordStruct)
+    {
+        boolean hasArray = false;
+        boolean hasRecord = false;
+        boolean hasVector = false;
+        
+        for (var c: new DataIterator(recordStruct))
+        {
+            if (c instanceof DataArray)
+                hasArray = true;
+            else if (c instanceof DataRecord && (c.getParent() != null || c.getComponentCount() > 2))
+                hasRecord = true;
+            else if (c instanceof Vector)
+                hasVector = true;
+        }
+        
+        if (hasArray)
+            return ResultType.coverage;
+        else if (hasRecord)
+            return ResultType.record;
+        else if (hasVector)
+            return ResultType.vector;
+        else
+            return ResultType.measure;
+    }
+    
+    
     @Override
     public void startCollection() throws IOException
     {
@@ -258,5 +313,17 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
         endJsonCollection(writer, links);
+    }
+
+
+    protected void writeLink(JsonWriter writer, String href, String uid, ResourceFormat format, String outputName) throws IOException
+    {
+        Asserts.checkNotNullOrBlank(href, "href");
+        Asserts.checkNotNullOrBlank(outputName, "outputName");
+        
+        writer.beginObject();
+        writeLinkProperties(writer, href, uid, null, format);
+        writer.name("outputName").value(outputName);
+        writer.endObject();
     }
 }

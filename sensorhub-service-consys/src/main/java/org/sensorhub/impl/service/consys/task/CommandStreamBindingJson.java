@@ -32,6 +32,7 @@ import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.util.Asserts;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -151,20 +152,17 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
             writer.name("description").value(csInfo.getDescription());
         
         writer.name("system@id").value(sysId);
-        writer.name("inputName").value(csInfo.getControlInputName());
+        writer.name("system@link");
+        writeLink(writer,
+            "/" + SystemHandler.NAMES[0] + "/" + sysId,
+            csInfo.getSystemID().getUniqueID(),
+            ResourceFormat.GEOJSON,
+            csInfo.getControlInputName());
         
         writer.name("validTime").beginArray()
             .value(csInfo.getValidTime().begin().toString())
             .value(csInfo.getValidTime().end().toString())
             .endArray();
-
-        if (csInfo.getExecutionTimeRange() != null)
-        {
-            writer.name("actuationTime").beginArray()
-                .value(csInfo.getExecutionTimeRange().begin().toString())
-                .value(csInfo.getExecutionTimeRange().end().toString())
-                .endArray();
-        }
 
         if (csInfo.getIssueTimeRange() != null)
         {
@@ -173,9 +171,17 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                 .value(csInfo.getIssueTimeRange().end().toString())
                 .endArray();
         }
+
+        if (csInfo.getExecutionTimeRange() != null)
+        {
+            writer.name("executionTime").beginArray()
+                .value(csInfo.getExecutionTimeRange().begin().toString())
+                .value(csInfo.getExecutionTimeRange().end().toString())
+                .endArray();
+        }
         
         // observed properties
-        writer.name("actuableProperties").beginArray();
+        writer.name("controlledProperties").beginArray();
         for (var prop: SWECommonUtils.getProperties(csInfo.getRecordStructure()))
         {
             writer.beginObject();
@@ -204,7 +210,15 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         if (showLinks)
         {
             var links = new ArrayList<ResourceLink>();
-                        
+            
+            links.add(new ResourceLink.Builder()
+                .rel("canonical")
+                .href(rootURL +
+                      "/" + CommandStreamHandler.NAMES[0] +
+                      "/" + dsId)
+                .type(ResourceFormat.JSON.getMimeType())
+                .build());
+            
             links.add(new ResourceLink.Builder()
                 .rel("system")
                 .title("Parent system")
@@ -241,5 +255,17 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
         endJsonCollection(writer, links);
+    }
+
+
+    protected void writeLink(JsonWriter writer, String href, String uid, ResourceFormat format, String inputName) throws IOException
+    {
+        Asserts.checkNotNullOrBlank(href, "href");
+        Asserts.checkNotNullOrBlank(inputName, "inputName");
+        
+        writer.beginObject();
+        writeLinkProperties(writer, href, uid, null, format);
+        writer.name("inputName").value(inputName);
+        writer.endObject();
     }
 }
