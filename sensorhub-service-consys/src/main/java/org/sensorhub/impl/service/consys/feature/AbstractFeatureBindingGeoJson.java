@@ -25,6 +25,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
@@ -106,7 +107,15 @@ public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends 
     @Override
     public void startCollection() throws IOException
     {
-        startJsonCollection(writer);
+        if (ctx.getFormat().equals(ResourceFormat.GEOJSON))
+        {
+            writer.beginObject();
+            writer.name("type").value("FeatureCollection");
+            writer.name("features");
+            writer.beginArray();
+        }
+        else
+            startJsonCollection(writer);
     }
 
 
