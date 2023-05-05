@@ -47,12 +47,18 @@ public class PermissionSetting extends ArrayDeque<IPermission> implements IPermi
         
         for (IPermission perm: this)
         {
+            // if we reached the end of requested permission string, this is a request for all subresources
+            // in this case we are ok only if the permission setting has a trailing wildcard
             if (!otherIt.hasNext())
                 return (perm == getLast() && perm instanceof WildcardPermission);
             
             IPermission requested = otherIt.next();
             if (!perm.implies(requested))
                 return false;
+            
+            // if permission request was only for a module root we can allow it here
+            if (!otherIt.hasNext() && requested instanceof ModulePermissions)
+                return true;
         }
         
         return true;

@@ -81,17 +81,9 @@ public class ModuleSecurity
      */
     public void checkPermission(IPermission perm)
     {
-        if (!enable || !isAccessControlEnabled())
-            return;
-        
-        // retrieve currently logged in user
-        IUserInfo user = currentUser.get();
-        if (user == null)
-            throw new AccessControlException(perm.getErrorMessage() + ": No user specified");
-        
         // request authorization
         if (!hasPermission(perm))
-            throw new AccessControlException("User " + user.getId() + ", " + perm.getErrorMessage());
+            throw new AccessControlException("User " + currentUser.get().getId() + ", " + perm.getErrorMessage());
     }
     
     

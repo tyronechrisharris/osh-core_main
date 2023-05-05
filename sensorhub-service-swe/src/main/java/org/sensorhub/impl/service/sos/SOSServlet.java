@@ -284,6 +284,10 @@ public class SOSServlet extends SWEServlet
             // otherwise process as classical HTTP request            
             super.service(req, resp);
         }
+        catch (Throwable e)
+        {
+            handleError(req, resp, null, e);
+        }
         finally
         {
             securityHandler.clearCurrentUser();
