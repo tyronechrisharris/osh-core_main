@@ -704,6 +704,8 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                         actions.add(REMOVE_SUBMODULE_ACTION);
                     else
                         actions.add(REMOVE_MODULE_ACTION);
+                    
+                    actions.add(ADD_MODULE_ACTION);
                 }
                 else
                     actions.add(ADD_MODULE_ACTION);
