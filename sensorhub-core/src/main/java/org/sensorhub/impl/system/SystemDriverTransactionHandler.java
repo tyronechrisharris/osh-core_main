@@ -389,12 +389,19 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
             public void onNext(CommandEvent event)
             {
                 CompletableFuture.runAsync(() -> {
-                    controlInput.submitCommand(event.getCommand())
-                        .thenAccept(status -> {
-                            csHandler.sendStatus(event.getCorrelationID(), status);
-                            sub.request(1);
-                        });
-                    
+                    try
+                    {
+                        controlInput.submitCommand(event.getCommand())
+                            .thenAccept(status -> {
+                                csHandler.sendStatus(event.getCorrelationID(), status);
+                                sub.request(1);
+                            });
+                    }
+                    catch (Exception e)
+                    {
+                        onError(e);
+                        sub.request(1);
+                    }
                 });
             }
 

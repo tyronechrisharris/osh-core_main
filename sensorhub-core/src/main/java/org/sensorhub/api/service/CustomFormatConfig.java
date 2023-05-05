@@ -12,7 +12,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.consys;
+package org.sensorhub.api.service;
 
 
 public class CustomFormatConfig
