@@ -113,7 +113,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
     private static final Action STOP_MODULE_ACTION = new Action("Stop", new ThemeResource("icons/disable.gif"));
     private static final Action RESTART_MODULE_ACTION = new Action("Restart", new ThemeResource("icons/refresh.gif"));
     private static final Action REINIT_MODULE_ACTION = new Action("Force Init", new ThemeResource("icons/refresh.gif"));
-    private static final Resource LOGO_ICON = new ThemeResource("icons/sensorhub_logo_128.png");
+    private static final Resource LOGO_ICON = new ThemeResource("icons/osh_logo_small.png");
     private static final String STYLE_LOGO = "logo";
     private static final String PROP_STATE = "state";
     private static final String PROP_MODULE_OBJECT = "module";
@@ -321,12 +321,12 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         
         // title
         Label title = new Label("OpenSensorHub");
-        title.addStyleName(STYLE_H2);
+        //title.addStyleName(STYLE_H2);
         title.addStyleName(STYLE_LOGO);
         //title.setWidth(null);
         header.addComponent(title);
         header.setExpandRatio(title, 1);
-        header.setComponentAlignment(title, Alignment.MIDDLE_RIGHT);
+        header.setComponentAlignment(title, Alignment.MIDDLE_LEFT);
         
         // about icon
         Button about = new Button();
@@ -379,6 +379,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         //shutdownButton.setIcon(DEL_ICON);
         shutdownButton.setIcon(FontAwesome.POWER_OFF);
         shutdownButton.addStyleName(STYLE_SMALL);
+        shutdownButton.addStyleName(STYLE_BORDERLESS);
         shutdownButton.setWidth(100.0f, Unit.PERCENTAGE);
         shutdownButton.addClickListener(new Button.ClickListener() {
             @Override
@@ -436,6 +437,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         logoutButton.setDescription("Logout from OSH node");
         logoutButton.setIcon(FontAwesome.SIGN_OUT);
         logoutButton.addStyleName(STYLE_SMALL);
+        logoutButton.addStyleName(STYLE_BORDERLESS);
         logoutButton.setWidth(100.0f, Unit.PERCENTAGE);
         logoutButton.addClickListener(new Button.ClickListener() {
             @Override
@@ -468,6 +470,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         saveButton.setDescription("Save SensorHub Configuration");
         saveButton.setIcon(APPLY_ICON);
         saveButton.addStyleName(STYLE_SMALL);
+        saveButton.addStyleName(STYLE_BORDERLESS);
         saveButton.setWidth(100.0f, Unit.PERCENTAGE);
         saveButton.addClickListener(new Button.ClickListener() {
             @Override

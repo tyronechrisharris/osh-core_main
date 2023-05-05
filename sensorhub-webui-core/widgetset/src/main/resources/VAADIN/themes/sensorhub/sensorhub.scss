@@ -183,14 +183,16 @@ $v-layout-margin-right: 25px;
    
    img.logo {
       margin-left: 10px;
-      width: 60px;
+      width: 30px;
       margin-top: 4px;
+      margin-bottom: 2px;
    }
    
    .v-label-logo {
       text-align: right;
-      text-shadow: 1px 1px 0 rgba(50, 50, 50, 0.5);
-      margin-top: 4px !important;
+      margin-top: 2px !important;
+      font-size: 18px;
+      font-weight: bold;
    }
    
    img.v-icon {
