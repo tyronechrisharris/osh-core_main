@@ -54,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
+import org.vast.util.TimeExtent;
 import com.google.common.base.Strings;
 import com.google.common.cache.LoadingCache;
 import net.opengis.swe.v20.DataComponent;
@@ -366,6 +367,11 @@ public class SystemTransactionHandler
                (!DataComponentChecks.checkStructCompatible(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
                 !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding())))
             {
+                // set validTime to current time
+                dsInfo = DataStreamInfo.Builder.from(dsInfo)
+                    .withValidTime(TimeExtent.endNow(Instant.now()))
+                    .build();
+                
                 dsKey = dataStreamStore.add(dsInfo);
                 addedEvent = new DataStreamAddedEvent(sysUID, outputName);
                 log.debug("Added datastream {}#{} with new data structure", sysUID, outputName);
