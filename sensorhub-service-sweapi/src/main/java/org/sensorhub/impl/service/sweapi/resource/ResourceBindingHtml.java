@@ -33,6 +33,7 @@ import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.Tag;
 import j2html.tags.UnescapedText;
+import net.opengis.swe.v20.AllowedTokens;
 import net.opengis.swe.v20.AllowedValues;
 import net.opengis.swe.v20.BlockComponent;
 import net.opengis.swe.v20.DataChoice;
@@ -337,10 +338,31 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                         values += val + ", ";
                 }
                 
-                else if (allowedVals.getNumIntervals() > 0)
+                if (allowedVals.getNumIntervals() > 0)
                 {
                     for (double[] range: allowedVals.getIntervalList())
-                        values += range + ", ";
+                        values += "[" + range[0] + "-" + range[1] + "], ";
+                }
+                
+                if (values.length() > 2)
+                    values = values.substring(0, values.length()-2);
+                
+                content.with(div(
+                    span("Allowed Values").withClass(CSS_BOLD),
+                    span(": "),
+                    span(values)
+                ));
+            }
+            
+            else if (constraint instanceof AllowedTokens)
+            {
+                var allowedVals = (AllowedTokens)constraint;
+                var values = "";
+                
+                if (allowedVals.getNumValues() > 0)
+                {
+                    for (var val: allowedVals.getValueList())
+                        values += val + ", ";
                 }
                 
                 if (values.length() > 2)
