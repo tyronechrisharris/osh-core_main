@@ -32,7 +32,7 @@ public class AdminUISecurity extends ModuleSecurity
     public final IPermission module_update;
     public final IPermission module_restart;
     public final IPermission module_add;
-    public final IPermission module_remove;    
+    public final IPermission module_remove;
     
     
     public AdminUISecurity(AdminUIModule adminUI, boolean enable)
@@ -41,20 +41,28 @@ public class AdminUISecurity extends ModuleSecurity
         
         // register permission structure
         admin_access = rootPerm;
-        admin_view = new ItemPermission(rootPerm, "view", "View Admin Interface"); 
+        admin_view = new ItemPermission(rootPerm, "view", "View Admin Interface");
         
         osh_shutdown = new ItemPermission(rootPerm, "shutdown", "Shutdown OSH"); 
         osh_restart = new ItemPermission(rootPerm, "restart", "Restart OSH"); 
         osh_saveconfig = new ItemPermission(rootPerm, "save_config", "Save OSH Configuration");
 
         module_add = new ItemPermission(rootPerm, "add", "Add Module");
-        module_remove = new ItemPermission(rootPerm, "remove", "Remove Module");    
+        module_remove = new ItemPermission(rootPerm, "remove", "Remove Module");
         module_init = new ItemPermission(rootPerm, "init", "Initialize Module");
         module_start = new ItemPermission(rootPerm, "start", "Start Module");
         module_stop = new ItemPermission(rootPerm, "stop", "Stop Module");
-        module_update = new ItemPermission(rootPerm, "update_config", "Update Module Configuration");    
-        module_restart = new ItemPermission(rootPerm, "restart", "Restart Module");            
+        module_update = new ItemPermission(rootPerm, "update_config", "Update Module Configuration");
+        module_restart = new ItemPermission(rootPerm, "restart", "Restart Module");
         
         adminUI.getParentHub().getSecurityManager().registerModulePermissions(rootPerm);
+    }
+    
+    
+    @Override
+    protected boolean isAccessControlEnabled()
+    {
+        var httpServer = ((AdminUIModule)module).getHttpServer();
+        return super.isAccessControlEnabled() && httpServer.isAuthEnabled();
     }
 }

@@ -529,4 +529,10 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
 			return trustStorePassword;
 		}
     }
+
+    @Override
+    public boolean isAuthEnabled()
+    {
+        return config.authMethod != AuthMethod.NONE;
+    }
 }

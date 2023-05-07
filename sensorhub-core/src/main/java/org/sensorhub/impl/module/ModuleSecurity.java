@@ -25,7 +25,7 @@ import org.sensorhub.impl.security.PermissionRequest;
 
 public class ModuleSecurity
 {    
-    final IModule<?> module;
+    protected final IModule<?> module;
     public final ModulePermissions rootPerm;
     protected boolean enable = true;
     ThreadLocal<IUserInfo> currentUser = new ThreadLocal<>();
@@ -37,17 +37,17 @@ public class ModuleSecurity
         this.rootPerm = new ModulePermissions(module, moduleTypeAlias);
         this.enable = enable;
         
-        // register basic module permissions        
+        // register basic module permissions
         //module_init = new ItemPermission(rootPerm, "init", "Initialize Module");
         //module_start = new ItemPermission(rootPerm, "start", "Start Module");
         //module_stop = new ItemPermission(rootPerm, "stop", "Stop Module");
-        //module_update = new ItemPermission(rootPerm, "update_config", "Update Module Configuration");       
+        //module_update = new ItemPermission(rootPerm, "update_config", "Update Module Configuration");
         
         //SensorHub.getInstance().getSecurityManager().registerModulePermissions(rootPerm);
     }
     
     
-    private final boolean isAccessControlEnabled()
+    protected boolean isAccessControlEnabled()
     {
         return module.getParentHub().getSecurityManager().isAccessControlEnabled();
     }

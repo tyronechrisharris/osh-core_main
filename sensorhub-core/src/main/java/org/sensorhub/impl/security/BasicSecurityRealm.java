@@ -112,6 +112,7 @@ public class BasicSecurityRealm extends AbstractModule<BasicSecurityRealmConfig>
             
             UserConfig user = new UserConfig();
             user.userID = "admin";
+            user.password = "test";
             user.roles.add("admin");
             config.users.add(user);
         }

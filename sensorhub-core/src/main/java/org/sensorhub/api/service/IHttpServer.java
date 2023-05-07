@@ -68,4 +68,11 @@ public interface IHttpServer<T extends ModuleConfig> extends IModule<T>
      */
     public String getPublicEndpointUrl(String path);
     
+    
+    /**
+     * Check if authentication is enabled on the HTTP server
+     * @return true if at least one authentication method is enabled, false otherwise
+     */
+    public boolean isAuthEnabled();
+    
 }
