@@ -126,6 +126,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
     transient AdminUISecurity securityHandler;
     transient Map<Class<?>, TreeTable> moduleTables = new HashMap<>();
     transient IModule<?> moduleAddedFromUI;
+    transient Accordion moduleStack;
     transient VerticalLayout configArea;
     transient IModule<?> visibleModule;
     
@@ -208,7 +209,7 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
         
         // accordion with several sections
         moduleTables.clear();
-        final Accordion stack = new Accordion();
+        final var stack = moduleStack = new Accordion();
         stack.setSizeFull();
         stack.addSelectedTabChangeListener(new SelectedTabChangeListener() {
             @Override
@@ -1171,8 +1172,36 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             public void run()
                             {
                                 // add module to table
-                                addModuleToTable(module, foundTable);
-                                push();
+                                if (foundTable != null)
+                                {
+                                    addModuleToTable(module, foundTable);
+                                    push();
+                                }
+                            }
+                        });
+                    }
+                    break;
+                    
+                case DELETED:
+                    if (foundTable != null)
+                    {
+                        access(new Runnable() {
+                            @Override
+                            public void run()
+                            {
+                                // add module to table
+                                if (foundTable != null)
+                                {
+                                    var wasSelected = foundTable.isSelected(module.getLocalID());
+                                    foundTable.removeItem(module.getLocalID());
+                                    if (wasSelected)
+                                        selectNone(foundTable);
+                                    
+                                    // cleanup error state
+                                    setModuleErrorState(foundTable, module, false);
+                                    
+                                    push();
+                                }
                             }
                         });
                     }
@@ -1203,7 +1232,12 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                             {
                                 // update module state
                                 ModuleState state = ((IModule<?>)e.getSource()).getCurrentState();
-                                foundItem.getItemProperty(PROP_STATE).setValue(state);
+                                if (foundItem != null)
+                                    foundItem.getItemProperty(PROP_STATE).setValue(state);
+                                
+                                // set/clear error flags on accordion headers
+                                if (foundTable != null)
+                                    setModuleErrorState(foundTable, module, module.getCurrentError() != null);
                                 
                                 // update config panel if currently visible
                                 if (module == visibleModule)
@@ -1216,6 +1250,33 @@ public class AdminUI extends com.vaadin.ui.UI implements UIConstants
                     break;
                     
                 default:
+            }
+        }
+    }
+    
+    
+    protected void setModuleErrorState(TreeTable moduleTable, IModule<?> module, boolean hasError)
+    {
+        var tab = moduleStack.getTab(moduleTable.getParent());
+        if (tab != null)
+        {
+            var errors = (ModuleErrors)tab.getComponentError();
+            
+            if (hasError)
+            {
+                if (errors == null)
+                    errors = new ModuleErrors();
+                
+                errors.setModuleErrorState(module, true);
+                tab.setComponentError(errors);
+            }
+            else
+            {
+                if (errors != null)
+                {
+                    if (!errors.setModuleErrorState(module, false))
+                        tab.setComponentError(null);
+                }
             }
         }
     }

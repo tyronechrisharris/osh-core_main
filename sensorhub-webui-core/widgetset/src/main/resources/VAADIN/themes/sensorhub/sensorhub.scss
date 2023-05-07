@@ -36,7 +36,7 @@ $v-layout-margin-right: 25px;
    }
    
    .toolbar {
-     margin-bottom: 10px;
+     margin-bottom: 3px;
    }
    
    .apply-button {
@@ -98,6 +98,11 @@ $v-layout-margin-right: 25px;
       margin-top: 0.5em;
       padding-bottom: 0.5em;
       border-bottom: 1px solid #dfdfdf;
+   }
+   
+   .v-table-small tr:first-child > td {
+      height: 31px;
+      border-top: none;
    }
    
    .v-table .v-table-cell-content-green {

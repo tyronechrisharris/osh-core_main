@@ -884,6 +884,8 @@ public class ModuleRegistry implements IModuleManager<IModule<?>>, IEventListene
                 
                 if (module.isInitialized() && module instanceof ISystemDriver)
                     hub.getSystemDriverRegistry().unregister((ISystemDriver)module);
+                
+                handleEvent(new ModuleEvent(module, Type.DELETED));
             }
             
             if (log.isDebugEnabled())
