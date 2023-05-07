@@ -126,7 +126,7 @@ public class ConSysApiService extends AbstractHttpServiceModule<ConSysApiService
                 writeDb = null;
         }
         else
-            writeDb = null;
+            writeDb = getParentHub().getSystemDriverRegistry().getSystemStateDatabase();
         
         // get existing or create new FilteredView from config
         if (config.exposedResources != null)

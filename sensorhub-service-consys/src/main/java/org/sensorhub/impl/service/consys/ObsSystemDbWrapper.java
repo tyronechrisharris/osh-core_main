@@ -54,9 +54,8 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     
     public ObsSystemDbWrapper(IObsSystemDatabase readDb, IObsSystemDatabase writeDb, IdEncoders idEncoders)
     {
-        Asserts.checkNotNull(readDb);
-        this.readDb = readDb;
-        this.writeDb = writeDb;
+        this.readDb = Asserts.checkNotNull(readDb);
+        this.writeDb = Asserts.checkNotNull(writeDb);
         
         this.systemStore = new SystemStoreWrapper(
             readDb.getSystemDescStore(),
