@@ -35,14 +35,14 @@ public class ConSysApiServiceDescriptor extends JarModuleProvider implements IMo
     @Override
     public String getModuleName()
     {
-        return "SensorWeb API Service";
+        return "Connected Systems API Service";
     }
 
 
     @Override
     public String getModuleDescription()
     {
-        return "Data access service compliant with the OGC SensorWeb API standard";
+        return "Data access service compliant with OGC API - Connected Systems standard";
     }
 
 
