@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.consys.feature;
 
 import java.time.Instant;
 import java.util.Spliterators;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.Map.Entry;
 import java.util.Spliterator;
 import java.util.stream.Stream;
@@ -66,24 +66,24 @@ public class FeatureUtils
     public static <V extends IFeature> Stream<Entry<FeatureKey, V>> keepOnlyClosestToNow(Stream<Entry<FeatureKey, V>> resultStream)
     {
         var now = Instant.now();
-        var lastIdHolder = new AtomicLong();
+        var lastIdHolder = new AtomicReference<BigId>(BigId.NONE);
         
         var pit = Iterators.peekingIterator(resultStream.iterator());
         var it = Iterators.filter(pit, e -> {
             
             var lastId = lastIdHolder.get();
-            var thisId = e.getKey().getInternalID().getIdAsLong();
+            var thisId = e.getKey().getInternalID();
             
-            if (thisId != lastId && !pit.hasNext())
+            if (!thisId.equals(lastId) && !pit.hasNext())
                 return true;
             
-            if (lastId == thisId)
+            if (thisId.equals(lastId))
                 return false;
             
             var next = pit.peek();
-            var nextId = next.getKey().getInternalID().getIdAsLong();
+            var nextId = next.getKey().getInternalID();
             var nextValidTime = next.getKey().getValidStartTime();
-            if (thisId == nextId && nextValidTime.compareTo(now) <= 0)
+            if (thisId.equals(nextId) && nextValidTime.compareTo(now) <= 0)
                 return false;
             
             lastIdHolder.set(thisId);
