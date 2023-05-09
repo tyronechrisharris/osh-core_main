@@ -15,6 +15,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2.kryo;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.h2.mvstore.WriteBuffer;
@@ -38,12 +40,12 @@ public class KryoDataType implements DataType
 {
     static Logger log = LoggerFactory.getLogger(KryoDataType.class);
     
-    final Pool<KryoInstance> kryoPool;
-    //final ThreadLocal<KryoInstance> kryoLocal;
+    final Pool<KryoInstance> kryoReadPool;
+    final Map<Long, KryoInstance> kryoWritePool;
     protected Supplier<ClassResolver> classResolver;
     protected Consumer<Kryo> configurator;
     protected SerializerFactory<?> defaultObjectSerializer;
-    protected int averageRecordSize, maxRecordSize;
+    protected int maxWriteBufferSize;
     
     
     static class KryoInstance
@@ -51,8 +53,9 @@ public class KryoDataType implements DataType
         Kryo kryo;
         Output output;
         Input input;
+        int avgRecordSize;
         
-        KryoInstance(SerializerFactory<?> defaultObjectSerializer, ClassResolver classResolver, Consumer<Kryo> configurator, int bufferSize, int maxBufferSize)
+        KryoInstance(SerializerFactory<?> defaultObjectSerializer, ClassResolver classResolver, Consumer<Kryo> configurator)
         {
             kryo = classResolver != null ? new Kryo(classResolver, null) : new Kryo();
             kryo.setRegistrationRequired(false);
@@ -74,7 +77,6 @@ public class KryoDataType implements DataType
                 ((PersistentClassResolver) classResolver).loadMappings();
             
             input = new Input();
-            output = new Output(bufferSize, maxBufferSize);
             
             log.debug("{}: kryo={}, classResolver={}", 
                 Thread.currentThread(),
@@ -90,94 +92,83 @@ public class KryoDataType implements DataType
     }
     
     
-    public KryoDataType(final int maxRecordSize)
+    public KryoDataType(final int maxWriteBufferSize)
     {
         //Log.set(Log.LEVEL_TRACE);
-        this.maxRecordSize = maxRecordSize;
+        this.maxWriteBufferSize = maxWriteBufferSize;
         
         // set default serializer to our versioned serializer
         this.defaultObjectSerializer = VersionedSerializer.<Object>factory2(ImmutableMap.of(
             H2Utils.CURRENT_VERSION, new SerializerFactory.FieldSerializerFactory()),
             H2Utils.CURRENT_VERSION);
         
-        // use a pool of kryo objects
-        this.kryoPool = new Pool<KryoInstance>(true, false, 2*Runtime.getRuntime().availableProcessors()) {
+        // use a pool of kryo objects for reading
+        this.kryoReadPool = new Pool<KryoInstance>(true, false, 2*Runtime.getRuntime().availableProcessors()) {
             @Override
             protected KryoInstance create()
             {
                 return new KryoInstance(
                     defaultObjectSerializer,
                     classResolver != null ? classResolver.get() : null,
-                    configurator,
-                    2*averageRecordSize,
-                    maxRecordSize);
+                    configurator);
             }
         };
         
-        /*// we get the object from thread local everytime
-        this.kryoLocal = new ThreadLocal<KryoInstance>()
-        {
-            public KryoInstance initialValue()
-            {
-                //log.debug("Loading Kryo instance for " + KryoDataType.this.getClass().getSimpleName());
-                
-                return new KryoInstance(
-                    defaultObjectSerializer,
-                    classResolver != null ? classResolver.get() : null,
-                    configurator,
-                    2*averageRecordSize,
-                    maxRecordSize);
-            }
-        };*/
+        // use a map of kryo objects for writing
+        // the map provides a separate kryo object for each record type
+        // so we can keep track of average size for each type of record separately
+        this.kryoWritePool = new HashMap<>();
     }
     
     
-    protected KryoInstance getKryo()
+    protected KryoInstance getReadKryo()
     {
-        //return kryoLocal.get();
-        return kryoPool.obtain();
+        return kryoReadPool.obtain();
     }
     
     
-    protected void releaseKryo(KryoInstance kryoI)
+    protected KryoInstance getWriteKryo(Object obj)
     {
-        kryoPool.free(kryoI);
+        var key = getRecordTypeKey(obj);
+        var kryoI = kryoWritePool.computeIfAbsent(key, k -> {
+            var kryo = new KryoInstance(
+                defaultObjectSerializer,
+                classResolver != null ? classResolver.get() : null,
+                configurator);
+            
+            // compute initial record size and buffer size
+            kryo.output = new Output(8*1024, maxWriteBufferSize);
+            initRecordSize(kryo, obj);
+            
+            return kryo;
+        });
+        
+        /*System.err.println(obj.getClass().getCanonicalName() + "(" + key + "): " +
+            "avgRecordSize=" + kryoI.avgRecordSize + ", " +
+            "writeBufferSize=" + kryoI.output.getBuffer().length);*/
+        return kryoI;
+    }
+    
+    
+    protected void releaseReadKryo(KryoInstance kryoI)
+    {
+        kryoReadPool.free(kryoI);
     }
 
 
     @Override
     public int getMemory(Object obj)
     {
-        initRecordSize(obj);
-        return averageRecordSize;
-    }
-
-
-    @Override
-    public void write(WriteBuffer buff, Object obj)
-    {
-        KryoInstance kryoI = getKryo();
-        write(buff, obj, kryoI);
-        releaseKryo(kryoI);
-    }
-
-
-    @Override
-    public void write(WriteBuffer buff, Object[] obj, int len, boolean key)
-    {
-        KryoInstance kryoI = getKryo();
-        for (int i = 0; i < len; i++)
-            write(buff, obj[i], kryoI);
-        releaseKryo(kryoI);
+        return computeRecordSize(obj);
     }
 
 
     @Override
     public Object read(ByteBuffer buff)
     {
-        KryoInstance kryoI = getKryo();
+        KryoInstance kryoI = getReadKryo();
         var obj = read(buff, kryoI);
-        releaseKryo(kryoI);
+        releaseReadKryo(kryoI);
         return obj;
     }
 
@@ -185,56 +176,13 @@ public class KryoDataType implements DataType
     @Override
     public void read(ByteBuffer buff, Object[] obj, int len, boolean key)
     {
-        KryoInstance kryoI = getKryo();
+        KryoInstance kryoI = getReadKryo();
         for (int i = 0; i < len; i++)
             obj[i] = read(buff, kryoI);
-        releaseKryo(kryoI);
+        releaseReadKryo(kryoI);
     }
-    
-    
-    protected void write(WriteBuffer buff, Object obj, KryoInstance kryoI)
-    {
-        initRecordSize(obj, kryoI);
-        
-        Kryo kryo = kryoI.kryo;
-        Output output = kryoI.output;
-        output.setPosition(0);
-        
-        //kryo.writeObjectOrNull(output, obj, objectType);
-        kryo.writeClassAndObject(output, obj);
-        buff.put(output.getBuffer(), 0, output.position());
-        
-        // adjust the average size using an exponential moving average
-        int size = output.position();
-        averageRecordSize = (size + averageRecordSize*4) / 5;
-    }
-    
-    
-    protected void initRecordSize(Object obj)
-    {
-        if (averageRecordSize <= 0)
-        {
-            KryoInstance kryoI = getKryo();
-            initRecordSize(obj, kryoI);
-            releaseKryo(kryoI);
-        }
-    }
-    
-    
-    protected void initRecordSize(Object obj, KryoInstance kryoI)
-    {
-        if (averageRecordSize <= 0)
-        {
-            Kryo kryo = kryoI.kryo;
-            Output output = kryoI.output;
-            output.setPosition(0);
-            kryo.writeClassAndObject(output, obj);
-            averageRecordSize = output.position();
-            output.setBuffer(new byte[averageRecordSize*2], maxRecordSize);
-        }
-    }
-    
-    
+
+
     protected Object read(ByteBuffer buff, KryoInstance kryoI)
     {
         Kryo kryo = kryoI.kryo;
@@ -245,6 +193,82 @@ public class KryoDataType implements DataType
         buff.position(input.position());
         
         return obj;
+    }
+
+
+    @Override
+    public void write(WriteBuffer buff, Object obj)
+    {
+        KryoInstance kryoI = getWriteKryo(obj);
+        write(buff, obj, kryoI);
+    }
+
+
+    @Override
+    public void write(WriteBuffer buff, Object[] objects, int len, boolean key)
+    {
+        for (int i = 0; i < len; i++)
+        {
+            var obj = objects[i];
+            KryoInstance kryoI = getWriteKryo(obj);
+            write(buff, obj, kryoI);
+        }
+    }
+    
+    
+    protected void write(WriteBuffer buff, Object obj, KryoInstance kryoI)
+    {
+        Kryo kryo = kryoI.kryo;
+        Output output = kryoI.output;
+        output.setPosition(0);
+        
+        //kryo.writeObjectOrNull(output, obj, objectType);
+        kryo.writeClassAndObject(output, obj);
+        buff.put(output.getBuffer(), 0, output.position());
+        
+        // adjust the average size
+        int size = output.position();
+        updateRecordSize(kryoI, obj, size);
+    }
+    
+    
+    /**
+     * Gets a key that is unique per record type
+     * This must be overridden if several types of records of different
+     * sizes are multiplexed in the same datastore (e.g. observations)
+     * @param obj
+     * @return
+     */
+    protected long getRecordTypeKey(Object obj)
+    {
+        return 0;
+    }
+    
+    
+    /* Methods used to automatically compute average record size */
+    /* This is used to inform H2 of the approximate memory used by records */
+    
+    protected int computeRecordSize(Object obj)
+    {
+        KryoInstance kryoI = getWriteKryo(obj);
+        return (int)kryoI.avgRecordSize;
+    }
+    
+    
+    protected void updateRecordSize(KryoInstance kryoI, Object obj, int size)
+    {
+        // adjust average record size using an exponential moving average
+        kryoI.avgRecordSize = (size + 15*kryoI.avgRecordSize) / 16;
+    }
+    
+    
+    protected void initRecordSize(KryoInstance kryoI, Object obj)
+    {
+        Kryo kryo = kryoI.kryo;
+        Output output = kryoI.output;
+        output.setPosition(0);
+        kryo.writeClassAndObject(output, obj);
+        kryoI.avgRecordSize = output.position();
     }
     
     

@@ -16,6 +16,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import org.h2.mvstore.MVMap;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsData;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
@@ -47,5 +48,11 @@ class ObsDataType extends KryoDataType
             
             kryo.addDefaultSerializer(BigId.class, BigIdSerializers.factory(idScope));
         };
+    }
+    
+    
+    protected long getRecordTypeKey(Object obj)
+    {
+        return ((IObsData)obj).getDataStreamID().getIdAsLong();
     }
 }
