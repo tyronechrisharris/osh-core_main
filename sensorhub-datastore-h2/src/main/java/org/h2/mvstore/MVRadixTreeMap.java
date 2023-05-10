@@ -967,6 +967,92 @@ public class MVRadixTreeMap<K, V> extends MVMap<K, V>
         }
     }
     
+    
+    /*
+     * Need to override this so pages and correctly rewritten on autoCompact
+     */
+    @Override
+    boolean rewrite(Set<Integer> set) {
+        // read from old version, to avoid concurrent reads
+        long previousVersion = store.getCurrentVersion() - 1;
+        if (previousVersion < getCreateVersion()) {
+            // a new map
+            return true;
+        }
+        MVMap<K, V> readMap;
+        try {
+            readMap = openVersion(previousVersion);
+        } catch (IllegalArgumentException e) {
+            // unknown version: ok
+            // TODO should not rely on exception handling
+            return true;
+        }
+        try {
+            synchronized (this)
+            {
+                beforeWrite();
+                long v = writeVersion;
+                var root = rewritePage(readMap.root, set, v);
+                if (root != null)
+                {
+                    newRoot(root);
+                    //System.out.println(getName() + ": Rewriting " + set.size() + " chunks: " + set);
+                }
+                return true;
+            }
+        } catch (IllegalStateException e) {
+            // TODO should not rely on exception handling
+            if (DataUtils.getErrorCode(e.getMessage()) == DataUtils.ERROR_CHUNK_NOT_FOUND) {
+                // ignore
+                return false;
+            }
+            throw e;
+        }
+    }
+
+    /*
+     * May rewrite the page if the page or one of its children is in one of the listed chunks.
+     * If a new page is created, it is returned, otherwise null is returned
+     * */
+    private Page rewritePage(Page p, Set<Integer> set, long version) {
+        long pos = p.getPos();
+        int chunkId = DataUtils.getPageChunkId(pos);
+        
+        if (p.isLeaf()) {
+            return set.contains(chunkId) ? p.copy(version) : null;
+        }
+        else
+        {
+            Page newPage = set.contains(chunkId) ? p.copy(version) : null;
+            
+            for (int i = 0; i < getChildPageCount(p); i++) {
+                // skip child page before even loading it if not in one of the chunks
+                long childPos = p.getChildPagePos(i);
+                if (childPos != 0)
+                {
+                    if (DataUtils.getPageType(childPos) == DataUtils.PAGE_TYPE_LEAF) {
+                        chunkId = DataUtils.getPageChunkId(childPos);
+                        if (!set.contains(chunkId))
+                            continue;
+                    }
+                    
+                    // may rewrite child page
+                    var newChild = rewritePage(p.getChildPage(i), set, version);
+                    
+                    // if child was rewritten, we also need to write this one
+                    // and all of the parents will be rewritten recursively
+                    if (newChild != null)
+                    {
+                        if (newPage == null)
+                            newPage = p.copy(version);
+                        newPage.setChild(i, newChild);
+                    }
+                }
+            }
+            return newPage;
+        }
+    }
+    
 
     /**
      * A builder for this class.
