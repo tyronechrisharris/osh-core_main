@@ -56,6 +56,7 @@ import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.impl.module.RobustConnection;
 import org.sensorhub.impl.security.ClientAuth;
 import org.sensorhub.utils.SerialExecutor;
+import org.sensorhub.utils.CallbackException;
 import org.sensorhub.utils.Lambdas;
 import org.vast.cdm.common.DataStreamWriter;
 import org.vast.ogc.gml.IFeature;
@@ -93,12 +94,12 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     SOSUtils sosUtils = new SOSUtils();  
     String sosEndpointUrl;
     Subscription registrySub;
-    Map<String, ProcedureInfo> procedures;
+    Map<String, SystemRegInfo> registeredSystems;
     NavigableMap<String, StreamInfo> dataStreams;
     ExecutorService threadPool = ForkJoinPool.commonPool();
     
     
-    public class ProcedureInfo
+    public class SystemRegInfo
     {
         //private long internalID;
         private String offeringId;
@@ -131,7 +132,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     public SOSTClient()
     {
         this.startAsync = true;
-        this.procedures = new ConcurrentSkipListMap<>();
+        this.registeredSystems = new ConcurrentSkipListMap<>();
         this.dataStreams = new ConcurrentSkipListMap<>();
     }
     
@@ -254,8 +255,8 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
                     //.parallel()
                     .forEach(entry -> {
                         var id = entry.getKey().getInternalID();
-                        var proc = entry.getValue();
-                        addProcedure(id, proc);
+                        var sys = entry.getValue();
+                        addProcedure(id, sys);
                     });
             })
             .thenRun(() -> {                
@@ -285,10 +286,10 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         // unsubscribe from system events
         if (registrySub != null)
             registrySub.cancel();
-        for (var procInfo: procedures.values())
+        for (var sysInfo: registeredSystems.values())
         {
-            if (procInfo.sub != null)
-                procInfo.sub.cancel();
+            if (sysInfo.sub != null)
+                sysInfo.sub.cancel();
         }
         
         // shutdown thread pool
@@ -330,48 +331,68 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     /*
      * Register system, subscribe to its events and start all selected datastreams
      */
-    protected void addProcedure(BigId sysID, ISystemWithDesc proc)
+    protected void addProcedure(BigId sysID, ISystemWithDesc sys)
     {
-        try
-        {
-            var sysUID = proc.getUniqueIdentifier();
-            var procInfo = registerSensor(sysID, proc);
-            
-            // subscribe to system events
-            getParentHub().getEventBus().newSubscription(SystemEvent.class)
-                .withTopicID(EventUtils.getSystemStatusTopicID(sysUID))
-                .withEventType(SystemEvent.class)
-                .subscribe(e -> {
-                    handleEvent(e);
-                })
-                .thenAccept(sub -> {
-                    procInfo.sub = sub;
-                    sub.request(Long.MAX_VALUE);
-                });
-            
-            // register all selected datastreams
-            var dsFilter = new DataStreamFilter.Builder()
-                .withSystems(sysID)
-                .withCurrentVersion()
-                .build();
-            
-            var addedStreams = new ArrayList<StreamInfo>();
-            dataBaseView.getDataStreamStore().selectEntries(dsFilter)
-               .forEach(Lambdas.checked(e -> {
-                   var dsId = e.getKey().getInternalID();
-                   var dsInfo = e.getValue();
-                   var streamInfo = registerDataStream(dsId, dsInfo);
-                   addedStreams.add(streamInfo);
-               }));
-            
-            // start all streams
-            for (var streamInfo: addedStreams)
-                startStream(streamInfo);
-        }
-        catch (ClientException e)
-        {
-            reportError(e.getMessage(), e.getCause());
-        }
+        var sysUID = sys.getUniqueIdentifier();
+
+        // register or update system atomically
+        // this makes sure we skip if already registered
+        registeredSystems.compute(sysUID, (uid, sysInfo) -> {
+            try {
+                // if sensor hasn't been registered yet
+                if (sysInfo == null)
+                {
+                    // register system
+                    var newsysInfo = registerSensor(sysID, sys);
+                    sysInfo = newsysInfo;
+                    
+                    // subscribe to system events
+                    getParentHub().getEventBus().newSubscription(SystemEvent.class)
+                        .withTopicID(EventUtils.getSystemStatusTopicID(sysUID))
+                        .withEventType(SystemEvent.class)
+                        .subscribe(e -> {
+                            handleEvent(e);
+                        })
+                        .thenAccept(sub -> {
+                            newsysInfo.sub = sub;
+                            sub.request(Long.MAX_VALUE);
+                        });
+                    
+                    // register all selected datastreams
+                    var dsFilter = new DataStreamFilter.Builder()
+                        .withSystems(sysID)
+                        .withCurrentVersion()
+                        .build();
+                    
+                    var addedStreams = new ArrayList<StreamInfo>();
+                    dataBaseView.getDataStreamStore().selectEntries(dsFilter)
+                       .forEach(Lambdas.checked(e -> {
+                           var dsId = e.getKey().getInternalID();
+                           var dsInfo = e.getValue();
+                           var streamInfo = registerDataStream(dsId, dsInfo, newsysInfo);
+                           addedStreams.add(streamInfo);
+                       }));
+                    
+                    // start all streams
+                    for (var streamInfo: addedStreams)
+                        startStream(streamInfo);
+                }
+                
+                // if description is newer, call updateSensor
+                else if (sys.getValidTime().begin().isAfter(sysInfo.startValidTime))
+                {
+                    updateSensor(sysUID);
+                    sysInfo.startValidTime = sys.getValidTime().begin();
+                }
+                
+                return sysInfo;
+            }
+            catch (ClientException | CallbackException e)
+            {
+                reportError(e.getMessage(), e.getCause());
+                return null;
+            }
+        });
     }
     
     
@@ -380,12 +401,12 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
      */
     protected void addProcedure(String sysUID)
     {
-        var procEntry = dataBaseView.getSystemDescStore().getCurrentVersionEntry(sysUID);
-        if (procEntry != null)
+        var sysEntry = dataBaseView.getSystemDescStore().getCurrentVersionEntry(sysUID);
+        if (sysEntry != null)
         {
-            var id = procEntry.getKey().getInternalID();
-            var proc = procEntry.getValue();
-            addProcedure(id, proc);
+            var id = sysEntry.getKey().getInternalID();
+            var sys = sysEntry.getValue();
+            addProcedure(id, sys);
         }
     }
     
@@ -393,19 +414,9 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     /*
      * Register sensor at remote SOS
      */
-    protected ProcedureInfo registerSensor(BigId sysID, ISystemWithDesc proc) throws ClientException
+    protected SystemRegInfo registerSensor(BigId sysID, ISystemWithDesc sys) throws ClientException
     {
-        var sysUID = proc.getUniqueIdentifier();
-        
-        // skip if already registered
-        var procInfo = procedures.get(sysUID);
-        if (procInfo != null)
-        {
-            // if description is newer, call updateSensor
-            if (proc.getValidTime().begin().isAfter(procInfo.startValidTime))
-                updateSensor(sysUID);
-            return procInfo;
-        }
+        var sysUID = sys.getUniqueIdentifier();
         
         try
         {
@@ -414,7 +425,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             req.setConnectTimeOut(config.connection.connectTimeout);
             req.setPostServer(getSosEndpointUrl());
             req.setVersion("2.0");
-            req.setProcedureDescription(proc.getFullDescription());
+            req.setProcedureDescription(sys.getFullDescription());
             req.setProcedureDescriptionFormat(SWESUtils.DEFAULT_PROCEDURE_FORMAT);
             req.getObservationTypes().add(IObservation.OBS_TYPE_RECORD);
             req.getFoiTypes().add("gml:Feature");
@@ -423,14 +434,13 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             setAuth();
             InsertSensorResponse resp = sosUtils.sendRequest(req, false);
 
-            // add procedure info to map
-            procInfo = new ProcedureInfo();
-            procInfo.offeringId = resp.getAssignedOffering();
-            procInfo.startValidTime = proc.getValidTime().begin();
-            procedures.put(sysUID, procInfo);
+            // create sysedure info from server response
+            var sysInfo = new SystemRegInfo();
+            sysInfo.offeringId = resp.getAssignedOffering();
+            sysInfo.startValidTime = sys.getValidTime().begin();
             
             getLogger().info("System {} registered at SOS endpoint {}", sysUID, getSosEndpointUrl());
-            return procInfo;
+            return sysInfo;
         }
         catch (Exception e)
         {
@@ -446,16 +456,16 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     {
         try
         {
-            var proc = dataBaseView.getSystemDescStore().getCurrentVersion(sysUID);
-            if (proc != null)
+            var sys = dataBaseView.getSystemDescStore().getCurrentVersion(sysUID);
+            if (sys != null)
             {
                 // build update sensor request
                 UpdateSensorRequest req = new UpdateSensorRequest(SOSUtils.SOS);
                 req.setConnectTimeOut(config.connection.connectTimeout);
                 req.setPostServer(getSosEndpointUrl());
                 req.setVersion("2.0");
-                req.setProcedureId(proc.getUniqueIdentifier());
-                req.setProcedureDescription(proc.getFullDescription());
+                req.setProcedureId(sys.getUniqueIdentifier());
+                req.setProcedureDescription(sys.getFullDescription());
                 req.setProcedureDescriptionFormat(SWESUtils.DEFAULT_PROCEDURE_FORMAT);
                 
                 // send request
@@ -475,20 +485,20 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     /*
      * Disable and optionally remove previously managed system
      */
-    protected void disableProcedure(String sysUID, boolean remove)
+    protected void disableSystem(String sysUID, boolean remove)
     {
-        var procInfo = remove ? procedures.remove(sysUID) : procedures.get(sysUID);
-        if (procInfo != null)
+        var sysInfo = remove ? registeredSystems.remove(sysUID) : registeredSystems.get(sysUID);
+        if (sysInfo != null)
         {
-            if (procInfo.sub != null)
+            if (sysInfo.sub != null)
             {
-                procInfo.sub.cancel();
-                procInfo.sub = null;
+                sysInfo.sub.cancel();
+                sysInfo.sub = null;
                 getLogger().debug("Unsubscribed from system {}", sysUID);
             }
             
-            var procDataStreams = dataStreams.subMap(sysUID, sysUID + "\uffff");
-            for (var streamInfo: procDataStreams.values())
+            var sysDataStreams = dataStreams.subMap(sysUID, sysUID + "\uffff");
+            for (var streamInfo: sysDataStreams.values())
                 stopStream(streamInfo);
             
             if (remove)
@@ -500,7 +510,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     /*
      * Register datastream at remote SOS
      */
-    protected StreamInfo registerDataStream(BigId dsID, IDataStreamInfo dsInfo) throws ClientException
+    protected StreamInfo registerDataStream(BigId dsID, IDataStreamInfo dsInfo, SystemRegInfo sysInfo) throws ClientException
     {
         var dsTopicId = EventUtils.getDataStreamDataTopicID(dsInfo);
         
@@ -510,11 +520,6 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             var streamInfo = dataStreams.get(dsTopicId);
             if (streamInfo != null)
                 return streamInfo;
-            
-            // retrieve system info
-            var procInfo = procedures.get(dsInfo.getSystemID().getUniqueID());
-            if (procInfo == null)
-                throw new IllegalStateException("Unknown system: " + dsInfo.getSystemID().getUniqueID());
             
             // assign ID to record struct so we can use it to retain the output name
             var dsInfoWithId = dsInfo.getRecordStructure().copy();
@@ -526,7 +531,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
             req.setConnectTimeOut(config.connection.connectTimeout);
             req.setPostServer(getSosEndpointUrl());
             req.setVersion("2.0");
-            req.setOffering(procInfo.offeringId);
+            req.setOffering(sysInfo.offeringId);
             req.setResultStructure(dsInfoWithId);
             req.setResultEncoding(dsInfo.getRecordEncoding());
             ObservationImpl obsTemplate = new ObservationImpl();
@@ -620,13 +625,14 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     {
         try
         {
+            var sysInfo = registeredSystems.get(sysUID);
             var dsEntry = dataBaseView.getDataStreamStore().getLatestVersionEntry(sysUID, outputName);
-            if (dsEntry != null)
+            if (sysInfo != null && dsEntry != null)
             {
                 var dsId = dsEntry.getKey().getInternalID();
                 var dsInfo = dsEntry.getValue();
                 
-                var streamInfo = registerDataStream(dsId, dsInfo);
+                var streamInfo = registerDataStream(dsId, dsInfo, sysInfo);
                 startStream(streamInfo);
             }
         }
@@ -747,7 +753,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         {
             CompletableFuture.runAsync(() -> {
                 var sysUID = e.getSystemUID();
-                disableProcedure(sysUID, false);
+                disableSystem(sysUID, false);
             });
         }
         
@@ -755,7 +761,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
         {
             CompletableFuture.runAsync(() -> {
                 var sysUID = e.getSystemUID();
-                disableProcedure(sysUID, true);
+                disableSystem(sysUID, true);
             });
         }
         
