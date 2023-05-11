@@ -58,6 +58,11 @@ public abstract class MVDatabaseConfig extends DatabaseConfig
     public int autoCommitPeriod = 10;
     
     
+    @Min(value = 0)
+    @DisplayInfo(desc = "Minimum fillrate above which auto compact operations may be triggered")
+    public int autoCompactFillRate = 40;
+    
+    
     @NotNull
     @DisplayInfo(label = "ID Generator", desc = "Method used to generate new resource IDs")
     public IdProviderType idProviderType = IdProviderType.SEQUENTIAL;

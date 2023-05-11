@@ -86,6 +86,9 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
             
             if (config.autoCommitBufferSize > 0)
                 builder.autoCommitBufferSize(config.autoCommitBufferSize);
+
+            if (config.autoCompactFillRate > 0)
+                builder.autoCompactFillRate(config.autoCompactFillRate);
             
             if (config.useCompression)
                 builder.compress();
