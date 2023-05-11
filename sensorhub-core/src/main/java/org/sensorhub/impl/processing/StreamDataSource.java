@@ -203,7 +203,9 @@ public class StreamDataSource extends ExecutableProcessImpl implements ISensorHu
         if (started)
         {
             started = false;
-            sub.cancel();
+            if (sub != null)
+                sub.cancel();
+            sub = null;
             getLogger().debug("Disconnected from data source '{}'", producerUri);
         }
     }
