@@ -15,8 +15,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.datastore.h2.kryo;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.h2.mvstore.WriteBuffer;
@@ -53,7 +53,7 @@ public class KryoDataType implements DataType
         Kryo kryo;
         Output output;
         Input input;
-        int avgRecordSize;
+        volatile int avgRecordSize;
         
         KryoInstance(SerializerFactory<?> defaultObjectSerializer, ClassResolver classResolver, Consumer<Kryo> configurator)
         {
@@ -117,7 +117,9 @@ public class KryoDataType implements DataType
         // use a map of kryo objects for writing
         // the map provides a separate kryo object for each record type
         // so we can keep track of average size for each type of record separately
-        this.kryoWritePool = new HashMap<>();
+        // use a concurrent map because it's also accessed in getMemory() calls on page
+        // reads that can happen concurrently with writes
+        this.kryoWritePool = new ConcurrentHashMap<>();
     }
     
     
