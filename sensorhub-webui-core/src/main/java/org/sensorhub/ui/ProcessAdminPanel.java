@@ -23,6 +23,7 @@ import net.opengis.swe.v20.DataComponent;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import org.sensorhub.api.command.IStreamingControlInterface;
 import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleConfig;
@@ -67,7 +68,7 @@ import com.vaadin.ui.Panel;
 @SuppressWarnings("serial")
 public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
 {
-    Panel commandsPanel, processFlowPanel;
+    Panel inputCommandsPanel, paramCommandsPanel, processFlowPanel;
     ProcessFlowDiagram diagram;
     SMLProcessConfig config;
     
@@ -77,14 +78,33 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
     {
         super.build(beanItem, module);
         
-        // control params section
+        // inputs control section
+        if (!module.getInputDescriptors().isEmpty())
+        {
+            // title
+            addComponent(new Spacing());
+            HorizontalLayout titleBar = new HorizontalLayout();
+            titleBar.setSpacing(true);
+            Label sectionLabel = new Label("Process Inputs");
+            sectionLabel.addStyleName(STYLE_H3);
+            sectionLabel.addStyleName(STYLE_COLORED);
+            titleBar.addComponent(sectionLabel);
+            titleBar.setComponentAlignment(sectionLabel, Alignment.MIDDLE_LEFT);
+            titleBar.setHeight(31.0f, Unit.PIXELS);
+            addComponent(titleBar);
+
+            // control panels
+            buildControlInputsPanels(module);
+        }
+        
+        // params control section
         if (!module.getParameterDescriptors().isEmpty())
         {
             // title
             addComponent(new Spacing());
             HorizontalLayout titleBar = new HorizontalLayout();
             titleBar.setSpacing(true);
-            Label sectionLabel = new Label("Processing Parameters");
+            Label sectionLabel = new Label("Process Parameters");
             sectionLabel.addStyleName(STYLE_H3);
             sectionLabel.addStyleName(STYLE_COLORED);
             titleBar.addComponent(sectionLabel);
@@ -105,6 +125,29 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
     }
     
     
+    protected void buildControlInputsPanels(IProcessModule<?> module)
+    {
+        if (module != null)
+        {
+            Panel oldPanel;
+            
+            // command inputs
+            oldPanel = inputCommandsPanel;
+            inputCommandsPanel = newPanel(null);
+            for (IStreamingControlInterface input: module.getCommandInputs().values())
+            {
+                Component sweForm = new SWEControlForm(input);
+                ((Layout)inputCommandsPanel.getContent()).addComponent(sweForm);
+            }
+
+            if (oldPanel != null)
+                replaceComponent(oldPanel, inputCommandsPanel);
+            else
+                addComponent(inputCommandsPanel);
+        }
+    }
+    
+    
     protected void buildParamInputsPanels(IProcessModule<?> module)
     {
         if (module != null)
@@ -112,8 +155,8 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             Panel oldPanel;
 
             // command inputs
-            oldPanel = commandsPanel;
-            commandsPanel = newPanel(null);
+            oldPanel = paramCommandsPanel;
+            paramCommandsPanel = newPanel(null);
 
             // wrap all parameters into a single datarecord so we can submit them together
             DataRecordImpl params = new DataRecordImpl();
@@ -123,12 +166,12 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
             params.combineDataBlocks();
 
             Component sweForm = new SWEControlForm(params);
-            ((Layout)commandsPanel.getContent()).addComponent(sweForm);
+            ((Layout)paramCommandsPanel.getContent()).addComponent(sweForm);
 
             if (oldPanel != null)
-                replaceComponent(oldPanel, commandsPanel);
+                replaceComponent(oldPanel, paramCommandsPanel);
             else
-                addComponent(commandsPanel);
+                addComponent(paramCommandsPanel);
         }
     }
         
@@ -247,7 +290,7 @@ public class ProcessAdminPanel extends DataSourceAdminPanel<IProcessModule<?>>
                     .build();
                 
                 saveShape(block, p);
-                processChain.addComponent(block.name, p);                
+                processChain.addComponent(block.name, p);
                 processChain.addOutput("test", new SWEHelper().newQuantity());
             }
             

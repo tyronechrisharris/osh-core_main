@@ -80,7 +80,7 @@ public class SensorAdminPanel extends DataSourceAdminPanel<ISensorModule<?>>
             
             // command inputs
             oldPanel = commandsPanel;
-            commandsPanel = newPanel("Command Inputs");
+            commandsPanel = newPanel(null);
             for (IStreamingControlInterface input: module.getCommandInputs().values())
             {
                 Component sweForm = new SWEControlForm(input);

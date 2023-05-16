@@ -17,7 +17,6 @@ package org.sensorhub.impl.processing;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.opengis.OgcPropertyList;
@@ -46,18 +45,14 @@ import org.vast.sensorML.SMLUtils;
  */
 public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
 {
-    public static final String DEFAULT_ID = "PROCESS_DESC";
-    protected static final String DATASRC_NAME = "datasource_";
-    protected static final String DATASINK_NAME = "datasink_";
-    protected static final String PROCESS_NAME = "main_process";
     protected static final int MAX_ERRORS = 10;
     
     protected SMLUtils smlUtils;
-    protected List<StreamDataSource> streamSources;
     protected AggregateProcessImpl wrapperProcess;
     protected long lastUpdatedProcess = Long.MIN_VALUE;
     protected boolean paused = false;
     protected int errorCount = 0;
+    protected boolean useThreads = true;
     
     
     public SMLProcessImpl()
@@ -114,11 +109,13 @@ public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
     
     protected void initChain() throws SensorHubException
     {
+        //useThreads = processDescription.getInputList().isEmpty();
+        
         // make process executable
         try
         {
             //smlUtils.makeProcessExecutable(wrapperProcess, true);
-            wrapperProcess = (AggregateProcessImpl)smlUtils.getExecutableInstance((AggregateProcessImpl)processDescription, true);
+            wrapperProcess = (AggregateProcessImpl)smlUtils.getExecutableInstance((AggregateProcessImpl)processDescription, useThreads);
             wrapperProcess.setInstanceName("chain");
             wrapperProcess.setParentLogger(getLogger());
             wrapperProcess.init();
@@ -133,9 +130,9 @@ public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
         }
         
         // advertise process inputs and outputs
-        refreshIOList(processDescription.getInputList(), inputs, false);
-        refreshIOList(processDescription.getParameterList(), parameters, false);
-        refreshIOList(processDescription.getOutputList(), outputs, true);
+        refreshIOList(processDescription.getInputList(), inputs);
+        refreshIOList(processDescription.getParameterList(), parameters);
+        refreshIOList(processDescription.getOutputList(), outputs);
         
         setState(ModuleState.INITIALIZED);
     }
@@ -147,10 +144,12 @@ public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
     }
     
     
-    protected void refreshIOList(OgcPropertyList<AbstractSWEIdentifiable> ioList, Map<String, DataComponent> ioMap, boolean isOutput) throws ProcessingException
+    protected void refreshIOList(OgcPropertyList<AbstractSWEIdentifiable> ioList, Map<String, DataComponent> ioMap) throws ProcessingException
     {
         ioMap.clear();
-        if (isOutput)
+        if (ioMap == inputs)
+            controlInterfaces.clear();
+        else if (ioMap == outputs)
             outputInterfaces.clear();
                 
         int numSignals = ioList.size();
@@ -162,7 +161,11 @@ public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
             DataComponent ioComponent = SMLHelper.getIOComponent(ioDesc);
             ioMap.put(ioName, ioComponent);
             
-            if (isOutput)
+            if (ioMap == inputs)
+                controlInterfaces.put(ioName, new SMLInputInterface(this, ioDesc));
+            else if (ioMap == parameters)
+                controlInterfaces.put(ioName, new SMLInputInterface(this, ioDesc));
+            else if (ioMap == outputs)
                 outputInterfaces.put(ioName, new SMLOutputInterface(this, ioDesc));
         }
     }
@@ -177,15 +180,18 @@ public class SMLProcessImpl extends AbstractProcessModule<SMLProcessConfig>
             throw new ProcessingException("No valid processing chain provided");
         
         // start processing thread
-        try
+        if (useThreads)
         {
-            wrapperProcess.start(e-> {
-                reportError("Error while executing process chain", e);
-            });
-        }
-        catch (ProcessException e)
-        {
-            throw new ProcessingException("Cannot start process chain thread", e);
+            try
+            {
+                wrapperProcess.start(e-> {
+                    reportError("Error while executing process chain", e);
+                });
+            }
+            catch (ProcessException e)
+            {
+                throw new ProcessingException("Cannot start process chain thread", e);
+            }
         }
     }
     
