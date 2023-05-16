@@ -80,8 +80,8 @@ public class ProcessingManagerImpl implements IProcessingManager
                     IProcessExec processInstance = info.getImplementationClass().getDeclaredConstructor().newInstance();
                     
                     // assign parent hub
-                    if (processInstance instanceof StreamDataSource)
-                        ((StreamDataSource) processInstance).setParentHub(hub);
+                    if (processInstance instanceof ISensorHubProcess)
+                        ((ISensorHubProcess) processInstance).setParentHub(hub);
                         
                     return processInstance;
                 }

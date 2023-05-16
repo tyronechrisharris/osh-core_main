@@ -20,6 +20,7 @@ import net.opengis.swe.v20.DataRecord;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import org.sensorhub.api.command.CommandStatus;
+import org.sensorhub.api.command.CommandStatusEvent;
 import org.sensorhub.api.command.CommandException;
 import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandData;
@@ -44,7 +45,13 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
     
     public FakeSensorControl1(FakeSensor parentSensor)
     {
-        super("command1", parentSensor);
+        this(parentSensor, "command1");
+    }
+    
+    
+    public FakeSensorControl1(FakeSensor parentSensor, String name)
+    {
+        super(name, parentSensor);
         
         var swe = new SWEHelper();
         this.commandStruct = swe.createRecord()
@@ -73,7 +80,9 @@ public class FakeSensorControl1 extends AbstractSensorControl<FakeSensor> implem
         return CompletableFuture.supplyAsync(() -> {
             System.out.println("Received command: " + command);
             receivedCommands.add(command.getParams());
-            return CommandStatus.completed(command.getID());
+            var status = CommandStatus.completed(command.getID());
+            eventHandler.publish(new CommandStatusEvent(this, 0, status));
+            return status;
         });
     }
 

@@ -25,6 +25,8 @@ public class SMLProcessDescriptor extends AbstractProcessProvider
     public SMLProcessDescriptor()
     {
         addImpl(StreamDataSource.INFO);
+        addImpl(DataStreamSource.INFO);
+        addImpl(CommandStreamSink.INFO);
     }
     
     
