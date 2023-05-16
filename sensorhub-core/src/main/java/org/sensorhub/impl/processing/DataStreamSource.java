@@ -14,15 +14,18 @@ Copyright (C) 2012-2017 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.processing;
 
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.function.Consumer;
 import org.sensorhub.api.ISensorHub;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.data.IObsData;
 import org.sensorhub.api.data.ObsEvent;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.processing.OSHProcessInfo;
 import org.sensorhub.utils.Async;
@@ -30,6 +33,7 @@ import org.vast.process.ExecutableProcessImpl;
 import org.vast.process.ProcessException;
 import org.vast.process.ProcessInfo;
 import org.vast.swe.SWEHelper;
+import com.google.common.base.Objects;
 import net.opengis.swe.v20.Text;
 
 
@@ -53,6 +57,7 @@ public class DataStreamSource extends ExecutableProcessImpl implements ISensorHu
     ISensorHub hub;
     String systemUid;
     String outputName;
+    BigId datastreamId;
     boolean paused;
     Subscription sub;
     
@@ -117,12 +122,14 @@ public class DataStreamSource extends ExecutableProcessImpl implements ISensorHu
         this.processInfo = instanceInfo;
         
         // get datastream corresponding to outputName
-        db.getDataStreamStore().select(new DataStreamFilter.Builder()
+        db.getDataStreamStore().selectEntries(new DataStreamFilter.Builder()
                 .withSystems(sysEntry.getKey().getInternalID())
                 .withOutputNames(outputName)
                 .withCurrentVersion()
                 .build())
-            .forEach(ds -> {
+            .forEach(entry -> {
+                datastreamId = entry.getKey().getInternalID();
+                var ds = entry.getValue();
                 outputData.add(ds.getOutputName(), ds.getRecordStructure().copy());
             });
         
@@ -144,17 +151,29 @@ public class DataStreamSource extends ExecutableProcessImpl implements ISensorHu
         {
             started = true;
             
-            var topics = new ArrayList<String>();
-            for (var output: outputData.getProperties())
-                topics.add(EventUtils.getDataStreamDataTopicID(systemUid, output.getName()));
+            var output = outputData.getComponent(outputName);
+            var topic = EventUtils.getDataStreamDataTopicID(systemUid, output.getName());
             
             hub.getEventBus().newSubscription(ObsEvent.class)
-                .withTopicIDs(topics)
+                .withTopicID(topic)
                 .subscribe(new Subscriber<ObsEvent>() {
-    
+                    volatile Instant latestObsTime;
+                    volatile boolean needDedup;
+                   
                     @Override
                     public void onSubscribe(Subscription subscription)
                     {
+                        // first publish latest obs in case streaming is not continuous
+                        var db = hub.getDatabaseRegistry().getFederatedDatabase();
+                        db.getObservationStore().select(new ObsFilter.Builder()
+                            .withDataStreams(datastreamId)
+                            .withLatestResult()
+                            .build()).findFirst().ifPresent(latestObs -> {
+                                latestObsTime = latestObs.getResultTime();
+                                publishObs(latestObs);
+                                needDedup = true;
+                            });
+                        
                         sub = subscription;
                         subscription.request(Long.MAX_VALUE);
                     }
@@ -165,21 +184,27 @@ public class DataStreamSource extends ExecutableProcessImpl implements ISensorHu
                         if (paused)
                             return;
                         
-                        String outputName = e.getOutputName();
-                        var output = outputData.getComponent(outputName);
-                        
-                        // process each data block
+                        // publish each obs to process chain
                         for (var obs: e.getObservations())
+                            publishObs(obs);
+                    }
+                    
+                    protected void publishObs(IObsData obs)
+                    {
+                        try
                         {
-                            try
+                            if (needDedup && Objects.equal(latestObsTime, obs.getResultTime()))
                             {
-                                output.setData(obs.getResult());
-                                publishData(outputName);
+                                needDedup = false;
+                                return;
                             }
-                            catch (InterruptedException ex)
-                            {
-                                Thread.currentThread().interrupt();
-                            }
+                            
+                            output.setData(obs.getResult());
+                            publishData(outputName);
+                        }
+                        catch (InterruptedException ex)
+                        {
+                            Thread.currentThread().interrupt();
                         }
                     }
     
