@@ -115,10 +115,13 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
                 while (statusIt.hasNext())
                 {
                     var te = statusIt.next().getExecutionTime();
-                    if (te.begin().isBefore(begin))
-                        begin = te.begin();
-                    if (te.end().isAfter(end))
-                        end = te.end();
+                    if (te != null)
+                    {
+                        if (te.begin().isBefore(begin))
+                            begin = te.begin();
+                        if (te.end().isAfter(end))
+                            end = te.end();
+                    }
                 }
                 
                 if (begin == Instant.MAX || end == Instant.MIN)
