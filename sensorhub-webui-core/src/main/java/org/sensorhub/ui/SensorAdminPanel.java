@@ -24,6 +24,7 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.Layout;
 import com.vaadin.ui.Panel;
+import com.vaadin.ui.VerticalLayout;
 
 
 /**
@@ -39,7 +40,7 @@ import com.vaadin.ui.Panel;
 @SuppressWarnings("serial")
 public class SensorAdminPanel extends DataSourceAdminPanel<ISensorModule<?>>
 {
-    Panel commandsPanel;
+    VerticalLayout commandsSection;
     
     
     @Override
@@ -76,21 +77,25 @@ public class SensorAdminPanel extends DataSourceAdminPanel<ISensorModule<?>>
     {
         if (module != null)
         {
-            Panel oldPanel;
+            VerticalLayout oldSection;
             
             // command inputs
-            oldPanel = commandsPanel;
-            commandsPanel = newPanel(null);
+            oldSection = commandsSection;
+            commandsSection = new VerticalLayout();
+            commandsSection.setMargin(false);
+            commandsSection.setSpacing(true);
             for (IStreamingControlInterface input: module.getCommandInputs().values())
             {
+                var panel = newPanel(null);
                 Component sweForm = new SWEControlForm(input);
-                ((Layout)commandsPanel.getContent()).addComponent(sweForm);
+                ((Layout)panel.getContent()).addComponent(sweForm);
+                commandsSection.addComponent(panel);
             }
 
-            if (oldPanel != null)
-                replaceComponent(oldPanel, commandsPanel);
+            if (oldSection != null)
+                replaceComponent(oldSection, commandsSection);
             else
-                addComponent(commandsPanel);
+                addComponent(commandsSection);
         }
     }
 }
