@@ -60,7 +60,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
 {
     final NavigableMap<FeatureKey, T> map = new ConcurrentSkipListMap<>(new InternalIdComparator());
     final NavigableMap<String, FeatureKey> uidMap = new ConcurrentSkipListMap<>();
-    final NavigableMap<BigId, Set<BigId>> parentChildMap = new ConcurrentSkipListMap<>();
+    final NavigableMap<BigId, Set<BigId>> parentChildMap = new ConcurrentSkipListMap<>(new BigIdComparator());
     final Quadtree spatialIndex = new Quadtree();
     final Bbox allFeaturesBbox = new Bbox();
     final IdProvider<? super T> idProvider;
@@ -79,6 +79,23 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             return Long.compare(
                 k1.getInternalID().getIdAsLong(),
                 k2.getInternalID().getIdAsLong());
+        }
+    }
+    
+    
+    /*
+     * Use BigID conparator that always use the long value to compare.
+     * Otherwise we get different results when comparing 2 BigIdLong and
+     * comparing a BigIdLong and a BigIdBytes
+     */
+    static class BigIdComparator implements Comparator<BigId>
+    {
+        @Override
+        public int compare(BigId k1, BigId k2)
+        {
+            return Long.compare(
+                k1.getIdAsLong(),
+                k2.getIdAsLong());
         }
     }
     
