@@ -272,7 +272,7 @@ public class InMemoryCommandStreamStore implements ICommandStreamStore
                 
                 // error if command stream with same system/name/validTime already exists
                 if (prevValidTime.equals(newValidTime))
-                    throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_DATASTREAM);
+                    throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_COMMANDSTREAM);
                 
                 // don't add if previous entry had a more recent valid time
                 // or if new entry is dated in the future
