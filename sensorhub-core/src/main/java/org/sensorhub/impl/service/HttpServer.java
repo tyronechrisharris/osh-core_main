@@ -85,6 +85,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
     
     private static final String CORS_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS";
     private static final String CORS_ALLOWED_HEADERS = "origin, content-type, accept, authorization";
+    private static final String CORS_EXPOSE_HEADERS = "location, link";
     
     public static final String TEST_MSG = "SensorHub web server is up";
         
@@ -226,6 +227,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                     FilterHolder holder = servletHandler.addFilter(CrossOriginFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
                     holder.setInitParameter("allowedMethods", CORS_ALLOWED_METHODS);
                     holder.setInitParameter("allowedHeaders", CORS_ALLOWED_HEADERS);
+                    holder.setInitParameter("exposedHeaders", CORS_EXPOSE_HEADERS);
                 }
                 
                 // add default test servlet
