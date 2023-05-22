@@ -57,7 +57,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
     ScalarIndexer timeStampIndexer;
 
     
-    ObsBindingOmJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsStore obsStore) throws IOException
+    public ObsBindingOmJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsStore obsStore) throws IOException
     {
         super(ctx, idEncoders, forReading);
         this.contextData = (ObsHandlerContextData)ctx.getData();

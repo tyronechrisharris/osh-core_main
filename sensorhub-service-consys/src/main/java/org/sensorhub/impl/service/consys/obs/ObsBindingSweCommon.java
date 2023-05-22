@@ -47,7 +47,7 @@ public class ObsBindingSweCommon extends ResourceBinding<BigId, IObsData>
     ScalarIndexer timeStampIndexer;
 
     
-    ObsBindingSweCommon(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsStore obsStore) throws IOException
+    public ObsBindingSweCommon(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsStore obsStore) throws IOException
     {
         super(ctx, idEncoders);
         this.contextData = (ObsHandlerContextData)ctx.getData();

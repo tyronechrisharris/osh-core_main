@@ -68,7 +68,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     }
     
     
-    DataStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
+    public DataStreamBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, Map<String, CustomObsFormat> customFormats) throws IOException
     {
         super(ctx, idEncoders, forReading);
         

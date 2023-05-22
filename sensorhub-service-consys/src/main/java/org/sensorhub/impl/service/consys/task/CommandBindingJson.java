@@ -58,7 +58,7 @@ public class CommandBindingJson extends ResourceBindingJson<BigId, ICommandData>
     String userID;
 
     
-    CommandBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStore cmdStore) throws IOException
+    public CommandBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStore cmdStore) throws IOException
     {
         super(ctx, idEncoders, forReading);
         this.contextData = (CommandHandlerContextData)ctx.getData();

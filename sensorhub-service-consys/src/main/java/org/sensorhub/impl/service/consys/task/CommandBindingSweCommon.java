@@ -48,7 +48,7 @@ public class CommandBindingSweCommon extends ResourceBinding<BigId, ICommandData
     String userID;
 
     
-    CommandBindingSweCommon(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStore obsStore) throws IOException
+    public CommandBindingSweCommon(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStore obsStore) throws IOException
     {
         super(ctx, idEncoders);
         this.contextData = (CommandHandlerContextData)ctx.getData();

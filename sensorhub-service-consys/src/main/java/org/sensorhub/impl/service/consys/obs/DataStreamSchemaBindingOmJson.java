@@ -48,14 +48,14 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
     SWEJsonStreamWriter sweWriter;
     
     
-    DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         init(ctx, forReading);
     }
     
     
-    DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
+    public DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
         super(ctx, idEncoders, reader);
         init(ctx, true);

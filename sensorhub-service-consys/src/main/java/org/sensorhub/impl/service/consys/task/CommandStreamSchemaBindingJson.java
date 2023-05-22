@@ -47,7 +47,7 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     SWEJsonStreamWriter sweWriter;
     
     
-    CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         init(ctx, forReading);

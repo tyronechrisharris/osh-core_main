@@ -42,7 +42,7 @@ public class CommandStatusBindingJson extends ResourceBindingJson<BigId, IComman
     ICommandStatusStore statusStore;
 
     
-    CommandStatusBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStatusStore cmdStore) throws IOException
+    public CommandStatusBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, ICommandStatusStore cmdStore) throws IOException
     {
         super(ctx, idEncoders, forReading);
         this.contextData = (CommandStatusHandlerContextData)ctx.getData();

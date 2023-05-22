@@ -49,14 +49,14 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
     SWEJsonStreamWriter sweWriter;
     
     
-    CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         init(cmdFormat, ctx, forReading);
     }
     
     
-    CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
+    public CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
         super(ctx, idEncoders, reader);
         init(cmdFormat, ctx, true);

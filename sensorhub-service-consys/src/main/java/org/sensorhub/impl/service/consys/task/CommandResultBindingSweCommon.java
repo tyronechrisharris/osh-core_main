@@ -42,7 +42,7 @@ public class CommandResultBindingSweCommon extends ResourceBinding<BigId, IComma
     DataStreamWriter resultWriter;
 
     
-    CommandResultBindingSweCommon(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsSystemDatabase db) throws IOException
+    public CommandResultBindingSweCommon(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsSystemDatabase db) throws IOException
     {
         super(ctx, idEncoders);
         this.contextData = (CommandStatusHandlerContextData)ctx.getData();

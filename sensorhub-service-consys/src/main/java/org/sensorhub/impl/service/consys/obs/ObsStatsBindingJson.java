@@ -31,7 +31,7 @@ import com.google.gson.stream.JsonWriter;
 public class ObsStatsBindingJson extends ResourceBindingJson<BigId, ObsStats>
 {
     
-    ObsStatsBindingJson(RequestContext ctx, IdEncoders idEncoders) throws IOException
+    public ObsStatsBindingJson(RequestContext ctx, IdEncoders idEncoders) throws IOException
     {
         super(ctx, idEncoders, false);
     }

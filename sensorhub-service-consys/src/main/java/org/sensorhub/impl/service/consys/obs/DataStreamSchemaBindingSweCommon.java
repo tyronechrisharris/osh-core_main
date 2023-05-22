@@ -49,14 +49,14 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
     SWEJsonStreamWriter sweWriter;
     
     
-    DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         init(obsFormat, ctx, forReading);
     }
     
     
-    DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
+    public DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
         super(ctx, idEncoders, reader);
         init(obsFormat, ctx, true);
