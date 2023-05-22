@@ -66,6 +66,10 @@ public class SmlFeatureBindingSmlJson<V extends IProcedureWithDesc> extends Reso
     @Override
     public V deserialize(JsonReader reader) throws IOException
     {
+        // if array, prepare to parse first element
+        if (reader.peek() == JsonToken.BEGIN_ARRAY)
+            reader.beginArray();
+        
         if (reader.peek() == JsonToken.END_DOCUMENT || !reader.hasNext())
             return null;
         
