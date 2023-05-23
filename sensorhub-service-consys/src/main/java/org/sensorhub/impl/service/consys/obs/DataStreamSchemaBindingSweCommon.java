@@ -131,11 +131,9 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID());
         var sweEncoding = SWECommonUtils.getEncoding(dsInfo.getRecordStructure(), dsInfo.getRecordEncoding(), obsFormat);
         
         writer.beginObject();
-        writer.name("datastream@id").value(dsId);
         writer.name("obsFormat").value(obsFormat.toString());
         
         // result structure & encoding

@@ -165,6 +165,31 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         return dsInfo;
     }
+    
+    
+    public void serializeCreate(IDataStreamInfo dsInfo) throws IOException
+    {
+        writer.beginObject();
+        writer.name("name").value(dsInfo.getName());
+        
+        if (dsInfo.getDescription() != null)
+            writer.name("description").value(dsInfo.getDescription());
+        
+        writer.name("outputName").value(dsInfo.getOutputName());
+        
+        if (dsInfo.getValidTime() != null)
+        {
+            writer.name("validTime");
+            geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
+        }
+        
+        writer.name("schema");
+        var schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoders, writer);
+        schemaBinding.serialize(null, dsInfo, false);
+        
+        writer.endObject();
+        writer.flush();
+    }
 
 
     @Override

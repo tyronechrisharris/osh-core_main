@@ -69,12 +69,21 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     }
     
     
-    /* constructor used when reading a nested resource */
+    /* constructor used when reading as nested resource */
     protected ResourceBindingJson(RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
         super(ctx, idEncoders);
         this.reader = reader;
         this.writer = null;
+    }
+    
+    
+    /* constructor used when writing as nested resource */
+    protected ResourceBindingJson(RequestContext ctx, IdEncoders idEncoders, JsonWriter writer) throws IOException
+    {
+        super(ctx, idEncoders);
+        this.reader = null;
+        this.writer = writer;
     }
     
     

@@ -62,6 +62,13 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
     }
     
     
+    public DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoders idEncoders, JsonWriter writer) throws IOException
+    {
+        super(ctx, idEncoders, writer);
+        init(ctx, false);
+    }
+    
+    
     void init(RequestContext ctx, boolean forReading)
     {
         this.rootURL = ctx.getApiRootURL();
@@ -125,10 +132,7 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID());
-        
         writer.beginObject();
-        writer.name("datastream@id").value(dsId);
         writer.name("obsFormat").value(ResourceFormat.OM_JSON.toString());
         
         // result structure 

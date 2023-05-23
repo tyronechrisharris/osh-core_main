@@ -88,6 +88,8 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
                     description = reader.nextString();
                 else if ("inputName".equals(prop))
                     inputName = reader.nextString();
+                //else if ("validTime".equals(prop))
+                //    validTime = geojsonBindings.readTimeExtent(reader);
                 else if ("schema".equals(prop))
                 {
                     reader.beginObject();
@@ -134,6 +136,31 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
             .withName(name)
             .withDescription(description)
             .build();
+    }
+    
+    
+    public void serializeCreate(ICommandStreamInfo csInfo) throws IOException
+    {
+        writer.beginObject();
+        writer.name("name").value(csInfo.getName());
+        
+        if (csInfo.getDescription() != null)
+            writer.name("description").value(csInfo.getDescription());
+        
+        writer.name("inputName").value(csInfo.getControlInputName());
+        
+        /*if (dsInfo.getValidTime() != null)
+        {
+            writer.name("validTime");
+            geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
+        }*/
+        
+        writer.name("schema");
+        var schemaBinding = new CommandStreamSchemaBindingJson(ctx, idEncoders, writer);
+        schemaBinding.serialize(null, csInfo, false);
+        
+        writer.endObject();
+        writer.flush();
     }
 
 

@@ -131,10 +131,7 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
     @Override
     public void serialize(CommandStreamKey key, ICommandStreamInfo csInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var dsId = idEncoders.getCommandStreamIdEncoder().encodeID(key.getInternalID());
-        
         writer.beginObject();
-        writer.name("control@id").value(dsId);
         
         // param structure & encoding
         try

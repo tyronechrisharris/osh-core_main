@@ -76,6 +76,38 @@ public class RequestContext
     
     
     /*
+     * Constructor for use in client POST
+     */
+    public RequestContext(StreamHandler streamHandler)
+    {
+        this.servlet = null;
+        this.req = null;
+        this.resp = null;
+        this.requestPathInfo = null;
+        this.streamHandler = Asserts.checkNotNull(streamHandler, StreamHandler.class);
+        this.inputStream = null;
+        this.path = null;
+        this.queryParams = null;
+    }
+    
+    
+    /*
+     * Constructor for use in client GET
+     */
+    public RequestContext(InputStream bodyInputStream)
+    {
+        this.servlet = null;
+        this.req = null;
+        this.resp = null;
+        this.requestPathInfo = null;
+        this.streamHandler = null;
+        this.inputStream = Asserts.checkNotNull(bodyInputStream, InputStream.class);
+        this.path = null;
+        this.queryParams = null;
+    }
+    
+    
+    /*
      * Constructor for classic HTTP requests
      */
     public RequestContext(RestApiServlet servlet, HttpServletRequest req, HttpServletResponse resp)
@@ -270,7 +302,7 @@ public class RequestContext
     
     public String getApiRootURL()
     {
-        return servlet.getApiRootURL(req);
+        return servlet != null ? servlet.getApiRootURL(req) : "/";
     }
     
     

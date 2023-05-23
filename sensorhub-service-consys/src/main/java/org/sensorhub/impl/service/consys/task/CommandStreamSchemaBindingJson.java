@@ -61,6 +61,13 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     }
     
     
+    CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoders idEncoders, JsonWriter writer) throws IOException
+    {
+        super(ctx, idEncoders, writer);
+        init(ctx, false);
+    }
+    
+    
     void init(RequestContext ctx, boolean forReading)
     {
         this.rootURL = ctx.getApiRootURL();
@@ -92,13 +99,13 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
             {
                 var prop = reader.nextName();
                 
-                if ("commandSchema".equals(prop))
+                if ("paramsSchema".equals(prop))
                 {
                     sweReader.nextTag();
                     commandStruct = sweBindings.readDataComponent(sweReader);
                     commandStruct.setName(SWECommonUtils.NO_NAME);
                 }
-                else if ("commandEncoding".equals(prop))
+                else if ("paramsEncoding".equals(prop))
                 {
                     sweReader.nextTag();
                     commandEncoding = sweBindings.readAbstractEncoding(sweReader);
@@ -138,10 +145,7 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     @Override
     public void serialize(CommandStreamKey key, ICommandStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var dsId = idEncoders.getCommandStreamIdEncoder().encodeID(key.getInternalID());
-        
         writer.beginObject();
-        writer.name("control@id").value(dsId);
         writer.name("commandFormat").value(ResourceFormat.JSON.toString());
         
         // param structure & encoding
