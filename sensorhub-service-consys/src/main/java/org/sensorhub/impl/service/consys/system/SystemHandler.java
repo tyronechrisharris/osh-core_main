@@ -149,7 +149,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
                 .defaultToValidFromNow();
         }
         
-        var sysHandler = transactionHandler.addSystem(res);
+        var sysHandler = transactionHandler.addSystemOrReturnExisting(res);
 
         // also add datastreams if outputs were specified in SML description
         if (sml != null)

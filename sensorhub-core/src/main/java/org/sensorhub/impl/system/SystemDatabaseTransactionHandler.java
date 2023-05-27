@@ -91,6 +91,33 @@ public class SystemDatabaseTransactionHandler
     
     
     /**
+     * Add system or return ID of existing one.
+     * If no system with the same UID and validTime already exists, a new one will be created,
+     * otherwise the existing one will be returned.
+     * @param system New system description
+     * @return The transaction handler linked to the system
+     * @throws DataStoreException if the system couldn't be added or updated
+     */
+    public SystemTransactionHandler addSystemOrReturnExisting(ISystemWithDesc system) throws DataStoreException
+    {
+        OshAsserts.checkSystemObject(system);
+        
+        var systemHandler = getSystemHandler(system.getUniqueIdentifier());
+        if (systemHandler != null)
+        {
+            var validTime = system.getValidTime();
+            var sameValidTime = validTime == null ||
+                systemHandler.sysKey.getValidStartTime().equals(validTime.begin());
+            
+            if (sameValidTime)
+                return systemHandler;
+        }
+        
+        return addSystem(system);
+    }
+    
+    
+    /**
      * Add or update a system.
      * If no system with the same UID already exists, a new one will be created,
      * otherwise the existing one will be updated or versioned depending if the the validity
