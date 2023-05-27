@@ -193,10 +193,11 @@ public class DataStreamSource extends ExecutableProcessImpl implements ISensorHu
                     {
                         try
                         {
-                            if (needDedup && Objects.equal(latestObsTime, obs.getResultTime()))
+                            if (needDedup)
                             {
                                 needDedup = false;
-                                return;
+                                if (Objects.equal(latestObsTime, obs.getResultTime()))
+                                    return;
                             }
                             
                             output.setData(obs.getResult());
