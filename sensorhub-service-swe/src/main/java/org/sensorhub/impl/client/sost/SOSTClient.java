@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Flow.Subscription;
@@ -132,7 +133,7 @@ public class SOSTClient extends AbstractModule<SOSTClientConfig> implements ICli
     public SOSTClient()
     {
         this.startAsync = true;
-        this.registeredSystems = new ConcurrentSkipListMap<>();
+        this.registeredSystems = new ConcurrentHashMap<>();
         this.dataStreams = new ConcurrentSkipListMap<>();
     }
     
