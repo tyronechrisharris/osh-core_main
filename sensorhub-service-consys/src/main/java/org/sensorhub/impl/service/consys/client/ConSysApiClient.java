@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -49,11 +51,12 @@ import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingSmlJson;
 import org.sensorhub.impl.service.consys.stream.StreamHandler;
+import org.sensorhub.impl.service.consys.system.SystemBindingGeoJson;
 import org.sensorhub.impl.service.consys.task.CommandStreamBindingJson;
-import org.sensorhub.impl.system.wrapper.SystemWrapper;
 import org.sensorhub.utils.Lambdas;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
+import com.google.common.base.Strings;
 import com.google.common.net.HttpHeaders;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -90,11 +93,38 @@ public class ConSysApiClient
     /* Systems */
     /*---------*/
     
-    public CompletableFuture<ISystemWithDesc> getSystemById(String id)
+    public CompletableFuture<ISystemWithDesc> getSystemById(String id, ResourceFormat format)
     {
-        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + id), body -> {
-            // TODO
-            return new SystemWrapper(null);
+        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "/" + id), format, body -> {
+            try
+            {
+                var ctx = new RequestContext(body);
+                var binding = new SystemBindingGeoJson(ctx, null, true);
+                return binding.deserialize();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+                throw new CompletionException(e);
+            }
+        });
+    }
+    
+    
+    public CompletableFuture<ISystemWithDesc> getSystemByUid(String uid, ResourceFormat format)
+    {
+        return sendGetRequest(endpoint.resolve(SYSTEMS_COLLECTION + "?uid=" + uid), format, body -> {
+            try
+            {
+                var ctx = new RequestContext(body);
+                var binding = new SystemBindingGeoJson(ctx, null, true);
+                return binding.deserialize();
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+                throw new CompletionException(e);
+            }
         });
     }
     
@@ -112,7 +142,7 @@ public class ConSysApiClient
             return sendPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION),
                 ResourceFormat.SML_JSON,
-                buffer.getAsInputStream());
+                buffer);
         }
         catch (IOException e)
         {
@@ -155,7 +185,7 @@ public class ConSysApiClient
             return sendBatchPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION),
                 ResourceFormat.SML_JSON,
-                buffer.getAsInputStream());
+                buffer);
         }
         catch (IOException e)
         {
@@ -181,7 +211,7 @@ public class ConSysApiClient
             return sendPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + DATASTREAMS_COLLECTION),
                 ResourceFormat.JSON,
-                buffer.getAsInputStream());
+                buffer);
         }
         catch (IOException e)
         {
@@ -224,7 +254,7 @@ public class ConSysApiClient
             return sendBatchPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + DATASTREAMS_COLLECTION),
                 ResourceFormat.JSON,
-                buffer.getAsInputStream());
+                buffer);
         }
         catch (IOException e)
         {
@@ -250,7 +280,7 @@ public class ConSysApiClient
             return sendPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + CONTROLS_COLLECTION),
                 ResourceFormat.JSON,
-                buffer.getAsInputStream());
+                buffer);
         }
         catch (IOException e)
         {
@@ -293,7 +323,7 @@ public class ConSysApiClient
             return sendBatchPostRequest(
                 endpoint.resolve(SYSTEMS_COLLECTION + "/" + systemId + "/" + CONTROLS_COLLECTION),
                 ResourceFormat.JSON,
-                buffer.getAsInputStream());
+                buffer);
         }
         catch (IOException e)
         {
@@ -322,27 +352,31 @@ public class ConSysApiClient
     }
     
     
-    protected <T> CompletableFuture<T> sendGetRequest(URI collectionUri, Function<InputStream, T> bodyMapper)
+    protected <T> CompletableFuture<T> sendGetRequest(URI collectionUri, ResourceFormat format, Function<InputStream, T> bodyMapper)
     {
         var req = HttpRequest.newBuilder()
             .uri(collectionUri)
             .GET()
+            .header(HttpHeaders.ACCEPT, format.getMimeType())
             .build();
         
         var bodyHandler = new BodyHandler<T>() {
             @Override
             public BodySubscriber<T> apply(ResponseInfo resp)
             {
-                var upstream = BodySubscribers.ofInputStream();
+                //var upstream = BodySubscribers.ofInputStream();
+                var upstream = BodySubscribers.ofByteArray();
                 return BodySubscribers.mapping(upstream, body -> {
-                    return bodyMapper.apply(body);
+                    System.out.println(new String(body));
+                    var is = new ByteArrayInputStream(body);
+                    return bodyMapper.apply(is);
                 });
             }
         };
         
         return http.sendAsync(req, bodyHandler)
             .thenApply(resp ->  {
-                if (resp.statusCode() == 201 || resp.statusCode() == 303)
+                if (resp.statusCode() == 200)
                     return resp.body();
                 else
                     throw new CompletionException("HTTP error " + resp.statusCode(), null);
@@ -350,11 +384,12 @@ public class ConSysApiClient
     }
     
     
-    protected CompletableFuture<String> sendPostRequest(URI collectionUri, ResourceFormat format, InputStream body)
+    protected CompletableFuture<String> sendPostRequest(URI collectionUri, ResourceFormat format, InMemoryBufferStreamHandler body)
     {
         var req = HttpRequest.newBuilder()
             .uri(collectionUri)
-            .POST(HttpRequest.BodyPublishers.ofInputStream(() -> body))
+            .POST(HttpRequest.BodyPublishers.ofInputStream(() -> body.getAsInputStream()))
+            .header(HttpHeaders.ACCEPT, ResourceFormat.JSON.getMimeType())
             .header(HttpHeaders.CONTENT_TYPE, format.getMimeType())
             .build();
         
@@ -373,11 +408,11 @@ public class ConSysApiClient
     }
     
     
-    protected CompletableFuture<Set<String>> sendBatchPostRequest(URI collectionUri, ResourceFormat format, InputStream body)
+    protected CompletableFuture<Set<String>> sendBatchPostRequest(URI collectionUri, ResourceFormat format, InMemoryBufferStreamHandler body)
     {
         var req = HttpRequest.newBuilder()
             .uri(collectionUri)
-            .POST(HttpRequest.BodyPublishers.ofInputStream(() -> body))
+            .POST(HttpRequest.BodyPublishers.ofInputStream(() -> body.getAsInputStream()))
             .header(HttpHeaders.CONTENT_TYPE, format.getMimeType())
             .build();
         
@@ -415,9 +450,13 @@ public class ConSysApiClient
     
     public static class ConSysApiClientBuilder extends BaseBuilder<ConSysApiClient>
     {
+        HttpClient.Builder httpClientBuilder;
+        
+        
         ConSysApiClientBuilder(String endpoint)
         {
             this.instance = new ConSysApiClient();
+            this.httpClientBuilder = HttpClient.newBuilder();
             
             try
             {
@@ -432,10 +471,34 @@ public class ConSysApiClient
         }
         
         
+        public ConSysApiClientBuilder useHttpClient(HttpClient http)
+        {
+            instance.http = http;
+            return this;
+        }
+        
+        
+        public ConSysApiClientBuilder simpleAuth(String user, char[] password)
+        {
+            if (!Strings.isNullOrEmpty(user))
+            {
+                var finalPwd = password != null ? password : new char[0];
+                httpClientBuilder.authenticator(new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(user, finalPwd);
+                    }
+                });
+            }
+            
+            return this;
+        }
+        
+        
         public ConSysApiClient build()
         {
             if (instance.http == null)
-                instance.http = HttpClient.newHttpClient();
+                instance.http = httpClientBuilder.build();
             
             return instance;
         }

@@ -39,7 +39,7 @@ public class TestClientControlStreams extends TestClientBase
     public void setup() throws IOException, SensorHubException
     {
         super.setup();
-        this.apiRootUrl = "http://localhost:8181/sensorhub/api";
+        //this.apiRootUrl = "http://localhost:8181/sensorhub/api";
         systemTests = new TestClientSystems(apiRootUrl);
     }
     
