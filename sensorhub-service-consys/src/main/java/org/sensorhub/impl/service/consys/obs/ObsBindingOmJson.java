@@ -75,7 +75,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
             
             // init result writer only in case of single datastream
             // otherwise we'll do it later
-            if (contextData.dsInfo != null)
+            if (contextData != null && contextData.dsInfo != null)
             {
                 var resultWriter = getSweCommonWriter(contextData.dsInfo, writer, ctx.getPropertyFilter());
                 resultWriters.put(ctx.getParentID(), resultWriter);
@@ -154,6 +154,35 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
         }
         
         return newObs;
+    }
+    
+    
+    public void serializeCreate(IObsData obs) throws IOException
+    {
+        writer.beginObject();
+        
+        /*if (obs.hasFoi())
+        {
+            var foiId = idEncoders.getFoiIdEncoder().encodeID(obs.getFoiID());
+            writer.name("foi@id").value(foiId);
+        }*/
+        
+        writer.name("phenomenonTime").value(obs.getPhenomenonTime().toString());
+        writer.name("resultTime").value(obs.getResultTime().toString());
+        
+        // create or reuse existing result writer and write result data
+        writer.name("result");
+        var resultWriter = resultWriters.computeIfAbsent(obs.getDataStreamID(),
+            k -> getSweCommonWriter(k, writer, ctx.getPropertyFilter()) );
+        
+        // write if JSON is supported, otherwise print warning message
+        if (resultWriter instanceof JsonDataWriterGson)
+            resultWriter.write(obs.getResult());
+        else
+            writer.value("Compressed binary result not shown in JSON");
+        
+        writer.endObject();
+        writer.flush();
     }
 
 

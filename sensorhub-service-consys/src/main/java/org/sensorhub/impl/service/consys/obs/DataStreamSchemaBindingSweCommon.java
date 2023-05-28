@@ -63,6 +63,13 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
     }
     
     
+    public DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoders idEncoders, JsonWriter writer) throws IOException
+    {
+        super(ctx, idEncoders, writer);
+        init(obsFormat, ctx, false);
+    }
+    
+    
     void init(ResourceFormat obsFormat, RequestContext ctx, boolean forReading)
     {
         this.rootURL = ctx.getApiRootURL();
@@ -97,6 +104,7 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
                 {
                     sweReader.nextTag();
                     resultStruct = sweBindings.readDataComponent(sweReader);
+                    resultStruct.setName(SWECommonUtils.NO_NAME);
                 }
                 else if ("recordEncoding".equals(prop))
                 {

@@ -111,7 +111,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                     ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding = null;
                     if (ResourceFormat.OM_JSON.getMimeType().equals(obsFormat))
                         schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoders, reader);
-                    
+                    else if (obsFormat.startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
+                        schemaBinding = new DataStreamSchemaBindingSweCommon(ResourceFormat.fromMimeType(obsFormat), ctx, idEncoders, reader);
                     if (schemaBinding == null)
                         throw ServiceErrors.unsupportedFormat(obsFormat);
                     

@@ -232,7 +232,7 @@ public class RequestContext
     
     public void setResponseFormat(ResourceFormat format)
     {
-        this.format = Asserts.checkNotNull(format, ResourceFormat.class);
+        setFormat(format);
         this.setResponseContentType(format.getMimeType());
     }
     
@@ -241,6 +241,12 @@ public class RequestContext
     {
         setResponseFormat(format);
         this.propFilter = propFilter;
+    }
+    
+    
+    public void setFormat(ResourceFormat format)
+    {
+        this.format = Asserts.checkNotNull(format, ResourceFormat.class);
     }
     
     

@@ -51,6 +51,7 @@ import org.sensorhub.impl.system.DataStreamTransactionHandler;
 import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
+import net.opengis.swe.v20.BinaryEncoding;
 
 
 public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, IObsStore>
@@ -117,6 +118,8 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
                     throw ServiceErrors.badRequest("Invalid FOI ID");
                 contextData.foiId = foiID;
             }
+            else
+                contextData.foiId = BigId.NONE;
         }
         
         // select binding depending on format
@@ -133,7 +136,13 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
         // default to OM JSON
         var format = ctx.getFormat();
         if (format.equals(ResourceFormat.AUTO))
-            format = ResourceFormat.OM_JSON;
+        {
+            if (contextData.dsInfo != null && contextData.dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+                format = ResourceFormat.SWE_BINARY;
+            else
+                format = ResourceFormat.OM_JSON;
+            ctx.setFormat(format);
+        }
         
         if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.OM_JSON))
             return new ObsBindingOmJson(ctx, idEncoders, forReading, dataStore);

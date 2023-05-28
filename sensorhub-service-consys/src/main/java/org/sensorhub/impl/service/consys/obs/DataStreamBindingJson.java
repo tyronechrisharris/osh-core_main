@@ -41,6 +41,7 @@ import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataArray;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
@@ -127,7 +128,8 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                     ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding = null;
                     if (ResourceFormat.OM_JSON.getMimeType().equals(obsFormat))
                         schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoders, reader);
-                    
+                    else if (obsFormat.startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
+                        schemaBinding = new DataStreamSchemaBindingSweCommon(ResourceFormat.fromMimeType(obsFormat), ctx, idEncoders, reader);
                     if (schemaBinding == null)
                         throw ServiceErrors.unsupportedFormat(obsFormat);
                     
@@ -184,7 +186,11 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         }
         
         writer.name("schema");
-        var schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoders, writer);
+        ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding;
+        if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+            schemaBinding = new DataStreamSchemaBindingSweCommon(ResourceFormat.SWE_BINARY, ctx, idEncoders, writer);
+        else
+            schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoders, writer);
         schemaBinding.serialize(null, dsInfo, false);
         
         writer.endObject();

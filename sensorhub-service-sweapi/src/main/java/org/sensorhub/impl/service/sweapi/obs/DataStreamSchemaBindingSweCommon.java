@@ -97,6 +97,7 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
                 {
                     sweReader.nextTag();
                     resultStruct = sweBindings.readDataComponent(sweReader);
+                    resultStruct.setName(SWECommonUtils.NO_NAME);
                 }
                 else if ("recordEncoding".equals(prop))
                 {
