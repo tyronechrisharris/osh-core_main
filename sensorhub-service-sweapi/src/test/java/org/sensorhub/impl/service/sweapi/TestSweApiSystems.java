@@ -112,6 +112,7 @@ public class TestSweApiSystems extends TestSweApiBase
     }
     
     
+    /*removed test for now since we now return success in this case
     @Test
     public void testAddDuplicateSystem() throws Exception
     {
@@ -122,7 +123,7 @@ public class TestSweApiSystems extends TestSweApiBase
         
         resp = sendPostRequest(SYSTEM_COLLECTION, json);
         assertEquals(400, resp.statusCode());
-    }
+    }*/
     
     
     @Test
