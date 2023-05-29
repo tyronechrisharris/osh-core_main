@@ -92,13 +92,13 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
             {
                 var prop = reader.nextName();
                 
-                if ("commandSchema".equals(prop))
+                if ("paramsSchema".equals(prop))
                 {
                     sweReader.nextTag();
                     commandStruct = sweBindings.readDataComponent(sweReader);
                     commandStruct.setName(SWECommonUtils.NO_NAME);
                 }
-                else if ("commandEncoding".equals(prop))
+                else if ("paramsEncoding".equals(prop))
                 {
                     sweReader.nextTag();
                     commandEncoding = sweBindings.readAbstractEncoding(sweReader);
