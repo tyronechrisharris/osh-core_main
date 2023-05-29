@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -183,6 +184,13 @@ public abstract class BaseHandler implements IResourceHandler
             {
                 return new TemporalFilter.Builder()
                     .withLatestTime()
+                    .build();
+            }
+            else if (timeVal.startsWith("latest/"))
+            {
+                return new TemporalFilter.Builder()
+                    .withLatestTime()
+                    .withRangeBeginningNow(Instant.MAX)
                     .build();
             }
             else

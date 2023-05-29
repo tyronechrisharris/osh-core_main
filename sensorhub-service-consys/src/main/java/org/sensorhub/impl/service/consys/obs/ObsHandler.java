@@ -51,6 +51,7 @@ import org.sensorhub.impl.system.DataStreamTransactionHandler;
 import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.utils.CallbackException;
 import org.vast.util.Asserts;
+import com.google.common.base.Objects;
 import net.opengis.swe.v20.BinaryEncoding;
 
 
@@ -232,6 +233,8 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
         boolean isRealTime = (filter.getPhenomenonTime() == null && filter.getResultTime() == null) ||
                              (filter.getResultTime() != null && filter.getResultTime().beginsNow()) ||
                              (filter.getPhenomenonTime() != null && filter.getPhenomenonTime().beginsNow());
+        boolean includeLatest = (filter.getPhenomenonTime() != null && filter.getPhenomenonTime().isLatestTime()) ||
+                                (filter.getResultTime() != null && filter.getResultTime().isLatestTime());
         
         // parse replaySpeed param
         var replaySpeedOrNull = parseDoubleArg("replaySpeed", ctx.getParameterMap());
@@ -246,7 +249,7 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
                 var binding = getBinding(ctx, false);
                 
                 if (isRealTime)
-                    startRealTimeStream(ctx, dsID, filter, binding);
+                    startRealTimeStream(ctx, dsID, filter, binding, includeLatest);
                 else
                     startReplayStream(ctx, dsID, filter, replaySpeed, binding);
             }
@@ -258,7 +261,7 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
     }
     
     
-    protected void startRealTimeStream(final RequestContext ctx, final BigId dsID, final ObsFilter filter, final ResourceBinding<BigId, IObsData> binding)
+    protected void startRealTimeStream(final RequestContext ctx, final BigId dsID, final ObsFilter filter, final ResourceBinding<BigId, IObsData> binding, boolean includeLatest)
     {
         // init event to obs converter
         var dsInfo = ((ObsHandlerContextData)ctx.getData()).dsInfo;
@@ -266,14 +269,31 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
         
         // create subscriber
         var subscriber = new Subscriber<ObsEvent>() {
-            Subscription subscription;
+            volatile Subscription subscription;
+            volatile Instant latestObsTime;
+            volatile boolean needDedup;
             
             @Override
             public void onSubscribe(Subscription subscription)
             {
                 this.subscription = subscription;
-                subscription.request(Long.MAX_VALUE);
                 ctx.getLogger().debug("Starting real-time obs subscription #{}", System.identityHashCode(subscription));
+                
+                // first publish latest obs if requested
+                if (includeLatest)
+                {
+                    db.getObservationStore().select(new ObsFilter.Builder()
+                        .withDataStreams(dsID)
+                        .withLatestResult()
+                        .build()).findFirst().ifPresent(latestObs -> {
+                            latestObsTime = latestObs.getResultTime();
+                            sendObs(latestObs);
+                            needDedup = true;
+                        });
+                }
+                
+                // then request further obs
+                subscription.request(Long.MAX_VALUE);
                 
                 // cancel subscription if streaming is stopped by client
                 ctx.getStreamHandler().setCloseCallback(() -> {
@@ -285,13 +305,25 @@ public class ObsHandler extends BaseResourceHandler<BigId, IObsData, ObsFilter, 
             @Override
             public void onNext(ObsEvent event)
             {
+                for (var obs: event.getObservations())
+                    sendObs(obs);
+            }
+            
+            protected void sendObs(IObsData obs)
+            {
                 try
                 {
-                    for (var obs: event.getObservations())
+                    // dedup to avoid getting latest obs twice
+                    // this can happen if latest obs is added to db concurrently with us starting the stream!
+                    if (needDedup)
                     {
-                        binding.serialize(null, obs, false);
-                        streamHandler.sendPacket();
+                        needDedup = false;
+                        if (Objects.equal(latestObsTime, obs.getResultTime()))
+                            return;
                     }
+                    
+                    binding.serialize(null, obs, false);
+                    streamHandler.sendPacket();
                 }
                 catch (IOException e)
                 {
