@@ -92,7 +92,8 @@ public abstract class ResourceHandler<
             
             // limit
             // need to limit to offset+limit+1 since we rescan from the beginning for now
-            builder.withLimit(offset+limit+1);
+            // remove the limit here since it can interfere with post filtering in postProcessResultList
+            //builder.withLimit(offset+limit+1);
         }
         return builder.build();
     }
