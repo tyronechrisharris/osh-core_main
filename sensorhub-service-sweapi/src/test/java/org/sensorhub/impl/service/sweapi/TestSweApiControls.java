@@ -112,7 +112,7 @@ public class TestSweApiControls extends TestSweApiBase
             SWEStaxBindings sweBindings = new SWEStaxBindings();
             
             writer.name("schema").beginObject();
-            writer.name("commandSchema");
+            writer.name("paramsSchema");
             sweBindings.writeDataComponent(sweWriter, resultStruct, false);
             
             writer.endObject();
