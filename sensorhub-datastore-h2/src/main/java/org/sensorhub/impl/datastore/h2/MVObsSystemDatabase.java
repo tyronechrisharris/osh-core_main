@@ -77,6 +77,9 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
         try
         {
             MVStore.Builder builder = new MVStore.Builder().fileName(config.storagePath);
+            builder.backgroundExceptionHandler((t, e) -> {
+                getLogger().error("Error in H2 background thread {}", t.getName(), e);
+            });
             
             if (config.readOnly)
                 builder.readOnly();
