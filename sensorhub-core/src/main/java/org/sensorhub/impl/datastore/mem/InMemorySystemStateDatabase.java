@@ -43,15 +43,29 @@ public class InMemorySystemStateDatabase extends AbstractModule<DatabaseConfig> 
     ICommandStore cmdStore;
         
 
-    public InMemorySystemStateDatabase()
+    public InMemorySystemStateDatabase() { }
+
+    
+    /* Constructor used only in unit tests */
+    public InMemorySystemStateDatabase(int dbNum)
     {
-        this((byte)0);
+        try
+        {
+            var config = new DatabaseConfig();
+            config.databaseNum = dbNum;
+            init(config);
+        }
+        catch (SensorHubException e)
+        {
+            throw new IllegalStateException(e);
+        }
     }
     
     
-    public InMemorySystemStateDatabase(int databaseNum)
+    @Override
+    protected void doInit() throws SensorHubException
     {
-        this.databaseNum = databaseNum;
+        this.databaseNum = config.databaseNum == null ? 0 : config.databaseNum;
         
         this.procStore = new InMemorySystemStore(databaseNum);
         this.foiStore = new InMemoryFoiStore(databaseNum);
