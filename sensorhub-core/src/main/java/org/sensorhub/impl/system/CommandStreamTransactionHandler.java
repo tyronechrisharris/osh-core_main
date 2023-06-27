@@ -157,6 +157,9 @@ public class CommandStreamTransactionHandler implements IEventListener
         Asserts.checkNotNull(subscriber, Subscriber.class);
         
         var dataTopic = EventUtils.getCommandDataTopicID(csInfo);
+        if (rootHandler.eventBus.getNumberOfSubscribers(dataTopic) > 0)
+            throw new IllegalStateException("A command receiver is already connected to " + dataTopic);
+        
         rootHandler.eventBus.newSubscription(CommandEvent.class)
             .withTopicID(dataTopic)
             .subscribe(new DelegateSubscriber<CommandEvent>(subscriber) {
