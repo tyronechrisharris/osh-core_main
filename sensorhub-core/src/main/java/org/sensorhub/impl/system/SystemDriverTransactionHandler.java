@@ -130,32 +130,16 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         // if data producer, unregister datastreams
         if (driver instanceof IDataProducer)
         {
-            for (var dsHandler: dataStreamHandlers.values())
-            {
-                var outputName = dsHandler.getDataStreamInfo().getOutputName();
-                var output = ((IDataProducer)driver).getOutputs().get(outputName);
-                if (output != null)
-                    output.unregisterListener(dsHandler);
-                
-                if (sendEvents)
-                    dsHandler.disable();
-            }
+            for (var output: ((IDataProducer)driver).getOutputs().values())
+                doUnregister(output, sendEvents);
         }
         dataStreamHandlers.clear();
         
         // if taskable system, unregister command streams
         if (driver instanceof ICommandReceiver)
         {
-            for (var csHandler: commandStreamHandlers.values())
-            {
-                var inputName = csHandler.getCommandStreamInfo().getControlInputName();
-                var input = ((ICommandReceiver)driver).getCommandInputs().get(inputName);
-                if (input != null)
-                    input.unregisterListener(csHandler);
-                
-                if (sendEvents)
-                    csHandler.disable();
-            }
+            for (var input: ((ICommandReceiver)driver).getCommandInputs().values())
+                doUnregister(input, sendEvents);
         }
         commandStreamHandlers.clear();
         
@@ -299,12 +283,12 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
 
     public CompletableFuture<Void> unregister(IStreamingDataInterface output)
     {
-        doUnregister(output);
+        doUnregister(output, true);
         return CompletableFuture.completedFuture(null);
     }
     
     
-    protected synchronized void doUnregister(IStreamingDataInterface output)
+    protected synchronized void doUnregister(IStreamingDataInterface output, boolean sendEvents)
     {
         Asserts.checkNotNull(output, IStreamingDataInterface.class);
         
@@ -312,7 +296,8 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         if (dsHandler != null)
         {
             output.unregisterListener(dsHandler);
-            dsHandler.disable();
+            if (sendEvents)
+                dsHandler.disable();
         }
     }
 
@@ -421,12 +406,12 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
 
     public CompletableFuture<Void> unregister(IStreamingControlInterface controlInput)
     {
-        doUnregister(controlInput);
+        doUnregister(controlInput, true);
         return CompletableFuture.completedFuture(null);
     }
     
     
-    protected synchronized void doUnregister(IStreamingControlInterface controlInput)
+    protected synchronized void doUnregister(IStreamingControlInterface controlInput, boolean sendEvents)
     {
         Asserts.checkNotNull(controlInput, IStreamingControlInterface.class);
         
@@ -435,7 +420,8 @@ class SystemDriverTransactionHandler extends SystemTransactionHandler implements
         if (csHandler != null)
         {
             controlInput.unregisterListener(csHandler);
-            csHandler.disable();
+            if (sendEvents)
+                csHandler.disable();
         }
         
         // cancel subscriptions to received commands
