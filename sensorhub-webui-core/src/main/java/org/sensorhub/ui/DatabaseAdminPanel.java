@@ -19,6 +19,7 @@ import java.util.List;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IObsSystemDatabaseModule;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
+import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.module.ModuleConfig;
 import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
@@ -53,6 +54,7 @@ import com.vaadin.ui.VerticalLayout;
 public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseModule<?>> implements IModuleAdminPanel<IObsSystemDatabaseModule<?>>
 {
     private static final Action DELETE_SYSTEM_ACTION = new Action("Delete All System Data", new ThemeResource("icons/module_delete.png"));
+    private static final Action DELETE_OBS_ACTION = new Action("Delete System Observations", new ThemeResource("icons/module_delete.png"));
     
     VerticalLayout layout;
     SystemSearchList systemTable;
@@ -125,6 +127,7 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                 {
                     List<Action> actions = new ArrayList<>(10);
                     actions.add(DELETE_SYSTEM_ACTION);
+                    actions.add(DELETE_OBS_ACTION);
                     return actions.toArray(new Action[0]);
                 }
 
@@ -133,26 +136,52 @@ public class DatabaseAdminPanel extends DefaultModulePanel<IObsSystemDatabaseMod
                 {
                     String uid = (String)((TreeTable)sender).getValue();
                     
-                    final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all data associated with system:<br/><b>" + uid + "</b>");
-                    popup.addCloseListener(event -> {
-                        if (popup.isConfirmed())
-                        {
-                            try
+                    if (action == DELETE_SYSTEM_ACTION)
+                    {
+                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all data and metadata associated with system:<br/><b>" + uid + "?</b>");
+                        popup.addCloseListener(event -> {
+                            if (popup.isConfirmed())
                             {
-                                // log action
-                                var eventBus = module.getParentHub().getEventBus();
-                                var txnHandler = new SystemDatabaseTransactionHandler(eventBus, db);
-                                txnHandler.getSystemHandler(uid).delete(true);
-                                systemTable.updateTable(db, new SystemFilter.Builder().build());
+                                try
+                                {
+                                    var eventBus = module.getParentHub().getEventBus();
+                                    var txnHandler = new SystemDatabaseTransactionHandler(eventBus, db);
+                                    txnHandler.getSystemHandler(uid).delete(true);
+                                    systemTable.updateTable(db, new SystemFilter.Builder().build());
+                                }
+                                catch (Exception ex)
+                                {
+                                    getOshLogger().error("Error deleting system", ex);
+                                }
                             }
-                            catch (Exception ex)
+                        });
+                        systemTable.getUI().addWindow(popup);
+                    }
+                    else if (action == DELETE_OBS_ACTION)
+                    {
+                        final ConfirmDialog popup = new ConfirmDialog("Are you sure you want to remove all observations from system:<br/><b>" + uid + "?</b>");
+                        popup.addCloseListener(event -> {
+                            if (popup.isConfirmed())
                             {
-                                getOshLogger().error("Error deleting system", ex);
+                                try
+                                {
+                                    db.getObservationStore().removeEntries(new ObsFilter.Builder()
+                                        .withDataStreams()
+                                            .withSystems()
+                                                .withUniqueIDs(uid)
+                                                .done()
+                                            .done()
+                                        .build());
+                                    systemTable.updateTable(db, new SystemFilter.Builder().build());
+                                }
+                                catch (Exception ex)
+                                {
+                                    getOshLogger().error("Error deleting observations", ex);
+                                }
                             }
-                        }
-                    });
-                    
-                    systemTable.getUI().addWindow(popup);
+                        });
+                        systemTable.getUI().addWindow(popup);
+                    }
                 }
             });
                         
