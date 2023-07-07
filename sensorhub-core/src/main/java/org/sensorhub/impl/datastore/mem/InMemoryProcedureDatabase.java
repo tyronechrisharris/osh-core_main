@@ -19,6 +19,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.property.IPropertyStore;
 import org.sensorhub.impl.module.AbstractModule;
 
 
@@ -34,6 +35,7 @@ public class InMemoryProcedureDatabase extends AbstractModule<DatabaseConfig> im
 {
     int databaseNum = 0;
     IProcedureStore procStore;
+    IPropertyStore propStore;
     
 
     public InMemoryProcedureDatabase()
@@ -53,6 +55,13 @@ public class InMemoryProcedureDatabase extends AbstractModule<DatabaseConfig> im
     public IProcedureStore getProcedureStore()
     {
         return procStore;
+    }
+
+
+    @Override
+    public IPropertyStore getPropertyStore()
+    {
+        return propStore;
     }
 
 
@@ -83,7 +92,7 @@ public class InMemoryProcedureDatabase extends AbstractModule<DatabaseConfig> im
 
     @Override
     protected void doStop() throws SensorHubException
-    {        
+    {
     }
 
 

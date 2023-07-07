@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.sensorhub.api.ISensorHub;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.database.IFederatedDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IProcedureDatabase;
@@ -56,6 +57,7 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     Collection<IDatabase> allDatabases;
     Collection<IObsSystemDatabase> obsSystemDatabases;
     Collection<IProcedureDatabase> procedureDatabases;
+    Collection<IFeatureDatabase> featureDatabases;
     
     
     public DefaultDatabaseRegistry(ISensorHub hub)
@@ -73,6 +75,10 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
         this.procedureDatabases = Collections2.transform(
             Collections2.filter(allDatabases, db -> db instanceof IProcedureDatabase),
             db -> (IProcedureDatabase)db);
+        
+        this.featureDatabases = Collections2.transform(
+            Collections2.filter(allDatabases, db -> db instanceof IFeatureDatabase),
+            db -> (IFeatureDatabase)db);
     }
     
     
@@ -169,6 +175,30 @@ public class DefaultDatabaseRegistry implements IDatabaseRegistry
     public Collection<IProcedureDatabase> getProcedureDatabases()
     {
         return procedureDatabases;
+    }
+
+
+    /*
+     * Feature Databases
+     */
+    
+    @Override
+    public Collection<IFeatureDatabase> getFeatureDatabases()
+    {
+        return featureDatabases;
+    }
+
+
+    @Override
+    public IFeatureDatabase getFeatureDatabaseByNum(int dbNum)
+    {
+        checkDbNum(dbNum);
+        var db = databases.get(dbNum);
+        
+        if (db instanceof IFeatureDatabase)
+            return (IFeatureDatabase)db;
+        else
+            throw new IllegalArgumentException("No feature database with num " + dbNum);
     }
     
     

@@ -18,8 +18,8 @@ import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.command.ICommandStreamStore.CommandStreamInfoField;
+import org.sensorhub.api.datastore.resource.IResourceStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
-import org.sensorhub.api.resource.IResourceStore;
 
 
 /**

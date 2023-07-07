@@ -35,8 +35,11 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.property.PropertyKey;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.system.SystemFilter;
+import org.sensorhub.api.semantic.IConceptDef;
+import org.sensorhub.api.semantic.IDerivedProperty;
 import org.sensorhub.api.utils.OshAsserts;
 import org.sensorhub.impl.datastore.command.EmptyCommandStore;
 import org.vast.ogc.gml.IFeature;
@@ -57,6 +60,7 @@ import com.google.common.hash.Hashing;
 public class DataStoreUtils
 {
     public static final String ERROR_INVALID_KEY = "Key must be an instance of " + BigId.class.getSimpleName();
+    public static final String ERROR_EXISTING_RESOURCE = "Datastore already contains entry with the same UID: ";
     
     public static final String ERROR_INVALID_DATASTREAM_KEY = "Key must be an instance of " + DataStreamKey.class.getSimpleName();
     public static final String ERROR_EXISTING_DATASTREAM = "Datastore already contains datastream for the same system, output and validTime";
@@ -68,6 +72,10 @@ public class DataStoreUtils
     public static final String ERROR_EXISTING_FEATURE_VERSION = "Datastore already contains entry with the same UID and validTime";
     public static final String ERROR_CHANGED_FEATURE_UID = "Feature UID cannot be changed";
     public static final String ERROR_UNKNOWN_PARENT_FEATURE = "Unknown parent feature: ";
+    
+    public static final String ERROR_INVALID_PROPERTY_KEY = "Key must be an instance of " + PropertyKey.class.getSimpleName();
+    public static final String ERROR_EXISTING_PROPERTY = "Datastore already contains concept with the same URI: ";
+    
     
     public static final ICommandStore EMPTY_COMMAND_STORE = new EmptyCommandStore();
     
@@ -139,6 +147,25 @@ public class DataStoreUtils
             
             throw new DataStoreException(DataStoreUtils.ERROR_UNKNOWN_PARENT_FEATURE + parentID);
         }   
+    }
+    
+    
+    //////////////////////////////////////
+    // Helper methods for property stores
+    //////////////////////////////////////
+    
+    public static PropertyKey checkPropertyKey(Object key)
+    {
+        Asserts.checkNotNull(key, PropertyKey.class);
+        Asserts.checkArgument(key instanceof PropertyKey, ERROR_INVALID_PROPERTY_KEY);
+        return (PropertyKey)key;
+    }
+    
+    
+    public static void checkPropertyDef(IDerivedProperty prop) throws DataStoreException
+    {
+        Asserts.checkNotNull(prop, IDerivedProperty.class);
+        Asserts.checkNotNullOrBlank(prop.getURI(), "URI");
     }
     
     
@@ -302,6 +329,28 @@ public class DataStoreUtils
     }
     
     
+    public static Stream<String> selectSystemUIDs(ISystemDescStore systemStore, SystemFilter filter)
+    {
+        if (filter.getUniqueIDs() != null)
+        {
+            // if only internal unique IDs were specified, no need to search the linked datastore
+            return filter.getUniqueIDs().stream();
+        }
+        else
+        {
+            Asserts.checkState(systemStore != null, "No linked system store");
+            
+            // otherwise get all systems matching the filter from linked datastore
+            // we apply the distinct operation to make sure the same system is not
+            // listed twice (it can happen when there exists several versions of the
+            // same system description with different valid times)
+            return systemStore.select(filter)
+                .map(sys -> sys.getUniqueIdentifier())
+                .distinct();
+        }
+    }
+    
+    
     public static Stream<BigId> selectProcedureIDs(IProcedureStore procStore, ProcedureFilter filter)
     {
         if (filter.getInternalIDs() != null)
@@ -402,6 +451,21 @@ public class DataStoreUtils
         return f -> {
             // compute hash
             var hash = hashFunc.hashUnencodedChars(f.getUniqueIdentifier());
+            
+            // We keep only 42-bits so it can fit on a 8-bytes DES encrypted block,
+            // along with the ID scope and using variable length encoding.
+            return hash.asLong() & 0x3FFFFFFFFFFL;
+        };
+    }
+    
+    
+    public static <T extends IConceptDef> IdProvider<T> getConceptHashIdProvider(int seed)
+    {
+        var hashFunc = Hashing.murmur3_128(seed);
+        
+        return o -> {
+            // compute hash
+            var hash = hashFunc.hashUnencodedChars(o.getURI());
             
             // We keep only 42-bits so it can fit on a 8-bytes DES encrypted block,
             // along with the ID scope and using variable length encoding.

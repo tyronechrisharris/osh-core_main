@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.system;
 
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -68,5 +69,12 @@ public interface ISystemDescStore extends IFeatureStoreBase<ISystemWithDesc, Sys
      * @param procedureStore
      */
     public void linkTo(IProcedureStore procedureStore);
+    
+    
+    /**
+     * Link this store to a deployment store to enable JOIN queries
+     * @param deploymentStore
+     */
+    public void linkTo(IDeploymentStore deploymentStore);
     
 }

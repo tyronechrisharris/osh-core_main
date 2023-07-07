@@ -23,6 +23,7 @@ import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.type.DataType;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -49,6 +50,7 @@ import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDesc, SystemField, SystemFilter> implements ISystemDescStore
 {
     IDataStreamStore dataStreamStore;
+    IDeploymentStore deploymentStore;
     IProcedureStore procedureStore;
     
     
@@ -81,7 +83,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
     @Override
     protected DataType getFeatureDataType(MVMap<String, Integer> kryoClassMap)
     {
-        return new SystemDataType(kryoClassMap);
+        return new SensorMLDataType(kryoClassMap);
     }
     
     
@@ -159,37 +161,37 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
         // update validTime in the case it ends at now and there is a
         // more recent version of the system description available
         Stream<Entry<FeatureKey, ISystemWithDesc>> resultStream = super.selectEntriesNoLimit(filter, fields).map(e -> {
-            var proc = e.getValue();
-            var procWrap = new ISystemWithDesc()
+            var sys = e.getValue();
+            var sysWrapper = new ISystemWithDesc()
             {
                 TimeExtent validTime;
                 
-                public String getId() { return proc.getId(); }
-                public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
-                public String getName() { return proc.getName(); }
-                public String getDescription() { return proc.getDescription(); }
-                public Map<QName, Object> getProperties() { return proc.getProperties(); }
-                public AbstractProcess getFullDescription() { return proc.getFullDescription(); }  
+                public String getId() { return sys.getId(); }
+                public String getUniqueIdentifier() { return sys.getUniqueIdentifier(); }
+                public String getName() { return sys.getName(); }
+                public String getDescription() { return sys.getDescription(); }
+                public Map<QName, Object> getProperties() { return sys.getProperties(); }
+                public AbstractProcess getFullDescription() { return sys.getFullDescription(); }  
                 
                 public TimeExtent getValidTime()
                 {
                     if (validTime == null)
                     {
                         var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
-                        if (nextKey != null && proc.getValidTime() != null && proc.getValidTime().endsNow() &&
+                        if (nextKey != null && sys.getValidTime() != null && sys.getValidTime().endsNow() &&
                             nextKey.getInternalID().getIdAsLong() == e.getKey().getInternalID().getIdAsLong())
                         {
-                            validTime = TimeExtent.period(proc.getValidTime().begin(), nextKey.getValidStartTime());
+                            validTime = TimeExtent.period(sys.getValidTime().begin(), nextKey.getValidStartTime());
                         }
                         else
-                            validTime = proc.getValidTime();
+                            validTime = sys.getValidTime();
                     }
                     
                     return validTime;
                 }
             };
             
-            return new DataUtils.MapEntry<>(e.getKey(), procWrap);
+            return new DataUtils.MapEntry<>(e.getKey(), sysWrapper);
         });
         
         // apply post filter on time now that we computed the correct valid time period
@@ -233,6 +235,13 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
     public void linkTo(IProcedureStore procedureStore)
     {
         this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
+    }
+
+
+    @Override
+    public void linkTo(IDeploymentStore deploymentStore)
+    {
+        this.deploymentStore = Asserts.checkNotNull(deploymentStore, IDeploymentStore.class);
     }
 
 }

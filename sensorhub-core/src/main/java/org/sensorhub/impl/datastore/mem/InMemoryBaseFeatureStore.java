@@ -452,51 +452,58 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
     @Override
     public synchronized T put(FeatureKey key, T feature)
     {
-        FeatureKey fk = new MutableFeatureKey(DataStoreUtils.checkFeatureKey(key));
-        DataStoreUtils.checkFeatureObject(feature);
-        
-        // check that no other feature with same UID exists
-        var uid = feature.getUniqueIdentifier();
-        var existingKey = uidMap.get(uid);
-        if (existingKey != null && existingKey.getInternalID().getIdAsLong() != key.getInternalID().getIdAsLong())
-            throw new IllegalArgumentException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
-        
-        // skip silently if feature currently in store is newer
-        // or if new feature has a valid time in the future
-        if ((existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime())) || 
-            key.getValidStartTime().isAfter(Instant.now()) )
-            return map.get(existingKey);
-        
-        // otherwise update main map
-        // update both key and value atomically
-        T old;
-        if (existingKey != null)
+        try
         {
-            old = map.get(fk);
-            if (!old.getUniqueIdentifier().equals(feature.getUniqueIdentifier()))
-                throw new IllegalArgumentException(DataStoreUtils.ERROR_CHANGED_FEATURE_UID);
+            FeatureKey fk = new MutableFeatureKey(DataStoreUtils.checkFeatureKey(key));
+            DataStoreUtils.checkFeatureObject(feature);
             
-            // make sure key valid time is updated
-            Instant newValidStartTime = fk.getValidStartTime();
-            map.compute(existingKey, (k, v) -> {
-                ((MutableFeatureKey)k).updateValidTime(newValidStartTime);
-                return feature;
-            });
+            // check that no other feature with same UID exists
+            var uid = feature.getUniqueIdentifier();
+            var existingKey = uidMap.get(uid);
+            if (existingKey != null && existingKey.getInternalID().getIdAsLong() != key.getInternalID().getIdAsLong())
+                throw new DataStoreException(DataStoreUtils.ERROR_EXISTING_FEATURE + uid);
             
-            // make sure from now on we use the same key object
-            // as the one already in the main map
-            fk = existingKey;
+            // skip silently if feature currently in store is newer
+            // or if new feature has a valid time in the future
+            if ((existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime())) || 
+                key.getValidStartTime().isAfter(Instant.now()) )
+                return map.get(existingKey);
+            
+            // otherwise update main map
+            // update both key and value atomically
+            T old;
+            if (existingKey != null)
+            {
+                old = map.get(fk);
+                if (!old.getUniqueIdentifier().equals(feature.getUniqueIdentifier()))
+                    throw new DataStoreException(DataStoreUtils.ERROR_CHANGED_FEATURE_UID);
+                
+                // make sure key valid time is updated
+                Instant newValidStartTime = fk.getValidStartTime();
+                map.compute(existingKey, (k, v) -> {
+                    ((MutableFeatureKey)k).updateValidTime(newValidStartTime);
+                    return feature;
+                });
+                
+                // make sure from now on we use the same key object
+                // as the one already in the main map
+                fk = existingKey;
+            }
+            else
+                old = map.put(fk, feature);
+            /*T old = map.remove(fk);
+            map.put(fk, feature);*/
+            
+            // update other indexes
+            uidMap.put(feature.getUniqueIdentifier(), fk);
+            addToSpatialIndex(fk, feature);
+            
+            return old;
         }
-        else
-            old = map.put(fk, feature);
-        /*T old = map.remove(fk);
-        map.put(fk, feature);*/
-        
-        // update other indexes
-        uidMap.put(feature.getUniqueIdentifier(), fk);
-        addToSpatialIndex(fk, feature);
-        
-        return old;
+        catch (DataStoreException e)
+        {
+            throw new IllegalArgumentException(e);
+        }
     }
     
     

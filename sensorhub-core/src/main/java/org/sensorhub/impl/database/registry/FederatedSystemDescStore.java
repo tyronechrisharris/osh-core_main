@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -155,6 +156,13 @@ public class FederatedSystemDescStore extends FederatedBaseFeatureStore<ISystemW
 
     @Override
     public void linkTo(IProcedureStore procedureStore)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public void linkTo(IDeploymentStore deploymentStore)
     {
         throw new UnsupportedOperationException();
     }

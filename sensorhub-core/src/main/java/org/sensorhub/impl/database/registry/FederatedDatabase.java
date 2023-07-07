@@ -22,15 +22,18 @@ import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IDatabaseRegistry;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.database.IFederatedDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.property.IPropertyStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 
@@ -41,7 +44,10 @@ public class FederatedDatabase implements IFederatedDatabase
     final FederatedFoiStore foiStore;
     final FederatedObsStore obsStore;
     final FederatedCommandStore commandStore;
+    final FederatedDeploymentStore deploymentStore;
     final FederatedProcedureStore procedureStore;
+    final FederatedPropertyStore propertyStore;
+    final FederatedFeatureStore featureStore;
     final IDatabaseRegistry registry;
     
     
@@ -54,6 +60,7 @@ public class FederatedDatabase implements IFederatedDatabase
     
     static class ObsSystemDbFilterInfo extends LocalFilterInfo<IObsSystemDatabase> { }
     static class ProcedureDbFilterInfo extends LocalFilterInfo<IProcedureDatabase> { }
+    static class FeatureDbFilterInfo extends LocalFilterInfo<IFeatureDatabase> { }
     
 
     public FederatedDatabase(IDatabaseRegistry registry)
@@ -63,7 +70,10 @@ public class FederatedDatabase implements IFederatedDatabase
         this.foiStore = new FederatedFoiStore(this);
         this.obsStore = new FederatedObsStore(this);
         this.commandStore = new FederatedCommandStore(this);
+        this.deploymentStore = new FederatedDeploymentStore(this);
         this.procedureStore = new FederatedProcedureStore(this);
+        this.propertyStore = new FederatedPropertyStore(this);
+        this.featureStore = new FederatedFeatureStore(this);
     }
     
     
@@ -76,6 +86,12 @@ public class FederatedDatabase implements IFederatedDatabase
     protected IProcedureDatabase getProcedureDatabase(BigId id)
     {
         return registry.getProcedureDatabaseByNum(id.getScope());
+    }
+    
+    
+    protected IFeatureDatabase getFeatureDatabase(BigId id)
+    {
+        return registry.getFeatureDatabaseByNum(id.getScope());
     }
     
     
@@ -120,6 +136,25 @@ public class FederatedDatabase implements IFederatedDatabase
     }
     
     
+    protected Map<Integer, FeatureDbFilterInfo> getFeatureDbFilterDispatchMap(Set<BigId> idList)
+    {
+        Map<Integer, FeatureDbFilterInfo> map = new LinkedHashMap<>();
+        
+        for (var id: idList)
+        {
+            var db = getFeatureDatabase(id);
+            if (db == null)
+                continue;
+                
+            var filterInfo = map.computeIfAbsent(db.getDatabaseNum(), k -> new FeatureDbFilterInfo());
+            filterInfo.db = db;
+            filterInfo.ids.add(id);
+        }
+        
+        return map;
+    }
+    
+    
     @Override
     public ISystemDescStore getSystemDescStore()
     {
@@ -149,9 +184,23 @@ public class FederatedDatabase implements IFederatedDatabase
 
 
     @Override
+    public IDeploymentStore getDeploymentStore()
+    {
+        return deploymentStore;
+    }
+
+
+    @Override
     public IProcedureStore getProcedureStore()
     {
         return procedureStore;
+    }
+
+
+    @Override
+    public IPropertyStore getPropertyStore()
+    {
+        return propertyStore;
     }
 
 
@@ -171,6 +220,12 @@ public class FederatedDatabase implements IFederatedDatabase
     protected Collection<IProcedureDatabase> getAllProcDatabases()
     {
         return registry.getProcedureDatabases();
+    }
+    
+    
+    protected Collection<IFeatureDatabase> getAllFeatureDatabases()
+    {
+        return registry.getFeatureDatabases();
     }
 
 

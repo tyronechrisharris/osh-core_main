@@ -16,8 +16,9 @@ package org.sensorhub.api.datastore.deployment;
 
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.deployment.IDeploymentStore.DeploymentField;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.system.IDeploymentWithDesc;
 
 
 /**
@@ -26,9 +27,9 @@ import org.sensorhub.api.procedure.IProcedureWithDesc;
  * </p>
  *
  * @author Alex Robin
- * @date April 4, 2023
+ * @since June 22, 2023
  */
-public interface IDeploymentStore extends IFeatureStoreBase<IProcedureWithDesc, DeploymentField, DeploymentFilter>
+public interface IDeploymentStore extends IFeatureStoreBase<IDeploymentWithDesc, DeploymentField, DeploymentFilter>
 {
     
     public static class DeploymentField extends FeatureField
@@ -43,13 +44,7 @@ public interface IDeploymentStore extends IFeatureStoreBase<IProcedureWithDesc, 
         public static final DeploymentField CAPABILITIES = new DeploymentField("capabilities");
         public static final DeploymentField CONTACTS = new DeploymentField("contacts");
         public static final DeploymentField DOCUMENTATION = new DeploymentField("documentation");
-        public static final DeploymentField CONFIGURATION = new DeploymentField("configuration");
-        public static final DeploymentField INPUTS = new DeploymentField("inputs");
-        public static final DeploymentField OUTPUTS = new DeploymentField("outputs");
-        public static final DeploymentField PARAMETERS = new DeploymentField("parameters");
-        public static final DeploymentField MODES = new DeploymentField("modes");
         public static final DeploymentField COMPONENTS = new DeploymentField("components");
-        public static final DeploymentField CONNECTIONS = new DeploymentField("connections");
         
         public DeploymentField(String name)
         {
@@ -63,5 +58,12 @@ public interface IDeploymentStore extends IFeatureStoreBase<IProcedureWithDesc, 
     {
         return new DeploymentFilter.Builder();
     }
+    
+    
+    /**
+     * Link this store to a system store to enable JOIN queries
+     * @param systemStore
+     */
+    public void linkTo(ISystemDescStore systemStore);
     
 }

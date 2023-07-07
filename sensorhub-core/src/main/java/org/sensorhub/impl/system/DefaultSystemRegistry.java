@@ -32,6 +32,7 @@ import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.CommandStreamFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.system.ISystemDriver;
 import org.sensorhub.api.system.ISystemDriverRegistry;
 import org.sensorhub.api.utils.OshAsserts;
@@ -97,6 +98,14 @@ public class DefaultSystemRegistry implements ISystemDriverRegistry
         {
             throw new IllegalStateException("Error initializing system state database", e);
         }
+    }
+
+
+    @Override
+    public CompletableFuture<Void> register(IProcedureWithDesc proc)
+    {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 

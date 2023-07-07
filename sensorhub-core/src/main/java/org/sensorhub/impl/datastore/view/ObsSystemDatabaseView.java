@@ -19,6 +19,8 @@ import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.command.CommandFilter;
 import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.deployment.DeploymentFilter;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
@@ -33,6 +35,7 @@ public class ObsSystemDatabaseView implements IObsSystemDatabase
     IObsSystemDatabase delegate;
     SystemStoreView systemStoreView;
     FoiStoreView foiStoreView;
+    DeploymentStoreView deploymentStoreView;
     ObsStoreView obsStoreView;
     CommandStoreView commandStoreView;
     
@@ -94,7 +97,12 @@ public class ObsSystemDatabaseView implements IObsSystemDatabase
             sysFilter = cmdFilter.getCommandStreamFilter().getSystemFilter();
         }
         
+        var deployFilter = new DeploymentFilter.Builder()
+            .withSystems(sysFilter)
+            .build();
+        
         this.systemStoreView = new SystemStoreView(delegate.getSystemDescStore(), sysFilter);
+        this.deploymentStoreView = new DeploymentStoreView(delegate.getDeploymentStore(), deployFilter);
         this.foiStoreView = new FoiStoreView(delegate.getFoiStore(), obsFilter.getFoiFilter());
         this.obsStoreView = new ObsStoreView(delegate.getObservationStore(), obsFilter);
         this.commandStoreView = new CommandStoreView(delegate.getCommandStore(), cmdFilter);
@@ -114,6 +122,13 @@ public class ObsSystemDatabaseView implements IObsSystemDatabase
     public ISystemDescStore getSystemDescStore()
     {
         return systemStoreView;
+    }
+
+
+    @Override
+    public IDeploymentStore getDeploymentStore()
+    {
+        return deploymentStoreView;
     }
 
 

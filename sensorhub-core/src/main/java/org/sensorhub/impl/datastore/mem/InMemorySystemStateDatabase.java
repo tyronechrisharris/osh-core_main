@@ -19,6 +19,7 @@ import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.ISystemStateDatabase;
 import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
@@ -39,9 +40,10 @@ public class InMemorySystemStateDatabase extends AbstractModule<DatabaseConfig> 
     int databaseNum = 0;
     ISystemDescStore procStore;
     IFoiStore foiStore;
+    IDeploymentStore deploymentStore;
     IObsStore obsStore;
     ICommandStore cmdStore;
-        
+    
 
     public InMemorySystemStateDatabase() { }
 
@@ -69,6 +71,7 @@ public class InMemorySystemStateDatabase extends AbstractModule<DatabaseConfig> 
         
         this.procStore = new InMemorySystemStore(databaseNum);
         this.foiStore = new InMemoryFoiStore(databaseNum);
+        this.deploymentStore = new InMemoryDeploymentStore(databaseNum);
         this.obsStore = new InMemoryObsStore(databaseNum);
         this.cmdStore = new InMemoryCommandStore(databaseNum);
         
@@ -92,6 +95,13 @@ public class InMemorySystemStateDatabase extends AbstractModule<DatabaseConfig> 
     public IFoiStore getFoiStore()
     {
         return foiStore;
+    }
+
+
+    @Override
+    public IDeploymentStore getDeploymentStore()
+    {
+        return deploymentStore;
     }
 
 
@@ -136,7 +146,7 @@ public class InMemorySystemStateDatabase extends AbstractModule<DatabaseConfig> 
 
     @Override
     protected void doStop() throws SensorHubException
-    {        
+    {
     }
 
 

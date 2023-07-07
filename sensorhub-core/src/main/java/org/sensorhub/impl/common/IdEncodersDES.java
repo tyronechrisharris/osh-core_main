@@ -48,20 +48,24 @@ public class IdEncodersDES implements IdEncoders
     static final String FEATURE_ID_KEY = "featIdKey";
     static final String PROC_ID_KEY = "procIdKey";
     static final String SYS_ID_KEY = "sysIdKey";
+    static final String DEPL_ID_KEY = "deplIdKey";
     static final String FOI_ID_KEY = "foiIdKey";
     static final String DS_ID_KEY = "dsIdKey";
     static final String OBS_ID_KEY = "obsIdKey";
     static final String CS_ID_KEY = "csIdKey";
     static final String CMD_ID_KEY = "cmdIdKey";
+    static final String PROP_ID_KEY = "propIdKey";
     
     final IdEncoder featureIdEncoder;
     final IdEncoder procIdEncoder;
     final IdEncoder sysIdEncoder;
+    final IdEncoder deplIdEncoder;
     final IdEncoder foiIdEncoder;
     final IdEncoder dsIdEncoder;
     final IdEncoder obsIdEncoder;
     final IdEncoder csIdEncoder;
     final IdEncoder cmdIdEncoder;
+    final IdEncoder propIdEncoder;
     
     
     public IdEncodersDES(ISensorHub hub)
@@ -91,11 +95,13 @@ public class IdEncodersDES implements IdEncoders
             this.featureIdEncoder = createEncoder(FEATURE_ID_KEY, idKeysProps, prng);
             this.procIdEncoder = createEncoder(PROC_ID_KEY, idKeysProps, prng);
             this.sysIdEncoder = createEncoder(SYS_ID_KEY, idKeysProps, prng);
+            this.deplIdEncoder = createEncoder(DEPL_ID_KEY, idKeysProps, prng);
             this.foiIdEncoder = createEncoder(FOI_ID_KEY, idKeysProps, prng);
             this.dsIdEncoder = createEncoder(DS_ID_KEY, idKeysProps, prng);
             this.obsIdEncoder = createEncoder(OBS_ID_KEY, idKeysProps, prng);
             this.csIdEncoder = createEncoder(CS_ID_KEY, idKeysProps, prng);
             this.cmdIdEncoder = createEncoder(CMD_ID_KEY, idKeysProps, prng);
+            this.propIdEncoder = createEncoder(PROP_ID_KEY, idKeysProps, prng);
         }
         catch (GeneralSecurityException e)
         {
@@ -152,6 +158,13 @@ public class IdEncodersDES implements IdEncoders
     {
         return sysIdEncoder;
     }
+
+
+    @Override
+    public IdEncoder getDeploymentIdEncoder()
+    {
+        return deplIdEncoder;
+    }
     
     
     public IdEncoder getFoiIdEncoder()
@@ -181,5 +194,12 @@ public class IdEncodersDES implements IdEncoders
     public IdEncoder getCommandIdEncoder()
     {
         return cmdIdEncoder;
+    }
+
+
+    @Override
+    public IdEncoder getPropertyIdEncoder()
+    {
+        return propIdEncoder;
     }
 }

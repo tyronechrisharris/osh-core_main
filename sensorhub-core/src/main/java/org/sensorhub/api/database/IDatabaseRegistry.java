@@ -109,6 +109,22 @@ public interface IDatabaseRegistry
      * the specified number
      */
     public IProcedureDatabase getProcedureDatabaseByNum(int dbNum);
+    
+    
+    /**
+     * @return The list of all feature databases registered on the hub (read-only)
+     */
+    Collection<IFeatureDatabase> getFeatureDatabases();
+    
+    
+    /**
+     * Provides direct (potentially read/write) access to the feature
+     * database with the specified number
+     * @param dbNum Database number (unique on a given hub instance)
+     * @return The database instance or null if none has been assigned
+     * the specified number
+     */
+    public IFeatureDatabase getFeatureDatabaseByNum(int dbNum);
 
 
     /**

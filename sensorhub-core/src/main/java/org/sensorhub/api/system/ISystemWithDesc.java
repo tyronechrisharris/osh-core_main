@@ -14,7 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.system;
 
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.feature.ISmlFeature;
+import org.vast.ogc.om.IProcedure;
+import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
@@ -39,7 +41,7 @@ import org.sensorhub.api.procedure.IProcedureWithDesc;
  * @author Alex Robin
  * @date Oct 4, 2020
  */
-public interface ISystemWithDesc extends IProcedureWithDesc
+public interface ISystemWithDesc extends ISmlFeature<AbstractProcess>, IProcedure
 {
     
 }

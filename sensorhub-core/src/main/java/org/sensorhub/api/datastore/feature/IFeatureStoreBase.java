@@ -22,7 +22,7 @@ import org.sensorhub.api.datastore.TemporalFilter;
 import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
-import org.sensorhub.api.resource.IResourceStore;
+import org.sensorhub.api.datastore.resource.IResourceStore;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Bbox;
 

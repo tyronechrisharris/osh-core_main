@@ -16,6 +16,7 @@ package org.sensorhub.api.system;
 
 import java.util.Collection;
 import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.database.IProcedureDatabase;
 
 
 /**
@@ -29,7 +30,7 @@ import org.sensorhub.api.database.IObsSystemDatabase;
  * @author Alex Robin
  * @date Nov 16, 2020
  */
-public interface ISystemDriverDatabase extends IObsSystemDatabase
+public interface ISystemDriverDatabase extends IObsSystemDatabase, IProcedureDatabase
 {
     
     /**

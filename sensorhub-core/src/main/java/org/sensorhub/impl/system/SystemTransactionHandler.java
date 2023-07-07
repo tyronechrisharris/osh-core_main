@@ -137,7 +137,9 @@ public class SystemTransactionHandler
         }
         catch (IllegalArgumentException e)
         {
-            throw new DataStoreException(e.getMessage());
+            if (e.getCause() instanceof DataStoreException)
+                throw (DataStoreException)e.getCause();
+            throw e;
         }
         
         return true;

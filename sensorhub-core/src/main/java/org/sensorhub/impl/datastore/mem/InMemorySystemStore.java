@@ -17,6 +17,7 @@ package org.sensorhub.impl.datastore.mem;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sensorhub.api.datastore.IdProvider;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
@@ -42,6 +43,7 @@ public class InMemorySystemStore extends InMemoryBaseFeatureStore<ISystemWithDes
 {
     IDataStreamStore dataStreamStore;
     IProcedureStore procedureStore;
+    IDeploymentStore deploymentStore;
     
     
     public InMemorySystemStore(int idScope)
@@ -101,5 +103,12 @@ public class InMemorySystemStore extends InMemoryBaseFeatureStore<ISystemWithDes
     public void linkTo(IProcedureStore procedureStore)
     {
         this.procedureStore = Asserts.checkNotNull(procedureStore, IProcedureStore.class);
+    }
+
+
+    @Override
+    public void linkTo(IDeploymentStore deploymentStore)
+    {
+        this.deploymentStore = Asserts.checkNotNull(deploymentStore, IDeploymentStore.class);
     }
 }

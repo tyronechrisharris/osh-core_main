@@ -29,9 +29,9 @@ import net.opengis.OgcPropertyList;
  * @author Alex Robin
  * @date Apr 7, 2018
  */
-public class SystemDataType extends KryoDataType
+public class SensorMLDataType extends KryoDataType
 {
-    SystemDataType(MVMap<String, Integer> kryoClassMap)
+    SensorMLDataType(MVMap<String, Integer> kryoClassMap)
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {

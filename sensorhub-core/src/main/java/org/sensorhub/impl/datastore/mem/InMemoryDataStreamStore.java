@@ -14,13 +14,8 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.mem;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.time.Instant;
 import java.util.AbstractMap;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Set;
@@ -37,6 +32,7 @@ import org.sensorhub.api.datastore.obs.DataStreamKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.obs.ObsFilter;
+import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.obs.DataStreamInfoWrapper;
@@ -52,9 +48,9 @@ import org.vast.util.TimeExtent;
  * @author Alex Robin
  * @date Sep 28, 2019
  */
-public class InMemoryDataStreamStore implements IDataStreamStore
+public class InMemoryDataStreamStore
+    extends InMemoryResourceStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter> implements IDataStreamStore
 {
-    final NavigableMap<DataStreamKey, IDataStreamInfo> map = new ConcurrentSkipListMap<>();
     final NavigableMap<BigId, Set<DataStreamKey>> procIdToDsKeys = new ConcurrentSkipListMap<>();
     final InMemoryObsStore obsStore;
     final IdProvider<IDataStreamInfo> idProvider;
@@ -103,25 +99,26 @@ public class InMemoryDataStreamStore implements IDataStreamStore
 
     public InMemoryDataStreamStore(InMemoryObsStore obsStore)
     {
+        super(obsStore.idScope);
         this.obsStore = Asserts.checkNotNull(obsStore, IObsStore.class);
         this.idProvider = DataStoreUtils.getDataStreamHashIdProvider(451255888);
     }
     
     
     @Override
-    public synchronized DataStreamKey add(IDataStreamInfo dsInfo) throws DataStoreException
+    protected DataStreamKey checkKey(Object key)
+    {
+        return DataStoreUtils.checkDataStreamKey(key);
+    }
+    
+    
+    @Override
+    protected IDataStreamInfo checkValue(IDataStreamInfo dsInfo) throws DataStoreException
     {
         DataStoreUtils.checkDataStreamInfo(systemStore, dsInfo);
         
         // use valid time of parent system or current time if none was set
-        dsInfo = DataStoreUtils.ensureValidTime(systemStore, dsInfo);
-
-        // create key
-        var newKey = generateKey(dsInfo);
-
-        // add to store
-        put(newKey, dsInfo, false);
-        return newKey;
+        return DataStoreUtils.ensureValidTime(systemStore, dsInfo);
     }
     
     
@@ -133,7 +130,14 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         // make sure that the same system/output combination always returns the same ID
         // this will keep things more consistent across restart
         var hash = idProvider.newInternalID(dsInfo);
-        return new DataStreamKey(obsStore.idScope, hash);
+        return new DataStreamKey(idScope, hash);
+    }
+
+
+    @Override
+    protected DataStreamKey getKey(BigId id)
+    {
+        return new DataStreamKey(id);
     }
 
 
@@ -159,7 +163,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         if (filter.getInternalIDs() != null)
         {
             keyStream = filter.getInternalIDs().stream()
-                .map(id -> new DataStreamKey(id));
+                .map(id -> getKey(id));
         }
         
         // or filter on selected systems
@@ -195,23 +199,6 @@ public class InMemoryDataStreamStore implements IDataStreamStore
                 IDataStreamInfo val = new DataStreamInfoWithTimeRanges(e.getKey().getInternalID(), e.getValue());
                 return (Entry<DataStreamKey, IDataStreamInfo>)new AbstractMap.SimpleEntry<>(e.getKey(), val);
             });
-    }
-
-
-    @Override
-    public IDataStreamInfo put(DataStreamKey key, IDataStreamInfo dsInfo)
-    {
-        DataStoreUtils.checkDataStreamKey(key);
-        
-        try
-        {
-            DataStoreUtils.checkDataStreamInfo(systemStore, dsInfo);
-            return put(key, dsInfo, true);
-        }
-        catch (DataStoreException e)
-        {
-            throw new IllegalArgumentException(e);
-        }
     }
     
     
@@ -264,7 +251,7 @@ public class InMemoryDataStreamStore implements IDataStreamStore
     @Override
     public IDataStreamInfo remove(Object key)
     {
-        var dsKey = DataStoreUtils.checkDataStreamKey(key);
+        var dsKey = checkKey(key);
         var oldValue = new AtomicReference<IDataStreamInfo>();
         
         map.computeIfPresent(dsKey, (k, v) -> {
@@ -283,104 +270,6 @@ public class InMemoryDataStreamStore implements IDataStreamStore
         });
         
         return oldValue.get();
-    }
-
-
-    @Override
-    public long getNumRecords()
-    {
-        return map.size();
-    }
-
-
-    @Override
-    public void clear()
-    {
-        map.clear();
-    }
-
-
-    @Override
-    public boolean containsKey(Object key)
-    {
-        var dsKey = DataStoreUtils.checkDataStreamKey(key);
-        return map.containsKey(dsKey);
-    }
-
-
-    @Override
-    public boolean containsValue(Object val)
-    {
-        return map.containsValue(val);
-    }
-
-
-    @Override
-    public Set<Entry<DataStreamKey, IDataStreamInfo>> entrySet()
-    {
-        return map.entrySet();
-    }
-
-
-    @Override
-    public boolean isEmpty()
-    {
-        return map.isEmpty();
-    }
-
-
-    @Override
-    public Set<DataStreamKey> keySet()
-    {
-        return Collections.unmodifiableSet(map.keySet());
-    }
-
-
-    @Override
-    public int size()
-    {
-        return map.size();
-    }
-
-
-    @Override
-    public Collection<IDataStreamInfo> values()
-    {
-        return Collections.unmodifiableCollection(map.values());
-    }
-
-
-    @Override
-    public String getDatastoreName()
-    {
-        return getClass().getSimpleName();
-    }
-
-
-    @Override
-    public void commit()
-    {        
-    }
-
-
-    @Override
-    public void backup(OutputStream is) throws IOException
-    {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public void restore(InputStream os) throws IOException
-    {
-        throw new UnsupportedOperationException();
-    }
-
-
-    @Override
-    public boolean isReadOnly()
-    {
-        return false;
     }
     
     

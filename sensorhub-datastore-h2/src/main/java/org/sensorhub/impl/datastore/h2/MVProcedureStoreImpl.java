@@ -14,22 +14,15 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.xml.namespace.QName;
-import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.type.DataType;
-import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore.ProcedureField;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.vast.util.TimeExtent;
-import net.opengis.sensorml.v20.AbstractProcess;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 
@@ -75,7 +68,7 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
     @Override
     protected DataType getFeatureDataType(MVMap<String, Integer> kryoClassMap)
     {
-        return new SystemDataType(kryoClassMap);
+        return new SensorMLDataType(kryoClassMap);
     }
     
     
@@ -107,53 +100,6 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
                     resultStream = postFilterKeyValidTime(resultStream, filter.getValidTime());
             }
         }
-        
-        return resultStream;
-    }
-
-
-    @Override
-    public Stream<Entry<FeatureKey, IProcedureWithDesc>> selectEntries(ProcedureFilter filter, Set<ProcedureField> fields)
-    {
-        // update validTime in the case it ends at now and there is a
-        // more recent version of the system description available
-        Stream<Entry<FeatureKey, IProcedureWithDesc>> resultStream = super.selectEntries(filter, fields).map(e -> {
-            var proc = (IProcedureWithDesc)e.getValue();
-            var procWrap = new IProcedureWithDesc()
-            {
-                TimeExtent validTime;
-                
-                public String getId() { return proc.getId(); }
-                public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
-                public String getName() { return proc.getName(); }
-                public String getDescription() { return proc.getDescription(); }
-                public Map<QName, Object> getProperties() { return proc.getProperties(); }
-                public AbstractProcess getFullDescription() { return proc.getFullDescription(); }
-                
-                public TimeExtent getValidTime()
-                {
-                    if (validTime == null)
-                    {
-                        var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
-                        if (nextKey != null && proc.getValidTime() != null && proc.getValidTime().endsNow() &&
-                            nextKey.getInternalID().getIdAsLong() == e.getKey().getInternalID().getIdAsLong())
-                        {
-                            validTime = TimeExtent.period(proc.getValidTime().begin(), nextKey.getValidStartTime());
-                        }
-                        else
-                            validTime = proc.getValidTime();
-                    }
-                    
-                    return validTime;
-                }
-            };
-            
-            return new DataUtils.MapEntry<FeatureKey, IProcedureWithDesc>(e.getKey(), procWrap);
-        });
-        
-        // apply post filter on time now that we computed the correct valid time period
-        if (filter.getValidTime() != null)
-            resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
         
         return resultStream;
     }

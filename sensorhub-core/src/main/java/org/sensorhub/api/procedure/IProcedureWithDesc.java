@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.procedure;
 
+import org.sensorhub.api.feature.ISmlFeature;
 import org.vast.ogc.om.IProcedure;
 import net.opengis.sensorml.v20.AbstractProcess;
 
@@ -35,20 +36,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @date Oct 4, 2021
  */
-public interface IProcedureWithDesc extends IProcedure
+public interface IProcedureWithDesc extends ISmlFeature<AbstractProcess>, IProcedure
 {
-
-    /**
-     * @return The procedure/system type as a URI
-     */
-    @Override
-    public default String getType()
-    {
-        var sml = getFullDescription();
-        return sml != null ? sml.getType() : null;
-    }
-    
-    
-    AbstractProcess getFullDescription();
     
 }

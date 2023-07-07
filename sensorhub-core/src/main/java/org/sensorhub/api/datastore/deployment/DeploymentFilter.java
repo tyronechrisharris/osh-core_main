@@ -18,22 +18,23 @@ import java.util.Collection;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.EmptyFilterIntersection;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.resource.ResourceFilter;
+import org.sensorhub.api.system.IDeploymentWithDesc;
 
 
 /**
  * <p>
- * Immutable filter object for procedure resources<br/>
+ * Immutable filter object for deployment resources<br/>
  * There is an implicit AND between all filter parameters
  * </p>
  *
  * @author Alex Robin
- * @date Oct 4, 2021
+ * @since April 4, 2023
  */
-public class DeploymentFilter extends FeatureFilterBase<IProcedureWithDesc>
+public class DeploymentFilter extends FeatureFilterBase<IDeploymentWithDesc>
 {
-    protected DeploymentFilter parentFilter;
+    protected SystemFilter systemFilter;
 
     
     /*
@@ -42,9 +43,9 @@ public class DeploymentFilter extends FeatureFilterBase<IProcedureWithDesc>
     protected DeploymentFilter() {}
     
     
-    public DeploymentFilter getParentFilter()
+    public SystemFilter getSystemFilter()
     {
-        return parentFilter;
+        return systemFilter;
     }
     
     
@@ -55,7 +56,7 @@ public class DeploymentFilter extends FeatureFilterBase<IProcedureWithDesc>
      * @throws EmptyFilterIntersection if the intersection doesn't exist
      */
     @Override
-    public DeploymentFilter intersect(ResourceFilter<IProcedureWithDesc> filter) throws EmptyFilterIntersection
+    public DeploymentFilter intersect(ResourceFilter<IDeploymentWithDesc> filter) throws EmptyFilterIntersection
     {
         if (filter == null)
             return this;
@@ -64,13 +65,13 @@ public class DeploymentFilter extends FeatureFilterBase<IProcedureWithDesc>
     }
     
     
-    protected <B extends ProcedureFilterBuilder<B, DeploymentFilter>> B intersect(DeploymentFilter otherFilter, B builder) throws EmptyFilterIntersection
+    protected <B extends DeploymentFilterBuilder<B, DeploymentFilter>> B intersect(DeploymentFilter otherFilter, B builder) throws EmptyFilterIntersection
     {
         super.intersect(otherFilter, builder);
         
-        var parentFilter = this.parentFilter != null ? this.parentFilter.intersect(otherFilter.parentFilter) : otherFilter.parentFilter;
-        if (parentFilter != null)
-            builder.withParents(parentFilter);
+        var systemFilter = this.systemFilter != null ? this.systemFilter.intersect(otherFilter.systemFilter) : otherFilter.systemFilter;
+        if (systemFilter != null)
+            builder.withSystems(systemFilter);
         
         return builder;
     }
@@ -88,7 +89,7 @@ public class DeploymentFilter extends FeatureFilterBase<IProcedureWithDesc>
     /*
      * Builder
      */
-    public static class Builder extends ProcedureFilterBuilder<Builder, DeploymentFilter>
+    public static class Builder extends DeploymentFilterBuilder<Builder, DeploymentFilter>
     {
         public Builder()
         {
@@ -110,7 +111,7 @@ public class DeploymentFilter extends FeatureFilterBase<IProcedureWithDesc>
     /*
      * Nested builder for use within another builder
      */
-    public abstract static class NestedBuilder<B> extends ProcedureFilterBuilder<NestedBuilder<B>, DeploymentFilter>
+    public abstract static class NestedBuilder<B> extends DeploymentFilterBuilder<NestedBuilder<B>, DeploymentFilter>
     {
         B parent;
         
@@ -125,13 +126,13 @@ public class DeploymentFilter extends FeatureFilterBase<IProcedureWithDesc>
     
     
     @SuppressWarnings("unchecked")
-    public abstract static class ProcedureFilterBuilder<
-            B extends ProcedureFilterBuilder<B, F>,
+    public abstract static class DeploymentFilterBuilder<
+            B extends DeploymentFilterBuilder<B, F>,
             F extends DeploymentFilter>
-        extends FeatureFilterBaseBuilder<B, IProcedureWithDesc, F>
+        extends FeatureFilterBaseBuilder<B, IDeploymentWithDesc, F>
     {
         
-        protected ProcedureFilterBuilder(F instance)
+        protected DeploymentFilterBuilder(F instance)
         {
             super(instance);
         }
@@ -141,79 +142,63 @@ public class DeploymentFilter extends FeatureFilterBase<IProcedureWithDesc>
         public B copyFrom(F base)
         {
             super.copyFrom(base);
-            instance.parentFilter = base.parentFilter;
+            instance.systemFilter = base.systemFilter;
             return (B)this;
         }
         
         
         /**
-         * Keep only procedures that are sub-types of the the procedures matching
-         * the filter.
-         * @param filter Parent procedure filter
+         * Keep only deployments that involve systems matching the filter.
+         * @param filter System filter
          * @return This builder for chaining
          */
-        public B withParents(DeploymentFilter filter)
+        public B withSystems(SystemFilter filter)
         {
-            instance.parentFilter = filter;
+            instance.systemFilter = filter;
             return (B)this;
         }
 
         
         /**
-         * Keep only procedures that are sub-types of the procedures matching
-         * the filter.<br/>
+         * Keep only deployments that involve systems matching the filter.<br/>
          * Call done() on the nested builder to go back to main builder.
          * @return The {@link DeploymentFilter} builder for chaining
          */
-        public DeploymentFilter.NestedBuilder<B> withParents()
+        public SystemFilter.NestedBuilder<B> withSystems()
         {
-            return new DeploymentFilter.NestedBuilder<B>((B)this) {
+            return new SystemFilter.NestedBuilder<B>((B)this) {
                 @Override
                 public B done()
                 {
-                    ProcedureFilterBuilder.this.withParents(build());
-                    return (B)ProcedureFilterBuilder.this;
+                    DeploymentFilterBuilder.this.withSystems(build());
+                    return (B)DeploymentFilterBuilder.this;
                 }
             };
         }
         
         
         /**
-         * Keep only procedures that are sub-types of the procedures with the
-         * specified internal IDs
-         * @param ids List of IDs of parent procedures
+         * Keep only deployments that involve systems with the specified internal IDs
+         * @param ids List of system IDs
          * @return This builder for chaining
          */
-        public B withParents(BigId... ids)
+        public B withSystems(BigId... ids)
         {
-            return withParents()
+            return withSystems()
                 .withInternalIDs(ids)
                 .done();
         }
         
         
         /**
-         * Keep only procedures that are sub-types of the procedures with the
-         * specified internal IDs
-         * @param ids Collection of IDs of parent procedures
+         * Keep only deployments that involve systems with the specified internal IDs
+         * @param ids Collection of of system IDs
          * @return This builder for chaining
          */
-        public B withParents(Collection<BigId> ids)
+        public B withSystems(Collection<BigId> ids)
         {
-            return withParents()
+            return withSystems()
                 .withInternalIDs(ids)
-                .done();
-        }
-        
-        
-        /**
-         * Keep only procedures that have no parent
-         * @return This builder for chaining
-         */
-        public B withNoParent()
-        {
-            return withParents()
-                .withInternalIDs(BigId.NONE)
                 .done();
         }
     }

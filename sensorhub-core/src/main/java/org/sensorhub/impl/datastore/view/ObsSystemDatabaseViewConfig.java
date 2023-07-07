@@ -51,7 +51,7 @@ public class ObsSystemDatabaseViewConfig
         
     public IObsSystemDatabase getFilteredView(ISensorHub hub)
     {
-        var srcDatabase = sourceDatabaseId != null ?
+        IObsSystemDatabase srcDatabase = sourceDatabaseId != null ?
             hub.getDatabaseRegistry().getObsDatabaseByModuleID(sourceDatabaseId) :
             hub.getDatabaseRegistry().getFederatedDatabase();
          

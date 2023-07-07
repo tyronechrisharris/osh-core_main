@@ -16,6 +16,7 @@ package org.sensorhub.utils;
 
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 
@@ -46,6 +47,12 @@ public class Lambdas
     public interface ThrowingFunction<T, R>
     {
         public R apply(T t) throws Exception;
+    }
+    
+    
+    public interface ThrowingBiFunction<T, U, R>
+    {
+        public R apply(T t, U u) throws Exception;
     }
     
     
@@ -106,6 +113,27 @@ public class Lambdas
             try
             {
                 return f.apply(t);
+            }
+            catch (Exception e)
+            {
+                throw wrap(e);
+            }
+        };
+    }
+    
+    
+    /**
+     * Returns a {@link BiFunction} that catches all checked exceptions
+     * and wraps them inside of an unchecked {@link CallbackException}
+     * @param f The checked function that can throw an exception
+     * @return A regular {@link Function}
+     */
+    public static final <T, U, R> BiFunction<T, U, R> checked(ThrowingBiFunction<T, U, R> f)
+    {
+        return (t, u) -> {
+            try
+            {
+                return f.apply(t, u);
             }
             catch (Exception e)
             {

@@ -21,6 +21,7 @@ import org.sensorhub.api.data.IDataProducer;
 import org.sensorhub.api.data.IStreamingDataInterface;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.ISystemStateDatabase;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.vast.ogc.gml.IFeature;
 
 
@@ -68,6 +69,21 @@ public interface ISystemDriverRegistry
     
     
     /**
+     * Registers a procedure implemented by a system driver.<br/>
+     * The procedure can be the datasheet of a piece of equipment (e.g. sensor,
+     * platform, etc.), or it can be a methodology implemented by an operator to
+     * measure, sample or act on features of interest.<br/>
+     * System descriptions (that represent system instances) can then refer to
+     * these procedures/datasheets instead of including all information in each
+     * instance.
+     * @param proc The procedure description
+     * @return A future that will be completed when the procedure is
+     * successfully unregistered or report an exception if an error occurred.
+     */
+    public CompletableFuture<Void> register(IProcedureWithDesc proc);
+    
+    
+    /**
      * Asynchronously registers a datastream / data interface.
      * @param dataStream The streaming data interface of a system driver
      * @return A future that will be completed when the datastream is successfully
@@ -102,11 +118,11 @@ public interface ISystemDriverRegistry
      * Note that unregistering the system doesn't remove it from the
      * data store but only disconnects the system driver and send a
      * {@link SystemDisabledEvent} event.
-     * @param proc The system driver instance
-     * @return A future that will be completed when the control interface is
+     * @param sys The system driver instance
+     * @return A future that will be completed when the system driver is
      * successfully unregistered or report an exception if an error occurred.
      */
-    public CompletableFuture<Void> unregister(ISystemDriver proc);
+    public CompletableFuture<Void> unregister(ISystemDriver sys);
     
     
     /**

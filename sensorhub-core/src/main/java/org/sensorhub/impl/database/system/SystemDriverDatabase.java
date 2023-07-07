@@ -24,10 +24,16 @@ import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IObsSystemDatabaseModule;
 import org.sensorhub.api.database.IObsSystemDbAutoPurgePolicy;
+import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
+import org.sensorhub.api.datastore.procedure.EmptyProcedureStore;
+import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.property.EmptyPropertyStore;
+import org.sensorhub.api.datastore.property.IPropertyStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.module.IModule;
 import org.sensorhub.api.module.ModuleEvent.ModuleState;
@@ -166,6 +172,12 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
     }
 
 
+    public IDeploymentStore getDeploymentStore()
+    {
+        return db.getDeploymentStore();
+    }
+
+
     public void commit()
     {
         db.commit();
@@ -196,6 +208,24 @@ public class SystemDriverDatabase extends AbstractModule<SystemDriverDatabaseCon
     public ICommandStore getCommandStore()
     {
         return db.getCommandStore();
+    }
+
+
+    @Override
+    public IProcedureStore getProcedureStore()
+    {
+        return db instanceof IProcedureDatabase ?
+            ((IProcedureDatabase)db).getProcedureStore() :
+            new EmptyProcedureStore();
+    }
+
+
+    @Override
+    public IPropertyStore getPropertyStore()
+    {
+        return db instanceof IProcedureDatabase ?
+            ((IProcedureDatabase)db).getPropertyStore() :
+            new EmptyPropertyStore();
     }
     
     

@@ -19,6 +19,7 @@ import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.procedure.ProcedureFilter;
+import org.sensorhub.api.datastore.property.IPropertyStore;
 import org.sensorhub.impl.datastore.ReadOnlyDataStore;
 import org.vast.util.Asserts;
 
@@ -27,6 +28,7 @@ public class ProcedureDatabaseView implements IProcedureDatabase
 {
     IProcedureDatabase delegate;
     ProcedureStoreView procStoreView;
+    PropertyStoreView propStoreView;
     
     
     public ProcedureDatabaseView(IProcedureDatabase delegate, ProcedureFilter procFilter)
@@ -42,6 +44,7 @@ public class ProcedureDatabaseView implements IProcedureDatabase
         }
         
         this.procStoreView = new ProcedureStoreView(delegate.getProcedureStore(), procFilter);
+        this.propStoreView = new PropertyStoreView(delegate.getPropertyStore(), delegate.getPropertyStore().selectAllFilter());
     }
     
     
@@ -58,6 +61,13 @@ public class ProcedureDatabaseView implements IProcedureDatabase
     public IProcedureStore getProcedureStore()
     {
         return procStoreView;
+    }
+
+
+    @Override
+    public IPropertyStore getPropertyStore()
+    {
+        return propStoreView;
     }
 
 

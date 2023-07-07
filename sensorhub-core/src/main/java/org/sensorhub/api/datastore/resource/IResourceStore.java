@@ -7,11 +7,12 @@
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.api.resource;
+package org.sensorhub.api.datastore.resource;
 
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
+import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
 import org.vast.util.IResource;
 

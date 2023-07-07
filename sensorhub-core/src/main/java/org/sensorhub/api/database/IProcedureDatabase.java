@@ -15,22 +15,51 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.database;
 
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.procedure.EmptyProcedureStore;
+import org.sensorhub.api.datastore.property.IPropertyStore;
+import org.sensorhub.api.datastore.property.EmptyPropertyStore;
 
 
 /**
  * <p>
- * Common interface for procedure databases
+ * Common interface for procedure databases.<br/>
+ * Procedure databases are used to store information about various kinds of
+ * procedures, including:
+ * 
+ * <p>
+ * - Observing procedures (e.g. sensor datasheet, description of measurement methodologies...)<br/>
+ * - Actuating procedures (e.g. actuator datasheet, description of actions by humans or agents...)<br/>
+ * - Sampling procedures (e.g. description of field or lab sampling methodologies...)<br/>
+ * - Other procedures (e.g. platform datasheets...)<br/>
+ * </p>
+ * 
+ * This information is provided through a separate interface because it will
+ * often be implemented using a different backend (i.e. shared by different)
+ * as procedure level metadata is typically much more static than information
+ * related to particular system instances.
+ * 
+ * This kind of database is also capable of storing semantic information about
+ * the properties measured or controlled by procedures.
  * </p>
  *
  * @author Alex Robin
- * @date Oct 4, 2021
+ * @since June 22, 2023
  */
 public interface IProcedureDatabase extends IDatabase
 {
-
+    
     /**
-     * @return The data store containing the feature data
+     * @return Data store containing the procedure descriptions.<br/>
+     * If the database does not support persisting procedure descriptions, return
+     * an instance of {@link EmptyProcedureStore}
      */
     IProcedureStore getProcedureStore();
     
+    
+    /**
+     * @return Dataata store containing the property definitions.<br/>
+     * If the database does not support persisting property definitions, return
+     * an instance of {@link EmptyPropertyStore}
+     */
+    IPropertyStore getPropertyStore();
 }

@@ -36,6 +36,9 @@ public interface IdEncoders
     public IdEncoder getSystemIdEncoder();
     
     
+    public IdEncoder getDeploymentIdEncoder();
+    
+    
     public IdEncoder getFoiIdEncoder();
     
     
@@ -49,4 +52,7 @@ public interface IdEncoders
     
     
     public IdEncoder getCommandIdEncoder();
+    
+    
+    public IdEncoder getPropertyIdEncoder();
 }
