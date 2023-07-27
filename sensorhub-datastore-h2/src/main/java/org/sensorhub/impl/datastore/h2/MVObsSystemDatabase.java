@@ -25,9 +25,11 @@ import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.property.IPropertyStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.module.AbstractModule;
 import org.sensorhub.utils.FileUtils;
@@ -47,17 +49,21 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
 {
     final static String KRYO_CLASS_MAP_NAME = "kryo_class_map";
     final static String SYSTEM_STORE_NAME = "sys_store";
+    final static String DEPL_STORE_NAME = "depl_store";
     final static String FOI_STORE_NAME = "foi_store";
     final static String OBS_STORE_NAME = "obs_store";
     final static String CMD_STORE_NAME = "cmd_store";
     final static String PROC_STORE_NAME = "proc_store";
+    final static String PROP_STORE_NAME = "prop_store";
     
     MVStore mvStore;
-    MVSystemDescStoreImpl sysStore;
+    MVSystemStoreImpl sysStore;
+    MVDeploymentStoreImpl deplStore;
     MVObsStoreImpl obsStore;
     MVFoiStoreImpl foiStore;
     MVCommandStoreImpl cmdStore;
     MVProcedureStoreImpl procStore;
+    //MVPropertyStoreImpl propStore;
     
     
     @Override
@@ -102,9 +108,14 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
             
             var idScope = getDatabaseNum() != null ? getDatabaseNum() : 0;
             
-            // open system desc store
-            sysStore = MVSystemDescStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
+            // open system store
+            sysStore = MVSystemStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(SYSTEM_STORE_NAME)
+                .build());
+            
+            // open deployment store
+            deplStore = MVDeploymentStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
+                .withName(DEPL_STORE_NAME)
                 .build());
             
             // open foi store
@@ -128,6 +139,7 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
                 .build());
             
             sysStore.linkTo(obsStore.getDataStreams());
+            sysStore.linkTo(procStore);
             foiStore.linkTo(sysStore);
             foiStore.linkTo(obsStore);
             obsStore.linkTo(foiStore);
@@ -214,6 +226,14 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
 
 
     @Override
+    public IDeploymentStore getDeploymentStore()
+    {
+        checkStarted();
+        return deplStore;
+    }
+
+
+    @Override
     public IObsStore getObservationStore()
     {
         checkStarted();
@@ -242,6 +262,14 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
     {
         checkStarted();
         return procStore;
+    }
+
+
+    @Override
+    public IPropertyStore getPropertyStore()
+    {
+        checkStarted();
+        return null;//propStore;
     }
 
 

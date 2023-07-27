@@ -16,6 +16,7 @@ package org.sensorhub.impl.datastore.h2;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.type.DataType;
@@ -25,6 +26,7 @@ import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
+import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
@@ -38,6 +40,21 @@ import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
  */
 public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithDesc, ProcedureField, ProcedureFilter> implements IProcedureStore
 {
+
+    static class ProcedureValidTimeAdapter extends FeatureValidTimeAdapter<IProcedureWithDesc> implements IProcedureWithDesc
+    {
+        public ProcedureValidTimeAdapter(MVFeatureParentKey fk, IProcedureWithDesc f, MVBTreeMap<MVFeatureParentKey, IProcedureWithDesc> featuresIndex)
+        {
+            super(fk, f, featuresIndex);
+        }
+        
+        @Override
+        public AbstractProcess getFullDescription()
+        {
+            return ((IProcedureWithDesc)f).getFullDescription();
+        }
+    }
+    
     
     protected MVProcedureStoreImpl()
     {
@@ -102,6 +119,12 @@ public class MVProcedureStoreImpl extends MVBaseFeatureStoreImpl<IProcedureWithD
         }
         
         return resultStream;
+    }
+    
+    
+    protected IProcedureWithDesc getFeatureWithAdjustedValidTime(MVFeatureParentKey fk, IProcedureWithDesc sys)
+    {
+        return new ProcedureValidTimeAdapter(fk, sys, featuresIndex);
     }
 
 }

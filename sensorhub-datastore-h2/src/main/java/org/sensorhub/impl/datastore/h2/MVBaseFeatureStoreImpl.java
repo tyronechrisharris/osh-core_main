@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
@@ -555,39 +556,11 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
     @Override
     public Stream<Entry<FeatureKey, V>> selectEntries(F filter, Set<VF> fields)
     {
-        var resultStream = selectEntriesNoLimit(filter, fields);
-        
-        // apply limit
-        if (filter.getLimit() < Long.MAX_VALUE)
-            resultStream = resultStream.limit(filter.getLimit());
-        
-        return resultStream;
-    }
-    
-    
-    public Stream<Entry<FeatureKey, V>> selectEntriesNoLimit(F filter, Set<VF> fields)
-    {
         var resultStream = getIndexedStream(filter);
         
         // if no suitable index was found, just stream all features
         if (resultStream == null)
             resultStream = featuresIndex.entrySet().stream();
-        
-        /*// add exact time predicate
-        // this is now applied in sub classes after valid time period has been computed
-        if (filter.getValidTime() != null)
-        {            
-            if (filter.getValidTime().isLatestTime())
-            {
-                // TODO optimize this case!
-                resultStream = resultStream.filter(e -> {
-                    FeatureKey nextKey = featuresIndex.higherKey(e.getKey());
-                    return nextKey == null || nextKey.getInternalID() != e.getKey().getInternalID();
-                });
-            }
-            else
-                resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
-        }*/
         
         // add exact geo predicate
         if (filter.getLocationFilter() != null)
@@ -613,10 +586,31 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
                 });
         }
         
+        // adjust validTime in the case it ends at now and there is a
+        // more recent version of the feature description available
+        resultStream = resultStream.map(e -> {
+            var wf = getFeatureWithAdjustedValidTime((MVFeatureParentKey)e.getKey(), e.getValue());
+            return new DataUtils.MapEntry<>(e.getKey(), wf);
+        });
+        
+        // apply post filter on time now that we computed the correct valid time period
+        if (filter.getValidTime() != null)
+            resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
+        
+        // apply limit
+        if (filter.getLimit() < Long.MAX_VALUE)
+            resultStream = resultStream.limit(filter.getLimit());
+        
         // casting is ok since keys are subtypes of FeatureKey
         @SuppressWarnings({ "unchecked", })
         var castedResultStream = (Stream<Entry<FeatureKey, V>>)(Stream<?>)resultStream;
         return castedResultStream;
+    }
+    
+    
+    protected V getFeatureWithAdjustedValidTime(MVFeatureParentKey fk, V f)
+    {
+        return f;
     }
 
 
@@ -771,7 +765,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
         }
         catch (DataStoreException e)
         {
-            throw new IllegalArgumentException(e.getMessage());
+            throw new IllegalArgumentException(e);
         }
     }
     
@@ -905,7 +899,7 @@ public abstract class MVBaseFeatureStoreImpl<V extends IFeature, VF extends Feat
             public int size()
             {
                 return MVBaseFeatureStoreImpl.this.size();
-            }            
+            }
         };
     }
 

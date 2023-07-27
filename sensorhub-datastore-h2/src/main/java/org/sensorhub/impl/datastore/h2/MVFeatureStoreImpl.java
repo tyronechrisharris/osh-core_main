@@ -14,20 +14,15 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.MVStore;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
-import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
-import org.sensorhub.api.feature.FeatureWrapper;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
 import org.vast.ogc.gml.IFeature;
-import org.vast.util.TimeExtent;
 
 
 public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, FeatureField, FeatureFilter> implements IFeatureStore
@@ -90,53 +85,12 @@ public class MVFeatureStoreImpl extends MVBaseFeatureStoreImpl<IFeature, Feature
         
         return resultStream;
     }
-
-
+    
+    
     @Override
-    public Stream<Entry<FeatureKey, IFeature>> selectEntries(FeatureFilter filter, Set<FeatureField> fields)
+    protected IFeature getFeatureWithAdjustedValidTime(MVFeatureParentKey fk, IFeature f)
     {
-        // update validTime in the case it ends at now and there is a
-        // more recent version of the feature description available
-        Stream<Entry<FeatureKey, IFeature>> resultStream = super.selectEntriesNoLimit(filter, fields).map(e -> {
-            var f = e.getValue();
-            if (f.getValidTime() != null)
-            {
-                var fWrap = new FeatureWrapper(f)
-                {
-                    TimeExtent validTime;
-                    public TimeExtent getValidTime()
-                    {
-                        if (validTime == null)
-                        {
-                            var nextKey = featuresIndex.higherKey((MVFeatureParentKey)e.getKey());
-                            if (nextKey != null && f.getValidTime() != null && f.getValidTime().endsNow() &&
-                                nextKey.getInternalID().getIdAsLong() == e.getKey().getInternalID().getIdAsLong())
-                            {
-                                validTime = TimeExtent.period(f.getValidTime().begin(), nextKey.getValidStartTime());
-                            }
-                            else
-                                validTime = f.getValidTime();
-                        }
-                        
-                        return validTime;
-                    }
-                };
-                
-                return new DataUtils.MapEntry<FeatureKey, IFeature>(e.getKey(), fWrap);
-            }
-            else
-                return e;
-        });
-        
-        // apply post filter on time now that we computed the correct valid time period
-        if (filter.getValidTime() != null)
-            resultStream = resultStream.filter(e -> filter.testValidTime(e.getValue()));
-        
-        // apply limit
-        if (filter.getLimit() < Long.MAX_VALUE)
-            resultStream = resultStream.limit(filter.getLimit());
-        
-        return resultStream;
+        return new FeatureValidTimeAdapter<IFeature>(fk, f, featuresIndex);
     }
 
 }

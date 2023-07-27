@@ -31,7 +31,7 @@ import net.opengis.gml.v32.AbstractGeometry;
  */
 public class FeatureWrapper implements IFeature
 {
-    IFeature f;
+    protected IFeature f;
 
 
     public FeatureWrapper(IFeature delegate)

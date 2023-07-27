@@ -1158,7 +1158,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         // sampling features
         numFeatures = 10000;
         t0 = System.nanoTime();
-        addSamplingPoints2D(0, numFeatures);
+        addSamplingPoints2D(1000000, numFeatures);
         featureStore.commit();
         dt = System.nanoTime() - t0;
         throughPut = (int)(numFeatures/dt*1e9);
@@ -1168,7 +1168,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         // geo features w/ polygons
         numFeatures = 10000;
         t0 = System.nanoTime();
-        addTemporalGeoFeatures(0, numFeatures);
+        addTemporalGeoFeatures(2000000, numFeatures);
         featureStore.commit();
         dt = System.nanoTime() - t0;
         throughPut = (int)(numFeatures/dt*1e9*NUM_TIME_ENTRIES_PER_FEATURE);

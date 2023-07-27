@@ -14,17 +14,13 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.xml.namespace.QName;
-import org.h2.mvstore.DataUtils;
+import org.h2.mvstore.MVBTreeMap;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.h2.mvstore.type.DataType;
 import org.sensorhub.api.datastore.deployment.IDeploymentStore;
-import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
@@ -32,7 +28,6 @@ import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.datastore.system.ISystemDescStore.SystemField;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.vast.util.Asserts;
-import org.vast.util.TimeExtent;
 import net.opengis.sensorml.v20.AbstractProcess;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
@@ -47,14 +42,29 @@ import org.sensorhub.impl.datastore.h2.MVDatabaseConfig.IdProviderType;
  * @author Alex Robin
  * @date Apr 8, 2018
  */
-public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDesc, SystemField, SystemFilter> implements ISystemDescStore
+public class MVSystemStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDesc, SystemField, SystemFilter> implements ISystemDescStore
 {
     IDataStreamStore dataStreamStore;
     IDeploymentStore deploymentStore;
     IProcedureStore procedureStore;
     
     
-    protected MVSystemDescStoreImpl()
+    static class SystemValidTimeAdapter extends FeatureValidTimeAdapter<ISystemWithDesc> implements ISystemWithDesc
+    {
+        public SystemValidTimeAdapter(MVFeatureParentKey fk, ISystemWithDesc f, MVBTreeMap<MVFeatureParentKey, ISystemWithDesc> featuresIndex)
+        {
+            super(fk, f, featuresIndex);
+        }
+        
+        @Override
+        public AbstractProcess getFullDescription()
+        {
+            return ((ISystemWithDesc)f).getFullDescription();
+        }
+    }
+    
+    
+    protected MVSystemStoreImpl()
     {
     }
     
@@ -67,7 +77,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
      * @param newStoreInfo Data store info to use if a new store needs to be created
      * @return The existing datastore instance 
      */
-    public static MVSystemDescStoreImpl open(MVStore mvStore, int idScope, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
+    public static MVSystemStoreImpl open(MVStore mvStore, int idScope, IdProviderType idProviderType, MVDataStoreInfo newStoreInfo)
     {
         var dataStoreInfo = H2Utils.getDataStoreInfo(mvStore, newStoreInfo.getName());
         if (dataStoreInfo == null)
@@ -76,7 +86,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
             H2Utils.addDataStoreInfo(mvStore, dataStoreInfo);
         }
         
-        return (MVSystemDescStoreImpl)new MVSystemDescStoreImpl().init(mvStore, idScope, idProviderType, dataStoreInfo);
+        return (MVSystemStoreImpl)new MVSystemStoreImpl().init(mvStore, idScope, idProviderType, dataStoreInfo);
     }
     
     
@@ -155,7 +165,7 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
     }
 
 
-    @Override
+    /*@Override
     public Stream<Entry<FeatureKey, ISystemWithDesc>> selectEntries(SystemFilter filter, Set<SystemField> fields)
     {
         // update validTime in the case it ends at now and there is a
@@ -203,6 +213,12 @@ public class MVSystemDescStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDes
             resultStream = resultStream.limit(filter.getLimit());
         
         return resultStream;
+    }*/
+    
+    
+    protected ISystemWithDesc getFeatureWithAdjustedValidTime(MVFeatureParentKey fk, ISystemWithDesc sys)
+    {
+        return new SystemValidTimeAdapter(fk, sys, featuresIndex);
     }
 
 
