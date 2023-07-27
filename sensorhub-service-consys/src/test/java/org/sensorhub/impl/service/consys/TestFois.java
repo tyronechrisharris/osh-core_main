@@ -40,11 +40,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 
-public class TestApiFois extends TestApiBase
+public class TestFois extends AbstractTestApiBase
 {
     public static final String UID_FORMAT = "urn:osh:foi:test%03d";
     
-    TestApiSystems systemTests = new TestApiSystems();
+    TestSystems systemTests = new TestSystems();
     
     
     @Before
@@ -77,7 +77,7 @@ public class TestApiFois extends TestApiBase
     @Test
     public void testAddSystemFoisAndGetById() throws Exception
     {
-        var sysUrl = systemTests.addSystem(10);
+        var sysUrl = systemTests.addFeature(10);
         
         // add foi
         int numFois = 10;
@@ -102,7 +102,7 @@ public class TestApiFois extends TestApiBase
     @Test
     public void testAddSystemFoiBatchAndGetById() throws Exception
     {
-        var sysUrl = systemTests.addSystem(10);
+        var sysUrl = systemTests.addFeature(10);
         addFoiBatch(sysUrl, 1, 20, true);
     }
     
@@ -117,11 +117,11 @@ public class TestApiFois extends TestApiBase
     @Test
     public void testAddSystemFoiBatchAndGetFromSystem() throws Exception
     {
-        var sysUrl1 = systemTests.addSystem(3);
-        var sysUrl2 = systemTests.addSystem(4);
+        var sysUrl1 = systemTests.addFeature(3);
+        var sysUrl2 = systemTests.addFeature(4);
         
         var urlList = addFoiBatch(sysUrl1, 100, 120);
-        var idList = Lists.transform(urlList, TestApiBase::getResourceId);
+        var idList = Lists.transform(urlList, AbstractTestApiBase::getResourceId);
         
         // get all fois
         var jsonResp = sendGetRequestAndParseJson(FOI_COLLECTION);
@@ -140,7 +140,7 @@ public class TestApiFois extends TestApiBase
     public void testAddRootFoiBatchAndGetAllById() throws Exception
     {
         var urlList = addFoiBatch(null, 100, 120);
-        var idList = Lists.transform(urlList, TestApiBase::getResourceId);
+        var idList = Lists.transform(urlList, AbstractTestApiBase::getResourceId);
         
         // get all fois
         var jsonResp = sendGetRequestAndParseJson(FOI_COLLECTION);
@@ -294,7 +294,7 @@ public class TestApiFois extends TestApiBase
     @Test
     public void testAddSystemFoisAndFilterByKeywords() throws Exception
     {
-        var sysUrl = systemTests.addSystem(1);
+        var sysUrl = systemTests.addFeature(1);
         
         var url1 = addFoi(sysUrl, 1, false, ImmutableMap.<String, Object>builder()
             .put("description", "this is a sampling point")
@@ -334,7 +334,7 @@ public class TestApiFois extends TestApiBase
     @Test
     public void testAddSystemFoisAndFilterByBbox() throws Exception
     {
-        var sysUrl = systemTests.addSystem(1);
+        var sysUrl = systemTests.addFeature(1);
         var fac = new GeometryFactory();
         
         setDebug(true);

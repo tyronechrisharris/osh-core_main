@@ -18,7 +18,6 @@ import java.io.IOException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
@@ -39,18 +38,10 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     final String collectionTitle;
     
     
-    public ProcedureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, String collectionTitle, IProcedureDatabase db) throws IOException
+    public ProcedureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IProcedureDatabase db) throws IOException
     {
         super(ctx, idEncoders, isSummary, db);
-        
-        if (ctx.getParentID() != null)
-        {
-            // fetch parent system name
-            var parentSys = db.getProcedureStore().getCurrentVersion(ctx.getParentID());
-            this.collectionTitle = collectionTitle.replace("{}", parentSys.getName());
-        }
-        else
-            this.collectionTitle = collectionTitle;
+        this.collectionTitle = "Datasheets and Procedures";
     }
     
     
@@ -79,15 +70,8 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     @Override
     protected DomContent getLinks(String resourceUrl, FeatureKey key)
     {
-        var hasSubSystems = db.getProcedureStore().countMatchingEntries(new ProcedureFilter.Builder()
-            .withParents(key.getInternalID())
-            .withCurrentVersion()
-            .build()) > 0;
-        
         return div(
-            a("Spec Sheet").withHref(resourceUrl + "/details").withClasses(CSS_LINK_BTN_CLASSES),
-            iff(hasSubSystems,
-                a("Subsystems").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES))
+            a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES)
         ).withClass("mt-4");
     }
 }

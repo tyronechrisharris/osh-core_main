@@ -16,12 +16,13 @@ package org.sensorhub.impl.service.consys.deployment;
 
 import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.deployment.IDeploymentStore.DeploymentField;
+import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.api.datastore.deployment.DeploymentFilter;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureStoreWrapper;
 
 
-public class DeploymentStoreWrapper extends AbstractFeatureStoreWrapper<IProcedureWithDesc, DeploymentField, DeploymentFilter, IDeploymentStore> implements IDeploymentStore
+public class DeploymentStoreWrapper extends AbstractFeatureStoreWrapper<IDeploymentWithDesc, DeploymentField, DeploymentFilter, IDeploymentStore> implements IDeploymentStore
 {
     
     public DeploymentStoreWrapper(IDeploymentStore readStore, IDeploymentStore writeStore)
@@ -34,6 +35,13 @@ public class DeploymentStoreWrapper extends AbstractFeatureStoreWrapper<IProcedu
     public DeploymentFilter.Builder filterBuilder()
     {
         return (DeploymentFilter.Builder)super.filterBuilder();
+    }
+
+
+    @Override
+    public void linkTo(ISystemDescStore systemStore)
+    {
+        throw new UnsupportedOperationException();
     }
 
 }

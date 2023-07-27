@@ -90,13 +90,9 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     {
         html.appendStartTag(html().getTagName()).completeTag();
         
-        var jsonQueryParams = new HashMap<>(ctx.getParameterMap());
-        jsonQueryParams.remove("format"); // remove format in case it's set
-        jsonQueryParams.put("f", new String[] {ResourceFormat.JSON.getMimeType()});
-        
         // head
         head(
-            title("OpenSensorHub - SensorWeb API"),
+            title("OpenSensorHub - Connected Systems API"),
             meta().withCharset("UTF-8"),
             link()
                 .withRel("stylesheet")
@@ -127,7 +123,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 ),
                 span(
                     text("View as "),
-                    a("JSON").withHref(ctx.getRequestUrlWithQuery(jsonQueryParams))
+                    getAlternateFormats()
                 )
             )
             .withClasses("navbar", "navbar-light", "navbar-collapse", "d-flex", "justify-content-between", "align-items-center")
@@ -158,6 +154,18 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         return each(pathElts, item -> {
             return span(item + " / ");
         });
+    }
+    
+    
+    protected DomContent getAlternateFormats()
+    {
+        var jsonQueryParams = new HashMap<>(ctx.getParameterMap());
+        jsonQueryParams.remove("format"); // remove format in case it's set
+        jsonQueryParams.put("f", new String[] {ResourceFormat.JSON.getMimeType()});
+        
+        return span(
+            a("JSON").withHref(ctx.getRequestUrlWithQuery(jsonQueryParams))
+        );
     }
     
     

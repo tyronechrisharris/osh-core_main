@@ -20,19 +20,21 @@ import java.util.Map;
 import javax.xml.namespace.QName;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
-import org.sensorhub.impl.service.consys.sensorml.SmlFeatureAdapter;
+import org.sensorhub.impl.service.consys.sensorml.DeploymentAdapter;
+import org.sensorhub.impl.service.consys.system.SystemHandler;
+import org.sensorhub.impl.service.consys.system.SystemMembersHandler;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.sensorml.v20.Deployment;
 
 
 /**
@@ -43,7 +45,7 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IProcedureWithDesc>
+public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDeploymentWithDesc>
 {
     
     public DeploymentBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
@@ -59,13 +61,11 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IPro
             public IFeature readFeature(JsonReader reader) throws IOException
             {
                 var f = super.readFeature(reader);
-                return new SmlFeatureAdapter(f);
+                return new DeploymentAdapter(f);
             }
             
             protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
             {
-                if (bean.getType() != null)
-                    writer.name("definition").value(bean.getType());
                 super.writeCommonFeatureProperties(writer, bean);
             }
             
@@ -89,6 +89,14 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IPro
                         .type(ResourceFormat.SML_JSON.getMimeType())
                         .build());
                     
+                    links.add(new ResourceLink.Builder()
+                        .rel("members")
+                        .title("List of deployed systems")
+                        .href("/" + SystemHandler.NAMES[0] + "/" +
+                            bean.getId() + "/" + SystemMembersHandler.NAMES[0])
+                        .type(ResourceFormat.JSON.getMimeType())
+                        .build());
+                    
                     writeLinksAsJson(writer, links);
                 }
             }
@@ -97,23 +105,23 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IPro
     
     
     @Override
-    protected IProcedureWithDesc getFeatureWithId(FeatureKey key, IProcedureWithDesc proc)
+    protected IDeploymentWithDesc getFeatureWithId(FeatureKey key, IDeploymentWithDesc proc)
     {
         Asserts.checkNotNull(key, FeatureKey.class);
-        Asserts.checkNotNull(proc, IProcedureWithDesc.class);
+        Asserts.checkNotNull(proc, IDeploymentWithDesc.class);
         
-        return new IProcedureWithDesc()
+        return new IDeploymentWithDesc()
         {
             public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
             public String getName() { return proc.getName(); }
             public String getDescription() { return proc.getDescription(); }
             public Map<QName, Object> getProperties() { return proc.getProperties(); }  
             public TimeExtent getValidTime() { return proc.getValidTime(); }
-            public AbstractProcess getFullDescription() { return proc.getFullDescription(); }
+            public Deployment getFullDescription() { return proc.getFullDescription(); }
         
             public String getId()
             {
-                return idEncoders.getProcedureIdEncoder().encodeID(key.getInternalID());
+                return idEncoders.getDeploymentIdEncoder().encodeID(key.getInternalID());
             }
         };
     }

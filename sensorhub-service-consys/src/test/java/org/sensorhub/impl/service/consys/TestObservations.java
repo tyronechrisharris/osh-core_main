@@ -29,10 +29,10 @@ import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
 
 
-public class TestApiObs extends TestApiBase
+public class TestObservations extends AbstractTestApiBase
 {
-    TestApiSystems systemTests = new TestApiSystems();
-    TestApiDataStreams datastreamTests = new TestApiDataStreams();
+    TestSystems systemTests = new TestSystems();
+    TestDataStreams datastreamTests = new TestDataStreams();
     
     
     @Before
@@ -48,7 +48,7 @@ public class TestApiObs extends TestApiBase
     public void testAddDatastreamAndObservations() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(33);
+        var sysUrl = systemTests.addFeature(33);
         
         // add datastream
         var dsUrl = datastreamTests.addDatastreamOmJson(sysUrl, 115);
@@ -73,7 +73,7 @@ public class TestApiObs extends TestApiBase
     public void testAddDatastreamAndObsBatch() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(6);
+        var sysUrl = systemTests.addFeature(6);
         
         // add datastream
         var dsUrl = datastreamTests.addDatastreamOmJson(sysUrl, 115);
@@ -91,7 +91,7 @@ public class TestApiObs extends TestApiBase
     public void testAddAndDeleteObs() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(6);
+        var sysUrl = systemTests.addFeature(6);
         
         // add datastream
         var dsUrl = datastreamTests.addDatastreamOmJson(sysUrl, 115);
@@ -118,7 +118,7 @@ public class TestApiObs extends TestApiBase
     public void testAddObsAndDeleteDatastream() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(6);
+        var sysUrl = systemTests.addFeature(6);
         
         // add datastream
         var dsUrl1 = datastreamTests.addDatastreamOmJson(sysUrl, 2);

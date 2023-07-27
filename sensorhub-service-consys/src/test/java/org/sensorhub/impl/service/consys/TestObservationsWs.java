@@ -32,7 +32,7 @@ import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
 
 
-public class TestApiObsWs extends AbstractTestApiBase
+public class TestObservationsWs extends AbstractTestApiBase
 {
     TestSystems systemTests = new TestSystems();
     TestDataStreams datastreamTests = new TestDataStreams();

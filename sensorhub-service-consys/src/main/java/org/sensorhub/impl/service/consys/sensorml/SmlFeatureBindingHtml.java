@@ -15,15 +15,18 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys.sensorml;
 
 import java.io.IOException;
+import java.util.HashMap;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.feature.ISmlFeature;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingHtml;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import j2html.tags.DomContent;
 import net.opengis.sensorml.v20.AbstractMetadataList;
+import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.ObservableProperty;
 import net.opengis.sensorml.v20.Term;
 import static j2html.TagCreator.*;
@@ -40,7 +43,7 @@ import static j2html.TagCreator.*;
  * @author Alex Robin
  * @since March 31, 2022
  */
-public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB extends IDatabase> extends AbstractFeatureBindingHtml<V, DB>
+public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends IDatabase> extends AbstractFeatureBindingHtml<V, DB>
 {
     
     public SmlFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, DB db) throws IOException
@@ -49,33 +52,62 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB ext
     }
     
     
-    protected void serializeDetails(FeatureKey key, IProcedureWithDesc sys) throws IOException
+    protected DomContent getAlternateFormats()
+    {
+        var geoJsonQueryParams = new HashMap<>(ctx.getParameterMap());
+        geoJsonQueryParams.remove("format"); // remove format in case it's set
+        geoJsonQueryParams.put("f", new String[] {ResourceFormat.JSON.getMimeType()});
+        
+        var smlJsonQueryParams = new HashMap<>(ctx.getParameterMap());
+        smlJsonQueryParams.remove("format"); // remove format in case it's set
+        smlJsonQueryParams.put("f", new String[] {ResourceFormat.SML_JSON.getMimeType()});
+        
+        var smlXmlQueryParams = new HashMap<>(ctx.getParameterMap());
+        smlXmlQueryParams.remove("format"); // remove format in case it's set
+        smlXmlQueryParams.put("f", new String[] {ResourceFormat.SML_XML.getMimeType()});
+        
+        return span(
+            a("GeoJSON").withHref(ctx.getRequestUrlWithQuery(geoJsonQueryParams)),
+            text("/"),
+            a("SensorML+JSON").withHref(ctx.getRequestUrlWithQuery(smlJsonQueryParams)),
+            text("/"),
+            a("SensorML+XML").withHref(ctx.getRequestUrlWithQuery(smlXmlQueryParams))
+        );
+    }
+    
+    
+    protected void serializeDetails(FeatureKey key, V f) throws IOException
     {
         writeHeader();
         
-        h3(sys.getName())
+        h3(f.getName())
             .render(html);
         
         div(
             // UID
             h6(
                 span("UID: ").withClass(CSS_BOLD),
-                span(sys.getUniqueIdentifier())
+                span(f.getUniqueIdentifier())
             ),
         
             // system type def
-            sys.getType() != null ?
+            f.getType() != null ?
                 h6(
                     span("Type: ").withClass(CSS_BOLD),
-                    a(sys.getType())
-                        .withHref(sys.getType())
+                    a(f.getType())
+                        .withHref(f.getType())
                         .withTarget(DICTIONARY_TAB_NAME)
-                ) : null
+                ) : null,
+                
+             // description
+                div(
+                    i(f.getDescription())
+                ).withClass("mt-4")
         )
         .withClass("mt-4 mb-4")
         .render(html);
         
-        var sml = sys.getFullDescription();
+        var sml = f.getFullDescription();
         
         // identification
         if (sml.getNumIdentifications() > 0)
@@ -98,22 +130,26 @@ public abstract class SmlFeatureBindingHtml<V extends IProcedureWithDesc, DB ext
         }
         
         // observables
-        if (sml.getNumInputs() > 0)
+        if (sml instanceof AbstractProcess)
         {
-            renderCard(
-                "Observed Properties", 
-                each(sml.getInputList(), input -> {
-                    if (input instanceof ObservableProperty)
-                    {
-                        var def = ((ObservableProperty)input).getDefinition();
-                        return div(
-                            span(input.getLabel()).withClass(CSS_BOLD),
-                            getLinkIcon(def, def)
-                        );
-                    }
-                    else
-                        return null;
-                }));
+            var proc = (AbstractProcess)sml;
+            if (proc.getNumInputs() > 0)
+            {
+                renderCard(
+                    "Observed Properties", 
+                    each(proc.getInputList(), input -> {
+                        if (input instanceof ObservableProperty)
+                        {
+                            var def = ((ObservableProperty)input).getDefinition();
+                            return div(
+                                span(input.getLabel()).withClass(CSS_BOLD),
+                                getLinkIcon(def, def)
+                            );
+                        }
+                        else
+                            return null;
+                    }));
+            }
         }
         
         // characteristics

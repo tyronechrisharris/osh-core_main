@@ -25,7 +25,7 @@ import org.jglue.fluentjson.JsonBuilderFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
-import org.sensorhub.impl.service.consys.TestApiSystems.SystemInfo;
+import org.sensorhub.impl.service.consys.TestSystems.SystemInfo;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamWriter;
@@ -38,14 +38,14 @@ import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
 
 
-public class TestApiDataStreams extends TestApiBase
+public class TestDataStreams extends AbstractTestApiBase
 {
     static final String URI_DECIMAL_PROP = SWEHelper.getCfUri("Temperature");
     static final String URI_BOOLEAN_PROP = SWEHelper.getDBpediaUri("Motion_detection");
     static final String URI_TEXT_PROP = SWEHelper.getDBpediaUri("Vehicle_registration_plate");
     
-    TestApiSystems systemTests = new TestApiSystems();
-    TestApiObs obsTests;
+    TestSystems systemTests = new TestSystems();
+    TestObservations obsTests;
     
     
     @Before
@@ -54,7 +54,7 @@ public class TestApiDataStreams extends TestApiBase
         super.setup();
         systemTests.apiRootUrl = apiRootUrl;
         
-        obsTests = new TestApiObs();
+        obsTests = new TestObservations();
         obsTests.apiRootUrl = apiRootUrl;
     }
     
@@ -63,7 +63,7 @@ public class TestApiDataStreams extends TestApiBase
     public void testAddSystemAndDatastreams() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(1, false);
+        var sysUrl = systemTests.addFeature(1, false);
         
         // add datastreams
         int numDatastreams = 10;
@@ -84,7 +84,7 @@ public class TestApiDataStreams extends TestApiBase
     public void testAddDatastreamAndGetByKeywords() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(1, false);
+        var sysUrl = systemTests.addFeature(1, false);
         
         var url1 = addDatastreamOmJson(sysUrl, 1, "Atmospheric Data");
         var url2 = addDatastreamOmJson(sysUrl, 2, "Water Quality Data");
@@ -119,7 +119,7 @@ public class TestApiDataStreams extends TestApiBase
     public void testAddDatastreamAndGetByObsProperty() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(1, false);
+        var sysUrl = systemTests.addFeature(1, false);
         
         // add datastreams
         var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data", 1);
@@ -148,7 +148,7 @@ public class TestApiDataStreams extends TestApiBase
     public void testAddDatastreamWithValidTimes() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(1, false);
+        var sysUrl = systemTests.addFeature(1, false);
         
         // add datastreams
         var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data - Campaign 2021", TimeExtent.parse("2021-01-01Z/2021-12-31Z"), 1);
@@ -177,7 +177,7 @@ public class TestApiDataStreams extends TestApiBase
     public void testUpdateDatastreamAndGetById() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(1, false);
+        var sysUrl = systemTests.addFeature(1, false);
         
         // add datastreams
         var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data", 1);
@@ -201,7 +201,7 @@ public class TestApiDataStreams extends TestApiBase
     public void testUpdateDatastreamBadOutputName() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(1, false);
+        var sysUrl = systemTests.addFeature(1, false);
         
         // add datastream
         var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data", 1);
@@ -216,7 +216,7 @@ public class TestApiDataStreams extends TestApiBase
     public void testUpdateDatastreamChangeStructWithObs() throws Exception
     {
         // add system
-        var sysUrl = systemTests.addSystem(1, false);
+        var sysUrl = systemTests.addFeature(1, false);
         
         // add datastream with 1 obs
         var url1 = addDatastreamOmJson(sysUrl, 1);
@@ -234,7 +234,7 @@ public class TestApiDataStreams extends TestApiBase
     @Test
     public void testAddDatastreamAndDeleteById() throws Exception
     {
-        var sysUrl = systemTests.addSystem(1, false);
+        var sysUrl = systemTests.addFeature(1, false);
         
         var url1 = addDatastreamOmJson(sysUrl, 1, "Temp Data", 1);
         var url2 = addDatastreamOmJson(sysUrl, 2, "Motion Data", 2);

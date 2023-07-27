@@ -32,7 +32,6 @@ import org.sensorhub.impl.service.consys.feature.AbstractFeatureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBinding;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
-import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingSmlJson;
 
 
 public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
@@ -62,14 +61,11 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-        {
-            var title = ctx.getParentID() != null ? "Datasheet of {}" : "All System Datasheets and Procedures";
-            return new ProcedureBindingHtml(ctx, idEncoders, true, title, db);
-        }
+            return new ProcedureBindingHtml(ctx, idEncoders, true, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new ProcedureBindingGeoJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<IProcedureWithDesc>(ctx, idEncoders, forReading);
+            return new ProcedureBindingSmlJson(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
@@ -85,7 +81,16 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
     @Override
     protected boolean updateEntry(RequestContext ctx, FeatureKey key, IProcedureWithDesc res) throws DataStoreException
     {
-        return db.getProcedureStore().computeIfPresent(key, (k,v) -> res) != null;
+        try
+        {
+            return db.getProcedureStore().computeIfPresent(key, (k,v) -> res) != null;
+        }
+        catch (IllegalArgumentException e)
+        {
+            if (e.getCause() instanceof DataStoreException)
+                throw (DataStoreException)e.getCause();
+            throw e;
+        }
     }
 
 

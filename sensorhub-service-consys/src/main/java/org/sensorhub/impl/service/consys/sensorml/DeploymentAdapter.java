@@ -8,34 +8,30 @@ Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the License.
  
-Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
+Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.consys;
+package org.sensorhub.impl.service.consys.sensorml;
 
-import java.io.IOException;
-import org.junit.Before;
-import org.junit.Test;
-import org.sensorhub.api.common.SensorHubException;
+import org.sensorhub.api.system.IDeploymentWithDesc;
+import org.vast.ogc.gml.IFeature;
+import net.opengis.sensorml.v20.Deployment;
 
 
-public class TestApiAccessControl extends AbstractTestApiBase
+public class DeploymentAdapter extends SmlFeatureAdapter<Deployment> implements IDeploymentWithDesc
 {
-    TestSystems systemTests = new TestSystems();
-    
-    
-    @Before
-    public void setup() throws IOException, SensorHubException
+    public DeploymentAdapter(IFeature f)
     {
-        super.setup();
-        systemTests.apiRootUrl = apiRootUrl;
+        super(f);
     }
     
     
-    @Test
-    public void testAddSystemAndGet() throws Exception
+    @Override
+    public Deployment getFullDescription()
     {
-        
+        if (delegate instanceof Deployment)
+            return (Deployment)delegate;
+        return null;
     }
 }

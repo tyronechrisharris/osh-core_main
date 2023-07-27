@@ -16,10 +16,10 @@ package org.sensorhub.impl.service.consys.deployment;
 
 import java.io.IOException;
 import org.sensorhub.api.common.IdEncoders;
-import org.sensorhub.api.database.IProcedureDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.datastore.deployment.DeploymentFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
 import j2html.tags.DomContent;
@@ -34,23 +34,15 @@ import static j2html.TagCreator.*;
  * @author Alex Robin
  * @since March 31, 2022
  */
-public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDesc, IProcedureDatabase>
+public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IDeploymentWithDesc, IObsSystemDatabase>
 {
     final String collectionTitle;
     
     
-    public DeploymentBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, String collectionTitle, IProcedureDatabase db) throws IOException
+    public DeploymentBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
         super(ctx, idEncoders, isSummary, db);
-        
-        if (ctx.getParentID() != null)
-        {
-            // fetch parent system name
-            var parentSys = db.getProcedureStore().getCurrentVersion(ctx.getParentID());
-            this.collectionTitle = collectionTitle.replace("{}", parentSys.getName());
-        }
-        else
-            this.collectionTitle = collectionTitle;
+        this.collectionTitle = "System Deployments";
     }
     
     
@@ -71,7 +63,7 @@ public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IProcedureWithD
     @Override
     protected String getResourceUrl(FeatureKey key)
     {
-        var procId = idEncoders.getProcedureIdEncoder().encodeID(key.getInternalID());
+        var procId = idEncoders.getDeploymentIdEncoder().encodeID(key.getInternalID());
         return ctx.getApiRootURL() + "/" + DeploymentHandler.NAMES[0] + "/" + procId;
     }
     
@@ -79,15 +71,14 @@ public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IProcedureWithD
     @Override
     protected DomContent getLinks(String resourceUrl, FeatureKey key)
     {
-        var hasSubSystems = db.getProcedureStore().countMatchingEntries(new ProcedureFilter.Builder()
-            .withParents(key.getInternalID())
+        var hasSubSystems = db.getDeploymentStore().countMatchingEntries(new DeploymentFilter.Builder()
             .withCurrentVersion()
             .build()) > 0;
         
         return div(
-            a("Spec Sheet").withHref(resourceUrl + "/details").withClasses(CSS_LINK_BTN_CLASSES),
+            a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
             iff(hasSubSystems,
-                a("Subsystems").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES))
+                a("Deployed Systems").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES))
         ).withClass("mt-4");
     }
 }

@@ -53,18 +53,13 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
             // fetch parent system name
             var parentSys = FeatureUtils.getClosestToNow(db.getSystemDescStore(), ctx.getParentID());
             
-            if (isSummary)
-            {
-                if (isHistory)
-                    this.collectionTitle = "History of " + parentSys.getName();
-                else
-                    this.collectionTitle = "Subsystems of " + parentSys.getName();
-            }
+            if (isHistory)
+                this.collectionTitle = "History of " + parentSys.getName();
             else
-                this.collectionTitle = "Specsheet of " + parentSys.getName();
+                this.collectionTitle = "Subsystems of " + parentSys.getName();
         }
         else
-            this.collectionTitle = "All Connected Systems";
+            this.collectionTitle = "System Instances";
     }
     
     
@@ -146,7 +141,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
             .build()) > 1;
         
         return div(
-            a("Spec Sheet").withHref(resourceUrl + "/details").withClasses(CSS_LINK_BTN_CLASSES),
+            a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
             !isHistory ? each(
                 iff(parentSysUrl != null,
                     a("Parent System").withHref(parentSysUrl).withClasses(CSS_LINK_BTN_CLASSES)),

@@ -16,7 +16,7 @@ package org.sensorhub.impl.service.sweapi.resource;
 
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.ValueField;
-import org.sensorhub.api.resource.IResourceStore;
+import org.sensorhub.api.datastore.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
 import org.sensorhub.impl.service.sweapi.AbstractDataStoreWrapper;

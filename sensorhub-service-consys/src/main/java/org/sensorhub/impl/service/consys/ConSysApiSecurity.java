@@ -43,20 +43,26 @@ import com.google.common.cache.CacheBuilder;
 public class ConSysApiSecurity extends ModuleSecurity implements RestApiSecurity
 {
     private static final String NAME_PROCEDURE = "procedures";
+    private static final String NAME_PROPERTY = "properties";
     private static final String NAME_SYSTEM = "systems";
+    private static final String NAME_DEPLOYMENT = "deployments";
     private static final String NAME_FOI = "fois";
     private static final String NAME_DATASTREAM = "datastreams";
     private static final String NAME_OBS = "obs";
     private static final String NAME_CONTROLS = "controls";
     private static final String NAME_COMMANDS = "commands";
+    private static final String NAME_COMMANDS_STATUS = "status";
     
     private static final String LABEL_PROCEDURE = "Procedures";
+    private static final String LABEL_PROPERTY = "Properties";
     private static final String LABEL_SYSTEM = "Systems";
+    private static final String LABEL_DEPLOYMENT = "Deployments";
     private static final String LABEL_FOI = "Features of Interest";
     private static final String LABEL_DATASTREAM = "Datastreams";
     private static final String LABEL_OBS = "Observations";
     private static final String LABEL_CONTROLS = "Control Channels";
     private static final String LABEL_COMMANDS = "Commands";
+    private static final String LABEL_COMMANDS_STATUS = "Commands Status";
     
     public final IPermission api_get;
     public final IPermission api_list;
@@ -67,12 +73,15 @@ public class ConSysApiSecurity extends ModuleSecurity implements RestApiSecurity
     public final IPermission api_allOps;
     
     public final ResourcePermissions procedure_permissions = new ResourcePermissions();
+    public final ResourcePermissions property_permissions = new ResourcePermissions();
     public final ResourcePermissions system_permissions = new ResourcePermissions();
+    public final ResourcePermissions deployment_permissions = new ResourcePermissions();
     public final ResourcePermissions foi_permissions = new ResourcePermissions();
     public final ResourcePermissions datastream_permissions = new ResourcePermissions();
     public final ResourcePermissions obs_permissions = new ResourcePermissions();
     public final ResourcePermissions commandstream_permissions = new ResourcePermissions();
     public final ResourcePermissions command_permissions = new ResourcePermissions();
+    public final ResourcePermissions command_status_permissions = new ResourcePermissions();
     
     ConSysApiService service;
     IObsSystemDatabase db;
@@ -89,7 +98,7 @@ public class ConSysApiSecurity extends ModuleSecurity implements RestApiSecurity
 
         @Override
         protected void doStart() throws SensorHubException
-        {            
+        {
         }
 
         @Override
@@ -108,72 +117,93 @@ public class ConSysApiSecurity extends ModuleSecurity implements RestApiSecurity
         // register permission structure
         api_get = new ItemPermission(rootPerm, "get");
         procedure_permissions.get = new ItemPermission(api_get, NAME_PROCEDURE, LABEL_PROCEDURE);
+        property_permissions.get = new ItemPermission(api_get, NAME_PROPERTY, LABEL_PROPERTY);
         system_permissions.get = new ItemPermission(api_get, NAME_SYSTEM, LABEL_SYSTEM);
+        deployment_permissions.get = new ItemPermission(api_get, NAME_DEPLOYMENT, LABEL_DEPLOYMENT);
         foi_permissions.get = new ItemPermission(api_get, NAME_FOI, LABEL_FOI);
         datastream_permissions.get = new ItemPermission(api_get, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.get = new ItemPermission(api_get, NAME_OBS, LABEL_OBS);
         commandstream_permissions.get = new ItemPermission(api_get, NAME_CONTROLS, LABEL_CONTROLS);
         command_permissions.get = new ItemPermission(api_get, NAME_COMMANDS, LABEL_COMMANDS);
+        command_status_permissions.get = new ItemPermission(api_get, NAME_COMMANDS_STATUS, LABEL_COMMANDS_STATUS);
         
         api_list = new ItemPermission(rootPerm, "list");
         procedure_permissions.list = new ItemPermission(api_list, NAME_PROCEDURE, LABEL_PROCEDURE);
+        property_permissions.list = new ItemPermission(api_list, NAME_PROPERTY, LABEL_PROPERTY);
         system_permissions.list = new ItemPermission(api_list, NAME_SYSTEM, LABEL_SYSTEM);
+        deployment_permissions.list = new ItemPermission(api_list, NAME_DEPLOYMENT, LABEL_DEPLOYMENT);
         foi_permissions.list = new ItemPermission(api_list, NAME_FOI, LABEL_FOI);
         datastream_permissions.list = new ItemPermission(api_list, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.list = new ItemPermission(api_list, NAME_OBS, LABEL_OBS);
         commandstream_permissions.list = new ItemPermission(api_list, NAME_CONTROLS, LABEL_CONTROLS);
         command_permissions.list = new ItemPermission(api_list, NAME_COMMANDS, LABEL_COMMANDS);
+        command_status_permissions.list = new ItemPermission(api_list, NAME_COMMANDS_STATUS, LABEL_COMMANDS_STATUS);
         
         api_stream = new ItemPermission(rootPerm, "stream");
         procedure_permissions.stream = new ItemPermission(api_stream, NAME_PROCEDURE, LABEL_PROCEDURE);
+        property_permissions.stream = new ItemPermission(api_stream, NAME_PROPERTY, LABEL_PROPERTY);
         system_permissions.stream = new ItemPermission(api_stream, NAME_SYSTEM, LABEL_SYSTEM);
+        deployment_permissions.stream = new ItemPermission(api_stream, NAME_DEPLOYMENT, LABEL_DEPLOYMENT);
         foi_permissions.stream = new ItemPermission(api_stream, NAME_FOI, LABEL_FOI);
         datastream_permissions.stream = new ItemPermission(api_stream, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.stream = new ItemPermission(api_stream, NAME_OBS, LABEL_OBS);
         commandstream_permissions.stream = new ItemPermission(api_stream, NAME_CONTROLS, LABEL_CONTROLS);
         command_permissions.stream = new ItemPermission(api_stream, NAME_COMMANDS, LABEL_COMMANDS);
+        command_status_permissions.stream = new ItemPermission(api_stream, NAME_COMMANDS_STATUS, LABEL_COMMANDS_STATUS);
         
         api_create = new ItemPermission(rootPerm, "create");
         procedure_permissions.create = new ItemPermission(api_create, NAME_PROCEDURE, LABEL_PROCEDURE);
+        property_permissions.create = new ItemPermission(api_create, NAME_PROPERTY, LABEL_PROPERTY);
         system_permissions.create = new ItemPermission(api_create, NAME_SYSTEM, LABEL_SYSTEM);
+        deployment_permissions.create = new ItemPermission(api_create, NAME_DEPLOYMENT, LABEL_DEPLOYMENT);
         foi_permissions.create = new ItemPermission(api_create, NAME_FOI, LABEL_FOI);
         datastream_permissions.create = new ItemPermission(api_create, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.create = new ItemPermission(api_create, NAME_OBS, LABEL_OBS);
         commandstream_permissions.create = new ItemPermission(api_create, NAME_CONTROLS, LABEL_CONTROLS);
         command_permissions.create = new ItemPermission(api_create, NAME_COMMANDS, LABEL_COMMANDS);
+        command_status_permissions.create = new ItemPermission(api_create, NAME_COMMANDS_STATUS, LABEL_COMMANDS_STATUS);
         
         api_update = new ItemPermission(rootPerm, "update");
         procedure_permissions.update = new ItemPermission(api_update, NAME_PROCEDURE, LABEL_PROCEDURE);
+        property_permissions.update = new ItemPermission(api_update, NAME_PROPERTY, LABEL_PROPERTY);
         system_permissions.update = new ItemPermission(api_update, NAME_SYSTEM, LABEL_SYSTEM);
+        deployment_permissions.update = new ItemPermission(api_update, NAME_DEPLOYMENT, LABEL_DEPLOYMENT);
         foi_permissions.update = new ItemPermission(api_update, NAME_FOI, LABEL_FOI);
         datastream_permissions.update = new ItemPermission(api_update, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.update = new ItemPermission(api_update, NAME_OBS, LABEL_OBS);
         commandstream_permissions.update = new ItemPermission(api_update, NAME_CONTROLS, LABEL_CONTROLS);
         command_permissions.update = new ItemPermission(api_update, NAME_COMMANDS, LABEL_COMMANDS);
+        command_status_permissions.update = new ItemPermission(api_update, NAME_COMMANDS_STATUS, LABEL_COMMANDS_STATUS);
         
         api_delete = new ItemPermission(rootPerm, "delete");
         procedure_permissions.delete = new ItemPermission(api_delete, NAME_PROCEDURE, LABEL_PROCEDURE);
+        property_permissions.delete = new ItemPermission(api_delete, NAME_PROPERTY, LABEL_PROPERTY);
         system_permissions.delete = new ItemPermission(api_delete, NAME_SYSTEM, LABEL_SYSTEM);
+        deployment_permissions.delete = new ItemPermission(api_delete, NAME_DEPLOYMENT, LABEL_DEPLOYMENT);
         foi_permissions.delete = new ItemPermission(api_delete, NAME_FOI, LABEL_FOI);
         datastream_permissions.delete = new ItemPermission(api_delete, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.delete = new ItemPermission(api_delete, NAME_OBS, LABEL_OBS);
         commandstream_permissions.delete = new ItemPermission(api_delete, NAME_CONTROLS, LABEL_CONTROLS);
         command_permissions.delete = new ItemPermission(api_delete, NAME_COMMANDS, LABEL_COMMANDS);
+        command_status_permissions.delete = new ItemPermission(api_delete, NAME_COMMANDS_STATUS, LABEL_COMMANDS_STATUS);
         
         // wildcard permissions
         api_allOps = new WildcardPermission(rootPerm, "All Ops");
         procedure_permissions.allOps = new ItemPermission(api_allOps, NAME_PROCEDURE, LABEL_PROCEDURE);
+        property_permissions.allOps = new ItemPermission(api_allOps, NAME_PROPERTY, LABEL_PROPERTY);
         system_permissions.allOps = new ItemPermission(api_allOps, NAME_SYSTEM, LABEL_SYSTEM);
+        deployment_permissions.allOps = new ItemPermission(api_allOps, NAME_DEPLOYMENT, LABEL_DEPLOYMENT);
         foi_permissions.allOps = new ItemPermission(api_allOps, NAME_FOI, LABEL_FOI);
         datastream_permissions.allOps = new ItemPermission(api_allOps, NAME_DATASTREAM, LABEL_DATASTREAM);
         obs_permissions.allOps = new ItemPermission(api_allOps, NAME_OBS, LABEL_OBS);
         commandstream_permissions.allOps = new ItemPermission(api_allOps, NAME_CONTROLS, LABEL_CONTROLS);
         command_permissions.allOps = new ItemPermission(api_allOps, NAME_COMMANDS, LABEL_COMMANDS);
+        command_status_permissions.allOps = new ItemPermission(api_allOps, NAME_COMMANDS_STATUS, LABEL_COMMANDS_STATUS);
         
         
         // register wildcard permission tree usable for all SWE API services
         // do it at this point so we don't include specific offering permissions
-        ModulePermissions wildcardPerm = rootPerm.cloneAsTemplatePermission("SensorWeb API Services");
+        ModulePermissions wildcardPerm = rootPerm.cloneAsTemplatePermission("ConSys API Services");
         service.getParentHub().getSecurityManager().registerModulePermissions(wildcardPerm);
         
         // register permission tree

@@ -50,7 +50,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
     }
     
     
-    protected void serializeDetails(FeatureKey key, ISmlFeature<?> f) throws IOException
+    protected void serializeDetails(FeatureKey key, V f) throws IOException
     {
         writeHeader();
         

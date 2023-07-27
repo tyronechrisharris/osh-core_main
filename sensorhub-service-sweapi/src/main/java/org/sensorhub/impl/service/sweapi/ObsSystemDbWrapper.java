@@ -21,10 +21,12 @@ import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.property.IPropertyStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 import org.sensorhub.impl.service.sweapi.feature.FoiStoreWrapper;
 import org.sensorhub.impl.service.sweapi.obs.DataStreamStoreWrapper;
@@ -189,6 +191,20 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     public ICommandStore getCommandStore()
     {
         return commandStore;
+    }
+
+
+    @Override
+    public IPropertyStore getPropertyStore()
+    {
+        return null;
+    }
+
+
+    @Override
+    public IDeploymentStore getDeploymentStore()
+    {
+        return null;
     }
     
     

@@ -12,19 +12,19 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.consys.sensorml;
+package org.sensorhub.impl.service.consys.deployment;
 
 import java.io.IOException;
 import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
-import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
+import org.sensorhub.impl.service.consys.sensorml.DeploymentAdapter;
 import org.vast.sensorML.SMLStaxBindings;
 import org.vast.sensorML.json.SMLJsonStreamReader;
 import org.vast.sensorML.json.SMLJsonStreamWriter;
@@ -36,22 +36,20 @@ import com.google.gson.stream.JsonWriter;
 
 /**
  * <p>
- * SensorML JSON formatter for system resources
+ * SensorML JSON formatter for deployment resources
  * </p>
- * 
- * @param <V> Type of SML feature resource
  *
  * @author Alex Robin
- * @since Jan 26, 2021
+ * @since July 7, 2023
  */
-public class SmlFeatureBindingSmlJson<V extends IProcedureWithDesc> extends ResourceBindingJson<FeatureKey, V>
+public class DeploymentBindingSmlJson extends ResourceBindingJson<FeatureKey, IDeploymentWithDesc>
 {
     SMLJsonStreamReader smlReader;
     SMLJsonStreamWriter smlWriter;
     SMLStaxBindings smlBindings;
     
     
-    public SmlFeatureBindingSmlJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public DeploymentBindingSmlJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         this.smlBindings = new SMLStaxBindings();
@@ -64,7 +62,7 @@ public class SmlFeatureBindingSmlJson<V extends IProcedureWithDesc> extends Reso
 
 
     @Override
-    public V deserialize(JsonReader reader) throws IOException
+    public IDeploymentWithDesc deserialize(JsonReader reader) throws IOException
     {
         // if array, prepare to parse first element
         if (reader.peek() == JsonToken.BEGIN_ARRAY)
@@ -76,11 +74,8 @@ public class SmlFeatureBindingSmlJson<V extends IProcedureWithDesc> extends Reso
         try
         {
             smlReader.nextTag();
-            var sml = smlBindings.readAbstractProcess(smlReader);
-            
-            @SuppressWarnings("unchecked")
-            var wrapper = (V)new SmlFeatureWrapper(sml);
-            return wrapper;
+            var sml = smlBindings.readDeployment(smlReader);
+            return new DeploymentAdapter(sml);
         }
         catch (JsonParseException | XMLStreamException e)
         {
@@ -90,7 +85,7 @@ public class SmlFeatureBindingSmlJson<V extends IProcedureWithDesc> extends Reso
 
 
     @Override
-    public void serialize(FeatureKey key, V res, boolean showLinks, JsonWriter writer) throws IOException
+    public void serialize(FeatureKey key, IDeploymentWithDesc res, boolean showLinks, JsonWriter writer) throws IOException
     {
         try
         {
@@ -99,7 +94,11 @@ public class SmlFeatureBindingSmlJson<V extends IProcedureWithDesc> extends Reso
                 smlWriter.resetContext();
                 var sml = res.getFullDescription();
                 if (sml != null)
-                    smlBindings.writeAbstractProcess(smlWriter, sml);
+                {
+                    var idStr = idEncoders.getDeploymentIdEncoder().encodeID(key.getInternalID());
+                    sml.setId(idStr);
+                    smlBindings.writeDeployment(smlWriter, sml);
+                }
                 smlWriter.flush();
             }
             catch (Exception e)

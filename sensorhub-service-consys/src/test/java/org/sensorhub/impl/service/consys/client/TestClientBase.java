@@ -21,10 +21,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse.BodyHandlers;
 import org.eclipse.jetty.http.HttpMethod;
-import org.sensorhub.impl.service.consys.TestApiBase;
+import org.sensorhub.impl.service.consys.AbstractTestApiBase;
 
 
-public class TestClientBase extends TestApiBase
+public class TestClientBase extends AbstractTestApiBase
 {
 
 

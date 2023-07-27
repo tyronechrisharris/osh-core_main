@@ -49,9 +49,9 @@ import org.sensorhub.impl.service.consys.obs.DataStreamBindingJson;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
-import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingSmlJson;
 import org.sensorhub.impl.service.consys.stream.StreamHandler;
 import org.sensorhub.impl.service.consys.system.SystemBindingGeoJson;
+import org.sensorhub.impl.service.consys.system.SystemBindingSmlJson;
 import org.sensorhub.impl.service.consys.task.CommandStreamBindingJson;
 import org.sensorhub.utils.Lambdas;
 import org.vast.util.Asserts;
@@ -136,7 +136,7 @@ public class ConSysApiClient
             var buffer = new InMemoryBufferStreamHandler();
             var ctx = new RequestContext(buffer);
             
-            var binding = new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, null, false);
+            var binding = new SystemBindingSmlJson(ctx, null, false);
             binding.serialize(null, system, false);
             
             return sendPostRequest(
@@ -164,7 +164,7 @@ public class ConSysApiClient
             var buffer = new InMemoryBufferStreamHandler();
             var ctx = new RequestContext(buffer);
             
-            var binding = new SmlFeatureBindingSmlJson<ISystemWithDesc>(ctx, null, false) {
+            var binding = new SystemBindingSmlJson(ctx, null, false) {
                 protected void startJsonCollection(JsonWriter writer) throws IOException
                 {
                     writer.beginArray();

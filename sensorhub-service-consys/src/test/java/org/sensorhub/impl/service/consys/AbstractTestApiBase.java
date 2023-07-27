@@ -48,12 +48,15 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 
-public abstract class TestApiBase
+public abstract class AbstractTestApiBase
 {
-    protected static Logger log = LoggerFactory.getLogger(TestApiBase.class);
-    
+    protected static Logger log = LoggerFactory.getLogger(AbstractTestApiBase.class);
+
+    protected static final String PROCEDURE_COLLECTION = "procedures";
+    protected static final String PROPERTY_COLLECTION = "properties";
     protected static final String SYSTEM_COLLECTION = "systems";
     protected static final String MEMBER_COLLECTION = "members";
+    protected static final String DEPLOYMENT_COLLECTION = "deployments";
     protected static final String FOI_COLLECTION = "fois";
     protected static final String DATASTREAM_COLLECTION = "datastreams";
     protected static final String CONTROL_COLLECTION = "controls";
@@ -116,7 +119,7 @@ public abstract class TestApiBase
         ConSysApiServiceConfig swaCfg = new ConSysApiServiceConfig();
         swaCfg.databaseID = dbCfg.id;
         swaCfg.endPoint = "/api";
-        swaCfg.name = "SWE API Service";
+        swaCfg.name = "ConSys API Service";
         swaCfg.autoStart = true;
         service = (ConSysApiService)moduleRegistry.loadModule(swaCfg, TIMEOUT);
         apiRootUrl = httpServer.getPublicEndpointUrl(swaCfg.endPoint);

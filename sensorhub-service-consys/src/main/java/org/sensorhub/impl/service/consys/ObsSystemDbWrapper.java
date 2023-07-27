@@ -21,11 +21,14 @@ import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.datastore.command.ICommandStreamStore;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
+import org.sensorhub.api.datastore.property.IPropertyStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
+import org.sensorhub.impl.service.consys.deployment.DeploymentStoreWrapper;
 import org.sensorhub.impl.service.consys.feature.FoiStoreWrapper;
 import org.sensorhub.impl.service.consys.obs.DataStreamStoreWrapper;
 import org.sensorhub.impl.service.consys.obs.ObsStoreWrapper;
@@ -44,6 +47,7 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     IObsSystemDatabase writeDb;
     IProcedureStore procedureStore;
     ISystemDescStore systemStore;
+    IDeploymentStore deploymentStore;
     IFoiStore foiStore;
     IDataStreamStore dataStreamStore;
     IObsStore obsStore;
@@ -60,6 +64,10 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
         this.systemStore = new SystemStoreWrapper(
             readDb.getSystemDescStore(),
             writeDb != null ? writeDb.getSystemDescStore() : null);
+        
+        this.deploymentStore = new DeploymentStoreWrapper(
+            readDb.getDeploymentStore(),
+            writeDb != null ? writeDb.getDeploymentStore() : null);
 
         this.foiStore = new FoiStoreWrapper(
             readDb.getFoiStore(),
@@ -151,9 +159,24 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
 
 
     @Override
+    public IPropertyStore getPropertyStore()
+    {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+
+    @Override
     public ISystemDescStore getSystemDescStore()
     {
         return systemStore;
+    }
+
+
+    @Override
+    public IDeploymentStore getDeploymentStore()
+    {
+        return deploymentStore;
     }
 
 
@@ -210,6 +233,12 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     }
     
     
+    public IdEncoder getDeploymentIdEncoder()
+    {
+        return idEncoders.getDeploymentIdEncoder();
+    }
+    
+    
     public IdEncoder getFoiIdEncoder()
     {
         return idEncoders.getFoiIdEncoder();
@@ -237,6 +266,12 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     public IdEncoder getCommandIdEncoder()
     {
         return idEncoders.getCommandIdEncoder();
+    }
+    
+    
+    public IdEncoder getPropertyIdEncoder()
+    {
+        return idEncoders.getPropertyIdEncoder();
     }
 
 }

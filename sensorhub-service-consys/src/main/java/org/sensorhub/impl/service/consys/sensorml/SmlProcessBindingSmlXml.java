@@ -19,13 +19,15 @@ import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.feature.ISmlFeature;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingXml;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 import org.vast.sensorML.SMLStaxBindings;
+import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.sensorml.v20.Deployment;
 
 
 /**
@@ -38,12 +40,12 @@ import org.vast.sensorML.SMLStaxBindings;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class SmlFeatureBindingSmlXml<V extends IProcedureWithDesc> extends ResourceBindingXml<FeatureKey, V>
+public class SmlProcessBindingSmlXml<V extends ISmlFeature<?>> extends ResourceBindingXml<FeatureKey, V>
 {
     SMLStaxBindings smlBindings;
     
     
-    public SmlFeatureBindingSmlXml(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public SmlProcessBindingSmlXml(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         
@@ -72,11 +74,20 @@ public class SmlFeatureBindingSmlXml<V extends IProcedureWithDesc> extends Resou
                 return null;
             
             xmlReader.nextTag();
-            var sml = smlBindings.readAbstractProcess(xmlReader);
+            var sml = smlBindings.readDescribedObject(xmlReader);
             
-            @SuppressWarnings("unchecked")
-            var wrapper = (V)new SmlFeatureWrapper(sml);
-            return wrapper;
+            if (sml instanceof Deployment)
+            {
+                @SuppressWarnings("unchecked")
+                var wrapper = (V)new DeploymentAdapter(sml);
+                return wrapper;
+            }
+            else
+            {
+                @SuppressWarnings("unchecked")
+                var wrapper = (V)new SmlFeatureWrapper((AbstractProcess)sml);
+                return wrapper;
+            }
         }
         catch (XMLStreamException e)
         {
@@ -94,12 +105,12 @@ public class SmlFeatureBindingSmlXml<V extends IProcedureWithDesc> extends Resou
             {
                 var sml = res.getFullDescription();
                 if (sml != null)
-                    smlBindings.writeAbstractProcess(xmlWriter, sml);
+                    smlBindings.writeDescribedObject(xmlWriter, sml);
                 xmlWriter.flush();
             }
             catch (Exception e)
             {
-                IOException wrappedEx = new IOException("Error writing system XML", e);
+                IOException wrappedEx = new IOException("Error writing SensorML XML", e);
                 throw new IllegalStateException(wrappedEx);
             }
         }

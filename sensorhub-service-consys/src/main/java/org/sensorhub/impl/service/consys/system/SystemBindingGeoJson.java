@@ -27,7 +27,7 @@ import org.sensorhub.impl.service.consys.obs.DataStreamHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
-import org.sensorhub.impl.service.consys.sensorml.SmlFeatureAdapter;
+import org.sensorhub.impl.service.consys.sensorml.SystemAdapter;
 import org.sensorhub.impl.service.consys.task.CommandStreamHandler;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
@@ -62,7 +62,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
             public IFeature readFeature(JsonReader reader) throws IOException
             {
                 var f = super.readFeature(reader);
-                return new SmlFeatureAdapter(f);
+                return new SystemAdapter(f);
             }
             
             protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException

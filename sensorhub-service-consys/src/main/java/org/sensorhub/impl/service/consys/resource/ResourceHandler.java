@@ -18,7 +18,7 @@ import java.util.Map;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.IdEncoder;
 import org.sensorhub.api.common.IdEncoders;
-import org.sensorhub.api.resource.IResourceStore;
+import org.sensorhub.api.datastore.resource.IResourceStore;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
 import org.sensorhub.impl.service.consys.InvalidRequestException;

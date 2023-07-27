@@ -37,7 +37,6 @@ import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBinding;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.RequestContext.ResourceRef;
-import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingSmlJson;
 import org.sensorhub.impl.system.SystemDatabaseTransactionHandler;
 import org.sensorhub.impl.system.SystemUtils;
 import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
@@ -75,7 +74,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new SystemBindingGeoJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<>(ctx, idEncoders, forReading);
+            return new SystemBindingSmlJson(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

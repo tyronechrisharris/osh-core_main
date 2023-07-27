@@ -16,13 +16,13 @@ package org.sensorhub.impl.service.consys.deployment;
 
 import java.io.IOException;
 import org.sensorhub.api.common.BigId;
-import org.sensorhub.api.database.IProcedureDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.DataStoreException;
+import org.sensorhub.api.datastore.deployment.DeploymentFilter;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.datastore.procedure.IProcedureStore;
-import org.sensorhub.api.datastore.procedure.ProcedureFilter;
 import org.sensorhub.api.event.IEventBus;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.sensorhub.impl.service.consys.InvalidRequestException;
 import org.sensorhub.impl.service.consys.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.consys.ResourceParseException;
@@ -32,22 +32,21 @@ import org.sensorhub.impl.service.consys.feature.AbstractFeatureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBinding;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
-import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingSmlJson;
 
 
-public class DeploymentHandler extends AbstractFeatureHandler<IProcedureWithDesc, ProcedureFilter, ProcedureFilter.Builder, IProcedureStore>
+public class DeploymentHandler extends AbstractFeatureHandler<IDeploymentWithDesc, DeploymentFilter, DeploymentFilter.Builder, IDeploymentStore>
 {
     public static final int EXTERNAL_ID_SEED = 42671358;
     public static final String[] NAMES = { "deployments" };
     
     final IEventBus eventBus;
-    final IProcedureDatabase db;
+    final IObsSystemDatabase db;
     final DeploymentEventsHandler eventsHandler;
     
     
     public DeploymentHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)
     {
-        super(db.getProcedureStore(), db.getProcedureIdEncoder(), db.getIdEncoders(), permissions);
+        super(db.getDeploymentStore(), db.getDeploymentIdEncoder(), db.getIdEncoders(), permissions);
         this.eventBus = eventBus;
         this.db = db;
         
@@ -57,42 +56,48 @@ public class DeploymentHandler extends AbstractFeatureHandler<IProcedureWithDesc
 
 
     @Override
-    protected ResourceBinding<FeatureKey, IProcedureWithDesc> getBinding(RequestContext ctx, boolean forReading) throws IOException
+    protected ResourceBinding<FeatureKey, IDeploymentWithDesc> getBinding(RequestContext ctx, boolean forReading) throws IOException
     {
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-        {
-            var title = ctx.getParentID() != null ? "Deployments of {}" : "All System Deployments";
-            return new DeploymentBindingHtml(ctx, idEncoders, true, title, db);
-        }
+            return new DeploymentBindingHtml(ctx, idEncoders, true, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new DeploymentBindingGeoJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
-            return new SmlFeatureBindingSmlJson<IProcedureWithDesc>(ctx, idEncoders, forReading);
+            return new DeploymentBindingSmlJson(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
     
     
     @Override
-    protected FeatureKey addEntry(RequestContext ctx, IProcedureWithDesc res) throws DataStoreException
+    protected FeatureKey addEntry(RequestContext ctx, IDeploymentWithDesc res) throws DataStoreException
     {
-        return db.getProcedureStore().add(res);
+        return db.getDeploymentStore().add(res);
     }
 
 
     @Override
-    protected boolean updateEntry(RequestContext ctx, FeatureKey key, IProcedureWithDesc res) throws DataStoreException
+    protected boolean updateEntry(RequestContext ctx, FeatureKey key, IDeploymentWithDesc res) throws DataStoreException
     {
-        return db.getProcedureStore().computeIfPresent(key, (k,v) -> res) != null;
+        try
+        {
+            return db.getDeploymentStore().computeIfPresent(key, (k,v) -> res) != null;
+        }
+        catch (IllegalArgumentException e)
+        {
+            if (e.getCause() instanceof DataStoreException)
+                throw (DataStoreException)e.getCause();
+            throw e;
+        }
     }
 
 
     @Override
     protected boolean deleteEntry(RequestContext ctx, FeatureKey key) throws DataStoreException
     {
-        return db.getProcedureStore().remove(key) != null;
+        return db.getDeploymentStore().remove(key) != null;
     }
     
     
@@ -111,7 +116,7 @@ public class DeploymentHandler extends AbstractFeatureHandler<IProcedureWithDesc
 
 
     @Override
-    protected void validate(IProcedureWithDesc resource) throws ResourceParseException
+    protected void validate(IDeploymentWithDesc resource) throws ResourceParseException
     {
         super.validate(resource);
     }

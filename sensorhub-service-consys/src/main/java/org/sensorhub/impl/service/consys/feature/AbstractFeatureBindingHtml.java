@@ -156,7 +156,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
             if (isCollection)
                 serializeSummary(key, f);
             else
-                serializeSingleSummary(key, f);
+                serializeDetails(key, f);
         }
         else
             serializeDetails(key, f);

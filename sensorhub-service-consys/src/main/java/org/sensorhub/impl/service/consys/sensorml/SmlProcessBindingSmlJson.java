@@ -12,7 +12,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
  
 ******************************* END LICENSE BLOCK ***************************/
 
-package org.sensorhub.impl.service.sweapi.procedure;
+package org.sensorhub.impl.service.consys.sensorml;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -20,11 +20,11 @@ import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.ISmlFeature;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.impl.service.sweapi.ResourceParseException;
-import org.sensorhub.impl.service.sweapi.resource.RequestContext;
-import org.sensorhub.impl.service.sweapi.resource.ResourceBindingJson;
-import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
+import org.sensorhub.impl.service.consys.ResourceParseException;
+import org.sensorhub.impl.service.consys.resource.RequestContext;
+import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
+import org.sensorhub.impl.service.consys.resource.ResourceLink;
+import org.sensorhub.impl.system.wrapper.ProcessWrapper;
 import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 import org.vast.sensorML.SMLStaxBindings;
 import org.vast.sensorML.json.SMLJsonStreamReader;
@@ -46,14 +46,14 @@ import net.opengis.sensorml.v20.AbstractProcess;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class SmlFeatureBindingSmlJson<V extends ISmlFeature<AbstractProcess>> extends ResourceBindingJson<FeatureKey, V>
+public abstract class SmlProcessBindingSmlJson<V extends ISmlFeature<?>> extends ResourceBindingJson<FeatureKey, V>
 {
     SMLJsonStreamReader smlReader;
     SMLJsonStreamWriter smlWriter;
     SMLStaxBindings smlBindings;
     
     
-    public SmlFeatureBindingSmlJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public SmlProcessBindingSmlJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         this.smlBindings = new SMLStaxBindings();
@@ -100,13 +100,17 @@ public class SmlFeatureBindingSmlJson<V extends ISmlFeature<AbstractProcess>> ex
             {
                 smlWriter.resetContext();
                 var sml = res.getFullDescription();
-                if (sml != null)
-                    smlBindings.writeAbstractProcess(smlWriter, sml);
+                if (sml != null && sml instanceof AbstractProcess)
+                {
+                    var idStr = encodeID(key);
+                    sml = ProcessWrapper.getWrapper((AbstractProcess)sml).withId(idStr);
+                    smlBindings.writeDescribedObject(smlWriter, sml);
+                }
                 smlWriter.flush();
             }
             catch (Exception e)
             {
-                IOException wrappedEx = new IOException("Error writing system JSON", e);
+                IOException wrappedEx = new IOException("Error writing SensorML JSON", e);
                 throw new IllegalStateException(wrappedEx);
             }
         }
@@ -118,6 +122,9 @@ public class SmlFeatureBindingSmlJson<V extends ISmlFeature<AbstractProcess>> ex
                 throw e;
         }   
     }
+    
+    
+    protected abstract String encodeID(FeatureKey key);
 
 
     @Override

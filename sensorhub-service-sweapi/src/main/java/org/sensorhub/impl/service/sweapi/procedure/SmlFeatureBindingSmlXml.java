@@ -19,13 +19,14 @@ import java.util.Collection;
 import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.feature.ISmlFeature;
 import org.sensorhub.impl.service.sweapi.ResourceParseException;
 import org.sensorhub.impl.service.sweapi.resource.RequestContext;
 import org.sensorhub.impl.service.sweapi.resource.ResourceBindingXml;
 import org.sensorhub.impl.service.sweapi.resource.ResourceLink;
 import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 import org.vast.sensorML.SMLStaxBindings;
+import net.opengis.sensorml.v20.AbstractProcess;
 
 
 /**
@@ -38,7 +39,7 @@ import org.vast.sensorML.SMLStaxBindings;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class SmlFeatureBindingSmlXml<V extends IProcedureWithDesc> extends ResourceBindingXml<FeatureKey, V>
+public class SmlFeatureBindingSmlXml<V extends ISmlFeature<AbstractProcess>> extends ResourceBindingXml<FeatureKey, V>
 {
     SMLStaxBindings smlBindings;
     

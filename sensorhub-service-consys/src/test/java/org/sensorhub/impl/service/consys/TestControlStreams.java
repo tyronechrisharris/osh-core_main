@@ -31,9 +31,9 @@ import net.opengis.swe.v20.BinaryEncoding;
 import net.opengis.swe.v20.DataComponent;
 
 
-public class TestApiControlStreams extends TestApiBase
+public class TestControlStreams extends AbstractTestApiBase
 {
-    TestApiSystems systemsTest = new TestApiSystems();
+    TestSystems systemsTest = new TestSystems();
     
     
     @Before
@@ -48,7 +48,7 @@ public class TestApiControlStreams extends TestApiBase
     public void testAddSystemAndControls() throws Exception
     {
         // add system
-        var sysUrl = systemsTest.addSystem(1);
+        var sysUrl = systemsTest.addFeature(1);
         
         // add control channels
         int numControls = 10;

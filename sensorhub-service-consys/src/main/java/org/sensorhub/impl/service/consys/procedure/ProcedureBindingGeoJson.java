@@ -25,7 +25,7 @@ import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
-import org.sensorhub.impl.service.consys.sensorml.SmlFeatureAdapter;
+import org.sensorhub.impl.service.consys.sensorml.ProcedureAdapter;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -59,13 +59,11 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
             public IFeature readFeature(JsonReader reader) throws IOException
             {
                 var f = super.readFeature(reader);
-                return new SmlFeatureAdapter(f);
+                return new ProcedureAdapter(f);
             }
             
             protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
             {
-                if (bean.getType() != null)
-                    writer.name("definition").value(bean.getType());
                 super.writeCommonFeatureProperties(writer, bean);
             }
             

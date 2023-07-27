@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.system;
 
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.procedure.IProcedureStore;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
@@ -48,6 +49,13 @@ public class SystemStoreWrapper extends AbstractFeatureStoreWrapper<ISystemWithD
 
     @Override
     public void linkTo(IProcedureStore procedureStore)
+    {
+        throw new UnsupportedOperationException();
+    }
+
+
+    @Override
+    public void linkTo(IDeploymentStore deploymentStore)
     {
         throw new UnsupportedOperationException();
     }

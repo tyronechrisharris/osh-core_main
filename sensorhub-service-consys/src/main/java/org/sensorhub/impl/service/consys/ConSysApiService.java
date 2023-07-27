@@ -28,6 +28,7 @@ import org.sensorhub.api.service.IServiceModule;
 import org.sensorhub.impl.database.registry.FilteredFederatedDatabase;
 import org.sensorhub.impl.module.ModuleRegistry;
 import org.sensorhub.impl.service.AbstractHttpServiceModule;
+import org.sensorhub.impl.service.consys.deployment.DeploymentHandler;
 import org.sensorhub.impl.service.consys.feature.FoiHandler;
 import org.sensorhub.impl.service.consys.feature.FoiHistoryHandler;
 import org.sensorhub.impl.service.consys.home.CollectionHandler;
@@ -38,9 +39,7 @@ import org.sensorhub.impl.service.consys.obs.DataStreamHandler;
 import org.sensorhub.impl.service.consys.obs.DataStreamSchemaHandler;
 import org.sensorhub.impl.service.consys.obs.ObsHandler;
 import org.sensorhub.impl.service.consys.obs.ObsStatsHandler;
-import org.sensorhub.impl.service.consys.procedure.ProcedureDetailsHandler;
 import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
-import org.sensorhub.impl.service.consys.system.SystemDetailsHandler;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.sensorhub.impl.service.consys.system.SystemHistoryHandler;
 import org.sensorhub.impl.service.consys.system.SystemMembersHandler;
@@ -186,6 +185,20 @@ public class ConSysApiService extends AbstractHttpServiceModule<ConSysApiService
         var rootHandler = new RootHandler(homePage, readOnly);
         rootHandler.addSubResource(new ConformanceHandler(CONF_CLASSES));
         
+        // procedures
+        if (db.getProcedureStore() != null)
+        {
+            var procHandler = new ProcedureHandler(eventBus, db, security.procedure_permissions);
+            rootHandler.addSubResource(procHandler);
+        }
+        
+        // properties
+        if (db.getPropertyStore() != null)
+        {
+            //var propHandler = new PropertyHandler(eventBus, db, security.property_permissions);
+            //rootHandler.addSubResource(propHandler);
+        }
+        
         // systems and sub-resources
         var systemsHandler = new SystemHandler(eventBus, db, security.system_permissions);
         rootHandler.addSubResource(systemsHandler);
@@ -194,23 +207,15 @@ public class ConSysApiService extends AbstractHttpServiceModule<ConSysApiService
         systemsHandler.addSubResource(sysMembersHandler);
         sysMembersHandler.addSubResource(sysMembersHandler);
         
-        var sysDetailsHandler = new SystemDetailsHandler(eventBus, db, security.system_permissions);
-        systemsHandler.addSubResource(sysDetailsHandler);
-        sysMembersHandler.addSubResource(sysDetailsHandler);
-        
         var sysHistoryHandler = new SystemHistoryHandler(eventBus, db, security.system_permissions);
         systemsHandler.addSubResource(sysHistoryHandler);
         sysMembersHandler.addSubResource(sysHistoryHandler);
-        sysHistoryHandler.addSubResource(sysDetailsHandler);
         
-        // procedures
-        if (db.getProcedureStore() != null)
+        // deployments
+        if (db.getDeploymentStore() != null)
         {
-            var procHandler = new ProcedureHandler(eventBus, db, security.procedure_permissions);
-            rootHandler.addSubResource(procHandler);
-                
-            var procDetailsHandler = new ProcedureDetailsHandler(eventBus, db, security.procedure_permissions);
-            procHandler.addSubResource(procDetailsHandler);
+            var deplHandler = new DeploymentHandler(eventBus, db, security.deployment_permissions);
+            rootHandler.addSubResource(deplHandler);
         }
         
         // features of interest and sub-resources

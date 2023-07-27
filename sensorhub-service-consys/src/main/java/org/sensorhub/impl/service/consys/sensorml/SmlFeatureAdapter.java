@@ -16,22 +16,23 @@ package org.sensorhub.impl.service.consys.sensorml;
 
 import java.util.Map;
 import javax.xml.namespace.QName;
-import org.sensorhub.api.procedure.IProcedureWithDesc;
-import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.api.feature.ISmlFeature;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.TimeExtent;
-import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.sensorml.v20.DescribedObject;
 
 
 /**
  * <p>
  * Helper class to adapt a regular IFeature to the ISystemWithDesc interface
  * </p>
+ * 
+ * @param <T> Type of SensorML object
  *
  * @author Alex Robin
  * @since Jan 7, 2021
  */
-public class SmlFeatureAdapter implements ISystemWithDesc, IProcedureWithDesc
+public abstract class SmlFeatureAdapter<T extends DescribedObject> implements ISmlFeature<T>
 {
     IFeature delegate;
     
@@ -80,9 +81,6 @@ public class SmlFeatureAdapter implements ISystemWithDesc, IProcedureWithDesc
     
 
     @Override
-    public AbstractProcess getFullDescription()
-    {
-        return null;
-    }    
+    public abstract T getFullDescription();
     
 }
