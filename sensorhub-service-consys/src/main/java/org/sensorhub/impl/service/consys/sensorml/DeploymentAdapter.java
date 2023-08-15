@@ -16,6 +16,7 @@ package org.sensorhub.impl.service.consys.sensorml;
 
 import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.vast.ogc.gml.IFeature;
+import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.sensorml.v20.Deployment;
 
 
@@ -33,5 +34,13 @@ public class DeploymentAdapter extends SmlFeatureAdapter<Deployment> implements 
         if (delegate instanceof Deployment)
             return (Deployment)delegate;
         return null;
+    }
+
+
+    @Override
+    public AbstractGeometry getGeometry()
+    {
+        var sml = getFullDescription();
+        return sml != null ? sml.getGeometry() : null;
     }
 }

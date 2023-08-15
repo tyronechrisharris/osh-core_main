@@ -34,6 +34,7 @@ import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.sensorml.v20.Deployment;
 
 
@@ -118,7 +119,8 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDep
             public Map<QName, Object> getProperties() { return proc.getProperties(); }  
             public TimeExtent getValidTime() { return proc.getValidTime(); }
             public Deployment getFullDescription() { return proc.getFullDescription(); }
-        
+            public AbstractGeometry getGeometry() { return proc.getGeometry(); }
+            
             public String getId()
             {
                 return idEncoders.getDeploymentIdEncoder().encodeID(key.getInternalID());

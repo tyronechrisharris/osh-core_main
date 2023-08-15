@@ -81,7 +81,7 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
                     
                     links.add(new ResourceLink.Builder()
                         .rel("alternate")
-                        .title("Detailed description of datasheet or procedure in SensorML format")
+                        .title("Detailed description of procedure in SensorML format")
                         .href("/" + ProcedureHandler.NAMES[0] + "/" + bean.getId())
                         .type(ResourceFormat.SML_JSON.getMimeType())
                         .build());
