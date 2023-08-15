@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.consys.task;
 
 import java.io.IOException;
 import java.util.Collection;
-import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.IdEncoders;
@@ -29,9 +28,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.vast.data.TextEncodingImpl;
-import org.vast.swe.SWEStaxBindings;
-import org.vast.swe.json.SWEJsonStreamReader;
-import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.swe.SWEJsonBindings;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -42,9 +39,7 @@ import net.opengis.swe.v20.DataEncoding;
 public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandStreamKey, ICommandStreamInfo>
 {
     String rootURL;
-    SWEStaxBindings sweBindings;
-    SWEJsonStreamReader sweReader;
-    SWEJsonStreamWriter sweWriter;
+    SWEJsonBindings sweBindings;
     
     
     public CommandStreamSchemaBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
@@ -71,12 +66,7 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
     void init(RequestContext ctx, boolean forReading)
     {
         this.rootURL = ctx.getApiRootURL();
-        this.sweBindings = new SWEStaxBindings();
-        
-        if (forReading)
-            this.sweReader = new SWEJsonStreamReader(reader);
-        else
-            this.sweWriter = new SWEJsonStreamWriter(writer);
+        this.sweBindings = new SWEJsonBindings();
     }
     
     
@@ -101,32 +91,32 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
                 
                 if ("paramsSchema".equals(prop))
                 {
-                    sweReader.nextTag();
-                    commandStruct = sweBindings.readDataComponent(sweReader);
+                    commandStruct = sweBindings.readDataComponent(reader);
                     commandStruct.setName(SWECommonUtils.NO_NAME);
                 }
                 else if ("paramsEncoding".equals(prop))
                 {
-                    sweReader.nextTag();
-                    commandEncoding = sweBindings.readAbstractEncoding(sweReader);
+                    commandEncoding = sweBindings.readEncoding(reader);
                 }
                 else if ("resultSchema".equals(prop))
                 {
-                    sweReader.nextTag();
-                    resultStruct = sweBindings.readDataComponent(sweReader);
+                    resultStruct = sweBindings.readDataComponent(reader);
                     resultStruct.setName(SWECommonUtils.NO_NAME);
                 }
                 else if ("resultEncoding".equals(prop))
                 {
-                    sweReader.nextTag();
-                    resultEncoding = sweBindings.readAbstractEncoding(sweReader);
+                    resultEncoding = sweBindings.readEncoding(reader);
                 }
                 else
                     reader.skipValue();
             }
             reader.endObject();
         }
-        catch (XMLStreamException | IllegalStateException e)
+        catch (IOException e)
+        {
+            throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
+        }
+        catch (IllegalStateException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
@@ -152,8 +142,7 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
         try
         {
             writer.name("paramsSchema");
-            sweWriter.resetContext();
-            sweBindings.writeDataComponent(sweWriter, dsInfo.getRecordStructure(), false);
+            sweBindings.writeDataComponent(writer, dsInfo.getRecordStructure(), false);
         }
         catch (Exception e)
         {
@@ -166,8 +155,7 @@ public class CommandStreamSchemaBindingJson extends ResourceBindingJson<CommandS
             try
             {
                 writer.name("resultSchema");
-                sweWriter.resetContext();
-                sweBindings.writeDataComponent(sweWriter, dsInfo.getResultStructure(), false);
+                sweBindings.writeDataComponent(writer, dsInfo.getResultStructure(), false);
             }
             catch (Exception e)
             {

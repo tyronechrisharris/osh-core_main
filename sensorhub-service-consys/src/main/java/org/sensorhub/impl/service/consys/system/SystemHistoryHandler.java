@@ -52,6 +52,8 @@ public class SystemHistoryHandler extends AbstractFeatureHistoryHandler<ISystemW
             return new SystemBindingHtml(ctx, idEncoders, true, db);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
             return new SystemBindingGeoJson(ctx, idEncoders, forReading);
+        else if (format.equals(ResourceFormat.SML_JSON))
+            return new SystemBindingSmlJson(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

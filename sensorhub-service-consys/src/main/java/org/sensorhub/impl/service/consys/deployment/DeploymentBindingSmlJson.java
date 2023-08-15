@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.consys.deployment;
 
 import java.io.IOException;
 import java.util.Collection;
-import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.system.IDeploymentWithDesc;
@@ -25,9 +24,7 @@ import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.sensorml.DeploymentAdapter;
-import org.vast.sensorML.SMLStaxBindings;
-import org.vast.sensorML.json.SMLJsonStreamReader;
-import org.vast.sensorML.json.SMLJsonStreamWriter;
+import org.vast.sensorML.SMLJsonBindings;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -44,20 +41,13 @@ import com.google.gson.stream.JsonWriter;
  */
 public class DeploymentBindingSmlJson extends ResourceBindingJson<FeatureKey, IDeploymentWithDesc>
 {
-    SMLJsonStreamReader smlReader;
-    SMLJsonStreamWriter smlWriter;
-    SMLStaxBindings smlBindings;
+    SMLJsonBindings smlBindings;
     
     
     public DeploymentBindingSmlJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
-        this.smlBindings = new SMLStaxBindings();
-        
-        if (forReading)
-            this.smlReader = new SMLJsonStreamReader(reader);
-        else
-            this.smlWriter = new SMLJsonStreamWriter(writer);
+        this.smlBindings = new SMLJsonBindings();
     }
 
 
@@ -73,11 +63,10 @@ public class DeploymentBindingSmlJson extends ResourceBindingJson<FeatureKey, ID
         
         try
         {
-            smlReader.nextTag();
-            var sml = smlBindings.readDeployment(smlReader);
+            var sml = smlBindings.readDeployment(reader);
             return new DeploymentAdapter(sml);
         }
-        catch (JsonParseException | XMLStreamException e)
+        catch (JsonParseException | IOException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage(), e);
         }
@@ -91,15 +80,14 @@ public class DeploymentBindingSmlJson extends ResourceBindingJson<FeatureKey, ID
         {
             try
             {
-                smlWriter.resetContext();
                 var sml = res.getFullDescription();
                 if (sml != null)
                 {
                     var idStr = idEncoders.getDeploymentIdEncoder().encodeID(key.getInternalID());
                     sml.setId(idStr);
-                    smlBindings.writeDeployment(smlWriter, sml);
+                    smlBindings.writeDescribedObject(writer, sml);
                 }
-                smlWriter.flush();
+                writer.flush();
             }
             catch (Exception e)
             {

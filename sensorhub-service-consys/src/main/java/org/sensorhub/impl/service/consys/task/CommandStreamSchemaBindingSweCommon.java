@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.consys.task;
 
 import java.io.IOException;
 import java.util.Collection;
-import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.IdEncoders;
@@ -29,9 +28,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.vast.data.TextEncodingImpl;
-import org.vast.swe.SWEStaxBindings;
-import org.vast.swe.json.SWEJsonStreamReader;
-import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.swe.SWEJsonBindings;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -44,9 +41,7 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
 {
     String rootURL;
     ResourceFormat cmdFormat;
-    SWEStaxBindings sweBindings;
-    SWEJsonStreamReader sweReader;
-    SWEJsonStreamWriter sweWriter;
+    SWEJsonBindings sweBindings;
     
     
     public CommandStreamSchemaBindingSweCommon(ResourceFormat cmdFormat, RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
@@ -67,12 +62,7 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
     {
         this.rootURL = ctx.getApiRootURL();
         this.cmdFormat = cmdFormat;
-        this.sweBindings = new SWEStaxBindings();
-        
-        if (forReading)
-            this.sweReader = new SWEJsonStreamReader(reader);
-        else
-            this.sweWriter = new SWEJsonStreamWriter(writer);
+        this.sweBindings = new SWEJsonBindings();
     }
     
     
@@ -95,20 +85,18 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
                 
                 if ("recordSchema".equals(prop))
                 {
-                    sweReader.nextTag();
-                    paramStruct = sweBindings.readDataComponent(sweReader);
+                    paramStruct = sweBindings.readDataComponent(reader);
                 }
                 else if ("recordEncoding".equals(prop))
                 {
-                    sweReader.nextTag();
-                    paramEncoding = sweBindings.readAbstractEncoding(sweReader);
+                    paramEncoding = sweBindings.readEncoding(reader);
                 }
                 else
                     reader.skipValue();
             }
             reader.endObject();
         }
-        catch (XMLStreamException e)
+        catch (IOException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
@@ -137,15 +125,13 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
         try
         {
             writer.name("paramsSchema");
-            sweWriter.resetContext();
-            sweBindings.writeDataComponent(sweWriter, csInfo.getRecordStructure(), false);
+            sweBindings.writeDataComponent(writer, csInfo.getRecordStructure(), false);
             
             var sweEncoding = SWECommonUtils.getEncoding(csInfo.getRecordStructure(), csInfo.getRecordEncoding(), cmdFormat);
             if (!(sweEncoding instanceof JSONEncoding))
             {
                 writer.name("paramsEncoding");
-                sweWriter.resetContext();
-                sweBindings.writeAbstractEncoding(sweWriter, sweEncoding);
+                sweBindings.writeAbstractEncoding(writer, sweEncoding);
             }
         }
         catch (Exception e)
@@ -159,15 +145,13 @@ public class CommandStreamSchemaBindingSweCommon extends ResourceBindingJson<Com
             try
             {
                 writer.name("resultSchema");
-                sweWriter.resetContext();
-                sweBindings.writeDataComponent(sweWriter, csInfo.getResultStructure(), false);
+                sweBindings.writeDataComponent(writer, csInfo.getResultStructure(), false);
                 
                 var sweEncoding = SWECommonUtils.getEncoding(csInfo.getResultStructure(), csInfo.getResultEncoding(), cmdFormat);
                 if (!(sweEncoding instanceof JSONEncoding))
                 {
                     writer.name("resultEncoding");
-                    sweWriter.resetContext();
-                    sweBindings.writeAbstractEncoding(sweWriter, csInfo.getRecordEncoding());
+                    sweBindings.writeAbstractEncoding(writer, csInfo.getRecordEncoding());
                 }
             }
             catch (Exception e)

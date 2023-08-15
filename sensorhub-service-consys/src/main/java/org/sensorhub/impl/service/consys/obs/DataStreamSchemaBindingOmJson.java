@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.consys.obs;
 import static org.sensorhub.impl.service.consys.SWECommonUtils.OM_COMPONENTS_FILTER;
 import java.io.IOException;
 import java.util.Collection;
-import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
@@ -30,9 +29,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.vast.data.TextEncodingImpl;
-import org.vast.swe.SWEStaxBindings;
-import org.vast.swe.json.SWEJsonStreamReader;
-import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.swe.SWEJsonBindings;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -43,9 +40,7 @@ import net.opengis.swe.v20.DataRecord;
 public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
 {
     String rootURL;
-    SWEStaxBindings sweBindings;
-    SWEJsonStreamReader sweReader;
-    SWEJsonStreamWriter sweWriter;
+    SWEJsonBindings sweBindings;
     
     
     public DataStreamSchemaBindingOmJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
@@ -72,12 +67,7 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
     void init(RequestContext ctx, boolean forReading)
     {
         this.rootURL = ctx.getApiRootURL();
-        this.sweBindings = new SWEStaxBindings();
-        
-        if (forReading)
-            this.sweReader = new SWEJsonStreamReader(reader);
-        else
-            this.sweWriter = new SWEJsonStreamWriter(writer);
+        this.sweBindings = new SWEJsonBindings();
     }
     
     
@@ -99,8 +89,7 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
                 
                 if ("resultSchema".equals(prop))
                 {
-                    sweReader.nextTag();
-                    resultStruct = sweBindings.readDataComponent(sweReader);
+                    resultStruct = sweBindings.readDataComponent(reader);
                     resultStruct.setName(SWECommonUtils.NO_NAME);
                 }
                 else
@@ -108,7 +97,7 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
             }
             reader.endObject();
         }
-        catch (XMLStreamException e)
+        catch (IOException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
@@ -139,7 +128,6 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
         try
         {
             writer.name("resultSchema");
-            sweWriter.resetContext();
             
             // hide time and FOI components if any
             var dataStruct = dsInfo.getRecordStructure().copy();
@@ -153,7 +141,7 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
                 }
             }
             
-            sweBindings.writeDataComponent(sweWriter, dataStruct, false);
+            sweBindings.writeDataComponent(writer, dataStruct, false);
         }
         catch (Exception e)
         {

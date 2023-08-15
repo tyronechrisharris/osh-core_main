@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.consys.obs;
 
 import java.io.IOException;
 import java.util.Collection;
-import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
@@ -29,9 +28,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.vast.data.TextEncodingImpl;
-import org.vast.swe.SWEStaxBindings;
-import org.vast.swe.json.SWEJsonStreamReader;
-import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.swe.SWEJsonBindings;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
@@ -44,9 +41,7 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
 {
     String rootURL;
     ResourceFormat obsFormat;
-    SWEStaxBindings sweBindings;
-    SWEJsonStreamReader sweReader;
-    SWEJsonStreamWriter sweWriter;
+    SWEJsonBindings sweBindings;
     
     
     public DataStreamSchemaBindingSweCommon(ResourceFormat obsFormat, RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
@@ -74,12 +69,7 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
     {
         this.rootURL = ctx.getApiRootURL();
         this.obsFormat = obsFormat;
-        this.sweBindings = new SWEStaxBindings();
-        
-        if (forReading)
-            this.sweReader = new SWEJsonStreamReader(reader);
-        else
-            this.sweWriter = new SWEJsonStreamWriter(writer);
+        this.sweBindings = new SWEJsonBindings();
     }
     
     
@@ -102,21 +92,19 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
                 
                 if ("recordSchema".equals(prop))
                 {
-                    sweReader.nextTag();
-                    resultStruct = sweBindings.readDataComponent(sweReader);
+                    resultStruct = sweBindings.readDataComponent(reader);
                     resultStruct.setName(SWECommonUtils.NO_NAME);
                 }
                 else if ("recordEncoding".equals(prop))
                 {
-                    sweReader.nextTag();
-                    resultEncoding = sweBindings.readAbstractEncoding(sweReader);
+                    resultEncoding = sweBindings.readEncoding(reader);
                 }
                 else
                     reader.skipValue();
             }
             reader.endObject();
         }
-        catch (XMLStreamException e)
+        catch (IOException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
@@ -148,8 +136,7 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
         try
         {
             writer.name("recordSchema");
-            sweWriter.resetContext();
-            sweBindings.writeDataComponent(sweWriter, dsInfo.getRecordStructure(), false);
+            sweBindings.writeDataComponent(writer, dsInfo.getRecordStructure(), false);
         }
         catch (Exception e)
         {
@@ -161,8 +148,7 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
             if (!(sweEncoding instanceof JSONEncoding))
             {
                 writer.name("recordEncoding");
-                sweWriter.resetContext();
-                sweBindings.writeAbstractEncoding(sweWriter, sweEncoding);
+                sweBindings.writeAbstractEncoding(writer, sweEncoding);
             }
         }
         catch (Exception e)

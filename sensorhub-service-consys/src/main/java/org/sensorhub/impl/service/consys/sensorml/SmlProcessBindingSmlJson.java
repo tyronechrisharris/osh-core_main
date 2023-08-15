@@ -16,7 +16,6 @@ package org.sensorhub.impl.service.consys.sensorml;
 
 import java.io.IOException;
 import java.util.Collection;
-import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.ISmlFeature;
@@ -26,9 +25,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.system.wrapper.ProcessWrapper;
 import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
-import org.vast.sensorML.SMLStaxBindings;
-import org.vast.sensorML.json.SMLJsonStreamReader;
-import org.vast.sensorML.json.SMLJsonStreamWriter;
+import org.vast.sensorML.SMLJsonBindings;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -48,20 +45,13 @@ import net.opengis.sensorml.v20.AbstractProcess;
  */
 public abstract class SmlProcessBindingSmlJson<V extends ISmlFeature<?>> extends ResourceBindingJson<FeatureKey, V>
 {
-    SMLJsonStreamReader smlReader;
-    SMLJsonStreamWriter smlWriter;
-    SMLStaxBindings smlBindings;
+    SMLJsonBindings smlBindings;
     
     
     public SmlProcessBindingSmlJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
-        this.smlBindings = new SMLStaxBindings();
-        
-        if (forReading)
-            this.smlReader = new SMLJsonStreamReader(reader);
-        else
-            this.smlWriter = new SMLJsonStreamWriter(writer);
+        this.smlBindings = new SMLJsonBindings();
     }
 
 
@@ -77,14 +67,13 @@ public abstract class SmlProcessBindingSmlJson<V extends ISmlFeature<?>> extends
         
         try
         {
-            smlReader.nextTag();
-            var sml = smlBindings.readAbstractProcess(smlReader);
+            var sml = smlBindings.readAbstractProcess(reader);
             
             @SuppressWarnings("unchecked")
             var wrapper = (V)new SmlFeatureWrapper(sml);
             return wrapper;
         }
-        catch (JsonParseException | XMLStreamException e)
+        catch (JsonParseException e)
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage(), e);
         }
@@ -98,15 +87,14 @@ public abstract class SmlProcessBindingSmlJson<V extends ISmlFeature<?>> extends
         {
             try
             {
-                smlWriter.resetContext();
                 var sml = res.getFullDescription();
                 if (sml != null && sml instanceof AbstractProcess)
                 {
                     var idStr = encodeID(key);
                     sml = ProcessWrapper.getWrapper((AbstractProcess)sml).withId(idStr);
-                    smlBindings.writeDescribedObject(smlWriter, sml);
+                    smlBindings.writeDescribedObject(writer, sml);
                 }
-                smlWriter.flush();
+                writer.flush();
             }
             catch (Exception e)
             {
