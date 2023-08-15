@@ -21,6 +21,7 @@ import org.sensorhub.api.database.DatabaseConfig;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IObsSystemDatabaseModule;
 import org.sensorhub.api.datastore.command.ICommandStore;
+import org.sensorhub.api.datastore.deployment.IDeploymentStore;
 import org.sensorhub.api.datastore.feature.IFoiStore;
 import org.sensorhub.api.datastore.obs.IDataStreamStore;
 import org.sensorhub.api.datastore.obs.IObsStore;
@@ -53,21 +54,28 @@ public class FederatedDbModuleAdapter implements IObsSystemDatabaseModule<Databa
     }
 
 
+    public void commit()
+    {
+        delegate.commit();
+    }
+
+
     public ISystemDescStore getSystemDescStore()
     {
         return delegate.getSystemDescStore();
     }
 
 
-    public IFoiStore getFoiStore()
+    @Override
+    public IDeploymentStore getDeploymentStore()
     {
-        return delegate.getFoiStore();
+        return delegate.getDeploymentStore();
     }
 
 
-    public void commit()
+    public IFoiStore getFoiStore()
     {
-        delegate.commit();
+        return delegate.getFoiStore();
     }
 
 
