@@ -169,7 +169,7 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
             ),
             iff(isCollection,
                 p(
-                    a("Details").withHref(dsUrl).withClasses(CSS_LINK_BTN_CLASSES),
+                    //a("Details").withHref(dsUrl).withClasses(CSS_LINK_BTN_CLASSES),
                     a("Schema").withHref(dsUrl + "/schema").withClasses(CSS_LINK_BTN_CLASSES),
                     a("Observations").withHref(dsUrl + "/observations").withClasses(CSS_LINK_BTN_CLASSES)
                 ).withClass("mt-4")

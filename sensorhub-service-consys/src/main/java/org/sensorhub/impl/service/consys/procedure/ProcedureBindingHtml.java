@@ -21,7 +21,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
-import j2html.tags.DomContent;
+import j2html.tags.specialized.DivTag;
 import static j2html.TagCreator.*;
 
 
@@ -40,7 +40,7 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     
     public ProcedureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IProcedureDatabase db) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db);
+        super(ctx, idEncoders, isSummary, db, false);
         this.collectionTitle = "Datasheets and Procedures";
     }
     
@@ -68,10 +68,8 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     
     
     @Override
-    protected DomContent getLinks(String resourceUrl, FeatureKey key)
+    protected DivTag getLinks(String resourceUrl, FeatureKey key)
     {
-        return div(
-            a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES)
-        ).withClass("mt-4");
+        return div();
     }
 }

@@ -22,7 +22,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
-import j2html.tags.DomContent;
+import j2html.tags.specialized.DivTag;
 import static j2html.TagCreator.*;
 
 
@@ -41,7 +41,7 @@ public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IDeploymentWith
     
     public DeploymentBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db);
+        super(ctx, idEncoders, isSummary, db, true);
         this.collectionTitle = "System Deployments";
     }
     
@@ -69,16 +69,16 @@ public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IDeploymentWith
     
     
     @Override
-    protected DomContent getLinks(String resourceUrl, FeatureKey key)
+    protected DivTag getLinks(String resourceUrl, FeatureKey key)
     {
         var hasSubSystems = db.getDeploymentStore().countMatchingEntries(new DeploymentFilter.Builder()
             .withCurrentVersion()
             .build()) > 0;
         
         return div(
-            a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
+            //a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
             iff(hasSubSystems,
                 a("Deployed Systems").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES))
-        ).withClass("mt-4");
+        );
     }
 }

@@ -21,7 +21,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.vast.ogc.gml.IFeature;
-import j2html.tags.DomContent;
+import j2html.tags.specialized.DivTag;
 import static j2html.TagCreator.*;
 
 
@@ -40,7 +40,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IOb
     
     public FeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db);
+        super(ctx, idEncoders, isSummary, db, true);
         
         // set collection title depending on path
         if (ctx.getParentID() != null)
@@ -84,7 +84,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IOb
     
     
     @Override
-    protected DomContent getLinks(String resourceUrl, FeatureKey key)
+    protected DivTag getLinks(String resourceUrl, FeatureKey key)
     {
         /*var hasMembers = db.getFoiStore().countMatchingEntries(new FoiFilter.Builder()
             .withParents(key.getInternalID())
@@ -103,7 +103,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IOb
                 a("Members").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES)),
             iff(hasHistory,
                 a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES))
-        ).withClass("mt-4");
+        );
     }
 
 

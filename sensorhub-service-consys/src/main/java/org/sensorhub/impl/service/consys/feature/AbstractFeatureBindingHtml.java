@@ -17,7 +17,6 @@ package org.sensorhub.impl.service.consys.feature;
 import java.io.IOException;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
-import java.util.Optional;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.xml.namespace.QName;
@@ -34,6 +33,7 @@ import org.vast.ogc.xlink.IXlinkReference;
 import j2html.tags.DomContent;
 import j2html.tags.Tag;
 import j2html.tags.UnescapedText;
+import j2html.tags.specialized.DivTag;
 import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.gml.v32.AbstractTimeGeometricPrimitive;
 import net.opengis.gml.v32.Measure;
@@ -57,37 +57,44 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
     protected final DB db;
     protected final boolean isSummary;
     protected final boolean isHistory;
+    protected final boolean showMap;
     
     
-    public AbstractFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, DB db) throws IOException
+    public AbstractFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, DB db, boolean showMap) throws IOException
     {
         super(ctx, idEncoders);
         this.db = db;
         this.isSummary = isSummary;
         this.isHistory = ctx.getRequestPath().contains(AbstractFeatureHistoryHandler.NAMES[0]);
+        this.showMap = showMap;
     }
     
     
     protected abstract String getResourceName();
     protected abstract String getResourceUrl(FeatureKey key);
-    protected abstract DomContent getLinks(String resourceUrl, FeatureKey key);
+    protected abstract DivTag getLinks(String resourceUrl, FeatureKey key);
     protected abstract void serializeDetails(FeatureKey key, V res) throws IOException;
     
     
     protected DomContent getExtraHeaderContent()
     {
-        // add leaflet map
-        return each(
-            link()
-                .withRel("stylesheet")
-                .withHref("https://unpkg.com/leaflet@1.7.1/dist/leaflet.css")
-                .attr("integrity", "sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==")
-                .attr("crossorigin", ""),
-            script()
-                .withSrc("https://unpkg.com/leaflet@1.7.1/dist/leaflet.js")
-                .attr("integrity", "sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==")
-                .attr("crossorigin", "")
-        );
+        if (showMap)
+        {
+            // add leaflet map
+            return each(
+                link()
+                    .withRel("stylesheet")
+                    .withHref("https://unpkg.com/leaflet@1.7.1/dist/leaflet.css")
+                    .attr("integrity", "sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==")
+                    .attr("crossorigin", ""),
+                script()
+                    .withSrc("https://unpkg.com/leaflet@1.7.1/dist/leaflet.js")
+                    .attr("integrity", "sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==")
+                    .attr("crossorigin", "")
+            );
+        }
+        
+        return null;
     }
     
     
@@ -104,45 +111,49 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
         // start 2-columns
         html.appendStartTag("div").appendAttribute("class", "row").completeTag();
         
-        // add leaflet map
-        div()
-        .withClasses("col", "order-2")
-        .with(
+        if (showMap)
+        {
+            // add leaflet map
             div()
-                .withId("map")
-                .withStyle("height: 500px"),
-            script(
-                "var map = L.map('map').setView([0, 0], 3);\n\n" +
-            
-                "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {\n"
-                + "    attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors'\n"
-                + "}).addTo(map);\n\n" +
+            .withClasses("col", "order-2")
+            .with(
+                div()
+                    .withId("map")
+                    .withStyle("height: 500px"),
+                script(
+                    "var map = L.map('map').setView([0, 0], 3);\n\n" +
                 
-                "fetch('" + geojsonUrl + "')\n"
-                + "    .then(response => response.json())\n"
-                + "    .then(data => {\n"
-                + "        let fl = L.geoJSON(data.items ? data.items : data/*, {\n"
-                + "            coordsToLatLng: coords => L.latLng(coords[0], coords[1])\n"
-                + "        }*/)\n"
-                + "        .bindPopup(function (layer) {\n"
-                + "            return layer.feature.properties.name;\n"
-                + "        })\n"
-                + "        .addTo(map);\n\n"
-                + "        map.invalidateSize();\n"
-                + "        map.fitBounds(fl.getBounds().pad(0.01), { maxZoom:14 } );\n"
-                + "    });\n\n"
-            )
-        ).render(html);
-            
-        // start 1st column div
-        html.appendStartTag("div").appendAttribute("class", "col order-1").completeTag();
+                    "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {\n"
+                    + "    attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors'\n"
+                    + "}).addTo(map);\n\n" +
+                    
+                    "fetch('" + geojsonUrl + "')\n"
+                    + "    .then(response => response.json())\n"
+                    + "    .then(data => {\n"
+                    + "        let fl = L.geoJSON(data.items ? data.items : data/*, {\n"
+                    + "            coordsToLatLng: coords => L.latLng(coords[0], coords[1])\n"
+                    + "        }*/)\n"
+                    + "        .bindPopup(function (layer) {\n"
+                    + "            return layer.feature.properties.name;\n"
+                    + "        })\n"
+                    + "        .addTo(map);\n\n"
+                    + "        map.invalidateSize();\n"
+                    + "        map.fitBounds(fl.getBounds().pad(0.01), { maxZoom:14 } );\n"
+                    + "    });\n\n"
+                )
+            ).render(html);
+                
+            // start 1st column div
+            html.appendStartTag("div").appendAttribute("class", "col order-1").completeTag();
+        }
     }
     
     
     @Override
     protected void writeFooter() throws IOException
     {
-        html.appendEndTag("div");
+        if (showMap)
+            html.appendEndTag("div");
         html.appendEndTag("div");
         super.writeFooter();
     }
@@ -175,6 +186,13 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
     protected void serializeSummary(FeatureKey key, IFeature f) throws IOException
     {
         var resourceUrl = getResourceUrl(key);
+        var desc = f.getDescription();
+        if (desc != null && desc.length() > 220)
+        {
+            int cutIndex = desc.indexOf(' ', 220);
+            if (cutIndex > 0)
+                desc = desc.substring(0, cutIndex) + "...";
+        }
         
         renderCard(
             a(
@@ -184,8 +202,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                 ")") : null
             ).withHref(resourceUrl)
              .withClass("text-decoration-none"),
-            iff(Optional.ofNullable(f.getDescription()), desc -> div(desc)
-                .withClasses(CSS_CARD_SUBTITLE)),
+            desc != null ? div(desc).withClasses(CSS_CARD_SUBTITLE) : null,
             div(
                 span("UID: ").withClass(CSS_BOLD),
                 span(f.getUniqueIdentifier())
@@ -201,17 +218,20 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
             ).withClass("mt-2"),
             div(
                 span("Geometry: ").withClass(CSS_BOLD),
-                text(f.getGeometry() != null ?
-                    f.getGeometry().toString() : "None")
-            ),
-            div(
-                span("Properties: ").withClass(CSS_BOLD),
-                div(
-                    each(f.getProperties().entrySet(), prop ->
-                        getPropertyHtml(f, prop))
-                    ).withClass("ps-4")
+                getGeometryHtml(f.getGeometry())
+                /*text(f.getGeometry() != null ?
+                    f.getGeometry().toString() : "None")*/
             ).withClass("mt-2"),
-            getLinks(resourceUrl, key)
+            !f.getProperties().isEmpty() ?
+                div(
+                    
+                    span("Properties: ").withClass(CSS_BOLD),
+                    div(
+                        each(f.getProperties().entrySet(), prop ->
+                            getPropertyHtml(f, prop))
+                        ).withClass("ps-4")
+                ).withClass("mt-2") : null,
+            getLinks(resourceUrl, key).withClass("mt-3")
         );
     }
     

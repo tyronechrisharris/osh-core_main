@@ -33,6 +33,10 @@ import j2html.tags.ContainerTag;
 import j2html.tags.DomContent;
 import j2html.tags.Tag;
 import j2html.tags.UnescapedText;
+import j2html.tags.specialized.ATag;
+import net.opengis.gml.v32.AbstractGeometry;
+import net.opengis.gml.v32.LineString;
+import net.opengis.gml.v32.Polygon;
 import net.opengis.swe.v20.AllowedTokens;
 import net.opengis.swe.v20.AllowedValues;
 import net.opengis.swe.v20.BlockComponent;
@@ -64,9 +68,10 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
 {
     protected static final DomContent NBSP = new UnescapedText("&nbsp;");
     protected static final String DICTIONARY_TAB_NAME = "osh_semantics";
+    protected static final String BLANK_TAB = "_blank";
     protected static final String[] CSS_CARD_TITLE = {"card-title", "text-primary"};
     protected static final String[] CSS_CARD_SUBTITLE = {"card-subtitle", "text-muted", "mb-2"};
-    protected static final String[] CSS_LINK_BTN_CLASSES = {"me-2", "mb-2", "btn", "btn-sm", "btn-outline-primary"};
+    protected static final String[] CSS_LINK_BTN_CLASSES = {"me-2", "btn", "btn-sm", "btn-outline-primary"};
     protected static final String CSS_CARD_TEXT = "card-text";
     protected static final String CSS_BOLD = "fw-bold";
     
@@ -106,6 +111,10 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 .withSrc("https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js")
                 .attr("integrity", "sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p")
                 .attr("crossorigin", ""),
+            style()
+                .withText(
+                    ".accordion-button { background-color: #e7f1ff; }"
+                ),
             getExtraHeaderContent()
         )
         .render(html);
@@ -189,6 +198,12 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     }
     
     
+    protected void renderCard(ATag title, DomContent... content) throws IOException
+    {
+        getCard(h5(title).withClasses(CSS_CARD_TITLE), content).render(html);
+    }
+    
+    
     protected void renderCard(Tag<?> title, DomContent... content) throws IOException
     {
         getCard(title, content).render(html);
@@ -197,19 +212,19 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     
     protected ContainerTag<?> getCard(String title, DomContent... content)
     {
-        return getCard(span(title), content);
+        return getCard(title != null ? h5(title).withClasses(CSS_CARD_TITLE) : null, content);
     }
     
     
     protected ContainerTag<?> getCard(Tag<?> title, DomContent... content)
     {
         return div()
-            .withClass("card mb-4")
+            .withClass("card mt-3")
             .with(
                 div()
                 .withClass("card-body")
                 .with(
-                    h5(title).withClasses(CSS_CARD_TITLE),
+                    title,
                     each(content)
                  )
             );
@@ -241,7 +256,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         }
         else if (comp instanceof RangeComponent)
         {
-            value = span(comp.getData().getStringValue(0) + " - " + 
+            value = span(comp.getData().getStringValue(0) + " to " + 
                          comp.getData().getStringValue(1));
         }
         else
@@ -256,7 +271,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
                 getLinkIcon(comp.getDefinition(), comp.getDefinition()),
                 span(": "),
                 value,
-                iff(comp instanceof HasUom, getUomText((HasUom)comp))
+                comp instanceof HasUom ? getUomText((HasUom)comp) : null
             );
     }
     
@@ -432,6 +447,9 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             .findUnit(code)
             .getPrintSymbol();
         
+        if ("1".equals(symbol))
+            symbol = "";
+        
         //return span(symbol == null || code.equals(symbol) ? code : symbol + " (" + code + ")");
         var text = span(symbol == null ? code : symbol);
         if (symbol != null)
@@ -488,6 +506,31 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         return div(
             span(te.begin().truncatedTo(ChronoUnit.SECONDS).toString()), br(),
             span(te.end().truncatedTo(ChronoUnit.SECONDS).toString() + (te.endsNow() ? " (Now)" : ""))
+        ).withClass("ps-4");
+    }
+    
+    
+    protected Tag<?> getGeometryHtml(AbstractGeometry geom)
+    {
+        if (geom == null)
+            return span("None");
+        
+        // don't display large geometries!
+        int size = 0;
+        String text = "";
+        if (geom instanceof Polygon)
+        {
+            text = "POLYGON(...)";
+            size = ((Polygon) geom).getExterior().getPosList().length;
+        }
+        else if (geom instanceof LineString)
+        {
+            text = "LINESTRING(...)";
+            size = ((LineString) geom).getPosList().length;
+        }
+        
+        return div(
+            span(size <= 10 ? geom.toString() : text)
         ).withClass("ps-4");
     }
     

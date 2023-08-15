@@ -26,7 +26,7 @@ import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.feature.FeatureUtils;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
-import j2html.tags.DomContent;
+import j2html.tags.specialized.DivTag;
 import static j2html.TagCreator.*;
 
 
@@ -45,7 +45,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
     
     public SystemBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db);
+        super(ctx, idEncoders, isSummary, db, true);
         
         // set collection title depending on path
         if (ctx.getParentID() != null)
@@ -89,7 +89,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
     
     
     @Override
-    protected DomContent getLinks(String resourceUrl, FeatureKey key)
+    protected DivTag getLinks(String resourceUrl, FeatureKey key)
     {
         // try to get parent system
         String parentSysUrl = null;
@@ -141,7 +141,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
             .build()) > 1;
         
         return div(
-            a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
+            //a("Details").withHref(resourceUrl).withClasses(CSS_LINK_BTN_CLASSES),
             !isHistory ? each(
                 iff(parentSysUrl != null,
                     a("Parent System").withHref(parentSysUrl).withClasses(CSS_LINK_BTN_CLASSES)),
@@ -156,6 +156,6 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
                 iff(hasHistory,
                     a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES))
             ) : null
-        ).withClass("mt-4");
+        );
     }
 }
