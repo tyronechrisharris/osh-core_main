@@ -87,9 +87,16 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     .withHref("https://unpkg.com/leaflet@1.7.1/dist/leaflet.css")
                     .attr("integrity", "sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==")
                     .attr("crossorigin", ""),
+                link()
+                    .withRel("stylesheet")
+                    .withHref("https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.css")
+                    .attr("crossorigin", ""),
                 script()
                     .withSrc("https://unpkg.com/leaflet@1.7.1/dist/leaflet.js")
                     .attr("integrity", "sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==")
+                    .attr("crossorigin", ""),
+                script()
+                    .withSrc("https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.js")
                     .attr("crossorigin", "")
             );
         }
@@ -121,7 +128,9 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     .withId("map")
                     .withStyle("height: 500px"),
                 script(
-                    "var map = L.map('map').setView([0, 0], 3);\n\n" +
+                    "var map = L.map('map', {\n"
+                    + "  fullscreenControl: true\n"
+                    + "}).setView([0, 0], 3);\n\n" +
                 
                     "L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {\n"
                     + "    attribution: '&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors'\n"

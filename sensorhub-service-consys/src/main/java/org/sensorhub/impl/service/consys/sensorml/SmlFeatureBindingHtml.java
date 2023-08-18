@@ -36,6 +36,7 @@ import net.opengis.gml.v32.Reference;
 import net.opengis.sensorml.v20.AbstractMetadataList;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
 import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.sensorml.v20.AggregateProcess;
 import net.opengis.sensorml.v20.Mode;
 import net.opengis.sensorml.v20.ModeChoice;
 import net.opengis.sensorml.v20.ObservableProperty;
@@ -90,7 +91,8 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
     protected void serializeDetails(FeatureKey key, V f) throws IOException
     {
         var sml = f.getFullDescription();
-        var proc = (sml instanceof AbstractProcess)  ? (AbstractProcess)sml : null;
+        var proc = (sml instanceof AbstractProcess) ? (AbstractProcess)sml : null;
+        var aggr = (sml instanceof AggregateProcess) ? (AggregateProcess)sml : null;
             
         writeHeader();
         
@@ -209,6 +211,34 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             }
         }
         
+        // components
+        if (aggr != null)
+        {
+            if (aggr.getNumComponents() > 0)
+            {
+                /*getAccordionItem("Components", true, div(
+                    each(aggr.getComponentList(), (i, comp) -> getComponentHtml(i, comp))
+                )).render(html);*/
+                each(aggr.getComponentList(), (i, comp) -> {
+                    var name = comp.getName() != null ? comp.getName() : "Component";
+                    return getAccordionItem(name, true, getComponentHtml(i, comp));
+                }).render(html);
+            }
+        }
+        
+        // modes
+        if (proc != null)
+        {
+            if (proc.getNumModes() > 0)
+            {
+                getAccordionItem("Modes", false, div(
+                    each(proc.getModesList(), list ->
+                        each(((ModeChoice)list).getModeList(), (i, mode) -> getModeHtml(i, mode))
+                    ))
+                ).render(html);
+            }
+        }
+        
         // contacts
         if (sml.getNumContacts() > 0)
         {
@@ -222,143 +252,136 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         // documents
         if (sml.getNumDocumentations() > 0)
         {
-            getAccordionItem("Documents", false, div(
+            getAccordionItem("Documents", true, div(
                 each(sml.getDocumentationList(), list ->
                     each(list.getDocumentList().getProperties(), (i, prop) -> getDocumentHtml(i, prop))
                 ))
             ).render(html);
         }
         
-        // modes
-        if (proc != null)
-        {
-            if (proc.getNumModes() > 0)
-            {
-                getAccordionItem("Modes", false, div(
-                    each(proc.getModesList(), list ->
-                        each(((ModeChoice)list).getModeList(), mode -> getModeHtml(mode))
-                    ))
-                ).render(html);
-            }
-        }
-        
         html.appendEndTag("div");
         
-        /*
-        // identification
-        if (sml.getNumIdentifications() > 0)
+        writeFooter();
+        writer.flush();
+    }
+    
+    
+    DomContent getComponentHtml(int idx, AbstractProcess proc)
+    {
+        var content = div().withClass("pt-2");
+        
+        // type
+        if (proc.getType() != null)
         {
-            renderCard(
-                "Identification", 
-                each(sml.getIdentificationList(), list ->
-                    each(list.getIdentifierList(), term -> getTermHtml(term))
-                ));
+            content.with(h6(
+                span("Type: ").withClass(CSS_BOLD),
+                a(proc.getType())
+                    .withHref(proc.getType())
+                    .withTarget(DICTIONARY_TAB_NAME)
+            ));
         }
         
-        // classification
-        if (sml.getNumClassifications() > 0)
+        // typeOf
+        if (proc.isSetTypeOf())
         {
-            renderCard(
-                "Classification", 
-                each(sml.getClassificationList(), list ->
-                    each(list.getClassifierList(), term -> getTermHtml(term))
-                ));
+            content.with(h6(
+                span(getTypeOfLabel(proc) + ": ").withClass(CSS_BOLD),
+                getTypeOfLink(proc.getTypeOf())
+            ));
+        }
+        
+        // description
+        if (proc.isSetDescription())
+        {
+            content.with(div(
+               i(proc.getDescription())
+            ).withClass("mt-3"));
         }
         
         // observables
-        if (proc != null)
+        if (proc.getNumInputs() > 0)
         {
-            if (proc.getNumInputs() > 0)
-            {
-                renderCard(
-                    "Observed Properties", 
-                    each(proc.getInputList(), input -> {
-                        if (input instanceof ObservableProperty)
-                        {
-                            var def = ((ObservableProperty)input).getDefinition();
-                            return div(
-                                span(input.getLabel()).withClass(CSS_BOLD),
-                                getLinkIcon(def, def)
-                            );
-                        }
-                        else
-                            return null;
-                    }));
-            }
+            content.with(getSection(
+                "Observed Properties", 
+                each(proc.getInputList(), input -> {
+                    if (input instanceof ObservableProperty)
+                    {
+                        var def = ((ObservableProperty)input).getDefinition();
+                        return div(
+                            span(input.getLabel()).withClass(CSS_BOLD),
+                            getLinkIcon(def, def)
+                        );
+                    }
+                    else
+                        return null;
+                })));
         }
         
         // characteristics
-        if (sml.getNumCharacteristics() > 0)
+        if (proc.getNumCharacteristics() > 0)
         {
-            for (var list: sml.getCharacteristicsList())
+            for (var list: proc.getCharacteristicsList())
             {
-                renderCard(
+                content.with(getSection(
                     getListLabel(list, "Characteristics"), 
-                    each(list.getCharacteristicList(), prop -> getComponentOneLineHtml(prop)));
+                    each(list.getCharacteristicList(), prop -> getComponentOneLineHtml(prop)))
+                );
             }
         }
         
         // capabilities
-        if (sml.getNumCapabilities() > 0)
+        if (proc.getNumCapabilities() > 0)
         {
-            for (var list: sml.getCapabilitiesList())
+            for (var list: proc.getCapabilitiesList())
             {
-                renderCard(
+                content.with(getSection(
                     getListLabel(list, "Capabilities"), 
-                    each(list.getCapabilityList(), prop -> getComponentOneLineHtml(prop)));
-            }
-        }
-        
-        // contacts
-        if (sml.getNumContacts() > 0)
-        {
-            for (var list: sml.getContactsList())
-            {
-                renderCard(
-                    "Contacts", 
-                    each(list.getContactList(), contact -> getContactHtml(contact)));
-            }
-        }
-        
-        // documents
-        if (sml.getNumDocumentations() > 0)
-        {
-            for (var list: sml.getDocumentationList())
-            {
-                renderCard(
-                    "Documents", 
-                    each(list.getDocumentList().getProperties(), doc -> getDocumentHtml(doc)));
-            }
-        }
-        
-        // modes
-        if (proc != null && !proc.getModesList().isEmpty())
-        {
-            var content = div(
-                h5(
-                    a("Modes")
-                      .withHref("#MODE_LIST")
-                      .attr("data-bs-toggle", "collapse")
-                )
-            ).withClass("mt-3");
-            
-            var modeList = div()
-                .withClass("collapse")
-                .withId("MODE_LIST");
-            
-            for (var list: proc.getModesList())
-            {
-                modeList.with(
-                    each(((ModeChoice)list).getModeList(), mode -> getModeHtml(mode))
+                    each(list.getCapabilityList(), prop -> getComponentOneLineHtml(prop)))
                 );
             }
-            
-            content.with(modeList);
-            content.render(html);
-        }*/
+        }
         
-        writeFooter();
-        writer.flush();
+        //var card = getCard(proc.getName(), content);//.withClass("mt-0");
+        //return idx == 0 ? card.withClass("card mt-0") : card;
+        return content;
+    }
+    
+    
+    DomContent getModeHtml(int idx, Mode mode)
+    {
+        var content = div();
+        
+        if (mode.isSetDescription())
+        {
+            
+        }
+        
+        // characteristics
+        if (mode.getNumCharacteristics() > 0)
+        {
+            for (var list: mode.getCharacteristicsList())
+            {
+                content.with(getCard(
+                    getListLabel(list, "Characteristics"), 
+                    each(list.getCharacteristicList(), prop -> getComponentOneLineHtml(prop)))
+                );
+            }
+        }
+        
+        // capabilities
+        if (mode.getNumCapabilities() > 0)
+        {
+            for (var list: mode.getCapabilitiesList())
+            {
+                content.with(getCard(
+                    getListLabel(list, "Capabilities"), 
+                    each(list.getCapabilityList(), prop -> getComponentOneLineHtml(prop)))
+                );
+            }
+        }
+        
+        
+        return getCard("Mode " + mode.getName(), content);
     }
     
     
@@ -430,44 +453,6 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             span(": "),
             span(term.getValue())
         ).withClass(CSS_CARD_TEXT);
-    }
-    
-    
-    DomContent getModeHtml(Mode mode)
-    {
-        var content = div();
-        
-        if (mode.isSetDescription())
-        {
-            
-        }
-        
-        // characteristics
-        if (mode.getNumCharacteristics() > 0)
-        {
-            for (var list: mode.getCharacteristicsList())
-            {
-                content.with(getCard(
-                    getListLabel(list, "Characteristics"), 
-                    each(list.getCharacteristicList(), prop -> getComponentOneLineHtml(prop)))
-                );
-            }
-        }
-        
-        // capabilities
-        if (mode.getNumCapabilities() > 0)
-        {
-            for (var list: mode.getCapabilitiesList())
-            {
-                content.with(getCard(
-                    getListLabel(list, "Capabilities"), 
-                    each(list.getCapabilityList(), prop -> getComponentOneLineHtml(prop)))
-                );
-            }
-        }
-        
-        
-        return getCard("Mode " + mode.getName(), content);
     }
     
     

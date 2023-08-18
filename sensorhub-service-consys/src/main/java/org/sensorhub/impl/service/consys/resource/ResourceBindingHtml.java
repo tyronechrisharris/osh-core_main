@@ -231,6 +231,23 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     }
     
     
+    protected ContainerTag<?> getSection(String title, DomContent... content)
+    {
+        return getSection(title != null ? h6(title).withClasses(CSS_CARD_TITLE) : null, content);
+    }
+    
+    
+    protected ContainerTag<?> getSection(Tag<?> title, DomContent... content)
+    {
+        return div()
+            .withClass("mt-4")
+            .with(
+                title,
+                each(content)
+            );
+    }
+    
+    
     protected DomContent getPropertyHtml(DataComponent comp)
     {
         return div(
