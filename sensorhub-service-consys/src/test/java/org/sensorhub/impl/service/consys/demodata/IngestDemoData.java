@@ -64,6 +64,30 @@ public class IngestDemoData
         addOrUpdateProcedure(Aanderaa.createOX4831Datasheet(), true);
         addOrUpdateProcedure(Seabird.createSBE37Datasheet(), true);
         
+        // Davis
+        addOrUpdateProcedure(Davis.createVantagePro2Datasheet(), true);
+        for (var sys: Davis.getAllStations())
+            addOrUpdateSystem(sys, true);
+        
+        // Nexrad
+        addOrUpdateProcedure(Nexrad.createWSR88DDatasheet(), true);
+        for (var sys: Nexrad.getAllRadarSites())
+            addOrUpdateSystem(sys, true);
+        
+        // GFS
+        addOrUpdateProcedure(GfsModel.createGFSModelSpecs(), true);
+        addOrUpdateSystem(GfsModel.createModelInstance(Instant.parse("2022-11-29T00:00:00Z")), true);
+        
+        // Humans
+        addOrUpdateProcedure(Humans.createBirdSurveyProcedure(), true);
+        for (var sys: Humans.getAllBirdWatchers())
+            addOrUpdateSystem(sys, true);
+        addOrUpdateProcedure(Humans.createWaterSamplingProcedure(), true);
+        
+        // Dahua
+        addOrUpdateProcedure(Dahua.createSD22204Datasheet(), true);
+        for (var sys: Dahua.getAllCameras())
+            addOrUpdateSystem(sys, true);
     }
     
     

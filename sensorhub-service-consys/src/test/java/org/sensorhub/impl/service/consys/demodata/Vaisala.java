@@ -18,7 +18,6 @@ import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
 import org.vast.swe.SWEConstants;
-import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
 import net.opengis.sensorml.v20.AbstractProcess;
 
@@ -47,7 +46,7 @@ public class Vaisala
             .addClassifier(sml.classifiers.sensorType("Barometer"))
             
             .addInput("pressure", sml.createObservableProperty()
-                .definition(SWEHelper.getCfUri("air_pressure"))
+                .definition("https://mmisw.org/ont/ioos/parameter/air_pressure")
                 .label("Atmospheric Pressure")
                 .build()
             )

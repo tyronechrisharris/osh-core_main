@@ -33,7 +33,7 @@ import net.opengis.sensorml.v20.CapabilityList;
 
 public class MavicPro
 {
-    static final String PLATFORM_PROC_UID = "urn:x-dji:platform:mavicpro";
+    static final String MAVICPRO_PROC_UID = "urn:x-dji:platform:mavicpro";
     static final String CAMERA_PROC_UID = "urn:x-dji:sensor:mavicpro:camera";
     static final String INSGPS_PROC_UID = "urn:x-dji:sensor:mavicpro:insgps";
     
@@ -45,7 +45,7 @@ public class MavicPro
     {
         return sml.createPhysicalSystem()
             .definition(SWEConstants.DEF_PLATFORM)
-            .uniqueID(PLATFORM_PROC_UID)
+            .uniqueID(MAVICPRO_PROC_UID)
             .name("DJI Mavic Pro")
             .description("The Mavic Pro was the first of the Mavic series, released in late 2016. "
                 + "The drone is capable of capturing 4K video, has a flight range of 6.9 km (4.3 miles) "
@@ -359,7 +359,7 @@ public class MavicPro
             .definition(SWEConstants.DEF_PLATFORM)
             .uniqueID("urn:x-osh:uav:mavic:" + serialNum)
             .name("Mavic Pro UAV " + serialNum)
-            .typeOf(PLATFORM_PROC_UID)
+            .typeOf(MAVICPRO_PROC_UID)
             .addIdentifier(sml.identifiers.shortName("Mavic Pro UAV"))
             .addIdentifier(sml.identifiers.serialNumber(serialNum))
             .addContact(getOperatorContactInfo())
