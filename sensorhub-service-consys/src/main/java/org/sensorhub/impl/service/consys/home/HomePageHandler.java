@@ -25,9 +25,9 @@ import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 
 public class HomePageHandler extends BaseHandler
 {
-    static final String APISPEC_URL1 = "https://opengeospatial.github.io/connected-systems/api/part1/openapi/openapi-connectedsystems-1.yaml";
-    static final String APISPEC_URL2 = "https://opengeospatial.github.io/connected-systems/api/part2/openapi/openapi-connectedsystems-2.yaml";
-    static final String APITEST_URL = "https://opengeospatial.github.io/connected-systems/redoc";
+    static final String APISPEC_URL1 = "https://opengeospatial.github.io/ogcapi-connected-systems/api/part1/openapi/openapi-connectedsystems-1.yaml";
+    static final String APISPEC_URL2 = "https://opengeospatial.github.io/ogcapi-connected-systems/api/part2/openapi/openapi-connectedsystems-2.yaml";
+    static final String APITEST_URL = "https://opengeospatial.github.io/ogcapi-connected-systems/redoc";
     
     ConSysApiServiceConfig serviceConfig;
     
