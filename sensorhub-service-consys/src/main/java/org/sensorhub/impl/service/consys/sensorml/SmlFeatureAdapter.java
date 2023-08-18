@@ -19,6 +19,7 @@ import javax.xml.namespace.QName;
 import org.sensorhub.api.feature.ISmlFeature;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.TimeExtent;
+import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.sensorml.v20.DescribedObject;
 
 
@@ -77,6 +78,14 @@ public abstract class SmlFeatureAdapter<T extends DescribedObject> implements IS
     public TimeExtent getValidTime()
     {
         return delegate.getValidTime();
+    }
+
+
+    @Override
+    public AbstractGeometry getGeometry()
+    {
+        var sml = getFullDescription();
+        return sml != delegate.getGeometry() ? sml.getGeometry() : null;
     }
     
 

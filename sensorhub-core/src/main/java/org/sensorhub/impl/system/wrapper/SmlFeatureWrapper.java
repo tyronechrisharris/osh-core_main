@@ -19,6 +19,7 @@ import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
+import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.IOPropertyList;
 
@@ -131,6 +132,13 @@ public class SmlFeatureWrapper implements ISystemWithDesc, IProcedureWithDesc
     public TimeExtent getValidTime()
     {
         return processWrapper.getValidTime();
+    }
+
+
+    @Override
+    public AbstractGeometry getGeometry()
+    {
+        return processWrapper.getGeometry();
     }
 
 
