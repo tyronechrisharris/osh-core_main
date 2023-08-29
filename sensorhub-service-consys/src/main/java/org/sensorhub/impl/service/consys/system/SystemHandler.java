@@ -75,6 +75,8 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
             return new SystemBindingGeoJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
             return new SystemBindingSmlJson(ctx, idEncoders, forReading);
+        else if (format.equals(ResourceFormat.SML_XML))
+            return new SystemBindingSmlXml(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

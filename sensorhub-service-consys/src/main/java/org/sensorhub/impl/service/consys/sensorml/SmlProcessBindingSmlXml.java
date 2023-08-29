@@ -23,6 +23,7 @@ import org.sensorhub.api.feature.ISmlFeature;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingXml;
+import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 import org.vast.sensorML.SMLStaxBindings;
@@ -99,6 +100,8 @@ public class SmlProcessBindingSmlXml<V extends ISmlFeature<?>> extends ResourceB
     @Override
     public void serialize(FeatureKey key, V res, boolean showLinks) throws IOException
     {
+        ctx.setResponseContentType(ResourceFormat.APPLI_XML.getMimeType());
+        
         try
         {
             try

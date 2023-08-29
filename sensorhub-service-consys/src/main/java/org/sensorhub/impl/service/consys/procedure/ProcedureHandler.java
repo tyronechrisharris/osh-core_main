@@ -66,6 +66,8 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
             return new ProcedureBindingGeoJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
             return new ProcedureBindingSmlJson(ctx, idEncoders, forReading);
+        else if (format.equals(ResourceFormat.SML_XML))
+            return new ProcedureBindingSmlXml(ctx, idEncoders, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }
