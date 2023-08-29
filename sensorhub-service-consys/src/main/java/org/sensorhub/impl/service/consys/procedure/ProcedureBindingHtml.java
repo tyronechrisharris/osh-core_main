@@ -21,6 +21,7 @@ import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
+import org.sensorhub.impl.service.consys.system.SystemHandler;
 import j2html.tags.specialized.DivTag;
 import static j2html.TagCreator.*;
 
@@ -68,8 +69,11 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     
     
     @Override
-    protected DivTag getLinks(String resourceUrl, FeatureKey key)
+    protected DivTag getLinks(String resourceUrl, FeatureKey key, IProcedureWithDesc f)
     {
-        return div();
+        var systemsLink = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "?procedure=" + f.getUniqueIdentifier();
+        return div(
+            a("Implementing Systems").withHref(systemsLink).withClasses(CSS_LINK_BTN_CLASSES)
+        );
     }
 }

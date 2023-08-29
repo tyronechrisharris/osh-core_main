@@ -89,7 +89,7 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
     
     
     @Override
-    protected DivTag getLinks(String resourceUrl, FeatureKey key)
+    protected DivTag getLinks(String resourceUrl, FeatureKey key, ISystemWithDesc f)
     {
         // try to get parent system
         String parentSysUrl = null;

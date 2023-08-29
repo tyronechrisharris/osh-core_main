@@ -155,9 +155,15 @@ public class MVSystemStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDesc, S
             
             resultStream = resultStream
                .filter(e -> {
+                   var sml = e.getValue().getFullDescription();
+                   if (sml == null)
+                       return false;
                    var typeOf = e.getValue().getFullDescription().getTypeOf();
+                   if (typeOf == null)
+                       return false;
                    return (typeOf.getHref() != null && procUIDs.contains(typeOf.getHref())) ||
-                          (typeOf.getTitle() != null && procUIDs.contains(typeOf.getTitle()));
+                          (typeOf.getTitle() != null && procUIDs.contains(typeOf.getTitle())) ||
+                          (typeOf.getRole() != null && procUIDs.contains(typeOf.getRole()));
                });
         }
         

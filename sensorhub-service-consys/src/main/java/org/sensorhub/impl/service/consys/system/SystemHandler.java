@@ -111,7 +111,7 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
             builder.withParents()
                 .withInternalIDs(ids)
                 .done();
-        } 
+        }
         
         // parent UID
         var uids = parseMultiValuesArg("parentUid", queryParams);
@@ -125,6 +125,15 @@ public class SystemHandler extends AbstractFeatureHandler<ISystemWithDesc, Syste
         
         if (!parentSelected && !searchMembers)
             builder.withNoParent();
+        
+        // procedure UID
+        var procUids = parseMultiValuesArg("procedure", queryParams);
+        if (procUids != null && !procUids.isEmpty())
+        {
+            builder.withProcedures()
+                .withUniqueIDs(procUids)
+                .done();
+        }
     }
 
 

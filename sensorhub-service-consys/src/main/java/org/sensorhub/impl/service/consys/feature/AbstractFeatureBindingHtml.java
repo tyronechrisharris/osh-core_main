@@ -72,7 +72,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
     
     protected abstract String getResourceName();
     protected abstract String getResourceUrl(FeatureKey key);
-    protected abstract DivTag getLinks(String resourceUrl, FeatureKey key);
+    protected abstract DivTag getLinks(String resourceUrl, FeatureKey key, V f);
     protected abstract void serializeDetails(FeatureKey key, V res) throws IOException;
     
     
@@ -192,7 +192,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
     }
     
     
-    protected void serializeSummary(FeatureKey key, IFeature f) throws IOException
+    protected void serializeSummary(FeatureKey key, V f) throws IOException
     {
         var resourceUrl = getResourceUrl(key);
         var desc = f.getDescription();
@@ -240,7 +240,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                             getPropertyHtml(f, prop))
                         ).withClass("ps-4")
                 ).withClass("mt-2") : null,
-            getLinks(resourceUrl, key).withClass("mt-3")
+            getLinks(resourceUrl, key, f).withClass("mt-3")
         );
     }
     

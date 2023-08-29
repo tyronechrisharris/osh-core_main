@@ -69,7 +69,7 @@ public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IDeploymentWith
     
     
     @Override
-    protected DivTag getLinks(String resourceUrl, FeatureKey key)
+    protected DivTag getLinks(String resourceUrl, FeatureKey key, IDeploymentWithDesc f)
     {
         var hasSubSystems = db.getDeploymentStore().countMatchingEntries(new DeploymentFilter.Builder()
             .withCurrentVersion()

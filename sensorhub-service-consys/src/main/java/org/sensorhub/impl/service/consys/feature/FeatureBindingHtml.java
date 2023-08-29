@@ -84,7 +84,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IOb
     
     
     @Override
-    protected DivTag getLinks(String resourceUrl, FeatureKey key)
+    protected DivTag getLinks(String resourceUrl, FeatureKey key, IFeature f)
     {
         /*var hasMembers = db.getFoiStore().countMatchingEntries(new FoiFilter.Builder()
             .withParents(key.getInternalID())
