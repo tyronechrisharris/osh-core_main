@@ -84,16 +84,16 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
             return each(
                 link()
                     .withRel("stylesheet")
-                    .withHref("https://unpkg.com/leaflet@1.7.1/dist/leaflet.css")
-                    .attr("integrity", "sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==")
+                    .withHref("https://unpkg.com/leaflet@1.9.4/dist/leaflet.css")
+                    .attr("integrity", "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=")
                     .attr("crossorigin", ""),
                 link()
                     .withRel("stylesheet")
                     .withHref("https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.css")
                     .attr("crossorigin", ""),
                 script()
-                    .withSrc("https://unpkg.com/leaflet@1.7.1/dist/leaflet.js")
-                    .attr("integrity", "sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==")
+                    .withSrc("https://unpkg.com/leaflet@1.9.4/dist/leaflet.js")
+                    .attr("integrity", "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=")
                     .attr("crossorigin", ""),
                 script()
                     .withSrc("https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.js")
@@ -139,9 +139,27 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     "fetch('" + geojsonUrl + "')\n"
                     + "    .then(response => response.json())\n"
                     + "    .then(data => {\n"
-                    + "        let fl = L.geoJSON(data.items ? data.items : data/*, {\n"
-                    + "            coordsToLatLng: coords => L.latLng(coords[0], coords[1])\n"
-                    + "        }*/)\n"
+                    + "        let fl = L.geoJSON("
+                    + "           data.items ? data.items : data, {"
+                    + "           pointToLayer: function (feature, latlng) {\n"
+                    + "              if (feature.properties.radius) {"
+                    + "                var opts = {"
+                    + "                  weight: 1,"
+                    + "                  fillColor: \"#ff7800\","
+                    + "                  color: \"#000\","
+                    + "                  opacity: 0.5,"
+                    + "                  fillOpacity: 0.1,"
+                    + "                  radius: feature.properties.radius.value"
+                    + "                };"
+                    + "                var circle = L.circle(latlng, opts);"
+                    + "                var center = L.circleMarker(latlng, {radius: 4, weight: 0, fillOpacity: 1});"
+                    + "                circle.feature = center.feature = feature;"
+                    + "                return L.featureGroup([circle, center]);"
+                    + "              } else {"
+                    + "                return L.marker(latlng);"
+                    + "              }"
+                    + "           }\n"
+                    + "        })\n"
                     + "        .bindPopup(function (layer) {\n"
                     + "            return layer.feature.properties.name;\n"
                     + "        })\n"
@@ -151,18 +169,17 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     + "    });\n\n"
                 )
             ).render(html);
-                
-            // start 1st column div
-            html.appendStartTag("div").appendAttribute("class", "col order-1").completeTag();
         }
+        
+        // start 1st column div
+        html.appendStartTag("div").appendAttribute("class", "col order-1").completeTag();
     }
     
     
     @Override
     protected void writeFooter() throws IOException
     {
-        if (showMap)
-            html.appendEndTag("div");
+        html.appendEndTag("div");
         html.appendEndTag("div");
         super.writeFooter();
     }
