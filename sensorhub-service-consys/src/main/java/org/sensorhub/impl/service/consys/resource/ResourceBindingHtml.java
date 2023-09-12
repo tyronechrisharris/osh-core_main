@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
@@ -59,7 +60,7 @@ import static j2html.TagCreator.*;
  * </p>
  * 
  * @param <K> Resource Key
- * @param <V> Resource Object
+ * @param <V> Resource Objects
  *
  * @author Alex Robin
  * @since March 31, 2022
@@ -524,6 +525,27 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             span(te.begin().truncatedTo(ChronoUnit.SECONDS).toString()), br(),
             span(te.end().truncatedTo(ChronoUnit.SECONDS).toString() + (te.endsNow() ? " (Now)" : ""))
         ).withClass("ps-4");
+    }
+    
+    
+    protected Tag<?> getTimeExtentHtmlSingleLine(TimeExtent te, String textIfNull)
+    {
+        if (te == null)
+            return span(textIfNull);
+        
+        var startHasTime = (te.begin().getEpochSecond() % 86400) != 0;
+        var stopHasTime = (te.end().getEpochSecond() % 86400) != 0;
+        
+        return span(
+            (startHasTime ?
+                te.begin().truncatedTo(ChronoUnit.SECONDS) :
+                te.begin().atOffset(ZoneOffset.UTC).toLocalDate()
+            ) + " to " +
+            (te.endsNow() ? "Now" : stopHasTime ? 
+                te.end().truncatedTo(ChronoUnit.SECONDS) :
+                te.end().atOffset(ZoneOffset.UTC).toLocalDate()
+            )
+        );
     }
     
     

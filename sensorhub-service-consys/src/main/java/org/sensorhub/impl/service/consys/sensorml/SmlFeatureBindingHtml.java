@@ -101,7 +101,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         
         // links to sub resources
         var resourceUrl = getResourceUrl(key);
-        var links = getLinks(resourceUrl, key);
+        var links = getLinks(resourceUrl, key, f);
         if (links != null && links.getNumChildren() > 0)
         {
             div(links)
@@ -132,10 +132,16 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                     getTypeOfLink(proc.getTypeOf())
                 ) : null,
                 
-           // description
-           f.getDescription() != null ? div(
-               i(f.getDescription())
-           ).withClass("mt-3") : null
+            // validity
+            div(
+                span("Validity:").withClass(CSS_BOLD),
+                getTimeExtentHtmlSingleLine(f.getValidTime(), "Always")
+            ).withClass("mt-2"),
+                
+            // description
+            f.getDescription() != null ? div(
+                i(f.getDescription())
+            ).withClass("mt-3") : null
         )
         .withClass("mt-3")
         .render(html);
@@ -211,34 +217,6 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             }
         }
         
-        // components
-        if (aggr != null)
-        {
-            if (aggr.getNumComponents() > 0)
-            {
-                /*getAccordionItem("Components", true, div(
-                    each(aggr.getComponentList(), (i, comp) -> getComponentHtml(i, comp))
-                )).render(html);*/
-                each(aggr.getComponentList(), (i, comp) -> {
-                    var name = comp.getName() != null ? comp.getName() : "Component";
-                    return getAccordionItem(name, true, getComponentHtml(i, comp));
-                }).render(html);
-            }
-        }
-        
-        // modes
-        if (proc != null)
-        {
-            if (proc.getNumModes() > 0)
-            {
-                getAccordionItem("Modes", false, div(
-                    each(proc.getModesList(), list ->
-                        each(((ModeChoice)list).getModeList(), (i, mode) -> getModeHtml(i, mode))
-                    ))
-                ).render(html);
-            }
-        }
-        
         // contacts
         if (sml.getNumContacts() > 0)
         {
@@ -257,6 +235,33 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                     each(list.getDocumentList().getProperties(), (i, prop) -> getDocumentHtml(i, prop))
                 ))
             ).render(html);
+        }
+        
+        // components
+        if (aggr != null)
+        {
+            if (aggr.getNumComponents() > 0)
+            {
+                getAccordionItem("Components", true, 
+                    each(aggr.getComponentList(), (i, comp) -> {
+                        var name = comp.getName() != null ? comp.getName() : "Component";
+                        return getAccordionItem(name, false, getComponentHtml(i, comp));
+                    })
+                ).render(html);
+            }
+        }
+        
+        // modes
+        if (proc != null)
+        {
+            if (proc.getNumModes() > 0)
+            {
+                getAccordionItem("Modes", false, div(
+                    each(proc.getModesList(), list ->
+                        each(((ModeChoice)list).getModeList(), (i, mode) -> getModeHtml(i, mode))
+                    ))
+                ).render(html);
+            }
         }
         
         html.appendEndTag("div");
@@ -339,6 +344,16 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                     each(list.getCapabilityList(), prop -> getComponentOneLineHtml(prop)))
                 );
             }
+        }
+        
+        // contacts
+        if (proc.getNumContacts() > 0)
+        {
+            content.with(getSection("Contacts", div(
+                each(proc.getContactsList(), list ->
+                    each(list.getContactList(), (i, contact) -> getContactHtml(i, contact))
+                ))
+            ));
         }
         
         //var card = getCard(proc.getName(), content);//.withClass("mt-0");
