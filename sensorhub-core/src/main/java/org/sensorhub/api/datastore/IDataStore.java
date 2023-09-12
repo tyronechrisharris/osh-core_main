@@ -168,9 +168,9 @@ public interface IDataStore<K, V, VF extends ValueField, Q extends IQueryFilter>
 
     /**
      * Commit changes to storage
-     * @throws RuntimeException if an error occurred while committing changes
+     * @throws DataStoreException if an error occurred while committing changes
      */
-    public void commit();
+    public void commit() throws DataStoreException;
 
 
     /**

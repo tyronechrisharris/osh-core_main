@@ -129,7 +129,7 @@ public class TestInMemObsStore extends AbstractTestObsStore<InMemoryObsStore>
     
     
     @Override
-    protected void checkRemoveAllKeys()
+    protected void checkRemoveAllKeys() throws Exception
     {
         var saveAllCommands = allObs;
         allObs = keepOnlyLatestObs(allObs);

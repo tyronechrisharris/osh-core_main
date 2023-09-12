@@ -24,6 +24,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.IQueryFilter;
 import org.sensorhub.api.datastore.ValueField;
@@ -288,7 +289,7 @@ public abstract class AbstractDataStoreWrapper<
     }
 
 
-    public void commit()
+    public void commit() throws DataStoreException
     {
         getWriteStore().commit();
     }

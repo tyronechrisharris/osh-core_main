@@ -148,7 +148,7 @@ public class TestInMemCommandStore extends AbstractTestCommandStore<InMemoryComm
     
     
     @Override
-    protected void checkRemoveAllKeys()
+    protected void checkRemoveAllKeys() throws Exception
     {
         var saveAllCommands = allCommands;
         allCommands = keepOnlyLatestCommands(allCommands);

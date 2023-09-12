@@ -314,11 +314,11 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
             ctx.setFormatOptions(format, null);
             
             // parse one or more resource
-            V res;
-            var binding = getBinding(ctx, true);
-            while ((res = binding.deserialize()) != null)
+            try
             {
-                try
+                V res;
+                var binding = getBinding(ctx, true);
+                while ((res = binding.deserialize()) != null)
                 {
                     count++;
                     validate(res);
@@ -340,10 +340,12 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                     if (url != null)
                         ctx.addResourceUri(url);
                 }
-                catch (DataStoreException e)
-                {
-                    throw ServiceErrors.requestRejected("Ingest Error: " + e.getMessage());
-                }
+                
+                dataStore.commit();
+            }
+            catch (DataStoreException e)
+            {
+                throw ServiceErrors.requestRejected("Ingest Error: " + e.getMessage());
             }
             
             if (count == 0)
@@ -402,7 +404,10 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         try
         {
             if (updateEntry(ctx, key, res))
+            {
+                dataStore.commit();
                 ctx.getLogger().debug("Updated resource {}, key={}", id, key);
+            }
             else
                 throw ServiceErrors.notFound(id);
         }
@@ -437,7 +442,10 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         try
         {
             if (deleteEntry(ctx, key))
+            {
+                dataStore.commit();
                 ctx.getLogger().info("Deleted resource {}, key={}", id, key);
+            }
             else
                 throw ServiceErrors.notFound(id);
         }

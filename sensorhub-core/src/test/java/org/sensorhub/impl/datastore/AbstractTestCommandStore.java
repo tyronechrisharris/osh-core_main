@@ -378,7 +378,7 @@ public abstract class AbstractTestCommandStore<StoreType extends ICommandStore>
     }
 
 
-    protected void checkRemoveAllKeys()
+    protected void checkRemoveAllKeys() throws Exception
     {
         assertTrue(cmdStore.getNumRecords() == allCommands.size());
 

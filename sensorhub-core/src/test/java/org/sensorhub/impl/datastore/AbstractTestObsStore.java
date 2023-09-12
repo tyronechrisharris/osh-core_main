@@ -338,7 +338,7 @@ public abstract class AbstractTestObsStore<StoreType extends IObsStore>
     }
 
 
-    protected void checkRemoveAllKeys()
+    protected void checkRemoveAllKeys() throws Exception
     {
         assertTrue(obsStore.getNumRecords() == allObs.size());
 
