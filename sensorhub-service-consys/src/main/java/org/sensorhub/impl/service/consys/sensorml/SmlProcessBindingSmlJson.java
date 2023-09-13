@@ -90,8 +90,12 @@ public abstract class SmlProcessBindingSmlJson<V extends ISmlFeature<?>> extends
                 var sml = res.getFullDescription();
                 if (sml != null && sml instanceof AbstractProcess)
                 {
-                    var idStr = encodeID(key);
-                    sml = ProcessWrapper.getWrapper((AbstractProcess)sml).withId(idStr);
+                    if (key != null)
+                    {
+                        var idStr = encodeID(key);
+                        sml = ProcessWrapper.getWrapper((AbstractProcess)sml).withId(idStr);
+                    }
+                    
                     smlBindings.writeDescribedObject(writer, sml);
                 }
                 writer.flush();

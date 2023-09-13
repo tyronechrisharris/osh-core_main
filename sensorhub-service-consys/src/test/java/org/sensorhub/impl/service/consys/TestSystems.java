@@ -15,20 +15,25 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys;
 
 import static org.junit.Assert.assertEquals;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import org.jglue.fluentjson.JsonBuilderFactory;
 import org.junit.Test;
+import org.vast.sensorML.SMLHelper;
+import org.vast.sensorML.SMLJsonBindings;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Collections2;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonWriter;
 
 
 public class TestSystems extends AbstractTestAllSmlFeatures
 {
     public static final String UID_FORMAT = "urn:osh:sys:test%03d";
+    static SMLHelper sml = new SMLHelper();
     
     
     public static class SystemInfo
@@ -169,76 +174,26 @@ public class TestSystems extends AbstractTestAllSmlFeatures
     protected JsonObject createFeatureSmlJson(int procNum) throws Exception
     {
         var numId = String.format("%03d", procNum);
-        var sml = "{\n"
-            + "  \"type\": \"PhysicalSystem\",\n"
-            + "  \"description\": \"Sensor registered using CONSYS API\",\n"
-            + "  \"identifier\": \"urn:osh:sensor:test:" + numId + "\",\n"
-            + "  \"names\": [\"Test sensor\"],\n"
-            + "  \"identifications\": [\n"
-            + "    {\n"
-            + "      \"type\": \"IdentifierList\",\n"
-            + "      \"identifiers\": [\n"
-            + "        {\n"
-            + "          \"type\": \"Term\",\n"
-            + "          \"definition\": \"urn:ogc:def:identifier:OGC:longname\",\n"
-            + "          \"label\": \"Long Name\",\n"
-            + "          \"value\": \"Test sensor " + numId + " located in my garden\"\n"
-            + "        },\n"
-            + "        {\n"
-            + "          \"type\": \"Term\",\n"
-            + "          \"definition\": \"urn:ogc:def:identifier:OGC:shortname\",\n"
-            + "          \"label\": \"Short Name\",\n"
-            + "          \"value\": \"Test Sensor #" + numId + "\"\n"
-            + "        },\n"
-            + "        {\n"
-            + "          \"type\": \"Term\",\n"
-            + "          \"definition\": \"urn:ogc:def:identifier:OGC:manufacturer\",\n"
-            + "          \"label\": \"Manufacturer\",\n"
-            + "          \"value\": \"SensorMakers Inc.\"\n"
-            + "        },\n"
-            + "        {\n"
-            + "          \"type\": \"Term\",\n"
-            + "          \"definition\": \"http://sensorml.com/ont/swe/property/SerialNumber\",\n"
-            + "          \"label\": \"Serial Number\",\n"
-            + "          \"value\": \"0123456879\"\n"
-            + "        }\n"
-            + "      ]\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"classifications\": [\n"
-            + "    {\n"
-            + "      \"type\": \"ClassifierList\",\n"
-            + "      \"classifiers\": [\n"
-            + "        {\n"
-            + "          \"type\": \"Term\",\n"
-            + "          \"definition\": \"urn:ogc:def:classifier:OGC:application\",\n"
-            + "          \"label\": \"Intended Application\",\n"
-            + "          \"value\": \"weather\"\n"
-            + "        },\n"
-            + "        {\n"
-            + "          \"type\": \"Term\",\n"
-            + "          \"definition\": \"urn:sensor:classifier:sensorType\",\n"
-            + "          \"label\": \"Instrument Type\",\n"
-            + "          \"codeSpace\": {\n"
-            + "            \"href\": \"http://gcmdservices.gsfc.nasa.gov/static/kms/instruments/instruments.xml\"\n"
-            + "          },\n"
-            + "          \"value\": \"weather station\"\n"
-            + "        }\n"
-            + "      ]\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"positions\": [\n"
-            + "    {\n"
-            + "      \"type\": \"Point\",\n"
-            + "      \"id\": \"stationLocation\",\n"
-            + "      \"srsName\": \"http://www.opengis.net/def/crs/EPSG/0/4979\",\n"
-            + "      \"srsDimension\": \"3\",\n"
-            + "      \"pos\": \"1.2311 43.5678 0\"\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
+        var builder = sml.createPhysicalSystem()
+            .uniqueID(String.format(UID_FORMAT, procNum))
+            .description("Sensor registered using CONSYS API")
+            .name("Test Sensor")
+            .addIdentifier(sml.identifiers.shortName("Test Sensor #" + numId))
+            .addIdentifier(sml.identifiers.longName("Test sensor " + numId + " located in my garden"))
+            .addIdentifier(sml.identifiers.manufacturer("SensorMakers Inc."))
+            .addIdentifier(sml.identifiers.serialNumber("0123456879"))
+            .addClassifier(sml.classifiers.sensorType("weather station")
+                .label("Instrument Type")
+                .codeSpace("http://gcmdservices.gsfc.nasa.gov/static/kms/instruments/instruments.xml"))
+            .location(1.2311, 43.5678, 0);
         
-        return (JsonObject)JsonParser.parseString(sml);
+        var strWriter = new StringWriter();
+        try (var writer = new JsonWriter(strWriter))
+        {
+            new SMLJsonBindings().writeDescribedObject(writer, builder.build());
+        }
+
+        return (JsonObject)JsonParser.parseString(strWriter.toString());
     }
     
     

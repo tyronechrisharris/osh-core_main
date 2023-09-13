@@ -342,7 +342,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
                             ctx.addResourceUri(url);
                 }
                 
-                dataStore.commit();
+                if (!dataStore.isReadOnly())
+                    dataStore.commit();
             }
             catch (DataStoreException e)
             {
@@ -406,7 +407,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             if (updateEntry(ctx, key, res))
             {
-                dataStore.commit();
+                if (!dataStore.isReadOnly())
+                    dataStore.commit();
                 ctx.getLogger().debug("Updated resource {}, key={}", id, key);
             }
             else
@@ -444,7 +446,8 @@ public abstract class BaseResourceHandler<K, V, F extends IQueryFilter, S extend
         {
             if (deleteEntry(ctx, key))
             {
-                dataStore.commit();
+                if (!dataStore.isReadOnly())
+                    dataStore.commit();
                 ctx.getLogger().info("Deleted resource {}, key={}", id, key);
             }
             else

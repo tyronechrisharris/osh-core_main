@@ -59,6 +59,12 @@ public abstract class ReadOnlyDataStore<K, V, VF extends ValueField, Q extends I
     {
         return false;
     }
+    
+    
+    public boolean isReadOnly()
+    {
+        return true;
+    }
 
 
     @Override

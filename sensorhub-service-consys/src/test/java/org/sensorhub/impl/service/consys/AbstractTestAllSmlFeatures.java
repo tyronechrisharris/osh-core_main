@@ -39,14 +39,14 @@ public abstract class AbstractTestAllSmlFeatures extends AbstractTestAllFeatures
         // get summary
         var jsonResp = (JsonObject)sendGetRequestAndParseJson(url);
         checkId(url, jsonResp);
-        assertEquals(json.getAsJsonArray("names").get(0).getAsString(), jsonResp.getAsJsonObject("properties").get("name").getAsString());
+        assertEquals(json.get("label").getAsString(), jsonResp.getAsJsonObject("properties").get("name").getAsString());
         assertEquals(json.get("description").getAsString(), jsonResp.getAsJsonObject("properties").get("description").getAsString());
         
         // get details
         jsonResp = (JsonObject)sendGetRequestAndParseJson(url + "?f=application/sml%2Bjson");
         checkId(url, jsonResp);
         jsonResp.remove("id"); // remove auto-assigned id before compare
-        jsonResp.remove("validTimes");
+        jsonResp.remove("validTime");
         assertEquals(json, jsonResp);
     }
     

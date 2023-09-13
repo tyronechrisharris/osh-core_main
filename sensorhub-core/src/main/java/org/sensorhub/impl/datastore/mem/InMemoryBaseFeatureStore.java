@@ -465,9 +465,12 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
             
             // skip silently if feature currently in store is newer
             // or if new feature has a valid time in the future
-            if ((existingKey != null && existingKey.getValidStartTime().isAfter(key.getValidStartTime())) || 
-                key.getValidStartTime().isAfter(Instant.now()) )
+            if (existingKey != null)
+            {
+                if (existingKey.getValidStartTime().isAfter(key.getValidStartTime()) || 
+                    key.getValidStartTime().isAfter(Instant.now()))
                 return map.get(existingKey);
+            }
             
             // otherwise update main map
             // update both key and value atomically

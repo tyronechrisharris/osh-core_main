@@ -15,18 +15,24 @@ Copyright (C) 2022 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys;
 
 import static org.junit.Assert.assertEquals;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 import org.jglue.fluentjson.JsonBuilderFactory;
+import org.vast.sensorML.SMLHelper;
+import org.vast.sensorML.SMLJsonBindings;
+import org.vast.swe.SWEHelper;
 import org.vast.util.TimeExtent;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonWriter;
 
 
 public class TestDeployments extends AbstractTestAllSmlFeatures
 {
     public static final String UID_FORMAT = "urn:osh:deplyt:test%03d";
+    static SMLHelper sml = new SMLHelper();
     
     
     public static class DeploymentInfo
@@ -51,7 +57,7 @@ public class TestDeployments extends AbstractTestAllSmlFeatures
     
     
     /*@Test
-    public void testAddSystemMembersAndGetById() throws Exception
+    public void testAddDeployedSystemsAndGetById() throws Exception
     {
         // add system group
         var groupUrl = addFeature(1);
@@ -111,42 +117,20 @@ public class TestDeployments extends AbstractTestAllSmlFeatures
     protected JsonObject createFeatureSmlJson(int procNum) throws Exception
     {
         var numId = String.format("%03d", procNum);
-        var sml = "{\n"
-            + "  \"type\": \"Deployment\",\n"
-            + "  \"description\": \"Deployment registered using CONSYS API\",\n"
-            + "  \"identifier\": \"urn:osh:deplyt:test:" + numId + "\",\n"
-            + "  \"names\": [\"Test deployment\"],\n"
-            + "  \"identifications\": [\n"
-            + "    {\n"
-            + "      \"type\": \"IdentifierList\",\n"
-            + "      \"identifiers\": [\n"
-            + "        {\n"
-            + "          \"type\": \"Term\",\n"
-            + "          \"definition\": \"urn:ogc:def:identifier:OGC:shortname\",\n"
-            + "          \"label\": \"Short Name\",\n"
-            + "          \"value\": \"Artic Mission #" + numId + "\"\n"
-            + "        },\n"
-            + "        {\n"
-            + "          \"type\": \"Term\",\n"
-            + "          \"definition\": \"urn:ogc:def:identifier:OGC:manufacturer\",\n"
-            + "          \"label\": \"Mission ID\",\n"
-            + "          \"value\": \"SD-1405\"\n"
-            + "        }\n"
-            + "      ]\n"
-            + "    }\n"
-            + "  ],\n"
-            + "  \"positions\": [\n"
-            + "    {\n"
-            + "      \"type\": \"Point\",\n"
-            + "      \"id\": \"stationLocation\",\n"
-            + "      \"srsName\": \"http://www.opengis.net/def/crs/EPSG/0/4979\",\n"
-            + "      \"srsDimension\": \"3\",\n"
-            + "      \"pos\": \"1.2311 43.5678 0\"\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
+        var builder = sml.createDeployment()
+            .uniqueID(String.format(UID_FORMAT, procNum))
+            .description("Deployment registered using CONSYS API")
+            .name("Test Deployment")
+            .addIdentifier(sml.identifiers.shortName("Artic Mission #" + numId))
+            .addIdentifier("Mission ID", SWEHelper.getPropertyUri("MissionID"), "SD-1405");
         
-        return (JsonObject)JsonParser.parseString(sml);
+        var strWriter = new StringWriter();
+        try (var writer = new JsonWriter(strWriter))
+        {
+            new SMLJsonBindings().writeDescribedObject(writer, builder.build());
+        }
+        
+        return (JsonObject)JsonParser.parseString(strWriter.toString());
     }
     
     

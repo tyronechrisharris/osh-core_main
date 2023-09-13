@@ -15,7 +15,7 @@ Copyright (C) 2012-2015 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.sensor;
 
 import net.opengis.gml.v32.Point;
-import net.opengis.gml.v32.impl.PointImpl;
+import net.opengis.gml.v32.impl.GMLFactory;
 import net.opengis.sensorml.v20.PhysicalSystem;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
@@ -86,7 +86,7 @@ public class FakeSensor extends AbstractSensorModule<SensorConfig>
         synchronized (sensorDescLock)
         {
             super.updateSensorDescription();
-            Point pos = new PointImpl(3);
+            Point pos = new GMLFactory(true).newPoint();
             pos.setId("P01");
             pos.setSrsName("http://www.opengis.net/def/crs/EPSG/0/4979");
             pos.setPos(new double[] {45.6, 2.3, 193.2});
