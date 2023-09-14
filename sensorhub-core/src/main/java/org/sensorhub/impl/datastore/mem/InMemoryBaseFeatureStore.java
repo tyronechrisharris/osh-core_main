@@ -36,9 +36,9 @@ import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.sensorhub.utils.FilterUtils;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.gml.JTSUtils;
 import org.vast.util.Asserts;
 import org.vast.util.Bbox;
-import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.index.quadtree.Quadtree;
 
 
@@ -516,7 +516,7 @@ public abstract class InMemoryBaseFeatureStore<T extends IFeature, VF extends Fe
         {
             synchronized(spatialIndex)
             {
-                var jtsEnv = ((Geometry)feature.getGeometry()).getEnvelopeInternal();
+                var jtsEnv = JTSUtils.getAsJTSGeometry(feature.getGeometry()).getEnvelopeInternal();
                 allFeaturesBbox.resizeToContain(jtsEnv.getMinX(), jtsEnv.getMinY(), 0);
                 allFeaturesBbox.resizeToContain(jtsEnv.getMaxX(), jtsEnv.getMaxY(), 0);
                 spatialIndex.insert(jtsEnv, key);
