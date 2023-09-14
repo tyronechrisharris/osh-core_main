@@ -23,10 +23,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.concurrent.ExecutionException;
+import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.impl.service.consys.client.ConSysApiClient;
+import org.vast.ogc.gml.GeoJsonBindings;
+import org.vast.ogc.gml.IFeature;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLJsonBindings;
 import org.vast.swe.helper.GeoPosHelper;
 import com.google.common.net.HttpHeaders;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
 import net.opengis.sensorml.v20.AbstractProcess;
@@ -41,6 +49,7 @@ public class IngestDemoData
     
     static SMLHelper sml = new SMLHelper();
     static GeoPosHelper swe = new GeoPosHelper();
+    static Gson gson = new GsonBuilder().setPrettyPrinting().create();
     
     
     public static void main(String[] args) throws IOException
@@ -71,8 +80,15 @@ public class IngestDemoData
         
         // Nexrad
         addOrUpdateProcedure(Nexrad.createWSR88DDatasheet(), true);
+        addOrUpdateSystem(Nexrad.getSingleRadarSite(), true);
+        addOrUpdateSF(Nexrad.getSingleRadarSite().getUniqueIdentifier(), Nexrad.getSingleRadarSiteSf(), true);
+        addOrUpdateSystem(Nexrad.getUSNexradNetwork(), true);
         for (var sys: Nexrad.getAllRadarSites())
-            addOrUpdateSystem(sys, true);
+        {
+            addOrUpdateSubsystem(Nexrad.NEXRAD_US_NET_UID, sys, true);
+            addOrUpdateSF(sys.getUniqueIdentifier(), Nexrad.createNexradSf(sys), true);
+            //addOrUpdateDatastream(Nexrad.createRadialDataStream(sys), false);
+        }
         
         // GFS
         addOrUpdateProcedure(GfsModel.createGFSModelSpecs(), true);
@@ -88,18 +104,39 @@ public class IngestDemoData
         addOrUpdateProcedure(Dahua.createSD22204Datasheet(), true);
         for (var sys: Dahua.getAllCameras())
             addOrUpdateSystem(sys, true);
+        
+        // AIS
+        addOrUpdateProcedure(MaritimeAis.createAisProcedure(), true);
+        for (var sys: MaritimeAis.getAllAisMonitoringSystems())
+        {
+            var sysId = addOrUpdateSystem(sys, true);
+            
+            var navDs = MaritimeAis.createDataStream(sys.getUniqueIdentifier());
+            var dsId = addOrUpdateDatastream(navDs, true);
+            //MaritimeAis.ingestFoisAndObs(sysId, dsId);
+        }
+        
+        // Satellites
+        addOrUpdateProcedure(Spot.createAstroTerraSpecs(), true);
+        for (var sys: Spot.getSpotInstances())
+            addOrUpdateSystem(sys, true);
+        
+        addOrUpdateProcedure(Pleiades.createPHRSpecs(), true);
+        for (var sys: Pleiades.getPHRInstances())
+            addOrUpdateSystem(sys, true);
+        
     }
     
     
     static String addOrUpdateProcedure(AbstractProcess obj, boolean replace) throws IOException
     {
-        return addOrUpdateResource("procedures", obj, replace);
+        return addOrUpdateSmlResource("procedures", obj, replace);
     }
     
     
     static String addOrUpdateSystem(AbstractProcess obj, boolean replace) throws IOException
     {
-        return addOrUpdateResource("systems", obj, replace);
+        return addOrUpdateSmlResource("systems", obj, replace);
     }
     
     
@@ -108,17 +145,50 @@ public class IngestDemoData
         var id = getFeatureByUid("systems", parentUid);
         if (id == null)
             throw new IllegalArgumentException("Parent system not found: " + parentUid);
-        return addOrUpdateResource("systems/" + id + "/members", obj, replace);
+        return addOrUpdateSmlResource("systems/" + id + "/members", obj, replace);
+    }
+    
+    
+    static String addOrUpdateSF(String parentUid, IFeature f, boolean replace) throws IOException
+    {
+        var id = getFeatureByUid("systems", parentUid);
+        if (id == null)
+            throw new IllegalArgumentException("Parent system not found: " + parentUid);
+        return addOrUpdateGeoJsonResource("systems/" + id + "/fois", f, replace);
+    }
+    
+    
+    static String addOrUpdateDatastream(IDataStreamInfo dsInfo, boolean replace) throws IOException
+    {
+        var sysUid = dsInfo.getSystemID().getUniqueID();
+        var id = getFeatureByUid("systems", sysUid);
+        if (id == null)
+            throw new IllegalArgumentException("Parent system not found: " + sysUid);
+        
+        var user = CREDENTIALS.split(":")[0];
+        var pwd = CREDENTIALS.split(":")[1];
+        var client = ConSysApiClient.newBuilder(API_ROOT)
+            .simpleAuth(user, pwd.toCharArray())
+            .build();
+        
+        try
+        {
+            return client.addDataStream(id, dsInfo).get();
+        }
+        catch (InterruptedException | ExecutionException e)
+        {
+            throw new IOException(e);
+        }
     }
     
     
     static String addOrUpdateDeployment(Deployment obj, boolean replace) throws IOException
     {
-        return addOrUpdateResource("deployments", obj, replace);
+        return addOrUpdateSmlResource("deployments", obj, replace);
     }
     
     
-    static String addOrUpdateResource(String resourceType, DescribedObject obj, boolean replace) throws IOException
+    static String addOrUpdateSmlResource(String resourceType, DescribedObject obj, boolean replace) throws IOException
     {
         // check if procedure exists and retrieve ID
         var id = getFeatureByUid(resourceType, obj.getUniqueIdentifier());
@@ -129,11 +199,32 @@ public class IngestDemoData
         
         if (id == null || !replace)
         {
-            var resp = sendPostRequest("/" + resourceType, strWriter.toString(), "application/sml+json");
+            var resp = sendPostRequest(resourceType, strWriter.toString(), "application/sml+json");
             id = resp.headers().firstValue(HttpHeaders.LOCATION).get();
         }
         else
-            sendPutRequest("/" + resourceType + "/" + id, strWriter.toString(), "application/sml+json");
+            sendPutRequest(resourceType + "/" + id, strWriter.toString(), "application/sml+json");
+        
+        return id;
+    }
+    
+    
+    static String addOrUpdateGeoJsonResource(String resourceType, IFeature obj, boolean replace) throws IOException
+    {
+        // check if feature exists and retrieve ID
+        var id = getFeatureByUid(resourceType, obj.getUniqueIdentifier());
+        
+        var strWriter = new StringWriter();
+        var bindings = new GeoJsonBindings();
+        bindings.writeFeature(new JsonWriter(strWriter), obj);
+        
+        if (id == null || !replace)
+        {
+            var resp = sendPostRequest(resourceType, strWriter.toString(), "application/geo+json");
+            id = resp.headers().firstValue(HttpHeaders.LOCATION).get();
+        }
+        else
+            sendPutRequest(resourceType + "/" + id, strWriter.toString(), "application/geo+json");
         
         return id;
     }
@@ -147,7 +238,7 @@ public class IngestDemoData
         {
             HttpRequest request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create(API_ROOT + "/" + path + "?select=id&uid=" + uid))
+                .uri(URI.create(API_ROOT + path + "?select=id&uid=" + uid))
                 .header("Authorization", "Basic " + Base64.getEncoder().encodeToString(CREDENTIALS.getBytes()))
                 .build();
             
@@ -174,6 +265,44 @@ public class IngestDemoData
         {
             throw new IOException(e);
         }
+    }
+    
+    
+    static JsonElement sendGetRequest(String path) throws IOException
+    {
+        try
+        {
+            HttpClient client = HttpClient.newHttpClient();
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create(API_ROOT + path))
+                .build();
+            
+            System.out.println(request);
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            int statusCode = response.statusCode();
+            
+            // print error and send exception
+            if (statusCode >= 300)
+            {
+                System.err.println(response.body());
+                throw new IOException("Received HTTP error code " + statusCode);
+            }
+            
+            return JsonParser.parseString(response.body());
+        }
+        catch (InterruptedException e)
+        {
+            throw new IOException(e);
+        }
+    }
+    
+    
+    static HttpResponse<String> sendPostRequest(String path, JsonElement body, String contentType) throws IOException
+    {
+        var jsonString = gson.toJson(body);
+        return sendPostRequest(path, jsonString, "application/json");
     }
     
     
@@ -220,6 +349,38 @@ public class IngestDemoData
                 .PUT(HttpRequest.BodyPublishers.ofString(body))
                 .uri(URI.create(API_ROOT + path))
                 .header("Content-Type", contentType)
+                .header("Authorization", "Basic " + Base64.getEncoder().encodeToString(CREDENTIALS.getBytes()))
+                .build();
+            
+            System.out.println(request);// + "\n" + jsonString);
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            int statusCode = response.statusCode();
+            
+            // print error and send exception
+            if (statusCode >= 300)
+            {
+                System.err.println(response.body());
+                throw new IOException("Received HTTP error code " + statusCode);
+            }
+            
+            return response;
+        }
+        catch (InterruptedException e)
+        {
+            throw new IOException(e);
+        }
+    }
+    
+    
+    static HttpResponse<String> sendDeleteRequest(String path, boolean cascade) throws IOException
+    {
+        try
+        {
+            HttpClient client = HttpClient.newHttpClient();
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                .DELETE()
+                .uri(URI.create(API_ROOT + path + (cascade ? "?cascade=true" : "")))
                 .header("Authorization", "Basic " + Base64.getEncoder().encodeToString(CREDENTIALS.getBytes()))
                 .build();
             

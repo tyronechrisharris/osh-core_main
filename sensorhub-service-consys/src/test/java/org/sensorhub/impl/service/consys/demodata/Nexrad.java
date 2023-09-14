@@ -23,6 +23,12 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.data.DataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.system.SystemId;
+import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.om.SamplingSphere;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
@@ -37,6 +43,8 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public class Nexrad
 {
     public static final String WSR88D_PROC_UID = "urn:x-noaa:sensor:wsr88d";
+    public static final String NEXRAD_SYS_UID_PREFIX = "urn:x-noaa:nexrad:";
+    public static final String NEXRAD_US_NET_UID = NEXRAD_SYS_UID_PREFIX + "network:us";
     
     static SMLHelper sml = new SMLHelper();
     static GeoPosHelper swe = new GeoPosHelper();
@@ -63,7 +71,7 @@ public class Nexrad
             .addIdentifier(sml.identifiers.longName("NEXRAD Weather Surveillance Radar (WSR-88D)"))
             .addIdentifier(sml.identifiers.manufacturer("Unisys Corporation"))
             .addIdentifier(sml.identifiers.modelNumber("WSR-88D"))
-            .addClassifier(sml.classifiers.sensorType("Radar"))
+            .addClassifier(sml.classifiers.sensorType("Doppler Radar"))
             
             .addInput("reflectivity", sml.createObservableProperty()
                 .definition("https://mmisw.org/ont/ioos/parameter/echo_intensity")
@@ -230,7 +238,7 @@ public class Nexrad
     {
         return sml.createPhysicalSystem()
             .definition(SWEConstants.DEF_SENSOR)
-            .uniqueID("urn:x-noaa:nexrad:" + icaoCode)
+            .uniqueID(NEXRAD_SYS_UID_PREFIX + icaoCode)
             .name("NEXRAD Weather Radar " + icaoCode)
             .description("NEXRAD weather radar " + icaoCode + " located at " + siteName)
             .typeOf(WSR88D_PROC_UID)
@@ -242,6 +250,52 @@ public class Nexrad
             .addContact(getNoaaRocContactInfo())
             .validFrom(startTime.atOffset(ZoneOffset.UTC))
             .location(location)
+            .build();
+    }
+    
+    
+    static IFeature createNexradSf(AbstractProcess sys)
+    {
+        var sysUid = sys.getUniqueIdentifier();
+        var icaoId = sysUid.substring(sysUid.lastIndexOf(':')+1);
+        
+        var sf = new SamplingSphere();
+        sf.setUniqueIdentifier(sysUid + ":sf");
+        sf.setName("NEXRAD " + icaoId + " Scanning Volume");
+        sf.setShape((Point)sys.getLocation());
+        sf.setRadius(230000);
+        
+        return sf;
+    }
+    
+    
+    static AbstractProcess getSingleRadarSite()
+    {
+        return Nexrad.createNexradInstance(
+            "30001961",
+            "PGUA",
+            "ANDERSEN AFB AGANA, GU (GUAM)",
+            new GMLFactory().newPoint(144.80833, 13.45444, 264 * 0.3048),
+            Instant.parse("2014-03-01T00:00:00Z"));
+    }
+    
+    
+    static IFeature getSingleRadarSiteSf()
+    {
+        return Nexrad.createNexradSf(getSingleRadarSite());
+    }
+    
+    
+    static AbstractProcess getUSNexradNetwork()
+    {
+        return sml.createPhysicalSystem()
+            .definition(SWEConstants.DEF_SYSTEM)
+            .uniqueID(NEXRAD_US_NET_UID)
+            .name("US NEXRAD Weather Radar Network")
+            .description("Network of NEXRAD weather radars deployed across the Continental United States, Hawaii and Puerto Rico")
+            .addIdentifier(sml.identifiers.shortName("US NEXRAD Network"))
+            .addContact(getNoaaRocContactInfo())
+            .validFrom(OffsetDateTime.parse("1991-06-01T00:00:00Z"))
             .build();
     }
     
@@ -290,6 +344,45 @@ public class Nexrad
         }
         
         return radarList;
+    }
+    
+    
+    static IDataStreamInfo createRadialDataStream(AbstractProcess sys)
+    {
+        return new DataStreamInfo.Builder()
+            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withName(sys.getName() + " - Radial Data")
+            .withDescription("NEXRAD level 2 base data consisting of individual radials")
+            .withRecordEncoding(sml.newTextEncoding())
+            .withRecordDescription(sml.createRecord()
+                .name("radial_data")
+                .label("Radial ")
+                .description("All measurements along a radial")
+                .addField("time", sml.createTime()
+                    .asPhenomenonTimeIsoUTC()
+                )
+                .addField("site", sml.createText()
+                    .definition(SWEHelper.getDBpediaUri("ICAO"))
+                    .label("ICAO Site Code")
+                )
+                .addField("az", sml.createQuantity()
+                    .definition(SWEHelper.getPropertyUri("AzimuthAngle"))
+                    .refFrame(SWEConstants.REF_FRAME_NED)
+                    .axisId("Z")
+                    .label("Azimuth Angle")
+                    .description("Azimuth angle of radial vector, relative to true north")
+                    .uomCode("deg")
+                )
+                .addField("el", sml.createQuantity()
+                    .definition(SWEHelper.getPropertyUri("ElevationAngle"))
+                    .refFrame(SWEConstants.REF_FRAME_NED)
+                    .axisId("Y")
+                    .label("Elevation Angle")
+                    .description("Elevation angle of radial vector, relative to local horizontal plane")
+                    .uomCode("deg")
+                )
+                .build())
+            .build();
     }
     
     

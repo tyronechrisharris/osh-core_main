@@ -224,7 +224,7 @@ public class MavicPro
             )
             .addCapabilityList("sys_caps", sml.capabilities.systemCapabilities()
                 .label("Sensor Capabilities")
-                .add("fov", sml.capabilities.fieldOfView(78.8, "deg"))
+                .add("fov", sml.capabilities.fov(78.8, "deg"))
                 .add("shutter_speed", sml.createQuantityRange()
                     .definition(CommonCapabilities.INTEGRATION_TIME_DEF)
                     .label("Shutter Speed")
