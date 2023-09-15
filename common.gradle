@@ -112,7 +112,7 @@ subprojects {
     // helper method to list all non-empty packages in jar
     ext.getPackagesFromJar = { jarFile, packageSet ->
       //println jarFile
-      FileSystems.newFileSystem(jarFile.toPath(), null).withCloseable { fs ->
+      FileSystems.newFileSystem(jarFile.toPath(), ClassLoader.getSystemClassLoader()).withCloseable { fs ->
           def rootDir = fs.getPath('/')
           getPackagesFromDir(rootDir, packageSet)
       }
