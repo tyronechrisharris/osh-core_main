@@ -14,10 +14,12 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import javax.xml.namespace.QName;
 import org.h2.mvstore.MVMap;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.sensorhub.impl.datastore.h2.kryo.FeatureClassResolver;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
+import org.sensorhub.impl.serialization.kryo.QNameSerializer;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.sensorhub.impl.serialization.kryo.compat.v1.FeatureSerializerV1;
 import org.sensorhub.impl.serialization.kryo.compat.v1.PrecisionModelSerializerV1;
@@ -42,6 +44,7 @@ class FeatureDataType extends KryoDataType
     {
         this.classResolver = () -> new FeatureClassResolver(kryoClassMap);
         this.configurator = kryo -> {
+            kryo.addDefaultSerializer(QName.class, QNameSerializer.class);
             
             // register custom serializer w/ backward compatibility
             kryo.addDefaultSerializer(IFeature.class,

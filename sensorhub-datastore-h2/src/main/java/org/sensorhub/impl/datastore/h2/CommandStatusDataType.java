@@ -14,12 +14,14 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import javax.xml.namespace.QName;
 import org.h2.mvstore.MVMap;
 import org.sensorhub.api.command.CommandStatus;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 import org.sensorhub.impl.serialization.kryo.BigIdSerializers;
+import org.sensorhub.impl.serialization.kryo.QNameSerializer;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.sensorhub.impl.serialization.kryo.compat.v1.CommandStatusSerializerV1;
 import org.sensorhub.impl.serialization.kryo.compat.v2.CommandStatusSerializerV2;
@@ -39,6 +41,7 @@ class CommandStatusDataType extends KryoDataType
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
+            kryo.addDefaultSerializer(QName.class, QNameSerializer.class);
             
             // register custom serializers w/ backward compatibility
             kryo.addDefaultSerializer(CommandStatus.class,

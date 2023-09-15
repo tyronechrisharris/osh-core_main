@@ -14,6 +14,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import javax.xml.namespace.QName;
 import org.h2.mvstore.MVMap;
 import org.sensorhub.api.command.CommandStreamInfo;
 import org.sensorhub.api.common.BigId;
@@ -21,6 +22,7 @@ import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
 import org.sensorhub.impl.serialization.kryo.BigIdSerializers;
+import org.sensorhub.impl.serialization.kryo.QNameSerializer;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.sensorhub.impl.serialization.kryo.compat.v1.FeatureIdSerializerV1;
 import org.sensorhub.impl.serialization.kryo.compat.v2.CommandStreamInfoSerializerV2;
@@ -34,6 +36,7 @@ class CommandStreamInfoDataType extends KryoDataType
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
+            kryo.addDefaultSerializer(QName.class, QNameSerializer.class);
             
             // avoid using collection serializer on OgcPropertyList because
             // the add method doesn't behave as expected

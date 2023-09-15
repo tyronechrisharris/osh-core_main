@@ -14,9 +14,11 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.h2;
 
+import javax.xml.namespace.QName;
 import org.h2.mvstore.MVMap;
 import org.sensorhub.impl.datastore.h2.kryo.KryoDataType;
 import org.sensorhub.impl.datastore.h2.kryo.PersistentClassResolver;
+import org.sensorhub.impl.serialization.kryo.QNameSerializer;
 import org.sensorhub.impl.serialization.kryo.VersionedSerializer;
 import org.sensorhub.impl.serialization.kryo.compat.v3.CapabilityListSerializerV3;
 import org.sensorhub.impl.serialization.kryo.compat.v3.CharacteristicListSerializerV3;
@@ -40,6 +42,7 @@ public class SensorMLDataType extends KryoDataType
     {
         this.classResolver = () -> new PersistentClassResolver(kryoClassMap);
         this.configurator = kryo -> {
+            kryo.addDefaultSerializer(QName.class, QNameSerializer.class);
             
             // avoid using collection serializer on OgcPropertyList because
             // the add method doesn't behave as expected
