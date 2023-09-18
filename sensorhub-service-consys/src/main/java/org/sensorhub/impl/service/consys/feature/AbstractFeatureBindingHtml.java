@@ -161,7 +161,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     + "           }\n"
                     + "        })\n"
                     + "        .bindPopup(function (layer) {\n"
-                    + "            return layer.feature.properties.name;\n"
+                    + "            return '<a href=\"#' + layer.feature.properties.uid + '\">' + layer.feature.properties.name + '</a>';\n"
                     + "        })\n"
                     + "        .addTo(map);\n\n"
                     + "        map.invalidateSize();\n"
@@ -222,7 +222,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
         
         renderCard(
             a(
-                span(f.getName()), 
+                span(f.getName()).withId(f.getUniqueIdentifier()), 
                 isHistory ? span("(" +
                   f.getValidTime().begin().truncatedTo(ChronoUnit.SECONDS).toString() +
                 ")") : null
