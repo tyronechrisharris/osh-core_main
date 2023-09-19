@@ -23,6 +23,7 @@ public class TestInMemDataStreamStore extends AbstractTestDataStreamStore<InMemo
     
     protected InMemoryDataStreamStore initStore() throws Exception
     {
+        needValidTimeAdjustment = false;
         return (InMemoryDataStreamStore)new InMemoryObsStore(DATABASE_NUM).getDataStreams();
     }
     

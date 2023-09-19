@@ -43,6 +43,7 @@ import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEUtils;
 import org.vast.util.TimeExtent;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import net.opengis.swe.v20.DataComponent;
 
 
@@ -63,6 +64,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     protected StoreType dataStreamStore;
     protected Map<DataStreamKey, IDataStreamInfo> allDataStreams = new LinkedHashMap<>();
     protected Map<DataStreamKey, IDataStreamInfo> expectedResults = new LinkedHashMap<>();
+    protected boolean needValidTimeAdjustment = true;
 
     protected abstract StoreType initStore() throws Exception;
     protected abstract void forceReadBackFromStorage() throws Exception;
@@ -183,6 +185,37 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     protected void checkSelectedEntries(Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream, Map<DataStreamKey, IDataStreamInfo> expectedResults, DataStreamFilter filter)
     {
         System.out.println("Select datastreams with " + filter);
+        
+        if (needValidTimeAdjustment)
+        {
+            // close validTime periods when appropriate in expected results
+            expectedResults = Maps.transformValues(expectedResults, v -> {
+                IDataStreamInfo nextDs = null;
+                for (var dsInfo: allDataStreams.values())
+                {
+                    if (v.getSystemID().equals(dsInfo.getSystemID()) &&
+                        v.getOutputName().equals(dsInfo.getOutputName()))
+                    {
+                        if (v.getValidTime().endsNow() && v.getValidTime().begin().isBefore(dsInfo.getValidTime().begin()))
+                        {
+                            if (nextDs == null || dsInfo.getValidTime().begin().isBefore(nextDs.getValidTime().begin()))
+                                nextDs = dsInfo;
+                        }
+                    }
+                };
+                
+                // close period with next DS valid start time
+                if (nextDs != null)
+                {
+                    var newValidTime = TimeExtent.period(v.getValidTime().begin(), nextDs.getValidTime().begin());
+                    var newDs = DataStreamInfo.Builder.from(v).withValidTime(newValidTime);
+                    return newDs.build();
+                }
+                
+                return v;
+            });
+        }
+        
         checkSelectedEntries(resultStream, expectedResults);
     }
     
@@ -218,6 +251,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             var sysID = bigId(i);
             addSimpleDataStream(sysID, "test1", now);
         }
+        dataStreamStore.commit();
         
         // get and check
         for (Entry<DataStreamKey, IDataStreamInfo> entry: allDataStreams.entrySet())
@@ -255,6 +289,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             var k = addSimpleDataStream(sysID, "test1", now);
             idList.add(k.getInternalID());
         }
+        dataStreamStore.commit();
         
         assertNotNull(dataStreamStore.get(new DataStreamKey(idList.get(0))));
         assertNull(dataStreamStore.get(new DataStreamKey(0, 21L)));
@@ -304,6 +339,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             var sysID = bigId(i);
             addSimpleDataStream(sysID, "out" + (int)(Math.random()*10), now);
         }
+        dataStreamStore.commit();
         
         // read back and check
         forceReadBackFromStorage();
@@ -323,6 +359,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             var sysID = bigId(i);
             addSimpleDataStream(sysID, "out" + (int)(Math.random()*10), now);
         }
+        dataStreamStore.commit();
         
         assertEquals(numDs, dataStreamStore.getNumRecords());
         
@@ -357,6 +394,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
             var key = addSimpleDataStream(sysID, "out"+i, now);
             idList.add(key.getInternalID());
         }
+        dataStreamStore.commit();
         
         int numRecords = numDs;
         assertEquals(numRecords, dataStreamStore.getNumRecords());
@@ -399,16 +437,17 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     {
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
 
-        var now = Instant.now();
+        var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         var sysID = bigId(10);
-        var ds1v0 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds1v1 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
+        var ds1v0 = addSimpleDataStream(sysID, "test1", TimeExtent.endNow(now.minusSeconds(3600)));
+        var ds1v1 = addSimpleDataStream(sysID, "test1", TimeExtent.endNow(now.minusSeconds(1200)));
         var ds1v2 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now));
-        var ds2v0 = addSimpleDataStream(sysID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds2v1 = addSimpleDataStream(sysID, "test2", TimeExtent.beginAt(now));
+        var ds2v0 = addSimpleDataStream(sysID, "test2", TimeExtent.endNow(now.minusSeconds(3600)));
+        var ds2v1 = addSimpleDataStream(sysID, "test2", TimeExtent.endNow(now));
         var ds2v2 = addSimpleDataStream(sysID, "test2", TimeExtent.beginAt(now.plusSeconds(600)));
-        var ds3v0 = addSimpleDataStream(sysID, "test3", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds3v1 = addSimpleDataStream(sysID, "test3", TimeExtent.beginAt(now.minusSeconds(600)));
+        var ds3v0 = addSimpleDataStream(sysID, "test3", TimeExtent.endNow(now.minusSeconds(3600)));
+        var ds3v1 = addSimpleDataStream(sysID, "test3", TimeExtent.endNow(now.minusSeconds(600)));
+        dataStreamStore.commit();
         forceReadBackFromStorage();
 
         // last version of everything
@@ -435,19 +474,20 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
     {
         Stream<Entry<DataStreamKey, IDataStreamInfo>> resultStream;
 
-        var now = Instant.now();
+        var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         var sysID = bigId(1);
-        var ds1v0 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds1v1 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now.minusSeconds(1200)));
-        var ds1v2 = addSimpleDataStream(sysID, "test1", TimeExtent.beginAt(now));
-        var ds2v0 = addSimpleDataStream(sysID, "test2", TimeExtent.beginAt(now.minusSeconds(3600)));
-        var ds2v1 = addSimpleDataStream(sysID, "test2", TimeExtent.beginAt(now));
+        var ds1v0 = addSimpleDataStream(sysID, "test1", TimeExtent.endNow(now.minusSeconds(3600)));
+        var ds1v1 = addSimpleDataStream(sysID, "test1", TimeExtent.endNow(now.minusSeconds(1200)));
+        var ds1v2 = addSimpleDataStream(sysID, "test1", TimeExtent.endNow(now));
+        var ds2v0 = addSimpleDataStream(sysID, "test2", TimeExtent.endNow(now.minusSeconds(3600)));
+        var ds2v1 = addSimpleDataStream(sysID, "test2", TimeExtent.endNow(now));
         var ds2v2 = addSimpleDataStream(sysID, "test2", TimeExtent.beginAt(now.plusSeconds(600)));
-        var ds3v0 = addSimpleDataStream(sysID, "test3", TimeExtent.beginAt(now.minusSeconds(3600)));
+        var ds3v0 = addSimpleDataStream(sysID, "test3", TimeExtent.endNow(now.minusSeconds(3600)));
         var ds3v1 = addSimpleDataStream(sysID, "test3", TimeExtent.beginAt(now.minusSeconds(600)));
+        dataStreamStore.commit();
         forceReadBackFromStorage();
 
-        // last version of everything
+        // latest version of everything
         DataStreamFilter filter = new DataStreamFilter.Builder()
             .withSystems(sysID)
             .withValidTime(new TemporalFilter.Builder()
@@ -476,14 +516,15 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         var now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         var sysID1 = bigId(1);
         var sysID3 = bigId(3);
-        var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
-        var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.beginAt(now.minus(520, ChronoUnit.DAYS)));
-        var ds2v1 = addSimpleDataStream(sysID1, "out2", TimeExtent.beginAt(now.minus(10, ChronoUnit.DAYS)));
-        var ds3v0 = addSimpleDataStream(sysID1, "out3", TimeExtent.beginAt(now.minus(30, ChronoUnit.DAYS)));
-        var ds3v1 = addSimpleDataStream(sysID1, "out3", TimeExtent.beginAt(now.minus(1, ChronoUnit.DAYS)));
+        var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.endNow(now.minus(365, ChronoUnit.DAYS)));
+        var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.endNow(now.minus(520, ChronoUnit.DAYS)));
+        var ds2v1 = addSimpleDataStream(sysID1, "out2", TimeExtent.endNow(now.minus(10, ChronoUnit.DAYS)));
+        var ds3v0 = addSimpleDataStream(sysID1, "out3", TimeExtent.endNow(now.minus(30, ChronoUnit.DAYS)));
+        var ds3v1 = addSimpleDataStream(sysID1, "out3", TimeExtent.endNow(now.minus(1, ChronoUnit.DAYS)));
         var ds4v0 = addSimpleDataStream(sysID3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
-        var ds5v0 = addSimpleDataStream(sysID3, "hum", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds5v0 = addSimpleDataStream(sysID3, "hum", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        dataStreamStore.commit();
         
         // select from t0 to now
         DataStreamFilter filter = new DataStreamFilter.Builder()
@@ -540,12 +581,13 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         var sysID1 = bigId(1);
         var sysID2 = bigId(2);
         var sysID3 = bigId(3);
-        var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
-        var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds3v0 = addSimpleDataStream(sysID2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.endNow(now.minus(365, ChronoUnit.DAYS)));
+        var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        var ds3v0 = addSimpleDataStream(sysID2, "out1", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
         var ds4v0 = addSimpleDataStream(sysID3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
-        var ds5v0 = addSimpleDataStream(sysID3, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds5v0 = addSimpleDataStream(sysID3, "out1", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        dataStreamStore.commit();
         
         // select from t0 to now
         DataStreamFilter filter = new DataStreamFilter.Builder()
@@ -574,12 +616,13 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         var sysID1 = bigId(1);
         var sysID2 = bigId(2);
         var sysID3 = bigId(3);
-        var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
-        var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds3v0 = addSimpleDataStream(sysID2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds1v0 = addSimpleDataStream(sysID1, "out1", TimeExtent.endNow(now.minus(365, ChronoUnit.DAYS)));
+        var ds1v1 = addSimpleDataStream(sysID1, "out1", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        var ds2v0 = addSimpleDataStream(sysID1, "out2", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        var ds3v0 = addSimpleDataStream(sysID2, "out1", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
         var ds4v0 = addSimpleDataStream(sysID3, "temp", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
-        var ds5v0 = addSimpleDataStream(sysID3, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds5v0 = addSimpleDataStream(sysID3, "out1", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        dataStreamStore.commit();
         
         // select from t0 to now
         DataStreamFilter filter = new DataStreamFilter.Builder()
@@ -609,12 +652,13 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         var sysID1 = bigId(1);
         var sysID2 = bigId(2);
         var sysID3 = bigId(3);
-        var ds1v0 = addSimpleDataStream(sysID1, "out1", "Stationary weather data", TimeExtent.beginAt(now.minus(365, ChronoUnit.DAYS)));
-        var ds1v1 = addSimpleDataStream(sysID1, "out1", "Stationary weather data", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds2v0 = addSimpleDataStream(sysID1, "out2", "Traffic video stream", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
-        var ds3v0 = addSimpleDataStream(sysID2, "out1", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds1v0 = addSimpleDataStream(sysID1, "out1", "Stationary weather data", TimeExtent.endNow(now.minus(365, ChronoUnit.DAYS)));
+        var ds1v1 = addSimpleDataStream(sysID1, "out1", "Stationary weather data", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        var ds2v0 = addSimpleDataStream(sysID1, "out2", "Traffic video stream", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        var ds3v0 = addSimpleDataStream(sysID2, "out1", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
         var ds4v0 = addSimpleDataStream(sysID3, "temp", "Air temperature", TimeExtent.beginAt(now.plus(1, ChronoUnit.DAYS)));
-        var ds5v0 = addSimpleDataStream(sysID3, "out1", "Air pressure", TimeExtent.beginAt(now.minus(60, ChronoUnit.DAYS)));
+        var ds5v0 = addSimpleDataStream(sysID3, "out1", "Air pressure", TimeExtent.endNow(now.minus(60, ChronoUnit.DAYS)));
+        dataStreamStore.commit();
         
         // select with one keyword
         filter = new DataStreamFilter.Builder()
@@ -689,6 +733,7 @@ public abstract class AbstractTestDataStreamStore<StoreType extends IDataStreamS
         var sysID1 = bigId(1);
         addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now));
         addSimpleDataStream(sysID1, "out1", TimeExtent.beginAt(now));
+        dataStreamStore.commit();
     }
     
     

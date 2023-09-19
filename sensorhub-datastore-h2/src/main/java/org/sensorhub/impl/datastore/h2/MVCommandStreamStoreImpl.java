@@ -110,15 +110,15 @@ public class MVCommandStreamStoreImpl implements ICommandStreamStore
                 // if valid time ends at now and there is a more recent version, compute the actual end time
                 if (validTime.endsNow())
                 {
-                    var procDsKey = new MVTimeSeriesSystemKey(
+                    var sysDsKey = new MVTimeSeriesSystemKey(
                         getSystemID().getInternalID().getIdAsLong(),
                         getControlInputName(),
                         getValidTime().begin());
                     
-                    var nextKey = cmdStreamBySystemIndex.higherKey(procDsKey);
+                    var nextKey = cmdStreamBySystemIndex.lowerKey(sysDsKey);  // use lower cause time sorting is reversed
                     if (nextKey != null &&
-                        nextKey.systemID == procDsKey.internalID &&
-                        nextKey.signalName.equals(procDsKey.signalName))
+                        nextKey.systemID == sysDsKey.systemID &&
+                        nextKey.signalName.equals(sysDsKey.signalName))
                         validTime = TimeExtent.period(validTime.begin(), Instant.ofEpochSecond(nextKey.validStartTime));
                 }
             }

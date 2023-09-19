@@ -23,6 +23,7 @@ public class TestInMemCommandStreamStore extends AbstractTestCommandStreamStore<
     
     protected InMemoryCommandStreamStore initStore() throws Exception
     {
+        needValidTimeAdjustment = false;
         return (InMemoryCommandStreamStore)new InMemoryCommandStore(DATABASE_NUM).getCommandStreams();
     }
     
