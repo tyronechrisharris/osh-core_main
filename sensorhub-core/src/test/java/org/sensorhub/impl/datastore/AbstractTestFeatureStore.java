@@ -338,15 +338,18 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         int numFeatures = 100;
         addNonGeoFeatures(1, numFeatures);
+        featureStore.commit();
         assertEquals(allFeatures.size(), featureStore.getNumRecords());
         
         numFeatures = 120;
         addGeoFeaturesPoint2D(1000, numFeatures);
+        featureStore.commit();
         forceReadBackFromStorage();
         assertEquals(allFeatures.size(), featureStore.getNumRecords());
         
         numFeatures = 40;
         addTemporalFeatures(2000, numFeatures);
+        featureStore.commit();
         assertEquals(allFeatures.size(), featureStore.getNumRecords());
     }
     
@@ -358,15 +361,18 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         int numFeatures = 100;
         addNonGeoFeatures(1, numFeatures);
+        featureStore.commit();
         assertEquals(totalFeatures += numFeatures, featureStore.getNumFeatures());
         
         numFeatures = 120;
         addGeoFeaturesPoint2D(1000, numFeatures);
         forceReadBackFromStorage();
+        featureStore.commit();
         assertEquals(totalFeatures += numFeatures, featureStore.getNumFeatures());
         
         numFeatures = 40;
         addTemporalFeatures(2000, numFeatures);
+        featureStore.commit();
         assertEquals(totalFeatures += numFeatures, featureStore.getNumFeatures());
     }
     
@@ -398,10 +404,12 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         //checkFeaturesBbox(featureStore.getFeaturesBbox());
         
         addGeoFeaturesPoint2D(100, 25);
+        featureStore.commit();
         checkFeaturesBbox(featureStore.getFeaturesBbox());
         forceReadBackFromStorage();
         
         addSamplingPoints2D(200, 50);
+        featureStore.commit();
         checkFeaturesBbox(featureStore.getFeaturesBbox());
         forceReadBackFromStorage();
         checkFeaturesBbox(featureStore.getFeaturesBbox());
@@ -426,9 +434,11 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     public void testMapKeySet() throws Exception
     {
         addGeoFeaturesPoint2D(100, 25);
+        featureStore.commit();
         checkMapKeySet(featureStore.keySet());
         
         addTemporalFeatures(200, 30);
+        featureStore.commit();
         checkMapKeySet(featureStore.keySet());
     }
     
@@ -447,6 +457,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     public void testMapValues() throws Exception
     {
         addGeoFeaturesPoint2D(100, 25);
+        featureStore.commit();
         checkMapValues(featureStore.values());
     }
     
@@ -477,12 +488,15 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         addTemporalFeatures(50, 63);
         addGeoFeaturesPoint2D(700, 33);
+        featureStore.commit();
         forceReadBackFromStorage();
         getAndCheckFeatures();
         
         addTemporalFeatures(200, 22);
+        featureStore.commit();
         getAndCheckFeatures();
         addNonGeoFeatures(1, 40);
+        featureStore.commit();
         getAndCheckFeatures();
         
         forceReadBackFromStorage();
@@ -496,18 +510,22 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         useAdd = true;
         
         addGeoFeaturesPoint2D(10, 33);
+        featureStore.commit();
         assertEquals(allFeatures.size(), featureStore.size());
         getAndCheckFeatures();
         
         addSamplingPoints2D(44, 5);
+        featureStore.commit();
         assertEquals(allFeatures.size(), featureStore.size());
         getAndCheckFeatures();
         
         addNonGeoFeatures(50, 22);
+        featureStore.commit();
         forceReadBackFromStorage();
         getAndCheckFeatures();
         
         addTemporalFeatures(80, 22);
+        featureStore.commit();
         forceReadBackFromStorage();
         getAndCheckFeatures();
     }
@@ -522,6 +540,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         var startTime = OffsetDateTime.now(ZoneOffset.UTC)
             .minusDays(shiftFromCurrentTime+15).truncatedTo(ChronoUnit.HOURS);
         addTemporalFeatures(0, numFeatures, startTime);
+        featureStore.commit();
         forceReadBackFromStorage();
         
         for (int i = 0; i < numFeatures; i++)
@@ -569,11 +588,13 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         //testRemoveAllKeys();
         
         addTemporalFeatures(200, 30);
+        featureStore.commit();
         forceReadBackFromStorage();
         checkRemoveAllKeys();
         
         forceReadBackFromStorage();
         addNonGeoFeatures(1, 40);
+        featureStore.commit();
         checkRemoveAllKeys();
         
         forceReadBackFromStorage();
@@ -649,6 +670,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         Range<Instant> timeRange;
                 
         addNonGeoFeatures(0, 50);
+        featureStore.commit();
         
         // correct IDs and all times
         var ids = BigId.fromLongs(DATABASE_NUM, 3L, 24L, 43L);
@@ -671,6 +693,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         Range<Instant> timeRange;
         
         addNonGeoFeatures(0, 50);
+        featureStore.commit();
         
         /*// correct UIDs and all times
         uids = Sets.newHashSet(UID_PREFIX+"F10", UID_PREFIX+"F31");
@@ -691,6 +714,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         checkSelectedEntries(resultStream, uids, timeRange);*/
         
         addTemporalFeatures(200, 30);
+        featureStore.commit();
         
         /*// correct IDs and all times
         uids = Sets.newHashSet(UID_PREFIX+"FT200", UID_PREFIX+"FT201");
@@ -745,6 +769,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         Stream<Entry<FeatureKey, IFeature>> resultStream;
         
         addNonGeoFeatures(0, 50);
+        featureStore.commit();
         
         // correct UIDs and all times
         var uidsWithWildcard = Sets.newHashSet(UID_PREFIX+"F1*", UID_PREFIX+"F3*");
@@ -769,8 +794,10 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         Range<Instant> timeRange;
         
         addTemporalGeoFeatures(0, 30);
+        featureStore.commit();
         featureStore.keySet().forEach(System.out::println);
         addSamplingPoints2D(30, 30); // overlap IDs on purpose
+        featureStore.commit();
         featureStore.keySet().forEach(System.out::println);
         
         // containing polygon and all times
@@ -826,6 +853,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     public void testAddAndRemoveByTimeRange() throws Exception
     {
         addTemporalGeoFeatures(0, 20);
+        featureStore.commit();
         
         var timeFilter = TimeExtent.period(FIRST_VERSION_TIME.toInstant(), Instant.parse("2000-04-08T10:00:00Z"));
         long count = featureStore.removeEntries(new FeatureFilter.Builder()
@@ -851,6 +879,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     public void testAddAndRemoveByRoi() throws Exception
     {
         addTemporalGeoFeatures(0, 20);
+        featureStore.commit();
         
         // remove all features intersecting polygon
         var roi = new GeometryFactory().createPolygon(new Coordinate[] {
@@ -893,6 +922,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         addNonGeoFeatures(group2Id, 40, 35);
         forceReadBackFromStorage();
         addTemporalGeoFeatures(group3Id, 100, 46);
+        featureStore.commit();
         
         var filter = new FeatureFilter.Builder()
             .withParents(group1Id, group3Id)
@@ -922,6 +952,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         addTemporalGeoFeatures(group3Id, 100, 46);
         addTemporalFeatures(group2Id, 200, 40, OffsetDateTime.now().minusDays(90), false);
         addTemporalFeatures(BigId.NONE, 300, 10, OffsetDateTime.now().minusDays(110), true);
+        featureStore.commit();
         
         // select with parent and time range
         var timeRange1 = Range.closed(
@@ -1056,6 +1087,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         addGeoFeaturesPoint2D(group1Id, 0, 20);
         addNonGeoFeatures(group2Id, 40, 35);
         addTemporalGeoFeatures(group3Id, 100, 46);
+        featureStore.commit();
         
         var filter = new FeatureFilter.Builder()
             .withParents()
@@ -1079,6 +1111,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     public void testSelectByKeywords() throws Exception
     {
         addNonGeoFeatures(40, 35);
+        featureStore.commit();
     
         // single keyword
         var filter = new FeatureFilter.Builder()
@@ -1111,6 +1144,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     public void testSelectByRoiAndKeywords() throws Exception
     {
         addGeoFeaturesPoint2D(0, 200);
+        featureStore.commit();
     
         var roi = new GeometryFactory().createPolygon(new Coordinate[] {
             new Coordinate(0, 0),
@@ -1184,6 +1218,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         int numFeatures = 100000;
         addNonGeoFeatures(0, numFeatures);
+        featureStore.commit();
         
         // sequential reads
         int numReads = numFeatures;
@@ -1225,6 +1260,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         int numFeatures = 200000;
         addNonGeoFeatures(0, numFeatures);
+        featureStore.commit();
         forceReadBackFromStorage();
         
         // warm up
@@ -1255,7 +1291,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         
         int numFeatures = 20000;
         addTemporalFeatures(0, numFeatures);
-                
+        featureStore.commit();
+        
         // spatial filter with all features
         Instant date0 = featureStore.keySet().iterator().next().getValidStartTime();
         FeatureFilter filter = new FeatureFilter.Builder()
@@ -1296,6 +1333,7 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
         // with geo temporal features
         int numFeatures2 = 20000;
         addTemporalGeoFeatures(numFeatures, numFeatures2);
+        featureStore.commit();
           
         // spatial filter with all features
         filter = new FeatureFilter.Builder()
@@ -1340,7 +1378,9 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     {
         useAdd = true;
         addNonGeoFeatures(1, 10);
+        featureStore.commit();
         addNonGeoFeatures(1, 2);
+        featureStore.commit();
     }
     
     
