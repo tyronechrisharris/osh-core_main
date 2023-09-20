@@ -40,6 +40,7 @@ import net.opengis.sensorml.v20.AggregateProcess;
 import net.opengis.sensorml.v20.Mode;
 import net.opengis.sensorml.v20.ModeChoice;
 import net.opengis.sensorml.v20.ObservableProperty;
+import net.opengis.sensorml.v20.SpatialFrame;
 import net.opengis.sensorml.v20.Term;
 import static j2html.TagCreator.*;
 
@@ -93,6 +94,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         var sml = f.getFullDescription();
         var proc = (sml instanceof AbstractProcess) ? (AbstractProcess)sml : null;
         var aggr = (sml instanceof AggregateProcess) ? (AggregateProcess)sml : null;
+        var phys = (sml instanceof AbstractPhysicalProcess) ? (AbstractPhysicalProcess)sml : null;
             
         writeHeader();
         
@@ -234,6 +236,15 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                 each(sml.getDocumentationList(), list ->
                     each(list.getDocumentList().getProperties(), (i, prop) -> getDocumentHtml(i, prop))
                 ))
+            ).render(html);
+        }
+        
+        // local frame
+        if (phys != null && phys.getNumLocalReferenceFrames() > 0)
+        {
+            getAccordionItem("Local Reference Frame", div(
+                each(phys.getLocalReferenceFrameList(), (i, frame) -> getSpatialFrameHtml(i, frame))
+            )
             ).render(html);
         }
         
@@ -626,6 +637,46 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                 span(a(getPrettyLink(link)).withHref(link))
             )).withClass(CSS_CARD_TEXT);
         }
+        
+        //return getCard(h5(small(name)).withClass(CSS_BOLD), content);
+        return getSection(idx, name, content);
+    }
+    
+    
+    DomContent getSpatialFrameHtml(int idx, SpatialFrame frame)
+    {
+        String name = frame.getLabel();
+        if (name == null)
+            name = "System Frame";
+        
+        var content = div();
+        
+        if (frame.isSetDescription())
+        {
+            content.with(div(
+                span("Description").withClass(CSS_BOLD),
+                span(": "),
+                span(frame.getDescription())
+            )).withClass(CSS_CARD_TEXT);
+        }
+        
+        if (frame.getOrigin() != null)
+        {
+            content.with(div(
+                span("Origin").withClass(CSS_BOLD),
+                span(": "),
+                span(frame.getOrigin())
+            )).withClass(CSS_CARD_TEXT);
+        }
+        
+        for (var axis: frame.getAxisList().getProperties())
+        {
+            content.with(div(
+                span(axis.getName() + " Axis").withClass(CSS_BOLD),
+                span(": "),
+                span(axis.getValue())
+            )).withClass(CSS_CARD_TEXT);
+        };
         
         //return getCard(h5(small(name)).withClass(CSS_BOLD), content);
         return getSection(idx, name, content);
