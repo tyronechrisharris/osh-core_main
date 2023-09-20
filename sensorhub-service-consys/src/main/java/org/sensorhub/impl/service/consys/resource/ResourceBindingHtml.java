@@ -160,10 +160,16 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     
     protected DomContent getBreadCrumbs()
     {
+        var linkBuilder = new StringBuilder(ctx.getApiRootURL());
         var pathElts = Arrays.asList(ctx.getRequestPath().split("/"));
-        return each(pathElts, item -> {
-            return span(item + " / ");
-        });
+        
+        return tag(null).with(
+            span(a("api").withHref(linkBuilder.toString())),
+            each(pathElts, item -> {
+                linkBuilder.append(item).append('/');
+                return span(a(item).withHref(linkBuilder.toString()), text(" / "));
+            })
+        );
     }
     
     
