@@ -214,9 +214,9 @@ public class ConSysApiSecurity extends ModuleSecurity implements RestApiSecurity
     protected List<String> appendSystemParents(final List<String> parentIds, final BigId sysId)
     {
         var idEncoder = service.getParentHub().getIdEncoders().getSystemIdEncoder();
-        BigId parentId;
+        BigId parentId = sysId;
         
-        while ((parentId = db.getSystemDescStore().getParent(sysId)) != null)
+        while ((parentId = db.getSystemDescStore().getParent(parentId)) != null)
             parentIds.add(idEncoder.encodeID(parentId));
         
         return parentIds;
