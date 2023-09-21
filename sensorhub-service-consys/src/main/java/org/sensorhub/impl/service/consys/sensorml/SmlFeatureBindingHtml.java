@@ -89,6 +89,20 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
     }
     
     
+    protected DomContent getExtraSummaryProperties(V f)
+    {
+        var sml = f.getFullDescription();
+        var proc = (sml instanceof AbstractProcess) ? (AbstractProcess)sml : null;
+        
+        return tag(null).with(
+            proc != null && proc.isSetTypeOf() ? div(
+                span(getTypeOfLabel(proc) + ": ").withClass(CSS_BOLD),
+                getTypeOfLink(proc.getTypeOf())
+            ) : null
+        );
+    }
+    
+    
     protected void serializeDetails(FeatureKey key, V f) throws IOException
     {
         var sml = f.getFullDescription();

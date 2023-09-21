@@ -238,6 +238,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                 span(getFeatureTypeSuffix(f.getType())).withTitle(f.getType()),
                 getLinkIcon(f.getType(), f.getType())
             ) : null),
+            getExtraSummaryProperties(f),
             div(
                 span("Validity Period: ").withClass(CSS_BOLD),
                 getTimeExtentHtml(f.getValidTime(), "Always")
@@ -259,6 +260,12 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                 ).withClass("mt-2") : null,
             getLinks(resourceUrl, key, f).withClass("mt-3")
         );
+    }
+    
+    
+    protected DomContent getExtraSummaryProperties(V f)
+    {
+        return null;
     }
     
     
