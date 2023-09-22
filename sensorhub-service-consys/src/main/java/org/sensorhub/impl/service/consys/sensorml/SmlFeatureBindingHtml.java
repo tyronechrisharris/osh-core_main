@@ -256,7 +256,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         // local frame
         if (phys != null && phys.getNumLocalReferenceFrames() > 0)
         {
-            getAccordionItem("Local Reference Frame", div(
+            getAccordionItem("Local Reference Frames", div(
                 each(phys.getLocalReferenceFrameList(), (i, frame) -> getSpatialFrameHtml(i, frame))
             )
             ).render(html);
@@ -662,6 +662,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         String name = frame.getLabel();
         if (name == null)
             name = "System Frame";
+        name += " (" + frame.getId() + ")";
         
         var content = div();
         
