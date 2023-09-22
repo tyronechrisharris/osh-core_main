@@ -29,6 +29,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.vast.data.TextEncodingImpl;
+import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEJsonBindings;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
@@ -90,6 +91,25 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
                 if ("resultSchema".equals(prop))
                 {
                     resultStruct = sweBindings.readDataComponent(reader);
+
+                    var swe = new SWEHelper();
+                    if (resultStruct instanceof DataRecord)
+                    {
+                        var ts = swe.createTime()
+                            .name("time")
+                            .asPhenomenonTimeIsoUTC()
+                            .build();
+                        ((DataRecord) resultStruct).getFieldList().add(0, ts);
+                    }
+                    else
+                    {
+                        resultStruct = swe.createRecord()
+                            .name(resultStruct.getName() + "_rec")
+                            .addField("time", swe.createTime().asPhenomenonTimeIsoUTC())
+                            .addField(resultStruct.getName(), resultStruct)
+                            .build();
+                    }
+                    
                     resultStruct.setName(SWECommonUtils.NO_NAME);
                 }
                 else

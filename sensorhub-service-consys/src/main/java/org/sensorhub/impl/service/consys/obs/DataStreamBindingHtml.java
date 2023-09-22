@@ -30,7 +30,9 @@ import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.util.Asserts;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import net.opengis.swe.v20.DataRecord;
 import static j2html.TagCreator.*;
+import static org.sensorhub.impl.service.consys.SWECommonUtils.OM_COMPONENTS_FILTER;
 
 
 /**
@@ -189,13 +191,30 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
     
     protected void serializeDetails(DataStreamKey key, IDataStreamInfo dsInfo) throws IOException
     {
+        var dataStruct = dsInfo.getRecordStructure();
+        
+        if (ResourceFormat.OM_JSON.equals(obsFormat))
+        {
+            // hide time and FOI components if any
+            dataStruct = dsInfo.getRecordStructure().copy();
+            if (dataStruct instanceof DataRecord)
+            {
+                var it = ((DataRecord)dataStruct).getFieldList().iterator();
+                while (it.hasNext())
+                {
+                    if (!OM_COMPONENTS_FILTER.accept(it.next()))
+                        it.remove();
+                }
+            }
+        }
+        
         writeHeader();
         
         div(
             h3(dsInfo.getName()),
             h5("Record Structure"),
             small(
-                getComponentHtml(dsInfo.getRecordStructure()),
+                getComponentHtml(dataStruct),
                 getEncodingHtml(dsInfo.getRecordEncoding())
             )
         ).render(html);

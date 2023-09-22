@@ -35,6 +35,7 @@ import com.google.gson.stream.JsonWriter;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataEncoding;
 import net.opengis.swe.v20.JSONEncoding;
+import net.opengis.swe.v20.Time;
 
 
 public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
@@ -112,6 +113,10 @@ public class DataStreamSchemaBindingSweCommon extends ResourceBindingJson<DataSt
         {
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
+        
+        // check timestamp is provided as first field
+        if (!(resultStruct.getComponent(0) instanceof Time))
+            throw new ResourceParseException(INVALID_JSON_ERROR_MSG + "First record component must be a timestamp");
         
         var dsInfo = new DataStreamInfo.Builder()
             .withName(SWECommonUtils.NO_NAME) // name will be set later
