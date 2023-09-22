@@ -36,6 +36,7 @@ import org.vast.swe.fast.JsonDataWriter;
 import org.vast.swe.fast.TextDataParser;
 import org.vast.swe.fast.TextDataWriter;
 import org.vast.swe.fast.XmlDataWriter;
+import org.vast.swe.helper.RasterHelper;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -247,7 +248,14 @@ public class SWECommonUtils
             // skip well known fields
             if (SWEConstants.DEF_SAMPLING_TIME.equals(def) ||
                 SWEConstants.DEF_PHENOMENON_TIME.equals(def) ||
-                SWEConstants.DEF_SYSTEM_ID.equals(def))
+                SWEConstants.DEF_FORECAST_TIME.equals(def) ||
+                SWEConstants.DEF_SYSTEM_ID.equals(def) ||
+                SWEConstants.DEF_ARRAY_SIZE.equals(def) ||
+                SWEConstants.DEF_NUM_POINTS.equals(def) ||
+                SWEConstants.DEF_NUM_SAMPLES.equals(def) ||
+                SWEConstants.DEF_NUM_ROWS.equals(def) ||
+                RasterHelper.DEF_RASTER_WIDTH.equals(def) ||
+                RasterHelper.DEF_RASTER_HEIGHT.equals(def))
                 return false;
             
             // skip if no metadata was set
