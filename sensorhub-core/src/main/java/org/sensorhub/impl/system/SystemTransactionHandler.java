@@ -381,7 +381,9 @@ public class SystemTransactionHandler
             
             // if something else has changed, update existing datastream
             else if (!DataComponentChecks.checkStructEquals(oldDsInfo.getRecordStructure(), dsInfo.getRecordStructure()) ||
-                     !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding()))
+                     !DataComponentChecks.checkEncodingEquals(oldDsInfo.getRecordEncoding(), dsInfo.getRecordEncoding()) ||
+                     !Objects.equals(oldDsInfo.getName(), dsInfo.getName()) ||
+                     !Objects.equals(oldDsInfo.getDescription(), dsInfo.getDescription()))
             {
                 var dsHandler = new DataStreamTransactionHandler(dsKey, oldDsInfo, rootHandler);
                 dsHandler.update(dsInfo);
@@ -503,7 +505,9 @@ public class SystemTransactionHandler
 
             // if something else has changed, update existing command stream
             else if (!DataComponentChecks.checkStructEquals(oldCsInfo.getRecordStructure(), csInfo.getRecordStructure()) ||
-                     !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding()))
+                     !DataComponentChecks.checkEncodingEquals(oldCsInfo.getRecordEncoding(), csInfo.getRecordEncoding()) ||
+                     !Objects.equals(oldCsInfo.getName(), csInfo.getName()) ||
+                     !Objects.equals(oldCsInfo.getDescription(), csInfo.getDescription()))
             {
                 var csHandler = new CommandStreamTransactionHandler(csKey, oldCsInfo, rootHandler);
                 csHandler.update(csInfo);
