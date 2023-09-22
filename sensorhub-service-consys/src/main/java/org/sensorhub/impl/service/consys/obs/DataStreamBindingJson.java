@@ -217,8 +217,9 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         writeLink(writer,
             "/" + SystemHandler.NAMES[0] + "/" + sysId,
             dsInfo.getSystemID().getUniqueID(),
-            ResourceFormat.GEOJSON,
-            dsInfo.getOutputName());
+            ResourceFormat.GEOJSON);
+        
+        writer.name("outputName").value(dsInfo.getOutputName());
         
         writer.name("validTime");
         geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
@@ -243,9 +244,6 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             writer.endArray();
         }
         
-        // result type
-        writer.name("resultType").value(getResultType(dsInfo.getRecordStructure()).toString());
-        
         // observed properties
         writer.name("observedProperties").beginArray();
         for (var prop: SWECommonUtils.getProperties(dsInfo.getRecordStructure()))
@@ -260,6 +258,9 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             writer.endObject();
         }
         writer.endArray();
+        
+        // result type
+        writer.name("resultType").value(getResultType(dsInfo.getRecordStructure()).toString());
         
         // available formats
         writer.name("formats").beginArray();
@@ -344,17 +345,5 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     public void endCollection(Collection<ResourceLink> links) throws IOException
     {
         endJsonCollection(writer, links);
-    }
-
-
-    protected void writeLink(JsonWriter writer, String href, String uid, ResourceFormat format, String outputName) throws IOException
-    {
-        Asserts.checkNotNullOrBlank(href, "href");
-        Asserts.checkNotNullOrBlank(outputName, "outputName");
-        
-        writer.beginObject();
-        writeLinkProperties(writer, href, uid, null, format);
-        writer.name("outputName").value(outputName);
-        writer.endObject();
     }
 }
