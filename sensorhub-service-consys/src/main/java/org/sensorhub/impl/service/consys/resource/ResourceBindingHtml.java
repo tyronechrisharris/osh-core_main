@@ -366,7 +366,9 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
             content.with(div(
                 span("Codespace").withClass(CSS_BOLD),
                 span(": "),
-                span(codeSpace)
+                a(codeSpace)
+                    .withHref(codeSpace)
+                    .withTarget(DICTIONARY_TAB_NAME)
             ));
         }
         
@@ -427,15 +429,32 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         
         if (comp instanceof DataRecord || comp instanceof Vector || comp instanceof DataChoice)
         {
-            if (comp instanceof Vector && ((Vector)comp).getReferenceFrame() != null)
+            if (comp instanceof Vector)
             {
-                content.with(div(
-                    span("Reference Frame").withClass(CSS_BOLD),
-                    span(": "),
-                    a(((Vector)comp).getReferenceFrame())
-                        .withHref(((Vector)comp).getReferenceFrame())
-                        .withTarget(DICTIONARY_TAB_NAME)
-                ));
+                var refFrame = ((Vector)comp).getReferenceFrame();
+                var localFrame = ((Vector)comp).getLocalFrame();
+                
+                if (refFrame != null)
+                {
+                    content.with(div(
+                        span("Reference Frame").withClass(CSS_BOLD),
+                        span(": "),
+                        a(refFrame)
+                            .withHref(refFrame)
+                            .withTarget(DICTIONARY_TAB_NAME)
+                    ));
+                }
+                
+                if (localFrame != null)
+                {
+                    content.with(div(
+                        span("Local Frame").withClass(CSS_BOLD),
+                        span(": "),
+                        a(localFrame)
+                            .withHref(localFrame)
+                            .withTarget(DICTIONARY_TAB_NAME)
+                    ));
+                }
             }
             
             for (int i = 0; i < comp.getComponentCount(); i++)
