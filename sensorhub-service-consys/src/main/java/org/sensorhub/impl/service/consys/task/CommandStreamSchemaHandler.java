@@ -57,7 +57,9 @@ public class CommandStreamSchemaHandler extends ResourceHandler<CommandStreamKey
         if (cmdFormat == null)
             cmdFormat = ResourceFormat.JSON;
         
-        if (cmdFormat.equals(ResourceFormat.JSON))
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+            return new CommandStreamBindingHtml(ctx, idEncoders);
+        else if (cmdFormat.equals(ResourceFormat.JSON))
             return new CommandStreamSchemaBindingJson(ctx, idEncoders, forReading);
         else if (cmdFormat.getMimeType().startsWith(ResourceFormat.SWE_FORMAT_PREFIX))
             return new CommandStreamSchemaBindingSweCommon(cmdFormat, ctx, idEncoders, forReading);
