@@ -21,6 +21,7 @@ import org.isotc211.v2005.gmd.CIOnlineResource;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IDatabase;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.ISmlFeature;
@@ -268,9 +269,23 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             if (aggr.getNumComponents() > 0)
             {
                 getAccordionItem("Components", true, 
-                    each(aggr.getComponentList(), (i, comp) -> {
-                        var name = comp.getName() != null ? comp.getName() : "Component";
-                        return getAccordionItem(name, false, getComponentHtml(i, comp));
+                    each(aggr.getComponentList().getProperties(), (i, prop) -> {
+                        String title = "Unknown Component";
+                        DomContent content = null;
+                        
+                        if (prop.hasValue())
+                        {
+                            var comp = prop.getValue();
+                            title = comp.getName() != null ? comp.getName() : "Component";
+                            content = getComponentHtml(i, comp);
+                        }
+                        else if (prop.hasHref())
+                        {
+                            title = prop.getTitle() != null ? prop.getTitle() : getPrettyName(prop.getName());
+                            content = getComponentLink(prop);
+                        }
+                        
+                        return getAccordionItem(title, false, content);
                     })
                 ).render(html);
             }
@@ -461,20 +476,36 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
     
     String getTypeOfLabel(AbstractProcess proc)
     {
-        if (proc instanceof AbstractPhysicalProcess)
+        /*if (proc instanceof AbstractPhysicalProcess)
             return "Model";
         else
-            return "Method";
+            return "Method";*/
+        return "Model or Method";
     }
     
     
     DomContent getTypeOfLink(Reference ref)
     {
         if (db instanceof IProcedureDatabase) {
-            LinkResolver.resolveTypeOf(ctx, ref, (IProcedureDatabase)db, idEncoders);
+            LinkResolver.resolveProcedureLink(ctx, ref, (IProcedureDatabase)db, idEncoders);
         }
         
         String title = ref.getTitle();
+        if (title == null && ref.getRole() != null)
+            title = ref.getRole();
+        if (title == null)
+            title = ref.getHref();
+        return a(title).withHref(ref.getHref());
+    }
+    
+    
+    DomContent getComponentLink(OgcProperty<?> ref)
+    {
+        if (db instanceof IObsSystemDatabase) {
+            LinkResolver.resolveSystemLink(ctx, ref, (IObsSystemDatabase)db, idEncoders);
+        }
+        
+        String title = null;//ref.getTitle();
         if (title == null && ref.getRole() != null)
             title = ref.getRole();
         if (title == null)

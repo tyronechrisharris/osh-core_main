@@ -15,30 +15,53 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys;
 
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
-import net.opengis.gml.v32.Reference;
+import org.sensorhub.impl.service.consys.system.SystemHandler;
+import net.opengis.OgcProperty;
 
 
 public class LinkResolver
 {
 
-    public static void resolveTypeOf(final RequestContext ctx, final Reference typeOf, final IProcedureDatabase db, final IdEncoders idEncoders)
+    public static void resolveProcedureLink(final RequestContext ctx, final OgcProperty<?> link, final IProcedureDatabase db, final IdEncoders idEncoders)
     {
-        synchronized(typeOf)
+        synchronized(link)
         {
             // resolve URN to URL
-            if (typeOf != null && typeOf.hasHref() && typeOf.getHref().startsWith("urn")
+            if (link != null && link.hasHref() && link.getHref().startsWith("urn")
                 && db.getProcedureStore() != null)
             {
-                var urn = typeOf.getHref();
+                var urn = link.getHref();
                 var procKey = db.getProcedureStore().getCurrentVersionKey(urn);
                 if (procKey != null)
                 {
-                    typeOf.setRole(urn);
+                    link.setRole(urn);
                     var procId = idEncoders.getProcedureIdEncoder().encodeID(procKey.getInternalID());
-                    typeOf.setHref(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + procId);
+                    link.setHref(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + procId);
+                }
+            }
+        }
+    }
+    
+    
+    public static void resolveSystemLink(final RequestContext ctx, final OgcProperty<?> link, final IObsSystemDatabase db, final IdEncoders idEncoders)
+    {
+        synchronized(link)
+        {
+            // resolve URN to URL
+            if (link != null && link.hasHref() && link.getHref().startsWith("urn")
+                && db.getSystemDescStore() != null)
+            {
+                var urn = link.getHref();
+                var sysKey = db.getSystemDescStore().getCurrentVersionKey(urn);
+                if (sysKey != null)
+                {
+                    link.setRole(urn);
+                    var procId = idEncoders.getSystemIdEncoder().encodeID(sysKey.getInternalID());
+                    link.setHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + procId);
                 }
             }
         }
