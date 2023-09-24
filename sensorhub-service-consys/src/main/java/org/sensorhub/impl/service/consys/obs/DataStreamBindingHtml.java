@@ -212,7 +212,7 @@ public class DataStreamBindingHtml extends ResourceBindingHtml<DataStreamKey, ID
         
         div(
             h3(dsInfo.getName()),
-            h5("Record Structure"),
+            h5(ResourceFormat.OM_JSON.equals(obsFormat) ? "Result Structure" : "Record Structure"),
             small(
                 getComponentHtml(dataStruct),
                 getEncodingHtml(dsInfo.getRecordEncoding())
