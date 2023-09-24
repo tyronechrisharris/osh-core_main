@@ -29,6 +29,7 @@ import org.sensorhub.impl.service.consys.LinkResolver;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingHtml;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
+import org.vast.sensorML.helper.CommonIdentifiers;
 import com.google.common.base.Charsets;
 import j2html.tags.DomContent;
 import j2html.tags.specialized.DivTag;
@@ -38,6 +39,7 @@ import net.opengis.sensorml.v20.AbstractMetadataList;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.AggregateProcess;
+import net.opengis.sensorml.v20.DescribedObject;
 import net.opengis.sensorml.v20.Mode;
 import net.opengis.sensorml.v20.ModeChoice;
 import net.opengis.sensorml.v20.ObservableProperty;
@@ -113,6 +115,16 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             
         writeHeader();
         
+        // photo
+        var photoUrl = getPhotoUrl(sml);
+        if (photoUrl != null)
+        {
+            img().withSrc(photoUrl)
+                .withStyle("float: right; height: 250px; margin: 20px; border-radius: 15px;")
+                .render(html);
+        }
+        
+        // main title
         h3(f.getName())
             .render(html);
         
@@ -165,6 +177,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         
         html.appendStartTag("div")
             .appendAttribute("class", "accordion mt-3")
+            .appendAttribute("style", "clear: both;")
             .completeTag();
         
         // identification
@@ -764,5 +777,20 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
             return list.getLabel();
         
         return defaultLabel;
+    }
+    
+    
+    String getPhotoUrl(DescribedObject sml)
+    {
+        for (var docList: sml.getDocumentationList())
+        {
+            for (var doc: docList.getDocumentList().getProperties())
+            {
+                if (CommonIdentifiers.PHOTO_DEF.equals(doc.getRole()))
+                    return doc.getValue().getLinkage();
+            }
+        }
+        
+        return null;
     }
 }
