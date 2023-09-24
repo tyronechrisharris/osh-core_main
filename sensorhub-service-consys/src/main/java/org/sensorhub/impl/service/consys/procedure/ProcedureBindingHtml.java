@@ -71,7 +71,10 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     @Override
     protected DivTag getLinks(String resourceUrl, FeatureKey key, IProcedureWithDesc f)
     {
-        var systemsLink = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "?procedure=" + f.getUniqueIdentifier();
+        var systemsLink = ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0]
+            + "?procedure=" + f.getUniqueIdentifier()
+            + "&searchMembers=true";
+        
         return div(
             a("Implementing Systems").withHref(systemsLink).withClasses(CSS_LINK_BTN_CLASSES)
         );
