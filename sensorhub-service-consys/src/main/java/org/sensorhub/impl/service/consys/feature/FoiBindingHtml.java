@@ -120,6 +120,6 @@ public class FoiBindingHtml extends AbstractFeatureBindingHtml<IFeature, IObsSys
     @Override
     protected void serializeDetails(FeatureKey key, IFeature res) throws IOException
     {
-        // do nothing since simple features don't have a details page
+        serializeSingleSummary(key, res);
     }
 }
