@@ -97,6 +97,9 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     .attr("crossorigin", ""),
                 script()
                     .withSrc("https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.js")
+                    .attr("crossorigin", ""),
+                script()
+                    .withSrc("https://unpkg.com/leaflet-semicircle@2.0.4/Semicircle.js")
                     .attr("crossorigin", "")
             );
         }
@@ -142,16 +145,19 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     + "        let fl = L.geoJSON("
                     + "           data.items ? data.items : data, {"
                     + "           pointToLayer: function (feature, latlng) {\n"
-                    + "              if (feature.properties.radius) {"
+                    + "              var props = feature.properties;\n"
+                    + "              if (props.radius) {"
                     + "                var opts = {"
                     + "                  weight: 1,"
                     + "                  fillColor: \"#ff7800\","
                     + "                  color: \"#000\","
                     + "                  opacity: 0.5,"
                     + "                  fillOpacity: 0.1,"
-                    + "                  radius: feature.properties.radius.value"
+                    + "                  radius: props.radius,"
+                    + "                  startAngle: props.minAzim ? props.minAzim : 0.0,"
+                    + "                  stopAngle: props.maxAzim ? props.maxAzim : 360.0,"
                     + "                };"
-                    + "                var circle = L.circle(latlng, opts);"
+                    + "                var circle = L.semiCircle(latlng, opts);"
                     + "                var center = L.circleMarker(latlng, {radius: 4, weight: 0, fillOpacity: 1});"
                     + "                circle.feature = center.feature = feature;"
                     + "                return L.featureGroup([circle, center]);"
