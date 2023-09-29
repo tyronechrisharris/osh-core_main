@@ -45,15 +45,12 @@ import net.opengis.swe.v20.DataBlock;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class DynamicFoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
+public class DynamicFoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature, IObsSystemDatabase>
 {
-    final IObsSystemDatabase db;
     
-    
-    public DynamicFoiBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading, IObsSystemDatabase db) throws IOException
+    public DynamicFoiBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean forReading) throws IOException
     {
-        super(ctx, idEncoders, forReading);
-        this.db = db;
+        super(ctx, idEncoders, db, forReading);
     }
     
     

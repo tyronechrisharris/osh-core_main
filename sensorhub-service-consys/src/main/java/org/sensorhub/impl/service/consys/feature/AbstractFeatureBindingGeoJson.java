@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
@@ -41,19 +42,22 @@ import com.google.gson.stream.MalformedJsonException;
  * </p>
  * 
  * @param <V> Feature type
+ * @param <DB> Database type
  *
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public abstract class AbstractFeatureBindingGeoJson<V extends IFeature> extends ResourceBindingJson<FeatureKey, V>
+public abstract class AbstractFeatureBindingGeoJson<V extends IFeature, DB extends IDatabase> extends ResourceBindingJson<FeatureKey, V>
 {
+    protected final DB db;
     protected GeoJsonBindings geoJsonBindings;
     protected AtomicBoolean showLinks = new AtomicBoolean();
     
     
-    public AbstractFeatureBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public AbstractFeatureBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, DB db, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
+        this.db = db;
         this.geoJsonBindings = getJsonBindings();
     }
     

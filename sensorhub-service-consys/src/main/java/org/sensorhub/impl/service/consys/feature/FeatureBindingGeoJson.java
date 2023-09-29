@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.FeatureWrapper;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
@@ -35,12 +36,12 @@ import com.google.gson.stream.JsonWriter;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
+public class FeatureBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature, IFeatureDatabase>
 {
     
-    public FeatureBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public FeatureBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, IFeatureDatabase db, boolean forReading) throws IOException
     {
-        super(ctx, idEncoders, forReading);
+        super(ctx, idEncoders, db, forReading);
     }
     
     

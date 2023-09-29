@@ -99,7 +99,7 @@ public class ConSysApiClient
             try
             {
                 var ctx = new RequestContext(body);
-                var binding = new SystemBindingGeoJson(ctx, null, true);
+                var binding = new SystemBindingGeoJson(ctx, null, null, true);
                 return binding.deserialize();
             }
             catch (IOException e)
@@ -117,7 +117,7 @@ public class ConSysApiClient
             try
             {
                 var ctx = new RequestContext(body);
-                var binding = new SystemBindingGeoJson(ctx, null, true);
+                var binding = new SystemBindingGeoJson(ctx, null, null, true);
                 return binding.deserialize();
             }
             catch (IOException e)

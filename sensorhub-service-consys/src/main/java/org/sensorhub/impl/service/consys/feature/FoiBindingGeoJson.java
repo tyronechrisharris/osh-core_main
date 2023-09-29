@@ -18,11 +18,14 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.FeatureWrapper;
+import org.sensorhub.impl.service.consys.LinkResolver;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.xlink.IXlinkReference;
 import org.vast.util.Asserts;
 import com.google.gson.stream.JsonWriter;
 
@@ -35,18 +38,26 @@ import com.google.gson.stream.JsonWriter;
  * @author Alex Robin
  * @since Jan 26, 2021
  */
-public class FoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
+public class FoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature, IObsSystemDatabase>
 {
     
-    public FoiBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public FoiBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean forReading) throws IOException
     {
-        super(ctx, idEncoders, forReading);
+        super(ctx, idEncoders, db, forReading);
     }
     
     
     protected GeoJsonBindings getJsonBindings()
     {
         return new GeoJsonBindings() {
+            @Override
+            public void writeLink(JsonWriter writer, IXlinkReference<?> link) throws IOException
+            {
+                LinkResolver.resolveLink(ctx, link, db, idEncoders);
+                super.writeLink(writer, link);
+            }
+
+            @Override
             protected void writeDateTimeValue(JsonWriter writer, OffsetDateTime dateTime) throws IOException
             {
                 super.writeDateTimeValue(writer, dateTime.truncatedTo(ChronoUnit.SECONDS));

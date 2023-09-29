@@ -62,9 +62,9 @@ import static j2html.TagCreator.*;
 public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends IDatabase> extends AbstractFeatureBindingHtml<V, DB>
 {
     
-    public SmlFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, DB db, boolean showMap) throws IOException
+    public SmlFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, DB db, boolean isSummary, boolean showMap) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db, showMap);
+        super(ctx, idEncoders, db, isSummary, showMap);
     }
     
     

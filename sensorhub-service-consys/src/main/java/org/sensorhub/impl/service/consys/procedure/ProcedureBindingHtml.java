@@ -39,9 +39,9 @@ public class ProcedureBindingHtml extends SmlFeatureBindingHtml<IProcedureWithDe
     final String collectionTitle;
     
     
-    public ProcedureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IProcedureDatabase db) throws IOException
+    public ProcedureBindingHtml(RequestContext ctx, IdEncoders idEncoders, IProcedureDatabase db, boolean isSummary) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db, false);
+        super(ctx, idEncoders, db, isSummary, false);
         this.collectionTitle = "Datasheets and Procedures";
     }
     

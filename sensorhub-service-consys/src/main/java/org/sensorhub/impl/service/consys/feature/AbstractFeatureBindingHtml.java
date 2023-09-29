@@ -23,6 +23,7 @@ import javax.xml.namespace.QName;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
+import org.sensorhub.impl.service.consys.LinkResolver;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingHtml;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
@@ -60,7 +61,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
     protected final boolean showMap;
     
     
-    public AbstractFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, DB db, boolean showMap) throws IOException
+    public AbstractFeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, DB db, boolean isSummary, boolean showMap) throws IOException
     {
         super(ctx, idEncoders);
         this.db = db;
@@ -305,11 +306,21 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
         }
         else if (val instanceof IXlinkReference)
         {
-            String href = ((IXlinkReference<?>) val).getHref();
-            if (href != null)
+            var link = (IXlinkReference<?>)val;
+            if (link.getHref() != null)
             {
-                if (!href.equals(featureType)) 
-                    valueTag = span(href);
+                if (!link.getHref().equals(featureType))
+                {
+                    LinkResolver.resolveLink(ctx, link, db, idEncoders);
+                    
+                    String title = link.getTitle();
+                    if (title == null && link.getRole() != null)
+                        title = link.getRole();
+                    if (title == null)
+                        title = link.getHref();
+                    
+                    valueTag = a(title).withHref(link.getHref());
+                }
                 else
                     return new UnescapedText("");
             }

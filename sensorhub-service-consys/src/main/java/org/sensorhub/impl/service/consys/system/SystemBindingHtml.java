@@ -43,9 +43,9 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
     final String collectionTitle;
     
     
-    public SystemBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
+    public SystemBindingHtml(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean isSummary) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db, true);
+        super(ctx, idEncoders, db, isSummary, true);
         
         // set collection title depending on path
         if (ctx.getParentID() != null)

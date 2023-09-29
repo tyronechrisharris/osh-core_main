@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.Map;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.IFeatureStore;
 import org.sensorhub.api.datastore.feature.FeatureFilter.Builder;
@@ -38,10 +39,13 @@ public class FeatureHandler extends AbstractFeatureHandler<IFeature, FeatureFilt
     public static final int EXTERNAL_ID_SEED = 815420;
     public static final String[] NAMES = { "features" };
     
+    final IFeatureDatabase db;
     
-    public FeatureHandler(IFeatureStore dataStore, IdEncoders idEncoders, ResourcePermissions permissions)
+    
+    public FeatureHandler(IFeatureDatabase db, IdEncoders idEncoders, ResourcePermissions permissions)
     {
-        super(dataStore, idEncoders.getFeatureIdEncoder(), idEncoders, permissions);
+        super(db.getFeatureStore(), idEncoders.getFeatureIdEncoder(), idEncoders, permissions);
+        this.db = db;
     }
 
 
@@ -54,8 +58,10 @@ public class FeatureHandler extends AbstractFeatureHandler<IFeature, FeatureFilt
         if (format.equals(ResourceFormat.AUTO))
             format = ResourceFormat.GEOJSON;
         
-        if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new FeatureBindingGeoJson(ctx, idEncoders, forReading);
+        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+            return new FeatureBindingHtml(ctx, idEncoders, db, true);
+        else if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
+            return new FeatureBindingGeoJson(ctx, idEncoders, db, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

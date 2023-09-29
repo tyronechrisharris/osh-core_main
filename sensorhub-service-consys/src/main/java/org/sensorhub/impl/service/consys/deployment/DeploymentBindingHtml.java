@@ -28,20 +28,20 @@ import static j2html.TagCreator.*;
 
 /**
  * <p>
- * HTML formatter for procedure resources
+ * HTML formatter for deployment resources
  * </p>
  *
  * @author Alex Robin
- * @since March 31, 2022
+ * @since March 31, 2023
  */
 public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IDeploymentWithDesc, IObsSystemDatabase>
 {
     final String collectionTitle;
     
     
-    public DeploymentBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
+    public DeploymentBindingHtml(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean isSummary) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db, true);
+        super(ctx, idEncoders, db, isSummary, true);
         this.collectionTitle = "System Deployments";
     }
     
@@ -49,7 +49,7 @@ public class DeploymentBindingHtml extends SmlFeatureBindingHtml<IDeploymentWith
     @Override
     protected String getResourceName()
     {
-        return "Procedure";
+        return "Deployment";
     }
     
     

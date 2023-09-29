@@ -15,7 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys.feature;
 
 import org.sensorhub.api.common.IdEncoders;
-import org.sensorhub.api.datastore.feature.IFeatureStore;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.impl.service.consys.RestApiServlet.ResourcePermissions;
 import org.vast.ogc.gml.IFeature;
 
@@ -23,9 +23,9 @@ import org.vast.ogc.gml.IFeature;
 public class FeatureHistoryHandler extends FeatureHandler
 {
     
-    public FeatureHistoryHandler(IFeatureStore dataStore, IdEncoders idEncoders, ResourcePermissions permissions)
+    public FeatureHistoryHandler(IFeatureDatabase db, IdEncoders idEncoders, ResourcePermissions permissions)
     {
-        super(dataStore, idEncoders, permissions);
+        super(db, idEncoders, permissions);
     }
 
 

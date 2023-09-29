@@ -16,9 +16,9 @@ package org.sensorhub.impl.service.consys.feature;
 
 import java.io.IOException;
 import org.sensorhub.api.common.IdEncoders;
-import org.sensorhub.api.database.IObsSystemDatabase;
+import org.sensorhub.api.database.IFeatureDatabase;
+import org.sensorhub.api.datastore.feature.FeatureFilter;
 import org.sensorhub.api.datastore.feature.FeatureKey;
-import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.vast.ogc.gml.IFeature;
 import j2html.tags.specialized.DivTag;
@@ -33,20 +33,20 @@ import static j2html.TagCreator.*;
  * @author Alex Robin
  * @since March 31, 2022
  */
-public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IObsSystemDatabase>
+public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IFeatureDatabase>
 {
     final String collectionTitle;
     
     
-    public FeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
+    public FeatureBindingHtml(RequestContext ctx, IdEncoders idEncoders, IFeatureDatabase db, boolean isSummary) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db, true);
+        super(ctx, idEncoders, db, isSummary, true);
         
         // set collection title depending on path
         if (ctx.getParentID() != null)
         {
             // fetch parent feature name
-            var parentFeature = FeatureUtils.getClosestToNow(db.getFoiStore(), ctx.getParentID());
+            var parentFeature = FeatureUtils.getClosestToNow(db.getFeatureStore(), ctx.getParentID());
             
             if (isHistory)
                 this.collectionTitle = "History of " + parentFeature.getName();
@@ -92,7 +92,7 @@ public class FeatureBindingHtml extends AbstractFeatureBindingHtml<IFeature, IOb
             .build()) > 0;*/
         var hasMembers = false;
         
-        var hasHistory = !isHistory && db.getFoiStore().countMatchingEntries(new FoiFilter.Builder()
+        var hasHistory = !isHistory && db.getFeatureStore().countMatchingEntries(new FeatureFilter.Builder()
             .withInternalIDs(key.getInternalID())
             .withAllVersions()
             .withLimit(2)

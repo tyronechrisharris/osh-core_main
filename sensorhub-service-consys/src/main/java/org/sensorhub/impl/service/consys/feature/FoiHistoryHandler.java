@@ -48,9 +48,9 @@ public class FoiHistoryHandler extends AbstractFeatureHistoryHandler<IFeature, F
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new FeatureBindingHtml(ctx, idEncoders, true, db);
+            return new FoiBindingHtml(ctx, idEncoders, db, true);
         else if (format.isOneOf(ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new FeatureBindingGeoJson(ctx, idEncoders, forReading);
+            return new FoiBindingGeoJson(ctx, idEncoders, db, forReading);
         else
             throw ServiceErrors.unsupportedFormat(format);
     }

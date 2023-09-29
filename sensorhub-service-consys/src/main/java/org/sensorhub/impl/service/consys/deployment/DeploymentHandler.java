@@ -61,9 +61,9 @@ public class DeploymentHandler extends AbstractFeatureHandler<IDeploymentWithDes
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new DeploymentBindingHtml(ctx, idEncoders, true, db);
+            return new DeploymentBindingHtml(ctx, idEncoders, db, true);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new DeploymentBindingGeoJson(ctx, idEncoders, forReading);
+            return new DeploymentBindingGeoJson(ctx, idEncoders, db, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
             return new DeploymentBindingSmlJson(ctx, idEncoders, forReading);
         else

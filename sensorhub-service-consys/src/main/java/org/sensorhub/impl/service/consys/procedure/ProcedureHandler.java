@@ -61,9 +61,9 @@ public class ProcedureHandler extends AbstractFeatureHandler<IProcedureWithDesc,
         var format = ctx.getFormat();
         
         if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
-            return new ProcedureBindingHtml(ctx, idEncoders, true, db);
+            return new ProcedureBindingHtml(ctx, idEncoders, db, true);
         else if (format.isOneOf(ResourceFormat.AUTO, ResourceFormat.JSON, ResourceFormat.GEOJSON))
-            return new ProcedureBindingGeoJson(ctx, idEncoders, forReading);
+            return new ProcedureBindingGeoJson(ctx, idEncoders, db, forReading);
         else if (format.equals(ResourceFormat.SML_JSON))
             return new ProcedureBindingSmlJson(ctx, idEncoders, forReading);
         else if (format.equals(ResourceFormat.SML_XML))

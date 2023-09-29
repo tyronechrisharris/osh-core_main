@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import javax.xml.namespace.QName;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IFeatureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.vast.ogc.gml.GenericFeature;
@@ -33,14 +34,14 @@ import com.google.gson.stream.JsonWriter;
 import net.opengis.gml.v32.AbstractGeometry;
 
 
-public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
+public class FeatureCollectionBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature, IFeatureDatabase>
 {
     public static final int EXTERNAL_ID_SEED = 7352181;
     
     
-    FeatureCollectionBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    FeatureCollectionBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, IFeatureDatabase db, boolean forReading) throws IOException
     {
-        super(ctx, idEncoders, forReading);
+        super(ctx, idEncoders, db, forReading);
     }
     
     

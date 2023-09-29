@@ -39,9 +39,9 @@ public class FoiBindingHtml extends AbstractFeatureBindingHtml<IFeature, IObsSys
     final String collectionTitle;
     
     
-    public FoiBindingHtml(RequestContext ctx, IdEncoders idEncoders, boolean isSummary, IObsSystemDatabase db) throws IOException
+    public FoiBindingHtml(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean isSummary) throws IOException
     {
-        super(ctx, idEncoders, isSummary, db, true);
+        super(ctx, idEncoders, db, isSummary, true);
         
         // set collection title depending on path
         if (ctx.getParentID() != null)

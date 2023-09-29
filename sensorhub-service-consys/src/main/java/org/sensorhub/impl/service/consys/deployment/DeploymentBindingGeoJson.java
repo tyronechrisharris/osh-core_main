@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import javax.xml.namespace.QName;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.system.IDeploymentWithDesc;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
@@ -40,18 +41,18 @@ import net.opengis.sensorml.v20.Deployment;
 
 /**
  * <p>
- * GeoJSON formatter for system resources
+ * GeoJSON formatter for deployment resources
  * </p>
  *
  * @author Alex Robin
- * @since Jan 26, 2021
+ * @since March 31, 2023
  */
-public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDeploymentWithDesc>
+public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDeploymentWithDesc, IObsSystemDatabase>
 {
     
-    public DeploymentBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
+    public DeploymentBindingGeoJson(RequestContext ctx, IdEncoders idEncoders, IObsSystemDatabase db, boolean forReading) throws IOException
     {
-        super(ctx, idEncoders, forReading);
+        super(ctx, idEncoders, db, forReading);
     }
     
     
