@@ -16,6 +16,7 @@ package org.sensorhub.impl.system.wrapper;
 
 import java.io.Serializable;
 import java.util.List;
+import org.vast.ogc.geopose.Pose;
 import net.opengis.OgcPropertyList;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.Reference;
@@ -198,6 +199,13 @@ public class PhysicalSystemWrapper extends ProcessWrapper<PhysicalSystem> implem
 
     @Override
     public void addPositionAsPoint(Point position)
+    {
+        throw new UnsupportedOperationException(IMMUTABLE_ERROR);
+    }
+
+
+    @Override
+    public void addPositionAsPose(Pose pose)
     {
         throw new UnsupportedOperationException(IMMUTABLE_ERROR);
     }

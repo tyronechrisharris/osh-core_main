@@ -22,8 +22,8 @@ import org.vast.ogc.om.MovingFeature;
 import org.vast.ogc.om.ProcedureRef;
 import org.vast.ogc.om.SamplingCurve;
 import org.vast.ogc.om.SamplingPoint;
-import org.vast.ogc.om.SamplingSphere;
 import org.vast.ogc.om.SamplingSurface;
+import org.vast.sensorML.sampling.SamplingSphere;
 import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.io.Output;
 
