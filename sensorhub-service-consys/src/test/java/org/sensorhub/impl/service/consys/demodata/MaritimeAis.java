@@ -124,6 +124,23 @@ public class MaritimeAis
     static GeoPosHelper swe = new GeoPosHelper();
     
     
+    static void addResources() throws IOException
+    {
+        // add AIS systme specs
+        Api.addOrUpdateProcedure(createAisProcedure(), true);
+        
+        // add monitoring system instances
+        for (var sys: getAllAisMonitoringSystems())
+        {
+            var sysId = Api.addOrUpdateSystem(sys, true);
+            
+            var navDs = createDataStream(sys.getUniqueIdentifier());
+            var dsId = Api.addOrUpdateDataStream(navDs, true);
+            //.ingestFoisAndObs(sysId, dsId);
+        }
+    }
+    
+    
     static AbstractProcess createAisProcedure()
     {
         return sml.createPhysicalSystem()
@@ -196,6 +213,8 @@ public class MaritimeAis
         var list = new ArrayList<AbstractProcess>(100);
         
         list.add(createAisMonitoringSystem(AIS_DENMARK_SYS_UID, "Denmark")
+            .description("Maritime AIS traffic monitoring network collecting madatory AIS reports from ships crossing the straights "
+                + "that connects the Baltic Sea and the North Sea")
             .addContact(sml.createContact()
                 .organisationName("Danish Maritime Authority")
                 .deliveryPoint("Caspar Brands Plads 9")
@@ -308,7 +327,7 @@ public class MaritimeAis
         int offset = 0;
         while (offset >= 0)
         {
-            var respJson = IngestDemoData.sendGetRequest(sysUrl + "/fois?limit=10000&offset=" + offset);
+            var respJson = Api.sendGetRequest(sysUrl + "/fois?limit=10000&offset=" + offset);
             var shipFois = respJson.getAsJsonObject().get("items").getAsJsonArray();
             shipFois.forEach(elt -> {
                 var f = elt.getAsJsonObject();
@@ -404,7 +423,7 @@ public class MaritimeAis
                             if (foiArrayJson != null)
                             {
                                 var featureJson = foiArrayJson.getJson().toString();
-                                var resp = IngestDemoData.sendPostRequest(sysUrl + "/fois", featureJson, "application/json");
+                                var resp = Api.sendPostRequest(sysUrl + "/fois", featureJson, "application/json");
                                 
                                 // parse all feature urls from response and extract id part
                                 var json = JsonParser.parseString(resp.body());
@@ -462,7 +481,7 @@ public class MaritimeAis
                         {
                             if (obsArrayJson != null)
                             {
-                                IngestDemoData.sendPostRequest(dsUrl + "/observations", obsArrayJson.getJson(), "application/om+json");
+                                Api.sendPostRequest(dsUrl + "/observations", obsArrayJson.getJson(), "application/om+json");
                                 System.out.println(obsCount + " obs");
                             }
                             

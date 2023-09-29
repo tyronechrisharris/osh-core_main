@@ -14,12 +14,19 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.demodata;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.data.DataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.system.SystemId;
+import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.om.SamplingPoint;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
@@ -37,6 +44,21 @@ public class Davis
     
     static SMLHelper sml = new SMLHelper();
     static GeoPosHelper swe = new GeoPosHelper();
+    
+    
+    static void addResources() throws IOException
+    {
+        // add weather station datasheet
+        Api.addOrUpdateProcedure(Davis.createVantagePro2Datasheet(), true);
+        
+        // add station instances and datastreams
+        for (var sys: Davis.getAllStations())
+        {
+            Api.addOrUpdateSystem(sys, true);
+            Api.addOrUpdateSF(sys.getUniqueIdentifier(), createStationSf(sys), true);
+            Api.addOrUpdateDataStream(Davis.createWeatherDataStream(sys), true);
+        }
+    }
     
     
     static AbstractProcess createVantagePro2Datasheet()
@@ -105,6 +127,11 @@ public class Davis
                 .name("Spec Sheet")
                 .url("https://cdn.shopify.com/s/files/1/0515/5992/3873/files/6152c_6162c_ss.pdf")
                 .mediaType("application/pdf")
+            )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://m.media-amazon.com/images/I/71rycLk7sFL.jpg")
+                .mediaType("image/jpg")
             )
             
             .addComponent("temp_sensor", createTempSensorDatasheet())
@@ -339,6 +366,71 @@ public class Davis
             .postalCode("31057 Cedex 1")
             .country("France")
             .phone("+33 5 61 07 80 80")
+            .build();
+    }
+    
+    
+    static IFeature createStationSf(AbstractProcess sys)
+    {
+        var sysUid = sys.getUniqueIdentifier();
+        
+        var sf = new SamplingPoint();
+        sf.setUniqueIdentifier(sysUid + ":sf");
+        sf.setName(sys.getName());
+        sf.setShape((Point)sys.getLocation());
+        sf.setSampledFeature("Earth Atmosphere", SWEHelper.getDBpediaUri("Atmosphere_of_Earth"));
+        return sf;
+    }
+    
+    
+    static IDataStreamInfo createWeatherDataStream(AbstractProcess sys)
+    {
+        return new DataStreamInfo.Builder()
+            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withName(sys.getName() + " - Weather Measurements")
+            .withDescription("Weather measurements aggregated from all station sensors")
+            .withRecordEncoding(sml.newTextEncoding())
+            .withRecordDescription(sml.createRecord()
+                .name("weather_data")
+                .label("Weather Measurements")
+                .addField("time", sml.createTime()
+                    .asPhenomenonTimeIsoUTC()
+                )
+                .addField("temp", sml.createQuantity()
+                    .definition(SWEHelper.getCfUri("air_temperature"))
+                    .label("Air Temperature")
+                    .uomCode("Cel")
+                )
+                .addField("press", sml.createQuantity()
+                    .definition(SWEHelper.getCfUri("air_pressure"))
+                    .label("Air Pressure")
+                    .uomCode("hPa")
+                )
+                .addField("hum", sml.createQuantity()
+                    .definition(SWEHelper.getCfUri("relative_humidity"))
+                    .label("Relative Humidity")
+                    .uomCode("%")
+                )
+                .addField("wind_speed", sml.createQuantity()
+                    .definition(SWEHelper.getCfUri("wind_speed"))
+                    .label("Wind Speed")
+                    .uomCode("km/h")
+                )
+                .addField("wind_dir", sml.createQuantity()
+                    .definition(SWEHelper.getCfUri("wind_from_direction"))
+                    .label("Wind Direction")
+                    .description("Direction the wind is coming from, measured clockwise from north")
+                    .refFrame(SWEConstants.REF_FRAME_NED)
+                    .axisId("Z")
+                    .uomCode("deg")
+                )
+                .addField("rain", sml.createQuantity()
+                    .definition(SWEHelper.getCfUri("rainfall_amount"))
+                    .label("Rainfall Amount")
+                    .uomCode("mm")
+                )
+                .build()
+            )
             .build();
     }
 

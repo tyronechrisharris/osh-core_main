@@ -81,6 +81,7 @@ public class Gill
                     .label("Max Current")
                     .description("Current draw at 12 V DC"))
                 .add("if_type", sml.createText()
+                    .definition(SWEHelper.getDBpediaUri("Interface_(computing)"))
                     .label("Interface Types")
                     .value("RS-232, RS-422, RS-485"))
                 .add("baud_rate", sml.createQuantityRange()
@@ -126,6 +127,12 @@ public class Gill
                 .url("https://gillinstruments.com/wp-content/uploads/2022/08/WindMaster-iss7-Datasheet.pdf")
                 .mediaType("application/pdf")
             )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://www.alliance-technologies.net/wp-content/uploads/2019/04/WindMaster_head.png")
+                .mediaType("image/png")
+            )
+            
             .build();
     }
     

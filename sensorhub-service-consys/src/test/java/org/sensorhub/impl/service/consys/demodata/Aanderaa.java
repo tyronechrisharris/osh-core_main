@@ -77,6 +77,7 @@ public class Aanderaa
                 .add("max_current", sml.characteristics.operatingCurrent(100, "mA")
                     .label("Max Current"))
                 .add("if_type", sml.createText()
+                    .definition(SWEHelper.getDBpediaUri("Interface_(computing)"))
                     .label("Interface Type")
                     .value("RS-232"))
                 .add("baud_rate", sml.createQuantity()
@@ -133,6 +134,12 @@ public class Aanderaa
                 .url("https://www.aanderaa.com/oxygen-sensors")
                 .mediaType("text/html")
             )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://www.fondriest.com/media/catalog/product/cache/ae8a6bc677e17d25017855202e90e7e0/a/a/aanderaa_4831_5.jpg")
+                .mediaType("image/jpg")
+            )
+            
             .build();
     }
     

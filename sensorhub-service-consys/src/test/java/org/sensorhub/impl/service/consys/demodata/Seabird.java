@@ -51,7 +51,7 @@ public class Seabird
             
             .addInput("temp", sml.createObservableProperty()
                 .definition("https://mmisw.org/ont/ioos/parameter/water_temperature")
-                .label("Air Temperature")
+                .label("Water Temperature")
                 .build()
             )
             .addInput("conductivity", sml.createObservableProperty()
@@ -87,6 +87,7 @@ public class Seabird
                     .label("Current Draw")
                     .description("Current draw at 9 VDC"))
                 .add("if_type", sml.createText()
+                    .definition(SWEHelper.getDBpediaUri("Interface_(computing)"))
                     .label("Interface Types")
                     .value("RS-232, RS-485"))
                 .add("baud_rate", sml.createQuantity()
@@ -153,6 +154,12 @@ public class Seabird
                 .url("https://www.seabird.com/asset-get.download.jsa?id=54627862348")
                 .mediaType("application/pdf")
             )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://www.seabird.com/asset-get.class.image.jsa?code=263967&type=P&size=L")
+                .mediaType("image/jpg")
+            )
+            
             .build();
     }
     

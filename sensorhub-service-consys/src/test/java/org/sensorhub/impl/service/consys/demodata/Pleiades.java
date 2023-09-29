@@ -14,16 +14,29 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.demodata;
 
+import java.io.IOException;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.data.DataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.system.SystemId;
+import org.vast.ogc.gml.GMLBuilders;
+import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.om.SamplingSurface;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
+import org.vast.swe.helper.RasterHelper;
 import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.swe.v20.Count;
+import net.opengis.swe.v20.DataType;
+import net.opengis.swe.v20.ScalarComponent;
 
 
 public class Pleiades
@@ -35,6 +48,26 @@ public class Pleiades
     
     static SMLHelper sml = new SMLHelper();
     static GeoPosHelper swe = new GeoPosHelper();
+    
+    
+    static void addResources() throws IOException
+    {
+        // add Pleiades HR specs
+        Api.addOrUpdateProcedure(createPHRSpecs(), true);
+        
+        // add PHR satellite instances
+        for (var sys: getPHRInstances())
+        {
+            Api.addOrUpdateSystem(sys, true);
+            Api.addOrUpdateDataStream(createImageDataStream(sys), true);
+            
+            for (int i = 1; i <= 10; i++)
+            {
+                var ts = Instant.parse("2023-09-15T15:36:24Z").toEpochMilli() + i * 32000;
+                Api.addOrUpdateSF(sys.getUniqueIdentifier(), createFootprintSf(sys, i, ts), true);
+            }
+        }
+    }
     
     
     static AbstractProcess createPHRSpecs()
@@ -114,10 +147,10 @@ public class Pleiades
                     .value(2.8))
             )
             
-            .addContact(Spot.getCnesContactInfo()
+            .addContact(SpotSat.getCnesContactInfo()
                 .role(CommonIdentifiers.AUTHOR_DEF)
             )
-            .addContact(Spot.getAirbusContactInfo()
+            .addContact(SpotSat.getAirbusContactInfo()
                 .role(CommonIdentifiers.MANUFACTURER_DEF)
             )
             
@@ -131,6 +164,21 @@ public class Pleiades
                 .name("Pléiades Wikipedia Page")
                 .url("https://en.wikipedia.org/wiki/Pleiades_(satellite)")
                 .mediaType("text/html")
+            )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://www.eoportal.org/api/cms/documents/163813/5980730/Pleiades_Auto37.jpeg")
+                .mediaType("image/jpg")
+            )
+            
+            .addLocalReferenceFrame(sml.createSpatialFrame()
+                .id("PLATFORM_FRAME")
+                .label("Platform Frame")
+                .description("Local reference frame attached to the satellite platform")
+                .origin("Center of mass of the satellite")
+                .addAxis("X", "In the plane formed by the solar panels, along the solar panel #1, pointing outward")
+                .addAxis("Y", "Orthogonal to both X and Z, forming a right handed frame")
+                .addAxis("Z", "Along the telescope line of sight, pointing from the optical center outward")
             )
             
             .addComponent("HiRI", createHIRISpecs())
@@ -254,7 +302,7 @@ public class Pleiades
                 .label("Satellite Catalog Number (SATCAT, NORAD)")
                 .value("38012")
             )
-            .addContact(Spot.getCnesContactInfo()
+            .addContact(SpotSat.getCnesContactInfo()
                 .role(CommonIdentifiers.OPERATOR_DEF))
             .validFrom(OffsetDateTime.parse("2011-12-17T02:03:00Z"))
             .build());
@@ -277,7 +325,7 @@ public class Pleiades
                 .label("Satellite Catalog Number (SATCAT/NORAD)")
                 .value("39019")
             )
-            .addContact(Spot.getCnesContactInfo()
+            .addContact(SpotSat.getCnesContactInfo()
                 .role(CommonIdentifiers.OPERATOR_DEF))
             .validFrom(OffsetDateTime.parse("2012-12-02T02:02:00Z"))
             .build());
@@ -296,6 +344,91 @@ public class Pleiades
             .postalCode("31100")
             .country("France")
             .phone("+ 33 (0)5 34 35 36 37");
+    }
+    
+    
+    static IDataStreamInfo createImageDataStream(AbstractProcess sys)
+    {
+        var raster = new RasterHelper();
+        Count width, height;
+        
+        // spectral bands
+        ScalarComponent blue = raster.createCount()
+            .name("blue")
+            .definition(RasterHelper.DEF_BLUE_CHANNEL)
+            .label("Blue Channel")
+            .dataType(DataType.USHORT)
+            .build();
+        
+        ScalarComponent green = raster.createCount()
+            .name("green")
+            .definition(RasterHelper.DEF_GREEN_CHANNEL)
+            .label("Green Channel")
+            .dataType(DataType.USHORT)
+            .build();
+        
+        ScalarComponent red = raster.createCount()
+            .name("red")
+            .definition(RasterHelper.DEF_RED_CHANNEL)
+            .label("Red Channel")
+            .dataType(DataType.USHORT)
+            .build();
+        
+        ScalarComponent nir = raster.createCount()
+            .name("nir")
+            .definition("http://sensorml.com/ont/swe/spectrum/NIR")
+            .label("NIR Channel")
+            .dataType(DataType.USHORT)
+            .build();
+        
+        return new DataStreamInfo.Builder()
+            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withName(sys.getName() + " - Sensor Level Imagery")
+            .withDescription("Sensor level imagery product (not projected or orthorectified)")
+            .withRecordEncoding(sml.newTextEncoding())
+            .withRecordDescription(sml.createRecord()
+                .name("image")
+                .label("Scene")
+                .addField("time", sml.createTime().asPhenomenonTimeIsoUTC())
+                .addField("width", width = sml.createCount()
+                    .definition(RasterHelper.DEF_RASTER_WIDTH)
+                    .label("Image Width")
+                    .id("ING_WIDTH")
+                    .build())
+                .addField("height", height = sml.createCount()
+                    .definition(RasterHelper.DEF_RASTER_HEIGHT)
+                    .label("Image Height")
+                    .id("IMG_HEIGHT")
+                    .build())
+                .addField("image", raster.newRasterImage(width, height, blue, green, red, nir))
+                .build())
+            .build();
+    }
+    
+    
+    static IFeature createFootprintSf(AbstractProcess sys, int num, long ts)
+    {
+        var sysUid = sys.getUniqueIdentifier();
+        
+        var c = num - 5;
+        var s = PHR1A_SYS_UID.equals(sys.getUniqueIdentifier()) ? 1 : 0;
+        var lonOffset = c*0.03 + s*6.5;
+        var latOffset = c*0.19 - s*13.3;
+        
+        var sf = new SamplingSurface();
+        sf.setUniqueIdentifier(sysUid + String.format(":sf%03d", num));
+        sf.setName("IMG_" + (s == 1 ? "PHR1A" : "PHR1B") + "_PMS_" + ts + " Footprint");
+        sf.setSampledFeature("Earth", SWEHelper.getDBpediaUri("Earth"));
+        sf.setShape(new GMLBuilders().createPolygon()
+            .exterior(
+                -78.58+lonOffset, -0.23+latOffset,
+                -78.40+lonOffset, -0.26+latOffset,
+                -78.37+lonOffset, -0.07+latOffset,
+                -78.55+lonOffset, -0.04+latOffset,
+                -78.58+lonOffset, -0.23+latOffset
+            )
+            .build());
+        return sf;
     }
 
 }

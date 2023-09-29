@@ -14,6 +14,7 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.demodata;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,7 +27,7 @@ import org.vast.swe.helper.GeoPosHelper;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
-public class Spot
+public class SpotSat
 {
     public static final String SPOT5_PROC_UID = "urn:x-cnes:sat:spot5";
     public static final String HRG_PROC_UID = "urn:x-cnes:ins:hrg";
@@ -38,6 +39,20 @@ public class Spot
     
     static SMLHelper sml = new SMLHelper();
     static GeoPosHelper swe = new GeoPosHelper();
+    
+    
+    static void addResources() throws IOException
+    {
+        // add Astroterra specs
+        Api.addOrUpdateProcedure(createAstroTerraSpecs(), true);
+        
+        // add satellite instances
+        for (var sys: getSpotInstances())
+        {
+            Api.addOrUpdateSystem(sys, true);
+            Api.addOrUpdateDataStream(Pleiades.createImageDataStream(sys), true);
+        }
+    }
     
     
     static AbstractProcess createAstroTerraSpecs()
@@ -127,6 +142,11 @@ public class Spot
                 .name("SPOT-6/7 Specsheet")
                 .url("https://www.intelligence-airbusds.com/files/pmedia/edited/r18072_9_spot_6_technical_sheet.pdf")
                 .mediaType("application/pdf")
+            )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://eo.belspo.be/sites/default/files/styles/xlarge/public/satellites/212._spot-6.jpeg")
+                .mediaType("image/jpg")
             )
             
             .addComponent("NAOMI", createNAOMISpecs())

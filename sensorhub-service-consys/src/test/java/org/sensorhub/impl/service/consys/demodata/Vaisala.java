@@ -18,6 +18,7 @@ import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
 import org.vast.swe.SWEConstants;
+import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
 import net.opengis.sensorml.v20.AbstractProcess;
 
@@ -68,6 +69,7 @@ public class Vaisala
                 .add("current", sml.characteristics.operatingCurrent(15, "mA")
                     .label("Max Current"))
                 .add("if_type", sml.createText()
+                    .definition(SWEHelper.getDBpediaUri("Interface_(computing)"))
                     .label("Interface Type")
                     .value("RS-232"))
                 .add("baud_rate", sml.createQuantityRange()
@@ -105,6 +107,12 @@ public class Vaisala
                 .url("https://docs.vaisala.com/v/u/B210942EN-E/en-US")
                 .mediaType("application/pdf")
             )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://inemet.com/wp-content/uploads/2021/12/PTB210-copia.jpg")
+                .mediaType("image/jpg")
+            )
+            
             .build();
     }
     

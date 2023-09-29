@@ -18,6 +18,7 @@ import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
 import org.vast.swe.SWEConstants;
+import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
 import net.opengis.sensorml.v20.AbstractProcess;
 
@@ -89,6 +90,7 @@ public class VectorNav
                 .add("power", sml.characteristics.nominalPowerConsumption(500, "mW")
                     .description("Power consumed, not including active antenna power consumption"))
                 .add("if_type", sml.createText()
+                    .definition(SWEHelper.getDBpediaUri("Interface_(computing)"))
                     .label("Interface Type")
                     .value("Serial TTL, TS-232"))
                 .add("baud_rate", sml.createQuantityRange()
@@ -167,6 +169,12 @@ public class VectorNav
                 .url("https://www.vectornav.com/resources/user-manuals/vn-200-user-manual")
                 .mediaType("text/html")
             )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://www.vectornav.com/images/default-source/products/vn-200-rugged_large.png")
+                .mediaType("image/png")
+            )
+            
             .build();
     }
     

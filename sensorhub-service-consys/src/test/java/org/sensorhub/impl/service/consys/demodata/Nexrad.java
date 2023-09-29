@@ -28,10 +28,11 @@ import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.system.SystemId;
 import org.vast.ogc.gml.IFeature;
-import org.vast.ogc.om.SamplingSphere;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
+import org.vast.sensorML.sampling.SamplingSphere;
+import org.vast.sensorML.sampling.ViewingSector;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
@@ -48,6 +49,28 @@ public class Nexrad
     
     static SMLHelper sml = new SMLHelper();
     static GeoPosHelper swe = new GeoPosHelper();
+    
+    
+    static void addResources() throws IOException
+    {
+        // add NEXRAD specifications
+        Api.addOrUpdateProcedure(createWSR88DDatasheet(), true);
+        
+        // add single Nexrad pacific site
+        AbstractProcess sys1;
+        Api.addOrUpdateSystem(sys1 = getSingleRadarSite(), true);
+        Api.addOrUpdateSF(getSingleRadarSite().getUniqueIdentifier(), getSingleRadarSiteSf(), true);
+        Api.addOrUpdateDataStream(createRadialDataStream(sys1), true);
+        
+        // add Nexrad sites for entire US network
+        Api.addOrUpdateSystem(getUSNexradNetwork(), true);
+        for (var sys: getAllRadarSites())
+        {
+            Api.addOrUpdateSubsystem(NEXRAD_US_NET_UID, sys, true);
+            Api.addOrUpdateSF(sys.getUniqueIdentifier(), createNexradSf(sys), true);
+            Api.addOrUpdateDataStream(createRadialDataStream(sys), true);
+        }
+    }
     
     
     static AbstractProcess createWSR88DDatasheet()
@@ -230,6 +253,12 @@ public class Nexrad
                 .url("https://en.wikipedia.org/wiki/NEXRAD")
                 .mediaType("text/html")
             )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://npr.brightspotcdn.com/legacy/sites/kwgs/files/201304/weatherradar650.jpg")
+                .mediaType("image/jpg")
+            )
+            
             .build();
     }
     
@@ -254,24 +283,9 @@ public class Nexrad
     }
     
     
-    static IFeature createNexradSf(AbstractProcess sys)
-    {
-        var sysUid = sys.getUniqueIdentifier();
-        var icaoId = sysUid.substring(sysUid.lastIndexOf(':')+1);
-        
-        var sf = new SamplingSphere();
-        sf.setUniqueIdentifier(sysUid + ":sf");
-        sf.setName("NEXRAD " + icaoId + " Scanning Volume");
-        sf.setShape((Point)sys.getLocation());
-        sf.setRadius(230000);
-        
-        return sf;
-    }
-    
-    
     static AbstractProcess getSingleRadarSite()
     {
-        return Nexrad.createNexradInstance(
+        return createNexradInstance(
             "30001961",
             "PGUA",
             "ANDERSEN AFB AGANA, GU (GUAM)",
@@ -282,7 +296,7 @@ public class Nexrad
     
     static IFeature getSingleRadarSiteSf()
     {
-        return Nexrad.createNexradSf(getSingleRadarSite());
+        return createNexradSf(getSingleRadarSite());
     }
     
     
@@ -333,7 +347,7 @@ public class Nexrad
                     
                     var startValidTime = Instant.parse("1992-01-01T00:00:00Z"); 
                     
-                    radarList.add(Nexrad.createNexradInstance(
+                    radarList.add(createNexradInstance(
                         ncdcId, icaoId, fullName, location, startValidTime));
                 }
             }
@@ -344,6 +358,33 @@ public class Nexrad
         }
         
         return radarList;
+    }
+    
+    
+    static IFeature createNexradSf(AbstractProcess sys)
+    {
+        var sysUid = sys.getUniqueIdentifier();
+        var icaoId = sysUid.substring(sysUid.lastIndexOf(':')+1);
+        
+        /*var sf = new SamplingSphere();
+        sf.setUniqueIdentifier(sysUid + ":sf");
+        sf.setName("NEXRAD " + icaoId + " Scanning Volume");
+        sf.setShape((Point)sys.getLocation());
+        sf.setRadius(230000);
+        sf.setSampledFeatureUID(SWEHelper.getDBpediaUri("Atmosphere_of_Earth"));*/
+        
+        var sf = new ViewingSector();
+        sf.setUniqueIdentifier(sysUid + ":sf");
+        sf.setName("NEXRAD " + icaoId + " Scanning Volume");
+        sf.setSampledFeature("Earth Atmosphere", SWEHelper.getDBpediaUri("Atmosphere_of_Earth"));
+        sf.setShape((Point)sys.getLocation());
+        sf.setRadius(230000);
+        sf.setMinElevation(0.0);
+        sf.setMaxElevation(19.5);
+        sf.setMinAzimuth(0.0);
+        sf.setMaxAzimuth(360.0);
+        
+        return sf;
     }
     
     
@@ -380,6 +421,35 @@ public class Nexrad
                     .label("Elevation Angle")
                     .description("Elevation angle of radial vector, relative to local horizontal plane")
                     .uomCode("deg")
+                )
+                .addField("num_bins", sml.createCount()
+                    .definition(SWEConstants.DEF_NUM_SAMPLES)
+                    .label("Number of Bins")
+                    .description("Number of bins along the radial (depends on radar mode)")
+                    .id("NUM_BINS"))
+                .addField("bins", sml.createArray()
+                    .label("Array of Bins")
+                    .withVariableSize("NUM_BINS")
+                    .withElement("bin", sml.createRecord()
+                        .addField("dist", sml.createQuantity()
+                            .definition(SWEHelper.getPropertyUri("RadialDistance"))
+                            .label("Radial Distance")
+                            .description("Distance from radar antenna to measurement bin along the radial direction")
+                            .uomCode("m")
+                        )
+                        .addField("refl", sml.createQuantity()
+                            .definition(SWEHelper.getCfUri("equivalent_reflectivity_factor"))
+                            .label("Reflectivity")
+                            .description("Equivalent reflectivity factor")
+                            .uomCode("dB")
+                        )
+                        .addField("vel", sml.createQuantity()
+                            .definition(SWEHelper.getCfUri("radial_velocity_of_scatterers_away_from_instrument"))
+                            .label("Velocity")
+                            .description("Velocity of the reflecting target along the radial direction")
+                            .uomCode("m/s")
+                        )
+                    )
                 )
                 .build())
             .build();

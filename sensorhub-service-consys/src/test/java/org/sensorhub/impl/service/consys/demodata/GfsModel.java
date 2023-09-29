@@ -14,17 +14,23 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.demodata;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.Collections;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.data.DataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.system.SystemId;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
 import org.vast.sensorML.helper.CommonIdentifiers;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
+import org.vast.swe.helper.RasterHelper;
 import net.opengis.sensorml.v20.AbstractProcess;
 
 
@@ -34,6 +40,18 @@ public class GfsModel
     
     static SMLHelper sml = new SMLHelper();
     static GeoPosHelper swe = new GeoPosHelper();
+    
+    
+    static void addResources() throws IOException
+    {
+        // add GFS model specs
+        Api.addOrUpdateProcedure(createGFSModelSpecs(), true);
+        
+        // add model instance
+        var modelSys = createModelInstance(Instant.parse("2022-11-29T00:00:00Z"));
+        Api.addOrUpdateSystem(modelSys, true);
+        Api.addOrUpdateDataStream(createForecastDataStream(modelSys), true);
+    }
     
     
     static AbstractProcess createGFSModelSpecs()
@@ -193,6 +211,108 @@ public class GfsModel
             .country("USA")
             .phone("+1 800 874-8647")
             .email("ncep.webmaster@noaa.gov");
+    }
+    
+    
+    static IDataStreamInfo createForecastDataStream(AbstractProcess sys)
+    {
+        return new DataStreamInfo.Builder()
+            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withName(sys.getName() + " - PGRB2 0.25deg Dataset")
+            .withDescription("3D forecast product with most commonly used parameters, 0.25 degrees resolution")
+            .withRecordEncoding(sml.newTextEncoding())
+            .withRecordDescription(sml.createRecord()
+                .name("forecast_data")
+                .label("Forecast Output")
+                .addField("time", sml.createTime()
+                    .asPhenomenonTimeIsoUTC()
+                    .label("Forecasted Time")
+                )
+                .addField("grid_width", sml.createCount()
+                    .definition(RasterHelper.DEF_RASTER_WIDTH)
+                    .label("Grid Width")
+                    .description("Size of grid along the longitude dimension")
+                    .id("GRID_WIDTH"))
+                .addField("grid_height", sml.createCount()
+                    .definition(RasterHelper.DEF_RASTER_HEIGHT)
+                    .label("Grid Height")
+                    .description("Size of grid along the latitude dimension")
+                    .id("GRID_HEIGHT"))
+                .addField("grid_depth", sml.createCount()
+                    .definition(SWEHelper.getPropertyUri("GridDepth"))
+                    .label("Grid Depth")
+                    .description("Size of grid along the vertical dimension")
+                    .id("GRID_DEPTH"))
+                .addField("range_data", sml.createArray()
+                    .withVariableSize("GRID_DEPTH")
+                    .withElement("level", sml.createArray()
+                        .withVariableSize("GRID_HEIGHT")
+                        .withElement("row", sml.createArray()
+                            .withVariableSize("GRID_WIDTH")
+                            .withElement("row", sml.createRecord()
+                                .addField("HGT", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("geopotential_height"))
+                                    .label("Geopotential Height")
+                                    .uomCode("m")
+                                )
+                                .addField("TMP", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("air_temperature"))
+                                    .label("Air Temperature")
+                                    .uomCode("K")
+                                )
+                                .addField("RH", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("relative_humidity"))
+                                    .label("Relative Humidity")
+                                    .uomCode("%")
+                                )
+                                .addField("TCDC", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("cloud_area_fraction_in_atmosphere_layer"))
+                                    .label("Cloud Cover")
+                                    .uomCode("%")
+                                )
+                                .addField("UGRD", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("eastward_wind"))
+                                    .label("Eastward Wind Speed")
+                                    .description("U component of wind (towards east)")
+                                    .uomCode("m/s")
+                                )
+                                .addField("VGRD", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("northward_wind"))
+                                    .label("Northward Wind Speed")
+                                    .description("V component of wind (towards north)")
+                                    .uomCode("m/s")
+                                )
+                                .addField("ABSV", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("atmosphere_upward_absolute_vorticity"))
+                                    .label("Absolute Vorticity ")
+                                    .uomCode("1/s")
+                                )
+                                .addField("ICMR", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("cloud_ice_mixing_ratio"))
+                                    .label("Ice Mixing Ratio")
+                                    .uomCode("1")
+                                )
+                                .addField("RWMR", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("cloud_liquid_water_mixing_ratio"))
+                                    .label("Rain Mixing Ratio")
+                                    .uomCode("1")
+                                )
+                                .addField("SNMR", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("mass_fraction_of_snow_in_air"))
+                                    .label("Snow Mixing Ratio")
+                                    .uomCode("1")
+                                )
+                                .addField("O3MR", sml.createQuantity()
+                                    .definition(SWEHelper.getCfUri("mass_fraction_of_ozone_in_air"))
+                                    .label("Ozone Mixing Ratio")
+                                    .uomCode("1")
+                                )
+                            )
+                        )
+                    )
+                )
+                .build())
+            .build();
     }
 
 }

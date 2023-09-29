@@ -14,6 +14,7 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.service.consys.demodata;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -21,11 +22,20 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.isotc211.v2005.gmd.CIResponsibleParty;
+import org.sensorhub.api.command.CommandStreamInfo;
+import org.sensorhub.api.command.ICommandStreamInfo;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.data.DataStreamInfo;
+import org.sensorhub.api.data.IDataStreamInfo;
+import org.sensorhub.api.system.SystemId;
+import org.vast.ogc.gml.IFeature;
 import org.vast.sensorML.SMLHelper;
 import org.vast.sensorML.SMLMetadataBuilders.CIResponsiblePartyBuilder;
+import org.vast.sensorML.helper.CommonCapabilities;
 import org.vast.sensorML.helper.CommonCharacteristics;
 import org.vast.sensorML.helper.CommonClassifiers;
 import org.vast.sensorML.helper.CommonIdentifiers;
+import org.vast.sensorML.sampling.ViewingSector;
 import org.vast.swe.SWEConstants;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.helper.GeoPosHelper;
@@ -33,14 +43,39 @@ import org.vast.swe.helper.RasterHelper;
 import net.opengis.gml.v32.Point;
 import net.opengis.gml.v32.impl.GMLFactory;
 import net.opengis.sensorml.v20.AbstractProcess;
+import net.opengis.swe.v20.BinaryBlock;
+import net.opengis.swe.v20.BinaryComponent;
+import net.opengis.swe.v20.BinaryEncoding;
+import net.opengis.swe.v20.ByteEncoding;
+import net.opengis.swe.v20.ByteOrder;
+import net.opengis.swe.v20.DataType;
 
 
 public class Dahua
 {
     public static final String SD22404_PROC_UID = "urn:x-dahua:cam:sd22204t-gn";
+    static final String MOUNT_FRAME_ID = "MOUNT_FRAME";
+    static final String CAMERA_FRAME_ID = "CAMERA_FRAME";
     
     static SMLHelper sml = new SMLHelper();
     static GeoPosHelper swe = new GeoPosHelper();
+    
+    
+    static void addResources() throws IOException
+    {
+        // add PTZ cam datasheet
+        Api.addOrUpdateProcedure(createSD22204Datasheet(), true);
+        
+        // add camera instances
+        for (var sys: getCameraInstances())
+        {
+            Api.addOrUpdateSystem(sys, true);
+            Api.addOrUpdateSF(sys.getUniqueIdentifier(), createTrafficCamSf(sys), true);
+            Api.addOrUpdateDataStream(createCameraInfoDataStream(sys), true);
+            Api.addOrUpdateDataStream(createVideoDataStream(sys), true);
+            Api.addOrUpdateControlStream(createPtzControlStream(sys), true);
+        }
+    }
     
     
     static AbstractProcess createSD22204Datasheet()
@@ -60,9 +95,9 @@ public class Dahua
             .addIdentifier(sml.identifiers.modelNumber("SD22204T-GN"))
             .addClassifier(sml.classifiers.sensorType("Camera"))
             
-            .addInput("reflectivity", sml.createObservableProperty()
-                .definition("https://mmisw.org/ont/ioos/parameter/echo_intensity")
-                .label("Reflectivity")
+            .addInput("light", sml.createObservableProperty()
+                .definition(SWEHelper.getDBpediaUri("Electromagnetic_radiation"))
+                .label("Visible Light")
                 .build()
             )
             
@@ -84,6 +119,7 @@ public class Dahua
                 .add("current", sml.characteristics.operatingCurrent(1.5, "A")
                     .label("Max Current"))
                 .add("if_type", sml.createText()
+                    .definition(SWEHelper.getDBpediaUri("Interface_(computing)"))
                     .label("Interface Type")
                     .value("Ethernet 100Base-T (RJ-45 with PoE)"))
             )
@@ -183,7 +219,7 @@ public class Dahua
             .addDocument(CommonIdentifiers.WEBPAGE_DEF, sml.createDocument()
                 .name("Product Webpage")
                 .description("Product webpage on manufacturer's website")
-                .url("https://www.dahuasecurity.com/products/All-Products/Discontinued-Products/PTZ-Cameras/Lite-Series/SD22204T-GN-S2=S2")
+                .url("https://www.dahuasecurity.com/products/All-Products/Discontinued-Products/PTZ-Cameras/SD22204T-GN-S2=S2")
                 .mediaType("text/html")
             )
             .addDocument(CommonIdentifiers.SPECSHEET_DEF, sml.createDocument()
@@ -191,6 +227,32 @@ public class Dahua
                 .url("https://www.dahuasecurity.com/asset/upload/product/20180905/SD22204T-GN_Datasheet_20180905.pdf")
                 .mediaType("application/pdf")
             )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://material.dahuasecurity.com/upfiles/SD22204T-GN1_thumb.png")
+                .mediaType("image/png")
+            )
+            
+            .addLocalReferenceFrame(sml.createSpatialFrame()
+                .id(MOUNT_FRAME_ID)
+                .label("Camera Mount Frame")
+                .description("Local reference frame attached to the camera mounting body (the part not rotating with the gimbal)")
+                .origin("Center of the circular mounting plate")
+                .addAxis("X", "Orthogonal to both Y and Z, forming a direct frame")
+                .addAxis("Y", "Toward the top of the camera dome")
+                .addAxis("Z", "Along the direction of the camera line of sight when in its default position (pan=0, tilt=0)")
+            )
+            
+            .addLocalReferenceFrame(sml.createSpatialFrame()
+                .id(CAMERA_FRAME_ID)
+                .label("Camera Frustum Frame")
+                .description("Local reference frame attached to the camera frustum")
+                .origin("Optical center of the camera lense")
+                .addAxis("X", "In the focal plane, along the image width direction, pointing toward the right of the image")
+                .addAxis("Y", "In the focal plane, along the image height direction, pointing toward the bottom of the image")
+                .addAxis("Z", "Along the longitudinal axis of symmetry of the frustum, pointing away from the camera")
+            )
+            
             .build();
     }
     
@@ -210,7 +272,7 @@ public class Dahua
     }
     
     
-    static Collection<AbstractProcess> getAllCameras()
+    static Collection<AbstractProcess> getCameraInstances()
     {
         var list = new ArrayList<AbstractProcess>(100);
         
@@ -259,6 +321,152 @@ public class Dahua
             .organisationName("Safe City Inc.")
             .website("https://www.safecity.com")
             .country("Singapore")
+            .build();
+    }
+    
+    
+    static IFeature createTrafficCamSf(AbstractProcess sys)
+    {
+        var sysUid = sys.getUniqueIdentifier();
+        var camId = sysUid.substring(sysUid.lastIndexOf(':')+1);
+        
+        var sf = new ViewingSector();
+        sf.setUniqueIdentifier(sysUid + ":sf");
+        sf.setName("Traffic Cam " + camId + " Viewable Area");
+        sf.setSampledFeature("Pan-Island Expressway", "https://data.example.org/api/collections/roads/PIE12");
+        sf.setShape((Point)sys.getLocation());
+        sf.setRadius(150.0);
+        sf.setMinElevation(-90.0);
+        sf.setMaxElevation(25.0);
+        sf.setMinAzimuth(23.0);
+        sf.setMaxAzimuth(223.0);
+        
+        return sf;
+    }
+    
+    
+    static IDataStreamInfo createCameraInfoDataStream(AbstractProcess sys)
+    {
+        var mountFrameUri = sys.getUniqueIdentifier() + "#" + MOUNT_FRAME_ID;
+        var cameraFrameUri = sys.getUniqueIdentifier() + "#" + CAMERA_FRAME_ID;
+        
+        return new DataStreamInfo.Builder()
+            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withName(sys.getName() + " - Camera Status")
+            .withDescription("Video camera parameters")
+            .withRecordEncoding(sml.newTextEncoding())
+            .withRecordDescription(sml.createRecord()
+                .name("cam")
+                .label("Camera Status")
+                .addField("time", sml.createTime()
+                    .asPhenomenonTimeIsoUTC()
+                )
+                .addField("gimbal", sml.createVector()
+                    .definition(GeoPosHelper.DEF_ORIENTATION)
+                    .refFrame(mountFrameUri)
+                    .localFrame(cameraFrameUri)
+                    .label("Gimbal Orientation")
+                    .addCoordinate("pan", sml.createQuantity()
+                        .definition(SWEHelper.getPropertyUri("PanAngle"))
+                        .axisId("Y")
+                        .label("Pan")
+                        .uomCode("deg")
+                    )
+                    .addCoordinate("tilt", sml.createQuantity()
+                        .definition(SWEHelper.getPropertyUri("TiltAngle"))
+                        .axisId("X")
+                        .label("Pan")
+                        .uomCode("deg")
+                    )
+                )
+                .addField("fov", sml.createQuantity()
+                    .definition(CommonCapabilities.FOV_DEF)
+                    .label("Horizontal FOV")
+                    .uomCode("deg"))
+                .build()
+            )
+            .build();
+    }
+    
+    
+    static IDataStreamInfo createVideoDataStream(AbstractProcess sys)
+    {
+        var imgHelper = new RasterHelper();
+        
+        // video encoding
+        BinaryEncoding dataEnc = sml.newBinaryEncoding();
+        dataEnc.setByteEncoding(ByteEncoding.RAW);
+        dataEnc.setByteOrder(ByteOrder.BIG_ENDIAN);
+        BinaryComponent timeEnc = sml.newBinaryComponent();
+        timeEnc.setRef("/time");
+        timeEnc.setCdmDataType(DataType.DOUBLE);
+        dataEnc.addMemberAsComponent(timeEnc);
+        BinaryBlock compressedBlock = sml.newBinaryBlock();
+        compressedBlock.setRef("/img");
+        compressedBlock.setCompression("H264");
+        dataEnc.addMemberAsBlock(compressedBlock);
+        
+        return new DataStreamInfo.Builder()
+            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withName(sys.getName() + " - Video Feed")
+            .withDescription("Video frames acquired by the camera")
+            .withRecordDescription(sml.createRecord()
+                .name("video")
+                .label("Video Frame")
+                .addField("time", sml.createTime()
+                    .asPhenomenonTimeIsoUTC()
+                )
+                .addField("img", imgHelper.newRgbImage(1920, 1200, DataType.BYTE))
+                .build()
+            )
+            .withRecordEncoding(dataEnc)
+            .build();
+    }
+    
+    
+    static ICommandStreamInfo createPtzControlStream(AbstractProcess sys)
+    {
+        var mountFrameUri = sys.getUniqueIdentifier() + "#" + MOUNT_FRAME_ID;
+        var cameraFrameUri = sys.getUniqueIdentifier() + "#" + CAMERA_FRAME_ID;
+        
+        return new CommandStreamInfo.Builder()
+            .withSystem(new SystemId(BigId.NONE, sys.getUniqueIdentifier()))
+            .withName(sys.getName() + " - Camera Commands")
+            .withRecordEncoding(sml.newTextEncoding())
+            .withRecordDescription(sml.createChoice()
+                .name("cam")
+                .label("Camera Commands")
+                .addItem("PTZ", sml.createRecord()
+                    .addField("gimbal", sml.createVector()
+                        .definition(GeoPosHelper.DEF_ORIENTATION)
+                        .refFrame(mountFrameUri)
+                        .localFrame(cameraFrameUri)
+                        .label("Gimbal Orientation")
+                        .addCoordinate("pan", sml.createQuantity()
+                            .definition(SWEHelper.getPropertyUri("PanAngle"))
+                            .axisId("Y")
+                            .label("Pan")
+                            .uomCode("deg")
+                        )
+                        .addCoordinate("tilt", sml.createQuantity()
+                            .definition(SWEHelper.getPropertyUri("TiltAngle"))
+                            .axisId("X")
+                            .label("Pan")
+                            .uomCode("deg")
+                        )
+                    )
+                    .addField("fov", sml.createQuantity()
+                        .definition(CommonCapabilities.FOV_DEF)
+                        .label("Horizontal FOV")
+                        .uomCode("deg"))
+                )
+                .addItem("FRAME_RATE", sml.createQuantity()
+                    .definition(SWEHelper.getQudtUri("VideoFrameRate"))
+                    .label("Frame Rate")
+                    .uomCode("Hz")
+                )
+                .build()
+            )
             .build();
     }
 

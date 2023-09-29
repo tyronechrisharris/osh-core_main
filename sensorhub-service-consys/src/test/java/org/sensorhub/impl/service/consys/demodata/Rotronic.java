@@ -76,6 +76,7 @@ public class Rotronic
                     .label("Current Draw")
                     .description("Current draw at 3.3 VDC"))
                 .add("if_type", sml.createText()
+                    .definition(SWEHelper.getDBpediaUri("Interface_(computing)"))
                     .label("Interface Type")
                     .value("UART"))
                 .add("baud_rate", sml.createQuantity()
@@ -126,6 +127,12 @@ public class Rotronic
                 .url("https://www.rotronic.com/pub/media/productattachments/files/12.1085.0103_HygroClip2_Advanced_web.pdf")
                 .mediaType("application/pdf")
             )
+            .addDocument(CommonIdentifiers.PHOTO_DEF, sml.createDocument()
+                .name("Photo")
+                .url("https://www.rotronic.com/pub/media/catalog/product/cache/63d1467875b1593edea42d54c3efc37c/h/c/hc2_s3-meteo.jpg")
+                .mediaType("image/jpg")
+            )
+            
             .build();
     }
     
