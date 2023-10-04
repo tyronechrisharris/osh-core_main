@@ -141,7 +141,7 @@ public class ObsBindingOmJson extends ResourceBindingJson<BigId, IObsData>
             throw new ResourceParseException(INVALID_JSON_ERROR_MSG + e.getMessage());
         }
         
-        if (contextData.foiId != null)
+        if (contextData.foiId != null && contextData.foiId != BigId.NONE)
             obs.withFoi(contextData.foiId);
         
         var newObs = obs.build();
