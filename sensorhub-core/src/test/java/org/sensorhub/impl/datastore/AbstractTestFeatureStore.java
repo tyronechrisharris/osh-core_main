@@ -1388,7 +1388,8 @@ public abstract class AbstractTestFeatureStore<StoreType extends IFeatureStoreBa
     public void testErrorAddWithInvalidParent() throws Exception
     {
         useAdd = true;
-        addNonGeoFeatures(bigId(10L), 1, 2);
+        addNonGeoFeatures(bigId(11000L), 1, 2);
+        featureStore.commit();
     }    
     
     
