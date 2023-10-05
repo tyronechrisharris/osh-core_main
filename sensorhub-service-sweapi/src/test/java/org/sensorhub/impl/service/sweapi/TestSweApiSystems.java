@@ -562,6 +562,7 @@ public class TestSweApiSystems extends TestSweApiBase
     {
         var json = JsonBuilderFactory.buildObject()
             .add("type", "Feature")
+            .addNull("geometry")
             .addObject("properties")
               .add("uid", String.format(UID_FORMAT, procNum))
               .add("name", "Test Sensor #" + procNum);
