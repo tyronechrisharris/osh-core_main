@@ -27,8 +27,7 @@ import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
 import org.sensorhub.impl.service.consys.TestSystems.SystemInfo;
 import org.vast.swe.SWEHelper;
-import org.vast.swe.SWEStaxBindings;
-import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.swe.SWEJsonBindings;
 import org.vast.util.TimeExtent;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -405,9 +404,8 @@ public class TestDataStreams extends AbstractTestApiBase
             
             // use existing streaming writer
             var jsonWriter = new JsonTreeWriter();
-            SWEJsonStreamWriter sweWriter = new SWEJsonStreamWriter(jsonWriter);
-            SWEStaxBindings sweBindings = new SWEStaxBindings();
-            sweBindings.writeDataComponent(sweWriter, resultStruct, false);
+            var sweBindings = new SWEJsonBindings();
+            sweBindings.writeDataComponent(jsonWriter, resultStruct, false);
             var resultSchema = jsonWriter.get();
             schema.add("resultSchema", resultSchema);
             
@@ -434,17 +432,15 @@ public class TestDataStreams extends AbstractTestApiBase
         // result schema & encoding
         try
         {
-            SWEJsonStreamWriter sweWriter = new SWEJsonStreamWriter(writer);
-            SWEStaxBindings sweBindings = new SWEStaxBindings();
+            var sweBindings = new SWEJsonBindings();
             
             writer.name("schema").beginObject();
             
             writer.name("resultSchema");
-            sweBindings.writeDataComponent(sweWriter, resultStruct, false);
+            sweBindings.writeDataComponent(writer, resultStruct, false);
             
-            sweWriter.resetContext();
             writer.name("resultEncoding");
-            sweBindings.writeAbstractEncoding(sweWriter, resultEncoding);
+            sweBindings.writeAbstractEncoding(writer, resultEncoding);
             
             writer.endObject();
         }

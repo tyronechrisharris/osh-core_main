@@ -28,6 +28,7 @@ import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
+import org.vast.data.ScalarIterator;
 import org.vast.data.TextEncodingImpl;
 import org.vast.swe.SWEHelper;
 import org.vast.swe.SWEJsonBindings;
@@ -36,6 +37,7 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import net.opengis.swe.v20.DataComponent;
 import net.opengis.swe.v20.DataRecord;
+import net.opengis.swe.v20.Time;
 
 
 public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStreamKey, IDataStreamInfo>
@@ -93,21 +95,24 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
                     resultStruct = sweBindings.readDataComponent(reader);
 
                     var swe = new SWEHelper();
-                    if (resultStruct instanceof DataRecord)
+                    if (!hasTimeStamp(resultStruct))
                     {
-                        var ts = swe.createTime()
-                            .name("time")
-                            .asPhenomenonTimeIsoUTC()
-                            .build();
-                        ((DataRecord) resultStruct).getFieldList().add(0, ts);
-                    }
-                    else
-                    {
-                        resultStruct = swe.createRecord()
-                            .name(resultStruct.getName() + "_rec")
-                            .addField("time", swe.createTime().asPhenomenonTimeIsoUTC())
-                            .addField(resultStruct.getName(), resultStruct)
-                            .build();
+                        if (resultStruct instanceof DataRecord)
+                        {
+                            var ts = swe.createTime()
+                                .name("time")
+                                .asPhenomenonTimeIsoUTC()
+                                .build();
+                            ((DataRecord) resultStruct).getFieldList().add(0, ts);
+                        }
+                        else
+                        {
+                            resultStruct = swe.createRecord()
+                                .name(resultStruct.getName() + "_rec")
+                                .addField("time", swe.createTime().asPhenomenonTimeIsoUTC())
+                                .addField(resultStruct.getName(), resultStruct)
+                                .build();
+                        }
                     }
                     
                     resultStruct.setName(SWECommonUtils.NO_NAME);
@@ -135,6 +140,20 @@ public class DataStreamSchemaBindingOmJson extends ResourceBindingJson<DataStrea
             .build();
         
         return dsInfo;
+    }
+    
+    
+    protected boolean hasTimeStamp(DataComponent resultStruct)
+    {
+        var it = new ScalarIterator(resultStruct);
+        while (it.hasNext())
+        {
+            var c = it.next();
+            if (c instanceof Time && SWECommonUtils.OM_COMPONENTS_DEF.contains(c.getDefinition()))
+                return true;
+        }
+        
+        return false;
     }
 
 

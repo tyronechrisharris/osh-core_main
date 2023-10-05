@@ -22,8 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sensorhub.api.common.SensorHubException;
 import org.vast.swe.SWEHelper;
-import org.vast.swe.SWEStaxBindings;
-import org.vast.swe.json.SWEJsonStreamWriter;
+import org.vast.swe.SWEJsonBindings;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
@@ -96,24 +95,22 @@ public class TestControlStreams extends AbstractTestApiBase
     }
     
     
-    protected JsonObject createControlJson(DataComponent resultStruct) throws Exception
+    protected JsonObject createControlJson(DataComponent paramStruct) throws Exception
     {
         var buffer = new StringWriter();
         var writer = new JsonWriter(buffer);
         
         writer.beginObject();
-        writer.name("name").value("Name of control " + resultStruct.getName());
-        writer.name("inputName").value(resultStruct.getName());
+        writer.name("name").value("Name of control " + paramStruct.getName());
+        writer.name("inputName").value(paramStruct.getName());
         
         // result schema & encoding
         try
         {
-            SWEJsonStreamWriter sweWriter = new SWEJsonStreamWriter(writer);
-            SWEStaxBindings sweBindings = new SWEStaxBindings();
-            
+            var sweBindings = new SWEJsonBindings();
             writer.name("schema").beginObject();
             writer.name("paramsSchema");
-            sweBindings.writeDataComponent(sweWriter, resultStruct, false);
+            sweBindings.writeDataComponent(writer, paramStruct, false);
             
             writer.endObject();
         }
@@ -140,17 +137,15 @@ public class TestControlStreams extends AbstractTestApiBase
         // result schema & encoding
         try
         {
-            SWEJsonStreamWriter sweWriter = new SWEJsonStreamWriter(writer);
-            SWEStaxBindings sweBindings = new SWEStaxBindings();
+            var sweBindings = new SWEJsonBindings();
             
             writer.name("schema").beginObject();
             
             writer.name("resultSchema");
-            sweBindings.writeDataComponent(sweWriter, resultStruct, false);
+            sweBindings.writeDataComponent(writer, resultStruct, false);
             
-            sweWriter.resetContext();
             writer.name("resultEncoding");
-            sweBindings.writeAbstractEncoding(sweWriter, resultEncoding);
+            sweBindings.writeAbstractEncoding(writer, resultEncoding);
             
             writer.endObject();
         }

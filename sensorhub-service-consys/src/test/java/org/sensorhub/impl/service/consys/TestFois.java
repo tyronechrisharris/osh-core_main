@@ -652,6 +652,8 @@ public class TestFois extends AbstractTestApiBase
             coordArray.end().end();
             json.end(); // end geometry obj
         }
+        else
+            json.addNull("geometry");
         
         var jsonProps = json.addObject("properties")
             .add("uid", String.format(UID_FORMAT, fNum))
