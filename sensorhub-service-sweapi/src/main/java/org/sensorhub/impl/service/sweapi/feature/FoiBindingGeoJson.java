@@ -15,7 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
@@ -47,7 +47,7 @@ public class FoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFeature>
     protected GeoJsonBindings getJsonBindings()
     {
         return new GeoJsonBindings() {
-            protected void writeDateTimeValue(JsonWriter writer, OffsetDateTime dateTime) throws IOException
+            protected void writeDateTimeValue(JsonWriter writer, Instant dateTime) throws IOException
             {
                 super.writeDateTimeValue(writer, dateTime.truncatedTo(ChronoUnit.SECONDS));
             }

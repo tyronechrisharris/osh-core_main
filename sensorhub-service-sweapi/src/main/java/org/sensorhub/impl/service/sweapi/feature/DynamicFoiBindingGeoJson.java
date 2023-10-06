@@ -15,7 +15,7 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.sweapi.feature;
 
 import java.io.IOException;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -130,7 +130,7 @@ public class DynamicFoiBindingGeoJson extends AbstractFeatureBindingGeoJson<IFea
                     props.writer.write(props.result);
             }
             
-            protected void writeDateTimeValue(JsonWriter writer, OffsetDateTime dateTime) throws IOException
+            protected void writeDateTimeValue(JsonWriter writer, Instant dateTime) throws IOException
             {
                 // truncate timestamps to whole seconds
                 super.writeDateTimeValue(writer, dateTime.truncatedTo(ChronoUnit.SECONDS));
