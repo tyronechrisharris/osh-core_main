@@ -57,7 +57,9 @@ public class DataStreamSchemaHandler extends ResourceHandler<DataStreamKey, IDat
         if (obsFormat == null)
             obsFormat = ResourceFormat.OM_JSON;
         
-        if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
+        if (obsFormat.getMimeType().equals("logical"))
+            return new DataStreamSchemaBindingLogicalJsonSchema(ctx, idEncoders, forReading);
+        else if (format.equals(ResourceFormat.AUTO) && ctx.isBrowserHtmlRequest())
             return new DataStreamBindingHtml(ctx, idEncoders, obsFormat);
         else if (obsFormat.equals(ResourceFormat.OM_JSON))
             return new DataStreamSchemaBindingOmJson(ctx, idEncoders, forReading);
