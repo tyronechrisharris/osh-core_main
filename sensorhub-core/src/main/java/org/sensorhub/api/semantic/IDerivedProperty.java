@@ -14,7 +14,6 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.semantic;
 
-import java.net.URI;
 import java.util.Collection;
 import net.opengis.swe.v20.DataComponent;
 
@@ -41,21 +40,21 @@ public interface IDerivedProperty extends IConceptDef
      * @return The URI of the base property
      * (e.g. <i>https://qudt.org/vocab/quantitykind/Temperature</i>)
      */
-    URI getBaseProperty();
+    String getBaseProperty();
     
     
     /**
      * @return The URI of the type of entity the property applies to
      * (e.g. <i>http://dbpedia.org/resource/Central_processing_unit</i>)
      */
-    URI getObject();
+    String getObjectType();
     
     
     /**
      * @return The URI of the statistical operator applied to the property values
      * (e.g. <i>http://sensorml.com/ont/x-stats/HourlyMean</i>)
      */
-    URI getStatistic();
+    String getStatistic();
     
     
     /**

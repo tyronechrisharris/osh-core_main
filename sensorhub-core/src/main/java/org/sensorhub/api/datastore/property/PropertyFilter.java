@@ -87,7 +87,7 @@ public class PropertyFilter extends ResourceFilter<IDerivedProperty>
     
     public boolean testObjectTypes(IDerivedProperty p)
     {
-        var uri = p.getObject().toString();
+        var uri = p.getObjectType();
         
         if (objectTypes == null)
             return true;
