@@ -31,7 +31,7 @@ import static org.sensorhub.utils.Lambdas.*;
 
 /**
  * <p>
- * In-memory implementation of a datastream store backed by a {@link NavigableMap}.
+ * In-memory implementation of a property store backed by a {@link NavigableMap}.
  * </p>
  *
  * @author Alex Robin

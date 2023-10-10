@@ -15,7 +15,7 @@ Copyright (C) 2023 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.api.datastore.resource;
 
 import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.ValueField;
+import org.sensorhub.api.datastore.resource.IResourceStore.ResourceField;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.impl.datastore.EmptyDataStore;
 import org.vast.util.IResource;
@@ -34,7 +34,7 @@ import org.vast.util.IResource;
  * @author Alex Robin
  * @since Jun 22, 2023
  */
-public abstract class EmptyResourceStore<K extends Comparable<? super K>, V extends IResource, VF extends ValueField, F extends ResourceFilter<? super V>>
+public abstract class EmptyResourceStore<K extends Comparable<? super K>, V extends IResource, VF extends ResourceField, F extends ResourceFilter<? super V>>
     extends EmptyDataStore<K, V, VF, F> implements IResourceStore<K, V, VF, F>
 {
     @Override

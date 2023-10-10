@@ -27,8 +27,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.resource.IResourceStore;
+import org.sensorhub.api.datastore.resource.IResourceStore.ResourceField;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.impl.datastore.DataStoreUtils;
 import org.vast.util.IResource;
@@ -46,7 +46,7 @@ import org.vast.util.IResource;
  * @author Alex Robin
  * @since June 22, 2023
  */
-public abstract class InMemoryResourceStore<K extends Comparable<? super K>, V extends IResource, VF extends ValueField, F extends ResourceFilter<? super V>>
+public abstract class InMemoryResourceStore<K extends Comparable<? super K>, V extends IResource, VF extends ResourceField, F extends ResourceFilter<? super V>>
     implements IResourceStore<K, V, VF, F>
 {
     final protected int idScope;

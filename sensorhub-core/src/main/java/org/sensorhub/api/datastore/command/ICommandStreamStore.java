@@ -16,9 +16,9 @@ package org.sensorhub.api.datastore.command;
 
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.command.ICommandStreamStore.CommandStreamInfoField;
 import org.sensorhub.api.datastore.resource.IResourceStore;
+import org.sensorhub.api.datastore.resource.IResourceStore.ResourceField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 
 
@@ -34,7 +34,7 @@ import org.sensorhub.api.datastore.system.ISystemDescStore;
 public interface ICommandStreamStore extends IResourceStore<CommandStreamKey, ICommandStreamInfo, CommandStreamInfoField, CommandStreamFilter>
 {
     
-    public static class CommandStreamInfoField extends ValueField
+    public static class CommandStreamInfoField extends ResourceField
     {
         public static final CommandStreamInfoField SYSTEM_ID = new CommandStreamInfoField("systemID");
         public static final CommandStreamInfoField COMMAND_NAME = new CommandStreamInfoField("commandName");

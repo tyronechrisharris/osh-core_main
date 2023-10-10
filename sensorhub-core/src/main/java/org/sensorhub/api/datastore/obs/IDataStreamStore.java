@@ -16,9 +16,9 @@ package org.sensorhub.api.datastore.obs;
 
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.obs.IDataStreamStore.DataStreamInfoField;
 import org.sensorhub.api.datastore.resource.IResourceStore;
+import org.sensorhub.api.datastore.resource.IResourceStore.ResourceField;
 import org.sensorhub.api.datastore.system.ISystemDescStore;
 
 
@@ -34,7 +34,7 @@ import org.sensorhub.api.datastore.system.ISystemDescStore;
 public interface IDataStreamStore extends IResourceStore<DataStreamKey, IDataStreamInfo, DataStreamInfoField, DataStreamFilter>
 {
     
-    public static class DataStreamInfoField extends ValueField
+    public static class DataStreamInfoField extends ResourceField
     {
         public static final DataStreamInfoField SYSTEM_ID = new DataStreamInfoField("systemID");
         public static final DataStreamInfoField OUTPUT_NAME = new DataStreamInfoField("outputName");

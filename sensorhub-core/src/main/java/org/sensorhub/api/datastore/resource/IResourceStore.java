@@ -12,6 +12,8 @@ package org.sensorhub.api.datastore.resource;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.IDataStore;
 import org.sensorhub.api.datastore.ValueField;
+import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
+import org.sensorhub.api.datastore.resource.IResourceStore.ResourceField;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
 import org.vast.util.IResource;
@@ -27,11 +29,24 @@ import org.vast.util.IResource;
  * @param <F> Resource filter type
  *
  * @author Alex Robin
- * @date Oct 8, 2018
+ * @date Oct 8, 2023
  */
-public interface IResourceStore<K extends Comparable<? super K>, V extends IResource, VF extends ValueField, F extends ResourceFilter<? super V>> extends IDataStore<K, V, VF, F>
+public interface IResourceStore<K extends Comparable<? super K>, V extends IResource, VF extends ResourceField, F extends ResourceFilter<? super V>> extends IDataStore<K, V, VF, F>
 {
 
+    public static class ResourceField extends ValueField
+    {
+        public static final FeatureField ID = new FeatureField("id");
+        public static final FeatureField NAME = new FeatureField("name");
+        public static final FeatureField DESCRIPTION = new FeatureField("description");
+        
+        public ResourceField(String name)
+        {
+            super(name);
+        }
+    }
+    
+    
     /**
      * Add a new resource to the store, generating a new key for it
      * @param value New resource object

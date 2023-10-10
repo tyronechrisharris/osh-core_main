@@ -14,9 +14,9 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.datastore.property;
 
-import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.property.IPropertyStore.PropertyField;
 import org.sensorhub.api.datastore.resource.IResourceStore;
+import org.sensorhub.api.datastore.resource.IResourceStore.ResourceField;
 import org.sensorhub.api.semantic.IDerivedProperty;
 
 
@@ -31,7 +31,7 @@ import org.sensorhub.api.semantic.IDerivedProperty;
 public interface IPropertyStore extends IResourceStore<PropertyKey, IDerivedProperty, PropertyField, PropertyFilter>
 {
     
-    public static class PropertyField extends ValueField
+    public static class PropertyField extends ResourceField
     {
         public static final PropertyField BASE_PROPERTY = new PropertyField("baseProperty");
         public static final PropertyField OBJECT = new PropertyField("object");

@@ -19,7 +19,6 @@ import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.datastore.DataStoreException;
 import org.sensorhub.api.datastore.TemporalFilter;
-import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.feature.FeatureFilterBase.FeatureFilterBaseBuilder;
 import org.sensorhub.api.datastore.feature.IFeatureStoreBase.FeatureField;
 import org.sensorhub.api.datastore.resource.IResourceStore;
@@ -42,12 +41,10 @@ import org.vast.util.Bbox;
 public interface IFeatureStoreBase<V extends IFeature, VF extends FeatureField, F extends FeatureFilterBase<? super V>> extends IResourceStore<FeatureKey, V, VF, F>
 {
     
-    public static class FeatureField extends ValueField
+    public static class FeatureField extends ResourceField
     {
         public static final FeatureField TYPE = new FeatureField("type");
         public static final FeatureField UID = new FeatureField("UID");
-        public static final FeatureField NAME = new FeatureField("name");
-        public static final FeatureField DESCRIPTION = new FeatureField("description");
         public static final FeatureField GEOMETRY = new FeatureField("geometry");
         public static final FeatureField VALID_TIME = new FeatureField("validTime");
         public static final FeatureField PROPERTIES = new FeatureField("properties");

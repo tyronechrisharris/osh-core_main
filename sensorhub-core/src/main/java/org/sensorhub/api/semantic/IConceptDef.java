@@ -47,5 +47,5 @@ public interface IConceptDef extends IResource
     /**
      * @return List of URLs to reference documents
      */
-    public Collection<Reference> getReferences(); // add mime type?
+    public Collection<Reference> getReferences();
 }

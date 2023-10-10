@@ -15,8 +15,8 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys.resource;
 
 import org.sensorhub.api.datastore.DataStoreException;
-import org.sensorhub.api.datastore.ValueField;
 import org.sensorhub.api.datastore.resource.IResourceStore;
+import org.sensorhub.api.datastore.resource.IResourceStore.ResourceField;
 import org.sensorhub.api.resource.ResourceFilter;
 import org.sensorhub.api.resource.ResourceFilter.ResourceFilterBuilder;
 import org.sensorhub.impl.service.consys.AbstractDataStoreWrapper;
@@ -27,7 +27,7 @@ import org.vast.util.IResource;
 public abstract class AbstractResourceStoreWrapper<
     K extends ResourceKey<K>,
     V extends IResource,
-    VF extends ValueField,
+    VF extends ResourceField,
     F extends ResourceFilter<? super V>,
     S extends IResourceStore<K, V, VF, F>>
     extends AbstractDataStoreWrapper<K, V, VF, F, S> implements IResourceStore<K, V, VF, F>

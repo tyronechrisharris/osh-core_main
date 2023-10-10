@@ -73,6 +73,7 @@ public class DataStoreUtils
     public static final String ERROR_CHANGED_FEATURE_UID = "Feature UID cannot be changed";
     public static final String ERROR_UNKNOWN_PARENT_FEATURE = "Unknown parent feature: ";
     
+    public static final String ERROR_EXISTING_KEY = "Key already exists";
     public static final String ERROR_INVALID_PROPERTY_KEY = "Key must be an instance of " + PropertyKey.class.getSimpleName();
     public static final String ERROR_EXISTING_PROPERTY = "Datastore already contains concept with the same URI: ";
     
