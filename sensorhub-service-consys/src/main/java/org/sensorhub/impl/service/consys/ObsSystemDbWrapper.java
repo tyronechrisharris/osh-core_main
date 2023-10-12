@@ -33,6 +33,7 @@ import org.sensorhub.impl.service.consys.feature.FoiStoreWrapper;
 import org.sensorhub.impl.service.consys.obs.DataStreamStoreWrapper;
 import org.sensorhub.impl.service.consys.obs.ObsStoreWrapper;
 import org.sensorhub.impl.service.consys.procedure.ProcedureStoreWrapper;
+import org.sensorhub.impl.service.consys.property.PropertyStoreWrapper;
 import org.sensorhub.impl.service.consys.system.SystemStoreWrapper;
 import org.sensorhub.impl.service.consys.task.CommandStoreWrapper;
 import org.sensorhub.impl.service.consys.task.CommandStreamStoreWrapper;
@@ -45,6 +46,7 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     
     IObsSystemDatabase readDb;
     IObsSystemDatabase writeDb;
+    IPropertyStore propertyStore;
     IProcedureStore procedureStore;
     ISystemDescStore systemStore;
     IDeploymentStore deploymentStore;
@@ -95,6 +97,11 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
                 ((IProcedureDatabase)readDb).getProcedureStore(),
                 writeDb != null && writeDb instanceof IProcedureDatabase ?
                     ((IProcedureDatabase)writeDb).getProcedureStore() : null);
+            
+            this.propertyStore = new PropertyStoreWrapper(
+                ((IProcedureDatabase)readDb).getPropertyStore(),
+                writeDb != null && writeDb instanceof IProcedureDatabase ?
+                    ((IProcedureDatabase)writeDb).getPropertyStore() : null);
         }
         
         this.idEncoders = Asserts.checkNotNull(idEncoders);
@@ -161,8 +168,7 @@ public class ObsSystemDbWrapper implements IObsSystemDatabase, IProcedureDatabas
     @Override
     public IPropertyStore getPropertyStore()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return propertyStore;
     }
 
 

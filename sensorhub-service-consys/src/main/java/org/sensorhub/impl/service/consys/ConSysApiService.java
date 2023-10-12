@@ -40,6 +40,7 @@ import org.sensorhub.impl.service.consys.obs.DataStreamSchemaHandler;
 import org.sensorhub.impl.service.consys.obs.ObsHandler;
 import org.sensorhub.impl.service.consys.obs.ObsStatsHandler;
 import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
+import org.sensorhub.impl.service.consys.property.PropertyHandler;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.sensorhub.impl.service.consys.system.SystemHistoryHandler;
 import org.sensorhub.impl.service.consys.system.SystemMembersHandler;
@@ -195,8 +196,8 @@ public class ConSysApiService extends AbstractHttpServiceModule<ConSysApiService
         // properties
         if (db.getPropertyStore() != null)
         {
-            //var propHandler = new PropertyHandler(eventBus, db, security.property_permissions);
-            //rootHandler.addSubResource(propHandler);
+            var propHandler = new PropertyHandler(eventBus, db, security.property_permissions);
+            rootHandler.addSubResource(propHandler);
         }
         
         // systems and sub-resources
