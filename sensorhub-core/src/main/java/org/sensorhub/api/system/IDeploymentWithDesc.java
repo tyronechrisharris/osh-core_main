@@ -23,13 +23,9 @@ import net.opengis.sensorml.v20.Deployment;
  * <p>
  * Interface for deployment resources associated to a SensorML description.
  * </p><p>
- * An instance of this class can be used to model different kinds of procedures,
- * and with different levels of granularity. Examples of procedures this class
- * can represent are:
- * <li>A sensor type datasheet/specsheet</li>
- * <li>A platform type datasheet/specsheet</li>
- * <li>A method that can be followed by a person</li>
- * <li>An algorithm that can be implemented by a processing instance</li>
+ * An instance of this class can be used to model different kinds of deployments,
+ * such as deployments at fixed locations, missions, field operations, survey
+ * campaigns, etc.
  * </p>
  * 
  * @author Alex Robin

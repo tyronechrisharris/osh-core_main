@@ -63,7 +63,7 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
     MVFoiStoreImpl foiStore;
     MVCommandStoreImpl cmdStore;
     MVProcedureStoreImpl procStore;
-    //MVPropertyStoreImpl propStore;
+    MVPropertyStoreImpl propStore;
     
     
     @Override
@@ -136,6 +136,11 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
             // open procedure store
             procStore = MVProcedureStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
                 .withName(PROC_STORE_NAME)
+                .build());
+            
+            // open property store
+            propStore = MVPropertyStoreImpl.open(mvStore, idScope, config.idProviderType, MVDataStoreInfo.builder()
+                .withName(PROP_STORE_NAME)
                 .build());
             
             sysStore.linkTo(obsStore.getDataStreams());
@@ -269,7 +274,7 @@ public class MVObsSystemDatabase extends AbstractModule<MVObsSystemDatabaseConfi
     public IPropertyStore getPropertyStore()
     {
         checkStarted();
-        return null;//propStore;
+        return propStore;
     }
 
 

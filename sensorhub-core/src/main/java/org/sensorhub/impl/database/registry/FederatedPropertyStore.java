@@ -133,23 +133,6 @@ public class FederatedPropertyStore extends ReadOnlyDataStore<PropertyKey, IDeri
             return filterDispatchMap;
         }
         
-        else if (filter.getBasePropertyFilter() != null)
-        {
-            var filterDispatchMap = parentDb.getProcDbFilterDispatchMap(filter.getBasePropertyFilter().getInternalIDs());
-            if (filterDispatchMap != null)
-            {
-                for (var filterInfo: filterDispatchMap.values())
-                {
-                    filterInfo.filter = PropertyFilter.Builder
-                        .from(filter)
-                        .withBaseProperties((PropertyFilter)filterInfo.filter)
-                        .build();
-                }
-            }
-            
-            return filterDispatchMap;
-        }
-        
         return null;
     }
     

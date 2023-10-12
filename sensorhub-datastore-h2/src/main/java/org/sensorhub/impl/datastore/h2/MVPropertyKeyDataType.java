@@ -18,24 +18,24 @@ import java.nio.ByteBuffer;
 import org.h2.mvstore.DataUtils;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
-import org.sensorhub.api.datastore.obs.DataStreamKey;
-import org.sensorhub.api.resource.ResourceKey;
+import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.datastore.property.PropertyKey;
 
 
 /**
  * <p>
- * H2 DataType implementation for internal resource key objects
+ * H2 DataType implementation for internal property key objects
  * </p>
  *
  * @author Alex Robin
  * @date Oct 8, 2023
  */
-class MVResourceKeyDataType implements DataType
+class MVPropertyKeyDataType implements DataType
 {
     final int idScope;
     
     
-    MVResourceKeyDataType(int idScope)
+    MVPropertyKeyDataType(int idScope)
     {
         this.idScope = idScope;
     }
@@ -44,8 +44,8 @@ class MVResourceKeyDataType implements DataType
     @Override
     public int compare(Object objA, Object objB)
     {
-        var a = (ResourceKey<?>)objA;
-        var b = (ResourceKey<?>)objB;
+        var a = (PropertyKey)objA;
+        var b = (PropertyKey)objB;
         
         return Long.compare(
             a.getInternalID().getIdAsLong(),
@@ -56,7 +56,7 @@ class MVResourceKeyDataType implements DataType
     @Override
     public int getMemory(Object obj)
     {
-        var id = ((DataStreamKey)obj).getInternalID().getIdAsLong();
+        var id = ((PropertyKey)obj).getInternalID().getIdAsLong();
         return DataUtils.getVarLongLen(id);
     }
     
@@ -64,7 +64,7 @@ class MVResourceKeyDataType implements DataType
     @Override
     public void write(WriteBuffer wbuf, Object obj)
     {
-        DataStreamKey key = (DataStreamKey)obj;
+        var key = (PropertyKey)obj;
         wbuf.putVarLong(key.getInternalID().getIdAsLong());
     }
     
@@ -81,7 +81,7 @@ class MVResourceKeyDataType implements DataType
     public Object read(ByteBuffer buff)
     {
         long internalID = DataUtils.readVarLong(buff);
-        return new DataStreamKey(idScope, internalID);
+        return new PropertyKey(BigId.fromLong(idScope, internalID));
     }
     
 
