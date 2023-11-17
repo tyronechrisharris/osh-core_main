@@ -82,15 +82,10 @@ public class EventBus implements IEventBus
     protected IEventPublisher ensurePublisher(final String topicID, final Supplier<IEventPublisher> supplier)
     {
         return publishers.compute(topicID, (id, pub) -> {
-            // if there is a placeholder, replace by actual publisher
-            boolean isPlaceHolder = pub instanceof PlaceHolderPublisher;
-            if (pub == null || isPlaceHolder)
+            if (pub == null)
             {
                 log.debug("Creating publisher for {}", topicID);
-                IEventPublisher newPublisher = supplier.get();
-                
-                if (isPlaceHolder)
-                    ((PlaceHolderPublisher)pub).transferTo(newPublisher);
+                var newPublisher = supplier.get();
                 return newPublisher;
             }
             else
@@ -153,7 +148,9 @@ public class EventBus implements IEventBus
      */
     synchronized void subscribe(String topicID, Subscriber<Event> subscriber)
     {
-        IEventPublisher publisher = publishers.computeIfAbsent(topicID, id -> new PlaceHolderPublisher());
+        //IEventPublisher publisher = publishers.computeIfAbsent(topicID, id -> new PlaceHolderPublisher());
+        // don't use placeholder as it doesn't handle unsubscribe properly
+        var publisher = getPublisher(topicID);
         publisher.subscribe(subscriber);
     }
     
