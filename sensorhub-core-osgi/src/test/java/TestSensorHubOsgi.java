@@ -19,7 +19,7 @@ public class TestSensorHubOsgi
         var autoDeployDir = Paths.get("bundles");
         Files.createDirectories(autoDeployDir);
         
-        var version = "2.0.0";
+        var version = "2.0-beta2";
         Path[] coreBundles = {
             getBundlePath("sensorhub-core", version),
             getBundlePath("sensorhub-webui-core", version),
