@@ -83,7 +83,8 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
     private static final String OSH_STATIC_CONTENT_ID = "osh-static";
     private static final String OSH_SERVLET_HANDLER_ID = "osh-servlets";
     
-    private static final String CORS_ALLOWED_METHODS = "GET, POST, PUT, DELETE, OPTIONS";
+    private static final String[] SECURITY_EXCLUDED_METHODS = {"OPTIONS"};
+    private static final String CORS_ALLOWED_METHODS = "GET, POST, PUT, DELETE, PATCH, OPTIONS";
     private static final String CORS_ALLOWED_HEADERS = "origin, content-type, accept, authorization";
     private static final String CORS_EXPOSE_HEADERS = "location, link";
     
@@ -392,7 +393,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
         catch (ServletException e)
         {
             getLogger().error("Error while undeploying servlet", e);
-        }       
+        }
     }
     
     
@@ -412,6 +413,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
             ConstraintMapping cm = new ConstraintMapping();
             cm.setConstraint(constraint);
             cm.setPathSpec(pathSpec);
+            cm.setMethodOmissions(SECURITY_EXCLUDED_METHODS); // disable auth on OPTIONS requests (needed for CORS)
             jettySecurityHandler.addConstraintMapping(cm);
         }
     }
@@ -451,7 +453,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
     private String appendToUrlPath(String url, String nextPart)
     {
         if (url.endsWith("/"))
-            url = url.substring(0, url.length()-1);            
+            url = url.substring(0, url.length()-1);
         
         return url + (nextPart.startsWith("/") ? nextPart : "/" + nextPart);
     }
