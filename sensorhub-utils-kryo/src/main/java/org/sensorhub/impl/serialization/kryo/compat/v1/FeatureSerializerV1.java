@@ -15,7 +15,6 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.serialization.kryo.compat.v1;
 
 import javax.xml.namespace.QName;
-import org.vast.ogc.gml.GMLStaxBindings;
 import org.vast.ogc.gml.GenericTemporalFeatureImpl;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.TimeExtent;
@@ -23,7 +22,6 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import net.opengis.gml.v32.AbstractFeature;
 import net.opengis.gml.v32.AbstractGeometry;
 import net.opengis.gml.v32.impl.GMLFactory;
 
@@ -39,7 +37,6 @@ import net.opengis.gml.v32.impl.GMLFactory;
 public class FeatureSerializerV1 extends Serializer<IFeature>
 {
     static final int VERSION = 1;
-    static final QName DEFAULT_QNAME = new QName(GMLStaxBindings.NS_URI, "Feature");
     
     GMLFactory gmlFactory = new GMLFactory(true);
     
@@ -53,7 +50,7 @@ public class FeatureSerializerV1 extends Serializer<IFeature>
     public void write(Kryo kryo, Output output, IFeature f)
     {
         //output.writeString(f.getId());
-        output.writeString(f instanceof AbstractFeature ? ((AbstractFeature)f).getQName().toString() : null);
+        output.writeString(f.getType());
         
         // common properties
         output.writeString(f.getUniqueIdentifier());
@@ -82,8 +79,7 @@ public class FeatureSerializerV1 extends Serializer<IFeature>
     public IFeature read(Kryo kryo, Input input, Class<? extends IFeature> type)
     {
         String fType = input.readString();
-        QName qname = fType != null ? QName.valueOf(fType) : DEFAULT_QNAME;
-        var f = new GenericTemporalFeatureImpl(qname);
+        var f = new GenericTemporalFeatureImpl(fType);
         
         // common properties
         f.setUniqueIdentifier(input.readString());

@@ -220,14 +220,14 @@ public class TestSweApiFois extends TestSweApiBase
     {
         var uid1 = String.format(UID_FORMAT, 1);
         var url1 = addFoi(null, 1, true, ImmutableMap.<String, Object>builder()
-            .put("type", "building")
+            .put("featureType", "building")
             .put("height", 53)
             .put("width", 10)
             .build());
         
         var uid2 = String.format(UID_FORMAT, 2);
         var url2 = addFoi(null, 2, true, ImmutableMap.<String, Object>builder()
-            .put("type", "vehicle")
+            .put("featureType", "vehicle")
             .put("make", "ford")
             .put("length", 4.2)
             .put("width", 1.5)
@@ -235,13 +235,13 @@ public class TestSweApiFois extends TestSweApiBase
         
         var uid3 = String.format(UID_FORMAT, 3);
         var url3 = addFoi(null, 3, true, ImmutableMap.<String, Object>builder()
-            .put("type", "river")
+            .put("featureType", "river")
             .put("usgs_id", "R1256")
             .build());
         
         var uid4 = String.format(UID_FORMAT, 4);
         var url4 = addFoi(null, 4, true, ImmutableMap.<String, Object>builder()
-            .put("type", "river")
+            .put("featureType", "river")
             .put("usgs_id", "R2212")
             .build());
         
@@ -250,7 +250,7 @@ public class TestSweApiFois extends TestSweApiBase
         checkId(url2, items.get(0));
         checkFoiUid(uid2, items.get(0));
         
-        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?p:type=building", 1);
+        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?featureType=building", 1);
         checkId(url1, items.get(0));
         checkFoiUid(uid1, items.get(0));
         
@@ -258,25 +258,25 @@ public class TestSweApiFois extends TestSweApiBase
         checkId(url4, items.get(0));
         checkFoiUid(uid4, items.get(0));
         
-        // match one with AND
-        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?p:type=*&p:length=4.2", 1);
+        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?p:length=4.2", 1);
         checkId(url2, items.get(0));
         checkFoiUid(uid2, items.get(0));
         
-        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?p:type=building&p:height=*", 1);
+        // match one with AND
+        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?featureType=building&p:height=*", 1);
         checkId(url1, items.get(0));
         checkFoiUid(uid1, items.get(0));
         
-        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?p:type=river&p:usgs_id=R1256", 1);
+        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?featureType=river&p:usgs_id=R1256", 1);
         checkId(url3, items.get(0));
         checkFoiUid(uid3, items.get(0));
 
         // match several
-        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?p:type=river", 2);
+        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?featureType=river", 2);
         checkCollectionItemIds(Set.of(url3, url4), items);
         
         // match several with OR
-        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?p:type=river,build*", 3);
+        items = sendGetRequestAndGetItems(FOI_COLLECTION + "?featureType=river,building", 3);
         checkCollectionItemIds(Set.of(url1, url3, url4), items);
         
         // match several with wildcard
@@ -287,7 +287,7 @@ public class TestSweApiFois extends TestSweApiBase
         sendGetRequestAndGetItems(FOI_COLLECTION + "?p:prop2=nothing", 0);
         sendGetRequestAndGetItems(FOI_COLLECTION + "?p:prop=*", 0);
         sendGetRequestAndGetItems(FOI_COLLECTION + "?p:make=nothing", 0);
-        sendGetRequestAndGetItems(FOI_COLLECTION + "?p:type=building&p:height=8", 0);
+        sendGetRequestAndGetItems(FOI_COLLECTION + "?featureType=building&p:height=8", 0);
     }
     
     
