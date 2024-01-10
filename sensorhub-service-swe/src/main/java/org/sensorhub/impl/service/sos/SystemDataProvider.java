@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import org.sensorhub.api.common.BigId;
+import org.sensorhub.api.common.IdEncoder;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.SpatialFilter;
@@ -37,6 +38,7 @@ import org.sensorhub.api.datastore.feature.FoiFilter;
 import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.obs.ObsFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
+import org.sensorhub.api.feature.FeatureWrapper;
 import org.sensorhub.impl.service.swe.RecordTemplate;
 import org.sensorhub.impl.system.SystemUtils;
 import org.vast.ogc.gml.IFeature;
@@ -65,6 +67,7 @@ public abstract class SystemDataProvider implements ISOSAsyncDataProvider
     protected final IObsSystemDatabase database;
     protected final SystemDataProviderConfig config;
     protected final ScheduledExecutorService threadPool;
+    protected final IdEncoder foiIdEncoder;
     DataStreamInfoCache selectedDataStream;
 
     class DataStreamInfoCache
@@ -213,6 +216,7 @@ public abstract class SystemDataProvider implements ISOSAsyncDataProvider
         this.database = Asserts.checkNotNull(database, IObsSystemDatabase.class);
         this.threadPool = Asserts.checkNotNull(threadPool, ExecutorService.class);
         this.config = Asserts.checkNotNull(config, "config");
+        this.foiIdEncoder = servlet.getParentHub().getIdEncoders().getFoiIdEncoder();
     }
 
 
@@ -309,12 +313,23 @@ public abstract class SystemDataProvider implements ISOSAsyncDataProvider
         
         foiFilter.withCurrentVersion();
         
+        // use mapper to set feature ID from key
+        var foiStream = database.getFoiStore().selectEntries(foiFilter.build()).map(e -> {
+            return (IFeature)new FeatureWrapper(e.getValue()) {
+                @Override
+                public String getId()
+                {
+                    return foiIdEncoder.encodeID(e.getKey().getInternalID());
+                }
+            };
+        });
+        
         // notify consumer with subscription
         consumer.onSubscribe(
             new StreamSubscription<>(
                 consumer,
                 100,
-                database.getFoiStore().select(foiFilter.build())
+                foiStream
             )
         );
     }

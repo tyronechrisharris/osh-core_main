@@ -1278,9 +1278,6 @@ public class TestSOSService
         for (int i=0; i<nodes.getLength(); i++)
         {
             var elt = (Element)nodes.item(i);
-            int id = Integer.parseInt(dom.getAttributeValue(elt, "id").replace("F", ""));
-            assertTrue(Arrays.binarySearch(foiNums, id) >= 0);
-            
             String uid = dom.getElementValue(elt, "identifier");
             assertTrue(req.getFoiIDs().contains(uid));
         }
@@ -1308,22 +1305,15 @@ public class TestSOSService
     }
     
     
-    protected void testGetFoisByBbox(Bbox bbox, int... foiNums) throws Exception
+    protected void testGetFoisByBbox(Bbox bbox, int... expectedFoiNums) throws Exception
     {
         GetFeatureOfInterestRequest req = new GetFeatureOfInterestRequest();
         req.setGetServer(HTTP_ENDPOINT);
         req.setVersion("2.0");
         req.setBbox(bbox);
         
-        DOMHelper dom = sendRequest(req, false); 
-        assertEquals("Wrong number of features returned", foiNums.length, dom.getElements("*/*").getLength());
-        
-        NodeList nodes = dom.getElements("*/*");
-        for (int i=0; i<nodes.getLength(); i++)
-        {
-            String fid = dom.getAttributeValue((Element)nodes.item(i), "id");
-            assertEquals("F" + foiNums[i], fid);
-        }
+        DOMHelper dom = sendRequest(req, false);
+        checkReturnedFois(dom, expectedFoiNums);
     }
     
     
@@ -1347,22 +1337,15 @@ public class TestSOSService
     }
     
     
-    protected void testGetFoisByProcedure(List<String> sysIDs, int... foiNums) throws Exception
+    protected void testGetFoisByProcedure(List<String> sysIDs, int... expectedFoiNums) throws Exception
     {
         GetFeatureOfInterestRequest req = new GetFeatureOfInterestRequest();
         req.setGetServer(HTTP_ENDPOINT);
         req.setVersion("2.0");
         req.getProcedures().addAll(sysIDs);
         
-        DOMHelper dom = sendRequest(req, false); 
-        assertEquals("Wrong number of features returned", foiNums.length, dom.getElements("*/*").getLength());
-        
-        NodeList nodes = dom.getElements("*/*");
-        for (int i=0; i<nodes.getLength(); i++)
-        {
-            String fid = dom.getAttributeValue((Element)nodes.item(i), "id");
-            assertEquals("F" + foiNums[i], fid);
-        }
+        DOMHelper dom = sendRequest(req, false);
+        checkReturnedFois(dom, expectedFoiNums);
     }
     
     
@@ -1388,7 +1371,7 @@ public class TestSOSService
     }
     
     
-    protected void testGetFoisByObservables(List<String> obsIDs, int... foiNums) throws Exception
+    protected void testGetFoisByObservables(List<String> obsIDs, int... expectedFoiNums) throws Exception
     {
         GetFeatureOfInterestRequest req = new GetFeatureOfInterestRequest();
         req.setGetServer(HTTP_ENDPOINT);
@@ -1396,13 +1379,20 @@ public class TestSOSService
         req.getObservables().addAll(obsIDs);
         
         DOMHelper dom = sendRequest(req, false); 
-        assertEquals("Wrong number of features returned", foiNums.length, dom.getElements("*/*").getLength());
+        checkReturnedFois(dom, expectedFoiNums);
+    }
+    
+    
+    protected void checkReturnedFois(DOMHelper dom, int... expectedFoiNums)
+    {
+        assertEquals("Wrong number of features returned", expectedFoiNums.length, dom.getElements("*/*").getLength());
         
         NodeList nodes = dom.getElements("*/*");
         for (int i=0; i<nodes.getLength(); i++)
         {
-            String fid = dom.getAttributeValue((Element)nodes.item(i), "id");
-            assertEquals("F" + foiNums[i], fid);
+            var uid = dom.getElementValue((Element)nodes.item(i), "identifier");
+            var expectedUid = getFoiUID(expectedFoiNums[i]);
+            assertEquals(expectedUid, uid);
         }
     }
     
