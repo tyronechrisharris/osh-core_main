@@ -40,7 +40,6 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.SymlinkAllowedResourceAliasChecker;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.ResourceHandler;
@@ -180,7 +179,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                 fileResourceContext.setResourceBase(config.staticDocsRootDir);
 
                 //fileResourceContext.clearAliasChecks();
-                fileResourceContext.addAliasCheck(new SymlinkAllowedResourceAliasChecker(fileResourceContext));
+                //fileResourceContext.addAliasCheck(new SymlinkAllowedResourceAliasChecker(fileResourceContext));
                 
                 handlers.addHandler(fileResourceContext);
                 getLogger().info("Static resources root is " + config.staticDocsRootUrl);
