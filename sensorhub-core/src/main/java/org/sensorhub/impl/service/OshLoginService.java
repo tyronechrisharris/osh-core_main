@@ -22,15 +22,14 @@ import org.eclipse.jetty.security.IdentityService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.server.UserIdentity;
 import org.eclipse.jetty.util.security.Credential;
+import org.sensorhub.api.security.ISecurityManager;
 import org.sensorhub.api.security.IUserInfo;
-import org.sensorhub.api.security.IUserRegistry;
 
 
 public class OshLoginService implements LoginService
 {
+    final ISecurityManager securityManager;
     IdentityService identityService = new DefaultIdentityService();
-    IUserRegistry users;
-    //Map<String, UserIdentity>
     
     
     public static class UserPrincipal implements Principal
@@ -73,9 +72,9 @@ public class OshLoginService implements LoginService
     }
     
     
-    public OshLoginService(IUserRegistry users)
+    public OshLoginService(ISecurityManager securityManager)
     {
-        this.users = users;
+        this.securityManager = securityManager;
     }
     
     
@@ -106,7 +105,7 @@ public class OshLoginService implements LoginService
             isCert = true;
         }
         
-        IUserInfo user = users.get(username);
+        IUserInfo user = securityManager.getUserInfo(username);
         if (user == null)
             return null;
         

@@ -40,7 +40,7 @@ import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.handler.AllowSymLinkAliasChecker;
+import org.eclipse.jetty.server.SymlinkAllowedResourceAliasChecker;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.ResourceHandler;
@@ -180,7 +180,7 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                 fileResourceContext.setResourceBase(config.staticDocsRootDir);
 
                 //fileResourceContext.clearAliasChecks();
-                fileResourceContext.addAliasCheck(new AllowSymLinkAliasChecker());
+                fileResourceContext.addAliasCheck(new SymlinkAllowedResourceAliasChecker(fileResourceContext));
                 
                 handlers.addHandler(fileResourceContext);
                 getLogger().info("Static resources root is " + config.staticDocsRootUrl);
@@ -200,9 +200,9 @@ public class HttpServer extends AbstractModule<HttpServerConfig> implements IHtt
                 {
                     jettySecurityHandler = new ConstraintSecurityHandler();
                     
-                    // load user list
+                    // create login service connected to OSH security manager
                     ISecurityManager securityManager = getParentHub().getSecurityManager();
-                    OshLoginService loginService = new OshLoginService(securityManager.getUserRegistry());
+                    OshLoginService loginService = new OshLoginService(securityManager);
                     
                     if (config.authMethod == AuthMethod.BASIC)
                         jettySecurityHandler.setAuthenticator(new HttpLogoutWrapper(new BasicAuthenticator(), getLogger()));
