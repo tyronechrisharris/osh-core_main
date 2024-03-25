@@ -56,6 +56,7 @@ public class RequestContext
     private PropertyFilter propFilter;
     private Set<String> resourceUris;
     private long correlationID;
+    private long requestTimeout;
     
     
     /*
@@ -371,6 +372,25 @@ public class RequestContext
     {
         var acceptHdr = getRequestHeader("Accept");
         return acceptHdr != null && acceptHdr.contains("text/html");
+    }
+    
+    
+    public long getRequestTimeout()
+    {
+        return requestTimeout > 0 ? requestTimeout :
+               req != null ? req.getAsyncContext().getTimeout()-500 : 0;
+    }
+    
+    
+    /**
+     * Sets the request timeout.
+     * If not set, it will default to the timeout configured by the HTTP server.
+     * @param requestTimeout The timeout value in milliseconds
+     */
+    public void setRequestTimeout(long requestTimeout)
+    {
+        Asserts.checkArgument(requestTimeout > 0, "Timeout must be > 0");
+        this.requestTimeout = requestTimeout;
     }
     
     
