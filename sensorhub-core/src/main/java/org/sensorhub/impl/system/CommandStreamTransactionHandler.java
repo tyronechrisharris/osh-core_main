@@ -15,6 +15,7 @@ Copyright (C) 2021 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.system;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +43,7 @@ import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
 import org.sensorhub.impl.event.DelegatingSubscriber;
 import org.sensorhub.impl.event.DelegatingSubscriberAdapter;
+import org.sensorhub.impl.event.DelegatingSubscription;
 import org.sensorhub.utils.DataComponentChecks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,15 +155,52 @@ public class CommandStreamTransactionHandler implements IEventListener
     
     public void connectCommandReceiver(Subscriber<CommandEvent> subscriber)
     {
+        connectCommandReceiver(subscriber, 5000);
+    }
+    
+    
+    public void connectCommandReceiver(Subscriber<CommandEvent> subscriber, long ackTimeout)
+    {
         Asserts.checkNotNull(subscriber, Subscriber.class);
         
         var dataTopic = EventUtils.getCommandDataTopicID(csInfo);
         if (rootHandler.eventBus.getNumberOfSubscribers(dataTopic) > 0)
             throw new IllegalStateException("A command receiver is already connected to " + dataTopic);
         
+        // monitor status messages received from receiver to detect timeouts
+        var pendingCommands = new ConcurrentHashMap<Long, ICommandData>();
+        Subscription statusSub;
+        try
+        {
+            var statusTopic = EventUtils.getCommandStatusTopicID(csInfo);
+            statusSub = rootHandler.eventBus.newSubscription(CommandStatusEvent.class)
+                .withTopicID(statusTopic)
+                .consume(e -> {
+                    pendingCommands.remove(e.getCorrelationID());
+                })
+                .get();
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException("Unable to subscribe to command ACK", e);
+        }
+        
+        // subscribe to receive command on this channel
         rootHandler.eventBus.newSubscription(CommandEvent.class)
             .withTopicID(dataTopic)
             .subscribe(new DelegatingSubscriber<CommandEvent>(subscriber) {
+                @Override
+                public void onSubscribe(Subscription sub)
+                {
+                    super.onSubscribe(new DelegatingSubscription(sub) {
+                        public void cancel() {
+                            // also cancel status subscription
+                            statusSub.cancel();
+                            super.cancel();
+                        }
+                    });
+                }
+                
                 @Override
                 public void onNext(CommandEvent e)
                 {
@@ -175,9 +214,25 @@ public class CommandStreamTransactionHandler implements IEventListener
                     // add command to DB
                     var cmdKey = rootHandler.db.getCommandStore().add(cmd);
                     
-                    // forward to command receiver 
+                    // assign ID and mark as pending
                     e.getCommand().assignID(cmdKey);
+                    pendingCommands.put(e.getCorrelationID(), e.getCommand());
+                    
+                    // forward to command receiver
                     super.onNext(e);
+                    
+                    // send pending status on timeout
+                    var delayer = CompletableFuture.delayedExecutor(ackTimeout, TimeUnit.MILLISECONDS);
+                    delayer.execute(() -> {
+                        var pendingCmd = pendingCommands.remove(e.getCorrelationID());
+                        if (pendingCmd != null)
+                        {
+                            log.info("Command {}: ACK timeout", e.getCorrelationID());
+                            sendStatus(
+                                e.getCorrelationID(),
+                                CommandStatus.pending(pendingCmd.getID()));
+                        }
+                    });
                 }
             });
     }
