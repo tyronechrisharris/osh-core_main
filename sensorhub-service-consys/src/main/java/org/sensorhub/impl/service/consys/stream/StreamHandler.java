@@ -29,5 +29,10 @@ public interface StreamHandler
     
     public void sendPacket() throws IOException;
     
+    public default void sendPacket(long correlId) throws IOException
+    {
+        sendPacket();
+    }
+    
     public void close();
 }

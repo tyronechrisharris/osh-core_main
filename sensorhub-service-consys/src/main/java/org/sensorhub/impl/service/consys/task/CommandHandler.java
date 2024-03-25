@@ -239,8 +239,8 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
             {
                 try
                 {
-                    binding.serialize(null, event.getCommand(), false);
-                    streamHandler.sendPacket();
+                    binding.serialize(event.getCommand().getID(), event.getCommand(), false);
+                    streamHandler.sendPacket(event.getCorrelationID());
                 }
                 catch (IOException e)
                 {
