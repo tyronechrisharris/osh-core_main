@@ -86,4 +86,17 @@ public class ServiceErrors
     {
         return new InvalidRequestException(ErrorCode.NOT_FOUND, NOT_FOUND_ERROR_MSG + ": " + id);
     }
+    
+    
+    public static InvalidRequestException internalError(String msg) 
+    {
+        return new InvalidRequestException(ErrorCode.INTERNAL_ERROR, msg);
+    }
+    
+    
+    public static IllegalStateException internalErrorUnchecked(ErrorCode code, String msg) 
+    {
+        return new IllegalStateException(
+            new InvalidRequestException(code, msg));
+    }
 }

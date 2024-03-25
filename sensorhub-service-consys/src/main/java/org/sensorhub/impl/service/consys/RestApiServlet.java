@@ -173,8 +173,16 @@ public abstract class RestApiServlet extends HttpServlet
                 }
                 catch (Exception e)
                 {
-                    logError(req, e);
-                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                    if (e.getCause() instanceof InvalidRequestException)
+                    {
+                        // case of service error wrapped into runtime exception
+                        handleInvalidRequestException(req, resp, (InvalidRequestException)e.getCause());
+                    }
+                    else
+                    {
+                        logError(req, e);
+                        sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                    }
                 }
                 finally
                 {
@@ -236,8 +244,16 @@ public abstract class RestApiServlet extends HttpServlet
                 }
                 catch (Exception e)
                 {
-                    logError(req, e);
-                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                    if (e.getCause() instanceof InvalidRequestException)
+                    {
+                        // case of service error wrapped into runtime exception
+                        handleInvalidRequestException(req, resp, (InvalidRequestException)e.getCause());
+                    }
+                    else
+                    {
+                        logError(req, e);
+                        sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                    }
                 }
                 finally
                 {
@@ -281,8 +297,16 @@ public abstract class RestApiServlet extends HttpServlet
                 }
                 catch (Exception e)
                 {
-                    logError(req, e);
-                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                    if (e.getCause() instanceof InvalidRequestException)
+                    {
+                        // case of service error wrapped into runtime exception
+                        handleInvalidRequestException(req, resp, (InvalidRequestException)e.getCause());
+                    }
+                    else
+                    {
+                        logError(req, e);
+                        sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                    }
                 }
                 finally
                 {
@@ -326,8 +350,16 @@ public abstract class RestApiServlet extends HttpServlet
                 }
                 catch (Exception e)
                 {
-                    logError(req, e);
-                    sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                    if (e.getCause() instanceof InvalidRequestException)
+                    {
+                        // case of service error wrapped into runtime exception
+                        handleInvalidRequestException(req, resp, (InvalidRequestException)e.getCause());
+                    }
+                    else
+                    {
+                        logError(req, e);
+                        sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                    }
                 }
                 finally
                 {
@@ -441,7 +473,7 @@ public abstract class RestApiServlet extends HttpServlet
                 {
                     var json =
                         "{\n" +
-                        "  \"error\": " + code + ",\n" +
+                        "  \"status\": " + code + ",\n" +
                         "  \"message\": \"" + msg.replace("\"", "\\\"") + "\"\n" +
                         "}";
                     resp.getOutputStream().write(json.getBytes());
@@ -481,8 +513,12 @@ public abstract class RestApiServlet extends HttpServlet
                 sendError(SC_FORBIDDEN, e.getMessage(), req, resp);
                 break;
                 
+            case REQUEST_ACCEPTED_TIMEOUT:
+                sendError(202, e.getMessage(), req, resp);
+                break;
+                
             default:
-                sendError(SC_INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MSG, req, resp);
+                sendError(SC_INTERNAL_SERVER_ERROR, e.getMessage(), req, resp);
         }
     }
     
