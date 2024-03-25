@@ -22,13 +22,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
-import org.sensorhub.impl.event.DelegateSubscriber;
+import org.sensorhub.impl.event.DelegatingSubscriber;
 import org.vast.ogc.om.IObservation;
 import org.vast.ows.sos.GetObservationRequest;
 import org.vast.ows.sos.SOSException;
 
 
-public class GetObsMultiProviderSubscriber extends DelegateSubscriber<IObservation>
+public class GetObsMultiProviderSubscriber extends DelegatingSubscriber<IObservation>
 {
     Map<String, ISOSAsyncDataProvider> dataProvidersMap;
     Iterator<Entry<String, ISOSAsyncDataProvider>> dataProvidersEntryIt;

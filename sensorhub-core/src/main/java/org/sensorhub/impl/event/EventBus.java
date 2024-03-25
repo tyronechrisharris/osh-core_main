@@ -266,7 +266,7 @@ public class EventBus implements IEventBus
         protected CompletableFuture<Subscription> subscribe(Subscriber<? super E> subscriber, CompletableFuture<Subscription> future)
         {
             SubscribeOptions<E> opts = build();
-            EventBus.this.subscribe(opts, subscriber);            
+            EventBus.this.subscribe(opts, subscriber);
             return future;
         }
 
@@ -277,13 +277,13 @@ public class EventBus implements IEventBus
             CompletableFuture<Subscription> future = new CompletableFuture<>();
             
             // wrap subscriber to also notify future
-            Subscriber<? super E> subscriberWithFuture = new DelegateSubscriber<>(subscriber) {
+            Subscriber<? super E> subscriberWithFuture = new DelegatingSubscriber<>(subscriber) {
                 @Override
                 public void onSubscribe(Subscription sub)
                 {
                     super.onSubscribe(sub);
                     future.complete(sub);
-                }                
+                }
             };
             
             return subscribe(subscriberWithFuture, future);

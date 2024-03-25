@@ -40,7 +40,7 @@ import org.sensorhub.api.event.Event;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventListener;
 import org.sensorhub.api.event.IEventPublisher;
-import org.sensorhub.impl.event.DelegateSubscriber;
+import org.sensorhub.impl.event.DelegatingSubscriber;
 import org.sensorhub.impl.event.DelegatingSubscriberAdapter;
 import org.sensorhub.utils.DataComponentChecks;
 import org.slf4j.Logger;
@@ -66,7 +66,6 @@ public class CommandStreamTransactionHandler implements IEventListener
     protected ICommandStreamInfo csInfo;
     protected IEventPublisher commandDataEventPublisher;
     protected IEventPublisher cmdStatusEventPublisher;
-    
     
     /*
      * csKey must always be the local DB key
@@ -162,11 +161,11 @@ public class CommandStreamTransactionHandler implements IEventListener
         
         rootHandler.eventBus.newSubscription(CommandEvent.class)
             .withTopicID(dataTopic)
-            .subscribe(new DelegateSubscriber<CommandEvent>(subscriber) {
+            .subscribe(new DelegatingSubscriber<CommandEvent>(subscriber) {
                 @Override
                 public void onNext(CommandEvent e)
                 {
-                    log.debug("Received command {}: {}", e.getCorrelationID(), e.getCommand());
+                    log.debug("Command {}: Received\n{}", e.getCorrelationID(), e.getCommand());
                     
                     // need to use internal stream ID
                     var cmd = CommandData.Builder.from(e.getCommand())
@@ -236,7 +235,7 @@ public class CommandStreamTransactionHandler implements IEventListener
                 
                 if (isMyCommand)
                 {
-                    log.debug("Received status {}: {}", event.getCorrelationID(), event.getStatus());
+                    log.debug("Command {}: Status received\n{}", event.getCorrelationID(), event.getStatus());
                     subscriber.onNext(event.getStatus());
                     
                     // cancel subscription if this status is final
@@ -252,10 +251,19 @@ public class CommandStreamTransactionHandler implements IEventListener
         };
         
         // register subscriber specific for this command
-        var statusTopic = EventUtils.getCommandStatusTopicID(csInfo);
-        rootHandler.eventBus.newSubscription(CommandStatusEvent.class)
-            .withTopicID(statusTopic)
-            .subscribe(cmdSubscriber);
+        try
+        {
+            var statusTopic = EventUtils.getCommandStatusTopicID(csInfo);
+            rootHandler.eventBus.newSubscription(CommandStatusEvent.class)
+                .withTopicID(statusTopic)
+                .subscribe(cmdSubscriber)
+                .get();
+        }
+        catch (Exception e)
+        {
+            log.error("Error subscribing to status events", e);
+            throw new IllegalStateException(e);
+        }
     }
     
     
@@ -311,12 +319,14 @@ public class CommandStreamTransactionHandler implements IEventListener
      * Submit a command and receive only the first status report via a future
      * @param correlationID Correlation ID to attach to the command
      * @param cmd The command to submit
-     * @return A future that will complete when the initial status report is received
+     * @return A future that will complete when the initial status report is received.
+     * The future will wait forever for a status message to be received unless its
+     * {@link CompletableFuture#cancel cancel} method is called.
      * (this initial status report contains the ID assigned to the command)
      */
     public CompletableFuture<ICommandStatus> submitCommand(long correlationID, ICommandData cmd)
     {
-        return submitCommand(correlationID, cmd, 2000, TimeUnit.MILLISECONDS);
+        return submitCommand(correlationID, cmd, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
     }
     
     
@@ -332,9 +342,15 @@ public class CommandStreamTransactionHandler implements IEventListener
      */
     public CompletableFuture<ICommandStatus> submitCommand(long correlationID, ICommandData cmd, long timeOut, TimeUnit unit)
     {
-        // create a future that will complete when subscriber receives
-        // the first status message
-        var future = new CompletableFuture<ICommandStatus>();
+        // create a future that will complete when status subscriber
+        // receives the first status message
+        var future = new CompletableFuture<ICommandStatus>() {
+            Subscription subscription;
+            public boolean cancel(boolean interrupt) {
+                subscription.cancel();
+                return super.cancel(interrupt);
+            }
+        };
         
         var subscriber = new Subscriber<ICommandStatus>() {
             Subscription subscription;
@@ -343,6 +359,7 @@ public class CommandStreamTransactionHandler implements IEventListener
             public void onSubscribe(Subscription subscription)
             {
                 this.subscription = subscription;
+                future.subscription = subscription;
                 subscription.request(1);
             }
 
@@ -366,25 +383,29 @@ public class CommandStreamTransactionHandler implements IEventListener
             }
         };
         
-        // cancel future and subscription on timeout
-        var delay = CompletableFuture.delayedExecutor(timeOut, unit);
-        CompletableFuture.runAsync(() -> {
-            if (!future.isDone())
-            {
-                if (subscriber.subscription != null)
-                    subscriber.subscription.cancel();
-                future.completeExceptionally(new TimeoutException("No status message received"));
-            }
-        }, delay);
+        if (timeOut != Long.MAX_VALUE)
+        {
+            // cancel future and subscription on timeout
+            var delayer = CompletableFuture.delayedExecutor(timeOut, unit);
+            delayer.execute(() -> {
+                if (!future.isDone())
+                {
+                    if (subscriber.subscription != null)
+                        subscriber.subscription.cancel();
+                    future.completeExceptionally(new TimeoutException());
+                }
+            });
+        }
         
         submitCommand(correlationID, cmd, subscriber);
+        
         return future;
     }
     
     
     public BigId sendStatus(long correlationID, ICommandStatus status)
     {
-        log.debug("Sending status {}: {}", correlationID, status);
+        log.debug("Command {}: Sending status\n{}", correlationID, status);
         
         // forward to event bus
         publishStatusEvent(correlationID, status);
