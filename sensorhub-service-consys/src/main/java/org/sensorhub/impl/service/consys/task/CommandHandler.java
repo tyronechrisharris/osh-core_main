@@ -21,13 +21,13 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.stream.Collectors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.sensorhub.api.command.CommandEvent;
 import org.sensorhub.api.command.ICommandData;
-import org.sensorhub.api.command.ICommandStatus;
 import org.sensorhub.api.command.ICommandStreamInfo;
 import org.sensorhub.api.common.BigId;
 import org.sensorhub.api.database.IObsSystemDatabase;
@@ -39,7 +39,9 @@ import org.sensorhub.api.datastore.command.CommandStreamKey;
 import org.sensorhub.api.datastore.command.ICommandStore;
 import org.sensorhub.api.event.EventUtils;
 import org.sensorhub.api.event.IEventBus;
+import org.sensorhub.impl.service.consys.ConSysApiSecurity;
 import org.sensorhub.impl.service.consys.InvalidRequestException;
+import org.sensorhub.impl.service.consys.InvalidRequestException.ErrorCode;
 import org.sensorhub.impl.service.consys.ObsSystemDbWrapper;
 import org.sensorhub.impl.service.consys.ServiceErrors;
 import org.sensorhub.impl.service.consys.RestApiServlet.ResourcePermissions;
@@ -63,17 +65,18 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
     
     final IEventBus eventBus;
     final IObsSystemDatabase db;
-    final SystemDatabaseTransactionHandler transactionHandler;
+    final SystemDatabaseTransactionHandler readOnlyTxHandler;
+    final SystemDatabaseTransactionHandler fullTxHandler;
     final ScheduledExecutorService threadPool;
     final Random random = new SecureRandom();
     
     
-    static class CommandHandlerContextData
+    public static class CommandHandlerContextData
     {
-        BigId streamID;
-        ICommandStreamInfo dsInfo;
-        BigId foiId;
-        CommandStreamTransactionHandler dsHandler;
+        public BigId streamID;
+        public ICommandStreamInfo dsInfo;
+        public BigId foiId;
+        public CommandStreamTransactionHandler dsHandler;
     }
     
     
@@ -87,7 +90,8 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
         
         // I know the doc says otherwise but we need to use the federated DB for command transactions here
         // because we don't write to DB directly but rather send commands to systems that can be in other databases
-        this.transactionHandler = new SystemDatabaseTransactionHandler(eventBus, db.getReadDb());
+        this.readOnlyTxHandler = new SystemDatabaseTransactionHandler(eventBus, db.getReadDb());
+        this.fullTxHandler = new SystemDatabaseTransactionHandler(eventBus, db.getWriteDb());
     }
     
     
@@ -131,7 +135,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
             
             // create transaction handler here so it can be reused multiple times
             contextData.streamID = dsID;
-            contextData.dsHandler = transactionHandler.getCommandStreamHandler(dsID);
+            contextData.dsHandler = readOnlyTxHandler.getCommandStreamHandler(dsID);
             if (contextData.dsHandler == null)
                 throw ServiceErrors.notWritable();
             
@@ -159,7 +163,7 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
     {
         if (ctx.isEndOfPath() &&
             !(ctx.getParentRef().type instanceof CommandStreamHandler))
-            throw ServiceErrors.unsupportedOperation("Observations can only be created within a Datastream");
+            throw ServiceErrors.unsupportedOperation("Commands can only be created within a Datastream");
         
         super.doPost(ctx);
     }
@@ -263,11 +267,22 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
             }
         };
         
-        var topic = EventUtils.getCommandDataTopicID(dsInfo);
-        eventBus.newSubscription(CommandEvent.class)
-            .withTopicID(topic)
-            .withEventType(CommandEvent.class)
-            .subscribe(subscriber);
+        var sec = (ConSysApiSecurity)ctx.getSecurityHandler();
+        if (sec.hasPermission(sec.command_status_permissions.create))
+        {
+            // connect as a command receiver
+            // this will record commands on the server and send them to the receiver with an ID assigned
+            // receiver is then responsible to respond with status
+            fullTxHandler.getCommandStreamHandler(dsID).connectCommandReceiver(subscriber);
+        }
+        else
+        {
+            var topic = EventUtils.getCommandDataTopicID(dsInfo);
+            eventBus.newSubscription(CommandEvent.class)
+                .withTopicID(topic)
+                .withEventType(CommandEvent.class)
+                .subscribe(subscriber);
+        }
     }
 
 
@@ -353,56 +368,76 @@ public class CommandHandler extends BaseResourceHandler<BigId, ICommandData, Com
         try
         {
             var corrID = ctx.getCorrelationID();
-            if (corrID == 0)
+            while (corrID == 0) // 0 not allowed
                 corrID = random.nextLong();
             
             var dsHandler = ((CommandHandlerContextData)ctx.getData()).dsHandler;
-            ICommandStatus status = dsHandler.submitCommand(corrID, cmd)
-                .get(10, TimeUnit.SECONDS);
             
-            if (status.getStatusCode() == CommandStatusCode.REJECTED)
-                throw new DataStoreException("Command rejected: " + status.getMessage());
-            
-            // serialize status info we received in response
             if (ctx.getOutputStream() != null)
             {
-                if (status.getResult() != null)
+                var status = dsHandler.submitCommand(
+                    corrID, cmd, ctx.getRequestTimeout(), TimeUnit.MILLISECONDS).get();
+                
+                // send http error if it's rejected synchronously
+                if (status.getStatusCode() == CommandStatusCode.REJECTED)
                 {
-                    // if there is a result, just write the result
-                    var resultHandler = (CommandResultHandler)subResources.get(CommandResultHandler.NAMES[0]);
-                    var resultBinding = resultHandler.getBinding(ctx, false);
-                    resultBinding.startCollection();
-                    resultBinding.serialize(null, status, false);
-                    resultBinding.endCollection(null);
+                    throw ServiceErrors.internalErrorUnchecked(
+                        ErrorCode.INTERNAL_ERROR, "Command rejected: " + status.getMessage());
                 }
-                else
+                
+                // serialize status info we received in response
+                if (ctx.getOutputStream() != null)
                 {
-                    // else write the complete status report
-                    var statusHandler = (CommandStatusHandler)subResources.get(CommandStatusHandler.NAMES[0]);
-                    ctx.setResponseFormat(ResourceFormat.JSON);
-                    var statusBinding = statusHandler.getBinding(ctx, false);
-                    statusBinding.serialize(null, status, false);
+                    if (status.getResult() != null)
+                    {
+                        // if there is a result, just write the result
+                        var resultHandler = (CommandResultHandler)subResources.get(CommandResultHandler.NAMES[0]);
+                        var resultBinding = resultHandler.getBinding(ctx, false);
+                        resultBinding.startCollection();
+                        resultBinding.serialize(null, status, false);
+                        resultBinding.endCollection(null);
+                    }
+                    else
+                    {
+                        // else write the complete status report
+                        var statusHandler = (CommandStatusHandler)subResources.get(CommandStatusHandler.NAMES[0]);
+                        ctx.setResponseFormat(ResourceFormat.JSON);
+                        var statusBinding = statusHandler.getBinding(ctx, false);
+                        statusBinding.serialize(null, status, false);
+                    }
                 }
+                
+                return status.getCommandID();
+            }
+            else
+            {
+                dsHandler.submitCommandNoStatus(corrID, cmd);
+                return null;
+            }
+        }
+        catch (ExecutionException e)
+        {
+            // can be received from submitCommand future, e.g. in case of timeout
+            if (e.getCause() instanceof TimeoutException)
+            {
+                throw ServiceErrors.internalErrorUnchecked(
+                    ErrorCode.REQUEST_ACCEPTED_TIMEOUT, "Command accepted but request timed out before command was acknowledged by receiving system");
             }
             
-            return status.getCommandID();
-        }
-        catch (DataStoreException e)
-        {
-            throw e;
-        }
-        catch (TimeoutException e)
-        {
-            throw new DataStoreException("Timeout before command was acknowledged by receiving system");
+            throw new IllegalStateException(e.getCause());
         }
         catch (InterruptedException e)
         {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while waiting for command ACK", e);
         }
+        catch (IllegalStateException e)
+        {
+            throw e;
+        }
         catch (Exception e)
         {
-            throw new IllegalStateException(e.getMessage(), e.getCause());
+            throw new IllegalStateException(e);
         }
     }
     
