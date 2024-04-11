@@ -41,6 +41,7 @@ import org.sensorhub.impl.service.consys.obs.ObsHandler;
 import org.sensorhub.impl.service.consys.obs.ObsStatsHandler;
 import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.property.PropertyHandler;
+import org.sensorhub.impl.service.consys.resource.JarStaticResourceHandler;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.sensorhub.impl.service.consys.system.SystemHistoryHandler;
 import org.sensorhub.impl.service.consys.system.SystemMembersHandler;
@@ -272,6 +273,10 @@ public class ConSysApiService extends AbstractHttpServiceModule<ConSysApiService
         // collections
         var collectionHandler = new CollectionHandler();
         rootHandler.addSubResource(collectionHandler);
+        
+        // static web resources (for HTML output)
+        var jarStaticResourceHandler = new JarStaticResourceHandler();
+        rootHandler.addSubResource(jarStaticResourceHandler);
         
         // deploy servlet
         servlet = new ConSysApiServlet(this, (ConSysApiSecurity)securityHandler, rootHandler, getLogger());

@@ -98,18 +98,23 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
         
         // head
         head(
-                title("OpenSensorHub - Connected Systems API"),
-                meta().withCharset("UTF-8"),
-                styleWithInlineFile("/css/bootstrap.min.css")
-                        .attr("integrity", "sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3"),
-                styleWithInlineFile("/css/bootstrap-icons.css"),
-                scriptWithInlineFile_min("/js/bootstrap.bundle.min.js")
-                        .attr("integrity", "sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"),
-                style()
-                        .withText(
-                                ".accordion-button { background-color: #e7f1ff; }"
-                        ),
-                getExtraHeaderContent()
+            title("OpenSensorHub - Connected Systems API"),
+            meta().withCharset("UTF-8"),
+            link()
+                .withRel("stylesheet")
+                .withHref(ctx.getApiRootURL() + "/static/css/bootstrap.min.css")
+                .attr("crossorigin", ""),
+            link()
+                .withRel("stylesheet")
+                .withHref(ctx.getApiRootURL() + "/static/css/bootstrap-icons.css"),
+            script()
+                .withSrc(ctx.getApiRootURL() + "/static/js/bootstrap.bundle.min.js")
+                .attr("crossorigin", ""),
+            style()
+                .withText(
+                    ".accordion-button { background-color: #e7f1ff; }"
+                ),
+            getExtraHeaderContent()
         )
         .render(html);
         
