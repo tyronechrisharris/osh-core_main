@@ -111,15 +111,18 @@ public class PropertyBindingJson extends ResourceBindingJson<PropertyKey, IDeriv
     @Override
     public void serialize(PropertyKey key, IDerivedProperty prop, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var propId = idEncoders.getPropertyIdEncoder().encodeID(key.getInternalID());
+        var propId = key != null ?
+            idEncoders.getPropertyIdEncoder().encodeID(key.getInternalID()) : null;
         
         var conceptUri = prop.getURI();
-        if (conceptUri.startsWith("#"))
+        if (conceptUri.startsWith("#") && ctx.getApiRootURL().length() > 1)
             conceptUri = ctx.getApiRootURL() + "/" + PropertyHandler.NAMES[0] + "/" + conceptUri.substring(1);
         
         writer.beginObject();
         
-        writer.name("id").value(propId);
+        if (propId != null)
+            writer.name("id").value(propId);
+        
         writer.name("uniqueId").value(conceptUri);
         writer.name("label").value(prop.getName());
         
@@ -156,6 +159,14 @@ public class PropertyBindingJson extends ResourceBindingJson<PropertyKey, IDeriv
                 .build());
             
             links.add(new ResourceLink.Builder()
+                .rel("derived_properties")
+                .href(rootURL +
+                      "/" + PropertyHandler.NAMES[0] +
+                      "?baseProperty=" + prop.getURI())
+                .type(ResourceFormat.JSON.getMimeType())
+                .build());
+            
+            /*links.add(new ResourceLink.Builder()
                 .rel("systems")
                 .title("Linked systems")
                 .href(rootURL +
@@ -169,7 +180,7 @@ public class PropertyBindingJson extends ResourceBindingJson<PropertyKey, IDeriv
                 .href(rootURL +
                       "/" + ProcedureHandler.NAMES[0] +
                       "?observedProperty=" + prop.getURI())
-                .build());
+                .build());*/
             
             writeLinksAsJson(writer, links);
         }
