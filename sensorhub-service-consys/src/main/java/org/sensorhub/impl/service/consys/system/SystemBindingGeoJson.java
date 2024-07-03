@@ -87,12 +87,19 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                     links.add(new ResourceLink.Builder()
                         .rel("alternate")
                         .title("Detailed description of system in SensorML format")
-                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId())
+                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId() + "?f=sml")
                         .type(ResourceFormat.SML_JSON.getMimeType())
                         .build());
                     
                     links.add(new ResourceLink.Builder()
-                        .rel("members")
+                        .rel("alternate")
+                        .title("Detailed description of system in HTML format")
+                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId() + "?f=html")
+                        .type(ResourceFormat.HTML.getMimeType())
+                        .build());
+                    
+                    links.add(new ResourceLink.Builder()
+                        .rel("subsystems")
                         .title("List of subsystems")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
                             bean.getId() + "/" + SystemMembersHandler.NAMES[0])
@@ -108,8 +115,8 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .build());
                     
                     links.add(new ResourceLink.Builder()
-                        .rel("controls")
-                        .title("List of system control channels")
+                        .rel("controlstreams")
+                        .title("List of system controlstreams")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
                             bean.getId() + "/" + CommandStreamHandler.NAMES[0])
                         .type(ResourceFormat.JSON.getMimeType())
@@ -117,7 +124,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                     
                     links.add(new ResourceLink.Builder()
                         .rel("samplingFeatures")
-                        .title("List of system features of interest")
+                        .title("List of system sampling features")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
                             bean.getId() + "/" + FoiHandler.NAMES[0])
                         .type(ResourceFormat.JSON.getMimeType())

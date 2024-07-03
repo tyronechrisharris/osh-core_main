@@ -27,8 +27,6 @@ import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.sensorml.DeploymentAdapter;
-import org.sensorhub.impl.service.consys.system.SystemHandler;
-import org.sensorhub.impl.service.consys.system.SystemMembersHandler;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
 import org.vast.util.Asserts;
@@ -87,16 +85,15 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDep
                     links.add(new ResourceLink.Builder()
                         .rel("alternate")
                         .title("Detailed description of deployment in SensorML format")
-                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId())
+                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId() + "?f=sml")
                         .type(ResourceFormat.SML_JSON.getMimeType())
                         .build());
                     
                     links.add(new ResourceLink.Builder()
-                        .rel("members")
-                        .title("List of deployed systems")
-                        .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + SystemMembersHandler.NAMES[0])
-                        .type(ResourceFormat.JSON.getMimeType())
+                        .rel("alternate")
+                        .title("Detailed description of deployment in HTML format")
+                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId() + "?f=html")
+                        .type(ResourceFormat.HTML.getMimeType())
                         .build());
                     
                     writeLinksAsJson(writer, links);

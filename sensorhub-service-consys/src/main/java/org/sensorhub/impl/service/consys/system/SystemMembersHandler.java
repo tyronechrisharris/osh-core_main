@@ -33,7 +33,7 @@ import org.sensorhub.impl.system.wrapper.SmlFeatureWrapper;
 
 public class SystemMembersHandler extends SystemHandler
 {
-    public static final String[] NAMES = { "members" };
+    public static final String[] NAMES = { "subsystems", "members" };
     
     
     public SystemMembersHandler(IEventBus eventBus, ObsSystemDbWrapper db, ResourcePermissions permissions)

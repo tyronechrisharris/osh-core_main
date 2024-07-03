@@ -38,7 +38,7 @@ import org.vast.ogc.gml.IFeature;
 
 public class FoiHandler extends AbstractFeatureHandler<IFeature, FoiFilter, FoiFilter.Builder, IFoiStore>
 {
-    public static final String[] NAMES = { "featuresOfInterest", "fois" };
+    public static final String[] NAMES = { "samplingFeatures", "fois" };
     
     final IObsSystemDatabase db;
     final SystemDatabaseTransactionHandler transactionHandler;

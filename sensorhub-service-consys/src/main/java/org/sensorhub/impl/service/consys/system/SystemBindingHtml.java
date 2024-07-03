@@ -24,8 +24,11 @@ import org.sensorhub.api.datastore.obs.DataStreamFilter;
 import org.sensorhub.api.datastore.system.SystemFilter;
 import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.feature.FeatureUtils;
+import org.sensorhub.impl.service.consys.feature.FoiHandler;
+import org.sensorhub.impl.service.consys.obs.DataStreamHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.sensorml.SmlFeatureBindingHtml;
+import org.sensorhub.impl.service.consys.task.CommandStreamHandler;
 import j2html.tags.specialized.DivTag;
 import static j2html.TagCreator.*;
 
@@ -146,13 +149,13 @@ public class SystemBindingHtml extends SmlFeatureBindingHtml<ISystemWithDesc, IO
                 iff(parentSysUrl != null,
                     a("Parent System").withHref(parentSysUrl).withClasses(CSS_LINK_BTN_CLASSES)),
                 iff(hasSubSystems,
-                    a("Subsystems").withHref(resourceUrl + "/members").withClasses(CSS_LINK_BTN_CLASSES)),
+                    a("Subsystems").withHref(resourceUrl + "/" + SystemMembersHandler.NAMES[0]).withClasses(CSS_LINK_BTN_CLASSES)),
                 iff(hasFois,
-                    a("Sampling Features").withHref(resourceUrl + "/fois").withClasses(CSS_LINK_BTN_CLASSES)),
+                    a("Sampling Features").withHref(resourceUrl + "/" + FoiHandler.NAMES[0]).withClasses(CSS_LINK_BTN_CLASSES)),
                 iff(hasDataStreams,
-                    a("Datastreams").withHref(resourceUrl + "/datastreams").withClasses(CSS_LINK_BTN_CLASSES)),
+                    a("Datastreams").withHref(resourceUrl + "/" + DataStreamHandler.NAMES[0]).withClasses(CSS_LINK_BTN_CLASSES)),
                 iff(hasControls,
-                    a("Control Channels").withHref(resourceUrl + "/controls").withClasses(CSS_LINK_BTN_CLASSES)),
+                    a("Control Channels").withHref(resourceUrl + "/" + CommandStreamHandler.NAMES[0]).withClasses(CSS_LINK_BTN_CLASSES)),
                 iff(hasHistory,
                     a("History").withHref(resourceUrl + "/history").withClasses(CSS_LINK_BTN_CLASSES))
             ) : null
