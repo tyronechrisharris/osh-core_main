@@ -55,6 +55,14 @@ public abstract class SmlFeatureAdapter<T extends DescribedObject> implements IS
         return delegate.getUniqueIdentifier();
     }
     
+    
+    @Override
+    public String getType()
+    {
+        var sml = getFullDescription();
+        return sml != null ? sml.getType() : delegate.getType();
+    }
+    
 
     public String getName()
     {

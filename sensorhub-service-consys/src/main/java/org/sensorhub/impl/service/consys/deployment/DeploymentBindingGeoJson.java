@@ -107,20 +107,21 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDep
     
     
     @Override
-    protected IDeploymentWithDesc getFeatureWithId(FeatureKey key, IDeploymentWithDesc proc)
+    protected IDeploymentWithDesc getFeatureWithId(FeatureKey key, IDeploymentWithDesc depl)
     {
         Asserts.checkNotNull(key, FeatureKey.class);
-        Asserts.checkNotNull(proc, IDeploymentWithDesc.class);
+        Asserts.checkNotNull(depl, IDeploymentWithDesc.class);
         
         return new IDeploymentWithDesc()
         {
-            public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
-            public String getName() { return proc.getName(); }
-            public String getDescription() { return proc.getDescription(); }
-            public Map<QName, Object> getProperties() { return proc.getProperties(); }  
-            public TimeExtent getValidTime() { return proc.getValidTime(); }
-            public Deployment getFullDescription() { return proc.getFullDescription(); }
-            public AbstractGeometry getGeometry() { return proc.getGeometry(); }
+            public String getUniqueIdentifier() { return depl.getUniqueIdentifier(); }
+            public String getType() { return depl.getType(); }
+            public String getName() { return depl.getName(); }
+            public String getDescription() { return depl.getDescription(); }
+            public Map<QName, Object> getProperties() { return depl.getProperties(); }  
+            public TimeExtent getValidTime() { return depl.getValidTime(); }
+            public Deployment getFullDescription() { return depl.getFullDescription(); }
+            public AbstractGeometry getGeometry() { return depl.getGeometry(); }
             
             public String getId()
             {

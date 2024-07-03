@@ -139,6 +139,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
         return new ISystemWithDesc()
         {
             public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
+            public String getType() { return proc.getType(); }
             public String getName() { return proc.getName(); }
             public String getDescription() { return proc.getDescription(); }
             public Map<QName, Object> getProperties() { return proc.getProperties(); }  

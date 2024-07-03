@@ -141,18 +141,20 @@ public class TestSystems extends AbstractTestAllSmlFeatures
     protected JsonObject createFeatureGeoJson(int procNum, TimeExtent validTime, Map<String, Object> props) throws Exception
     {
         var json = JsonBuilderFactory.buildObject()
-            .add("type", "Feature")
-            .addNull("geometry")
-            .addObject("properties")
-              .add("uid", String.format(UID_FORMAT, procNum))
-              .add("name", "Test Sensor #" + procNum);
+              .add("type", "Feature")
+              .addNull("geometry")
+              .addObject("properties")
+                .add("featureType", "http://www.w3.org/ns/ssn/System")
+                .add("uid", String.format(UID_FORMAT, procNum))
+                .add("name", "Test Sensor #" + procNum);
         
+        // append more properties
         if (validTime != null)
         {
             json.addArray("validTime")
-                .add(validTime.begin().toString())
-                .add(validTime.endsNow() ? "now" : validTime.end().toString())
-            .end();
+              .add(validTime.begin().toString())
+              .add(validTime.endsNow() ? "now" : validTime.end().toString())
+              .end();
         }
         
         // add all other properties

@@ -103,6 +103,7 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
         return new IProcedureWithDesc()
         {
             public String getUniqueIdentifier() { return proc.getUniqueIdentifier(); }
+            public String getType() { return proc.getType(); }
             public String getName() { return proc.getName(); }
             public String getDescription() { return proc.getDescription(); }
             public Map<QName, Object> getProperties() { return proc.getProperties(); }  
