@@ -99,7 +99,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         
         return tag(null).with(
             proc != null && proc.isSetTypeOf() ? div(
-                span(getTypeOfLabel(proc) + ": ").withClass(CSS_BOLD),
+                span("Kind: ").withClass(CSS_BOLD),
                 getTypeOfLink(proc.getTypeOf())
             ) : null
         );
@@ -154,10 +154,10 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                         .withTarget(DICTIONARY_TAB_NAME)
                 ) : null,
                 
-            // procedure type
+            // system kind
             proc != null && proc.isSetTypeOf() ?
                 h6(
-                    span(getTypeOfLabel(proc) + ": ").withClass(CSS_BOLD),
+                    span("Kind: ").withClass(CSS_BOLD),
                     getTypeOfLink(proc.getTypeOf())
                 ) : null,
                 
@@ -346,7 +346,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         if (proc.isSetTypeOf())
         {
             content.with(h6(
-                span(getTypeOfLabel(proc) + ": ").withClass(CSS_BOLD),
+                span("Kind: ").withClass(CSS_BOLD),
                 getTypeOfLink(proc.getTypeOf())
             ));
         }
@@ -487,16 +487,6 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                             .withClass("accordion-body")
                     )
             );
-    }
-    
-    
-    String getTypeOfLabel(AbstractProcess proc)
-    {
-        /*if (proc instanceof AbstractPhysicalProcess)
-            return "Model";
-        else
-            return "Method";*/
-        return "Model or Method";
     }
     
     

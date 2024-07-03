@@ -241,7 +241,7 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                 span(f.getUniqueIdentifier())
             ).withClass("mt-2"),
             (f.getType() != null && !"Feature".equals(f.getType()) ? div(
-                span(getResourceName() + " Type: ").withClass(CSS_BOLD),
+                span("Type: ").withClass(CSS_BOLD),
                 span(getFeatureTypeSuffix(f.getType())).withTitle(f.getType()),
                 getLinkIcon(f.getType(), f.getType())
             ) : null),

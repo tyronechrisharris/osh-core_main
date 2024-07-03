@@ -15,7 +15,9 @@ Copyright (C) 2024 Sensia Software LLC. All Rights Reserved.
 package org.sensorhub.impl.service.consys.sensorml;
 
 import java.time.ZoneOffset;
+import javax.xml.namespace.QName;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.xlink.IXlinkReference;
 import org.vast.sensorML.SMLBuilders.AbstractProcessBuilder;
 import org.vast.sensorML.SMLBuilders.DeploymentBuilder;
 import org.vast.sensorML.SMLBuilders.PhysicalSystemBuilder;
@@ -96,6 +98,14 @@ public class SMLConverter extends SMLHelper
                     ((PhysicalSystemBuilder)builder).location((Point)f.getGeometry());
                 else
                     throw new IllegalStateException("Unsupported System geometry: " + f.getGeometry());
+            }
+            
+            var systemKindLink = (IXlinkReference<?>)f.getProperties().get(new QName("systemKind"));
+            if (systemKindLink != null)
+            {
+                var href = systemKindLink.getHref().replace("f=json", "f=sml");
+                var title = systemKindLink.getTitle();
+                builder.typeOf(href, title);
             }
         }
         
