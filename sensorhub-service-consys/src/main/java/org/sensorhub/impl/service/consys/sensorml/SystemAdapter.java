@@ -32,6 +32,7 @@ public class SystemAdapter extends SmlFeatureAdapter<AbstractProcess> implements
     {
         if (delegate instanceof AbstractProcess)
             return (AbstractProcess)delegate;
-        return null;
+        else
+            return null;
     }
 }

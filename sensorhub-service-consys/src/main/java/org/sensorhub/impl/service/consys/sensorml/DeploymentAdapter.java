@@ -32,6 +32,7 @@ public class DeploymentAdapter extends SmlFeatureAdapter<Deployment> implements 
     {
         if (delegate instanceof Deployment)
             return (Deployment)delegate;
-        return null;
+        else
+            return null;
     }
 }

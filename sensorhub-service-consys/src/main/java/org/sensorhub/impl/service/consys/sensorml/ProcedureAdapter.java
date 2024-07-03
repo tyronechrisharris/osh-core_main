@@ -38,6 +38,7 @@ public class ProcedureAdapter extends SmlFeatureAdapter<AbstractProcess> impleme
     {
         if (delegate instanceof AbstractProcess)
             return (AbstractProcess)delegate;
-        return null;
+        else
+            return null;
     }
 }

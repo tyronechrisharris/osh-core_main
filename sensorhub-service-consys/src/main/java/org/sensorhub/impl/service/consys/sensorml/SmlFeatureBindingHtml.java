@@ -175,149 +175,152 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         .withClass("mt-3")
         .render(html);
         
-        html.appendStartTag("div")
-            .appendAttribute("class", "accordion mt-3")
-            .appendAttribute("style", "clear: both;")
-            .completeTag();
-        
-        // identification
-        if (sml.getNumIdentifications() > 0)
+        if (sml != null)
         {
-            getAccordionItem("Identification", div(
-                each(sml.getIdentificationList(), list ->
-                    each(list.getIdentifierList(), term -> getTermHtml(term))
-                ))
-            ).render(html);
-        }
-        
-        // classification
-        if (sml.getNumClassifications() > 0)
-        {
-            getAccordionItem("Classification", div(
-                each(sml.getClassificationList(), list ->
-                    each(list.getClassifierList(), term -> getTermHtml(term))
-                ))
-            ).render(html);
-        }
-        
-        // observables
-        if (proc != null)
-        {
-            if (proc.getNumInputs() > 0)
+            html.appendStartTag("div")
+                .appendAttribute("class", "accordion mt-3")
+                .appendAttribute("style", "clear: both;")
+                .completeTag();
+            
+            // identification
+            if (sml.getNumIdentifications() > 0)
             {
-                getAccordionItem(
-                    "Observed Properties", 
-                    each(proc.getInputList(), input -> {
-                        if (input instanceof ObservableProperty)
-                        {
-                            var def = ((ObservableProperty)input).getDefinition();
-                            return div(
-                                span(input.getLabel()).withClass(CSS_BOLD),
-                                getLinkIcon(def, def)
-                            );
-                        }
-                        else
-                            return null;
-                    })
-                ).render(html);
-            }
-        }
-        
-        // capabilities
-        if (sml.getNumCapabilities() > 0)
-        {
-            for (var list: sml.getCapabilitiesList())
-            {
-                getAccordionItem(
-                    getListLabel(list, "Capabilities"),
-                    each(list.getCapabilityList(), prop -> getComponentOneLineHtml(prop))
-                ).render(html);
-            }
-        }
-        
-        // characteristics
-        if (sml.getNumCharacteristics() > 0)
-        {
-            for (var list: sml.getCharacteristicsList())
-            {
-                getAccordionItem(
-                    getListLabel(list, "Characteristics"),
-                    each(list.getCharacteristicList(), prop -> getComponentOneLineHtml(prop))
-                ).render(html);
-            }
-        }
-        
-        // contacts
-        if (sml.getNumContacts() > 0)
-        {
-            getAccordionItem("Contacts", true, div(
-                each(sml.getContactsList(), list ->
-                    each(list.getContactList(), (i, contact) -> getContactHtml(i, contact))
-                ))
-            ).render(html);
-        }
-        
-        // documents
-        if (sml.getNumDocumentations() > 0)
-        {
-            getAccordionItem("Documents", true, div(
-                each(sml.getDocumentationList(), list ->
-                    each(list.getDocumentList().getProperties(), (i, prop) -> getDocumentHtml(i, prop))
-                ))
-            ).render(html);
-        }
-        
-        // local frame
-        if (phys != null && phys.getNumLocalReferenceFrames() > 0)
-        {
-            getAccordionItem("Local Reference Frames", div(
-                each(phys.getLocalReferenceFrameList(), (i, frame) -> getSpatialFrameHtml(i, frame))
-            )
-            ).render(html);
-        }
-        
-        // components
-        if (aggr != null)
-        {
-            if (aggr.getNumComponents() > 0)
-            {
-                getAccordionItem("Components", true, 
-                    each(aggr.getComponentList().getProperties(), (i, prop) -> {
-                        String title = "Unknown Component";
-                        DomContent content = null;
-                        
-                        if (prop.hasValue())
-                        {
-                            var comp = prop.getValue();
-                            title = comp.getName() != null ? comp.getName() : "Component";
-                            content = getComponentHtml(i, comp);
-                        }
-                        else if (prop.hasHref())
-                        {
-                            title = prop.getTitle() != null ? prop.getTitle() : getPrettyName(prop.getName());
-                            content = getComponentLink(prop);
-                        }
-                        
-                        return getAccordionItem(title, false, content);
-                    })
-                ).render(html);
-            }
-        }
-        
-        // modes
-        if (proc != null)
-        {
-            if (proc.getNumModes() > 0)
-            {
-                getAccordionItem("Modes", false, div(
-                    each(proc.getModesList(), list ->
-                        each(((ModeChoice)list).getModeList(), (i, mode) -> getModeHtml(i, mode))
+                getAccordionItem("Identification", div(
+                    each(sml.getIdentificationList(), list ->
+                        each(list.getIdentifierList(), term -> getTermHtml(term))
                     ))
                 ).render(html);
             }
+            
+            // classification
+            if (sml.getNumClassifications() > 0)
+            {
+                getAccordionItem("Classification", div(
+                    each(sml.getClassificationList(), list ->
+                        each(list.getClassifierList(), term -> getTermHtml(term))
+                    ))
+                ).render(html);
+            }
+            
+            // observables
+            if (proc != null)
+            {
+                if (proc.getNumInputs() > 0)
+                {
+                    getAccordionItem(
+                        "Observed Properties", 
+                        each(proc.getInputList(), input -> {
+                            if (input instanceof ObservableProperty)
+                            {
+                                var def = ((ObservableProperty)input).getDefinition();
+                                return div(
+                                    span(input.getLabel()).withClass(CSS_BOLD),
+                                    getLinkIcon(def, def)
+                                );
+                            }
+                            else
+                                return null;
+                        })
+                    ).render(html);
+                }
+            }
+            
+            // capabilities
+            if (sml.getNumCapabilities() > 0)
+            {
+                for (var list: sml.getCapabilitiesList())
+                {
+                    getAccordionItem(
+                        getListLabel(list, "Capabilities"),
+                        each(list.getCapabilityList(), prop -> getComponentOneLineHtml(prop))
+                    ).render(html);
+                }
+            }
+            
+            // characteristics
+            if (sml.getNumCharacteristics() > 0)
+            {
+                for (var list: sml.getCharacteristicsList())
+                {
+                    getAccordionItem(
+                        getListLabel(list, "Characteristics"),
+                        each(list.getCharacteristicList(), prop -> getComponentOneLineHtml(prop))
+                    ).render(html);
+                }
+            }
+            
+            // contacts
+            if (sml.getNumContacts() > 0)
+            {
+                getAccordionItem("Contacts", true, div(
+                    each(sml.getContactsList(), list ->
+                        each(list.getContactList(), (i, contact) -> getContactHtml(i, contact))
+                    ))
+                ).render(html);
+            }
+            
+            // documents
+            if (sml.getNumDocumentations() > 0)
+            {
+                getAccordionItem("Documents", true, div(
+                    each(sml.getDocumentationList(), list ->
+                        each(list.getDocumentList().getProperties(), (i, prop) -> getDocumentHtml(i, prop))
+                    ))
+                ).render(html);
+            }
+            
+            // local frame
+            if (phys != null && phys.getNumLocalReferenceFrames() > 0)
+            {
+                getAccordionItem("Local Reference Frames", div(
+                    each(phys.getLocalReferenceFrameList(), (i, frame) -> getSpatialFrameHtml(i, frame))
+                )
+                ).render(html);
+            }
+            
+            // components
+            if (aggr != null)
+            {
+                if (aggr.getNumComponents() > 0)
+                {
+                    getAccordionItem("Components", true, 
+                        each(aggr.getComponentList().getProperties(), (i, prop) -> {
+                            String title = "Unknown Component";
+                            DomContent content = null;
+                            
+                            if (prop.hasValue())
+                            {
+                                var comp = prop.getValue();
+                                title = comp.getName() != null ? comp.getName() : "Component";
+                                content = getComponentHtml(i, comp);
+                            }
+                            else if (prop.hasHref())
+                            {
+                                title = prop.getTitle() != null ? prop.getTitle() : getPrettyName(prop.getName());
+                                content = getComponentLink(prop);
+                            }
+                            
+                            return getAccordionItem(title, false, content);
+                        })
+                    ).render(html);
+                }
+            }
+            
+            // modes
+            if (proc != null)
+            {
+                if (proc.getNumModes() > 0)
+                {
+                    getAccordionItem("Modes", false, div(
+                        each(proc.getModesList(), list ->
+                            each(((ModeChoice)list).getModeList(), (i, mode) -> getModeHtml(i, mode))
+                        ))
+                    ).render(html);
+                }
+            }
+            
+            html.appendEndTag("div");
         }
-        
-        html.appendEndTag("div");
         
         writeFooter();
         writer.flush();
@@ -782,6 +785,9 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
     
     String getPhotoUrl(DescribedObject sml)
     {
+        if (sml == null)
+            return null;
+        
         for (var docList: sml.getDocumentationList())
         {
             for (var doc: docList.getDocumentList().getProperties())

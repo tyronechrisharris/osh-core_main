@@ -24,6 +24,7 @@ import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.sensorml.DeploymentAdapter;
+import org.sensorhub.impl.service.consys.sensorml.SMLConverter;
 import org.vast.sensorML.SMLJsonBindings;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
@@ -42,12 +43,14 @@ import com.google.gson.stream.JsonWriter;
 public class DeploymentBindingSmlJson extends ResourceBindingJson<FeatureKey, IDeploymentWithDesc>
 {
     SMLJsonBindings smlBindings;
+    SMLConverter converter;
     
     
     public DeploymentBindingSmlJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         this.smlBindings = new SMLJsonBindings();
+        this.converter = new SMLConverter();
     }
 
 
@@ -78,22 +81,18 @@ public class DeploymentBindingSmlJson extends ResourceBindingJson<FeatureKey, ID
     {
         try
         {
-            try
+            var sml = res.getFullDescription();
+            if (sml == null)
+                sml = new SMLConverter().genericFeatureToDeployment(res);
+            
+            if (key != null)
             {
-                var sml = res.getFullDescription();
-                if (sml != null)
-                {
-                    var idStr = idEncoders.getDeploymentIdEncoder().encodeID(key.getInternalID());
-                    sml.setId(idStr);
-                    smlBindings.writeDescribedObject(writer, sml);
-                }
-                writer.flush();
+                var idStr = idEncoders.getDeploymentIdEncoder().encodeID(key.getInternalID());
+                sml.setId(idStr);
             }
-            catch (Exception e)
-            {
-                IOException wrappedEx = new IOException("Error writing system JSON", e);
-                throw new IllegalStateException(wrappedEx);
-            }
+            
+            smlBindings.writeDescribedObject(writer, sml);
+            writer.flush();
         }
         catch (IllegalStateException e)
         {
@@ -101,7 +100,11 @@ public class DeploymentBindingSmlJson extends ResourceBindingJson<FeatureKey, ID
                 throw (IOException)e.getCause();
             else
                 throw e;
-        }   
+        }
+        catch (Exception e)
+        {
+            throw new IOException("Error writing deployment JSON", e);
+        }  
     }
 
 

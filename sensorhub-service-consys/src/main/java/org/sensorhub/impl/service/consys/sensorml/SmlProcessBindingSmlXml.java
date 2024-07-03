@@ -20,6 +20,8 @@ import javax.xml.stream.XMLStreamException;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.ISmlFeature;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingXml;
@@ -107,8 +109,17 @@ public class SmlProcessBindingSmlXml<V extends ISmlFeature<?>> extends ResourceB
             try
             {
                 var sml = res.getFullDescription();
-                if (sml != null)
-                    smlBindings.writeDescribedObject(xmlWriter, sml);
+                if (sml == null)
+                {
+                    if (res instanceof ISystemWithDesc)
+                        sml = new SMLConverter().genericFeatureToSystem(res);
+                    else if (res instanceof IProcedureWithDesc)
+                        sml = new SMLConverter().genericFeatureToProcedure(res);
+                    else
+                        throw new IOException("Cannot convert feature to SensorML");
+                }
+                
+                smlBindings.writeDescribedObject(xmlWriter, sml);
                 xmlWriter.flush();
             }
             catch (Exception e)
@@ -133,6 +144,7 @@ public class SmlProcessBindingSmlXml<V extends ISmlFeature<?>> extends ResourceB
         try
         {
             xmlWriter.writeStartElement("systems");
+            smlBindings.writeNamespaces(xmlWriter);
         }
         catch (XMLStreamException e)
         {
@@ -147,6 +159,7 @@ public class SmlProcessBindingSmlXml<V extends ISmlFeature<?>> extends ResourceB
         try
         {
             xmlWriter.writeEndElement();
+            xmlWriter.writeEndDocument();
         }
         catch (XMLStreamException e)
         {

@@ -19,6 +19,8 @@ import java.util.Collection;
 import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.feature.ISmlFeature;
+import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.api.system.ISystemWithDesc;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
@@ -46,12 +48,14 @@ import net.opengis.sensorml.v20.AbstractProcess;
 public abstract class SmlProcessBindingSmlJson<V extends ISmlFeature<?>> extends ResourceBindingJson<FeatureKey, V>
 {
     SMLJsonBindings smlBindings;
+    SMLConverter converter;
     
     
     public SmlProcessBindingSmlJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders, forReading);
         this.smlBindings = new SMLJsonBindings();
+        this.converter = new SMLConverter();
     }
 
 
@@ -85,26 +89,25 @@ public abstract class SmlProcessBindingSmlJson<V extends ISmlFeature<?>> extends
     {
         try
         {
-            try
+            var sml = res.getFullDescription();
+            if (sml == null)
             {
-                var sml = res.getFullDescription();
-                if (sml != null && sml instanceof AbstractProcess)
-                {
-                    if (key != null)
-                    {
-                        var idStr = encodeID(key);
-                        sml = ProcessWrapper.getWrapper((AbstractProcess)sml).withId(idStr);
-                    }
-                    
-                    smlBindings.writeDescribedObject(writer, sml);
-                }
-                writer.flush();
+                if (res instanceof ISystemWithDesc)
+                    sml = new SMLConverter().genericFeatureToSystem(res);
+                else if (res instanceof IProcedureWithDesc)
+                    sml = new SMLConverter().genericFeatureToProcedure(res);
+                else
+                    throw new IOException("Cannot convert feature to SensorML");
             }
-            catch (Exception e)
+            
+            if (key != null)
             {
-                IOException wrappedEx = new IOException("Error writing SensorML JSON", e);
-                throw new IllegalStateException(wrappedEx);
+                var idStr = encodeID(key);
+                sml = ProcessWrapper.getWrapper((AbstractProcess)sml).withId(idStr);
             }
+            
+            smlBindings.writeDescribedObject(writer, sml);
+            writer.flush();
         }
         catch (IllegalStateException e)
         {
@@ -112,7 +115,11 @@ public abstract class SmlProcessBindingSmlJson<V extends ISmlFeature<?>> extends
                 throw (IOException)e.getCause();
             else
                 throw e;
-        }   
+        }
+        catch (Exception e)
+        {
+            throw new IOException("Error writing SensorML JSON", e);
+        }
     }
     
     
