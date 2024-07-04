@@ -93,7 +93,7 @@ public abstract class SmlFeatureAdapter<T extends DescribedObject> implements IS
     public AbstractGeometry getGeometry()
     {
         var sml = getFullDescription();
-        return sml != delegate.getGeometry() ? sml.getGeometry() : null;
+        return sml != null ? sml.getGeometry() : delegate.getGeometry();
     }
     
 
