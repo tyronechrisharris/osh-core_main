@@ -108,9 +108,9 @@ public class MVDeploymentStoreImpl extends MVBaseFeatureStoreImpl<IDeploymentWit
             
             resultStream = resultStream
                .filter(e -> {
-                   var members = e.getValue().getFullDescription().getComponentList();
+                   var members = e.getValue().getFullDescription().getDeployedSystemList();
                    return members.stream()
-                       .anyMatch(sys -> sysUIDs.contains(sys.getUniqueIdentifier()));
+                       .anyMatch(sys -> sysUIDs.contains(sys.getSystemRef().getName()));
                });
         }
         
