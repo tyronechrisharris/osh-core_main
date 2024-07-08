@@ -22,6 +22,7 @@ import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.system.ISystemWithDesc;
+import org.sensorhub.impl.service.consys.LinkResolver;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.consys.feature.FoiHandler;
 import org.sensorhub.impl.service.consys.obs.DataStreamHandler;
@@ -32,6 +33,7 @@ import org.sensorhub.impl.service.consys.sensorml.SystemAdapter;
 import org.sensorhub.impl.service.consys.task.CommandStreamHandler;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.xlink.IXlinkReference;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonReader;
@@ -61,19 +63,43 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
     protected GeoJsonBindings getJsonBindings()
     {
         return new GeoJsonBindings() {
+            
+            @Override
             public IFeature readFeature(JsonReader reader) throws IOException
             {
                 var f = super.readFeature(reader);
                 return new SystemAdapter(f);
             }
             
-            protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
+            @Override
+            public void writeLink(JsonWriter writer, IXlinkReference<?> link) throws IOException
             {
-                super.writeCommonFeatureProperties(writer, bean);
+                LinkResolver.resolveLink(ctx, link, db, idEncoders);
+                super.writeLink(writer, link);
             }
             
+            @Override
+            protected void writeCustomFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
+            {
+                super.writeCustomFeatureProperties(writer, bean);
+                
+                var sml = ((ISystemWithDesc)bean).getFullDescription();
+                if (sml != null)
+                {
+                    var typeOf = sml.getTypeOf();
+                    if (typeOf != null)
+                    {
+                        writer.name("systemKind@link");
+                        writeLink(writer, typeOf);
+                    }
+                }
+            }
+            
+            @Override
             protected void writeCustomJsonProperties(JsonWriter writer, IFeature bean) throws IOException
             {
+                super.writeCustomJsonProperties(writer, bean);
+                
                 if (showLinks.get())
                 {
                     var links = new ArrayList<ResourceLink>();

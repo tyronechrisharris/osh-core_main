@@ -22,6 +22,7 @@ import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IProcedureDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.procedure.IProcedureWithDesc;
+import org.sensorhub.impl.service.consys.LinkResolver;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
@@ -29,6 +30,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.sensorml.ProcedureAdapter;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.xlink.IXlinkReference;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonReader;
@@ -57,19 +59,32 @@ public class ProcedureBindingGeoJson extends AbstractFeatureBindingGeoJson<IProc
     protected GeoJsonBindings getJsonBindings()
     {
         return new GeoJsonBindings() {
+            
+            @Override
             public IFeature readFeature(JsonReader reader) throws IOException
             {
                 var f = super.readFeature(reader);
                 return new ProcedureAdapter(f);
             }
             
+            @Override
+            public void writeLink(JsonWriter writer, IXlinkReference<?> link) throws IOException
+            {
+                LinkResolver.resolveLink(ctx, link, db, idEncoders);
+                super.writeLink(writer, link);
+            }
+            
+            @Override
             protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
             {
                 super.writeCommonFeatureProperties(writer, bean);
             }
             
+            @Override
             protected void writeCustomJsonProperties(JsonWriter writer, IFeature bean) throws IOException
             {
+                super.writeCustomJsonProperties(writer, bean);
+                
                 if (showLinks.get())
                 {
                     var links = new ArrayList<ResourceLink>();

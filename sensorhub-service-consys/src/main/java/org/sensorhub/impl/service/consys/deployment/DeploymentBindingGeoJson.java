@@ -22,6 +22,7 @@ import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.database.IObsSystemDatabase;
 import org.sensorhub.api.datastore.feature.FeatureKey;
 import org.sensorhub.api.system.IDeploymentWithDesc;
+import org.sensorhub.impl.service.consys.LinkResolver;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingGeoJson;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
@@ -29,6 +30,7 @@ import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.sensorml.DeploymentAdapter;
 import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.ogc.gml.IFeature;
+import org.vast.ogc.xlink.IXlinkReference;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import com.google.gson.stream.JsonReader;
@@ -58,19 +60,52 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDep
     protected GeoJsonBindings getJsonBindings()
     {
         return new GeoJsonBindings() {
+            
+            @Override
             public IFeature readFeature(JsonReader reader) throws IOException
             {
                 var f = super.readFeature(reader);
                 return new DeploymentAdapter(f);
             }
             
+            @Override
+            public void writeLink(JsonWriter writer, IXlinkReference<?> link) throws IOException
+            {
+                LinkResolver.resolveLink(ctx, link, db, idEncoders);
+                super.writeLink(writer, link);
+            }
+            
+            @Override
             protected void writeCommonFeatureProperties(JsonWriter writer, IFeature bean) throws IOException
             {
                 super.writeCommonFeatureProperties(writer, bean);
+                
+                var sml = ((IDeploymentWithDesc)bean).getFullDescription();
+                if (sml != null)
+                {
+                    var platform = sml.getPlatform();
+                    if (platform != null)
+                    {
+                        writer.name("platform@link");
+                        writeLink(writer, platform.getSystemRef());
+                    }
+                    
+                    if (sml.getNumDeployedSystems() > 0)
+                    {
+                        writer.name("deployedSystems@link").beginArray();
+                        var systems = sml.getDeployedSystemList();
+                        for (var sys: systems)
+                            writeLink(writer, sys.getSystemRef());
+                        writer.endArray();
+                    }
+                }
             }
             
+            @Override
             protected void writeCustomJsonProperties(JsonWriter writer, IFeature bean) throws IOException
             {
+                super.writeCustomJsonProperties(writer, bean);
+                
                 if (showLinks.get())
                 {
                     var links = new ArrayList<ResourceLink>();
