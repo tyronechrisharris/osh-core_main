@@ -39,6 +39,7 @@ import net.opengis.sensorml.v20.AbstractMetadataList;
 import net.opengis.sensorml.v20.AbstractPhysicalProcess;
 import net.opengis.sensorml.v20.AbstractProcess;
 import net.opengis.sensorml.v20.AggregateProcess;
+import net.opengis.sensorml.v20.Deployment;
 import net.opengis.sensorml.v20.DescribedObject;
 import net.opengis.sensorml.v20.Mode;
 import net.opengis.sensorml.v20.ModeChoice;
@@ -112,6 +113,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         var proc = (sml instanceof AbstractProcess) ? (AbstractProcess)sml : null;
         var aggr = (sml instanceof AggregateProcess) ? (AggregateProcess)sml : null;
         var phys = (sml instanceof AbstractPhysicalProcess) ? (AbstractPhysicalProcess)sml : null;
+        var depl = (sml instanceof Deployment) ? (Deployment)sml : null;
             
         writeHeader();
         
@@ -319,6 +321,30 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                 }
             }
             
+            // deployed systems
+            if (depl != null)
+            {
+                if (depl.getPlatform() != null)
+                {
+                    var ref = depl.getPlatform().getSystemRef();
+                    if (ref.hasHref())
+                    {
+                        var content = getComponentLink(ref, true);
+                        getAccordionItem("Platform", true, content).render(html);
+                    }
+                }
+                
+                if (depl.getNumDeployedSystems() > 0)
+                {
+                    getAccordionItem("Deployed Systems", true, 
+                        each(depl.getDeployedSystemList().getProperties(), (i, prop) -> {
+                            var ref = prop.getValue().getSystemRef();
+                            return div(getComponentLink(ref, true));
+                        })
+                    ).render(html);
+                }
+            }
+            
             html.appendEndTag("div");
         }
         
@@ -507,11 +533,17 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
     
     DomContent getComponentLink(OgcProperty<?> ref)
     {
+        return getComponentLink(ref, false);
+    }
+    
+    
+    DomContent getComponentLink(OgcProperty<?> ref, boolean useTitle)
+    {
         if (db instanceof IObsSystemDatabase) {
             LinkResolver.resolveSystemLink(ctx, ref, (IObsSystemDatabase)db, idEncoders);
         }
         
-        String title = null;//ref.getTitle();
+        String title = useTitle ? ref.getTitle(): null;
         if (title == null && ref.getRole() != null)
             title = ref.getRole();
         if (title == null)
