@@ -523,8 +523,8 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         }
         
         String title = ref.getTitle();
-        if (title == null && ref.getRole() != null)
-            title = ref.getRole();
+        if (title == null && ref.getName() != null)
+            title = ref.getName();
         if (title == null)
             title = ref.getHref();
         return a(title).withHref(ref.getHref());
