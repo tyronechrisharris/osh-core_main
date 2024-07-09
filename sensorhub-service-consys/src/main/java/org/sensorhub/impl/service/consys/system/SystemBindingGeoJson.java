@@ -128,7 +128,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .rel("subsystems")
                         .title("List of subsystems")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + SystemMembersHandler.NAMES[0])
+                            bean.getId() + "/" + SystemMembersHandler.NAMES[0] + "?f=json")
                         .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
@@ -136,7 +136,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .rel("datastreams")
                         .title("List of system datastreams")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + DataStreamHandler.NAMES[0])
+                            bean.getId() + "/" + DataStreamHandler.NAMES[0] + "?f=json")
                         .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
@@ -144,7 +144,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .rel("controlstreams")
                         .title("List of system controlstreams")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + CommandStreamHandler.NAMES[0])
+                            bean.getId() + "/" + CommandStreamHandler.NAMES[0] + "?f=json")
                         .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
@@ -152,7 +152,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .rel("samplingFeatures")
                         .title("List of system sampling features")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + FoiHandler.NAMES[0])
+                            bean.getId() + "/" + FoiHandler.NAMES[0] + "?f=json")
                         .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
