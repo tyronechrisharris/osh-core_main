@@ -110,7 +110,7 @@ public class ConSysApiSecurity extends ModuleSecurity implements RestApiSecurity
     
     public ConSysApiSecurity(ConSysApiService service, IObsSystemDatabase db, boolean enable)
     {
-        super(service, "swapi", enable);
+        super(service, "csapi", enable);
         this.service = Asserts.checkNotNull(service, ConSysApiService.class);
         this.db = Asserts.checkNotNull(db, IObsSystemDatabase.class);
         
