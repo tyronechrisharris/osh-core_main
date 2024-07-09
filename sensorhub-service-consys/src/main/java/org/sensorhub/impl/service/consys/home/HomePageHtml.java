@@ -81,12 +81,12 @@ public class HomePageHtml extends ResourceBindingHtml<Long, ConSysApiServiceConf
         // links
         renderCard("Available Resources",
             p(a("Data collections available on this server").withHref(ctx.getApiRootURL() + "/" + CollectionHandler.NAMES[0])),
-            p(a("System instances registered on this server").withHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0])),
-            p(a("System deployments registered on this server").withHref(ctx.getApiRootURL() + "/" + DeploymentHandler.NAMES[0])),
-            p(a("System datasheets and procedures registered on this server").withHref(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0])),
-            p(a("Sampling features linked to systems registered on this server").withHref(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0])),
-            p(a("Datastreams available through this server").withHref(ctx.getApiRootURL() + "/" + DataStreamHandler.NAMES[0])),
-            p(a("Observations available through this server").withHref(ctx.getApiRootURL() + "/" + ObsHandler.NAMES[0]))
+            p(a("System instances").withHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0])),
+            p(a("System datasheets and procedures").withHref(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0])),
+            p(a("System deployments").withHref(ctx.getApiRootURL() + "/" + DeploymentHandler.NAMES[0])),
+            p(a("Sampling features").withHref(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0])),
+            p(a("Datastreams").withHref(ctx.getApiRootURL() + "/" + DataStreamHandler.NAMES[0])),
+            p(a("Observations").withHref(ctx.getApiRootURL() + "/" + ObsHandler.NAMES[0]))
         );
         
         writeFooter();
