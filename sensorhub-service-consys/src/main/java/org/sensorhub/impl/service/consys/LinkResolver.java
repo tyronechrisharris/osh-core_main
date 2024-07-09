@@ -24,6 +24,7 @@ import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.ogc.xlink.IXlinkReference;
+import net.opengis.OgcProperty;
 
 
 public class LinkResolver
@@ -37,7 +38,7 @@ public class LinkResolver
         synchronized(link)
         {
             // resolve URN to URL
-            if (link.getHref() != null && link.getHref().startsWith("urn") && db.getProcedureStore() != null)
+            if (link instanceof OgcProperty && link.getHref() != null && link.getHref().startsWith("urn") && db.getProcedureStore() != null)
             {
                 var urnParts = extractFragment(link.getHref());
                 var urn = urnParts[0];
@@ -46,7 +47,7 @@ public class LinkResolver
                 var procKey = db.getProcedureStore().getCurrentVersionKey(urn);
                 if (procKey != null)
                 {
-                    link.setRole(urn);
+                    ((OgcProperty<?>)link).setName(urn);
                     var procId = idEncoders.getProcedureIdEncoder().encodeID(procKey.getInternalID());
                     link.setHref(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + procId + fragment);
                     return true;
@@ -66,7 +67,7 @@ public class LinkResolver
         synchronized(link)
         {
             // resolve URN to URL
-            if (link.getHref() != null && link.getHref().startsWith("urn") && db.getSystemDescStore() != null)
+            if (link instanceof OgcProperty && link.getHref() != null && link.getHref().startsWith("urn") && db.getSystemDescStore() != null)
             {
                 var urnParts = extractFragment(link.getHref());
                 var urn = urnParts[0];
@@ -75,7 +76,7 @@ public class LinkResolver
                 var sysKey = db.getSystemDescStore().getCurrentVersionKey(urn);
                 if (sysKey != null)
                 {
-                    link.setRole(urn);
+                    ((OgcProperty<?>)link).setName(urn);
                     var procId = idEncoders.getSystemIdEncoder().encodeID(sysKey.getInternalID());
                     link.setHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + procId + fragment);
                     return true;
@@ -95,7 +96,7 @@ public class LinkResolver
         synchronized(link)
         {
             // resolve URN to URL
-            if (link.getHref() != null && link.getHref().startsWith("urn") && db.getFeatureStore() != null)
+            if (link instanceof OgcProperty && link.getHref() != null && link.getHref().startsWith("urn") && db.getFeatureStore() != null)
             {
                 var urnParts = extractFragment(link.getHref());
                 var urn = urnParts[0];
@@ -104,7 +105,7 @@ public class LinkResolver
                 var fKey = db.getFeatureStore().getCurrentVersionKey(urn);
                 if (fKey != null)
                 {
-                    link.setRole(urn);
+                    ((OgcProperty<?>)link).setName(urn);
                     var fid = idEncoders.getFeatureIdEncoder().encodeID(fKey.getInternalID());
                     link.setHref(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0] + "/" + fid + fragment);
                     return true;
@@ -121,7 +122,7 @@ public class LinkResolver
         synchronized(link)
         {
             // resolve URN to URL
-            if (link != null && link.getHref() != null && link.getHref().startsWith("urn"))
+            if (link instanceof OgcProperty && link != null && link.getHref() != null && link.getHref().startsWith("urn"))
             {
                 // try to resolve as System
                 if (db instanceof IObsSystemDatabase && ((IObsSystemDatabase)db).getSystemDescStore() != null)

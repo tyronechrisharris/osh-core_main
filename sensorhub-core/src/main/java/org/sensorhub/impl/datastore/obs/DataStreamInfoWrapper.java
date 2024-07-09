@@ -14,10 +14,11 @@ Copyright (C) 2020 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.impl.datastore.obs;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import org.sensorhub.api.data.IDataStreamInfo;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.util.Asserts;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
@@ -44,7 +45,7 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
     
     
     @Override
-    public SystemId getSystemID()
+    public FeatureId getSystemID()
     {
         return delegate.getSystemID();
     }
@@ -117,5 +118,41 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
     public Map<Instant, TimeExtent> getDiscreteResultTimes()
     {
         return delegate.getDiscreteResultTimes();
+    }
+
+
+    public Duration getPhenomenonTimeInterval()
+    {
+        return delegate.getPhenomenonTimeInterval();
+    }
+
+
+    public Duration getResultTimeInterval()
+    {
+        return delegate.getResultTimeInterval();
+    }
+
+
+    public FeatureId getFeatureOfInterest()
+    {
+        return delegate.getFeatureOfInterest();
+    }
+
+
+    public FeatureId getSamplingFeature()
+    {
+        return delegate.getSamplingFeature();
+    }
+
+
+    public FeatureId getProcedure()
+    {
+        return delegate.getProcedure();
+    }
+
+
+    public FeatureId getDeployment()
+    {
+        return delegate.getDeployment();
     }
 }

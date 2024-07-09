@@ -14,9 +14,11 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.data;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.api.system.SystemId;
 import org.vast.util.Asserts;
 import org.vast.util.BaseBuilder;
@@ -44,14 +46,20 @@ public class DataStreamInfo implements IDataStreamInfo
 {
     protected String name;
     protected String description;
-    protected SystemId systemID;
+    protected FeatureId systemID;
     protected DataComponent recordStruct;
     protected DataEncoding recordEncoding;
     protected TimeExtent validTime;
+    protected Duration phenomenonTimeInterval;
+    protected Duration resultTimeInterval;
+    protected FeatureId procedure;
+    protected FeatureId deployment;
+    protected FeatureId featureOfInterest;
+    protected FeatureId samplingFeature;
 
 
     @Override
-    public SystemId getSystemID()
+    public FeatureId getSystemID()
     {
         return systemID;
     }
@@ -97,6 +105,48 @@ public class DataStreamInfo implements IDataStreamInfo
     {
         return validTime;
     }
+    
+    
+    @Override
+    public Duration getPhenomenonTimeInterval()
+    {
+        return phenomenonTimeInterval;
+    }
+
+
+    @Override
+    public Duration getResultTimeInterval()
+    {
+        return resultTimeInterval;
+    }
+    
+    
+    @Override
+    public FeatureId getProcedure()
+    {
+        return procedure;
+    }
+
+
+    @Override
+    public FeatureId getDeployment()
+    {
+        return deployment;
+    }
+
+
+    @Override
+    public FeatureId getFeatureOfInterest()
+    {
+        return featureOfInterest;
+    }
+
+
+    @Override
+    public FeatureId getSamplingFeature()
+    {
+        return samplingFeature;
+    }
 
 
     /*
@@ -129,10 +179,16 @@ public class DataStreamInfo implements IDataStreamInfo
         {
             instance.name = base.getName();
             instance.description = base.getDescription();
-            instance.systemID = base.getSystemID();
+            instance.systemID = (SystemId)base.getSystemID();
             instance.recordStruct = base.getRecordStructure();
             instance.recordEncoding = base.getRecordEncoding();
             instance.validTime = base.getValidTime();
+            instance.phenomenonTimeInterval = base.getPhenomenonTimeInterval();
+            instance.resultTimeInterval = base.getResultTimeInterval();
+            instance.procedure = base.getProcedure();
+            instance.deployment = base.getDeployment();
+            instance.featureOfInterest = base.getFeatureOfInterest();
+            instance.samplingFeature = base.getSamplingFeature();
             return (B)this;
         }
         
@@ -151,7 +207,7 @@ public class DataStreamInfo implements IDataStreamInfo
         }
 
 
-        public B withSystem(SystemId sysID)
+        public B withSystem(FeatureId sysID)
         {
             instance.systemID = sysID;
             return (B)this;
@@ -175,6 +231,48 @@ public class DataStreamInfo implements IDataStreamInfo
         public B withValidTime(TimeExtent validTime)
         {
             instance.validTime = validTime;
+            return (B)this;
+        }
+
+
+        public B withPhenomenonTimeInterval(Duration interval)
+        {
+            instance.phenomenonTimeInterval = interval;
+            return (B)this;
+        }
+
+
+        public B withResultTimeInterval(Duration interval)
+        {
+            instance.resultTimeInterval = interval;
+            return (B)this;
+        }
+
+
+        public B withDeployment(FeatureId foiID)
+        {
+            instance.deployment = foiID;
+            return (B)this;
+        }
+
+
+        public B withProcedure(FeatureId foiID)
+        {
+            instance.procedure = foiID;
+            return (B)this;
+        }
+
+
+        public B withFeatureOfInterest(FeatureId foiID)
+        {
+            instance.featureOfInterest = foiID;
+            return (B)this;
+        }
+
+
+        public B withSamplingFeature(FeatureId foiID)
+        {
+            instance.samplingFeature = foiID;
             return (B)this;
         }
 

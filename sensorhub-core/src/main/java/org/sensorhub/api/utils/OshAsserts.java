@@ -14,6 +14,7 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.utils;
 
+import java.net.URI;
 import org.sensorhub.api.common.BigId;
 import org.vast.ogc.gml.IFeature;
 import org.vast.ogc.om.IProcedure;
@@ -63,6 +64,14 @@ public class OshAsserts
         Asserts.checkNotNull(id, BigId.class);
         //Asserts.checkArgument(id != BigId.NONE, "{} ID must not be NONE", idName);
         return id;
+    } 
+    
+    
+    public static String checkValidURI(String uri)
+    {
+        Asserts.checkNotNull(uri, "URI cannot be null");
+        URI.create(uri);
+        return uri;
     }
     
     

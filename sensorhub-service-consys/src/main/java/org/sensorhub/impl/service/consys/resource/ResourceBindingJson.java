@@ -23,13 +23,22 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import org.sensorhub.api.common.IdEncoders;
+import org.sensorhub.api.feature.ExternalFeatureId;
+import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.service.consys.ServiceErrors;
+import org.sensorhub.impl.service.consys.deployment.DeploymentHandler;
+import org.sensorhub.impl.service.consys.feature.FeatureHandler;
+import org.sensorhub.impl.service.consys.feature.FoiHandler;
 import org.sensorhub.impl.service.consys.json.FilteredJsonWriter;
+import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
+import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.json.JsonInliningWriter;
-import org.vast.util.Asserts;
+import org.vast.ogc.gml.GeoJsonBindings;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import net.opengis.gml.v32.Reference;
+import net.opengis.gml.v32.impl.ReferenceImpl;
 
 
 /**
@@ -49,11 +58,13 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     public static final String MISSING_PROP_ERROR_MSG = "Missing property: ";
     protected final JsonReader reader;
     protected final JsonWriter writer;
+    protected final GeoJsonBindings geojsonBindings;
     
     
     protected ResourceBindingJson(RequestContext ctx, IdEncoders idEncoders, boolean forReading) throws IOException
     {
         super(ctx, idEncoders);
+        this.geojsonBindings = new GeoJsonBindings();
         
         if (forReading)
         {
@@ -73,6 +84,7 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     protected ResourceBindingJson(RequestContext ctx, IdEncoders idEncoders, JsonReader reader) throws IOException
     {
         super(ctx, idEncoders);
+        this.geojsonBindings = new GeoJsonBindings();
         this.reader = reader;
         this.writer = null;
     }
@@ -82,6 +94,7 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     protected ResourceBindingJson(RequestContext ctx, IdEncoders idEncoders, JsonWriter writer) throws IOException
     {
         super(ctx, idEncoders);
+        this.geojsonBindings = new GeoJsonBindings();
         this.reader = null;
         this.writer = writer;
     }
@@ -158,47 +171,66 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
         {
             writer.name("links").beginArray();
             for (var l: links)
-            {
-                writer.beginObject();
-                writer.name("rel").value(l.getRel());
-                if (l.getTitle() != null)
-                    writer.name("title").value(l.getTitle());
-                writer.name("href").value(getAbsoluteHref(l.getHref()));
-                if (l.getType() != null)
-                    writer.name("type").value(l.getType());
-                
-                writer.endObject();
-            }        
+                writeLink(writer, l);
             writer.endArray();
         }
     }
     
     
-    protected void writeLink(JsonWriter writer, String href, String uid, ResourceFormat format) throws IOException
+    protected void writeLink(JsonWriter writer, ResourceLink link) throws IOException
     {
-        writeLink(writer, href, uid, null, format);
-    }
-    
-    
-    protected void writeLink(JsonWriter writer, String href, String uid, String title, ResourceFormat format) throws IOException
-    {
-        Asserts.checkNotNullOrBlank(href, "href");
-        
         writer.beginObject();
-        writeLinkProperties(writer, href, uid, title, format);
+        
+        writer.name("rel").value(link.getRel());
+        if (link.getTitle() != null)
+            writer.name("title").value(link.getTitle());
+        writer.name("href").value(getAbsoluteHref(link.getHref()));
+        if (link.getType() != null)
+            writer.name("type").value(link.getType());
+        
         writer.endObject();
     }
     
     
-    protected void writeLinkProperties(JsonWriter writer, String href, String uid, String title, ResourceFormat format) throws IOException
+    protected void writeLink(JsonWriter writer, FeatureId featureRef, Class<?> resourceClass) throws IOException
     {
-        writer.name("href").value(getAbsoluteHref(href));
-        if (uid != null)
-            writer.name("uid").value(uid);
-        if (title != null)
-            writer.name("title").value(title);
-        if (format != null)
-            writer.name("type").value(format.getMimeType());
+        Reference ref;
+        
+        if (featureRef instanceof ExternalFeatureId)
+        {
+            ref = ((ExternalFeatureId)featureRef).getReference();
+        }
+        else
+        {
+            String href;
+            if (resourceClass == SystemHandler.class)
+                href = "/" + SystemHandler.NAMES[0] + "/" + idEncoders.getSystemIdEncoder().encodeID(featureRef.getInternalID());
+            else if (resourceClass == ProcedureHandler.class)
+                href = "/" + ProcedureHandler.NAMES[0] + "/" + idEncoders.getProcedureIdEncoder().encodeID(featureRef.getInternalID());
+            else if (resourceClass == DeploymentHandler.class)
+                href = "/" + DeploymentHandler.NAMES[0] + "/" + idEncoders.getDeploymentIdEncoder().encodeID(featureRef.getInternalID());
+            else if (resourceClass == FoiHandler.class) // SF
+                href = "/" + FoiHandler.NAMES[0] + "/" + idEncoders.getFoiIdEncoder().encodeID(featureRef.getInternalID());
+            else if (resourceClass == FeatureHandler.class) // SF
+                href = "/" + FeatureHandler.NAMES[0] + "/" + idEncoders.getFeatureIdEncoder().encodeID(featureRef.getInternalID());
+            else
+                throw new IOException("Unsupported link target: " + resourceClass.getSimpleName());
+            
+            ref = new ReferenceImpl();
+            ref.setHref(getAbsoluteHref(href + "?f=json"));
+            ref.setName(featureRef.getUniqueID());
+            ref.setRemoteSchema(ResourceFormat.GEOJSON.getMimeType());
+        }
+        
+        // TODO but need ref to db LinkResolver.resolveLink(ctx, ref, db, idEncoders);
+        geojsonBindings.writeLink(writer, ref);
+    }
+    
+    
+    protected FeatureId readFeatureRef(JsonReader reader)
+    {
+        var ref = geojsonBindings.readLink(reader);
+        return new ExternalFeatureId(ref);
     }
     
     

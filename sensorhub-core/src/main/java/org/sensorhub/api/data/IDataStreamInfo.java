@@ -14,9 +14,10 @@ Copyright (C) 2019 Sensia Software LLC. All Rights Reserved.
 
 package org.sensorhub.api.data;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
-import org.sensorhub.api.system.SystemId;
+import org.sensorhub.api.feature.FeatureId;
 import org.vast.util.IResource;
 import org.vast.util.TimeExtent;
 import net.opengis.swe.v20.DataComponent;
@@ -37,7 +38,7 @@ public interface IDataStreamInfo extends IResource
     /**
      * @return The identifier of the system that produces this data stream
      */
-    SystemId getSystemID();
+    FeatureId getSystemID();
 
 
     /**
@@ -74,10 +75,24 @@ public interface IDataStreamInfo extends IResource
     
     
     /**
+     * @return The average interval between two observation phenomenon times,
+     * or null if unknown or highly variable.
+     */
+    Duration getPhenomenonTimeInterval();
+    
+    
+    /**
      * @return The range of result times of observations that are part
      * of this datastream, or null if no observations have been recorded yet.
      */
     TimeExtent getResultTimeRange();
+    
+    
+    /**
+     * @return The average interval between two observation result times,
+     * or null if unknown or highly variable.
+     */
+    Duration getResultTimeInterval();
     
     
     /**
@@ -93,5 +108,34 @@ public interface IDataStreamInfo extends IResource
      * {@link #hasDiscreteResultTimes()} returns true.
      */
     Map<Instant, TimeExtent> getDiscreteResultTimes();
+    
+    
+    /**
+     * @return A reference to the ultimate feature of interest associated to this datastream.
+     * (only provided if all observations in the datastream share the same feature of interest)
+     */
+    FeatureId getFeatureOfInterest();
+    
+    
+    /**
+     * @return A reference to the sampling feature associated to this datastream.
+     * (only provided if all observations in the datastream share the same sampling feature)
+     */
+    FeatureId getSamplingFeature();
+    
+    
+    /**
+     * @return A reference to the procedure associated to this datastream.
+     * (only provided if all observations in the datastream share the same procedure)
+     */
+    FeatureId getProcedure();
+    
+    
+    /**
+     * @return A reference to the deployment associated to this datastream.
+     * (only provided if all observations in the datastream were produced during the
+     * same deployment)
+     */
+    FeatureId getDeployment();
 
 }

@@ -83,11 +83,11 @@ public class PersistentClassResolver implements ClassResolver
         while (it.hasNext())
         {
             var entry = it.next();
+            var className = entry.getKey();
+            var classId = entry.getValue();
             
             try
             {
-                var className = entry.getKey();
-                var classId = entry.getValue();
                 if (!idToRegistration.containsKey(classId))
                 {
                     className = mapClassName(className);
@@ -97,7 +97,7 @@ public class PersistentClassResolver implements ClassResolver
             }
             catch (ClassNotFoundException e)
             {
-                throw new IllegalStateException("Error loading class mapping", e);
+                log.error("Error loading class mapping for " + className, e);
             }
         }
         

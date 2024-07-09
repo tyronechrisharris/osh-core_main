@@ -22,17 +22,22 @@ import org.sensorhub.api.common.IdEncoders;
 import org.sensorhub.api.data.DataStreamInfo;
 import org.sensorhub.api.data.IDataStreamInfo;
 import org.sensorhub.api.datastore.obs.DataStreamKey;
+import org.sensorhub.api.feature.FeatureId;
+import org.sensorhub.api.system.SystemId;
 import org.sensorhub.impl.service.consys.InvalidRequestException;
 import org.sensorhub.impl.service.consys.ResourceParseException;
 import org.sensorhub.impl.service.consys.SWECommonUtils;
 import org.sensorhub.impl.service.consys.ServiceErrors;
+import org.sensorhub.impl.service.consys.deployment.DeploymentHandler;
+import org.sensorhub.impl.service.consys.feature.FeatureHandler;
+import org.sensorhub.impl.service.consys.feature.FoiHandler;
+import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceBindingJson;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
 import org.sensorhub.impl.service.consys.resource.ResourceLink;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.data.DataIterator;
-import org.vast.ogc.gml.GeoJsonBindings;
 import org.vast.swe.SWEStaxBindings;
 import org.vast.swe.json.SWEJsonStreamReader;
 import org.vast.swe.json.SWEJsonStreamWriter;
@@ -52,7 +57,6 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
 {
     final String rootURL;
     final SWEStaxBindings sweBindings;
-    final GeoJsonBindings geojsonBindings;
     final Map<String, CustomObsFormat> customFormats;
     SWEJsonStreamReader sweReader;
     SWEJsonStreamWriter sweWriter;
@@ -75,7 +79,6 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         
         this.rootURL = ctx.getApiRootURL();
         this.sweBindings = new SWEStaxBindings();
-        this.geojsonBindings = new GeoJsonBindings();
         this.customFormats = Asserts.checkNotNull(customFormats);
         
         if (forReading)
@@ -99,6 +102,10 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         String description = null;
         String outputName = null;
         TimeExtent validTime = null;
+        FeatureId deplRef = null;
+        FeatureId procRef = null;
+        FeatureId foiRef = null;
+        FeatureId sfRef = null;
         IDataStreamInfo dsInfo = null;
         
         try
@@ -116,6 +123,14 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
                     outputName = reader.nextString();
                 else if ("validTime".equals(prop))
                     validTime = geojsonBindings.readTimeExtent(reader);
+                else if ("procedure@link".equals(prop))
+                    procRef = readFeatureRef(reader);
+                else if ("deployment@link".equals(prop))
+                    deplRef = readFeatureRef(reader);
+                else if ("featureOfInterest@link".equals(prop))
+                    foiRef = readFeatureRef(reader);
+                else if ("samplingFeature@link".equals(prop))
+                    sfRef = readFeatureRef(reader);
                 else if ("schema".equals(prop))
                 {
                     reader.beginObject();
@@ -163,6 +178,11 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             .withName(name)
             .withDescription(description)
             .withValidTime(validTime)
+            .withDeployment(deplRef)
+            .withProcedure(procRef)
+            .withFeatureOfInterest(foiRef)
+            .withSamplingFeature(sfRef)
+            .withPhenomenonTimeInterval(null)
             .build();
         
         return dsInfo;
@@ -201,29 +221,72 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
     @Override
     public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, JsonWriter writer) throws IOException
     {
-        var dsId = idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID());
-        var sysId = idEncoders.getSystemIdEncoder().encodeID(dsInfo.getSystemID().getInternalID());
+        serialize(key, dsInfo, showLinks, false, writer);
+    }
+    
+    
+    public void serialize(DataStreamKey key, IDataStreamInfo dsInfo, boolean showLinks, boolean expandSchema, JsonWriter writer) throws IOException
+    {
+        var dsId = key != null ?
+            idEncoders.getDataStreamIdEncoder().encodeID(key.getInternalID()) : null;
+        
+        var sysId = (dsInfo.getSystemID() != null && dsInfo.getSystemID() != SystemId.NO_SYSTEM_ID) ?
+            idEncoders.getSystemIdEncoder().encodeID(dsInfo.getSystemID().getInternalID()) : null;
         
         writer.beginObject();
         
-        writer.name("id").value(dsId);
+        if (dsId != null)
+            writer.name("id").value(dsId);
+        
         writer.name("name").value(dsInfo.getName());
         
         if (dsInfo.getDescription() != null)
             writer.name("description").value(dsInfo.getDescription());
         
-        writer.name("system@id").value(sysId);
-        writer.name("system@link");
-        writeLink(writer,
-            "/" + SystemHandler.NAMES[0] + "/" + sysId,
-            dsInfo.getSystemID().getUniqueID(),
-            ResourceFormat.GEOJSON);
+        if (sysId != null)
+        {
+            writer.name("system@id").value(sysId);
+            writer.name("system@link");
+            writeLink(writer, dsInfo.getSystemID(), SystemHandler.class);
+        }
         
         writer.name("outputName").value(dsInfo.getOutputName());
         
         writer.name("validTime");
         geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
-
+        
+        // procedure
+        var procRef = dsInfo.getProcedure();
+        if (procRef != null)
+        {
+            writer.name("procedure@link");
+            writeLink(writer, procRef, ProcedureHandler.class);
+        }
+        
+        // deployment
+        var deplRef = dsInfo.getDeployment();
+        if (deplRef != null)
+        {
+            writer.name("deployment@link");
+            writeLink(writer, deplRef, DeploymentHandler.class);
+        }
+        
+        // ultimate foi
+        var foiRef = dsInfo.getFeatureOfInterest();
+        if (foiRef != null)
+        {
+            writer.name("featureOfInterest@link");
+            writeLink(writer, foiRef, FeatureHandler.class);
+        }
+        
+        // sampling feature
+        var sfRef = dsInfo.getSamplingFeature();
+        if (sfRef != null)
+        {
+            writer.name("samplingFeature@link");
+            writeLink(writer, sfRef, FoiHandler.class);
+        }
+        
         if (dsInfo.getPhenomenonTimeRange() != null)
         {
             writer.name("phenomenonTime");
@@ -244,29 +307,42 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
             writer.endArray();
         }
         
-        // observed properties
-        writer.name("observedProperties").beginArray();
-        for (var prop: SWECommonUtils.getProperties(dsInfo.getRecordStructure()))
+        if (expandSchema)
         {
-            writer.beginObject();
-            if (prop.getDefinition() != null)
-                writer.name("definition").value(prop.getDefinition());
-            if (prop.getLabel() != null)
-                writer.name("label").value(prop.getLabel());
-            if (prop.getDescription() != null)
-                writer.name("description").value(prop.getDescription());
-            writer.endObject();
+            writer.name("schema");
+            ResourceBindingJson<DataStreamKey, IDataStreamInfo> schemaBinding;
+            if (dsInfo.getRecordEncoding() instanceof BinaryEncoding)
+                schemaBinding = new DataStreamSchemaBindingSweCommon(ResourceFormat.SWE_BINARY, ctx, idEncoders, writer);
+            else
+                schemaBinding = new DataStreamSchemaBindingOmJson(ctx, idEncoders, writer);
+            schemaBinding.serialize(null, dsInfo, false);
         }
-        writer.endArray();
-        
-        // result type
-        writer.name("resultType").value(getResultType(dsInfo.getRecordStructure()).toString());
-        
-        // available formats
-        writer.name("formats").beginArray();
-        for (var f: SWECommonUtils.getAvailableFormats(dsInfo, customFormats))
-            writer.value(f);
-        writer.endArray();
+        else
+        {
+            // observed properties
+            writer.name("observedProperties").beginArray();
+            for (var prop: SWECommonUtils.getProperties(dsInfo.getRecordStructure()))
+            {
+                writer.beginObject();
+                if (prop.getDefinition() != null)
+                    writer.name("definition").value(prop.getDefinition());
+                if (prop.getLabel() != null)
+                    writer.name("label").value(prop.getLabel());
+                if (prop.getDescription() != null)
+                    writer.name("description").value(prop.getDescription());
+                writer.endObject();
+            }
+            writer.endArray();
+            
+            // result type
+            writer.name("resultType").value(getResultType(dsInfo.getRecordStructure()).toString());
+            
+            // available formats
+            writer.name("formats").beginArray();
+            for (var f: SWECommonUtils.getAvailableFormats(dsInfo, customFormats))
+                writer.value(f);
+            writer.endArray();
+        }
         
         // links
         if (showLinks)

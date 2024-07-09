@@ -179,10 +179,7 @@ public class CommandStreamBindingJson extends ResourceBindingJson<CommandStreamK
         
         writer.name("system@id").value(sysId);
         writer.name("system@link");
-        writeLink(writer,
-            "/" + SystemHandler.NAMES[0] + "/" + sysId,
-            csInfo.getSystemID().getUniqueID(),
-            ResourceFormat.GEOJSON);
+        writeLink(writer, csInfo.getSystemID(), SystemHandler.class);
         
         writer.name("inputName").value(csInfo.getControlInputName());
         
