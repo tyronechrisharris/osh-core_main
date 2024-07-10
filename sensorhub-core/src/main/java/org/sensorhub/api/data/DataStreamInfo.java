@@ -47,17 +47,31 @@ public class DataStreamInfo implements IDataStreamInfo
     protected String name;
     protected String description;
     protected FeatureId systemID;
-    protected DataComponent recordStruct;
-    protected DataEncoding recordEncoding;
+    protected FeatureId procedureID;
+    protected FeatureId deploymentID;
+    protected FeatureId featureOfInterestID;
+    protected FeatureId samplingFeatureID;
     protected TimeExtent validTime;
     protected Duration phenomenonTimeInterval;
     protected Duration resultTimeInterval;
-    protected FeatureId procedure;
-    protected FeatureId deployment;
-    protected FeatureId featureOfInterest;
-    protected FeatureId samplingFeature;
-
-
+    protected DataComponent recordStruct;
+    protected DataEncoding recordEncoding;
+    
+    
+    @Override
+    public String getName()
+    {
+        return name;
+    }
+    
+    
+    @Override
+    public String getDescription()
+    {
+        return description;
+    }
+    
+    
     @Override
     public FeatureId getSystemID()
     {
@@ -70,19 +84,82 @@ public class DataStreamInfo implements IDataStreamInfo
     {
         return recordStruct.getName();
     }
+    
+    
+    @Override
+    public FeatureId getProcedureID()
+    {
+        return procedureID;
+    }
 
 
     @Override
-    public String getName()
+    public FeatureId getDeploymentID()
     {
-        return name;
+        return deploymentID;
+    }
+
+
+    @Override
+    public FeatureId getFeatureOfInterestID()
+    {
+        return featureOfInterestID;
+    }
+
+
+    @Override
+    public FeatureId getSamplingFeatureID()
+    {
+        return samplingFeatureID;
+    }
+
+
+    @Override
+    public TimeExtent getValidTime()
+    {
+        return validTime;
+    }
+
+
+    @Override
+    public TimeExtent getPhenomenonTimeRange()
+    {
+        return null;
     }
     
     
     @Override
-    public String getDescription()
+    public Duration getPhenomenonTimeInterval()
     {
-        return description;
+        return phenomenonTimeInterval;
+    }
+
+
+    @Override
+    public TimeExtent getResultTimeRange()
+    {
+        return null;
+    }
+
+
+    @Override
+    public Duration getResultTimeInterval()
+    {
+        return resultTimeInterval;
+    }
+
+
+    @Override
+    public boolean hasDiscreteResultTimes()
+    {
+        return false;
+    }
+
+
+    @Override
+    public Map<Instant, TimeExtent> getDiscreteResultTimes()
+    {
+        return Collections.emptyMap();
     }
 
 
@@ -97,55 +174,6 @@ public class DataStreamInfo implements IDataStreamInfo
     public DataEncoding getRecordEncoding()
     {
         return recordEncoding;
-    }
-
-
-    @Override
-    public TimeExtent getValidTime()
-    {
-        return validTime;
-    }
-    
-    
-    @Override
-    public Duration getPhenomenonTimeInterval()
-    {
-        return phenomenonTimeInterval;
-    }
-
-
-    @Override
-    public Duration getResultTimeInterval()
-    {
-        return resultTimeInterval;
-    }
-    
-    
-    @Override
-    public FeatureId getProcedure()
-    {
-        return procedure;
-    }
-
-
-    @Override
-    public FeatureId getDeployment()
-    {
-        return deployment;
-    }
-
-
-    @Override
-    public FeatureId getFeatureOfInterest()
-    {
-        return featureOfInterest;
-    }
-
-
-    @Override
-    public FeatureId getSamplingFeature()
-    {
-        return samplingFeature;
     }
 
 
@@ -185,10 +213,10 @@ public class DataStreamInfo implements IDataStreamInfo
             instance.validTime = base.getValidTime();
             instance.phenomenonTimeInterval = base.getPhenomenonTimeInterval();
             instance.resultTimeInterval = base.getResultTimeInterval();
-            instance.procedure = base.getProcedure();
-            instance.deployment = base.getDeployment();
-            instance.featureOfInterest = base.getFeatureOfInterest();
-            instance.samplingFeature = base.getSamplingFeature();
+            instance.procedureID = base.getProcedureID();
+            instance.deploymentID = base.getDeploymentID();
+            instance.featureOfInterestID = base.getFeatureOfInterestID();
+            instance.samplingFeatureID = base.getSamplingFeatureID();
             return (B)this;
         }
         
@@ -249,30 +277,30 @@ public class DataStreamInfo implements IDataStreamInfo
         }
 
 
-        public B withDeployment(FeatureId foiID)
+        public B withDeployment(FeatureId deplID)
         {
-            instance.deployment = foiID;
+            instance.deploymentID = deplID;
             return (B)this;
         }
 
 
-        public B withProcedure(FeatureId foiID)
+        public B withProcedure(FeatureId procID)
         {
-            instance.procedure = foiID;
+            instance.procedureID = procID;
             return (B)this;
         }
 
 
         public B withFeatureOfInterest(FeatureId foiID)
         {
-            instance.featureOfInterest = foiID;
+            instance.featureOfInterestID = foiID;
             return (B)this;
         }
 
 
-        public B withSamplingFeature(FeatureId foiID)
+        public B withSamplingFeature(FeatureId sfID)
         {
-            instance.samplingFeature = foiID;
+            instance.samplingFeatureID = sfID;
             return (B)this;
         }
 
@@ -287,33 +315,5 @@ public class DataStreamInfo implements IDataStreamInfo
             Asserts.checkNotNull(instance.recordEncoding, "recordEncoding");
             return super.build();
         }
-    }
-
-
-    @Override
-    public TimeExtent getPhenomenonTimeRange()
-    {
-        return null;
-    }
-
-
-    @Override
-    public TimeExtent getResultTimeRange()
-    {
-        return null;
-    }
-
-
-    @Override
-    public boolean hasDiscreteResultTimes()
-    {
-        return false;
-    }
-
-
-    @Override
-    public Map<Instant, TimeExtent> getDiscreteResultTimes()
-    {
-        return Collections.emptyMap();
     }
 }

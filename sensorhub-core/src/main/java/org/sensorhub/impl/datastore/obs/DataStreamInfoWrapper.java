@@ -133,26 +133,26 @@ public abstract class DataStreamInfoWrapper implements IDataStreamInfo
     }
 
 
-    public FeatureId getFeatureOfInterest()
+    public FeatureId getFeatureOfInterestID()
     {
-        return delegate.getFeatureOfInterest();
+        return delegate.getFeatureOfInterestID();
     }
 
 
-    public FeatureId getSamplingFeature()
+    public FeatureId getSamplingFeatureID()
     {
-        return delegate.getSamplingFeature();
+        return delegate.getSamplingFeatureID();
     }
 
 
-    public FeatureId getProcedure()
+    public FeatureId getProcedureID()
     {
-        return delegate.getProcedure();
+        return delegate.getProcedureID();
     }
 
 
-    public FeatureId getDeployment()
+    public FeatureId getDeploymentID()
     {
-        return delegate.getDeployment();
+        return delegate.getDeploymentID();
     }
 }

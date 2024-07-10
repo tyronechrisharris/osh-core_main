@@ -42,10 +42,10 @@ public class DataStreamInfoSerializerV4 extends FieldSerializer<DataStreamInfo>
         // remove class attributes missing from older version of the class
         this.removeField("phenomenonTimeInterval");
         this.removeField("resultTimeInterval");
-        this.removeField("procedure");
-        this.removeField("deployment");
-        this.removeField("featureOfInterest");
-        this.removeField("samplingFeature");
+        this.removeField("procedureID");
+        this.removeField("deploymentID");
+        this.removeField("featureOfInterestID");
+        this.removeField("samplingFeatureID");
     }
 
 }

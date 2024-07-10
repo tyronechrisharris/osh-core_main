@@ -256,7 +256,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         geojsonBindings.writeTimeExtent(writer, dsInfo.getValidTime());
         
         // procedure
-        var procRef = dsInfo.getProcedure();
+        var procRef = dsInfo.getProcedureID();
         if (procRef != null)
         {
             writer.name("procedure@link");
@@ -264,7 +264,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         }
         
         // deployment
-        var deplRef = dsInfo.getDeployment();
+        var deplRef = dsInfo.getDeploymentID();
         if (deplRef != null)
         {
             writer.name("deployment@link");
@@ -272,7 +272,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         }
         
         // ultimate foi
-        var foiRef = dsInfo.getFeatureOfInterest();
+        var foiRef = dsInfo.getFeatureOfInterestID();
         if (foiRef != null)
         {
             writer.name("featureOfInterest@link");
@@ -280,7 +280,7 @@ public class DataStreamBindingJson extends ResourceBindingJson<DataStreamKey, ID
         }
         
         // sampling feature
-        var sfRef = dsInfo.getSamplingFeature();
+        var sfRef = dsInfo.getSamplingFeatureID();
         if (sfRef != null)
         {
             writer.name("samplingFeature@link");

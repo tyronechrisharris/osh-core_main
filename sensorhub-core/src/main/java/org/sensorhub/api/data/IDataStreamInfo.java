@@ -114,21 +114,21 @@ public interface IDataStreamInfo extends IResource
      * @return A reference to the ultimate feature of interest associated to this datastream.
      * (only provided if all observations in the datastream share the same feature of interest)
      */
-    FeatureId getFeatureOfInterest();
+    FeatureId getFeatureOfInterestID();
     
     
     /**
      * @return A reference to the sampling feature associated to this datastream.
      * (only provided if all observations in the datastream share the same sampling feature)
      */
-    FeatureId getSamplingFeature();
+    FeatureId getSamplingFeatureID();
     
     
     /**
      * @return A reference to the procedure associated to this datastream.
      * (only provided if all observations in the datastream share the same procedure)
      */
-    FeatureId getProcedure();
+    FeatureId getProcedureID();
     
     
     /**
@@ -136,6 +136,6 @@ public interface IDataStreamInfo extends IResource
      * (only provided if all observations in the datastream were produced during the
      * same deployment)
      */
-    FeatureId getDeployment();
+    FeatureId getDeploymentID();
 
 }
