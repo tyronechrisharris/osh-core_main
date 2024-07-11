@@ -72,17 +72,17 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
     
     protected DomContent getAlternateFormats()
     {
-        var geoJsonQueryParams = new HashMap<>(ctx.getParameterMap());
-        geoJsonQueryParams.remove("format"); // remove format in case it's set
-        geoJsonQueryParams.put("f", new String[] {ResourceFormat.JSON.getMimeType()});
+        var originalQueryParams = new HashMap<>(ctx.getParameterMap());
+        originalQueryParams.remove("format"); // remove format in case it's set
         
-        var smlJsonQueryParams = new HashMap<>(ctx.getParameterMap());
-        smlJsonQueryParams.remove("format"); // remove format in case it's set
-        smlJsonQueryParams.put("f", new String[] {ResourceFormat.SML_JSON.getMimeType()});
+        var geoJsonQueryParams = new HashMap<>(originalQueryParams);
+        geoJsonQueryParams.put("f", new String[] {ResourceFormat.SHORT_GEOJSON});
         
-        var smlXmlQueryParams = new HashMap<>(ctx.getParameterMap());
-        smlXmlQueryParams.remove("format"); // remove format in case it's set
-        smlXmlQueryParams.put("f", new String[] {ResourceFormat.SML_XML.getMimeType()});
+        var smlJsonQueryParams = new HashMap<>(originalQueryParams);
+        smlJsonQueryParams.put("f", new String[] {ResourceFormat.SHORT_SMLJSON});
+        
+        var smlXmlQueryParams = new HashMap<>(originalQueryParams);
+        smlXmlQueryParams.put("f", new String[] {ResourceFormat.SHORT_SMLXML});
         
         return span(
             a("GeoJSON").withHref(ctx.getRequestUrlWithQuery(geoJsonQueryParams)),

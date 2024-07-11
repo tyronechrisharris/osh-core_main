@@ -23,6 +23,12 @@ import net.opengis.swe.v20.DataEncoding;
 
 public class ResourceFormat
 {
+    public static String SHORT_JSON = "json";
+    public static String SHORT_GEOJSON = "geojson";
+    public static String SHORT_SMLJSON = "sml3";
+    public static String SHORT_SMLXML = "sml2";
+    public static String SHORT_HTML = "html";
+    
     public static ResourceFormat HTML = new ResourceFormat("text/html");
     public static ResourceFormat JSON = new ResourceFormat("application/json");
     public static ResourceFormat GEOJSON = new ResourceFormat(GeoJsonBindings.MIME_TYPE);
@@ -56,6 +62,23 @@ public class ResourceFormat
             return null;
         
         return new ResourceFormat(mimeType);
+    }
+    
+    
+    public static ResourceFormat fromShortName(String format)
+    {
+        if (SHORT_JSON.equals(format))
+            return ResourceFormat.JSON;
+        else if (SHORT_GEOJSON.equals(format))
+            return ResourceFormat.GEOJSON;
+        else if (SHORT_SMLJSON.equals(format))
+            return ResourceFormat.SML_JSON;
+        else if (SHORT_SMLXML.equals(format))
+            return ResourceFormat.SML_XML;
+        else if (SHORT_HTML.equals(format))
+            return ResourceFormat.HTML;
+        else
+            return null;
     }
     
     

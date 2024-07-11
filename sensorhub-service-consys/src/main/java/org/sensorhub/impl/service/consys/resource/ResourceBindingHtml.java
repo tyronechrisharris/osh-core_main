@@ -175,7 +175,7 @@ public abstract class ResourceBindingHtml<K, V> extends ResourceBinding<K, V>
     {
         var jsonQueryParams = new HashMap<>(ctx.getParameterMap());
         jsonQueryParams.remove("format"); // remove format in case it's set
-        jsonQueryParams.put("f", new String[] {ResourceFormat.JSON.getMimeType()});
+        jsonQueryParams.put("f", new String[] {ResourceFormat.SHORT_JSON});
         
         return span(
             a("JSON").withHref(ctx.getRequestUrlWithQuery(jsonQueryParams))

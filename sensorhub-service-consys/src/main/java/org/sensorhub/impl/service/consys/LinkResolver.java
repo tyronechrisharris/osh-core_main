@@ -24,7 +24,6 @@ import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.ogc.xlink.IXlinkReference;
-import net.opengis.OgcProperty;
 
 
 public class LinkResolver
@@ -122,7 +121,7 @@ public class LinkResolver
         synchronized(link)
         {
             // resolve URN to URL
-            if (link instanceof OgcProperty && link != null && link.getHref() != null && link.getHref().startsWith("urn"))
+            if (link != null && link.getHref() != null && link.getHref().startsWith("urn"))
             {
                 // try to resolve as System
                 if (db instanceof IObsSystemDatabase && ((IObsSystemDatabase)db).getSystemDescStore() != null)

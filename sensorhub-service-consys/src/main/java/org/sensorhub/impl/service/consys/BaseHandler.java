@@ -146,14 +146,11 @@ public abstract class BaseHandler implements IResourceHandler
         var format = formats[0];
         
         // convert short format names
-        if ("sml".equals(format))
-            return ResourceFormat.SML_JSON;
-        else if ("json".equals(format))
-            return ResourceFormat.JSON;
-        else if ("html".equals(format))
-            return ResourceFormat.HTML;
-        else
-            return format != null ? ResourceFormat.fromMimeType(format) : null;
+        var resFormat = ResourceFormat.fromShortName(format);
+        if (resFormat == null)
+            resFormat = ResourceFormat.fromMimeType(format);
+        
+        return resFormat;
     }
     
     

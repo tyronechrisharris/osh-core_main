@@ -116,7 +116,8 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
         
         var jsonQueryParams = new HashMap<>(ctx.getParameterMap());
         jsonQueryParams.remove("format"); // remove format in case it's set
-        jsonQueryParams.put("f", new String[] {ResourceFormat.JSON.getMimeType()});
+        jsonQueryParams.remove("f");
+        jsonQueryParams.put("f", new String[] {ResourceFormat.SHORT_GEOJSON});
         String geojsonUrl = ctx.getRequestUrlWithQuery(jsonQueryParams);
         
         // start 2-columns
@@ -189,6 +190,20 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
         html.appendEndTag("div");
         html.appendEndTag("div");
         super.writeFooter();
+    }
+    
+    
+    protected DomContent getAlternateFormats()
+    {
+        var originalQueryParams = new HashMap<>(ctx.getParameterMap());
+        originalQueryParams.remove("format"); // remove format in case it's set
+        
+        var geoJsonQueryParams = new HashMap<>(originalQueryParams);
+        geoJsonQueryParams.put("f", new String[] {ResourceFormat.SHORT_GEOJSON});
+        
+        return span(
+            a("GeoJSON").withHref(ctx.getRequestUrlWithQuery(geoJsonQueryParams))
+        );
     }
     
     
@@ -314,8 +329,8 @@ public abstract class AbstractFeatureBindingHtml<V extends IFeature, DB extends 
                     LinkResolver.resolveLink(ctx, link, db, idEncoders);
                     
                     String title = link.getTitle();
-                    if (title == null && link.getRole() != null)
-                        title = link.getRole();
+                    if (title == null && link.getTargetUID() != null)
+                        title = link.getTargetUID();
                     if (title == null)
                         title = link.getHref();
                     
