@@ -23,7 +23,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import org.sensorhub.api.common.IdEncoders;
-import org.sensorhub.api.feature.ExternalFeatureId;
+import org.sensorhub.api.feature.FeatureLink;
 import org.sensorhub.api.feature.FeatureId;
 import org.sensorhub.impl.service.consys.ServiceErrors;
 import org.sensorhub.impl.service.consys.deployment.DeploymentHandler;
@@ -34,11 +34,11 @@ import org.sensorhub.impl.service.consys.procedure.ProcedureHandler;
 import org.sensorhub.impl.service.consys.system.SystemHandler;
 import org.vast.json.JsonInliningWriter;
 import org.vast.ogc.gml.GeoJsonBindings;
+import org.vast.ogc.xlink.ExternalLink;
+import org.vast.ogc.xlink.XlinkUtils;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import net.opengis.gml.v32.Reference;
-import net.opengis.gml.v32.impl.ReferenceImpl;
 
 
 /**
@@ -194,11 +194,11 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
     
     protected void writeLink(JsonWriter writer, FeatureId featureRef, Class<?> resourceClass) throws IOException
     {
-        Reference ref;
+        ExternalLink link;
         
-        if (featureRef instanceof ExternalFeatureId)
+        if (featureRef instanceof FeatureLink)
         {
-            ref = ((ExternalFeatureId)featureRef).getReference();
+            link = ((FeatureLink)featureRef).getLink();
         }
         else
         {
@@ -216,21 +216,21 @@ public abstract class ResourceBindingJson<K, V> extends ResourceBinding<K, V>
             else
                 throw new IOException("Unsupported link target: " + resourceClass.getSimpleName());
             
-            ref = new ReferenceImpl();
-            ref.setHref(getAbsoluteHref(href + "?f=json"));
-            ref.setName(featureRef.getUniqueID());
-            ref.setRemoteSchema(ResourceFormat.GEOJSON.getMimeType());
+            link = new ExternalLink();
+            link.setHref(getAbsoluteHref(href + "?f=json"));
+            link.setTargetUID(featureRef.getUniqueID());
+            link.setMediaType(ResourceFormat.GEOJSON.getMimeType());
         }
         
         // TODO but need ref to db LinkResolver.resolveLink(ctx, ref, db, idEncoders);
-        geojsonBindings.writeLink(writer, ref);
+        XlinkUtils.writeLink(writer, link);
     }
     
     
-    protected FeatureId readFeatureRef(JsonReader reader)
+    protected FeatureId readFeatureRef(JsonReader reader) throws IOException
     {
-        var ref = geojsonBindings.readLink(reader);
-        return new ExternalFeatureId(ref);
+        var link = XlinkUtils.readLink(reader, new ExternalLink());
+        return new FeatureLink(link);
     }
     
     

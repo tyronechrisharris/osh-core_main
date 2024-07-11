@@ -29,6 +29,7 @@ import org.sensorhub.impl.service.consys.LinkResolver;
 import org.sensorhub.impl.service.consys.feature.AbstractFeatureBindingHtml;
 import org.sensorhub.impl.service.consys.resource.RequestContext;
 import org.sensorhub.impl.service.consys.resource.ResourceFormat;
+import org.vast.ogc.xlink.IXlinkReference;
 import org.vast.sensorML.helper.CommonIdentifiers;
 import com.google.common.base.Charsets;
 import j2html.tags.DomContent;
@@ -327,7 +328,7 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
                 if (depl.getPlatform() != null)
                 {
                     var ref = depl.getPlatform().getSystemRef();
-                    if (ref.hasHref())
+                    if (ref.getHref() != null)
                     {
                         var content = getComponentLink(ref, true);
                         getAccordionItem("Platform", true, content).render(html);
@@ -523,29 +524,29 @@ public abstract class SmlFeatureBindingHtml<V extends ISmlFeature<?>, DB extends
         }
         
         String title = ref.getTitle();
-        if (title == null && ref.getName() != null)
-            title = ref.getName();
+        if (title == null && ref.getTargetUID() != null)
+            title = ref.getTargetUID();
         if (title == null)
             title = ref.getHref();
         return a(title).withHref(ref.getHref());
     }
     
     
-    DomContent getComponentLink(OgcProperty<?> ref)
+    DomContent getComponentLink(IXlinkReference<?> ref)
     {
         return getComponentLink(ref, false);
     }
     
     
-    DomContent getComponentLink(OgcProperty<?> ref, boolean useTitle)
+    DomContent getComponentLink(IXlinkReference<?> ref, boolean useTitle)
     {
         if (db instanceof IObsSystemDatabase) {
             LinkResolver.resolveSystemLink(ctx, ref, (IObsSystemDatabase)db, idEncoders);
         }
         
         String title = useTitle ? ref.getTitle(): null;
-        if (title == null && ref.getRole() != null)
-            title = ref.getRole();
+        if (title == null && ref.getTargetUID() != null)
+            title = ref.getTargetUID();
         if (title == null)
             title = ref.getHref();
         return a(title).withHref(ref.getHref());

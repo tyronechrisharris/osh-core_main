@@ -38,7 +38,7 @@ public class LinkResolver
         synchronized(link)
         {
             // resolve URN to URL
-            if (link instanceof OgcProperty && link.getHref() != null && link.getHref().startsWith("urn") && db.getProcedureStore() != null)
+            if (link.getHref() != null && link.getHref().startsWith("urn") && db.getProcedureStore() != null)
             {
                 var urnParts = extractFragment(link.getHref());
                 var urn = urnParts[0];
@@ -47,7 +47,7 @@ public class LinkResolver
                 var procKey = db.getProcedureStore().getCurrentVersionKey(urn);
                 if (procKey != null)
                 {
-                    ((OgcProperty<?>)link).setName(urn);
+                    link.setTargetUID(urn);
                     var procId = idEncoders.getProcedureIdEncoder().encodeID(procKey.getInternalID());
                     link.setHref(ctx.getApiRootURL() + "/" + ProcedureHandler.NAMES[0] + "/" + procId + fragment);
                     return true;
@@ -67,7 +67,7 @@ public class LinkResolver
         synchronized(link)
         {
             // resolve URN to URL
-            if (link instanceof OgcProperty && link.getHref() != null && link.getHref().startsWith("urn") && db.getSystemDescStore() != null)
+            if (link.getHref() != null && link.getHref().startsWith("urn") && db.getSystemDescStore() != null)
             {
                 var urnParts = extractFragment(link.getHref());
                 var urn = urnParts[0];
@@ -76,7 +76,7 @@ public class LinkResolver
                 var sysKey = db.getSystemDescStore().getCurrentVersionKey(urn);
                 if (sysKey != null)
                 {
-                    ((OgcProperty<?>)link).setName(urn);
+                    link.setTargetUID(urn);
                     var procId = idEncoders.getSystemIdEncoder().encodeID(sysKey.getInternalID());
                     link.setHref(ctx.getApiRootURL() + "/" + SystemHandler.NAMES[0] + "/" + procId + fragment);
                     return true;
@@ -96,7 +96,7 @@ public class LinkResolver
         synchronized(link)
         {
             // resolve URN to URL
-            if (link instanceof OgcProperty && link.getHref() != null && link.getHref().startsWith("urn") && db.getFeatureStore() != null)
+            if (link.getHref() != null && link.getHref().startsWith("urn") && db.getFeatureStore() != null)
             {
                 var urnParts = extractFragment(link.getHref());
                 var urn = urnParts[0];
@@ -105,7 +105,7 @@ public class LinkResolver
                 var fKey = db.getFeatureStore().getCurrentVersionKey(urn);
                 if (fKey != null)
                 {
-                    ((OgcProperty<?>)link).setName(urn);
+                    link.setTargetUID(urn);
                     var fid = idEncoders.getFeatureIdEncoder().encodeID(fKey.getInternalID());
                     link.setHref(ctx.getApiRootURL() + "/" + FoiHandler.NAMES[0] + "/" + fid + fragment);
                     return true;

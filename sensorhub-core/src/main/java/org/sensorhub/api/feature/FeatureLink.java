@@ -16,36 +16,39 @@ package org.sensorhub.api.feature;
 
 import java.util.Objects;
 import org.sensorhub.api.utils.OshAsserts;
+import org.vast.ogc.xlink.ExternalLink;
 import org.vast.util.Asserts;
-import net.opengis.gml.v32.Reference;
 
 
-public class ExternalFeatureId extends FeatureId
+public class FeatureLink extends FeatureId
 {
-    protected final Reference ref;
+    protected final ExternalLink link;
 
 
-    public ExternalFeatureId(Reference ref)
+    public FeatureLink(ExternalLink link)
     {
-        this.ref = Asserts.checkNotNull(ref, Reference.class);
-        OshAsserts.checkValidURI(ref.getHref());
-    }
-    
-    
-    public ExternalFeatureId(Reference ref, String uid)
-    {
-        this.ref = Asserts.checkNotNull(ref, Reference.class);
-        OshAsserts.checkValidURI(ref.getHref());
-        this.uniqueID = OshAsserts.checkValidUID(uid);
+        this.link = Asserts.checkNotNull(link, ExternalLink.class);
+        OshAsserts.checkValidURI(link.getHref());
     }
     
     
     /**
-     * @return The feature external reference
+     * @return The link to the external feature entity
      */
-    public Reference getReference()
+    public ExternalLink getLink()
     {
-        return ref;
+        return link;
+    }
+    
+    
+    @Override
+    public String getUniqueID()
+    {
+        if (uniqueID != null)
+            return uniqueID;
+        else if (link != null)
+            return link.getTargetUID();
+        return null;
     }
 
 
@@ -53,7 +56,7 @@ public class ExternalFeatureId extends FeatureId
     public int hashCode()
     {
         return java.util.Objects.hash(
-                getReference().getHref(),
+                getLink().getHref(),
                 getUniqueID());
     }
 
@@ -61,11 +64,11 @@ public class ExternalFeatureId extends FeatureId
     @Override
     public boolean equals(Object obj)
     {
-        if (obj == null || !(obj instanceof ExternalFeatureId))
+        if (obj == null || !(obj instanceof FeatureLink))
             return false;
 
-        ExternalFeatureId other = (ExternalFeatureId)obj;
-        return Objects.equals(getReference().getHref(), other.getReference().getHref()) &&
+        FeatureLink other = (FeatureLink)obj;
+        return Objects.equals(getLink().getHref(), other.getLink().getHref()) &&
                Objects.equals(getUniqueID(), other.getUniqueID());
     }
 
@@ -73,6 +76,6 @@ public class ExternalFeatureId extends FeatureId
     @Override
     public String toString()
     {
-        return uniqueID + " (" + getReference().getHref() + ")";
+        return getUniqueID() + " (" + getLink().getHref() + ")";
     }
 }
