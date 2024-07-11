@@ -113,14 +113,14 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                     links.add(new ResourceLink.Builder()
                         .rel("alternate")
                         .title("Detailed description of system in SensorML format")
-                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId() + "?f=sml")
+                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_SMLJSON)
                         .type(ResourceFormat.SML_JSON.getMimeType())
                         .build());
                     
                     links.add(new ResourceLink.Builder()
                         .rel("alternate")
                         .title("Detailed description of system in HTML format")
-                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId() + "?f=html")
+                        .href("/" + SystemHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_HTML)
                         .type(ResourceFormat.HTML.getMimeType())
                         .build());
                     
@@ -128,15 +128,15 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .rel("subsystems")
                         .title("List of subsystems")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + SystemMembersHandler.NAMES[0] + "?f=json")
-                        .type(ResourceFormat.JSON.getMimeType())
+                            bean.getId() + "/" + SystemMembersHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_GEOJSON)
+                        .type(ResourceFormat.GEOJSON.getMimeType())
                         .build());
                     
                     links.add(new ResourceLink.Builder()
                         .rel("datastreams")
                         .title("List of system datastreams")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + DataStreamHandler.NAMES[0] + "?f=json")
+                            bean.getId() + "/" + DataStreamHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_JSON)
                         .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
@@ -144,7 +144,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .rel("controlstreams")
                         .title("List of system controlstreams")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + CommandStreamHandler.NAMES[0] + "?f=json")
+                            bean.getId() + "/" + CommandStreamHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_JSON)
                         .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     
@@ -152,7 +152,7 @@ public class SystemBindingGeoJson extends AbstractFeatureBindingGeoJson<ISystemW
                         .rel("samplingFeatures")
                         .title("List of system sampling features")
                         .href("/" + SystemHandler.NAMES[0] + "/" +
-                            bean.getId() + "/" + FoiHandler.NAMES[0] + "?f=json")
+                            bean.getId() + "/" + FoiHandler.NAMES[0] + "?f=" + ResourceFormat.SHORT_GEOJSON)
                         .type(ResourceFormat.JSON.getMimeType())
                         .build());
                     

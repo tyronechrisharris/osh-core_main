@@ -120,14 +120,14 @@ public class DeploymentBindingGeoJson extends AbstractFeatureBindingGeoJson<IDep
                     links.add(new ResourceLink.Builder()
                         .rel("alternate")
                         .title("Detailed description of deployment in SensorML format")
-                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId() + "?f=sml")
+                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_SMLJSON)
                         .type(ResourceFormat.SML_JSON.getMimeType())
                         .build());
                     
                     links.add(new ResourceLink.Builder()
                         .rel("alternate")
                         .title("Detailed description of deployment in HTML format")
-                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId() + "?f=html")
+                        .href("/" + DeploymentHandler.NAMES[0] + "/" + bean.getId() + "?f=" + ResourceFormat.SHORT_HTML)
                         .type(ResourceFormat.HTML.getMimeType())
                         .build());
                     
