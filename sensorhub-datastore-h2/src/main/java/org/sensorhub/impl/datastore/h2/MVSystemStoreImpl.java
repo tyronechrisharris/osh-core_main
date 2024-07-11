@@ -163,7 +163,7 @@ public class MVSystemStoreImpl extends MVBaseFeatureStoreImpl<ISystemWithDesc, S
                        return false;
                    return (typeOf.getHref() != null && procUIDs.contains(typeOf.getHref())) ||
                           (typeOf.getTitle() != null && procUIDs.contains(typeOf.getTitle())) ||
-                          (typeOf.getRole() != null && procUIDs.contains(typeOf.getRole()));
+                          (typeOf.getTargetUID() != null && procUIDs.contains(typeOf.getTargetUID()));
                });
         }
         
