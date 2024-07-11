@@ -85,23 +85,28 @@ public class ConSysApiService extends AbstractHttpServiceModule<ConSysApiService
         "http://www.opengis.net/spec/ogcapi-features-4/1.0/conf/create-replace-delete",
         
         "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/core",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/system-features",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/procedure-features",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/deployment-features",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/sampling-features",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/resource-crud",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/encoding/geojson",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/encoding/sensorml",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/system",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/subsystem",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/procedure",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/deployment",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/sf",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/property",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/create-replace-delete",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/geojson",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-1/1.0/conf/sensorml",
         
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/datastream-resources",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/control-resources",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/datastream",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/controlstream",
         "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/system-history",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/system-events",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/resource-crud",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/encoding/json",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/encoding/swecommon",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/protocol/websocket",
-        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/protocol/mqtt"
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/system-event",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/create-replace-delete",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/json",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/swecommon-json",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/swecommon-text",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-2/1.0/conf/swecommon-binary",
+        
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-3/1.0/conf/websocket",
+        "http://www.opengis.net/spec/ogcapi-connectedsystems-3/1.0/conf/mqtt"
     );
 
 
